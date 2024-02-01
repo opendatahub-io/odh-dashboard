@@ -1,19 +1,20 @@
 import * as React from 'react';
-import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
-import { Skeleton } from '@patternfly/react-core';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { useNavigate } from 'react-router-dom';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
-import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
+import { CheckboxTd } from '~/components/table';
 import {
   RunCreated,
   RunDuration,
   CoreResourceExperiment,
-  CoreResourcePipeline,
+  CoreResourcePipelineVersion,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { GetJobInformation } from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
+import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
+import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
+import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -31,56 +32,38 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   getJobInformation,
 }) => {
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const { loading, data } = getJobInformation(run);
+  const { loading: isJobInfoLoading, data } = getJobInformation(run);
   const notification = useNotification();
   const navigate = useNavigate();
-
-  const loadingState = <Skeleton />;
+  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(data || run);
 
   return (
     <Tr>
       <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
-      <Td>
-        {loading ? (
-          loadingState
-        ) : (
-          <TableRowTitleDescription
-            title={
-              <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${run.id}`}>
-                <TableText wrapModifier="truncate">
-                  {data ? `Run of ${data.name}` : run.name}
-                </TableText>
-              </Link>
-            }
-            description={
-              data
-                ? `${run.name}\n${run.description ?? ''}\n${data.description ?? ''}`
-                : run.description
-            }
-            descriptionAsMarkdown
-          />
-        )}
+      <Td dataLabel="Name">
+        <PipelineRunTableRowTitle resource={run} />
       </Td>
-      <Td>
+      <Td dataLabel="Experiment">
         <CoreResourceExperiment resource={run} />
       </Td>
-      <Td modifier="truncate">
-        {loading ? (
-          loadingState
-        ) : (
-          <CoreResourcePipeline resource={data || run} namespace={namespace} />
-        )}
+      <Td modifier="truncate" dataLabel="Pipeline">
+        <CoreResourcePipelineVersion
+          resource={data || run}
+          loaded={!isJobInfoLoading && isVersionLoaded}
+          version={version}
+          error={error}
+        />
       </Td>
-      <Td>
+      <Td dataLabel="Created">
         <RunCreated run={run} />
       </Td>
-      <Td>
+      <Td dataLabel="Duration">
         <RunDuration run={run} />
       </Td>
-      <Td>
+      <Td dataLabel="Status">
         <RunStatus justIcon run={run} />
       </Td>
-      <Td isActionCell>
+      <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
             {

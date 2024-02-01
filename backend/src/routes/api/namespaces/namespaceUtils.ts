@@ -6,7 +6,7 @@ import {
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { isK8sStatus, passThrough } from '../k8s/pass-through';
+import { isK8sStatus, passThroughResource } from '../k8s/pass-through';
 
 const createSelfSubjectAccessReview = (
   fastify: KubeFastifyInstance,
@@ -20,7 +20,7 @@ const createSelfSubjectAccessReview = (
     kind: 'SelfSubjectAccessReview',
     spec: { resourceAttributes },
   };
-  return passThrough<V1SelfSubjectAccessReview>(fastify, request, {
+  return passThroughResource<V1SelfSubjectAccessReview>(fastify, request, {
     url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
     method: 'POST',
     requestData: JSON.stringify(selfSubjectAccessReviewObject),

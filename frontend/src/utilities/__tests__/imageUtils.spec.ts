@@ -17,9 +17,9 @@ import {
   BuildStatus,
   BUILD_PHASE,
   NameVersionPair,
-  NotebookContainer,
   ImageSoftwareType,
   ImageTag,
+  PodContainer,
 } from '~/types';
 
 describe('compareTagVersions', () => {
@@ -332,7 +332,7 @@ describe('getImageTagByContainer', () => {
       name: 'container1',
       image: 'registry.com/image1:tag2',
       env: [],
-    } as NotebookContainer;
+    } as PodContainer;
 
     const result = getImageTagByContainer(images, container) as ImageTag;
     expect(result).toEqual({ image: images[0], tag: images[0]?.tags[1] });
@@ -348,7 +348,7 @@ describe('getImageTagByContainer', () => {
       name: 'container2',
       image: 'registry.com/invalidImageFormat',
       env: [],
-    } as NotebookContainer;
+    } as PodContainer;
 
     const result: ImageTag = getImageTagByContainer(images, container);
 
@@ -378,7 +378,7 @@ describe('getImageTagByContainer', () => {
       createImage('image2', ['tag3', 'tag4']),
     ];
 
-    const container: NotebookContainer = {
+    const container: PodContainer = {
       name: 'container5',
       image: '',
       env: [],

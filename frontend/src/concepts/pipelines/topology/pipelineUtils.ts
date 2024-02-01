@@ -6,6 +6,14 @@ import {
 } from '~/k8sTypes';
 import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 
+export const getParamName = (param: string): string | null => {
+  const paramValueMatch = param.match(/^\$\((params\.([a-zA-Z0-9-_]+))\)/);
+  if (!paramValueMatch) {
+    return null;
+  }
+  return paramValueMatch[1].split('.')[1];
+};
+
 export const getNameAndPathFromTaskRef = (taskRef: string): [string, string] | null => {
   const match = taskRef.match(/\$\(tasks\.([a-z0-9-]+)\.(.+)\)/);
   if (!match) {

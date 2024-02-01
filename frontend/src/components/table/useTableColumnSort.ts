@@ -1,7 +1,58 @@
 import * as React from 'react';
-import { ThProps } from '@patternfly/react-table';
 import { GetColumnSort, SortableData } from './types';
 
+type TableColumnSortProps<DataType> = {
+  columns: SortableData<DataType>[];
+  sortDirection?: 'asc' | 'desc';
+  setSortDirection: (dir: 'asc' | 'desc') => void;
+};
+
+type TableColumnSortByFieldProps<DataType> = TableColumnSortProps<DataType> & {
+  sortField?: string;
+  setSortField: (field: string) => void;
+};
+
+type TableColumnSortByIndexProps<DataType> = TableColumnSortProps<DataType> & {
+  sortIndex?: number;
+  setSortIndex: (index: number) => void;
+};
+
+export const getTableColumnSort = <T>({
+  columns,
+  sortField,
+  setSortField,
+  ...sortProps
+}: TableColumnSortByFieldProps<T>): GetColumnSort =>
+  getTableColumnSortByIndex<T>({
+    columns,
+    sortIndex: columns.findIndex((c) => c.field === sortField),
+    setSortIndex: (index: number) => setSortField(String(columns[index].field)),
+    ...sortProps,
+  });
+
+const getTableColumnSortByIndex =
+  <T>({
+    columns,
+    sortIndex,
+    sortDirection,
+    setSortIndex,
+    setSortDirection,
+  }: TableColumnSortByIndexProps<T>): GetColumnSort =>
+  (columnIndex: number) =>
+    columns[columnIndex].sortable
+      ? {
+          sortBy: {
+            index: sortIndex,
+            direction: sortDirection,
+            defaultDirection: 'asc',
+          },
+          onSort: (_event, index, direction) => {
+            setSortIndex(index);
+            setSortDirection(direction);
+          },
+          columnIndex,
+        }
+      : undefined;
 /**
  * Using PF Composable Tables, this utility will help with handling sort logic.
  *
@@ -57,21 +108,13 @@ const useTableColumnSort = <T>(
         return compute() * (activeSortDirection === 'desc' ? -1 : 1);
       });
     },
-    getColumnSort: (columnIndex: number): ThProps['sort'] =>
-      !columns[columnIndex].sortable
-        ? undefined
-        : {
-            sortBy: {
-              index: activeSortIndex,
-              direction: activeSortDirection,
-              defaultDirection: 'asc',
-            },
-            onSort: (_event, index, direction) => {
-              setActiveSortIndex(index);
-              setActiveSortDirection(direction);
-            },
-            columnIndex,
-          },
+    getColumnSort: getTableColumnSortByIndex<T>({
+      columns,
+      sortDirection: activeSortDirection,
+      setSortDirection: setActiveSortDirection,
+      sortIndex: activeSortIndex,
+      setSortIndex: setActiveSortIndex,
+    }),
   };
 };
 

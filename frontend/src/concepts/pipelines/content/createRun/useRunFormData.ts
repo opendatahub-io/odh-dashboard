@@ -7,89 +7,24 @@ import {
   RunType,
   RunTypeOption,
   ScheduledType,
+  RunParam,
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
-  PipelineCoreResourceKF,
   PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
-  ResourceReferenceKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
-import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { FetchState } from '~/utilities/useFetchState';
-import { ValueOf } from '~/typeHelpers';
 import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString, convertSecondsToPeriodicTime } from '~/utilities/time';
-
-const isPipelineRunJob = (
-  runOrJob?: PipelineRunJobKF | PipelineRunKF,
-): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF | undefined)?.trigger;
-
-const useUpdateData = <T extends PipelineCoreResourceKF>(
-  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  run: T | null = null,
-  fieldId: keyof RunFormData,
-  referenceFnc: (run: T) => ResourceReferenceKF | undefined,
-  useFetchHookFnc: (id?: string) => FetchState<ValueOf<RunFormData>>,
-) => {
-  const reference = run ? referenceFnc(run) : undefined;
-  const [resource, loaded] = useFetchHookFnc(reference?.key.id);
-  const resourceRef = React.useRef<ValueOf<RunFormData>>(resource);
-  resourceRef.current = resource;
-  const setData = React.useCallback(() => {
-    if (loaded && resourceRef.current) {
-      setFunction(fieldId, resourceRef.current);
-    }
-  }, [fieldId, loaded, setFunction]);
-  React.useEffect(() => {
-    setData();
-  }, [setData]);
-};
-
-const useUpdatePipeline = (
-  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKF | PipelineRunJobKF,
-) => {
-  const updatedSetFunction = React.useCallback<UpdateObjectAtPropAndValue<RunFormData>>(
-    (key, resource) => {
-      setFunction(key, resource);
-      setFunction(
-        'params',
-        initialData?.pipeline_spec.parameters?.map((p) => ({
-          label: p.name,
-          value: p.value,
-        })) ?? [],
-      );
-    },
-    [setFunction, initialData?.pipeline_spec.parameters],
-  );
-  return useUpdateData(
-    updatedSetFunction,
-    initialData,
-    'pipeline',
-    getPipelineCoreResourcePipelineReference,
-    usePipelineById,
-  );
-};
-
-// const useUpdateExperiment = (
-//   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-//   initialData?: PipelineCoreResourceKF,
-// ) =>
-//   useUpdateData(
-//     setFunction,
-//     initialData,
-//     'experiment',
-//     getPipelineCoreResourceExperimentReference,
-//     useExperimentById,
-//   );
+import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 
 const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   if (!kfTime) {
@@ -101,7 +36,7 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   return { date, time: time ?? DEFAULT_TIME };
 };
 
-export const useUpdateRunType = (
+const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
 ): void => {
@@ -143,33 +78,78 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-const useRunFormData = (
+export const useUpdateParams = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
-  lastPipeline?: PipelineKF,
+): void => {
+  React.useEffect(() => {
+    if (!initialData?.pipeline_spec.parameters) {
+      return;
+    }
+    const params: RunParam[] = initialData?.pipeline_spec.parameters.map((p) => ({
+      label: p.name,
+      value: p.value,
+    }));
+    setFunction('params', params);
+  }, [setFunction, initialData]);
+};
+
+const getPipelineInputParams = (
+  version: PipelineVersionKF | undefined,
+  pipeline?: PipelineKF | undefined,
+): RunParam[] | undefined => {
+  let parameters = version?.parameters;
+
+  if (!version) {
+    parameters = pipeline?.default_version?.parameters || pipeline?.parameters;
+  }
+
+  return (parameters || []).map((p) => ({ label: p.name, value: p.value }));
+};
+
+const useUpdatePipelineRunFormData = (
+  runFormState: GenericObjectState<RunFormData>,
+  pipeline: PipelineKF | undefined,
+  version: PipelineVersionKF | undefined,
+) => {
+  const [formData, setFormValue] = runFormState;
+
+  React.useEffect(() => {
+    if (!formData.pipeline && pipeline) {
+      setFormValue('pipeline', pipeline);
+    }
+
+    if (!formData.version && version) {
+      setFormValue('version', version);
+    }
+  }, [pipeline, version, formData.pipeline, formData.version, setFormValue]);
+};
+
+const useRunFormData = (
+  initialData?: PipelineRunKF | PipelineRunJobKF | undefined,
+  pipeline?: PipelineKF,
+  version?: PipelineVersionKF,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
 
-  const objState = useGenericObjectState<RunFormData>({
+  const runFormDataState = useGenericObjectState<RunFormData>({
     project,
     nameDesc: {
       name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
-    pipelinesLoaded: false,
-    pipeline: lastPipeline ?? null,
-    // experiment: null,
+    pipeline: pipeline ?? null,
+    version: version ?? pipeline?.default_version ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: lastPipeline
-      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value }))
-      : undefined,
+    params: getPipelineInputParams(version, pipeline),
   });
+  const [, setFormValue] = runFormDataState;
 
-  const setFunction = objState[1];
-  useUpdatePipeline(setFunction, initialData);
-  // useUpdateExperiment(setFunction, initialData);
-  useUpdateRunType(setFunction, initialData);
+  useUpdatePipelineRunFormData(runFormDataState, pipeline, version);
+  useUpdateRunType(setFormValue, initialData);
+  useUpdateParams(setFormValue, initialData);
 
-  return objState;
+  return runFormDataState;
 };
 
 export default useRunFormData;

@@ -11,7 +11,7 @@ import {
   Text,
   TextVariants,
 } from '@patternfly/react-core';
-import { NotebookContainer } from '~/types';
+import { PodContainer } from '~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
@@ -30,7 +30,7 @@ const NotebookServerDetails: React.FC = () => {
   const { dashboardConfig } = useAppContext();
   const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
 
-  const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
+  const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
   );
 

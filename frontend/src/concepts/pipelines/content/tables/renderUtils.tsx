@@ -17,16 +17,19 @@ import {
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineCoreResourceKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
-  getPipelineCoreResourceExperimentName,
+  getExperimentResourceRef,
   getPipelineRunJobScheduledState,
   ScheduledState,
-  getPipelineCoreResourcePipelineReference,
+  getPipelineVersionResourceRef,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
+import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
@@ -81,32 +84,31 @@ export const RunDuration: RunUtil = ({ run }) => {
 
 export const RunCreated: RunUtil = ({ run }) => {
   const createdDate = new Date(run.created_at);
-  return (
-    <span style={{ whiteSpace: 'nowrap' }}>
-      <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-        {relativeTime(Date.now(), createdDate.getTime())}
-      </Timestamp>
-    </span>
-  );
+  return <PipelinesTableRowTime date={createdDate} />;
 };
 
 export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
-  <>{getPipelineCoreResourceExperimentName(resource)}</>
+  <>{getExperimentResourceRef(resource)?.name || 'Default'}</>
 );
 
-export const CoreResourcePipeline: CoreResourceUtil<{ namespace: string }> = ({
-  resource,
-  namespace,
-}) => {
-  const resourceRef = getPipelineCoreResourcePipelineReference(resource);
-  const pipelineName = resourceRef?.name;
-  if (!resourceRef || !pipelineName) {
+export const CoreResourcePipelineVersion: CoreResourceUtil<{
+  loaded: boolean;
+  version?: PipelineVersionKF;
+  error?: Error;
+}> = ({ resource, loaded, version, error }) => {
+  const resourceRef = getPipelineVersionResourceRef(resource);
+  if (!resourceRef) {
     return <NoRunContent />;
   }
-  const pipelineId = resourceRef.key.id;
 
-  // TODO: get link path
-  return <Link to={`/pipelineRuns/${namespace}/pipeline/view/${pipelineId}`}>{pipelineName}</Link>;
+  return (
+    <PipelineVersionLink
+      displayName={resourceRef.name}
+      version={version}
+      error={error}
+      loaded={loaded}
+    />
+  );
 };
 
 export const RunJobTrigger: RunJobUtil = ({ job }) => {

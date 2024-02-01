@@ -1,5 +1,5 @@
 import { ProjectKind } from '~/k8sTypes';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',
@@ -43,8 +43,8 @@ export type RunParam = {
 export type RunFormData = {
   project: ProjectKind;
   nameDesc: { name: string; description: string };
-  pipelinesLoaded: boolean;
   pipeline: PipelineKF | null;
+  version: PipelineVersionKF | null;
   // experiment: ExperimentKF | null;
   runType: RunType;
   params?: RunParam[];

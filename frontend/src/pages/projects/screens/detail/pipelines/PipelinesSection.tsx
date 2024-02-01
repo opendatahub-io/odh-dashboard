@@ -7,6 +7,7 @@ import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
 import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineServerActions';
+import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 
 const PipelinesSection: React.FC = () => {
   const {
@@ -17,7 +18,7 @@ const PipelinesSection: React.FC = () => {
   const [isPipelinesEmpty, setIsPipelinesEmpty] = React.useState(false);
 
   return (
-    <>
+    <PipelineAndVersionContextProvider>
       <DetailsSection
         id={ProjectSectionID.PIPELINES}
         title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
@@ -44,7 +45,7 @@ const PipelinesSection: React.FC = () => {
           <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
         )}
       </DetailsSection>
-    </>
+    </PipelineAndVersionContextProvider>
   );
 };
 

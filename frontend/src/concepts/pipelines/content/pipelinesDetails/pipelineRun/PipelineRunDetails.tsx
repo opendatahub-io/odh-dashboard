@@ -30,9 +30,10 @@ import {
   RunDetailsTabs,
   RunDetailsTabSelection,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
+import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
+import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 
 const getPipelineRunKind = (
@@ -90,6 +91,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
+              parameters={pipelineRuntime?.spec.params}
               taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
@@ -114,7 +116,14 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                 }
               >
                 <ApplicationsPage
-                  title={<PipelineRunTitle run={run} />}
+                  title={
+                    run ? (
+                      <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
+                    ) : (
+                      'Error loading run'
+                    )
+                  }
+                  jobReferenceName={run && <PipelineJobReferenceName resource={run} />}
                   description={
                     run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
                   }
@@ -145,7 +154,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         const firstId = ids[0];
                         if (ids.length === 0) {
                           setSelectedId(null);
-                        } else {
+                        } else if (taskMap[firstId]) {
                           setDetailsTab(null);
                           setSelectedId(firstId);
                         }
@@ -158,11 +167,15 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         type="triggered run"
         toDeleteResources={deleting && run ? [run] : []}
-        onClose={() => {
-          navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+        onClose={(deleteComplete) => {
+          if (deleteComplete) {
+            navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+          } else {
+            setDeleting(false);
+          }
         }}
       />
     </>

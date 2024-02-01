@@ -145,8 +145,16 @@ export default {
   component: ModelServingGlobal,
   parameters: {
     reactRouter: {
-      routePath: '/modelServing/:namespace/*',
-      routeParams: { namespace: 'test-project' },
+      location: {
+        pathParams: {
+          namespace: 'test-project',
+        },
+      },
+      routing: [
+        {
+          path: '/modelServing/:namespace/*',
+        },
+      ],
     },
   },
 } as Meta<typeof ModelServingGlobal>;

@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { Bullseye, Button, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { TableVariant } from '@patternfly/react-table';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { TABLE_CONTENT_LIMIT, LIMIT_MAX_ITEM_COUNT } from '~/concepts/pipelines/const';
+import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
+import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 
 type PipelinesListProps = {
   setIsPipelinesEmpty: (isEmpty: boolean) => void;
@@ -15,7 +16,10 @@ type PipelinesListProps = {
 
 const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) => {
   const { namespace } = usePipelinesAPI();
-  const [pipelines, loaded, loadError, refresh] = usePipelines(LIMIT_MAX_ITEM_COUNT);
+  const [
+    [{ items: pipelines, totalSize }, loaded, loadError, refresh],
+    { initialLoaded, ...tableProps },
+  ] = usePipelinesTable(TABLE_CONTENT_LIMIT);
   const navigate = useNavigate();
 
   const isPipelinesEmpty = pipelines.length === 0;
@@ -30,7 +34,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
     );
   }
 
-  if (!loaded) {
+  if (!loaded && !initialLoaded) {
     return (
       <Bullseye style={{ minHeight: 150 }}>
         <Spinner />
@@ -38,7 +42,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
     );
   }
 
-  if (pipelines.length === 0) {
+  if (loaded && pipelines.length === 0 && !tableProps.filter) {
     return <EmptyDetailsList title="No pipelines" />;
   }
 
@@ -46,13 +50,17 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
     <Stack hasGutter>
       <StackItem>
         <PipelinesTable
+          {...tableProps}
+          totalSize={totalSize}
+          loading={!loaded}
           pipelines={pipelines}
-          contentLimit={TABLE_CONTENT_LIMIT}
+          aria-label="pipelines table"
           pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipeline/view/${id}`}
           refreshPipelines={refresh}
+          variant={TableVariant.compact}
         />
       </StackItem>
-      {pipelines.length > TABLE_CONTENT_LIMIT && (
+      {totalSize > TABLE_CONTENT_LIMIT && (
         <StackItem>
           <IndentSection>
             <Button variant="link" onClick={() => navigate(`/pipelines/${namespace}`)}>

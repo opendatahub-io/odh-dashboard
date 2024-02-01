@@ -34,7 +34,7 @@ type ProxyData = {
 };
 
 /** Ideally these would all be required, but https by node seems to think there are cases when it does not know the code or message */
-type ProxyCallStatus = {
+export type ProxyCallStatus = {
   message?: string;
   code?: number;
 };

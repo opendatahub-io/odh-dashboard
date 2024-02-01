@@ -7,24 +7,31 @@ import {
   EmptyStateFooter,
   EmptyStateHeader,
   EmptyStateIcon,
+  EmptyStateVariant,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 
 type DashboardEmptyTableViewProps = {
-  onClearFilters: () => void;
+  hasIcon?: boolean;
+  onClearFilters: (event: React.SyntheticEvent<HTMLButtonElement, Event>) => void;
+  variant?: EmptyStateVariant;
 };
 
-const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({ onClearFilters }) => (
+const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
+  onClearFilters,
+  hasIcon = true,
+  variant,
+}) => (
   <Bullseye>
-    <EmptyState>
+    <EmptyState variant={variant}>
       <EmptyStateHeader
         titleText="No results found"
-        icon={<EmptyStateIcon icon={SearchIcon} />}
+        {...(hasIcon && { icon: <EmptyStateIcon icon={SearchIcon} /> })}
         headingLevel="h2"
       />
       <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
       <EmptyStateFooter>
-        <Button variant="link" onClick={() => onClearFilters()}>
+        <Button variant="link" onClick={onClearFilters}>
           Clear all filters
         </Button>
       </EmptyStateFooter>

@@ -304,7 +304,7 @@ export type Toleration = {
   tolerationSeconds?: number;
 };
 
-export type NotebookContainer = {
+export type PodContainer = {
   name: string;
   image: string;
   imagePullPolicy?: string;
@@ -317,6 +317,17 @@ export type NotebookContainer = {
   readinessProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
 };
+
+export type PodStepState = {
+  stepName: string;
+  state: PodStepStateType;
+};
+
+export enum PodStepStateType {
+  success = 'Success',
+  error = 'Error',
+  loading = 'Loading',
+}
 
 export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
@@ -342,7 +353,7 @@ export type Notebook = K8sResourceCommon & {
       spec: {
         affinity?: PodAffinity;
         enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
+        containers: PodContainer[];
         volumes?: Volume[];
         tolerations?: Toleration[];
       };

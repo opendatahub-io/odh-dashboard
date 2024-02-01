@@ -9,6 +9,7 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
+import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
 import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
@@ -54,13 +55,19 @@ const ProjectViewRoutes: React.FC = () => {
           </>
         )}
         <Route
-          path="pipeline/view/:pipelineId"
+          path="pipeline/view/:pipelineVersionId"
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineDetails} />}
         />
         <Route
           path="pipelineRun/view/:pipelineRunId"
           element={
             <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunDetails} />
+          }
+        />
+        <Route
+          path="pipelineRunJob/view/:pipelineRunJobId"
+          element={
+            <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunJobDetails} />
           }
         />
         <Route

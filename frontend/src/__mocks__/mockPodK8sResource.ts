@@ -1,5 +1,6 @@
 import { KnownLabels, PodKind } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
+import { TolerationEffect, TolerationOperator } from '~/types';
 
 type MockResourceConfigType = {
   user?: string;
@@ -61,64 +62,16 @@ export const mockPodK8sResource = ({
         name: 'oauth-config',
         secret: {
           secretName: `${name}-oauth-config`,
-          defaultMode: 420,
         },
       },
       {
         name: 'tls-certificates',
         secret: {
           secretName: `${name}-tls`,
-          defaultMode: 420,
         },
       },
       {
         name: 'kube-api-access-zzc98',
-        projected: {
-          sources: [
-            {
-              serviceAccountToken: {
-                expirationSeconds: 3607,
-                path: 'token',
-              },
-            },
-            {
-              configMap: {
-                name: 'kube-root-ca.crt',
-                items: [
-                  {
-                    key: 'ca.crt',
-                    path: 'ca.crt',
-                  },
-                ],
-              },
-            },
-            {
-              downwardAPI: {
-                items: [
-                  {
-                    path: 'namespace',
-                    fieldRef: {
-                      apiVersion: 'v1',
-                      fieldPath: 'metadata.namespace',
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              configMap: {
-                name: 'openshift-service-ca.crt',
-                items: [
-                  {
-                    key: 'service-ca.crt',
-                    path: 'service-ca.crt',
-                  },
-                ],
-              },
-            },
-          ],
-          defaultMode: 420,
-        },
       },
     ],
     containers: [
@@ -174,7 +127,6 @@ export const mockPodK8sResource = ({
           },
           {
             name: 'kube-api-access-zzc98',
-            readOnly: true,
             mountPath: '/var/run/secrets/kubernetes.io/serviceaccount',
           },
         ],
@@ -202,39 +154,12 @@ export const mockPodK8sResource = ({
           successThreshold: 1,
           failureThreshold: 3,
         },
-        terminationMessagePath: '/dev/termination-log',
-        terminationMessagePolicy: 'File',
         imagePullPolicy: 'Always',
-        securityContext: {
-          capabilities: {
-            drop: ['ALL'],
-          },
-          runAsUser: 1000700000,
-          runAsNonRoot: true,
-          allowPrivilegeEscalation: false,
-        },
       },
       {
         name: 'oauth-proxy',
         image:
           'registry.redhat.io/openshift4/ose-oauth-proxy@sha256:4bef31eb993feb6f1096b51b4876c65a6fb1f4401fee97fa4f4542b6b7c9bc46',
-        args: [
-          '--provider=openshift',
-          '--https-address=:8443',
-          '--http-address=',
-          '--openshift-service-account=workbench',
-          '--cookie-secret-file=/etc/oauth/config/cookie_secret',
-          '--cookie-expire=24h0m0s',
-          '--tls-cert=/etc/tls/private/tls.crt',
-          '--tls-key=/etc/tls/private/tls.key',
-          '--upstream=http://localhost:8888',
-          '--upstream-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt',
-          '--skip-auth-regex=^(?:/notebook/$(NAMESPACE)/workbench)?/api$',
-          '--email-domain=*',
-          '--skip-provider-button',
-          '--openshift-sar={"verb":"get","resource":"notebooks","resourceAPIGroup":"kubeflow.org","resourceName":"workbench","namespace":"$(NAMESPACE)"}',
-          '--logout-url=http://localhost:4010/projects/project?notebookLogout=workbench',
-        ],
         ports: [
           {
             name: 'oauth-proxy',
@@ -274,7 +199,6 @@ export const mockPodK8sResource = ({
           },
           {
             name: 'kube-api-access-zzc98',
-            readOnly: true,
             mountPath: '/var/run/secrets/kubernetes.io/serviceaccount',
           },
         ],
@@ -302,17 +226,7 @@ export const mockPodK8sResource = ({
           successThreshold: 1,
           failureThreshold: 3,
         },
-        terminationMessagePath: '/dev/termination-log',
-        terminationMessagePolicy: 'File',
         imagePullPolicy: 'Always',
-        securityContext: {
-          capabilities: {
-            drop: ['ALL'],
-          },
-          runAsUser: 1000700000,
-          runAsNonRoot: true,
-          allowPrivilegeEscalation: false,
-        },
       },
     ],
     restartPolicy: 'Always',
@@ -358,25 +272,25 @@ export const mockPodK8sResource = ({
     tolerations: [
       {
         key: 'NotebooksOnlyChange',
-        operator: 'Exists',
-        effect: 'NoSchedule',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
       },
       {
         key: 'node.kubernetes.io/not-ready',
-        operator: 'Exists',
-        effect: 'NoExecute',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_EXECUTE,
         tolerationSeconds: 300,
       },
       {
         key: 'node.kubernetes.io/unreachable',
-        operator: 'Exists',
-        effect: 'NoExecute',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_EXECUTE,
         tolerationSeconds: 300,
       },
       {
         key: 'node.kubernetes.io/memory-pressure',
-        operator: 'Exists',
-        effect: 'NoSchedule',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
       },
     ],
     priority: 0,

@@ -27,6 +27,7 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ value, onChange }) => {
     if (value.length === 0) {
       return (
         <Alert
+          component="h2"
           variant="info"
           isInline
           isPlain
@@ -48,7 +49,7 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ value, onChange }) => {
               type="text"
               id={`${label}-param-field`}
               name={`${label}-param-field`}
-              value={value}
+              value={value ?? ''}
               onChange={(e, newValue) => handleChange(i, { label, value: newValue })}
             />
           </FormGroup>

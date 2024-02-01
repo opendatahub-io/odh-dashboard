@@ -1,5 +1,6 @@
 import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
 import { ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineParams } from '~/concepts/pipelines/types';
 import {
   GetPipelineAPI,
   DeletePipelineAPI,
@@ -7,7 +8,7 @@ import {
   ListPipelinesRunAPI,
   ListPipelinesRunJobAPI,
   ListPipelinesAPI,
-  ListPipelineTemplatesAPI,
+  ListPipelineVersionTemplatesAPI,
   UploadPipelineAPI,
   UpdatePipelineRunJobAPI,
   GetPipelineRunAPI,
@@ -20,8 +21,32 @@ import {
   GetPipelineRunJobAPI,
   DeletePipelineRunAPI,
   DeletePipelineRunJobAPI,
+  UploadPipelineVersionAPI,
+  DeletePipelineVersionAPI,
+  GetPipelineVersionAPI,
+  ListPipelineVersionsByPipelineAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
+
+const commonPipelineQueryParams = (params?: PipelineParams) => ({
+  // eslint-disable-next-line camelcase
+  sort_by: params?.sortField
+    ? `${params.sortField} ${params.sortDirection || 'asc'}`
+    : 'created_at desc',
+  // eslint-disable-next-line camelcase
+  page_size: params?.pageSize,
+  // eslint-disable-next-line camelcase
+  page_token: params?.pageToken,
+  filter: params?.filter?.predicates
+    ? JSON.stringify({ predicates: params.filter.predicates })
+    : undefined,
+});
+
+const pipelineParamsToQuery = (params?: PipelineParams) => ({
+  ...commonPipelineQueryParams(params),
+  'resource_reference_key.type': params?.filter?.resourceReference?.type,
+  'resource_reference_key.id': params?.filter?.resourceReference?.id,
+});
 
 export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, name, description) =>
   handlePipelineFailures(
@@ -46,6 +71,11 @@ export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRu
 export const getPipelineRunJob: GetPipelineRunJobAPI = (hostPath) => (opts, pipelineRunJobId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/jobs/${pipelineRunJobId}`, {}, opts));
 
+export const getPipelineVersion: GetPipelineVersionAPI = (hostPath) => (opts, pipelineVersionId) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v1beta1/pipeline_versions/${pipelineVersionId}`, {}, opts),
+  );
+
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(
     proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, {}, opts),
@@ -57,32 +87,31 @@ export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runI
 export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, {}, opts));
 
-export const listExperiments: ListExperimentsAPI = (hostPath) => (opts) =>
+export const deletePipelineVersion: DeletePipelineVersionAPI =
+  (hostPath) => (opts, pipelineVersionId) =>
+    handlePipelineFailures(
+      proxyDELETE(hostPath, `/apis/v1beta1/pipeline_versions/${pipelineVersionId}`, {}, opts),
+    );
+
+export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    // eslint-disable-next-line camelcase
-    proxyGET(hostPath, '/apis/v1beta1/experiments', {}, opts),
+    proxyGET(hostPath, '/apis/v1beta1/experiments', pipelineParamsToQuery(params), opts),
   );
 
-export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
+export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    // eslint-disable-next-line camelcase
-    proxyGET(
-      hostPath,
-      '/apis/v1beta1/pipelines',
-      // eslint-disable-next-line camelcase
-      { page_size: count, sort_by: 'created_at desc' },
-      opts,
-    ),
+    proxyGET(hostPath, '/apis/v1beta1/pipelines', pipelineParamsToQuery(params), opts),
   );
 
-export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts) =>
+export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    // eslint-disable-next-line camelcase
-    proxyGET(hostPath, '/apis/v1beta1/runs', { sort_by: 'created_at desc' }, opts),
+    proxyGET(hostPath, '/apis/v1beta1/runs', pipelineParamsToQuery(params), opts),
   );
 
-export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts) =>
-  handlePipelineFailures(proxyGET(hostPath, '/apis/v1beta1/jobs', {}, opts));
+export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, params) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, '/apis/v1beta1/jobs', pipelineParamsToQuery(params), opts),
+  );
 
 export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
   (hostPath) => (opts, pipelineId, count) =>
@@ -102,10 +131,31 @@ export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
       ),
     );
 
-export const listPipelineTemplates: ListPipelineTemplatesAPI = (hostPath) => (opts, pipelineId) =>
-  handlePipelineFailures(
-    proxyGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}/templates`, {}, opts),
-  );
+export const listPipelineVersionTemplates: ListPipelineVersionTemplatesAPI =
+  (hostPath) => (opts, pipelineVersionId) =>
+    handlePipelineFailures(
+      proxyGET(
+        hostPath,
+        `/apis/v1beta1/pipeline_versions/${pipelineVersionId}/templates`,
+        {},
+        opts,
+      ),
+    );
+
+export const listPipelineVersionsByPipeline: ListPipelineVersionsByPipelineAPI =
+  (hostPath) => (opts, pipelineId, params) =>
+    handlePipelineFailures(
+      proxyGET(
+        hostPath,
+        `/apis/v1beta1/pipeline_versions`,
+        {
+          ...commonPipelineQueryParams(params),
+          'resource_key.id': pipelineId,
+          'resource_key.type': ResourceTypeKF.PIPELINE,
+        },
+        opts,
+      ),
+    );
 
 export const stopPipelineRun: StopPipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(
@@ -126,4 +176,14 @@ export const uploadPipeline: UploadPipelineAPI =
   (hostPath) => (opts, name, description, fileContents) =>
     handlePipelineFailures(
       proxyFILE(hostPath, '/apis/v1beta1/pipelines/upload', fileContents, { name, description }),
+    );
+
+export const uploadPipelineVersion: UploadPipelineVersionAPI =
+  (hostPath) => (opts, name, description, fileContents, pipelineId) =>
+    handlePipelineFailures(
+      proxyFILE(hostPath, '/apis/v1beta1/pipelines/upload_version', fileContents, {
+        name,
+        description,
+        pipelineid: pipelineId,
+      }),
     );

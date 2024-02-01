@@ -23,7 +23,7 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
         isDisabled={!apiAvailable || buttonProps.isDisabled}
         onClick={() => setOpen(true)}
       >
-        {children || <>Import pipeline</>}
+        {children || 'Import pipeline'}
       </Button>
       <PipelineImportModal
         isOpen={open}

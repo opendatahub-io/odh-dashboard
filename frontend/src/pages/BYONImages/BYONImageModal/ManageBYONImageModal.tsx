@@ -137,6 +137,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           isCancelDisabled={isEditing}
         />
       }
+      data-testid="notebook-image-modal"
     >
       <Form
         onSubmit={(e) => {

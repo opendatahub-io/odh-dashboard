@@ -4,7 +4,7 @@ import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
-  NotebookContainer,
+  PodContainer,
   Toleration,
   Volume,
   ContainerResources,
@@ -253,6 +253,15 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
   } & Record<string, unknown>;
 };
 
+export type PodSpec = {
+  affinity?: PodAffinity;
+  enableServiceLinks?: boolean;
+  containers: PodContainer[];
+  initContainers?: PodContainer[];
+  volumes?: Volume[];
+  tolerations?: Toleration[];
+};
+
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & NotebookAnnotations;
@@ -264,13 +273,7 @@ export type NotebookKind = K8sResourceCommon & {
   };
   spec: {
     template: {
-      spec: {
-        affinity?: PodAffinity;
-        enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
-        volumes?: Volume[];
-        tolerations?: Toleration[];
-      };
+      spec: PodSpec;
     };
   };
   status?: {
@@ -281,10 +284,18 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: PodSpec;
   status: {
     phase: string;
     conditions: K8sCondition[];
-    containerStatuses?: { ready: boolean; state?: { running?: boolean } }[];
+    containerStatuses?: {
+      name?: string;
+      ready: boolean;
+      state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
+    }[];
   };
 };
 
@@ -712,6 +723,7 @@ export type PipelineRunKind = K8sResourceCommon & {
   };
   spec: {
     pipelineSpec?: PipelineRunPipelineSpec;
+    params?: PipelineRunTaskParam[];
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;

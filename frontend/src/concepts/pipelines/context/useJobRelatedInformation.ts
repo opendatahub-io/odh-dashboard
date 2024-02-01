@@ -1,17 +1,18 @@
 import * as React from 'react';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getPipelineCoreResourceJobReference } from '~/concepts/pipelines/content/tables/utils';
+import { getJobResourceRef } from '~/concepts/pipelines/content/tables/utils';
+import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
 
 type JobStatus = {
   loading: boolean;
   data: PipelineRunJobKF | null;
 };
 
-export type GetJobInformation = (resource: PipelineCoreResourceKF) => JobStatus;
+export type GetJobInformation = (resource?: PipelineCoreResourceKF) => JobStatus;
 
-const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } => {
-  const { api } = usePipelinesAPI();
+const useJobRelatedInformation = (
+  apiState: PipelineAPIState,
+): { getJobInformation: GetJobInformation } => {
   const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus } | undefined>(
     {},
   );
@@ -20,7 +21,10 @@ const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } =>
   return {
     getJobInformation: React.useCallback<GetJobInformation>(
       (resource) => {
-        const jobReference = getPipelineCoreResourceJobReference(resource);
+        if (!apiState.apiAvailable) {
+          return { loading: false, data: null };
+        }
+        const jobReference = getJobResourceRef(resource);
         if (!jobReference) {
           return { loading: false, data: null };
         }
@@ -33,7 +37,7 @@ const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } =>
         }
         loadedIds.current.push(jobId);
 
-        api
+        apiState.api
           .getPipelineRunJob({}, jobId)
           .then((job) => {
             setJobStorage((jobState) => ({ ...jobState, [jobId]: { loading: false, data: job } }));
@@ -47,7 +51,7 @@ const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } =>
 
         return { loading: true, data: null };
       },
-      [api, jobStorage],
+      [apiState, jobStorage],
     ),
   };
 };
