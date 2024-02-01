@@ -51,7 +51,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       return '';
     }
 
-    const identifier = acceleratorProfile?.spec.identifier;
+    const { identifier } = acceleratorProfile.spec;
 
     const detectedAcceleratorCount = Object.entries(detectedAccelerators.available).find(
       ([id]) => identifier === id,
@@ -59,7 +59,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
 
     if (detectedAcceleratorCount === undefined) {
       return `No accelerator detected with the identifier ${identifier}.`;
-    } else if (newSize > detectedAcceleratorCount) {
+    }
+    if (newSize > detectedAcceleratorCount) {
       return `Only ${detectedAcceleratorCount} accelerator${
         detectedAcceleratorCount > 1 ? 's' : ''
       } detected.`;
@@ -112,7 +113,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
 
   let acceleratorAlertMessage: { title: string; variant: AlertVariant } | null = null;
   if (acceleratorProfile && supportedAcceleratorProfiles !== undefined) {
-    if (supportedAcceleratorProfiles?.length === 0) {
+    if (supportedAcceleratorProfiles.length === 0) {
       acceleratorAlertMessage = {
         title: `The ${resourceDisplayName} you have selected doesn't support the selected accelerator. It is recommended to use a compatible ${resourceDisplayName} for optimal performance.`,
         variant: AlertVariant.info,
@@ -139,7 +140,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       description: 'Use the existing accelerator settings from the notebook server',
     });
   } else if (additionalOptions?.useDisabled) {
-    options.push(formatOption(additionalOptions?.useDisabled));
+    options.push(formatOption(additionalOptions.useDisabled));
   }
 
   const onStep = (step: number) => {

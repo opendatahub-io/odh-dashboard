@@ -60,7 +60,6 @@ export const assembleServingRuntime = (
       namespace,
       labels: {
         ...updatedServingRuntime.metadata.labels,
-        name: createName,
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
@@ -87,7 +86,11 @@ export const assembleServingRuntime = (
       },
     };
   }
-  updatedServingRuntime.spec.replicas = numReplicas;
+
+  delete updatedServingRuntime.spec.replicas;
+  if (isModelMesh) {
+    updatedServingRuntime.spec.replicas = numReplicas;
+  }
 
   // Accelerator support
 
@@ -128,7 +131,7 @@ export const assembleServingRuntime = (
   );
 
   if (isModelMesh) {
-    servingRuntime.spec.tolerations = tolerations;
+    updatedServingRuntime.spec.tolerations = tolerations;
   }
 
   // Volume mount for /dev/shm

@@ -24,7 +24,7 @@ export type PrometheusQueryRangeResponseDataResult = {
   values: PrometheusQueryRangeResultValue[];
 };
 export type PrometheusQueryRangeResponseData = {
-  result: PrometheusQueryRangeResponseDataResult[];
+  result?: PrometheusQueryRangeResponseDataResult[];
   resultType: string;
 };
 export type PrometheusQueryRangeResponse = {
@@ -335,7 +335,7 @@ export type PodAffinity = {
 
 export type Notebook = K8sResourceCommon & {
   metadata: {
-    annotations: Partial<{
+    annotations?: Partial<{
       'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
@@ -344,7 +344,7 @@ export type Notebook = K8sResourceCommon & {
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
       'opendatahub.io/accelerator-name': string | undefined;
     }>;
-    labels: Partial<{
+    labels?: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
@@ -448,7 +448,7 @@ export type EnvVarCategoryType = {
 export type VariableRow = {
   variableType: string;
   variables: EnvVarType[];
-  errors: { [key: string]: string };
+  errors: { [key: string]: string | undefined };
 };
 
 export type EnvVarType = {

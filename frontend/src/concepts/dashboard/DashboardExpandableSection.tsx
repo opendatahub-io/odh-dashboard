@@ -14,15 +14,17 @@ const DashboardExpandableSection: React.FC<DashboardExpandableSectionProps> = ({
   children,
   title,
   storageKey,
+  ...props
 }) => {
   const [isExpanded, setIsExpanded] = useBrowserStorage(storageKey, true, true, true);
 
   return (
     <ExpandableSection
-      className="dashboard-expandable-section-heading"
+      className="odh-dashboard-expandable-section-heading"
       toggleText={title}
       onToggle={(e, isExpanded) => setIsExpanded(isExpanded)}
       isExpanded={isExpanded}
+      {...props}
     >
       {children}
     </ExpandableSection>

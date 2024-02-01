@@ -18,22 +18,23 @@ const TrustyAITimedOutError: React.FC<TrustyAITimedOutErrorProps> = ({
   <Alert
     variant="danger"
     isInline
-    title="TrustyAI service failed"
+    data-testid="trustyai-service-timeout-error"
+    title="TrustyAI failed"
     actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
     actionLinks={
       <>
-        <AlertActionLink onClick={() => deleteCR()}>Delete TrustyAI service</AlertActionLink>
+        <AlertActionLink onClick={() => deleteCR()}>Uninstall TrustyAI</AlertActionLink>
         <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
       </>
     }
   >
     <Stack hasGutter>
       <StackItem>
-        We encountered an error creating or loading your TrustyAI service. To continue, delete this
-        service and create a new one. Deleting this service will delete all of its resources,
-        including bias configurations.
+        An error occurred while installing or loading TrustyAI. To continue, uninstall and reinstall
+        TrustyAI. Uninstalling this service will delete all of its resources, including model bias
+        configurations.
       </StackItem>
-      <StackItem>To get help contact your administrator.</StackItem>
+      <StackItem>For help, contact your administrator.</StackItem>
     </Stack>
   </Alert>
 );

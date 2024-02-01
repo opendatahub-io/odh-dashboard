@@ -28,37 +28,35 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
       empty: true,
       emptyStatePage: <ModelServingNoProjects />,
     };
-  } else {
-    if (namespace) {
-      const foundProject = projects.find(byName(namespace));
-      if (foundProject) {
-        // Render the content
-        return (
-          <ModelServingContextProvider namespace={namespace}>
-            <Outlet />
-          </ModelServingContextProvider>
-        );
-      }
-
-      // They ended up on a non-valid project path
-      renderStateProps = {
-        empty: true,
-        emptyStatePage: (
-          <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
-        ),
-      };
-    } else {
-      // Redirect the namespace suffix into the URL
-      if (preferredProject) {
-        return <Navigate to={getInvalidRedirectPath(preferredProject.metadata.name)} replace />;
-      }
-      // Go with All projects path
+  } else if (namespace) {
+    const foundProject = projects.find(byName(namespace));
+    if (foundProject) {
+      // Render the content
       return (
-        <ModelServingContextProvider>
+        <ModelServingContextProvider namespace={namespace}>
           <Outlet />
         </ModelServingContextProvider>
       );
     }
+
+    // They ended up on a non-valid project path
+    renderStateProps = {
+      empty: true,
+      emptyStatePage: (
+        <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+      ),
+    };
+  } else {
+    // Redirect the namespace suffix into the URL
+    if (preferredProject) {
+      return <Navigate to={getInvalidRedirectPath(preferredProject.metadata.name)} replace />;
+    }
+    // Go with All projects path
+    return (
+      <ModelServingContextProvider>
+        <Outlet />
+      </ModelServingContextProvider>
+    );
   }
 
   return (

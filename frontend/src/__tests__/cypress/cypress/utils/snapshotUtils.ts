@@ -48,13 +48,13 @@ export const updateJSONFileKey = (
 ): Cypress.Chainable<{
   [key: string]: unknown;
 }> =>
-  readJSON(path).then((data) => {
+  readJSON(path).then((assignableData) => {
     if (typeof value === 'undefined') {
-      delete data[key];
+      delete assignableData[key];
     } else {
-      data[key] = value;
+      assignableData[key] = value;
     }
-    cy.writeFile(path, JSON.stringify(data));
+    cy.writeFile(path, JSON.stringify(assignableData));
   });
 
 export const readJSON = (

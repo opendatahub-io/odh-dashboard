@@ -27,7 +27,7 @@ const AcceleratorProfiles: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const isEmpty = !acceleratorProfiles || acceleratorProfiles.length === 0;
+  const isEmpty = acceleratorProfiles.length === 0;
 
   const noAcceleratorProfilePageSection = (
     <PageSection isFilled>

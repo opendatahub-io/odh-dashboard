@@ -24,6 +24,17 @@ class ModelServingGlobal {
     return this;
   }
 
+  shouldWaitAndCancel() {
+    cy.findAllByText(
+      'Retrieving model data from all projects in the cluster. This can take a few minutes.',
+    );
+    this.findCancelButton().click();
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
   findDeployModelButton() {
     return cy.findByRole('button', { name: 'Deploy model' });
   }

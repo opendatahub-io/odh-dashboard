@@ -3,8 +3,6 @@ import { BiasMetricType } from '~/api';
 import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/bias/useBiasChartsBrowserStorage';
-import { byNotId } from '~/pages/modelServing/screens/metrics/utils';
 
 type DeleteBiasConfigurationModalProps = {
   configurationToDelete?: BiasMetricConfig;
@@ -20,12 +18,6 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
   const {
     apiState: { api },
   } = React.useContext(TrustyAIContext);
-
-  const [selectedBiasConfigCharts, setSelectedBiasConfigCharts] = useBiasChartsBrowserStorage();
-
-  const deselectDeleted = (biasConfigId: string) => {
-    setSelectedBiasConfigCharts(selectedBiasConfigCharts.filter(byNotId(biasConfigId)));
-  };
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -49,7 +41,6 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
               : api.deleteSpdRequest;
           deleteFunc({}, configurationToDelete.id)
             .then(() => onBeforeClose(true))
-            .then(() => deselectDeleted(configurationToDelete.id))
             .catch((e) => {
               setError(e);
               setDeleting(false);

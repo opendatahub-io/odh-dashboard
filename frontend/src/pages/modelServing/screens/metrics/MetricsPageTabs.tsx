@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
@@ -23,13 +23,13 @@ const MetricsPageTabs: React.FC = () => {
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (!tab) {
-      navigate(`./${enabledTabs[0]}`, { replace: true });
-    } else if (!enabledTabs.includes(tab)) {
-      navigate(`../${enabledTabs[0]}`, { replace: true });
-    }
-  }, [enabledTabs, navigate, tab]);
+  if (!tab) {
+    return <Navigate to={`./${enabledTabs[0]}`} replace />;
+  }
+
+  if (!enabledTabs.includes(tab)) {
+    return <Navigate to={`../${enabledTabs[0]}`} replace />;
+  }
 
   if (enabledTabs.length === 0) {
     return <NotFound />;
@@ -47,6 +47,7 @@ const MetricsPageTabs: React.FC = () => {
       aria-label="Metrics page tabs"
       role="region"
       className="odh-tabs-fix"
+      mountOnEnter
     >
       {performanceMetricsAreaAvailable && (
         <Tab
@@ -54,6 +55,7 @@ const MetricsPageTabs: React.FC = () => {
           title={<TabTitleText>Endpoint performance</TabTitleText>}
           aria-label="Performance tab"
           className="odh-tabcontent-fix"
+          data-testid="performance-tab"
         >
           <PerformanceTab />
         </Tab>
@@ -64,6 +66,7 @@ const MetricsPageTabs: React.FC = () => {
           title={<TabTitleText>Model bias</TabTitleText>}
           aria-label="Bias tab"
           className="odh-tabcontent-fix"
+          data-testid="bias-tab"
           actions={
             loaded &&
             biasMetricConfigs.length === 0 && (

@@ -231,9 +231,7 @@ test('Add ModelMesh model server', async ({ page }) => {
       expect(popoverContent).toContain(item.content);
 
       const closeButton = await page.locator('div.pf-v5-c-popover__close');
-      if (closeButton) {
-        await closeButton.click();
-      }
+      await closeButton.click();
     }
     await page.waitForTimeout(300);
   }

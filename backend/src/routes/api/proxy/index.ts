@@ -15,7 +15,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           host: string;
           data?: Record<string, unknown>;
           fileContents?: string;
-          queryParams?: Record<string, unknown>;
+          queryParams?: Record<string, string>;
         };
       }>,
       reply: FastifyReply,

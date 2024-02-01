@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import ModelBiasSettingsCard from '~/pages/projects/projectSettings/ModelBiasSettingsCard';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-const ProjectSettingsPage: React.FC = () => {
+const ProjectSettingsPage = (): ReactElement => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const namespace = currentProject.metadata.name;
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
   return (
@@ -14,7 +13,7 @@ const ProjectSettingsPage: React.FC = () => {
       <Stack hasGutter>
         {biasMetricsAreaAvailable && (
           <StackItem>
-            <ModelBiasSettingsCard namespace={namespace} />
+            <ModelBiasSettingsCard project={currentProject} />
           </StackItem>
         )}
       </Stack>

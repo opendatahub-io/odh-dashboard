@@ -2,6 +2,7 @@ import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   getExistingVersionsForImageStream,
   isAWSValid,
+  checkVersionRecommended, // Added import for the new function
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
@@ -133,5 +134,44 @@ describe('getExistingVersionsForImageStream', () => {
     const result = getExistingVersionsForImageStream(imageStream);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({ name: 'should-be-included' });
+  });
+});
+
+describe('checkVersionRecommended', () => {
+  it('should return true if the image version is recommended', () => {
+    const imageVersion = {
+      name: 'test-image',
+      annotations: {
+        [IMAGE_ANNOTATIONS.RECOMMENDED]: 'true',
+      },
+    };
+    expect(checkVersionRecommended(imageVersion)).toBe(true);
+  });
+
+  it('should return false if the image version is not recommended', () => {
+    const imageVersion = {
+      name: 'test-image',
+      annotations: {
+        [IMAGE_ANNOTATIONS.RECOMMENDED]: 'false',
+      },
+    };
+    expect(checkVersionRecommended(imageVersion)).toBe(false);
+  });
+
+  it('should return false if the image version does not have the recommended annotation', () => {
+    const imageVersion = {
+      name: 'test-image',
+    };
+    expect(checkVersionRecommended(imageVersion)).toBe(false);
+  });
+
+  it('should return false if the image version is invalid JSON', () => {
+    const imageVersion = {
+      name: 'test-image',
+      annotations: {
+        [IMAGE_ANNOTATIONS.RECOMMENDED]: 'invalid-json',
+      },
+    };
+    expect(checkVersionRecommended(imageVersion)).toBe(false);
   });
 });

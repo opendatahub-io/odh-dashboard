@@ -20,8 +20,6 @@ type ProjectListViewProps = {
   scope: ProjectScope;
 };
 
-const searchTypes = [SearchType.NAME, SearchType.USER];
-
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope }) => {
   const { dashboardConfig } = useAppContext();
   const { projects, dataScienceProjects, refresh } = React.useContext(ProjectsContext);
@@ -81,7 +79,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
           <React.Fragment>
             <ToolbarItem>
               <DashboardSearchField
-                types={searchTypes}
+                types={[SearchType.NAME, SearchType.USER]}
                 searchType={searchType}
                 searchValue={search}
                 onSearchTypeChange={(searchType: SearchType) => {

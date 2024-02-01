@@ -28,7 +28,7 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pip
   if (!pipelineSpec.parameters || pipelineSpec.parameters.length === 0) {
     return (
       <EmptyState variant={EmptyStateVariant.lg} data-id="parameters-empty-state">
-        <EmptyStateHeader titleText="No parameters" headingLevel="h4" />
+        <EmptyStateHeader titleText="No parameters" headingLevel="h2" />
         <EmptyStateBody>This pipeline run does not have any parameters defined.</EmptyStateBody>
       </EmptyState>
     );

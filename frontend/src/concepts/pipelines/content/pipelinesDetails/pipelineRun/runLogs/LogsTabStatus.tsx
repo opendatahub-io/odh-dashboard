@@ -49,7 +49,7 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
       errorAlertMessage = error?.message;
     }
     return (
-      <Alert isInline variant="danger" title={errorAlertTitle}>
+      <Alert component="h2" isInline variant="danger" title={errorAlertTitle}>
         <p>{errorAlertMessage}</p>
       </Alert>
     );
@@ -61,7 +61,13 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
   }
 
   return (
-    <Alert isExpandable isInline variant="warning" title="The log window displays partial content">
+    <Alert
+      component="h2"
+      isExpandable
+      isInline
+      variant="warning"
+      title="The log window displays partial content"
+    >
       <p>
         The log refreshes every {Math.floor(LOG_REFRESH_RATE / 1000)} seconds and displays the
         latest {LOG_TAIL_LINES} lines. Exceptionally long lines are abridged. To view the full log

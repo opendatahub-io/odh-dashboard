@@ -22,7 +22,7 @@ export const columns: SortableData<AcceleratorProfileKind>[] = [
   {
     field: 'enablement',
     label: 'Enable',
-    sortable: (a, b) => Number(a.spec.enabled ?? false) - Number(b.spec.enabled ?? false),
+    sortable: (a, b) => Number(a.spec.enabled) - Number(b.spec.enabled),
     info: {
       popover: 'Indicates whether the accelerator profile is available for new resources.',
       popoverProps: {

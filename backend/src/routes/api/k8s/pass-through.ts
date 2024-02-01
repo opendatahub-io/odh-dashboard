@@ -5,7 +5,7 @@ import {
   OauthFastifyRequest,
 } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
-import { proxyCall, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
+import { proxyCall, ProxyCallStatus, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
 
 export type PassThroughData = {
   method: string;
@@ -75,7 +75,7 @@ export const passThroughResource = <T extends K8sResourceCommon>(
           };
         } else {
           // Likely not JSON, print the error and return the content to the client
-          fastify.log.error(`Parsing response error: ${e}, ${data}`);
+          fastify.log.error(e, `Parsing response error: ${data}`);
           throw { code: 500, response: data };
         }
       }

@@ -8,16 +8,14 @@ const useFetchContextData = (apiState: TrustyAPIState): TrustyAIContextData => {
     useFetchBiasMetricConfigs(apiState);
 
   const refresh = React.useCallback(
-    () => Promise.all([refreshBiasMetricConfigs()]).then(() => undefined),
+    () => refreshBiasMetricConfigs().then(() => undefined),
     [refreshBiasMetricConfigs],
   );
-
-  const loaded = React.useMemo(() => biasMetricConfigsLoaded, [biasMetricConfigsLoaded]);
 
   return {
     biasMetricConfigs,
     refresh,
-    loaded,
+    loaded: biasMetricConfigsLoaded,
     error,
   };
 };

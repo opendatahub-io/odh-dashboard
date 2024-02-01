@@ -48,6 +48,7 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
                       }
                     }}
                     selections={currentTimeframe}
+                    data-testid="metrics-toolbar-time-range-select"
                   >
                     {Object.values(TimeframeTitle).map((value) => (
                       <SelectOption key={value} value={value} />
@@ -73,6 +74,7 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
                       }
                     }}
                     selections={currentRefreshInterval}
+                    data-testid="metrics-toolbar-refresh-interval-select"
                   >
                     {Object.values(RefreshIntervalTitle).map((value) => (
                       <SelectOption key={value} value={value} />
