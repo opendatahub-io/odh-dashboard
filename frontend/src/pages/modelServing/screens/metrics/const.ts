@@ -4,9 +4,9 @@ import { BiasChartConfigMap, MetricsChartTypes } from '~/pages/modelServing/scre
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { calculateThresholds } from '~/pages/modelServing/screens/metrics/utils';
 
-export const EMPTY_BIAS_CONFIGURATION_TITLE = 'Bias metrics not configured';
+export const EMPTY_BIAS_CONFIGURATION_TITLE = 'Configure model bias metrics';
 export const EMPTY_BIAS_CONFIGURATION_DESC =
-  'Bias metrics for this model have not been configured. To monitor model bias, you must first configure metrics.';
+  'To monitor bias for this model, configure model bias metrics.';
 
 export const METRIC_TYPE_DISPLAY_NAME: { [key in BiasMetricType]: string } = {
   [BiasMetricType.DIR]: 'Disparate impact ratio (DIR)',
@@ -33,7 +33,7 @@ export const DEFAULT_BIAS_THRESHOLD_DELTAS: { [key in BiasMetricType]: number } 
 
 export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {
   [BiasMetricType.SPD]: {
-    title: 'Statistical Parity Difference',
+    title: 'Statistical parity difference',
     abbreviation: 'SPD',
     modelMetricKey: ModelMetricType.TRUSTY_AI_SPD,
     chartType: MetricsChartTypes.AREA,
@@ -58,7 +58,7 @@ export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {
     },
   },
   [BiasMetricType.DIR]: {
-    title: 'Disparate Impact Ratio',
+    title: 'Disparate impact ratio',
     abbreviation: 'DIR',
     modelMetricKey: ModelMetricType.TRUSTY_AI_DIR,
     chartType: MetricsChartTypes.LINE,

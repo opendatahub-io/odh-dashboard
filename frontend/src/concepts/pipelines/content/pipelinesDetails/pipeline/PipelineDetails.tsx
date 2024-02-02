@@ -182,7 +182,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                         const firstId = ids[0];
                         if (ids.length === 0) {
                           setSelectedId(null);
-                        } else if (taskMap[firstId]) {
+                        } else {
                           setSelectedId(firstId);
                         }
                       }}

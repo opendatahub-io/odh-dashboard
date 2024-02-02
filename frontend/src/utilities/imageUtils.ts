@@ -21,9 +21,11 @@ export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => 
   // Recommended tags should be first
   if (a.recommended) {
     return -1;
-  } else if (b.recommended) {
+  }
+  if (b.recommended) {
     return 1;
   }
+
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
     return compareVersions(b.name, a.name);
   }
@@ -31,7 +33,7 @@ export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => 
 };
 
 export const isImageBuildInProgress = (buildStatuses: BuildStatus[], image: ImageInfo): boolean => {
-  const inProgressTag = image.tags?.find((tag) => {
+  const inProgressTag = image.tags.find((tag) => {
     const imageTag = `${image.name}:${tag.name}`;
     const build = buildStatuses.find((buildStatus) => buildStatus.imageTag === imageTag);
     if (!build) {
@@ -61,10 +63,11 @@ export const getVersion = (version?: string, prefix?: string): string => {
   if (!version) {
     return '';
   }
+
   const versionString =
     version.startsWith('v') || version.startsWith('V') ? version.slice(1) : version;
 
-  return `${prefix ? prefix : ''}${versionString}`;
+  return `${prefix || ''}${versionString}`;
 };
 
 export const getNameVersionString = (software: ImageSoftwareType): string =>
@@ -74,20 +77,12 @@ export const getDefaultTag = (
   buildStatuses: BuildStatus[],
   image: ImageInfo,
 ): ImageTagInfo | undefined => {
-  if (!image.tags) {
-    return undefined;
-  }
-
-  if (image.tags?.length <= 1) {
+  if (image.tags.length <= 1) {
     return image.tags[0];
   }
 
   const validTags = image.tags.filter((tag) => isImageTagBuildValid(buildStatuses, image, tag));
   const tags = validTags.length ? validTags : image.tags;
-
-  if (!tags) {
-    return undefined;
-  }
 
   // Return the recommended tag or the default tag
   const defaultTag = tags.find((tag) => tag.recommended) || tags.find((tag) => tag.default);
@@ -107,10 +102,6 @@ export const getTagForImage = (
 ): ImageTagInfo | undefined => {
   let tag;
 
-  if (!image.tags) {
-    return undefined;
-  }
-
   if (image.tags.length > 1) {
     if (image.name === selectedImage && selectedTag) {
       tag = image.tags.find((tag) => tag.name === selectedTag);
@@ -128,10 +119,7 @@ export const getImageTagVersion = (
   selectedImage?: string,
   selectedTag?: string,
 ): string => {
-  if (!image.tags) {
-    return '';
-  }
-  if (image?.tags.length > 1) {
+  if (image.tags.length > 1) {
     const defaultTag = getDefaultTag(buildStatuses, image);
     if (image.name === selectedImage && selectedTag) {
       return selectedTag;
@@ -145,9 +133,9 @@ export const getDescriptionForTag = (imageTag?: ImageTagInfo): string => {
   if (!imageTag) {
     return '';
   }
-  const softwareDescriptions = imageTag.content?.software.map((software) =>
+  const softwareDescriptions = imageTag.content.software.map((software) =>
     getNameVersionString(software),
-  ) ?? [''];
+  );
   return softwareDescriptions.join(', ');
 };
 

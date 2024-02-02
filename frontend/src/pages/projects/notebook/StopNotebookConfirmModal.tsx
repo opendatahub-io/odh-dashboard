@@ -45,7 +45,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
         <StackItem>
           Are you sure you want to stop the workbench? Any changes without saving will be erased.
         </StackItem>
-        {notebook && isRunning && (
+        {isRunning && (
           <StackItem>
             <Flex>
               <FlexItem spacer={{ default: 'spacerXs' }}>To save changes, access your</FlexItem>

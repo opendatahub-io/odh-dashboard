@@ -895,7 +895,7 @@ export type ServingRuntime = K8sResourceCommon & {
       volumeMounts?: VolumeMount[];
     }[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
+    replicas?: number;
     volumes?: Volume[];
   };
 };
@@ -966,4 +966,9 @@ export type DataScienceClusterKind = K8sResourceCommon & {
 export type DataScienceClusterList = {
   kind: 'DataScienceClusterList';
   items: DataScienceClusterKind[];
+};
+
+export type SubscriptionStatusData = {
+  installedCSV?: string;
+  installPlanRefNamespace?: string;
 };

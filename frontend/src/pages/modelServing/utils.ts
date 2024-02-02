@@ -17,6 +17,7 @@ import {
   createServiceAccount,
   getRoleBinding,
   addOwnerReference,
+  getServiceAccount,
 } from '~/api';
 import {
   SecretKind,
@@ -25,6 +26,7 @@ import {
   ServingRuntimeKind,
   DataScienceClusterKindStatus,
   InferenceServiceKind,
+  ServiceAccountKind,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -66,7 +68,7 @@ export const setUpTokenAuth = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
-  createRolebinding: boolean,
+  createTokenAuth: boolean,
   owner: ServingRuntimeKind,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
@@ -81,13 +83,29 @@ export const setUpTokenAuth = async (
     generateRoleBindingServingRuntime(roleBindingName, serviceAccountName, namespace),
     owner,
   );
-  return Promise.all([
-    ...(existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
-    ...(createRolebinding ? [createRoleBindingIfMissing(roleBinding, namespace, opts)] : []),
-  ])
+  return (
+    createTokenAuth
+      ? Promise.all([
+          createServiceAccountIfMissing(serviceAccount, namespace, opts),
+          createRoleBindingIfMissing(roleBinding, namespace, opts),
+        ])
+      : Promise.resolve()
+  )
     .then(() => createSecrets(fillData, servingRuntimeName, namespace, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
+
+export const createServiceAccountIfMissing = async (
+  serviceAccount: ServiceAccountKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<ServiceAccountKind> =>
+  getServiceAccount(serviceAccount.metadata.name, namespace).catch((e) => {
+    if (e.statusObject?.code === 404) {
+      return createServiceAccount(serviceAccount, opts);
+    }
+    return Promise.reject(e);
+  });
 
 export const createRoleBindingIfMissing = async (
   rolebinding: RoleBindingKind,
@@ -149,7 +167,7 @@ export const getServingRuntimeSize = (
   sizes: ServingRuntimeSize[],
   servingRuntime?: ServingRuntimeKind,
 ): ServingRuntimeSize => {
-  const existingResources = servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
+  const existingResources = servingRuntime?.spec.containers[0]?.resources || sizes[0].resources;
   const size = sizes.find(
     (size) =>
       isCpuLimitEqual(size.resources.limits?.cpu, existingResources.limits?.cpu) &&
@@ -175,8 +193,8 @@ const isAcceleratorProfileChanged = (
   acceleratorProfileState: AcceleratorProfileState,
   servingRuntime: ServingRuntimeKind,
 ) => {
-  const acceleratorProfile = acceleratorProfileState.acceleratorProfile;
-  const initialAcceleratorProfile = acceleratorProfileState.initialAcceleratorProfile;
+  const { acceleratorProfile } = acceleratorProfileState;
+  const { initialAcceleratorProfile } = acceleratorProfileState;
 
   // both are none, check if it's using existing
   if (!acceleratorProfile && !initialAcceleratorProfile) {
@@ -214,7 +232,7 @@ export const isModelServerEditInfoChanged = (
       !_.isEqual(getServingRuntimeSize(sizes, editInfo.servingRuntime), createData.modelSize) ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
-      editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
+      editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
         String(createData.tokenAuth) ||
       isAcceleratorProfileChanged(acceleratorProfileState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&

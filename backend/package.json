@@ -37,6 +37,7 @@
     "watch": "tsc -p . -w"
   },
   "dependencies": {
+    "@fastify/accepts": "^4.3.0",
     "@fastify/autoload": "^5.7.1",
     "@fastify/sensible": "^5.2.0",
     "@fastify/static": "^6.10.2",

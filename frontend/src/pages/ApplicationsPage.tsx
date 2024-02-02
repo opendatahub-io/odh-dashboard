@@ -32,6 +32,7 @@ type ApplicationsPageProps = {
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
   jobReferenceName?: React.ReactNode;
+  loadingContent?: React.ReactNode;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -49,6 +50,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerContent,
   provideChildrenPadding,
   jobReferenceName,
+  loadingContent,
 }) => {
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
@@ -95,12 +97,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (!loaded) {
       return (
-        <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
-            <Spinner size="xl" />
-            <EmptyStateHeader titleText="Loading" headingLevel="h1" />
-          </EmptyState>
-        </PageSection>
+        loadingContent || (
+          <PageSection isFilled>
+            <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+              <Spinner size="xl" />
+              <EmptyStateHeader titleText="Loading" headingLevel="h1" />
+            </EmptyState>
+          </PageSection>
+        )
       );
     }
 

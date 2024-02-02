@@ -175,7 +175,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
                 compatibleAcceleratorIdentifier={
-                  notebookAcceleratorProfileState.acceleratorProfile?.spec?.identifier
+                  notebookAcceleratorProfileState.acceleratorProfile?.spec.identifier
                 }
               />
             </FormSection>

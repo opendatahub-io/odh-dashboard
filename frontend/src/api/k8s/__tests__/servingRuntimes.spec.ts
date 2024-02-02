@@ -1,4 +1,4 @@
-import { mockAcceleratork8sResource } from '~/__mocks__/mockAcceleratork8sResource';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeModalData } from '~/__mocks__/mockServingRuntimeModalData';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -78,10 +78,10 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should add tolerations and gpu on modelmesh', async () => {
-    const acceleratorState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratork8sResource({}),
-      acceleratorProfiles: [mockAcceleratork8sResource({})],
-      initialAcceleratorProfile: mockAcceleratork8sResource({}),
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
       additionalOptions: {},
       useExisting: false,
@@ -96,7 +96,7 @@ describe('assembleServingRuntime', () => {
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
       false,
-      acceleratorState,
+      acceleratorProfileState,
       true,
     );
 
@@ -106,10 +106,10 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should not add tolerations and gpu on kserve', async () => {
-    const acceleratorState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratork8sResource({}),
-      acceleratorProfiles: [mockAcceleratork8sResource({})],
-      initialAcceleratorProfile: mockAcceleratork8sResource({}),
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
       additionalOptions: {},
       useExisting: false,
@@ -124,7 +124,7 @@ describe('assembleServingRuntime', () => {
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
       false,
-      acceleratorState,
+      acceleratorProfileState,
       false,
     );
 
@@ -133,5 +133,41 @@ describe('assembleServingRuntime', () => {
     expect(
       servingRuntime.spec.containers[0].resources?.requests?.['nvidia.com/gpu'],
     ).toBeUndefined();
+  });
+
+  it('should have replica count on modelmesh', async () => {
+    const replicaCount = 2;
+    const servingRuntime = assembleServingRuntime(
+      mockServingRuntimeModalData({
+        externalRoute: true,
+        tokenAuth: true,
+        numReplicas: replicaCount,
+      }),
+      'test',
+      mockServingRuntimeK8sResource({ auth: false, route: false }),
+      true,
+      false,
+      undefined,
+      true,
+    );
+
+    expect(servingRuntime.spec.replicas).toBe(replicaCount);
+  });
+
+  it('should have replica count on modelmesh', async () => {
+    const servingRuntime = assembleServingRuntime(
+      mockServingRuntimeModalData({
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      'test',
+      mockServingRuntimeK8sResource({ auth: false, route: false }),
+      true,
+      false,
+      undefined,
+      false,
+    );
+
+    expect(servingRuntime.spec.replicas).toBeUndefined();
   });
 });

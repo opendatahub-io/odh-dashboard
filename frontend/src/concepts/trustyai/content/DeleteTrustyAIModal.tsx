@@ -13,7 +13,7 @@ const DeleteTrustyAIModal: React.FC<DeleteTrustyAIModalProps> = ({ isOpen, onDel
 
   return (
     <DeleteModal
-      title="Uninstall TrustyAI Service"
+      title="Uninstall TrustyAI"
       isOpen={isOpen}
       onClose={() => {
         setIsDeleting(false);
@@ -32,8 +32,8 @@ const DeleteTrustyAIModal: React.FC<DeleteTrustyAIModalProps> = ({ isOpen, onDel
       deleteName="trustyai"
       submitButtonLabel="Uninstall"
     >
-      This will uninstall the TrustyAI service from this project and all associated data, such as
-      model bias configurations.
+      Disabling model bias monitoring will uninstall TrustyAI from your namespace. All associated
+      data, such as model bias configurations, will be deleted.
     </DeleteModal>
   );
 };

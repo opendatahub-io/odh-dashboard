@@ -164,14 +164,10 @@ export const LearningCenter: React.FC = () => {
     (isFavorite: boolean, name: string): void => {
       const updatedFavorites = [...favoriteResources];
       const index = updatedFavorites.indexOf(name);
-      if (isFavorite) {
-        if (index === -1) {
-          updatedFavorites.push(name);
-        }
-      } else {
-        if (index !== -1) {
-          updatedFavorites.splice(index, 1);
-        }
+      if (isFavorite && index === -1) {
+        updatedFavorites.push(name);
+      } else if (!isFavorite && index !== -1) {
+        updatedFavorites.splice(index, 1);
       }
       setFavorites(updatedFavorites);
     },

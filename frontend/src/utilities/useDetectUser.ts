@@ -32,9 +32,7 @@ const useDetectUser = (): void => {
 
     return () => {
       cancelled = true;
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, [dispatch]);
 };

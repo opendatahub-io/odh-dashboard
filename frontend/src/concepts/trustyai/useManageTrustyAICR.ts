@@ -4,21 +4,8 @@ import useTrustyAINamespaceCR, {
   taiHasServerTimedOut,
 } from '~/concepts/trustyai/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
-import { TrustyAIKind } from '~/k8sTypes';
 
-type ManageTrustyAICRType = {
-  error: Error | undefined;
-  isProgressing: boolean;
-  isAvailable: boolean;
-  showSuccess: boolean;
-  isSettled: boolean;
-  serverTimedOut: boolean;
-  ignoreTimedOut: () => void;
-  installCR: () => Promise<TrustyAIKind | null | undefined | void>;
-  deleteCR: () => Promise<TrustyAIKind | null | undefined>;
-};
-
-const useManageTrustyAICR = (namespace: string): ManageTrustyAICRType => {
+const useManageTrustyAICR = (namespace: string): UseManageTrustyAICRReturnType => {
   const state = useTrustyAINamespaceCR(namespace);
   const [cr, loaded, serviceError, refresh] = state;
 
@@ -52,7 +39,7 @@ const useManageTrustyAICR = (namespace: string): ManageTrustyAICRType => {
     [namespace, refresh],
   );
 
-  return {
+  return <UseManageTrustyAICRReturnType>{
     error,
     isProgressing,
     isAvailable,
@@ -66,3 +53,15 @@ const useManageTrustyAICR = (namespace: string): ManageTrustyAICRType => {
 };
 
 export default useManageTrustyAICR;
+
+type UseManageTrustyAICRReturnType = {
+  error: Error | undefined;
+  isProgressing: boolean;
+  isAvailable: boolean;
+  showSuccess: boolean;
+  isSettled: boolean;
+  serverTimedOut: boolean;
+  ignoreTimedOut: () => void;
+  installCR: () => Promise<void>;
+  deleteCR: () => Promise<void>;
+};

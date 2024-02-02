@@ -1,3 +1,4 @@
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   ContainerResources,
   ImageStreamAndVersion,
@@ -97,6 +98,7 @@ export type DataConnectionData = {
 };
 
 export enum DataConnectionType {
+  UNKNOWN = -1,
   AWS,
 }
 
@@ -105,10 +107,17 @@ export type DataConnectionAWS = {
   data: AWSSecretKind;
 };
 
-export type DataConnection = {
-  type: DataConnectionType;
-  data: Record<string, unknown>; // likely will be a unified CR at some point
-} & DataConnectionAWS;
+export type DataConnection =
+  | {
+      type: DataConnectionType;
+      data: K8sResourceCommon & {
+        metadata: {
+          name: string;
+          namespace: string;
+        };
+      };
+    }
+  | DataConnectionAWS;
 
 export type AWSDataEntry = { key: AWS_KEYS; value: string }[];
 

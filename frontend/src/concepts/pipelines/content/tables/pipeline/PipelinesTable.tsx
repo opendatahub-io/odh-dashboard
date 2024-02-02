@@ -99,6 +99,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
           columns: pipelineColumns,
           ...sortProps,
         })}
+        data-testid="pipelines-table"
       />
       <DeletePipelinesModal
         isOpen={deletePipelines.length !== 0}

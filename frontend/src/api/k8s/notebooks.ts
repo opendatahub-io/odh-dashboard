@@ -66,7 +66,7 @@ const assembleNotebook = (
   const translatedUsername = usernameTranslate(username);
 
   const location = new URL(window.location.href);
-  const origin = location.origin;
+  const { origin } = location;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
@@ -295,12 +295,13 @@ export const createNotebook = (
 
 export const updateNotebook = (
   existingNotebook: NotebookKind,
-  data: StartNotebookData,
+  assignableData: StartNotebookData,
   username: string,
   enableServiceMesh: boolean,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
-  data.notebookId = existingNotebook.metadata.name;
-  const notebook = assembleNotebook(data, username, enableServiceMesh);
+  assignableData.notebookId = existingNotebook.metadata.name;
+  const notebook = assembleNotebook(assignableData, username, enableServiceMesh);
 
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
@@ -312,10 +313,12 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};
 
-  return k8sUpdateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: _.merge({}, oldNotebook, notebook),
-  });
+  return k8sUpdateResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      resource: _.merge({}, oldNotebook, notebook),
+    }),
+  );
 };
 
 export const createNotebookWithoutStarting = (
@@ -323,17 +326,16 @@ export const createNotebookWithoutStarting = (
   username: string,
   enableServiceMesh: boolean,
 ): Promise<NotebookKind> =>
-  new Promise((resolve, reject) =>
-    createNotebook(data, username, enableServiceMesh).then((notebook) =>
-      setTimeout(
-        () =>
-          stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
-            .then(resolve)
-            .catch(reject),
-        10_000,
-      ),
-    ),
-  );
+  new Promise((resolve, reject) => {
+    createNotebook(data, username, enableServiceMesh).then((notebook) => {
+      setTimeout(() => {
+        stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
+          .then(resolve)
+          .catch(reject);
+      }, 10_000);
+    });
+  });
+
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
     model: NotebookModel,

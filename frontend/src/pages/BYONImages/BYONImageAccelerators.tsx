@@ -28,7 +28,7 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
   const acceleratorAdminPageEnabled = useIsAreaAvailable(SupportedArea.ACCELERATOR_PROFILES).status;
 
   const recommendedAcceleratorProfiles = data.filter((cr) =>
-    image.recommendedAcceleratorIdentifiers?.includes(cr.spec.identifier),
+    image.recommendedAcceleratorIdentifiers.includes(cr.spec.identifier),
   );
   if (loadError) {
     return <>-</>;
@@ -59,7 +59,7 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
       )}
       {acceleratorAdminPageEnabled && (
         <StackItem>
-          {image.recommendedAcceleratorIdentifiers?.length > 0 ? (
+          {image.recommendedAcceleratorIdentifiers.length > 0 ? (
             <Tooltip
               content={`This image is compatible with accelerators with the identifier ${image.recommendedAcceleratorIdentifiers.join(
                 ', ',
@@ -70,12 +70,9 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
                 variant="outline"
                 render={({ className, content }) => (
                   <Link
-                    to={
-                      '/acceleratorProfiles/create?' +
-                      new URLSearchParams({
-                        identifiers: image.recommendedAcceleratorIdentifiers.join(','),
-                      }).toString()
-                    }
+                    to={`/acceleratorProfiles/create?${new URLSearchParams({
+                      identifiers: image.recommendedAcceleratorIdentifiers.join(','),
+                    }).toString()}`}
                     className={className}
                   >
                     {content}

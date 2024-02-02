@@ -49,7 +49,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { state } = useLocation();
   const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
-  const lastLocationPipelineVersion: PipelineVersionKF = state?.lastVersion;
+  const lastLocationPipelineVersion: PipelineVersionKF | undefined = state?.lastVersion;
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -91,7 +91,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         itemCount={totalSize}
         data={runs}
         columns={pipelineRunColumns}
-        enablePagination
+        enablePagination="compact"
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
         }
@@ -122,6 +122,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         )}
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({ columns: pipelineRunColumns, ...tableProps })}
+        data-testid="pipeline-run-table"
       />
       <DeletePipelineRunsModal
         toDeleteResources={deleteResources}

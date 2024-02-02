@@ -10,7 +10,7 @@ const useWatchNotebooksForUsers = (
   projectName: string,
   listOfUsers: string[],
 ): {
-  notebooks: UsernameMap<NotebookRunningState>;
+  notebooks: UsernameMap<NotebookRunningState | undefined>;
   loaded: boolean;
   loadError: Error | undefined;
   forceRefresh: (usernames?: string[]) => void;
@@ -24,7 +24,7 @@ const useWatchNotebooksForUsers = (
 
   const getNotebooks = React.useCallback(
     (usernameList: string[]) => {
-      if (!usernameList || usernameList.length === 0) {
+      if (usernameList.length === 0) {
         return;
       }
 
@@ -54,9 +54,9 @@ const useWatchNotebooksForUsers = (
             setLoadError(undefined);
           }
 
-          const newNotebooks = successes.reduce((notebookMap, { value }) => {
-            notebookMap[value.name] = value.data;
-            return notebookMap;
+          const newNotebooks = successes.reduce((acc, { value }) => {
+            acc[value.name] = value.data;
+            return acc;
           }, {} as UsernameMap<NotebookRunningState>);
           setNotebooks((prevState) => ({ ...prevState, ...newNotebooks }));
           setLoaded(true);
@@ -86,9 +86,7 @@ const useWatchNotebooksForUsers = (
     const watchHandle = setInterval(() => getNotebooks(usernames), pollInterval);
 
     return () => {
-      if (watchHandle) {
-        clearInterval(watchHandle);
-      }
+      clearInterval(watchHandle);
     };
   }, [pollInterval, getNotebooks, usernames]);
 

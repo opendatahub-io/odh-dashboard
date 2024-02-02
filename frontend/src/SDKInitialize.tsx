@@ -41,8 +41,8 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   wsAppSettings: () =>
     Promise.resolve({
       host: `${location.protocol.replace(/^http/i, 'ws')}//${location.host}/wss/k8s`,
-      urlAugment: (url: string) => {
-        const [origUrl, query] = url.split('?') || [];
+      urlAugment: (url) => {
+        const [origUrl, query] = url.split('?');
         const queryParams = new URLSearchParams(query);
         if (!queryParams.get('watch')) {
           queryParams.set('watch', 'true');

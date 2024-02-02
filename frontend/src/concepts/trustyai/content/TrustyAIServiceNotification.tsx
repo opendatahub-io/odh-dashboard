@@ -44,21 +44,26 @@ const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = 
   if (!dismissSuccess && showSuccess && isAvailable) {
     return (
       <Alert
+        data-testid="trustyai-service-installed-alert"
         variant="success"
-        title="TrustyAI installed"
+        title="TrustyAI installed in your namespace"
         actionClose={<AlertActionCloseButton onClose={() => setDismissSuccess(true)} />}
         isLiveRegion
         isInline
-      >
-        The TrustyAI service was successfully installed
-      </Alert>
+      />
     );
   }
 
   if (error) {
     return (
-      <Alert variant="danger" title="TrustyAI service error" isLiveRegion isInline>
-        {error?.message}
+      <Alert
+        variant="danger"
+        title="TrustyAI service error"
+        isLiveRegion
+        isInline
+        data-testid="trustyai-service-error"
+      >
+        {error.message}
       </Alert>
     );
   }

@@ -18,9 +18,9 @@ spec:
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: true
-    disableAcceleratorProfiles: true
     disableBiasMetrics: true
     disablePerformanceMetrics: true
+    disableAcceleratorProfiles: true
     disableServiceMesh: true
     disableKServe: false
     disableModelMesh: false

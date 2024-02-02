@@ -112,7 +112,7 @@ const ModelServingPlatform: React.FC = () => {
         labels={
           currentProjectServingPlatform && [
             <Label key="serving-platform-label">
-              {isProjectModelMesh ? 'Multi-model serving enabled' : 'Single model serving enabled'}
+              {isProjectModelMesh ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
             </Label>,
           ]
         }

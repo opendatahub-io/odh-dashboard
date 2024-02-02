@@ -40,8 +40,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
   const [search, setSearch] = React.useState('');
   const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKF[]>(versions);
   const [visibleLength, setVisibleLength] = React.useState(10);
-  const placeholder =
-    versions?.length === 0 ? 'No versions available' : 'Select a pipeline version';
+  const placeholder = versions.length === 0 ? 'No versions available' : 'Select a pipeline version';
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
@@ -132,7 +131,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
           style={{ minWidth: '300px' }}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={!versions?.length}
+          isDisabled={!versions.length}
           isFullWidth
           data-testid="pipeline-version-toggle-button"
         >

@@ -15,7 +15,7 @@ const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content
   const [copied, setCopied] = React.useState(false);
 
   const clipboardCopyFunc = (text: string) => {
-    navigator.clipboard.writeText(text.toString());
+    navigator.clipboard.writeText(text);
   };
 
   const onClick = (text: string) => {
