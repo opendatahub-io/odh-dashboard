@@ -1,4 +1,9 @@
-import { PipelineKF, RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineKF,
+  PipelineKFv2,
+  RelationshipKF,
+  ResourceTypeKF,
+} from '~/concepts/pipelines/kfTypes';
 
 /* eslint-disable camelcase */
 export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number } = {
@@ -229,6 +234,37 @@ export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number }
   total_size: 5,
 };
 
+export const mockPipelinesV2Proxy: { pipelines: PipelineKFv2[]; total_size: number } = {
+  pipelines: [
+    {
+      pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921-0',
+      display_name: 'v2 pipeline 0 ',
+      created_at: '2024-01-31T20:47:58Z',
+    },
+    {
+      pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921-1',
+      display_name: 'v2 pipeline 1',
+      created_at: '2024-01-31T20:47:58Z',
+    },
+    {
+      pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921-2',
+      display_name: 'v2 pipeline 2',
+      created_at: '2024-01-31T20:47:58Z',
+    },
+    {
+      pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921-3',
+      display_name: 'v2 pipeline 3',
+      created_at: '2024-01-31T20:47:58Z',
+    },
+    {
+      pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef092-4',
+      display_name: 'v2 pipeline 4',
+      created_at: '2024-01-31T20:47:58Z',
+    },
+  ],
+  total_size: 5,
+};
+
 export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF => {
   const name = pipeline?.name || 'Test pipeline';
   const id = name.replace(/ /g, '-').toLowerCase();
@@ -256,14 +292,27 @@ export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF =>
   };
 };
 
+export const buildMockPipelineV2 = (pipeline?: Partial<PipelineKFv2>): PipelineKFv2 => {
+  const display_name = pipeline?.display_name || 'Test pipeline';
+  const pipeline_id = display_name.replace(/ /g, '-').toLowerCase();
+
+  return {
+    pipeline_id,
+    display_name,
+    created_at: '2023-11-30T22:55:17Z',
+    description: 'some pipeline description',
+    ...pipeline,
+  };
+};
+
 export const buildMockPipelines = (
-  pipelines: PipelineKF[] = mockPipelinesProxy.pipelines,
+  pipelines: (PipelineKF | PipelineKFv2)[] = mockPipelinesProxy.pipelines,
   totalSize?: number,
   nextPageToken?: string,
 ): {
   total_size?: number | undefined;
   next_page_token?: string | undefined;
-  pipelines: PipelineKF[];
+  pipelines: (PipelineKF | PipelineKFv2)[];
 } => ({
   pipelines,
   total_size: totalSize || pipelines.length,

@@ -8,10 +8,10 @@ import {
   RunJobStatus,
   RunJobTrigger,
   CoreResourceExperiment,
-  CoreResourcePipelineVersion,
+  // CoreResourcePipelineVersion,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+// import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;
@@ -28,7 +28,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(job);
+  // const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(job);
 
   return (
     <Tr>
@@ -48,12 +48,13 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         <CoreResourceExperiment resource={job} />
       </Td>
       <Td modifier="truncate" dataLabel="Pipeline">
-        <CoreResourcePipelineVersion
+        {/* TODO: bring back with pipeline runs: https://issues.redhat.com/browse/RHOAIENG-2225*/}
+        {/* <CoreResourcePipelineVersion
           resource={job}
           loaded={isVersionLoaded}
           version={version}
           error={error}
-        />
+        /> */}
       </Td>
       <Td dataLabel="Trigger">
         <RunJobTrigger job={job} />

@@ -19,7 +19,7 @@ import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelec
 import { TableBase, getTableColumnSort } from '~/components/table';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import { usePipelineLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
@@ -28,7 +28,7 @@ import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipeli
 
 type PipelineSelectorProps = {
   selection?: string;
-  onSelect: (pipeline: PipelineKF) => void;
+  onSelect: (pipeline: PipelineKFv2) => void;
 };
 
 const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect }) => {
@@ -86,7 +86,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
               data={pipelines}
               rowRenderer={(row) => (
                 <PipelineSelectorTableRow
-                  key={row.id}
+                  key={row.pipeline_id}
                   obj={row}
                   onClick={() => {
                     onSelect(row);

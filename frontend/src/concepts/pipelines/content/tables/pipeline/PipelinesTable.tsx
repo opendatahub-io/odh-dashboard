@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { Table, TableBase, getTableColumnSort, useCheckboxTableBase } from '~/components/table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
@@ -8,7 +8,7 @@ import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesMo
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 
 type PipelinesTableProps = {
-  pipelines: PipelineKF[];
+  pipelines: PipelineKFv2[];
   pipelineDetailsPath: (namespace: string, id: string) => string;
   refreshPipelines: () => Promise<unknown>;
   loading?: boolean;
@@ -49,14 +49,14 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
     tableProps: checkboxTableProps,
     isSelected,
     toggleSelection,
-  } = useCheckboxTableBase<PipelineKF>(
+  } = useCheckboxTableBase<PipelineKFv2>(
     pipelines,
     selectedPipelines,
     setSelectedPipelines,
-    (pipeline) => pipeline.id,
+    (pipeline) => pipeline.pipeline_id,
   );
 
-  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKF[]>([]);
+  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKFv2[]>([]);
 
   return (
     <>
@@ -84,7 +84,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         columns={pipelineColumns}
         rowRenderer={(pipeline, rowIndex) => (
           <PipelinesTableRow
-            key={pipeline.id}
+            key={pipeline.pipeline_id}
             pipeline={pipeline}
             rowIndex={rowIndex}
             isChecked={isSelected(pipeline)}

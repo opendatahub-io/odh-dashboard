@@ -6,8 +6,8 @@ import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTable
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
-import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
-import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+// import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
+// import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const options = {
   [FilterOptions.NAME]: 'Name',
@@ -30,7 +30,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const { versions } = React.useContext(PipelineRunVersionsContext);
+  // const { versions } = React.useContext(PipelineRunVersionsContext);
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -51,13 +51,15 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             selected={value && label ? { value, label } : undefined}
           />
         ),
-        [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
-          <PipelineVersionSelect
-            versions={versions}
-            selection={label}
-            onSelect={(version) => onChange(version.id, version.name)}
-          />
-        ),
+        [FilterOptions.PIPELINE_VERSION]: () => <></>,
+        // TODO: Uncomment this when adding runs for v2: https://issues.redhat.com/browse/RHOAIENG-2225
+        // [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
+        //   <PipelineVersionSelect
+        //     versions={versions}
+        //     selection={label}
+        //     onSelect={(version) => onChange(version.id, version.name)}
+        //   />
+        // ),
       }}
     >
       <ToolbarItem>

@@ -18,7 +18,7 @@ import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
 import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
@@ -29,7 +29,7 @@ import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipeli
 type PipelineVersionSelectorProps = {
   pipelineId?: string;
   selection?: string;
-  onSelect: (version: PipelineVersionKF) => void;
+  onSelect: (version: PipelineVersionKFv2) => void;
 };
 
 const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
@@ -91,7 +91,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
               data={versions}
               rowRenderer={(row) => (
                 <PipelineSelectorTableRow
-                  key={row.id}
+                  key={row.pipeline_id}
                   obj={row}
                   onClick={() => {
                     onSelect(row);

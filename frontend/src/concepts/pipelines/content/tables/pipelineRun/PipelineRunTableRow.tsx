@@ -7,14 +7,14 @@ import {
   RunCreated,
   RunDuration,
   CoreResourceExperiment,
-  CoreResourcePipelineVersion,
+  // CoreResourcePipelineVersion,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
 import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
-import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+// import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -29,13 +29,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   onToggleCheck,
   onDelete,
   run,
-  getJobInformation,
+  // getJobInformation,
 }) => {
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const { loading: isJobInfoLoading, data } = getJobInformation(run);
+  // const { loading: isJobInfoLoading, data } = getJobInformation(run);
   const notification = useNotification();
   const navigate = useNavigate();
-  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(data || run);
+  // const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(data || run);
 
   return (
     <Tr>
@@ -47,12 +47,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <CoreResourceExperiment resource={run} />
       </Td>
       <Td modifier="truncate" dataLabel="Pipeline">
-        <CoreResourcePipelineVersion
+        {/* TODO: bring back with pipeline runs: https://issues.redhat.com/browse/RHOAIENG-2225 */}
+        {/* <CoreResourcePipelineVersion
           resource={data || run}
           loaded={!isJobInfoLoading && isVersionLoaded}
           version={version}
           error={error}
-        />
+        /> */}
       </Td>
       <Td dataLabel="Created">
         <RunCreated run={run} />

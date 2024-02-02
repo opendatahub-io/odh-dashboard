@@ -4,11 +4,11 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
-import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
-import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
+// import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
+// import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import useDeleteStatuses from '~/concepts/pipelines/content/useDeleteStatuses';
-import PipelineJobReferenceName from './PipelineJobReferenceName';
-import PipelineRunTypeLabel from './PipelineRunTypeLabel';
+// import PipelineJobReferenceName from './PipelineJobReferenceName';
+// import PipelineRunTypeLabel from './PipelineRunTypeLabel';
 
 type DeletePipelineRunsModalProps = {
   type: 'triggered run' | 'scheduled run';
@@ -22,8 +22,14 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
   type,
 }) => {
   const { api } = usePipelinesAPI();
-  const { deleting, setDeleting, error, setError, deleteStatuses, onBeforeClose, abortSignal } =
-    useDeleteStatuses({ onClose, type, toDeleteResources });
+  // TODO: bring back during https://issues.redhat.com/browse/RHOAIENG-2225
+  // const { deleting, setDeleting, error, setError, deleteStatuses, onBeforeClose, abortSignal } =
+  //   useDeleteStatuses({ onClose, type, toDeleteResources })
+  const { deleting, setDeleting, error, setError, onBeforeClose, abortSignal } = useDeleteStatuses({
+    onClose,
+    type,
+    toDeleteResources,
+  });
 
   const resourceCount = toDeleteResources.length;
 
@@ -89,7 +95,8 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             You are about to delete {resourceCount} {type}s. This action cannot be undone.
           </StackItem>
           <StackItem>
-            <DeletePipelineModalExpandableSection
+            {/* TODO: Out of scope for this PR: bring back during https://issues.redhat.com/browse/RHOAIENG-2225 */}
+            {/* <DeletePipelineModalExpandableSection
               toDeleteResources={toDeleteResources}
               type="runs"
               deleting={deleting}
@@ -106,7 +113,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
                   )}
                 </div>
               )}
-            </DeletePipelineModalExpandableSection>
+            </DeletePipelineModalExpandableSection> */}
           </StackItem>
         </Stack>
       )}

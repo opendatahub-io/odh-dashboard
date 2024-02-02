@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-icons';
 import { Icon } from '@patternfly/react-core';
 import {
-  PipelineCoreResourceKF,
+  PipelineCoreResourceKFv2,
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineRunStatusesKF,
@@ -79,6 +79,10 @@ export const isPipelineRunJob = (
   runOrJob?: PipelineRunJobKF | PipelineRunKF,
 ): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
 
+/**
+ * @deprecated
+ * pipeline id can be easily accessed from pipeline version by the param `pipeline_id` in v2
+ */
 export const getPipelineIdByPipelineVersion = (
   version: PipelineVersionKF | null,
 ): string | undefined =>
@@ -87,6 +91,9 @@ export const getPipelineIdByPipelineVersion = (
   )?.key.id;
 
 export const getPipelineAndVersionDeleteString = (
-  resources: PipelineCoreResourceKF[],
+  resources: PipelineCoreResourceKFv2[],
   type: 'pipeline' | 'version',
 ): string => `${resources.length} ${type}${resources.length !== 1 ? 's' : ''}`;
+
+export const getPipelineResourceUniqueID = (resource: PipelineCoreResourceKFv2): string =>
+  resource.display_name + resource.created_at;

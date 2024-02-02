@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF, PipelineKFCallCommon } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineCoreResourceKF,
+  PipelineCoreResourceKFv2,
+  PipelineKFCallCommon,
+} from '~/concepts/pipelines/kfTypes';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import { PipelineListPaged, PipelineOptions, PipelineParams } from '~/concepts/pipelines/types';
 import { POLL_INTERVAL } from '~/utilities/const';
@@ -8,7 +12,8 @@ import { K8sAPIOptions } from '~/k8sTypes';
 export type PipelineKFCallCommonWithItems<T extends PipelineCoreResourceKF> =
   PipelineKFCallCommon<unknown> & { items?: T[] };
 
-const usePipelineQuery = <T extends PipelineCoreResourceKF>(
+// TODO: remove this OR when we remove all the old pipeline types (PipelineCoreResourceKF)
+const usePipelineQuery = <T extends PipelineCoreResourceKFv2 | PipelineCoreResourceKF>(
   apiFetch: (
     opts: K8sAPIOptions,
     params?: PipelineParams,

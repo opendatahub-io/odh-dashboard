@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort, useCheckboxTableBase } from '~/components/table';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineVersionTableRow from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';
 import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
@@ -9,8 +9,8 @@ import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/Pipel
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 
 type PipelineVersionTableProps = {
-  pipeline: PipelineKF;
-  initialVersions: PipelineVersionKF[];
+  pipeline: PipelineKFv2;
+  initialVersions: PipelineVersionKFv2[];
   nextPageToken?: string;
   loading?: boolean;
   totalSize: number;
@@ -32,7 +32,7 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
   pipelineDetailsPath,
   ...tableProps
 }) => {
-  const pipelineId = pipeline.id;
+  const pipelineId = pipeline.pipeline_id;
   const { data: versions, onLoadMore } = usePipelineVersionLoadMore({
     pipelineId,
     initialData: initialVersions,
@@ -48,11 +48,11 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
     tableProps: checkboxTableProps,
     isSelected,
     toggleSelection,
-  } = useCheckboxTableBase<PipelineVersionKF>(
+  } = useCheckboxTableBase<PipelineVersionKFv2>(
     versions,
     selectedVersions,
     setSelectedVersions,
-    (version) => version.id,
+    (version) => version.pipeline_version_id,
     { disabled: pipelineChecked, ...(pipelineChecked ? { selected: true } : {}) },
   );
 
@@ -65,7 +65,7 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
       columns={pipelineVersionColumns}
       rowRenderer={(version) => (
         <PipelineVersionTableRow
-          key={version.id}
+          key={version.pipeline_version_id}
           isChecked={pipelineChecked || isSelected(version)}
           onToggleCheck={() => toggleSelection(version)}
           version={version}

@@ -1,19 +1,18 @@
 import * as React from 'react';
-import { getPipelineIdByPipelineVersion } from '~/concepts/pipelines/content/utils';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type PipelineAndVersionContextType = {
   pipelineDataSelector: () => {
-    selectedPipelines: PipelineKF[];
-    setSelectedPipelines: React.Dispatch<React.SetStateAction<PipelineKF[]>>;
+    selectedPipelines: PipelineKFv2[];
+    setSelectedPipelines: React.Dispatch<React.SetStateAction<PipelineKFv2[]>>;
   };
-  versionDataSelector: (pipeline: PipelineKF) => {
-    selectedVersions: PipelineVersionKF[];
-    setSelectedVersions: React.Dispatch<React.SetStateAction<PipelineVersionKF[]>>;
+  versionDataSelector: (pipeline: PipelineKFv2) => {
+    selectedVersions: PipelineVersionKFv2[];
+    setSelectedVersions: React.Dispatch<React.SetStateAction<PipelineVersionKFv2[]>>;
   };
   getResourcesForDeletion: () => {
-    pipelines: PipelineKF[];
-    versions: { pipelineName: string; version: PipelineVersionKF }[];
+    pipelines: PipelineKFv2[];
+    versions: { pipelineName: string; version: PipelineVersionKFv2 }[];
   };
   clearAfterDeletion: () => void;
   isPipelineChecked: (pipelineId: string) => boolean;
@@ -34,30 +33,32 @@ export const PipelineAndVersionContext = React.createContext<PipelineAndVersionC
 const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProviderProps> = ({
   children,
 }) => {
-  const [selectedPipelines, setSelectedPipelines] = React.useState<PipelineKF[]>([]);
+  const [selectedPipelines, setSelectedPipelines] = React.useState<PipelineKFv2[]>([]);
   const [selectedVersions, setSelectedVersions] = React.useState<{
-    [pipelineId: string]: { pipelineName: string; versions: PipelineVersionKF[] };
+    [pipelineId: string]: { pipelineName: string; versions: PipelineVersionKFv2[] };
   }>({});
 
   const setVersions =
-    (pipeline: PipelineKF) =>
+    (pipeline: PipelineKFv2) =>
     (
-      newVersions: PipelineVersionKF[] | ((prevState: PipelineVersionKF[]) => PipelineVersionKF[]),
+      newVersions:
+        | PipelineVersionKFv2[]
+        | ((prevState: PipelineVersionKFv2[]) => PipelineVersionKFv2[]),
     ) => {
       setSelectedVersions((prev) => ({
         ...prev,
-        [pipeline.id]: {
-          pipelineName: pipeline.name,
+        [pipeline.pipeline_id]: {
+          pipelineName: pipeline.display_name,
           versions:
             typeof newVersions === 'function'
-              ? newVersions(prev[pipeline.id]?.versions || [])
+              ? newVersions(prev[pipeline.pipeline_id]?.versions || [])
               : newVersions,
         },
       }));
     };
 
   const isPipelineChecked = (pipelineId: string) =>
-    selectedPipelines.some((pipeline) => pipeline.id === pipelineId);
+    selectedPipelines.some((pipeline) => pipeline.pipeline_id === pipelineId);
 
   return (
     <PipelineAndVersionContext.Provider
@@ -66,8 +67,8 @@ const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProvi
           selectedPipelines,
           setSelectedPipelines,
         }),
-        versionDataSelector: (pipeline: PipelineKF) => ({
-          selectedVersions: selectedVersions[pipeline.id]?.versions || [],
+        versionDataSelector: (pipeline: PipelineKFv2) => ({
+          selectedVersions: selectedVersions[pipeline.pipeline_id]?.versions || [],
           setSelectedVersions: setVersions(pipeline),
         }),
         getResourcesForDeletion: () => ({
@@ -81,8 +82,8 @@ const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProvi
             )
             .flat()
             .filter((selection) => {
-              const selectedPipelinesId = selectedPipelines.map((pipeline) => pipeline.id);
-              const pipelineId = getPipelineIdByPipelineVersion(selection.version);
+              const selectedPipelinesId = selectedPipelines.map((pipeline) => pipeline.pipeline_id);
+              const pipelineId = selection.version.pipeline_id;
               // if the pipeline of the pipeline version will be deleted too, there is no need to delete the pipeline version
               if (pipelineId && selectedPipelinesId.includes(pipelineId)) {
                 return false;
