@@ -1,5 +1,5 @@
 import { ContainerResources, OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
 export const makeCardVisible = (id: string): void => {
@@ -68,8 +68,11 @@ export const getLabelColorForDocType = (
       return 'grey';
   }
 };
-export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication): void => {
-  const docCategories = (doc.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
+export const combineCategoryAnnotations = (
+  assignableDoc: OdhDocument,
+  app: OdhApplication,
+): void => {
+  const docCategories = (assignableDoc.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
     .split(',')
     .map((c) => c.trim());
   const appCategories = (app.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
@@ -83,8 +86,8 @@ export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication
     return acc;
   }, docCategories);
 
-  doc.metadata.annotations = {
-    ...(doc.metadata.annotations || {}),
+  assignableDoc.metadata.annotations = {
+    ...(assignableDoc.metadata.annotations || {}),
     [CATEGORY_ANNOTATION]: combined.join(','),
   };
 };
@@ -115,7 +118,7 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
     (appName && appName.toLowerCase().includes(searchText)) ||
     (provider && provider.toLowerCase().includes(searchText)) ||
     displayName.toLowerCase().includes(searchText) ||
-    (description?.toLowerCase().includes(searchText) ?? false)
+    description.toLowerCase().includes(searchText)
   );
 };
 
@@ -141,7 +144,7 @@ export const getDashboardMainContainer = (): HTMLElement =>
   document.getElementById(DASHBOARD_MAIN_CONTAINER_ID) || document.body;
 
 export const isHTMLInputElement = (object: unknown): object is HTMLInputElement =>
-  (object as HTMLInputElement).value !== undefined;
+  (object as Partial<HTMLInputElement>).value !== undefined;
 
 export const normalizeBetween = (value: number, min?: number, max?: number): number => {
   let returnedValue = value;
@@ -155,7 +158,7 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
   return Math.floor(returnedValue);
 };
 
-export const getAcceleratorGpuCount = (
-  accelerator: AcceleratorKind,
+export const getAcceleratorProfileCount = (
+  acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,
-): number => Number(resources.requests?.[accelerator.spec.identifier] ?? 0);
+): number => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);

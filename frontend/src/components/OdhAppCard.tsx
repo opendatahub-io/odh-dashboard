@@ -198,7 +198,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       >
         <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
       </CardHeader>
-      <SupportedAppTitle isPlain odhApp={odhApp} />
+      <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
         odhApp.spec.category &&

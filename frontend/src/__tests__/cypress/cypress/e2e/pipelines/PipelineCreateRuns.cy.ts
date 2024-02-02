@@ -1,3 +1,4 @@
+// TODO bring back this test during runs v2 work
 // /* eslint-disable camelcase */
 // import { mockStatus } from '~/__mocks__/mockStatus';
 // import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
@@ -17,7 +18,7 @@
 // import { buildMockPipeline } from '~/__mocks__/mockPipelinesProxy';
 // import { buildMockPipelineVersion } from '~/__mocks__/mockPipelineVersionsProxy';
 // import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
-
+//
 // const projectName = 'test-project-name';
 // const mockPipeline = buildMockPipeline();
 // const mockPipelineVersion = buildMockPipelineVersion({
@@ -46,35 +47,35 @@
 //     resource_references: [runPipelineVersionRef],
 //   }),
 // ];
-
+//
 // describe('Pipeline Runs Global', () => {
 //   beforeEach(() => {
 //     initIntercepts();
 //     pipelineRunsGlobal.visit(projectName);
 //   });
-
+//
 //   it('renders the page with scheduled and triggered runs table data', () => {
 //     pipelineRunJobTable.findRowByName('Test job');
 //     pipelineRunsGlobal.findTriggeredTab().click();
 //     pipelineRunTable.findRowByName('Test run');
 //   });
-
+//
 //   it('creates a triggered run', () => {
 //     const createRunParams = {
 //       name: 'New run',
 //       description: 'New run description',
 //       id: 'new-run-id',
 //     };
-
+//
 //     // Mock pipelines & versions for form select dropdowns
 //     createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
 //     createRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
-
+//
 //     // Navigate to the 'Create run' page
 //     pipelineRunsGlobal.findCreateRunButton().click();
 //     cy.url().should('include', '/pipelineRun/create');
 //     createRunPage.find();
-
+//
 //     // Fill out the form without a schedule and submit
 //     createRunPage.fillName('New run');
 //     createRunPage.fillDescription('New run description');
@@ -84,32 +85,32 @@
 //     createRunPage.findTriggeredRunTypeRadioInput().click();
 //     createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRun');
 //     createRunPage.submit();
-
+//
 //     // Should be redirected to the run details page
 //     cy.url().should('include', '/pipelineRun/view/new-run-id');
 //   });
-
+//
 //   it('creates a scheduled run', () => {
 //     const createJobParams = {
 //       name: 'New job',
 //       description: 'New job description',
 //       id: 'new-job-id',
 //     };
-
+//
 //     // Mock pipelines & versions for form select dropdowns
 //     createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
 //     createRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
-
+//
 //     // Mock jobs list with newly created job
 //     pipelineRunJobTable
 //       .mockGetJobs([...initialJobs, buildMockJobKF(createJobParams)])
 //       .as('refreshRunJobs');
-
+//
 //     // Navigate to the 'Create run' page
 //     pipelineRunsGlobal.findCreateRunButton().click();
 //     cy.url().should('include', '/pipelineRun/create');
 //     createRunPage.find();
-
+//
 //     // Fill out the form with a schedule and submit
 //     createRunPage.fillName('New job');
 //     createRunPage.fillDescription('New job description');
@@ -119,12 +120,12 @@
 //     createRunPage.findScheduledRunTypeRadioInput().click();
 //     createRunPage.mockCreateJob(mockPipelineVersion, createJobParams).as('createJob');
 //     createRunPage.submit();
-
+//
 //     // Should show newly created scheduled job in the table
 //     cy.wait('@refreshRunJobs');
 //     pipelineRunJobTable.findRowByName('New job');
 //   });
-
+//
 //   it('duplicates a scheduled run', () => {
 //     const [mockJob] = initialJobs;
 //     const duplicateJobParams = {
@@ -132,90 +133,83 @@
 //       description: 'Duplicate job description',
 //       id: 'duplicate-job-id',
 //     };
-
+//
 //     // Mock pipelines & versions for form select dropdowns
 //     cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
 //     cloneRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
 //     cloneRunPage.mockGetJob(mockJob);
 //     cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
 //     cloneRunPage.mockGetPipeline(mockPipeline);
-
+//
 //     // Mock jobs list with newly cloned job
 //     pipelineRunJobTable
 //       .mockGetJobs([...initialJobs, buildMockJobKF(duplicateJobParams)])
 //       .as('refreshRunJobs');
-
+//
 //     // Navigate to clone run page for a given scheduled job
 //     pipelineRunJobTable.selectRowActionByName(mockJob.name, 'Duplicate');
 //     cy.url().should('include', `/pipelineRun/cloneJob/${mockJob.id}`);
-
+//
 //     // Verify pipeline & pipeline version are pre-populated & submit
 //     cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.name);
 //     cloneRunPage.findPipelineVersionSelect().should('have.text', mockPipelineVersion.name);
 //     cloneRunPage.mockCreateJob(mockPipelineVersion, duplicateJobParams).as('cloneJob');
 //     cloneRunPage.submit();
-
+//
 //     // Should show newly cloned scheduled job in the table
 //     cy.wait('@refreshRunJobs');
 //     pipelineRunJobTable.findRowByName('Duplicate job');
 //   });
-
+//
 //   it('duplicates a triggered run', () => {
 //     const mockRunResource = getMockRunResource(initialRuns[0]);
-
+//
 //     const duplicateRunParams = {
 //       name: 'Duplicate run',
 //       description: 'Duplicate run description',
 //       id: 'duplicate-run-id',
 //     };
-
+//
 //     // Mock pipelines & versions for form select dropdowns
 //     cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
 //     cloneRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
 //     cloneRunPage.mockGetRunResource(mockRunResource);
 //     cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
 //     cloneRunPage.mockGetPipeline(mockPipeline);
-
+//
 //     // Mock runs list with newly cloned run
 //     pipelineRunTable
 //       .mockGetRuns([...initialRuns, buildMockRunKF(duplicateRunParams)])
 //       .as('refreshRuns');
-
+//
 //     // Navigate to clone run page for a given triggered run
 //     pipelineRunsGlobal.findTriggeredTab().click();
 //     pipelineRunTable.selectRowActionByName(mockRunResource.run.name, 'Duplicate');
 //     cy.url().should('include', `/pipelineRun/clone/${mockRunResource.run.id}`);
-
+//
 //     // Verify pipeline & pipeline version are pre-populated & submit
 //     cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.name);
 //     cloneRunPage.findPipelineVersionSelect().should('have.text', mockPipelineVersion.name);
 //     cloneRunPage.mockCreateRun(mockPipelineVersion, duplicateRunParams).as('cloneRun');
 //     cloneRunPage.submit();
-
+//
 //     // Should redirect to the details of the newly cloned triggered run
 //     cy.url().should('include', `/pipelineRun/view/${duplicateRunParams.id}`);
 //   });
 // });
-
+//
 // const initIntercepts = () => {
 //   cy.intercept('/api/status', mockStatus());
 //   cy.intercept('/api/config', mockDashboardConfig({}));
 //   cy.intercept(
 //     {
-//       pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
+//       pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/pipelines-definition`,
 //     },
-//     mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+//     mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
 //   );
 //   cy.intercept(
 //     {
-//       method: 'GET',
-//       pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
-//     },
-//     mockDataSciencePipelineApplicationK8sResource({}),
-//   );
-//   cy.intercept(
-//     {
-//       pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-dspa`,
+//       pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-pipelines-definition`,
 //     },
 //     mockRouteK8sResource({
 //       notebookName: 'ds-pipeline-pipelines-definition',
@@ -246,4 +240,3 @@
 //     { runs: initialRuns, total_size: initialRuns.length },
 //   );
 // };
-// TODO bring back this test during runs v2 work

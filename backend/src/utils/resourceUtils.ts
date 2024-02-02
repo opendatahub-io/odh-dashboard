@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
-  AcceleratorKind,
+  AcceleratorProfileKind,
   BUILD_PHASE,
   BuildKind,
   BuildStatus,
@@ -16,8 +16,11 @@ import {
   OdhDocument,
   QuickStart,
   SubscriptionKind,
+  SubscriptionStatusData,
   Template,
   TemplateList,
+  TolerationEffect,
+  TolerationOperator,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -34,7 +37,7 @@ import {
   getRouteForClusterId,
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
-import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
+import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -50,7 +53,7 @@ const quickStartsVersion = 'v1';
 const quickStartsPlural = 'odhquickstarts';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
-let subscriptionWatcher: ResourceWatcher<SubscriptionKind>;
+let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
@@ -120,9 +123,9 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
     });
 };
 
-const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
-  const fetchAll = async (): Promise<SubscriptionKind[]> => {
-    const subscriptions: SubscriptionKind[] = [];
+const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionStatusData[]> => {
+  const fetchAll = async (): Promise<SubscriptionStatusData[]> => {
+    const installedCSVs: SubscriptionStatusData[] = [];
     let _continue: string = undefined;
     let remainingItemCount = 1;
     try {
@@ -140,20 +143,23 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionK
         )) as {
           body: {
             items: SubscriptionKind[];
-            metadata: { _continue: string; remainingItemCount: number };
+            metadata: { continue: string; remainingItemCount: number };
           };
         };
-        const subs = res?.body.items;
+        const subs = res?.body.items?.map((sub) => ({
+          installedCSV: sub.status?.installedCSV,
+          installPlanRefNamespace: sub.status?.installPlanRef?.namespace,
+        }));
         remainingItemCount = res.body?.metadata?.remainingItemCount;
-        _continue = res.body?.metadata?._continue;
+        _continue = res.body?.metadata?.continue;
         if (subs?.length) {
-          subscriptions.push(...subs);
+          installedCSVs.push(...subs);
         }
       }
     } catch (e) {
       console.error(`ERROR: `, e.body.message);
     }
-    return subscriptions;
+    return installedCSVs;
   };
   return fetchAll();
 };
@@ -543,7 +549,7 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
-  subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
+  subscriptionWatcher = new ResourceWatcher<SubscriptionStatusData>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplications);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
@@ -560,7 +566,7 @@ export const updateDashboardConfig = (): Promise<void> => {
   return dashboardConfigWatcher.updateResults();
 };
 
-export const getSubscriptions = (): SubscriptionKind[] => {
+export const getSubscriptions = (): SubscriptionStatusData[] => {
   return subscriptionWatcher.getResources();
 };
 
@@ -642,7 +648,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
 
     const acceleratorProfiles = (
       acceleratorProfilesResponse?.body as {
-        items: AcceleratorKind[];
+        items: AcceleratorProfileKind[];
       }
     )?.items;
 
@@ -653,10 +659,10 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       acceleratorProfiles.length === 0
     ) {
       // if gpu detected on cluster, create our default migrated-gpu
-      const acceleratorDetected = await getAcceleratorNumbers(fastify);
+      const acceleratorDetected = await getDetectedAccelerators(fastify);
 
       if (acceleratorDetected.configured) {
-        const payload: AcceleratorKind = {
+        const payload: AcceleratorProfileKind = {
           kind: 'AcceleratorProfile',
           apiVersion: 'dashboard.opendatahub.io/v1',
           metadata: {
@@ -669,9 +675,9 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
             enabled: true,
             tolerations: [
               {
-                effect: 'NoSchedule',
+                effect: TolerationEffect.NO_SCHEDULE,
                 key: 'nvidia.com/gpu',
-                operator: 'Exists',
+                operator: TolerationOperator.EXISTS,
               },
             ],
           },
@@ -916,3 +922,10 @@ export const migrateTemplateDisablement = async (
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;
+
+export const translateDisplayNameForK8s = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/\s/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '');

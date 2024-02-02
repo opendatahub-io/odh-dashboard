@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { AcceleratorInfo } from '~/types';
+import { DetectedAccelerators } from '~/types';
 
-export const getAcceleratorCounts = (): Promise<AcceleratorInfo> => {
+export const getDetectedAccelerators = (): Promise<DetectedAccelerators> => {
   const url = '/api/accelerators';
   return axios
     .get(url)

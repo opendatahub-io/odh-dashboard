@@ -27,6 +27,7 @@ type HandlersProps = {
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
+  delayInferenceServices?: boolean;
 };
 
 const initIntercepts = ({
@@ -35,6 +36,7 @@ const initIntercepts = ({
   projectEnableModelMesh,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({})],
+  delayInferenceServices,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -81,9 +83,26 @@ const initIntercepts = ({
   cy.intercept(
     {
       method: 'GET',
+      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/servingruntimes',
+    },
+    mockK8sResourceList(servingRuntimes),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
       pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/modelServing/inferenceservices',
     },
     mockK8sResourceList(inferenceServices),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/inferenceservices',
+    },
+    {
+      delay: delayInferenceServices ? 1000 : 0,
+      body: mockK8sResourceList(inferenceServices),
+    },
   );
   cy.intercept(
     {
@@ -205,6 +224,17 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
+  it('All projects loading', () => {
+    initIntercepts({ delayInferenceServices: true, servingRuntimes: [], inferenceServices: [] });
+
+    // Visit the all-projects view (no project name passed here)
+    modelServingGlobal.visit();
+
+    modelServingGlobal.shouldWaitAndCancel();
+
+    modelServingGlobal.shouldBeEmpty();
+  });
+
   it('Empty State No Project Selected', () => {
     initIntercepts({ inferenceServices: [] });
 
@@ -255,8 +285,23 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findModelNameInput().clear();
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
+
+    // test with invalid path name
     inferenceServiceModal.findLocationPathInput().type('/');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('The path must not point to a root folder');
     inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
+    inferenceServiceModal.findLocationPathInput().type('test//path');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('Invalid path format');
+    inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
+
     // test that you can update the name to a different name
     inferenceServiceModal.findModelNameInput().type('Updated Model Name');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
@@ -275,6 +320,7 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
     inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
     inferenceServiceModal.findLocationBucketInput().type('test-bucket');
+    inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
   });
@@ -303,7 +349,19 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('/');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('The path must not point to a root folder');
     inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
+    inferenceServiceModal.findLocationPathInput().type('test//path');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('Invalid path format');
+    inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findLocationNameInput().type('Test Name');
     inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
     inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');

@@ -2,15 +2,18 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
 } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -38,6 +41,9 @@ type HandlersProps = {
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
+  rejectAddSupportServingPlatformProject?: boolean;
+  serviceAccountAlreadyExists?: boolean;
+  roleBindingAlreadyExists?: boolean;
 };
 
 const initIntercepts = ({
@@ -67,6 +73,9 @@ const initIntercepts = ({
       activeModelState: 'Loaded',
     }),
   ],
+  rejectAddSupportServingPlatformProject = false,
+  serviceAccountAlreadyExists = false,
+  roleBindingAlreadyExists = false,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -110,19 +119,137 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
+      method: 'GET',
       pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     },
     mockK8sResourceList(inferenceServices),
   );
   cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
+    },
+    mockInferenceServiceK8sResource({ name: 'test-inference' }),
+  ).as('createInferenceService');
+  cy.intercept(
+    {
+      method: 'PUT',
+      pathname:
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/llama-service',
+    },
+    mockInferenceServiceK8sResource({ name: 'llama-service' }),
+  );
+  cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
     mockK8sResourceList([mockSecretK8sResource({})]),
   );
+  // used by addSupportServingPlatformProject
   cy.intercept(
     {
+      pathname: '/api/namespaces/test-project/*',
+    },
+    rejectAddSupportServingPlatformProject
+      ? { statusCode: 401 }
+      : { statusCode: 200, body: { applied: true } },
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts/test-name-sa',
+    },
+    serviceAccountAlreadyExists
+      ? {
+          statusCode: 200,
+          body: mockServiceAccountK8sResource({
+            name: 'test-name-sa',
+            namespace: 'test-project',
+          }),
+        }
+      : { statusCode: 404, body: mock404Error({}) },
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts',
+    },
+    serviceAccountAlreadyExists
+      ? { statusCode: 409, body: mock409Error({}) }
+      : {
+          statusCode: 200,
+          body: mockServiceAccountK8sResource({
+            name: 'test-name-sa',
+            namespace: 'test-project',
+          }),
+        },
+  ).as('createServiceAccount');
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname:
+        '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/test-name-view',
+    },
+    roleBindingAlreadyExists
+      ? {
+          statusCode: 200,
+          body: mockRoleBindingK8sResource({
+            name: 'test-name-view',
+            namespace: 'test-project',
+          }),
+        }
+      : { statusCode: 404, body: mock404Error({}) },
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
+    },
+    roleBindingAlreadyExists
+      ? { statusCode: 409, body: mock409Error({}) }
+      : {
+          statusCode: 200,
+          body: mockRoleBindingK8sResource({
+            name: 'test-name-view',
+            namespace: 'test-project',
+          }),
+        },
+  ).as('createRoleBinding');
+  cy.intercept(
+    {
+      method: 'GET',
       pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     },
     mockK8sResourceList(servingRuntimes),
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
+    },
+    mockServingRuntimeK8sResource({
+      name: 'test-model',
+      namespace: 'test-project',
+      auth: true,
+      route: true,
+    }),
+  ).as('createServingRuntime');
+  cy.intercept(
+    {
+      method: 'PUT',
+      pathname:
+        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/llama-service',
+    },
+    mockServingRuntimeK8sResource({
+      name: 'llama-service',
+      namespace: 'test-project',
+    }),
+  ).as('updateServingRuntime');
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname:
+        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
+    },
+    mockDashboardConfig({}),
   );
   cy.intercept(
     {
@@ -261,6 +388,58 @@ describe('Serving Runtime List', () => {
     kserveModal.findLocationBucketInput().type('test-bucket');
     kserveModal.findLocationPathInput().type('test-model/');
     kserveModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, the modal should close to indicate success.
+    kserveModal.findSubmitButton().click();
+    kserveModal.shouldBeOpen(false);
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Do not deploy KServe model when user cannot edit namespace', () => {
+    initIntercepts({
+      disableModelMeshConfig: false,
+      disableKServeConfig: false,
+      servingRuntimes: [],
+      rejectAddSupportServingPlatformProject: true,
+    });
+
+    projectDetails.visit('test-project');
+
+    modelServingSection.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+
+    // test filling in minimum required fields
+    kserveModal.findModelNameInput().type('Test Name');
+    kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+    kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+    kserveModal.findNewDataConnectionOption().click();
+    kserveModal.findLocationNameInput().type('Test Name');
+    kserveModal.findLocationAccessKeyInput().type('test-key');
+    kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+    kserveModal.findLocationEndpointInput().type('test-endpoint');
+    kserveModal.findLocationBucketInput().type('test-bucket');
+    kserveModal.findLocationPathInput().type('test-model/');
+    kserveModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, an error should appear
+    kserveModal.findSubmitButton().click();
+    cy.findByText('Error creating model server');
+
+    // the serving runtime should NOT have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(1); // 1 dry-run request only
+    });
+
+    // the inference service should NOT have been created
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(0);
+    });
   });
 
   it('No model serving platform available', () => {
@@ -398,12 +577,6 @@ describe('Serving Runtime List', () => {
       inferenceServices: [
         mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
         mockInferenceServiceK8sResource({
-          name: 'another-inference-service',
-          displayName: 'Another Inference Service',
-          deleted: true,
-          isModelMesh: true,
-        }),
-        mockInferenceServiceK8sResource({
           name: 'ovms-testing',
           displayName: 'OVMS ONNX',
           isModelMesh: true,
@@ -450,5 +623,210 @@ describe('Serving Runtime List', () => {
     editServingRuntimeModal.findSubmitButton().should('be.enabled');
     editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
     editServingRuntimeModal.findSubmitButton().should('be.disabled');
+  });
+
+  it('Successfully submit KServe Modal on edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableKServeConfig: true,
+      disableModelMeshConfig: true,
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          modelName: 'llama-service',
+          isModelMesh: false,
+        }),
+      ],
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          namespace: 'test-project',
+        }),
+      ],
+    });
+
+    projectDetails.visit('test-project');
+
+    // click on the toggle button and open edit model server
+    modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
+
+    kserveModal.shouldBeOpen();
+
+    // Submit button should be enabled
+    kserveModal.findSubmitButton().should('be.enabled');
+
+    // Should allow editing
+    kserveModal.findSubmitButton().click();
+    kserveModal.shouldBeOpen(false);
+  });
+
+  it('Successfully add model server when user can edit namespace', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, the modal should close to indicate success.
+    createServingRuntimeModal.findSubmitButton().click();
+    createServingRuntimeModal.shouldBeOpen(false);
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Do not add model server when user cannot edit namespace', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+      rejectAddSupportServingPlatformProject: true,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, an error should appear
+    createServingRuntimeModal.findSubmitButton().click();
+    cy.findByText('Error creating model server');
+
+    // the serving runtime should NOT have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(1); // 1 dry-run request only
+    });
+  });
+
+  it('Add model server - do not create ServiceAccount or RoleBinding if token auth is not selected', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, the modal should close to indicate success.
+    createServingRuntimeModal.findSubmitButton().click();
+    createServingRuntimeModal.shouldBeOpen(false);
+
+    // the service account and role binding should not have been created
+    cy.get('@createServiceAccount.all').then((interceptions) => {
+      expect(interceptions).to.have.length(0);
+    });
+    cy.get('@createRoleBinding.all').then((interceptions) => {
+      expect(interceptions).to.have.length(0);
+    });
+  });
+
+  it('Add model server - create ServiceAccount and RoleBinding if token auth is selected', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // enable auth
+    createServingRuntimeModal.findAuthenticationCheckbox().check();
+
+    // test submitting form, the modal should close to indicate success.
+    createServingRuntimeModal.findSubmitButton().click();
+    createServingRuntimeModal.shouldBeOpen(false);
+
+    // the service account and role binding should have been created
+    cy.get('@createServiceAccount.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+    cy.get('@createRoleBinding.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Add model server - do not create ServiceAccount or RoleBinding if they already exist', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+      serviceAccountAlreadyExists: true,
+      roleBindingAlreadyExists: true,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // enable auth
+    createServingRuntimeModal.findAuthenticationCheckbox().check();
+
+    // test submitting form, the modal should close to indicate success.
+    createServingRuntimeModal.findSubmitButton().click();
+    createServingRuntimeModal.shouldBeOpen(false);
+
+    // the service account and role binding should have been created
+    cy.get('@createServiceAccount.all').then((interceptions) => {
+      expect(interceptions).to.have.length(0);
+    });
+    cy.get('@createRoleBinding.all').then((interceptions) => {
+      expect(interceptions).to.have.length(0);
+    });
   });
 });

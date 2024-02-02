@@ -44,25 +44,13 @@ class PipelineRunsGlobal {
 
 class ScheduledRunDeleteModal extends DeleteModal {
   constructor(multiple = false) {
-    super(
-      'Warning alert: Delete ' +
-        (multiple ? '2 ' : '') +
-        'scheduled run' +
-        (multiple ? 's' : '') +
-        '?',
-    );
+    super(`Warning alert: Delete ${multiple ? '2 ' : ''}scheduled run${multiple ? 's' : ''}?`);
   }
 }
 
 class TriggeredRunDeleteModal extends DeleteModal {
   constructor(multiple = false) {
-    super(
-      'Warning alert: Delete ' +
-        (multiple ? '2 ' : '') +
-        'triggered run' +
-        (multiple ? 's' : '') +
-        '?',
-    );
+    super(`Warning alert: Delete ${multiple ? '2 ' : ''}triggered run${multiple ? 's' : ''}?`);
   }
 }
 

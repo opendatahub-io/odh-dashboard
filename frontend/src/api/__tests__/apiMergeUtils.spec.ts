@@ -1,7 +1,8 @@
 import { K8sResourceBaseOptions } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { applyK8sAPIOptions, mergeRequestInit } from '~/api/apiMergeUtils';
 import { ConfigMapModel } from '~/api/models';
 
+const { signal } = new AbortController();
 describe('applyK8sAPIOptions', () => {
   const mockBaseOptions: K8sResourceBaseOptions = { model: ConfigMapModel };
   const defaultExpect = {
@@ -9,7 +10,6 @@ describe('applyK8sAPIOptions', () => {
     fetchOptions: { requestInit: {} },
     queryOptions: { queryParams: {} },
   };
-  const signal = new AbortController().signal;
 
   it('should not apply any options', () => {
     expect(applyK8sAPIOptions({}, mockBaseOptions)).toStrictEqual(defaultExpect);
@@ -31,7 +31,7 @@ describe('applyK8sAPIOptions', () => {
   it('should apply signal to fetch options', () => {
     expect(
       applyK8sAPIOptions(
-        { signal: new AbortController().signal },
+        { signal },
         { ...mockBaseOptions, fetchOptions: { timeout: 100, requestInit: { pathPrefix: 'test' } } },
       ),
     ).toStrictEqual({
@@ -54,6 +54,19 @@ describe('applyK8sAPIOptions', () => {
     expect(applyK8sAPIOptions({}, { ...mockBaseOptions, foo: 'bar' })).toStrictEqual({
       ...defaultExpect,
       foo: 'bar',
+    });
+  });
+});
+
+describe('mergeRequestInit', () => {
+  it('should apply request init options correctly when k8s api options is not present', async () => {
+    expect(mergeRequestInit(undefined, { method: 'PUT' })).toStrictEqual({ method: 'PUT' });
+  });
+
+  it('should apply request init options correctly when k8s api options is present', async () => {
+    expect(mergeRequestInit({ signal }, { method: 'PUT' })).toStrictEqual({
+      method: 'PUT',
+      signal,
     });
   });
 });

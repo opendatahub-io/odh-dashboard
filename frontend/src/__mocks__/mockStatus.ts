@@ -5,7 +5,7 @@ export const mockStatus = (): StatusResponse => ({
     currentContext: 'opendatahub/admin-user-datahub-redhat-com:6443/admin-user',
     currentUser: {
       name: 'admin-user/api-admin-user-dev-datahub-redhat-com:6443',
-      token: 'sha256~9iRWHnXnoQusPNr11Hda_rqwerfasdfQWERasdfasdf',
+      token: 'test-token-value',
     },
     namespace: 'opendatahub',
     userName: 'admin-user',

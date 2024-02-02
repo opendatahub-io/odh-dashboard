@@ -52,10 +52,12 @@ export const blankDashboardCR: DashboardConfig = {
       disableModelServing: false,
       disableProjectSharing: false,
       disableCustomServingRuntimes: false,
-      modelMetricsNamespace: '',
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
       disablePipelines: false,
       disableKServe: false,
       disableModelMesh: false,
+      disableAcceleratorProfiles: false,
     },
     notebookController: {
       enabled: true,
@@ -130,4 +132,7 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
 export const imageUrlRegex =
   /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
 
+export const THANOS_RBAC_PORT = '9092';
+export const THANOS_INSTANCE_NAME = 'thanos-querier';
+export const THANOS_NAMESPACE = 'openshift-monitoring';
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;

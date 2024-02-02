@@ -26,7 +26,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
   };
 
   const renderTypeBadge = () => {
-    const docType = odhDoc?.spec.type as OdhDocumentType;
+    const docType = odhDoc.spec.type as OdhDocumentType;
     const typeBadgeClasses = classNames('odh-list-item__partner-badge odh-m-doc', {
       'odh-m-documentation': docType === OdhDocumentType.Documentation,
       'odh-m-tutorial': docType === OdhDocumentType.Tutorial,
@@ -42,7 +42,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
 
   const renderDocLink = () => {
     let title;
-    let href = odhDoc.spec?.url ?? '#';
+    let href = odhDoc.spec.url;
     let external = true;
     let onClick;
 

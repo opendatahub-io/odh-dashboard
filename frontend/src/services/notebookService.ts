@@ -34,9 +34,9 @@ export const getNotebookAndStatus = (
       // Notebooks are unreliable to live status on replicas -- but if we have nothing else...
       const isRunning = !!(
         notebook?.status?.readyReplicas &&
-        notebook?.status?.readyReplicas >= 1 &&
-        notebook?.metadata.annotations?.['opendatahub.io/link'] &&
-        !notebook?.metadata.annotations?.['kubeflow-resource-stopped']
+        notebook.status.readyReplicas >= 1 &&
+        notebook.metadata.annotations?.['opendatahub.io/link'] &&
+        !notebook.metadata.annotations['kubeflow-resource-stopped']
       );
       return { notebook, isRunning };
     });

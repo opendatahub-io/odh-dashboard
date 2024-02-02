@@ -12,6 +12,7 @@ type MockResourceConfigType = {
   isModelMesh?: boolean;
   activeModelState?: string;
   url?: string;
+  path?: string;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -61,6 +62,7 @@ export const mockInferenceServiceK8sResource = ({
   isModelMesh = false,
   activeModelState = 'Pending',
   url = '',
+  path = 'path/to/model',
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -97,7 +99,7 @@ export const mockInferenceServiceK8sResource = ({
         runtime: modelName,
         storage: {
           key: secretName,
-          path: '',
+          path,
         },
       },
     },

@@ -1,4 +1,4 @@
-type TypedPromiseRejectedResult<R> = PromiseRejectedResult & { reason: R };
+type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { reason: R };
 
 export const allSettledPromises = <T, E = undefined>(
   data: Promise<T>[],

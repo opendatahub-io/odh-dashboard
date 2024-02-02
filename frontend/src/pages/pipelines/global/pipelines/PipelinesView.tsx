@@ -6,7 +6,7 @@ import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import GlobalPipelinesTableToolbar from '~/pages/pipelines/global/pipelines/GlobalPipelinesTableToolbar';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import {
   getTablePagingProps,
   getTableSortProps,
@@ -50,7 +50,9 @@ const PipelinesView: React.FC = () => {
       refreshPipelines={refresh}
       pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
       toolbarContent={<GlobalPipelinesTableToolbar {...filterToolbarProps} />}
-      emptyTableView={<EmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />}
+      emptyTableView={
+        <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
+      }
     />
   );
 };

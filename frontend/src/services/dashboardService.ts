@@ -10,9 +10,7 @@ export const getDashboardConfigBackend = (namespace: string): Promise<DashboardC
     .catch((e) => Promise.reject(e));
 
 export const getDashboardConfigTemplateOrderBackend = (ns: string): Promise<string[]> =>
-  getDashboardConfigBackend(ns).then(
-    (dashboardConfig) => dashboardConfig.spec?.templateOrder || [],
-  );
+  getDashboardConfigBackend(ns).then((dashboardConfig) => dashboardConfig.spec.templateOrder || []);
 
 export const getDashboardConfigTemplateDisablementBackend = (ns: string): Promise<string[]> =>
   getDashboardConfigBackend(ns).then(
@@ -41,10 +39,10 @@ export const patchDashboardConfigTemplateOrderBackend = (
     ])
     .then((response) => {
       // Patch doesn't return an error if the attribute is disabled, it just return the object without changes
-      if (response.data.spec?.templateOrder === undefined) {
+      if (response.data.spec.templateOrder === undefined) {
         throw new Error('Template order is not configured');
       }
-      return response.data.spec?.templateOrder;
+      return response.data.spec.templateOrder;
     })
     .catch((e) => Promise.reject(e));
 
@@ -62,9 +60,9 @@ export const patchDashboardConfigTemplateDisablementBackend = (
     ])
     .then((response) => {
       // Patch doesn't return an error if the attribute is disabled, it just return the object without changes
-      if (response.data.spec?.templateDisablement === undefined) {
+      if (response.data.spec.templateDisablement === undefined) {
         throw new Error('Template disablement is not configured');
       }
-      return response.data.spec?.templateDisablement;
+      return response.data.spec.templateDisablement;
     })
     .catch((e) => Promise.reject(e));

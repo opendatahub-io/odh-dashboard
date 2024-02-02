@@ -19,7 +19,13 @@ export enum FilterOptions {
   PIPELINE_VERSION = 'pipeline_version',
 }
 
-const statusMap = {
+const statusMap: {
+  Failed?: string[];
+  Started?: PipelineRunStatusesKF;
+  Running?: PipelineRunStatusesKF;
+  Completed?: string[];
+  Cancelled?: PipelineRunStatusesKF;
+} = {
   [PipelineRunStatusesKF.FAILED]: [
     PipelineRunStatusesKF.FAILED,
     'PipelineRunTimeout',
@@ -37,7 +43,7 @@ export const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]
   if (typeof data === 'string') {
     return data;
   }
-  return (data as { label: string; value: string })?.value;
+  return (data as { label: string; value: string } | undefined)?.value;
 };
 
 const defaultValue: FilterProps['filterData'] = {
@@ -63,7 +69,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
       const predicates: PipelinesFilterPredicate[] = [];
-      let resourceReference: ResourceKeyKF | undefined = undefined;
+      let resourceReference: ResourceKeyKF | undefined;
 
       const runValue = getDataValue(data[FilterOptions.NAME]);
       const startedValue = getDataValue(data[FilterOptions.CREATED_AT]);

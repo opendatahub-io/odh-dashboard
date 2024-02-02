@@ -11,10 +11,12 @@ import {
   NotebookList,
   NotebookResources,
   NotebookSize,
-  NotebookToleration,
   NotebookTolerationSettings,
   RecursivePartial,
   Route,
+  Toleration,
+  TolerationEffect,
+  TolerationOperator,
   VolumeMount,
 } from '../types';
 import { getUserName, usernameTranslate } from './userUtils';
@@ -156,7 +158,7 @@ export const assembleNotebook = async (
   envName: string,
   tolerationSettings: NotebookTolerationSettings,
 ): Promise<Notebook> => {
-  const { notebookSizeName, imageName, imageTagName, accelerator, envVars } = data;
+  const { notebookSizeName, imageName, imageTagName, acceleratorProfile, envVars } = data;
 
   const notebookSize = getNotebookSize(notebookSizeName);
 
@@ -189,18 +191,20 @@ export const assembleNotebook = async (
   ];
 
   const resources: NotebookResources = { ...notebookSize.resources };
-  const tolerations: NotebookToleration[] = [];
+  const tolerations: Toleration[] = [];
 
   const affinity: NotebookAffinity = {};
-  if (accelerator.count > 0 && accelerator.accelerator) {
+  if (acceleratorProfile.count > 0 && acceleratorProfile.acceleratorProfile) {
     if (!resources.limits) {
       resources.limits = {};
     }
     if (!resources.requests) {
       resources.requests = {};
     }
-    resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
-    resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
+    resources.limits[acceleratorProfile.acceleratorProfile.spec.identifier] =
+      acceleratorProfile.count;
+    resources.requests[acceleratorProfile.acceleratorProfile.spec.identifier] =
+      acceleratorProfile.count;
   } else {
     // step type down to string to avoid type errors
     const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
@@ -218,15 +222,15 @@ export const assembleNotebook = async (
     });
   }
 
-  if (accelerator.accelerator?.spec.tolerations) {
-    tolerations.push(...accelerator.accelerator.spec.tolerations);
+  if (acceleratorProfile.acceleratorProfile?.spec.tolerations) {
+    tolerations.push(...acceleratorProfile.acceleratorProfile.spec.tolerations);
   }
 
   if (tolerationSettings?.enabled) {
     tolerations.push({
-      effect: 'NoSchedule',
+      effect: TolerationEffect.NO_SCHEDULE,
       key: tolerationSettings.key,
-      operator: 'Exists',
+      operator: TolerationOperator.EXISTS,
     });
   }
   const translatedUsername = usernameTranslate(username);
@@ -267,7 +271,8 @@ export const assembleNotebook = async (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
-        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          acceleratorProfile.acceleratorProfile?.metadata.name || '',
       },
       name: name,
       namespace: namespace,

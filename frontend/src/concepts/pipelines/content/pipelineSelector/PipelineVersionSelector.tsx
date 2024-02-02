@@ -23,7 +23,7 @@ import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pip
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 type PipelineVersionSelectorProps = {
@@ -79,7 +79,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
               loading={!loaded}
               data-id="pipeline-version-selector-table-list"
               emptyTableView={
-                <EmptyTableView
+                <DashboardEmptyTableView
                   hasIcon={false}
                   onClearFilters={onClear}
                   variant={EmptyStateVariant.xs}
