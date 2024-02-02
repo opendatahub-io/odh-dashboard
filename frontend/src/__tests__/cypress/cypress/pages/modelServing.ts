@@ -115,6 +115,10 @@ class InferenceServiceModal extends Modal {
   findLocationPathInput() {
     return this.find().findByLabelText('folder-path');
   }
+
+  findLocationPathInputError() {
+    return this.find().findByTestId('folder-path-error');
+  }
 }
 
 class ServingRuntimeModal extends Modal {

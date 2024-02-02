@@ -285,8 +285,23 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findModelNameInput().clear();
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
+
+    // test with invalid path name
     inferenceServiceModal.findLocationPathInput().type('/');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('The path must not point to a root folder');
     inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
+    inferenceServiceModal.findLocationPathInput().type('test//path');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('Invalid path format');
+    inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
+
     // test that you can update the name to a different name
     inferenceServiceModal.findModelNameInput().type('Updated Model Name');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
@@ -305,6 +320,7 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
     inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
     inferenceServiceModal.findLocationBucketInput().type('test-bucket');
+    inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
   });
@@ -333,7 +349,19 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('/');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('The path must not point to a root folder');
     inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
+    inferenceServiceModal.findLocationPathInput().type('test//path');
+    inferenceServiceModal
+      .findLocationPathInputError()
+      .should('be.visible')
+      .contains('Invalid path format');
+    inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findLocationNameInput().type('Test Name');
     inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
     inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');

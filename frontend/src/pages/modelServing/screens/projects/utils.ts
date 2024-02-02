@@ -44,6 +44,7 @@ import {
   updateServingRuntime,
 } from '~/api';
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
+import { removeLeadingSlashes } from '~/utilities/string';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -312,6 +313,12 @@ export const submitInferenceServiceResource = (
     ...(servingRuntimeName !== undefined && {
       servingRuntimeName: translateDisplayNameForK8s(servingRuntimeName),
     }),
+    ...{
+      storage: {
+        ...createData.storage,
+        path: removeLeadingSlashes(createData.storage.path),
+      },
+    },
   };
 
   const existingStorage =
