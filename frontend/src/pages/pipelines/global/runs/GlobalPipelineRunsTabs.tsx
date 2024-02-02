@@ -26,14 +26,14 @@ const GlobalPipelineRunsTab: React.FC = () => {
       }}
       aria-label="Pipeline run page tabs"
       role="region"
-      className="odh-tabs-fix"
+      className="odh-pipeline-runs-page-tabs"
       data-testid="pipeline-runs-global-tabs"
     >
       <Tab
         eventKey={PipelineRunType.Scheduled}
         title={<TabTitleText>Scheduled</TabTitleText>}
         aria-label="Scheduled runs tab"
-        className="odh-tabcontent-fix"
+        className="odh-pipeline-runs-page-tabs__content"
         data-testid="scheduled-runs-tab"
       >
         <PageSection isFilled variant="light">
@@ -44,7 +44,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
         eventKey={PipelineRunType.Triggered}
         title={<TabTitleText>Triggered</TabTitleText>}
         aria-label="Triggered runs tab"
-        className="odh-tabcontent-fix"
+        className="odh-pipeline-runs-page-tabs__content"
         data-testid="triggered-runs-tab"
       >
         <PageSection isFilled variant="light">
