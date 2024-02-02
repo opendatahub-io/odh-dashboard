@@ -171,20 +171,20 @@ const getCSVForApp = (
     return Promise.resolve(undefined);
   }
 
-  const subscriptions = getSubscriptions();
-  const appSubscription = subscriptions.find((sub) =>
-    sub.status?.installedCSV?.startsWith(app.spec.csvName),
-  );
-  if (!appSubscription) {
+  const subsStatus = getSubscriptions();
+  const subStatus = subsStatus.find((st) => st.installedCSV.startsWith(app.spec.csvName));
+
+  if (!subStatus) {
     return Promise.resolve(undefined);
   }
 
-  const appInstalledCSV = appSubscription.status?.installedCSV;
-  if (!appInstalledCSV) {
+  const installedCSV = subStatus.installedCSV;
+
+  if (!installedCSV) {
     return Promise.resolve(undefined);
   }
 
-  const namespace = appSubscription.status?.installPlanRef?.namespace;
+  const namespace = subStatus.installPlanRefNamespace;
   if (!namespace) {
     return Promise.resolve(undefined);
   }
@@ -195,7 +195,7 @@ const getCSVForApp = (
       'v1alpha1',
       namespace,
       'clusterserviceversions',
-      appInstalledCSV,
+      installedCSV,
     )
     .then((response) => {
       const csv = response.body as CSVKind;

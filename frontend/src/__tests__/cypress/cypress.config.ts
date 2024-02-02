@@ -3,6 +3,7 @@ import fs from 'fs';
 import { defineConfig } from 'cypress';
 import dotenv from 'dotenv';
 import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
+import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 
 dotenv.config({
   path: path.resolve(__dirname, `../../../.env.cypress${process.env.MOCK ? '.mock' : ''}`),
@@ -20,6 +21,7 @@ export default defineConfig({
     USERNAME: process.env.USERNAME,
     PASSWORD: process.env.PASSWORD,
     RECORD: !!process.env.RECORD,
+    WS_PORT: process.env.WS_PORT,
   },
   defaultCommandTimeout: 10000,
   e2e: {
@@ -30,7 +32,8 @@ export default defineConfig({
       ? `cypress/e2e/**/*.scy.ts`
       : `cypress/e2e/**/*.(s)?cy.ts`,
     experimentalInteractiveRunEvents: true,
-    setupNodeEvents(on) {
+    setupNodeEvents(on, config) {
+      setupWebsockets(on, config);
       on('task', {
         readJSON(filePath: string) {
           const absPath = path.resolve(__dirname, filePath);

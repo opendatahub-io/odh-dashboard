@@ -99,14 +99,14 @@ const initIntercepts = () => {
       pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/aws-connection-testdb',
     },
     mockSecretK8sResource({ name: 'aws-connection-testdb' }),
-  ),
-    cy.intercept(
-      {
-        pathname:
-          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
-      },
-      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
-    );
+  );
+  cy.intercept(
+    {
+      pathname:
+        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
+    },
+    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  );
   cy.intercept(
     {
       pathname:
@@ -176,6 +176,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
       cy.wait('@getRuns').then(() => {
@@ -231,6 +232,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
 
@@ -240,6 +242,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
 
@@ -285,6 +288,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
       cy.wait('@getRuns').then(() => {
@@ -340,6 +344,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
 
@@ -349,6 +354,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
       cy.wait('@getRuns').then(() => {

@@ -21,7 +21,7 @@ const NotebookLogoutRedirect: React.FC = () => {
           if (cancelled) {
             return;
           }
-          if (notebook?.metadata.annotations?.['opendatahub.io/link']) {
+          if (notebook.metadata.annotations?.['opendatahub.io/link']) {
             const location = new URL(notebook.metadata.annotations['opendatahub.io/link']);
             window.location.href = `${location.origin}/oauth/sign_out`;
           } else {
@@ -46,10 +46,6 @@ const NotebookLogoutRedirect: React.FC = () => {
   }, [namespace, notebookName, navigate, notification, notebookNamespace]);
 
   React.useEffect(() => {
-    let cancelled = false;
-    if (cancelled) {
-      return;
-    }
     if (namespace && notebookName && namespace !== notebookNamespace) {
       if (loaded) {
         if (error) {
@@ -61,9 +57,6 @@ const NotebookLogoutRedirect: React.FC = () => {
         }
       }
     }
-    return () => {
-      cancelled = true;
-    };
   }, [
     routeLink,
     loaded,

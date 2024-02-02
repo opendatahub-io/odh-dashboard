@@ -11,7 +11,8 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
@@ -41,6 +42,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const [createData, setCreateData, resetData] = useCreateInferenceServiceObject(editInfo);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createData.name).length <= 253;
 
   React.useEffect(() => {
     if (projectContext) {
@@ -62,9 +65,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.name.trim() === '' ||
     createData.project === '' ||
     createData.format.name === '' ||
-    createData.storage.path.includes('//') ||
+    removeLeadingSlashes(createData.storage.path).includes('//') ||
+    containsOnlySlashes(createData.storage.path) ||
     createData.storage.path === '' ||
-    createData.storage.path === '/' ||
+    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
   const onBeforeClose = (submitted: boolean) => {
@@ -119,14 +123,18 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.metadata.namespace ||
                 ''
               }
             />
           </StackItem>
           <StackItem>
-            <InferenceServiceNameSection data={createData} setData={setCreateData} />
+            <InferenceServiceNameSection
+              data={createData}
+              setData={setCreateData}
+              isNameValid={isInferenceServiceNameWithinLimit}
+            />
           </StackItem>
           <StackItem>
             <InferenceServiceServingRuntimeSection

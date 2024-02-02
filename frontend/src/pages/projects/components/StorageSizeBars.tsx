@@ -23,7 +23,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   const [inUseInBytes, loaded, error] = usePVCFreeAmount(pvc);
   const maxValue = getPvcTotalSize(pvc);
 
-  if (!error && isNaN(inUseInBytes)) {
+  if (!error && Number.isNaN(inUseInBytes)) {
     return (
       <div>
         <Tooltip content="No active storage information at this time, check back later">

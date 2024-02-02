@@ -28,9 +28,9 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
 }) => {
   const { buildStatuses } = useAppContext();
   const currentTag = getTagForImage(buildStatuses, image, selectedImage?.name, selectedTag?.name);
-  const tags = image.tags || [];
+  const { tags } = image;
   const getImagePopover = (image: ImageInfo) => {
-    if (!image.description && !currentTag?.content?.dependencies?.length) {
+    if (!image.description && !currentTag?.content.dependencies.length) {
       return null;
     }
     return <ImageTagPopover tag={currentTag} description={image.description} />;

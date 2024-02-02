@@ -23,6 +23,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
         <DropdownToggle
           className="pf-v5-u-px-sm"
           style={{ width: '60px' }}
+          aria-label="Download step logs"
           id="download-steps-logs-toggle"
           onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
         >

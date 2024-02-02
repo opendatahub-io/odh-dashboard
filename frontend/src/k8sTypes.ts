@@ -5,11 +5,10 @@ import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
   PodContainer,
-  PodToleration,
+  Toleration,
   Volume,
   ContainerResources,
   NotebookSize,
-  GpuSettingString,
   TolerationSettings,
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
@@ -92,6 +91,7 @@ export type K8sCondition = {
   status: string;
   reason?: string;
   message?: string;
+  lastProbeTime?: string | null;
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
@@ -226,6 +226,7 @@ export type ImageStreamSpecTagType = {
 export type K8sAPIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
+  parseJSON?: boolean;
 };
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
@@ -258,7 +259,7 @@ export type PodSpec = {
   containers: PodContainer[];
   initContainers?: PodContainer[];
   volumes?: Volume[];
-  tolerations?: PodToleration[];
+  tolerations?: Toleration[];
 };
 
 export type NotebookKind = K8sResourceCommon & {
@@ -288,7 +289,9 @@ export type PodKind = K8sResourceCommon & {
   };
   spec: PodSpec;
   status: {
-    containerStatuses: {
+    phase: string;
+    conditions: K8sCondition[];
+    containerStatuses?: {
       name?: string;
       ready: boolean;
       state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
@@ -302,7 +305,7 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
-    labels: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
+    labels?: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -349,8 +352,8 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     };
     containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
-    tolerations?: PodToleration[];
+    replicas?: number;
+    tolerations?: Toleration[];
     volumes?: Volume[];
   };
 };
@@ -379,7 +382,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
-      tolerations?: PodToleration[];
+      tolerations?: Toleration[];
       model: {
         modelFormat: {
           name: string;
@@ -395,6 +398,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
           schemaPath?: string;
         };
       };
+      maxReplicas?: number;
+      minReplicas?: number;
     };
   };
   status?: {
@@ -451,6 +456,9 @@ export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
     path: string;
+    port: {
+      targetPort: string;
+    };
   };
 };
 
@@ -472,6 +480,34 @@ export type AWSSecretKind = SecretKind & {
     };
   };
   data: Record<AWS_KEYS, string>;
+};
+
+export type TrustyAIKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    storage: {
+      format: string;
+      folder: string;
+      size: string;
+    };
+    data: {
+      filename: string;
+      format: string;
+    };
+    metrics: {
+      schedule: string;
+      batchSize?: number;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+    ready?: string;
+    replicas?: number;
+  };
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
@@ -591,7 +627,7 @@ export type PipelineRunTaskSpecDigest = {
 type PipelineRunTaskSpecStep = {
   name: string;
   args?: string[];
-  command: string[];
+  command: string[] | undefined;
   image: string;
 };
 
@@ -611,7 +647,7 @@ export type PipelineRunTaskSpec = {
   stepTemplate?: {
     volumeMounts?: PipelineRunTaskVolumeMount[];
   };
-  results: PipelineRunTaskSpecResult[];
+  results: PipelineRunTaskSpecResult[] | undefined;
   metadata?: {
     annotations?: {
       /** @see PipelineRunTaskSpecDigest */
@@ -761,10 +797,12 @@ export type DashboardCommonConfig = {
   disableModelServing: boolean;
   disableProjectSharing: boolean;
   disableCustomServingRuntimes: boolean;
-  modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableModelMesh: boolean;
+  disableAcceleratorProfiles: boolean;
 };
 
 export type OperatorStatus = {
@@ -787,8 +825,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
-      /** @deprecated - Use AcceleratorProfiles */
-      gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
@@ -796,7 +832,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
   };
 };
 
-export type AcceleratorKind = K8sResourceCommon & {
+export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: Partial<{
@@ -808,7 +844,7 @@ export type AcceleratorKind = K8sResourceCommon & {
     enabled: boolean;
     identifier: string;
     description?: string;
-    tolerations?: PodToleration[];
+    tolerations?: Toleration[];
   };
 };
 

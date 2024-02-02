@@ -48,7 +48,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
           'params',
           (pipeline.default_version?.parameters || pipeline.parameters || []).map((p) => ({
             label: p.name,
-            value: p.value ?? '',
+            value: p.value,
           })),
         );
       }}
@@ -65,7 +65,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
           'params',
           (version.parameters || []).map((p) => ({
             label: p.name,
-            value: p.value ?? '',
+            value: p.value,
           })),
         );
       }}

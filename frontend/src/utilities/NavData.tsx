@@ -22,9 +22,9 @@ export type NavDataGroup = NavDataCommon & {
 export type NavDataItem = NavDataHref | NavDataGroup;
 
 export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref =>
-  !!(navData as NavDataHref)?.href;
+  !!(navData as NavDataHref).href;
 export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
-  !!(navData as NavDataGroup)?.children;
+  !!(navData as NavDataGroup).children;
 
 const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];
@@ -109,10 +109,20 @@ const useUserManagementNav = (): NavDataHref[] =>
     },
   ]);
 
+const useAcceleratorProfilesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
+    {
+      id: 'settings-accelerator-profiles',
+      label: 'Accelerator profiles',
+      href: '/acceleratorProfiles',
+    },
+  ]);
+
 const useSettingsNav = (): NavDataGroup[] => {
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
+    ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
     ...useUserManagementNav(),
   ];

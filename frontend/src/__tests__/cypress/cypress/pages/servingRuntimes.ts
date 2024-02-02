@@ -18,7 +18,7 @@ class ServingRuntimeRow {
   shouldBeSingleModel(enabled = true) {
     this.find()
       .findByRole('list', { name: 'Label group category' })
-      .findByText('Single model')
+      .findByText('Single-model')
       .should(enabled ? 'exist' : 'not.exist');
     return this;
   }
@@ -46,12 +46,22 @@ class ServingRuntimes {
   }
 
   shouldBeSingleModel(enabled = true) {
-    cy.findByText('Single model serving enabled').should(enabled ? 'exist' : 'not.exist');
+    cy.findByText('Single-model serving enabled').should(enabled ? 'exist' : 'not.exist');
     return this;
   }
 
   findAddButton() {
     return cy.findByRole('button', { name: 'Add serving runtime' });
+  }
+
+  findSelectValueButton() {
+    return cy.findByRole('button', { name: 'Select a value' });
+  }
+
+  shouldDisplayValues(values: string[]) {
+    this.findSelectValueButton().click();
+    values.forEach((value) => cy.findByRole('menuitem', { name: value }).should('exist'));
+    return this;
   }
 
   getRowById(id: string) {

@@ -41,7 +41,7 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    accelerator,
+    acceleratorProfile,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -55,7 +55,7 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    accelerator,
+    acceleratorProfile,
     tolerationSettings,
     existingTolerations,
     undefined,
@@ -65,7 +65,7 @@ const assembleNotebook = (
   const translatedUsername = usernameTranslate(username);
 
   const location = new URL(window.location.href);
-  const origin = location.origin;
+  const { origin } = location;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
@@ -107,7 +107,8 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          acceleratorProfile.acceleratorProfile?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -271,11 +272,12 @@ export const createNotebook = (
 
 export const updateNotebook = (
   existingNotebook: NotebookKind,
-  data: StartNotebookData,
+  assignableData: StartNotebookData,
   username: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
-  data.notebookId = existingNotebook.metadata.name;
-  const notebook = assembleNotebook(data, username);
+  assignableData.notebookId = existingNotebook.metadata.name;
+  const notebook = assembleNotebook(assignableData, username);
 
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
@@ -287,27 +289,27 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};
 
-  return k8sUpdateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: _.merge({}, oldNotebook, notebook),
-  });
+  return k8sUpdateResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      resource: _.merge({}, oldNotebook, notebook),
+    }),
+  );
 };
 
 export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
 ): Promise<NotebookKind> =>
-  new Promise((resolve, reject) =>
-    createNotebook(data, username).then((notebook) =>
-      setTimeout(
-        () =>
-          stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
-            .then(resolve)
-            .catch(reject),
-        10_000,
-      ),
-    ),
-  );
+  new Promise((resolve, reject) => {
+    createNotebook(data, username).then((notebook) => {
+      setTimeout(() => {
+        stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
+          .then(resolve)
+          .catch(reject);
+      }, 10_000);
+    });
+  });
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({

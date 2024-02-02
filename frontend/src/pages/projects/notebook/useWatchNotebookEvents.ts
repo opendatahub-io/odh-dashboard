@@ -9,7 +9,7 @@ export const useWatchNotebookEvents = (
   activeFetch: boolean,
 ): EventKind[] => {
   const notebookName = notebook.metadata.name;
-  const namespace = notebook.metadata.namespace;
+  const { namespace } = notebook.metadata;
   const [notebookEvents, setNotebookEvents] = React.useState<EventKind[]>([]);
 
   // Cached events are returned when activeFetch is false.

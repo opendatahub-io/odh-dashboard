@@ -9,7 +9,7 @@ const ScrollViewOnMount: React.FC<ScrollViewOnMountProps> = ({ shouldScroll }) =
 
   React.useEffect(() => {
     if (shouldScroll && ref.current) {
-      ref.current?.scrollIntoView();
+      ref.current.scrollIntoView();
     }
   }, [shouldScroll]);
 

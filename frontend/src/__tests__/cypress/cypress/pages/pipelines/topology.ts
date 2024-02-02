@@ -91,11 +91,7 @@ class PipelineRunBottomDrawer extends Contextual<HTMLDivElement> {
   }
 
   findBottomDrawerDetailItem(key: string) {
-    return new DetailsItem(() =>
-      this.find()
-        .findByTestId('detail-item-' + key)
-        .parent(),
-    );
+    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`).parent());
   }
 }
 

@@ -42,9 +42,7 @@ export const useWatchConsoleLinks = (): ConsoleLinkResults => {
     watchConsoleLinks();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 

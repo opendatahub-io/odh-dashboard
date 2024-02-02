@@ -29,13 +29,13 @@ const initIntercepts = () => {
       pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/aws-connection-testdb',
     },
     mockSecretK8sResource({ name: 'aws-connection-testdb' }),
-  ),
-    cy.intercept(
-      '/api/dsc/status',
-      mockDscStatus({
-        installedComponents: { 'data-science-pipelines-operator': true },
-      }),
-    );
+  );
+  cy.intercept(
+    '/api/dsc/status',
+    mockDscStatus({
+      installedComponents: { 'data-science-pipelines-operator': true },
+    }),
+  );
   cy.intercept(
     {
       method: 'GET',

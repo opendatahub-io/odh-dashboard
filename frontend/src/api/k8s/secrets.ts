@@ -51,14 +51,14 @@ export const assembleSecret = (
 };
 
 export const assembleISSecretBody = (
-  data: Record<string, string>,
+  assignableData: Record<string, string>,
 ): [Record<string, string>, string] => {
   const secretKey = `secret-${genRandomChars()}`;
-  delete data.path;
-  data['type'] = 's3';
+  delete assignableData.path;
+  assignableData['type'] = 's3';
   return [
     {
-      [secretKey]: JSON.stringify(data),
+      [secretKey]: JSON.stringify(assignableData),
     },
     secretKey,
   ];

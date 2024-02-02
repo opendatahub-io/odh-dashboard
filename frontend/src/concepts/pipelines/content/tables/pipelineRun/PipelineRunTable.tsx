@@ -10,7 +10,7 @@ import {
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import { useCheckboxTable } from '~/components/table';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -49,7 +49,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { state } = useLocation();
   const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
-  const lastLocationPipelineVersion: PipelineVersionKF = state?.lastVersion;
+  const lastLocationPipelineVersion: PipelineVersionKF | undefined = state?.lastVersion;
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -92,7 +92,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         data={runs}
         columns={pipelineRunColumns}
         enablePagination="compact"
-        emptyTableView={<EmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />}
+        emptyTableView={
+          <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
+        }
         toolbarContent={
           <PipelineRunTableToolbar
             {...filterToolbarProps}
