@@ -9,6 +9,7 @@ import useFetchState, {
 import {
   PrometheusQueryRangeResponse,
   PrometheusQueryRangeResponseData,
+  PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
 } from '~/types';
 
@@ -60,5 +61,11 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
 
   return [...useFetchState<T[]>(fetchData, []), pendingRef.current];
 };
+
+export const defaultResponsePredicate: ResponsePredicate = (data) => data.result?.[0]?.values || [];
+
+export const prometheusQueryRangeResponsePredicate: ResponsePredicate<
+  PrometheusQueryRangeResponseDataResult
+> = (data) => data.result || [];
 
 export default usePrometheusQueryRange;

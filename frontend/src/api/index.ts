@@ -18,6 +18,8 @@ export * from './k8s/groups';
 export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
 export * from './k8s/acceleratorProfiles';
+export * from './k8s/clusterQueues';
+export * from './k8s/workloads';
 
 // Pipelines uses special redirected API
 export * from './pipelines/custom';
@@ -26,6 +28,7 @@ export * from './pipelines/k8s';
 // Prometheus queries
 export * from './prometheus/pvcs';
 export * from './prometheus/serving';
+export * from './prometheus/distributedWorkloads';
 
 // Network error handling
 export * from './errorUtils';

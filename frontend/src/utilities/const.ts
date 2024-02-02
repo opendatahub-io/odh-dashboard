@@ -1,4 +1,4 @@
-import { ContextResourceData, OdhDocumentType } from '~/types';
+import { ContextResourceData, FetchStateObject, OdhDocumentType } from '~/types';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';
@@ -43,6 +43,18 @@ export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
 
 export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
   data: [],
+  loaded: false,
+  refresh: () => undefined,
+};
+
+export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
+  data: [],
+  loaded: false,
+  refresh: () => undefined,
+};
+
+export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
+  data: undefined,
   loaded: false,
   refresh: () => undefined,
 };

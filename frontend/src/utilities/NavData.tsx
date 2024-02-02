@@ -90,6 +90,11 @@ const useDSPipelinesNav = (): NavDataItem[] => {
   ];
 };
 
+const useDistributedWorkloadsNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.DISTRIBUTED_WORKLOADS, [
+    { id: 'workloadMetrics', label: 'Workload Metrics', href: '/distributedWorkloads' },
+  ]);
+
 const useModelServingNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.MODEL_SERVING, [
     { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
@@ -171,6 +176,7 @@ export const useBuildNavData = (): NavDataItem[] => [
   ...useApplicationsNav(),
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),
+  ...useDistributedWorkloadsNav(),
   ...useModelServingNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),
