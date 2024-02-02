@@ -419,11 +419,11 @@ export const submitServingRuntimeResources = async (
 
   try {
     await Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises(true));
-    if (!currentProject) {
+    if (!editInfo && !currentProject) {
       // This should be impossible to hit, currentProject just comes from React context that could be undefined
       return Promise.reject(new Error('Cannot update project with no project selected'));
     }
-    if (currentProject.metadata.labels?.['modelmesh-enabled'] === undefined) {
+    if (currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined) {
       await addSupportServingPlatformProject(
         currentProject.metadata.name,
         servingPlatformEnablement,

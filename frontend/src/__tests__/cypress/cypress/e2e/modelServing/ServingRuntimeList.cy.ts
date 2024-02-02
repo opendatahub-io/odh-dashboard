@@ -132,6 +132,14 @@ const initIntercepts = ({
     mockInferenceServiceK8sResource({ name: 'test-inference' }),
   ).as('createInferenceService');
   cy.intercept(
+    {
+      method: 'PUT',
+      pathname:
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/llama-service',
+    },
+    mockInferenceServiceK8sResource({ name: 'llama-service' }),
+  );
+  cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
     mockK8sResourceList([mockSecretK8sResource({})]),
   );
@@ -224,6 +232,17 @@ const initIntercepts = ({
       route: true,
     }),
   ).as('createServingRuntime');
+  cy.intercept(
+    {
+      method: 'PUT',
+      pathname:
+        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/llama-service',
+    },
+    mockServingRuntimeK8sResource({
+      name: 'llama-service',
+      namespace: 'test-project',
+    }),
+  ).as('updateServingRuntime');
   cy.intercept(
     {
       method: 'GET',
@@ -558,12 +577,6 @@ describe('Serving Runtime List', () => {
       inferenceServices: [
         mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
         mockInferenceServiceK8sResource({
-          name: 'another-inference-service',
-          displayName: 'Another Inference Service',
-          deleted: true,
-          isModelMesh: true,
-        }),
-        mockInferenceServiceK8sResource({
           name: 'ovms-testing',
           displayName: 'OVMS ONNX',
           isModelMesh: true,
@@ -610,6 +623,43 @@ describe('Serving Runtime List', () => {
     editServingRuntimeModal.findSubmitButton().should('be.enabled');
     editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
     editServingRuntimeModal.findSubmitButton().should('be.disabled');
+  });
+
+  it('Successfully submit KServe Modal on edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableKServeConfig: true,
+      disableModelMeshConfig: true,
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          modelName: 'llama-service',
+          isModelMesh: false,
+        }),
+      ],
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          namespace: 'test-project',
+        }),
+      ],
+    });
+
+    projectDetails.visit('test-project');
+
+    // click on the toggle button and open edit model server
+    modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
+
+    kserveModal.shouldBeOpen();
+
+    // Submit button should be enabled
+    kserveModal.findSubmitButton().should('be.enabled');
+
+    // Should allow editing
+    kserveModal.findSubmitButton().click();
+    kserveModal.shouldBeOpen(false);
   });
 
   it('Successfully add model server when user can edit namespace', () => {
