@@ -11,6 +11,9 @@ import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/Pipelines
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 
+const DISABLE_TOOLTIP =
+  'All child pipeline versions must be deleted before deleting the parent pipeline';
+
 type PipelinesTableRowProps = {
   pipeline: PipelineKFv2;
   isChecked: boolean;
@@ -19,6 +22,7 @@ type PipelinesTableRowProps = {
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
   pipelineDetailsPath: (namespace: string, id: string) => string;
+  disableCheck: (id: PipelineKFv2, disabled: boolean) => void;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
@@ -29,6 +33,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   onDeletePipeline,
   refreshPipelines,
   pipelineDetailsPath,
+  disableCheck,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
@@ -46,6 +51,15 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
 
   const createdDate = new Date(pipeline.created_at);
 
+  const pipelineRef = React.useRef(pipeline);
+  pipelineRef.current = pipeline;
+
+  // disable the checkbox if the pipeline has pipeline versions
+  const disableDelete = totalSize > 0;
+  React.useEffect(() => {
+    disableCheck(pipelineRef.current, disableDelete || loading);
+  }, [disableDelete, loading, disableCheck]);
+
   return (
     <>
       <Tbody isExpanded={isExpanded}>
@@ -62,6 +76,8 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             id={pipeline.pipeline_id}
             isChecked={isChecked ? true : selectedVersionLength !== 0 ? null : false}
             onToggle={onToggleCheck}
+            isDisabled={disableDelete}
+            tooltip={disableDelete ? DISABLE_TOOLTIP : undefined}
           />
           <Td>
             <TableRowTitleDescription
@@ -100,14 +116,12 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 },
                 {
                   title: 'Delete pipeline',
-                  isAriaDisabled: totalSize > 0,
-                  tooltipProps:
-                    totalSize > 0
-                      ? {
-                          content:
-                            'All child pipeline versions must be deleted before deleting the parent pipeline',
-                        }
-                      : undefined,
+                  isAriaDisabled: disableDelete,
+                  tooltipProps: disableDelete
+                    ? {
+                        content: DISABLE_TOOLTIP,
+                      }
+                    : undefined,
                   onClick: () => {
                     onDeletePipeline();
                   },

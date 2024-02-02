@@ -52,7 +52,7 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
     versions,
     selectedVersions,
     setSelectedVersions,
-    (version) => version.pipeline_version_id,
+    React.useCallback((version) => version.pipeline_version_id, []),
     { disabled: pipelineChecked, ...(pipelineChecked ? { selected: true } : {}) },
   );
 
