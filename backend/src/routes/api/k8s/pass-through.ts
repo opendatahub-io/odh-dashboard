@@ -42,11 +42,11 @@ export const passThroughText = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   data: PassThroughData,
-): Promise<[string, ProxyCallStatus]> => {
+): Promise<string> => {
   return (
     proxyCall(fastify, request, data)
       // TODO: is there bad text states that we want to error out on?
-      .then((rawData) => rawData) // noop intentionally until above inquiry is figured out
+      .then(([rawData]) => rawData) // noop intentionally until above inquiry is figured out
       .catch(passThroughCatch(fastify))
   );
 };
