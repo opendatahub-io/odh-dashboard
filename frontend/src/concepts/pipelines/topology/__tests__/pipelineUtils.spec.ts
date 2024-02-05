@@ -158,19 +158,19 @@ describe('getRunStatus', () => {
   });
 
   it('should get run status as failed', () => {
-    status.conditions[0].status = 'False';
+    (status.conditions || [])[0].status = 'False';
     const getrunStatus = getRunStatus(status);
     expect(getrunStatus).toBe(RunStatus.Failed);
   });
 
   it('should get run status as running', () => {
-    status.conditions[0].status = 'Unkonown';
+    (status.conditions || [])[0].status = 'Unkonown';
     const getrunStatus = getRunStatus(status);
     expect(getrunStatus).toBe(RunStatus.Running);
   });
 
   it('should get run status as idle', () => {
-    status.conditions[0].type = 'Failed';
+    (status.conditions || [])[0].type = 'Failed';
     const getrunStatus = getRunStatus(status);
     expect(getrunStatus).toBe(RunStatus.Idle);
   });

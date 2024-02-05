@@ -23,8 +23,8 @@ import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
-import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 type PipelineSelectorProps = {
   selection?: string;

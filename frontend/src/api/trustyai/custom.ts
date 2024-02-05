@@ -2,7 +2,6 @@ import { proxyCREATE, proxyDELETE, proxyGET } from '~/api/proxyUtils';
 import { K8sAPIOptions } from '~/k8sTypes';
 import { BaseMetricCreationResponse, BaseMetricListResponse, BaseMetricRequest } from '~/api';
 import { handleTrustyAIFailures } from './errorUtils';
-
 export const getAllRequests =
   (hostPath: string) =>
   (opts: K8sAPIOptions): Promise<BaseMetricListResponse> =>

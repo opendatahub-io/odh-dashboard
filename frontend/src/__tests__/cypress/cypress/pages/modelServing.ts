@@ -115,6 +115,10 @@ class InferenceServiceModal extends Modal {
   findLocationPathInput() {
     return this.find().findByLabelText('folder-path');
   }
+
+  findLocationPathInputError() {
+    return this.find().findByTestId('folder-path-error');
+  }
 }
 
 class ServingRuntimeModal extends Modal {
@@ -202,7 +206,11 @@ class ModelMeshRow extends ModelServingRow {
   }
 }
 
-class KServeRow extends ModelServingRow {}
+class KServeRow extends ModelMeshRow {
+  findToggleButton() {
+    return this.find().find('button').first();
+  }
+}
 
 class ModelServingSection {
   find() {
@@ -232,6 +240,14 @@ class ModelServingSection {
     return new ModelMeshRow(() =>
       this.findTable().find('[data-label="Model Server Name"]').contains(name).parents('tr'),
     );
+  }
+
+  private findRow(rowName: string) {
+    return this.findTable().contains('tr', rowName);
+  }
+
+  findDescriptionListItem(rowName: string, itemName: string) {
+    return this.findRow(rowName).next('tr').find(`dt:contains("${itemName}")`);
   }
 }
 
