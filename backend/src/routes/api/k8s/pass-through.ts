@@ -46,7 +46,7 @@ export const passThroughText = (
   return (
     proxyCall(fastify, request, data)
       // TODO: is there bad text states that we want to error out on?
-      .then((rawData) => rawData[0]) // noop intentionally until above inquiry is figured out
+      .then(([rawData]) => rawData) // noop intentionally until above inquiry is figured out
       .catch(passThroughCatch(fastify))
   );
 };

@@ -46,7 +46,7 @@ const MetricsPageTabs: React.FC = () => {
       isBox={false}
       aria-label="Metrics page tabs"
       role="region"
-      className="odh-tabs-fix"
+      className="odh-metrics-page-tabs"
       mountOnEnter
     >
       {performanceMetricsAreaAvailable && (
@@ -54,7 +54,7 @@ const MetricsPageTabs: React.FC = () => {
           eventKey={MetricsTabKeys.PERFORMANCE}
           title={<TabTitleText>Endpoint performance</TabTitleText>}
           aria-label="Performance tab"
-          className="odh-tabcontent-fix"
+          className="odh-metrics-page-tabs__content"
           data-testid="performance-tab"
         >
           <PerformanceTab />
@@ -65,7 +65,7 @@ const MetricsPageTabs: React.FC = () => {
           eventKey={MetricsTabKeys.BIAS}
           title={<TabTitleText>Model bias</TabTitleText>}
           aria-label="Bias tab"
-          className="odh-tabcontent-fix"
+          className="odh-metrics-page-tabs__content"
           data-testid="bias-tab"
           actions={
             loaded &&

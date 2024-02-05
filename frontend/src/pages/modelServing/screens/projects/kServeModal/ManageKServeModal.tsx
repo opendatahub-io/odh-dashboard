@@ -28,6 +28,7 @@ import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/I
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
 
 type ManageKServeModalProps = {
   isOpen: boolean;
@@ -102,9 +103,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.name.trim() === '' ||
     createDataInferenceService.project === '' ||
     createDataInferenceService.format.name === '' ||
-    createDataInferenceService.storage.path.includes('//') ||
+    removeLeadingSlashes(createDataInferenceService.storage.path).includes('//') ||
+    containsOnlySlashes(createDataInferenceService.storage.path) ||
     createDataInferenceService.storage.path === '' ||
-    createDataInferenceService.storage.path === '/' ||
     !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
