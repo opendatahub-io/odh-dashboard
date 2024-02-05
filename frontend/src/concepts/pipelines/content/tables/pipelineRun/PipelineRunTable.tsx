@@ -2,11 +2,7 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import {
-  PipelineCoreResourceKF,
-  PipelineRunKF,
-  PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import { useCheckboxTable } from '~/components/table';
@@ -21,7 +17,7 @@ import usePipelineFilter, {
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRunTableProps = {
-  runs: PipelineRunKF[];
+  runs: PipelineRunKFv2[];
   loading?: boolean;
   totalSize: number;
   page: number;
@@ -49,21 +45,21 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { state } = useLocation();
   const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
-  const lastLocationPipelineVersion: PipelineVersionKF | undefined = state?.lastVersion;
+  const lastLocationPipelineVersion: PipelineVersionKFv2 | undefined = state?.lastVersion;
   const {
     selections,
     tableProps: checkboxTableProps,
     toggleSelection,
     isSelected,
-  } = useCheckboxTable(runs.map(({ id }) => id));
-  const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
+  } = useCheckboxTable(runs.map(({ run_id: runId }) => runId));
+  const [deleteResources, setDeleteResources] = React.useState<PipelineRunKFv2[]>([]);
 
   // Update filter on initial render with the last location-stored pipeline version.
   React.useEffect(() => {
     if (lastLocationPipelineVersion) {
       filterToolbarProps.onFilterUpdate(FilterOptions.PIPELINE_VERSION, {
-        label: lastLocationPipelineVersion.name,
-        value: lastLocationPipelineVersion.id,
+        label: lastLocationPipelineVersion.display_name,
+        value: lastLocationPipelineVersion.pipeline_version_id,
       });
     }
 
@@ -102,19 +98,19 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             onDeleteAll={() =>
               setDeleteResources(
                 selections
-                  .map<PipelineCoreResourceKF | undefined>((selection) =>
-                    runs.find(({ id }) => id === selection),
+                  .map<PipelineRunKFv2 | undefined>((selection) =>
+                    runs.find(({ run_id: runId }) => runId === selection),
                   )
-                  .filter((v): v is PipelineCoreResourceKF => !!v),
+                  .filter((v): v is PipelineRunKFv2 => !!v),
               )
             }
           />
         }
         rowRenderer={(run) => (
           <PipelineRunTableRow
-            key={run.id}
-            isChecked={isSelected(run.id)}
-            onToggleCheck={() => toggleSelection(run.id)}
+            key={run.run_id}
+            isChecked={isSelected(run.run_id)}
+            onToggleCheck={() => toggleSelection(run.run_id)}
             onDelete={() => setDeleteResources([run])}
             run={run}
             getJobInformation={getJobInformation}

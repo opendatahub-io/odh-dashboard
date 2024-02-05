@@ -13,17 +13,11 @@ export enum PipelineRunType {
 const GlobalPipelineRunsTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const runTypeSearchParam = searchParams.get('runType') as PipelineRunType;
-  const [tab, setTab] = React.useState<PipelineRunType>(
-    runTypeSearchParam || PipelineRunType.Scheduled,
-  );
 
   return (
     <Tabs
-      activeKey={tab}
-      onSelect={(_event, tabId) => {
-        setTab(tabId as PipelineRunType);
-        runTypeSearchParam && setSearchParams({});
-      }}
+      activeKey={runTypeSearchParam || PipelineRunType.Scheduled}
+      onSelect={(_event, tabId) => setSearchParams({ runType: tabId as PipelineRunType })}
       aria-label="Pipeline run page tabs"
       role="region"
       className="odh-pipeline-runs-page-tabs"

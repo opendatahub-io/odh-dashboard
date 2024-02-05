@@ -5,12 +5,12 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
-const useExperimentById = (experimentId?: string): FetchState<ExperimentKF | null> => {
+const useExperimentById = (experimentId?: string): FetchState<ExperimentKFv2 | null> => {
   const { api } = usePipelinesAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<ExperimentKF | null>>(
+  const call = React.useCallback<FetchStateCallbackPromise<ExperimentKFv2 | null>>(
     (opts) => {
       if (!experimentId) {
         return Promise.reject(new NotReadyError('No experiment id'));

@@ -6,10 +6,10 @@ import {
 } from '~/components/table';
 import {
   PipelineRunJobKF,
-  PipelineRunKF,
   PipelineCoreResourceKF,
   PipelineVersionKFv2,
   PipelineKFv2,
+  PipelineRunKFv2,
 } from '~/concepts/pipelines/kfTypes';
 
 export const pipelineColumns: SortableData<PipelineKFv2>[] = [
@@ -86,8 +86,26 @@ const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
   },
 ];
 
-export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
-  ...sharedRunLikeColumns,
+export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
+  checkboxTableColumn(),
+  {
+    label: 'Name',
+    field: 'name',
+    sortable: true,
+    width: 20,
+  },
+  {
+    label: 'Experiment',
+    field: 'experiment',
+    sortable: false,
+    width: 10,
+  },
+  {
+    label: 'Pipeline version',
+    field: 'pipeline_version',
+    sortable: false,
+    width: 15,
+  },
   {
     label: 'Started',
     field: 'created_at',

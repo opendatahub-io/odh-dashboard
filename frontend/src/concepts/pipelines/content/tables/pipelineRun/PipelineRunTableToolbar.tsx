@@ -7,10 +7,10 @@ import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTable
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
-import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
-// import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
-// import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
+import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const options = {
   [FilterOptions.NAME]: 'Name',
@@ -35,7 +35,10 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  // const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { versions } = React.useContext(PipelineRunVersionsContext);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: _unspecifiedState, ...statusRuntimeStates } =
+    runtimeStateLabels;
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -56,15 +59,13 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             selected={value && label ? { value, label } : undefined}
           />
         ),
-        // TODO: Uncomment this when adding runs for v2 https://issues.redhat.com/browse/RHOAIENG-2225
-        [FilterOptions.PIPELINE_VERSION]: () => <></>,
-        // [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
-        //   <PipelineVersionSelect
-        //     versions={versions}
-        //     selection={label}
-        //     onSelect={(version) => onChange(version.id, version.name)}
-        //   />
-        // ),
+        [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
+          <PipelineVersionSelect
+            versions={versions}
+            selection={label}
+            onSelect={(version) => onChange(version.pipeline_version_id, version.display_name)}
+          />
+        ),
         [FilterOptions.CREATED_AT]: ({ onChange, ...props }) => (
           <DashboardDatePicker
             {...props}
@@ -82,13 +83,11 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             {...props}
             value={value ?? ''}
             aria-label="Select a status"
-            options={Object.values(PipelineRunStatusesKF).map((value) => ({
+            options={Object.values(statusRuntimeStates).map((value) => ({
               key: value,
               label: value,
             }))}
-            onChange={(value) => {
-              onChange(value);
-            }}
+            onChange={(value) => onChange(value)}
           />
         ),
       }}

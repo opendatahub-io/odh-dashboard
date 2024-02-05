@@ -39,7 +39,7 @@ describe('usePipelineQuery', () => {
       filter: {
         predicates: [
           {
-            op: PipelinesFilterOp.EQUALS,
+            operation: PipelinesFilterOp.EQUALS,
             key: 'name',
             // eslint-disable-next-line camelcase
             string_value: 'test',
@@ -59,7 +59,7 @@ describe('usePipelineQuery', () => {
         predicates: [
           {
             key: 'name',
-            op: 'EQUALS',
+            operation: 'EQUALS',
             // eslint-disable-next-line camelcase
             string_value: 'test',
           },
@@ -90,7 +90,7 @@ describe('usePipelineQuery', () => {
           predicates: [
             {
               key: 'name',
-              op: 'EQUALS',
+              operation: 'EQUALS',
               // eslint-disable-next-line camelcase
               string_value: 'test',
             },
@@ -134,7 +134,7 @@ describe('usePipelineQuery', () => {
       filter: {
         predicates: [
           {
-            op: PipelinesFilterOp.EQUALS,
+            operation: PipelinesFilterOp.EQUALS,
             key: 'name',
             // eslint-disable-next-line camelcase
             string_value: 'test',

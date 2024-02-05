@@ -26,7 +26,6 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 // import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { getPipelineIdByPipelineVersion } from '~/concepts/pipelines/content/utils';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -37,7 +36,7 @@ enum PipelineDetailsTab {
 }
 
 const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
-  const { pipelineVersionId } = useParams();
+  const { pipelineId, pipelineVersionId } = useParams();
   const navigate = useNavigate();
 
   // const [isDeletionOpen, setDeletionOpen] = React.useState(false);
@@ -47,11 +46,11 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
 
   const { namespace } = usePipelinesAPI();
   const [pipelineVersion, isPipelineVersionLoaded, pipelineVersionLoadError] =
-    usePipelineVersionById(pipelineVersionId);
+    usePipelineVersionById(pipelineId || '', pipelineVersionId || '');
 
-  const pipelineId = getPipelineIdByPipelineVersion(pipelineVersion);
-
-  const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
+  const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(
+    pipelineVersion?.pipeline_id,
+  );
   const pipelineName = pipeline?.name;
   const [pipelineVersionRun, isPipelineVersionTemplateLoaded, templateLoadError] =
     usePipelineVersionTemplate(pipelineVersionId);
@@ -96,11 +95,11 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   {breadcrumbPath}
                   <BreadcrumbItem>{pipelineName || 'Loading...'}</BreadcrumbItem>
                   <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                    <Truncate content={pipelineVersion?.name || 'Loading...'} />
+                    <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
                   </BreadcrumbItem>
                 </Breadcrumb>
               }
-              title={<Truncate content={pipelineVersion?.name || 'Loading...'} />}
+              title={<Truncate content={pipelineVersion?.display_name || 'Loading...'} />}
               {...(pipelineVersion && {
                 description: (
                   <MarkdownView
@@ -122,7 +121,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                     <FlexItem style={{ width: '300px' }}>
                       <PipelineVersionSelector
                         pipelineId={pipeline?.id}
-                        selection={pipelineVersion?.name}
+                        selection={pipelineVersion?.display_name}
                         onSelect={(version) =>
                           navigate(
                             `/pipelines/${namespace}/pipeline/view/${version.pipeline_version_id}`,

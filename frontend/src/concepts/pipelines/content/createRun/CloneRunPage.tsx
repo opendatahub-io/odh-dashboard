@@ -6,17 +6,17 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useCloneRunData from '~/concepts/pipelines/content/createRun/useCloneRunData';
 
 const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
-  const [resource, loaded, error] = useCloneRunData();
+  const [run, loaded, error] = useCloneRunData();
 
   return (
     <ApplicationsPage
-      title={resource ? `Duplicate of ${resource.name}` : 'Loading...'}
-      description={resource ? `Create a new run from ${resource.name}.` : ''}
+      title={run ? `Duplicate of ${run.display_name}` : 'Loading...'}
+      description={run ? `Create a new run from ${run.display_name}.` : ''}
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive>
-            {resource ? `Duplicate of ${resource.name}` : 'Duplicate'}
+            {run ? `Duplicate of ${run.display_name}` : 'Duplicate'}
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -24,7 +24,7 @@ const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contex
       loadError={error}
       empty={false}
     >
-      <RunPage cloneRun={resource ?? undefined} contextPath={contextPath} testId="clone-run-page" />
+      <RunPage cloneRun={run ?? undefined} contextPath={contextPath} testId="clone-run-page" />
     </ApplicationsPage>
   );
 };

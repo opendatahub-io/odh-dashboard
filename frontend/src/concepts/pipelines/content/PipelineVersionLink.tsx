@@ -2,12 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Skeleton, Tooltip } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 
 interface PipelineVersionLinkProps {
   displayName?: string;
   loadingIndicator?: React.ReactElement;
-  version?: PipelineVersionKF | null;
+  version?: PipelineVersionKFv2 | null;
   error?: Error;
   loaded: boolean;
 }
@@ -41,5 +41,9 @@ export const PipelineVersionLink: React.FC<PipelineVersionLinkProps> = ({
     );
   }
 
-  return <Link to={`/pipelines/${namespace}/pipeline/view/${version.id}`}>{version.name}</Link>;
+  return (
+    <Link to={`/pipelines/${namespace}/pipeline/view/${version.pipeline_version_id}`}>
+      {version.display_name}
+    </Link>
+  );
 };

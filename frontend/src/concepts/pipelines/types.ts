@@ -5,20 +5,20 @@ import {
   ListPipelinesResponseKF,
   ListPipelineVersionTemplateResourceKF,
   PipelineKF,
-  PipelineRunResourceKF,
   ListExperimentsResponseKF,
   ExperimentKF,
+  ExperimentKFv2,
   PipelineRunJobKF,
-  CreatePipelineRunKFData,
+  CreatePipelineRunKFv2Data,
   CreatePipelineRunJobKFData,
   PipelinesFilterPredicate,
   ResourceKeyKF,
-  PipelineVersionKF,
   ListPipelineVersionsResourceKF,
   PipelineKFv2,
   PipelineVersionKFv2,
   PipelineCoreResourceKFv2,
   PipelineCoreResourceKF,
+  PipelineRunKFv2,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -50,26 +50,27 @@ export type CreateExperiment = (
 ) => Promise<ExperimentKF>;
 export type CreatePipelineRun = (
   opts: K8sAPIOptions,
-  data: CreatePipelineRunKFData,
-) => Promise<PipelineRunResourceKF>;
+  data: CreatePipelineRunKFv2Data,
+) => Promise<PipelineRunKFv2>;
 export type CreatePipelineRunJob = (
   opts: K8sAPIOptions,
   data: CreatePipelineRunJobKFData,
 ) => Promise<PipelineRunJobKF>;
-export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKF>;
+export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKFv2>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
 export type GetPipelineRun = (
   opts: K8sAPIOptions,
   pipelineRunId: string,
-) => Promise<PipelineRunResourceKF>;
+) => Promise<PipelineRunKFv2>;
 export type GetPipelineRunJob = (
   opts: K8sAPIOptions,
   pipelineRunJobId: string,
 ) => Promise<PipelineRunJobKF>;
 export type GetPipelineVersion = (
   opts: K8sAPIOptions,
-  pipelineVersionId: string,
-) => Promise<PipelineVersionKF>;
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
+) => Promise<PipelineVersionKFv2>;
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type DeletePipelineRunJob = (opts: K8sAPIOptions, jobId: string) => Promise<void>;

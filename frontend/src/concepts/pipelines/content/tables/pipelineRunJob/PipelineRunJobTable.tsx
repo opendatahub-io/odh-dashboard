@@ -47,7 +47,9 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
     toggleSelection,
     isSelected,
   } = useCheckboxTable(jobs.map(({ id }) => id));
-  const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
+  // TODO - update type, https://issues.redhat.com/browse/RHOAIENG-2273
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deleteResources, setDeleteResources] = React.useState<any[]>([]);
 
   return (
     <>

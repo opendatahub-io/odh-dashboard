@@ -30,7 +30,7 @@ export enum PipelinesFilterOp {
 }
 
 export type PipelinesFilterPredicate = {
-  op: PipelinesFilterOp;
+  operation: PipelinesFilterOp;
   key: string;
 } & ExactlyOne<{
   int_value: number;
@@ -73,6 +73,10 @@ export enum RunMetricFormatKF {
   PERCENTAGE = 'PERCENTAGE',
 }
 
+/**
+ * @deprecated
+ * Replace with RuntimeStateKF
+ */
 export enum PipelineRunStatusesKF {
   STARTED = 'Started',
   COMPLETED = 'Completed',
@@ -87,10 +91,20 @@ export enum JobModeKF {
   DISABLED = 'DISABLED',
 }
 
+/**
+ * @deprecated
+ * Replace with StorageStateKFv2
+ */
 export enum StorageStateKF {
   STORAGESTATE_UNSPECIFIED = 'STORAGESTATE_UNSPECIFIED',
   STORAGESTATE_AVAILABLE = 'STORAGESTATE_AVAILABLE',
   STORAGESTATE_ARCHIVED = 'STORAGESTATE_ARCHIVED',
+}
+
+export enum StorageStateKFv2 {
+  STORAGE_STATE_UNSPECIFIED = 'STORAGE_STATE_UNSPECIFIED',
+  AVAILABLE = 'AVAILABLE',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export type ParameterKF = {
@@ -127,6 +141,10 @@ export type ResourceKeyKF = {
   id: string;
 };
 
+/**
+ * @deprecated
+ * No longer exists in KFv2
+ */
 export type ResourceReferenceKF = {
   key: ResourceKeyKF;
   name?: string;
@@ -139,8 +157,7 @@ export type UrlKF = {
 
 export type PipelineSpecRuntimeConfig = {
   parameters: Record<string, unknown>;
-  // protobufValue??
-  pipeline_root: string;
+  pipeline_root?: string;
 };
 
 export type RunMetricKF = {
@@ -220,6 +237,69 @@ export type PipelineKF = PipelineCoreResourceKF & {
   default_version?: PipelineVersionKF;
 };
 
+export type PipelineVersionReferenceKF = {
+  pipeline_id: string;
+  pipeline_version_id: string;
+};
+
+export enum RunStorageStateKFv2 {
+  STORAGE_STATE_UNSPECIFIED = 'STORAGE_STATE_UNSPECIFIED',
+  AVAILABLE = 'AVAILABLE',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum RuntimeStateKF {
+  RUNTIME_STATE_UNSPECIFIED = 'RUNTIME_STATE_UNSPECIFIED',
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  SUCCEEDED = 'SUCCEEDED',
+  SKIPPED = 'SKIPPED',
+  FAILED = 'FAILED',
+  CANCELING = 'CANCELING',
+  CANCELED = 'CANCELED',
+  PAUSED = 'PAUSED',
+}
+
+export const runtimeStateLabels = {
+  [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: 'Unspecified',
+  [RuntimeStateKF.PENDING]: 'Pending',
+  [RuntimeStateKF.RUNNING]: 'Running',
+  [RuntimeStateKF.SUCCEEDED]: 'Succeeded',
+  [RuntimeStateKF.SKIPPED]: 'Skipped',
+  [RuntimeStateKF.FAILED]: 'Failed',
+  [RuntimeStateKF.CANCELING]: 'Canceling',
+  [RuntimeStateKF.CANCELED]: 'Canceled',
+  [RuntimeStateKF.PAUSED]: 'Paused',
+};
+
+export type RunDetailsKF = {
+  pipeline_context_id: string;
+  pipeline_run_context_id: string;
+  task_details: object[];
+};
+
+export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
+  experiment_id: string;
+  run_id: string;
+  storage_state: RunStorageStateKFv2;
+  pipeline_version_id?: string;
+  pipeline_spec?: object;
+  pipeline_version_reference: PipelineVersionReferenceKF;
+  runtime_config: PipelineSpecRuntimeConfig;
+  service_account: string;
+  scheduled_at: string;
+  finished_at: string;
+  state: RuntimeStateKF;
+  error?: GoogleRpcStatusKF;
+  run_details: RunDetailsKF;
+  recurring_run_id?: string;
+  state_history: object[];
+};
+
+/**
+ * @deprecated
+ * Replace with PipelineRunKFv2
+ */
 export type PipelineRunKF = PipelineCoreResourceKF & {
   storage_state: RunStorageStateKF;
   pipeline_spec: PipelineSpecKF;
@@ -246,6 +326,10 @@ export type PipelineRunJobKF = PipelineCoreResourceKF & {
   no_catchup: boolean;
 };
 
+/**
+ * @deprecated
+ * Replace with PipelineRunKFv2
+ */
 export type PipelineRunResourceKF = {
   pipeline_runtime: {
     workflow_manifest: string;
@@ -253,6 +337,10 @@ export type PipelineRunResourceKF = {
   run: PipelineRunKF;
 };
 
+/**
+ * @deprecated
+ * Replace with ExperimentKFv2
+ */
 export type ExperimentKF = {
   id: string;
   name: string;
@@ -260,6 +348,15 @@ export type ExperimentKF = {
   created_at: DateTimeKF;
   resource_references?: ResourceReferenceKF[];
   storage_state: StorageStateKF;
+};
+
+export type ExperimentKFv2 = {
+  experiment_id: string;
+  display_name: string;
+  description: string;
+  created_at: string;
+  namespace: string;
+  storage_state: StorageStateKFv2;
 };
 
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{
@@ -282,6 +379,10 @@ export type ListPipelineVersionsResourceKF = PipelineKFCallCommon<{
   pipeline_versions: PipelineVersionKFv2[];
 }>;
 
+/**
+ * @deprecated
+ * Replace with CreatePipelineRunKFv2Data
+ */
 export type CreatePipelineRunKFData = Omit<
   PipelineRunKF,
   | 'id'
@@ -293,6 +394,24 @@ export type CreatePipelineRunKFData = Omit<
   | 'storage_state'
   | 'error'
   | 'metrics'
+> & {
+  pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
+};
+
+export type CreatePipelineRunKFv2Data = Omit<
+  PipelineRunKFv2,
+  | 'run_id'
+  | 'recurring_run_id'
+  | 'experiment_id'
+  | 'created_at'
+  | 'finished_at'
+  | 'scheduled_at'
+  | 'pipeline_spec'
+  | 'storage_state'
+  | 'error'
+  | 'state'
+  | 'state_history'
+  | 'run_details'
 > & {
   pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
 };

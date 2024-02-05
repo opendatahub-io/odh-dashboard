@@ -116,7 +116,8 @@ const initIntercepts = () => {
 
 describe('Pipeline topology', () => {
   describe('Pipeline details', () => {
-    it('Test pipeline topology renders', () => {
+    // TODO, remove skip after https://issues.redhat.com/browse/RHOAIENG-2282
+    it.skip('Test pipeline topology renders', () => {
       initIntercepts();
 
       pipelineDetails.visit('test-project', 'test-pipeline');

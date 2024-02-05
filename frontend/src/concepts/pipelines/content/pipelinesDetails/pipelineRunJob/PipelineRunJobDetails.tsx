@@ -163,7 +163,9 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
 
       <DeletePipelineRunsModal
         type="scheduled run"
-        toDeleteResources={deleting && job ? [job] : []}
+        // TODO - remove cast, https://issues.redhat.com/browse/RHOAIENG-2294
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toDeleteResources={(deleting && job ? [job] : []) as any}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
             navigate(contextPath ?? `/pipelineRuns/${namespace}`);

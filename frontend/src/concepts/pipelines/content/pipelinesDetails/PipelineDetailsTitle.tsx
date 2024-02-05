@@ -1,11 +1,11 @@
 import React from 'react';
 import { Label, Split, SplitItem } from '@patternfly/react-core';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
 
 type RunJobTitleProps = {
-  run: PipelineRunKF;
+  run: PipelineRunKFv2;
   statusIcon?: boolean;
   hasJobReference?: boolean;
   pipelineRunLabel?: boolean;
@@ -21,10 +21,10 @@ const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
   return (
     <>
       <Split hasGutter>
-        <SplitItem>{run.name}</SplitItem>
+        <SplitItem>{run.display_name}</SplitItem>
         {pipelineRunLabel && (
           <SplitItem>
-            <PipelineRunTypeLabel resource={run} />
+            <PipelineRunTypeLabel run={run} />
           </SplitItem>
         )}
         {statusIcon && (

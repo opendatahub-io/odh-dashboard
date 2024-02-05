@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
 // import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 // import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
@@ -12,7 +12,7 @@ import useDeleteStatuses from '~/concepts/pipelines/content/useDeleteStatuses';
 
 type DeletePipelineRunsModalProps = {
   type: 'triggered run' | 'scheduled run';
-  toDeleteResources: PipelineCoreResourceKF[];
+  toDeleteResources: PipelineRunKFv2[];
   onClose: (deleted?: boolean) => void;
 };
 
@@ -65,7 +65,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
         setError(undefined);
 
         if (resourceCount === 1) {
-          callFunc({ signal: abortSignal }, toDeleteResources[0].id)
+          callFunc({ signal: abortSignal }, toDeleteResources[0].run_id)
             .then(() => onBeforeClose(true))
             .catch((e) => {
               setError(e);
@@ -73,7 +73,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             });
         } else {
           Promise.allSettled(
-            toDeleteResources.map((resource) => callFunc({ signal: abortSignal }, resource.id)),
+            toDeleteResources.map((run) => callFunc({ signal: abortSignal }, run.run_id)),
           ).then((results) =>
             onBeforeClose(
               true,
@@ -84,7 +84,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
       }}
       submitButtonLabel="Delete"
       deleteName={
-        resourceCount === 1 ? toDeleteResources[0].name : `Delete ${resourceCount} ${type}s`
+        resourceCount === 1 ? toDeleteResources[0].display_name : `Delete ${resourceCount} ${type}s`
       }
     >
       {resourceCount <= 1 ? (

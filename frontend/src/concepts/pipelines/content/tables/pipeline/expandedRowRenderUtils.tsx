@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   RunCreated,
   RunDuration,
@@ -29,7 +29,7 @@ type RenderContentByColumn = {
 };
 
 export const combineRunsByColumn = (
-  runs: PipelineRunKF[],
+  runs: PipelineRunKFv2[],
   sliceCount?: number,
 ): RenderContentByColumn =>
   runs.reduce<RenderContentByColumn>(

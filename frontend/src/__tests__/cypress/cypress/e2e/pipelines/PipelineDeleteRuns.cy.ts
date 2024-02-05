@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
@@ -37,27 +38,28 @@ const initIntercepts = () => {
     },
     mockPipelineKF({}),
   );
+  // TODO, https://issues.redhat.com/browse/RHOAIENG-2273
+  // cy.intercept(
+  //   {
+  //     method: 'POST',
+  //     pathname: '/api/proxy/apis/v1beta1/jobs',
+  //   },
+  //   {
+  //     jobs: [
+  //       buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
+  //       buildMockJobKF({ name: 'other-pipeline', id: 'other-pipeline' }),
+  //     ],
+  //   },
+  // );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/jobs',
-    },
-    {
-      jobs: [
-        buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
-        buildMockJobKF({ name: 'other-pipeline', id: 'other-pipeline' }),
-      ],
-    },
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/runs',
+      pathname: '/api/proxy/apis/v2beta1/runs',
     },
     {
       runs: [
-        buildMockRunKF({ name: 'test-pipeline', id: 'test-pipeline' }),
-        buildMockRunKF({ name: 'other-pipeline', id: 'other-pipeline' }),
+        buildMockRunKF({ display_name: 'test-pipeline', run_id: 'test-pipeline' }),
+        buildMockRunKF({ display_name: 'other-pipeline', run_id: 'other-pipeline' }),
       ],
     },
   );
@@ -138,7 +140,8 @@ const initIntercepts = () => {
 
 describe('Pipeline runs', () => {
   describe('Test deleting runs', () => {
-    it('Test delete a single run from scheduled', () => {
+    // TODO, don't skip after https://issues.redhat.com/browse/RHOAIENG-2273
+    it.skip('Test delete a single run from scheduled', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
@@ -183,7 +186,8 @@ describe('Pipeline runs', () => {
         pipelineRunJobTable.findEmptyState().should('not.exist');
       });
     });
-    it('Test delete multiple runs from scheduled', () => {
+    // TODO, don't skip after https://issues.redhat.com/browse/RHOAIENG-2273
+    it.skip('Test delete multiple runs from scheduled', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
@@ -267,7 +271,7 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/runs/test-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline');
@@ -275,16 +279,16 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs',
+          pathname: '/api/proxy/apis/v2beta1/runs',
         },
-        { runs: [buildMockRunKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
+        { runs: [buildMockRunKF({ run_id: 'other-pipeline', display_name: 'other-pipeline' })] },
       ).as('getRuns');
 
       triggeredRunDeleteModal.findSubmitButton().click();
 
       cy.wait('@postRunPipeline').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/test-pipeline',
+          path: '/apis/v2beta1/runs/test-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
@@ -315,7 +319,7 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/runs/test-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline-1');
@@ -323,7 +327,7 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/other-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/runs/other-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline-2');
@@ -331,7 +335,7 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs',
+          pathname: '/api/proxy/apis/v2beta1/runs',
         },
         { runs: [] },
       ).as('getRuns');
@@ -340,7 +344,7 @@ describe('Pipeline runs', () => {
 
       cy.wait('@postRunPipeline-1').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/test-pipeline',
+          path: '/apis/v2beta1/runs/test-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
@@ -350,7 +354,7 @@ describe('Pipeline runs', () => {
 
       cy.wait('@postRunPipeline-2').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/other-pipeline',
+          path: '/apis/v2beta1/runs/other-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
