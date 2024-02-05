@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
-  submitInferenceServiceResource,
+  submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -91,7 +91,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     setError(undefined);
     setActionInProgress(true);
 
-    submitInferenceServiceResource(createData, editInfo, undefined, true)
+    submitInferenceServiceResourceWithDryRun(createData, editInfo, undefined, true)
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
