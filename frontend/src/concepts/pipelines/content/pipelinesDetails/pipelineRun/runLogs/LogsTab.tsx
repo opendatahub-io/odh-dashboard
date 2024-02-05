@@ -41,8 +41,8 @@ import { PodStepStateType } from '~/types';
 
 // TODO: If this gets large enough we should look to make this its own component file
 const LogsTab: React.FC<{ task: PipelineRunTaskDetails }> = ({ task }) => {
-  const podName = task.runDetails?.status.podName;
-  const isFailedPod = !!task.runDetails?.status.conditions.find((c) =>
+  const podName = task.runDetails?.status?.podName;
+  const isFailedPod = !!task.runDetails?.status?.conditions?.find((c) =>
     c.reason?.includes('Failed'),
   );
 

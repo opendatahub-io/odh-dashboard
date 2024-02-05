@@ -26,10 +26,10 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
     details = [taskName, { key: 'Status', value: 'Skipped' }];
   } else if (task.runDetails) {
     const startDate =
-      task.runDetails.status.startTime && new Date(task.runDetails.status.startTime);
+      task.runDetails.status?.startTime && new Date(task.runDetails.status.startTime);
     const endDate =
-      task.runDetails.status.completionTime && new Date(task.runDetails.status.completionTime);
-    const statusCondition = task.runDetails.status.conditions.find((c) => c.type === 'Succeeded');
+      task.runDetails.status?.completionTime && new Date(task.runDetails.status.completionTime);
+    const statusCondition = task.runDetails.status?.conditions?.find((c) => c.type === 'Succeeded');
 
     details = [
       { key: 'Task ID', value: task.runDetails.runID || '-' },
