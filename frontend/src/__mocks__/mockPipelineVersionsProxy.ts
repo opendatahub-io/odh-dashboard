@@ -1,5 +1,10 @@
 /* eslint-disable camelcase */
-import { PipelineVersionKF, RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineKF,
+  PipelineVersionKF,
+  RelationshipKF,
+  ResourceTypeKF,
+} from '~/concepts/pipelines/kfTypes';
 
 export const mockPipelineVersionsList: PipelineVersionKF[] = [
   {
@@ -186,6 +191,18 @@ export const mockPipelineVersionsList: PipelineVersionKF[] = [
     ],
   },
 ];
+
+export const buildMockDefaultPipelineVersion = (pipeline: PipelineKF): PipelineVersionKF =>
+  buildMockPipelineVersion({
+    id: pipeline.default_version?.id,
+    name: pipeline.default_version?.name,
+    resource_references: [
+      {
+        key: { type: ResourceTypeKF.PIPELINE, id: pipeline.id },
+        relationship: RelationshipKF.OWNER,
+      },
+    ],
+  });
 
 export const buildMockPipelineVersion = (
   pipelineVersion?: Partial<PipelineVersionKF>,
