@@ -1,3 +1,4 @@
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
@@ -38,6 +39,7 @@ import { ServingRuntimePlatform } from '~/types';
 type HandlersProps = {
   disableKServeConfig?: boolean;
   disableModelMeshConfig?: boolean;
+  disableAccelerator?: boolean;
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
@@ -49,6 +51,7 @@ type HandlersProps = {
 const initIntercepts = ({
   disableKServeConfig,
   disableModelMeshConfig,
+  disableAccelerator,
   projectEnableModelMesh,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({}),
@@ -276,6 +279,21 @@ const initIntercepts = ({
         '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
     },
     mockServingRuntimeK8sResource({}),
+  );
+  cy.intercept(
+    {
+      pathname:
+        '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
+    },
+    mockK8sResourceList([
+      mockAcceleratorProfile({
+        name: 'migrated-gpu',
+        displayName: 'NVIDIA GPU',
+        enabled: !disableAccelerator,
+        identifier: 'nvidia.com/gpu',
+        description: 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
+      }),
+    ]),
   );
   cy.intercept(
     { pathname: '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates' },
@@ -827,6 +845,122 @@ describe('Serving Runtime List', () => {
     });
     cy.get('@createRoleBinding.all').then((interceptions) => {
       expect(interceptions).to.have.length(0);
+    });
+  });
+
+  describe('Check accelerator section in serving runtime details', () => {
+    it('Check accelerator when disabled', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+      });
+      projectDetails.visit('test-project');
+      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
+      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+        .next('dd')
+        .should('have.text', 'No accelerator enabled');
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
+        .should('not.exist');
+    });
+
+    it('Check accelerator when disabled but selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+        servingRuntimes: [
+          mockServingRuntimeK8sResourceLegacy({}),
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'migrated-gpu',
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-caikit',
+            displayName: 'Llama Caikit',
+            url: 'http://llama-caikit.test-project.svc.cluster.local',
+            activeModelState: 'Loaded',
+            acceleratorIdentifier: 'nvidia.com/gpu',
+          }),
+        ],
+      });
+      projectDetails.visit('test-project');
+      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
+      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+        .next('dd')
+        .should('have.text', 'NVIDIA GPU (disabled)');
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
+        .should('exist');
+    });
+
+    it('Check accelerator when enabled but not selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+      });
+      projectDetails.visit('test-project');
+      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
+      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+        .next('dd')
+        .should('have.text', 'No accelerator selected');
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
+        .should('not.exist');
+    });
+
+    it('Check accelerator when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResourceLegacy({}),
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'migrated-gpu',
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-caikit',
+            displayName: 'Llama Caikit',
+            url: 'http://llama-caikit.test-project.svc.cluster.local',
+            activeModelState: 'Loaded',
+            acceleratorIdentifier: 'nvidia.com/gpu',
+          }),
+        ],
+      });
+      projectDetails.visit('test-project');
+      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
+      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+        .next('dd')
+        .should('have.text', 'NVIDIA GPU');
+      modelServingSection
+        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
+        .should('exist');
     });
   });
 });

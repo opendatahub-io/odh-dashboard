@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   replicas?: number;
   auth?: boolean;
   route?: boolean;
+  acceleratorName?: string;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -90,6 +91,7 @@ export const mockServingRuntimeK8sResource = ({
   auth = false,
   route = false,
   displayName = 'OVMS Model Serving',
+  acceleratorName = '',
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -101,6 +103,7 @@ export const mockServingRuntimeK8sResource = ({
     },
     annotations: {
       'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
+      'opendatahub.io/accelerator-name': acceleratorName,
       'opendatahub.io/template-name': 'ovms',
       'enable-auth': auth ? 'true' : 'false',
       'enable-route': route ? 'true' : 'false',
