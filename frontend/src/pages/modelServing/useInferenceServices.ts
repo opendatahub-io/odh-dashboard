@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, InferenceServiceKind } from '~/k8sTypes';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 
@@ -18,21 +22,24 @@ const useInferenceServices = (namespace?: string): FetchState<InferenceServiceKi
     ...accessReviewResource,
   });
 
-  const getServingInferences = React.useCallback(() => {
-    if (!modelServingEnabled) {
-      return Promise.reject(new NotReadyError('Model serving is not enabled'));
-    }
+  const callback = React.useCallback<FetchStateCallbackPromise<InferenceServiceKind[]>>(
+    (opts) => {
+      if (!modelServingEnabled) {
+        return Promise.reject(new NotReadyError('Model serving is not enabled'));
+      }
 
-    if (!rbacLoaded) {
-      return Promise.reject(new NotReadyError('Fetch is not ready'));
-    }
+      if (!rbacLoaded) {
+        return Promise.reject(new NotReadyError('Fetch is not ready'));
+      }
 
-    const getInferenceServices = allowCreate ? listInferenceService : getInferenceServiceContext;
+      const getInferenceServices = allowCreate ? listInferenceService : getInferenceServiceContext;
 
-    return getInferenceServices(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE);
-  }, [namespace, modelServingEnabled, rbacLoaded, allowCreate]);
+      return getInferenceServices(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE, opts);
+    },
+    [namespace, modelServingEnabled, rbacLoaded, allowCreate],
+  );
 
-  return useFetchState<InferenceServiceKind[]>(getServingInferences, [], {
+  return useFetchState(callback, [], {
     initialPromisePurity: true,
   });
 };

@@ -7,6 +7,7 @@ import {
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
@@ -28,6 +29,7 @@ type HandlersProps = {
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
   delayInferenceServices?: boolean;
+  delayServingRuntimes?: boolean;
 };
 
 const initIntercepts = ({
@@ -37,6 +39,7 @@ const initIntercepts = ({
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({})],
   delayInferenceServices,
+  delayServingRuntimes,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -51,6 +54,13 @@ const initIntercepts = ({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
     }),
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
+    },
+    mockSelfSubjectAccessReview({ allowed: true }),
   );
   cy.intercept(
     {
@@ -85,8 +95,11 @@ const initIntercepts = ({
       method: 'GET',
       pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/servingruntimes',
     },
-    mockK8sResourceList(servingRuntimes),
-  );
+    {
+      delay: delayServingRuntimes ? 500 : 0, //TODO: Remove the delay when we add support for loading states
+      body: mockK8sResourceList(servingRuntimes),
+    },
+  ).as('getServingRuntimes');
   cy.intercept(
     {
       method: 'GET',
@@ -100,10 +113,10 @@ const initIntercepts = ({
       pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/inferenceservices',
     },
     {
-      delay: delayInferenceServices ? 1000 : 0,
+      delay: delayInferenceServices ? 500 : 0, //TODO: Remove the delay when we add support for loading states
       body: mockK8sResourceList(inferenceServices),
     },
-  );
+  ).as('getInferenceServices');
   cy.intercept(
     {
       method: 'POST',
@@ -224,8 +237,13 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
-  it('All projects loading', () => {
-    initIntercepts({ delayInferenceServices: true, servingRuntimes: [], inferenceServices: [] });
+  it('All projects loading and cancel', () => {
+    initIntercepts({
+      delayInferenceServices: true,
+      delayServingRuntimes: true,
+      servingRuntimes: [],
+      inferenceServices: [],
+    });
 
     // Visit the all-projects view (no project name passed here)
     modelServingGlobal.visit();
@@ -233,8 +251,15 @@ describe('Model Serving Global', () => {
     modelServingGlobal.shouldWaitAndCancel();
 
     modelServingGlobal.shouldBeEmpty();
-  });
 
+    cy.wait('@getServingRuntimes').then((response) => {
+      expect(response.error?.message).to.eq('Socket closed before finished writing response');
+    });
+
+    cy.wait('@getInferenceServices').then((response) => {
+      expect(response.error?.message).to.eq('Socket closed before finished writing response');
+    });
+  });
   it('Empty State No Project Selected', () => {
     initIntercepts({ inferenceServices: [] });
 

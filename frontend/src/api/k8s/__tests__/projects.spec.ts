@@ -84,6 +84,7 @@ describe('getProjects', () => {
     const result = await getProjects(withLabel);
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: { queryParams: { labelSelector: withLabel } },
     });
@@ -97,8 +98,11 @@ describe('getProjects', () => {
     const result = await getProjects();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
-      queryOptions: undefined,
+      queryOptions: {
+        queryParams: {},
+      },
     });
     expect(result).toStrictEqual([projectMock]);
   });
@@ -108,6 +112,7 @@ describe('getProjects', () => {
 
     await expect(getProjects(withLabel)).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: { queryParams: { labelSelector: withLabel } },
     });
@@ -240,6 +245,7 @@ describe('getModelServingProjects', () => {
     const result = await getModelServingProjects();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
@@ -253,6 +259,7 @@ describe('getModelServingProjects', () => {
     await expect(getModelServingProjects()).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
@@ -271,6 +278,7 @@ describe('getModelServingProjectsAvailable', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(listServingRuntimesMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenLastCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
@@ -286,6 +294,7 @@ describe('getModelServingProjectsAvailable', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(listServingRuntimesMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },

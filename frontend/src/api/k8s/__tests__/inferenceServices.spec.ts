@@ -216,13 +216,14 @@ describe('listInferenceService', () => {
     expect(result).toStrictEqual([inferenceServiceMock]);
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: {
         apiGroup: 'serving.kserve.io',
         apiVersion: 'v1beta1',
         kind: 'InferenceService',
         plural: 'inferenceservices',
       },
-      queryOptions: {},
+      queryOptions: { queryParams: {} },
     });
   });
 
@@ -231,13 +232,14 @@ describe('listInferenceService', () => {
     await expect(listInferenceService()).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: {
         apiGroup: 'serving.kserve.io',
         apiVersion: 'v1beta1',
         kind: 'InferenceService',
         plural: 'inferenceservices',
       },
-      queryOptions: {},
+      queryOptions: { queryParams: {} },
     });
   });
 });
@@ -251,15 +253,18 @@ describe('listScopedInferenceService', () => {
     const result = await listScopedInferenceService();
     expect(result).toStrictEqual([inferenceServiceMock]);
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
       queryOptions: {
         ns: name,
+        queryParams: {},
       },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
@@ -275,12 +280,14 @@ describe('listScopedInferenceService', () => {
     const result = await listScopedInferenceService(labelSelector);
     expect(result).toStrictEqual([inferenceServiceMock]);
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
       queryOptions: {
         ns: name,
@@ -298,14 +305,16 @@ describe('listScopedInferenceService', () => {
       .mockRejectedValueOnce(new Error('error'));
     await expect(listScopedInferenceService()).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
-      queryOptions: { ns: name },
+      queryOptions: { ns: name, queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
   });
@@ -315,6 +324,7 @@ describe('listScopedInferenceService', () => {
     await expect(listScopedInferenceService()).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
+      fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
@@ -331,8 +341,9 @@ describe('getInferenceServiceContext', () => {
     const result = await getInferenceServiceContext(namespace);
     expect(result).toStrictEqual([inferenceServiceMock]);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
-      queryOptions: { ns: namespace },
+      queryOptions: { ns: namespace, queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
   });
@@ -344,8 +355,9 @@ describe('getInferenceServiceContext', () => {
     const result = await getInferenceServiceContext();
     expect(result).toStrictEqual([inferenceServiceMock]);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
-      queryOptions: { ns: name },
+      queryOptions: { ns: name, queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
   });
@@ -355,8 +367,9 @@ describe('getInferenceServiceContext', () => {
     const name = 'test';
     await expect(getInferenceServiceContext(name)).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
-      queryOptions: { ns: name },
+      queryOptions: { ns: name, queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
   });
@@ -370,8 +383,9 @@ describe('getInferenceService', () => {
     const result = await getInferenceService(name, namespace);
     expect(result).toStrictEqual(inferenceServiceMock);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
-      queryOptions: { name, ns: namespace },
+      queryOptions: { name, ns: namespace, queryParams: {} },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
   });
@@ -382,8 +396,9 @@ describe('getInferenceService', () => {
     const namespace = 'test-project';
     await expect(getInferenceService(name, namespace)).rejects.toThrow('error');
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: InferenceServiceModel,
-      queryOptions: { name, ns: namespace },
+      queryOptions: { name, ns: namespace, queryParams: {} },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
   });

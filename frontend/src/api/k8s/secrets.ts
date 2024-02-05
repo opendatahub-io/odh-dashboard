@@ -125,11 +125,17 @@ export const getSecret = (
     }),
   );
 
-export const getSecretsByLabel = (label: string, namespace: string): Promise<SecretKind[]> =>
-  k8sListResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { ns: namespace, queryParams: { labelSelector: label } },
-  }).then((result) => result.items);
+export const getSecretsByLabel = (
+  label: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<SecretKind[]> =>
+  k8sListResource<SecretKind>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      queryOptions: { ns: namespace, queryParams: { labelSelector: label } },
+    }),
+  ).then((result) => result.items);
 
 export const createSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> =>
   k8sCreateResource<SecretKind>(

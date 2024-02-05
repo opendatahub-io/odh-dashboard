@@ -119,23 +119,27 @@ export const assembleInferenceService = (
 export const listInferenceService = (
   namespace?: string,
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind[]> => {
   const queryOptions = {
     ...(namespace && { ns: namespace }),
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
-  return k8sListResource<InferenceServiceKind>({
-    model: InferenceServiceModel,
-    queryOptions,
-  }).then((listResource) => listResource.items);
+  return k8sListResource<InferenceServiceKind>(
+    applyK8sAPIOptions(opts, {
+      model: InferenceServiceModel,
+      queryOptions,
+    }),
+  ).then((listResource) => listResource.items);
 };
 
 export const listScopedInferenceService = (
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind[]> =>
-  getModelServingProjects().then((projects) =>
+  getModelServingProjects(opts).then((projects) =>
     Promise.all(
-      projects.map((project) => listInferenceService(project.metadata.name, labelSelector)),
+      projects.map((project) => listInferenceService(project.metadata.name, labelSelector, opts)),
     ).then((listInferenceService) =>
       _.flatten(
         listInferenceService.map((projectInferenceServices) =>
@@ -148,21 +152,25 @@ export const listScopedInferenceService = (
 export const getInferenceServiceContext = (
   namespace?: string,
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind[]> => {
   if (namespace) {
-    return listInferenceService(namespace, labelSelector);
+    return listInferenceService(namespace, labelSelector, opts);
   }
-  return listScopedInferenceService(labelSelector);
+  return listScopedInferenceService(labelSelector, opts);
 };
 
 export const getInferenceService = (
   name: string,
   namespace: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind> =>
-  k8sGetResource<InferenceServiceKind>({
-    model: InferenceServiceModel,
-    queryOptions: { name, ns: namespace },
-  });
+  k8sGetResource<InferenceServiceKind>(
+    applyK8sAPIOptions(opts, {
+      model: InferenceServiceModel,
+      queryOptions: { name, ns: namespace },
+    }),
+  );
 
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
