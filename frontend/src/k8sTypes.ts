@@ -698,7 +698,7 @@ export type PipelineRunTaskStatusStep = {
 };
 
 export type PipelineRunTaskRunStatusProperties = {
-  conditions: K8sCondition[];
+  conditions?: K8sCondition[];
   podName: string;
   startTime: string;
   completionTime?: string;
@@ -714,7 +714,7 @@ export type PipelineRunTaskRunStatusProperties = {
 export type PipelineRunTaskRunStatus = {
   /** The task name; pipelineSpec.tasks[].name */
   pipelineTaskName: string;
-  status: PipelineRunTaskRunStatusProperties;
+  status?: PipelineRunTaskRunStatusProperties;
 };
 
 export type PipelineRunKind = K8sResourceCommon & {
