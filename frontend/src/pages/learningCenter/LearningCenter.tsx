@@ -1,5 +1,5 @@
 import React from 'react';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import useDimensions from 'react-cool-dimensions';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';

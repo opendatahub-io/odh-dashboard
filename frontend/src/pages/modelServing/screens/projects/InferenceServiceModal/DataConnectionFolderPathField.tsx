@@ -6,7 +6,7 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
 
 type DataConnectionFolderPathFieldProps = {

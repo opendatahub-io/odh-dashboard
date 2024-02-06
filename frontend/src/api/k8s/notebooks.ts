@@ -8,7 +8,7 @@ import {
   Patch,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { NotebookModel } from '~/api/models';
 import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';

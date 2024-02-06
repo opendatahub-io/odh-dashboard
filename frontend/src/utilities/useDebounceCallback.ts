@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import * as React from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

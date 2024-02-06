@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import {
   Drawer,
   DrawerContent,

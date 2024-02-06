@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { intersection, xor } from 'lodash';
+import { intersection, xor } from 'lodash-es';
 import type Table from './Table';
 
 type UseCheckboxTableBase<DataType> = {

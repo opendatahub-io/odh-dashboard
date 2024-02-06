@@ -11,6 +11,7 @@ import {
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+
 type PipelineRunTabParametersProps = {
   pipelineSpec?: PipelineSpecKF;
 };

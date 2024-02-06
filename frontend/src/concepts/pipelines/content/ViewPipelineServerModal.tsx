@@ -14,6 +14,7 @@ import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '~/concepts/projects/apiHooks/useNamespaceSecret';
 import { EXTERNAL_DATABASE_SECRET } from '~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineKind } from '~/k8sTypes';
+
 type ViewPipelineServerModalProps = {
   isOpen: boolean;
   onClose: () => void;
