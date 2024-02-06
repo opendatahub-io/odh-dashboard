@@ -21,6 +21,10 @@ type ServingRuntimeDetailsProps = {
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
   const [acceleratorProfile] = useServingAcceleratorProfile(obj, isvc);
+  const selectedAcceleratorProfile = acceleratorProfile.acceleratorProfile;
+  const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
+    (ac) => ac.spec.enabled,
+  );
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find((size) => _.isEqual(size.resources, container.resources));
@@ -50,14 +54,18 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
       <DescriptionListGroup>
         <DescriptionListTerm>Accelerator</DescriptionListTerm>
         <DescriptionListDescription>
-          {acceleratorProfile.acceleratorProfile
-            ? acceleratorProfile.acceleratorProfile.spec.displayName
+          {selectedAcceleratorProfile
+            ? `${selectedAcceleratorProfile.spec.displayName}${
+                !selectedAcceleratorProfile.spec.enabled ? ' (disabled)' : ''
+              }`
+            : enabledAcceleratorProfiles.length === 0
+            ? 'No accelerator enabled'
             : acceleratorProfile.useExisting
             ? 'Unknown'
-            : 'None'}
+            : 'No accelerator selected'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {!acceleratorProfile.useExisting && (
+      {!acceleratorProfile.useExisting && acceleratorProfile.acceleratorProfile && (
         <DescriptionListGroup>
           <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
           <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>

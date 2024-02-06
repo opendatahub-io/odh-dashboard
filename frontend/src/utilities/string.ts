@@ -68,3 +68,11 @@ export const replaceNonNumericPartWithString = (
   }
   return updatedString;
 };
+
+/**
+ * This function removes the leading slash (/) from string if exists
+ */
+export const removeLeadingSlashes = (inputString: string): string =>
+  inputString.replace(/^\/+/, '');
+
+export const containsOnlySlashes = (inputString: string): boolean => /^\/+$/.test(inputString);

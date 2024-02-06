@@ -9,7 +9,7 @@ type SelectedNodeVolumeMountsTabProps = {
 
 const SelectedNodeVolumeMountsTab: React.FC<SelectedNodeVolumeMountsTabProps> = ({ task }) => {
   const items =
-    task.runDetails?.status.taskSpec?.steps?.reduce<Record<string, PipelineRunTaskVolumeMount>>(
+    task.runDetails?.status?.taskSpec?.steps?.reduce<Record<string, PipelineRunTaskVolumeMount>>(
       (acc, step) => {
         step.volumeMounts?.forEach((mountPath) => {
           acc[mountPath.name] = mountPath;

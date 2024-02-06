@@ -48,6 +48,23 @@ export const assembleInferenceService = (
                 }),
           },
         },
+        spec: {
+          predictor: {
+            ...(replicaCount && { minReplicas: replicaCount }),
+            ...(replicaCount && { maxReplicas: replicaCount }),
+            model: {
+              modelFormat: {
+                name: format.name,
+                ...(format.version && { version: format.version }),
+              },
+              runtime: servingRuntimeName,
+              storage: {
+                key: dataConnectionKey,
+                path,
+              },
+            },
+          },
+        },
       }
     : {
         apiVersion: 'serving.kserve.io/v1beta1',

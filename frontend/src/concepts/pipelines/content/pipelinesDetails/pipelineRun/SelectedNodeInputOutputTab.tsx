@@ -39,7 +39,7 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
       return { ...p, value };
     }) ?? [];
 
-  const results = task.runDetails?.status.taskResults ?? [];
+  const results = task.runDetails?.status?.taskResults ?? [];
 
   if (params.length === 0 && results.length === 0) {
     return <>No content</>;

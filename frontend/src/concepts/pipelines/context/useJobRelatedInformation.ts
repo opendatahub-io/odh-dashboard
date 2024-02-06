@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
 import { getJobResourceRef } from '~/concepts/pipelines/content/tables/utils';
+import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
 
 type JobStatus = {
   loading: boolean;

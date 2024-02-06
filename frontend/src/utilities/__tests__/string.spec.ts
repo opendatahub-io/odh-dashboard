@@ -1,4 +1,9 @@
-import { replaceNonNumericPartWithString, replaceNumericPartWithString } from '~/utilities/string';
+import {
+  containsOnlySlashes,
+  removeLeadingSlashes,
+  replaceNonNumericPartWithString,
+  replaceNumericPartWithString,
+} from '~/utilities/string';
 
 describe('replaceNumericPartWithString', () => {
   it('should replace the numeric part of a string with a number', () => {
@@ -69,5 +74,38 @@ describe('replaceNonNumericPartWithString', () => {
 
   it('should handle default Pipeline scheduled time', () => {
     expect(replaceNonNumericPartWithString('1Week', 'Minute')).toBe('1Minute');
+  });
+});
+
+describe('removeLeadingSlashes', () => {
+  it('removes leading slashes from a string if present', () => {
+    expect(removeLeadingSlashes('/example')).toBe('example');
+    expect(removeLeadingSlashes('//example')).toBe('example');
+    expect(removeLeadingSlashes('//example/')).toBe('example/');
+    expect(removeLeadingSlashes('///example')).toBe('example');
+  });
+
+  it('does not modify string if it does not start with a slash', () => {
+    expect(removeLeadingSlashes('example')).toBe('example');
+  });
+
+  it('returns an empty string if input is an empty string', () => {
+    expect(removeLeadingSlashes('')).toBe('');
+  });
+});
+
+describe('containsOnlySlashes', () => {
+  it('returns true if string only contains slashes', () => {
+    expect(containsOnlySlashes('/')).toBe(true);
+    expect(containsOnlySlashes('///')).toBe(true);
+  });
+
+  it('returns false if string contains other words', () => {
+    expect(containsOnlySlashes('/test')).toBe(false);
+    expect(containsOnlySlashes('/test///')).toBe(false);
+  });
+
+  it('returns false if input string is an empty string', () => {
+    expect(containsOnlySlashes('')).toBe(false);
   });
 });
