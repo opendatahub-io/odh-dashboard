@@ -32,6 +32,10 @@ class ProjectListPage {
     return cy.findByRole('button', { name: 'Create data science project' });
   }
 
+  shouldHaveDSLabel(projectName: string) {
+    return this.findProjectRow(projectName).findByText('DS').should('exist');
+  }
+
   findProjectsTable() {
     return cy.get('[data-id=project-view-table]');
   }
