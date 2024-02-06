@@ -3,14 +3,20 @@ import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
 import {
   Alert,
+  Banner,
   Bullseye,
   Button,
+  Flex,
   Page,
   PageSection,
   Spinner,
   Stack,
   StackItem,
+  Text,
+  TextContent,
+  TextVariants,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
@@ -31,6 +37,32 @@ import { logout } from './appUtils';
 import QuickStarts from './QuickStarts';
 
 import './App.scss';
+
+const banner = (head = false) => (
+  <Banner variant="gold">
+    <Flex
+      justifyContent={{ default: 'justifyContentCenter' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+    >
+      <TextContent>
+        <Text component={TextVariants.h3}>UXD Proof-of-concept</Text>
+      </TextContent>
+      {head ? (
+        <Button
+          icon={<ExternalLinkAltIcon />}
+          variant="link"
+          iconPosition="right"
+          href="https://forms.gle/ETKuQSTAzvDCN6Uw6"
+          target="_blank"
+          rel="noopener noreferrer"
+          component="a"
+        >
+          Feedback form
+        </Button>
+      ) : null}
+    </Flex>
+  </Banner>
+);
 
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -113,6 +145,7 @@ const App: React.FC = () => {
             isNotificationDrawerExpanded={notificationsOpen}
             mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
           >
+            {banner(true)}
             <ErrorBoundary>
               <ProjectsContextProvider>
                 <QuickStarts>
@@ -122,6 +155,7 @@ const App: React.FC = () => {
               <ToastNotifications />
               <TelemetrySetup />
             </ErrorBoundary>
+            {banner()}
           </Page>
         </AppContext.Provider>
       )}

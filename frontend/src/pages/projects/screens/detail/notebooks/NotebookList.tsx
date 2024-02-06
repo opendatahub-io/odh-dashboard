@@ -1,12 +1,16 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Badge, Button, Popover } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { useAccessReview } from '~/api';
+import emptyStateImg from '~/images/empty-state-notebooks.svg';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import EmptyDetailsView from '~/pages/projects/screens/detail/EmptyDetailsView';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {
@@ -18,6 +22,10 @@ const NotebookList: React.FC = () => {
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
   const isNotebooksEmpty = notebookStates.length === 0;
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...AccessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
 
   React.useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -29,13 +37,30 @@ const NotebookList: React.FC = () => {
 
   return (
     <DetailsSection
+      typeModifier="notebook"
       id={ProjectSectionID.WORKBENCHES}
-      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES] || ''}
+      iconSrc="../images/UI_icon-Red_Hat-Wrench-RGB.svg"
+      iconAlt="Notebooks icon"
+      title={(!isNotebooksEmpty && ProjectSectionTitles[ProjectSectionID.WORKBENCHES]) || ''}
+      badge={<Badge>{notebookStates.length}</Badge>}
+      popover={
+        !isNotebooksEmpty && (
+          <Popover
+            headerContent="About workbenches"
+            bodyContent="Creating a workbench allows you to add a Jupyter notebook to your project."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        )
+      }
       actions={[
         <Button
           key={`action-${ProjectSectionID.WORKBENCHES}`}
           onClick={() => navigate(`/projects/${projectName}/spawner`)}
-          variant="secondary"
+          variant="primary"
         >
           Create workbench
         </Button>,
@@ -43,9 +68,28 @@ const NotebookList: React.FC = () => {
       isLoading={!loaded}
       loadError={loadError}
       isEmpty={isNotebooksEmpty}
-      emptyState={<EmptyDetailsList title="No workbenches" />}
+      emptyState={
+        <EmptyDetailsView
+          title="Start by creating a workbench"
+          description="Creating a workbench allows you to add a Jupyter notebook to your project."
+          iconImage={emptyStateImg}
+          imageAlt="create a workbench"
+          allowCreate={rbacLoaded && allowCreate}
+          createButton={
+            <Button
+              key={`action-${ProjectSectionID.WORKBENCHES}`}
+              onClick={() => navigate(`/projects/${projectName}/spawner`)}
+              variant="primary"
+            >
+              Create workbench
+            </Button>
+          }
+        />
+      }
     >
-      <NotebookTable notebookStates={notebookStates} refresh={refresh} />
+      {!isNotebooksEmpty ? (
+        <NotebookTable notebookStates={notebookStates} refresh={refresh} />
+      ) : null}
     </DetailsSection>
   );
 };

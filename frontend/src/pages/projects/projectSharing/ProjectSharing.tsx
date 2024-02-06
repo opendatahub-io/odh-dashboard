@@ -13,8 +13,8 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { GroupKind } from '~/k8sTypes';
-import { ProjectSharingRBType } from './types';
 import ProjectSharingTableSection from './ProjectSharingTableSection';
+import { ProjectSharingRBType } from './types';
 import { filterRoleBindingSubjects } from './utils';
 
 const ProjectSharing: React.FC = () => {
@@ -54,6 +54,7 @@ const ProjectSharing: React.FC = () => {
             roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
             projectSharingTableType={ProjectSharingRBType.USER}
             refresh={refreshRB}
+            typeModifier="user"
           />
         </StackItem>
         <StackItem>
@@ -64,6 +65,7 @@ const ProjectSharing: React.FC = () => {
             typeAhead={
               groups.length > 0 ? groups.map((group: GroupKind) => group.metadata.name) : undefined
             }
+            typeModifier="group"
           />
         </StackItem>
       </Stack>

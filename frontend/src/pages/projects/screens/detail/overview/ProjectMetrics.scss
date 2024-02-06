@@ -1,0 +1,170 @@
+@import '../vars.scss';
+
+.odh-project-overview {
+  &__metrics {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-v5-global--spacer--lg);
+    width: fit-content;
+  }
+  &__metric-cards {
+    display: flex;
+    gap: var(--pf-v5-global--spacer--md);
+  }
+  &__metric-card {
+    flex: 1;
+    position: relative;
+    border-radius: 10px;
+    border: 3px solid transparent;
+    padding: var(--pf-v5-global--spacer--md);
+    display: flex;
+    flex-direction: column;
+    &:after {
+      position: absolute;
+      width: 48px;
+      height: 4px;
+      background: transparent;
+      bottom: 0;
+      left: calc(50% - 24px);
+      border-radius: 4px 4px 0 0;
+      content: ' ';
+    }
+    &.notebook {
+      border-color: var(--ai-notebook--BorderColor);
+      &:after {
+        background: var(--ai-notebook--BorderColor);
+      }
+    }
+    &.pipeline {
+      border-color: var(--ai-pipeline--BorderColor);
+      &:after {
+        background: var(--ai-pipeline--BorderColor);
+      }
+    }
+    &--title-area > h4 {
+      font-size: var(--pf-v5-global--FontSize--xl);
+    }
+    &--title-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--pf-v5-global--BackgroundColor--200);
+      background: var(--pf-v5-global--BackgroundColor--100);
+      border-radius: 32px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-block-end: var(--pf-v5-global--spacer--md);
+      .notebook & {
+        background: var(--ai-notebook--BackgroundColor);
+      }
+      .pipeline & {
+        background: var(--ai-pipeline--BackgroundColor);
+      }
+    }
+    &--statistics {
+      display: flex;
+      gap: var(--pf-v5-global--spacer--lg);
+      margin: var(--pf-v5-global--spacer--md) 0;
+    }
+    &--statistic-count.pf-v5-c-button.pf-m-link {
+      font-size: var(--pf-v5-global--FontSize--xl);
+      padding-left: 0;
+    }
+    &--empty-state {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--pf-v5-global--spacer--md);
+      &-content {
+        position: absolute;
+        top: var(--pf-v5-global--spacer--md);
+        left: calc(50% - 75px);
+        img {
+          width: 150px;
+        }
+        div {
+          text-align: center;
+        }
+      }
+    }
+  }
+  &__project-metrics {
+    position: relative;
+    border-radius: 10px;
+    border: 3px solid var(--ai-project--BorderColor);
+
+    &:after {
+      position: absolute;
+      width: 48px;
+      height: 4px;
+      background: transparent;
+      bottom: 0;
+      left: calc(50% - 24px);
+      border-radius: 4px 4px 0 0;
+      content: ' ';
+    }
+    &--title-area {
+      padding: var(--pf-v5-global--spacer--md);
+       > h4 {
+        font-size: var(--pf-v5-global--FontSize--xl);
+       }
+    }
+    &--title-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--ai-project--BackgroundColor);
+      border-radius: 32px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-block-end: var(--pf-v5-global--spacer--md);
+    }
+    &--cards {
+      display: flex;
+      gap: var(--pf-v5-global--spacer--md);
+      border-top: 1px solid var(--pf-v5-global--BorderColor--100);
+    }
+    &--card {
+      border-right: 1px solid var(--pf-v5-global--BorderColor--100);
+      flex: 1;
+      padding: var(--pf-v5-global--spacer--md);
+      &:last-of-type {
+        border-right: none;
+      }
+    }
+    &--chart-area {
+      display: flex;
+      gap: var(--pf-v5-global--spacer--md);
+      height: 225px;
+    }
+    &--chart {
+      flex:1;
+      height: 100%;
+    }
+    &--chart {
+      flex:1;
+      height: 100%;
+    }
+    &--legend {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: var(--pf-v5-global--spacer--sm);
+      flex-wrap: wrap;
+      justify-content: center;
+      &-item {
+        align-items: center;
+        display: flex;
+        gap: var(--pf-v5-global--spacer--sm);
+        &--color {
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+  }
+}
+

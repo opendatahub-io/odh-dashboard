@@ -1,18 +1,16 @@
 import * as React from 'react';
-import { Flex, FlexItem, Skeleton } from '@patternfly/react-core';
+import { Skeleton } from '@patternfly/react-core';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import { NotebookState } from './types';
 import NotebookRouteLink from './NotebookRouteLink';
 import NotebookStatusToggle from './NotebookStatusToggle';
 
-/** Keep the size of each notebook state the same so they can stay horizontally aligned */
-const EQUAL_SIZE_STYLE = { height: 'var(--pf-v5-c-switch--Height)' };
+import './ListNotebookState.scss';
 
 type ListNotebookStateProps = {
   notebookStates: NotebookState[];
   loaded: boolean;
   error?: Error;
-  show: 'notebook' | 'status';
   namespace: string;
 };
 
@@ -20,7 +18,6 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
   notebookStates,
   loaded,
   error,
-  show,
   namespace,
 }) => {
   if (!loaded) {
@@ -35,37 +32,27 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
     return <>-</>;
   }
 
-  const notebookState = (state: NotebookState, canEnablePipelines: boolean) => {
-    switch (show) {
-      case 'notebook':
-        return <NotebookRouteLink notebook={state.notebook} isRunning={state.isRunning} />;
-      case 'status':
-        return (
-          <NotebookStatusToggle
-            notebookState={state}
-            doListen
-            enablePipelines={canEnablePipelines}
-          />
-        );
-      default:
-        /* eslint-disable-next-line no-console */
-        console.error('Unknown show type', show);
-        return <>-</>;
-    }
-  };
-
   return (
-    <Flex direction={{ default: 'column' }}>
-      <CanEnableElyraPipelinesCheck namespace={namespace}>
-        {(canEnablePipelines) =>
-          notebookStates.map((state) => (
-            <FlexItem key={state.notebook.metadata.name} style={EQUAL_SIZE_STYLE}>
-              {notebookState(state, canEnablePipelines)}
-            </FlexItem>
-          ))
-        }
-      </CanEnableElyraPipelinesCheck>
-    </Flex>
+    <CanEnableElyraPipelinesCheck namespace={namespace}>
+      {(canEnablePipelines) => (
+        <div className="odh-list-notebook-state">
+          {notebookStates.map((state) => (
+            <React.Fragment key={state.notebook.metadata.name}>
+              <NotebookRouteLink
+                className="odh-list-notebook-state__notebook"
+                notebook={state.notebook}
+                isRunning={state.isRunning}
+              />
+              <NotebookStatusToggle
+                notebookState={state}
+                doListen
+                enablePipelines={canEnablePipelines}
+              />
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+    </CanEnableElyraPipelinesCheck>
   );
 };
 

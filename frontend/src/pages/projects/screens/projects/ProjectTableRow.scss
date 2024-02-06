@@ -1,0 +1,16 @@
+.odh-project-table {
+  &__row {
+    .pf-v5-c-table__td {
+      vertical-align: top !important;
+      &.pf-v5-c-table__action {
+        --pf-v5-c-table--cell--PaddingTop: var(--pf-v5-global--spacer--md);
+      }
+    }
+  }
+  &__workbench-column {
+    padding-left: var(--pf-v5-global--spacer--sm) !important;
+  }
+  &__action-column {
+    padding-top: 0 !important;
+  }
+}

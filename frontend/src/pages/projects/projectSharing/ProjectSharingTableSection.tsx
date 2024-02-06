@@ -3,27 +3,36 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
   AlertActionCloseButton,
+  Badge,
   Button,
+  Flex,
+  FlexItem,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
 import { RoleBindingKind } from '~/k8sTypes';
+import userCardImage from '~/images/UI_icon-Red_Hat-User-RGB.svg';
+import groupCardImage from '~/images/UI_icon-Red_Hat-Shared_workspace-RGB.svg';
 import ProjectSharingTable from './ProjectSharingTable';
 import { ProjectSharingRBType } from './types';
 
-export type ProjectSharingTableSectionProps = {
+import './ProjectSharingTableSection.scss';
+
+export type ProjectSharingTableSectionAltProps = {
   roleBindings: RoleBindingKind[];
   projectSharingTableType: ProjectSharingRBType;
   typeAhead?: string[];
   refresh: () => void;
+  typeModifier?: string;
 };
 
-const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
+const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionAltProps> = ({
   roleBindings,
   projectSharingTableType,
   typeAhead,
   refresh,
+  typeModifier,
 }) => {
   const [addField, setAddField] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
@@ -31,9 +40,31 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title id={`user-permission-${projectSharingTableType}`} headingLevel="h2" size="xl">
-          {projectSharingTableType === ProjectSharingRBType.USER ? 'Users' : 'Groups'}
-        </Title>
+        <Flex
+          direction={{ default: 'row' }}
+          gap={{ default: 'gapSm' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          className={typeModifier}
+        >
+          <div className="odh-project-sharing__header--icon">
+            <img
+              src={
+                projectSharingTableType === ProjectSharingRBType.USER
+                  ? userCardImage
+                  : groupCardImage
+              }
+              alt={projectSharingTableType === ProjectSharingRBType.USER ? 'Users' : 'Groups'}
+            />
+          </div>
+          <FlexItem>
+            <Title id={`user-permission-${projectSharingTableType}`} headingLevel="h2" size="xl">
+              {projectSharingTableType === ProjectSharingRBType.USER ? 'Users' : 'Groups'}
+            </Title>
+          </FlexItem>
+          <FlexItem>
+            <Badge className="odh-project-sharing__badge">{roleBindings.length}</Badge>
+          </FlexItem>
+        </Flex>
       </StackItem>
       <StackItem>
         <ProjectSharingTable

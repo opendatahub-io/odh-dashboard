@@ -1,0 +1,77 @@
+@import './vars.scss';
+
+.odh-details {
+  &__header {
+    &--icon {
+      width: 40px;
+      height: 40px;
+      background: var(--pf-v5-global--BackgroundColor--200);
+      border-radius: 20px;
+      display: inline-block;
+      padding-top: 4px;
+      padding-left: 4px;
+      margin-right: var(--pf-v5-global--spacer--xs);
+      > img {
+        width: 32px;
+        height: 32px;
+        margin-top: -1px;
+        margin-left: -1px;
+      }
+      .notebook & {
+        border: 1px solid var(--ai-notebook--BorderColor);
+        background: var(--ai-notebook--BackgroundColor);
+      }
+      .pipeline & {
+        border: 1px solid var(--ai-pipeline--BorderColor);
+        background: var(--ai-pipeline--BackgroundColor);
+      }
+      .cluster-storage & {
+        border: 1px solid var(--ai-cluster-storage--BorderColor);
+        background: var(--ai-cluster-storage--BackgroundColor);
+      }
+      .model-server & {
+        border: 1px solid var(--ai-model-server--BorderColor);
+        background: var(--ai-model-server--BackgroundColor);
+      }
+      .data-connections & {
+        border: 1px solid var(--ai-data-connection--BorderColor);
+        background: var(--ai-data-connection--BackgroundColor);
+      }
+    }
+    &.notebook {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-notebook--BorderColor);
+        background: var(--ai-notebook--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+    &.pipeline {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-pipeline--BorderColor);
+        background: var(--ai-pipeline--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+    &.cluster-storage {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-cluster-storage--BorderColor);
+        background: var(--ai-cluster-storage--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+    &.model-server {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-model-server--BorderColor);
+        background: var(--ai-model-server--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+    &.data-connections {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-data-connection--BorderColor);
+        background: var(--ai-data-connection--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+  }
+}

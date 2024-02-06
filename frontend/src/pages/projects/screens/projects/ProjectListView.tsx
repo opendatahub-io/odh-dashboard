@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
+import { Button, ButtonVariant, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
@@ -9,9 +9,9 @@ import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectScope } from '~/pages/projects/types';
+import ProjectTableRow from '~/pages/projects/screens/projects/ProjectTableRow';
 import NewProjectButton from './NewProjectButton';
-import { columns } from './tableData';
-import ProjectTableRow from './ProjectTableRow';
+import { columns, subColumns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
 
@@ -55,8 +55,11 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
     <>
       <Table
         enablePagination
+        variant="compact"
         data={filteredProjects}
+        hasNestedHeader
         columns={columns}
+        subColumns={subColumns}
         emptyTableView={
           <>
             No projects match your filters.{' '}
@@ -77,31 +80,35 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
         )}
         toolbarContent={
           <>
-            <ToolbarItem>
-              <DashboardSearchField
-                types={[SearchType.NAME, SearchType.USER]}
-                searchType={searchType}
-                searchValue={search}
-                onSearchTypeChange={(newSearchType: SearchType) => {
-                  setSearchType(newSearchType);
-                }}
-                onSearchValueChange={(searchValue: string) => {
-                  setSearch(searchValue);
-                }}
-              />
-            </ToolbarItem>
-            {allowCreate && (
+            <ToolbarGroup>
               <ToolbarItem>
-                <NewProjectButton
-                  onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                <DashboardSearchField
+                  types={[SearchType.NAME, SearchType.USER]}
+                  searchType={searchType}
+                  searchValue={search}
+                  onSearchTypeChange={(newSearchType: SearchType) => {
+                    setSearchType(newSearchType);
+                  }}
+                  onSearchValueChange={(searchValue: string) => {
+                    setSearch(searchValue);
+                  }}
                 />
               </ToolbarItem>
-            )}
-            {dashboardConfig.spec.notebookController?.enabled && (
-              <ToolbarItem>
-                <LaunchJupyterButton variant={ButtonVariant.link} />
-              </ToolbarItem>
-            )}
+            </ToolbarGroup>
+            <ToolbarGroup align={{ default: 'alignRight' }}>
+              {dashboardConfig.spec.notebookController?.enabled && (
+                <ToolbarItem>
+                  <LaunchJupyterButton variant={ButtonVariant.link} />
+                </ToolbarItem>
+              )}
+              {allowCreate && (
+                <ToolbarItem>
+                  <NewProjectButton
+                    onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                  />
+                </ToolbarItem>
+              )}
+            </ToolbarGroup>
           </>
         }
       />

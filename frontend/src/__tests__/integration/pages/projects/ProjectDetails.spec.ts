@@ -13,14 +13,6 @@ test('Empty project', async ({ page }) => {
   const dividers = await page.locator('.odh-details-section--divide').all();
 
   expect(dividers).toHaveLength(sections.length);
-
-  // all but the last section should include the bottom border divider
-  const sectionsWithDivider = await sectionsLocator.evaluateAll((elements) =>
-    elements
-      .map((element) => window.getComputedStyle(element).getPropertyValue('border-bottom-style'))
-      .filter((x) => x !== 'none'),
-  );
-  expect(sectionsWithDivider).toHaveLength(sections.length - 1);
 });
 
 test('Non-empty project', async ({ page }) => {
@@ -29,8 +21,7 @@ test('Non-empty project', async ({ page }) => {
   // wait for page to load
   await page.waitForSelector('text=Test Notebook');
 
-  // we fill in the page with data, so there should be no dividers on the page
-  expect(await page.locator('.odh-details-section--divide').all()).toHaveLength(0);
+  expect(await page.locator('.odh-details-section--divide').all()).toHaveLength(4);
 
   // check the x-small size shown correctly
   expect(page.getByText('Small')).toBeTruthy();

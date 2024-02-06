@@ -4,6 +4,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
 
+const HomePage = React.lazy(() => import('../pages/home/Home'));
+
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
 );
@@ -59,12 +61,14 @@ const AppRoutes: React.FC = () => {
   return (
     <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <Routes>
-        <Route path="/" element={<InstalledApplications />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/applications" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
 
         <Route path="/projects/*" element={<ProjectViewRoutes />} />
 
+        <Route path="/applications/notebookController/*" element={<NotebookController />} />
         <Route path="/notebookController/*" element={<NotebookController />} />
         <Route
           path="/notebook/:namespace/:notebookName/logout"

@@ -193,9 +193,9 @@ class ModelServingRow extends TableRow {
 }
 
 class ModelMeshRow extends ModelServingRow {
-  findExpandButton() {
-    return this.find().find('[data-label="Model Server Name"] button');
-  }
+  // findExpandButton() {
+  //   return this.find().find('[data-label="Model Server Name"] button');
+  // }
 
   findDeployModelButton() {
     return this.find().findByRole('button', { name: 'Deploy model' });

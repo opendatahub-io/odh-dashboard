@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { Bullseye, Flex, FlexItem } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import projectIcon from '~/images/UI_icon-Red_Hat-Folder-RGB.svg';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
@@ -11,6 +13,8 @@ type ProjectSelectorProps = {
   selectAllProjects?: boolean;
   primary?: boolean;
   filterLabel?: string;
+  showTitle?: boolean;
+  selectorLabel?: string;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -20,6 +24,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   selectAllProjects,
   primary,
   filterLabel,
+  showTitle = false,
+  selectorLabel = 'Project',
 }) => {
   const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
   useMountProjectRefresh();
@@ -36,7 +42,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
 
   const toggleLabel = projects.length === 0 ? 'No projects' : selectionDisplayName;
 
-  return (
+  const selector = (
     <Dropdown
       toggle={
         <DropdownToggle
@@ -79,6 +85,24 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       data-testid="project-selector-dropdown"
     />
   );
+  if (showTitle) {
+    return (
+      <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <img
+          src={projectIcon}
+          alt="project"
+          style={{ height: 'var(--pf-v5-global--icon--FontSize--lg)' }}
+        />
+        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <Bullseye>{selectorLabel}</Bullseye>
+          </FlexItem>
+          <FlexItem>{selector}</FlexItem>
+        </Flex>
+      </Flex>
+    );
+  }
+  return selector;
 };
 
 export default ProjectSelector;

@@ -1,0 +1,56 @@
+@import '../screens/detail/vars.scss';
+
+.odh-project-sharing {
+  &__header {
+    &--icon {
+      width: 40px;
+      height: 40px;
+      background: var(--pf-v5-global--BackgroundColor--200);
+      border-radius: 20px;
+      display: inline-block;
+      padding-top: 4px;
+      padding-left: 4px;
+      margin-right: var(--pf-v5-global--spacer--xs);
+      > img {
+        width: 32px;
+        height: 32px;
+        margin-top: -1px;
+        margin-left: -1px;
+      }
+      .user & {
+        border: 1px solid var(--ai-user--BorderColor);
+        background: var(--ai-user--BackgroundColor);
+      }
+      .group & {
+        border: 1px solid var(--ai-group--BorderColor);
+        background: var(--ai-group--BackgroundColor);
+      }
+    }
+    &.user {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-user--BorderColor);
+        background: var(--ai-user--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+    &.group {
+      .pf-v5-c-badge {
+        border: 1px solid var(--ai-group--BorderColor);
+        background: var(--ai-group--BackgroundColor);
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+  }
+  &__badge {
+    .user & {
+      border: 1px solid var(--ai-user--BorderColor);
+      background: var(--ai-user--BackgroundColor);
+      color: var(--pf-v5-global--Color--dark-100);
+    }
+    .group & {
+      border: 1px solid var(--ai-group--BorderColor);
+      background: var(--ai-group--BackgroundColor);
+      color: var(--pf-v5-global--Color--dark-100);
+    }
+  }
+}

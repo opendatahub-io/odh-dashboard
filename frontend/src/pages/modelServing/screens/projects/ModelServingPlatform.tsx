@@ -1,11 +1,9 @@
 import * as React from 'react';
-import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Label } from '@patternfly/react-core';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Alert, Label, Popover } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import {
   getSortedTemplates,
   getTemplateEnabled,
@@ -17,15 +15,25 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import emptyStateImg from '~/images/empty-state-model-serving.svg';
+import EmptyDetailsView from '~/pages/projects/screens/detail/EmptyDetailsView';
+import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
+import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
+import { useAccessReview } from '~/api';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
+import './ModelServingPlatform.scss';
+
 const ModelServingPlatform: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
     ServingRuntimePlatform | undefined
   >(undefined);
+  const [modalShown, setModalShown] = React.useState<boolean>(false);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -67,8 +75,19 @@ const ModelServingPlatform: React.FC = () => {
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
+  React.useEffect(() => {
+    setPlatformSelected(
+      isProjectModelMesh ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE,
+    );
+  }, [isProjectModelMesh]);
+
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...AccessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
+
   const onSubmit = (submit: boolean) => {
-    setPlatformSelected(undefined);
+    setModalShown(false);
     if (submit) {
       refreshAllProjects();
       refreshServingRuntime();
@@ -80,34 +99,67 @@ const ModelServingPlatform: React.FC = () => {
   return (
     <>
       <DetailsSection
+        typeModifier="model-server"
+        iconSrc="../images/UI_icon-Red_Hat-Server-RGB.svg"
+        iconAlt="Model servers"
         id={ProjectSectionID.MODEL_SERVER}
         title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
+        description="Select the type of model serving platform to be used when deploying models in this project."
+        popover={
+          <Popover
+            headerContent="About model serving"
+            bodyContent="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        }
         actions={
           shouldShowPlatformSelection || platformError
-            ? undefined
-            : [
+            ? [
                 <ModelServingPlatformButtonAction
                   isProjectModelMesh={isProjectModelMesh}
                   emptyTemplates={emptyTemplates}
-                  onClick={() => {
-                    setPlatformSelected(
-                      isProjectModelMesh
-                        ? ServingRuntimePlatform.MULTI
-                        : ServingRuntimePlatform.SINGLE,
-                    );
-                  }}
+                  onClick={() => setModalShown(true)}
                   key="serving-runtime-actions"
                 />,
               ]
+            : undefined
         }
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={!shouldShowPlatformSelection && emptyModelServer}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
-          <EmptyDetailsList
-            title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-            icon={PlusCircleIcon}
-          />
+          <div className="odh-model-serving-platform__empty-state">
+            <div className="odh-model-serving-platform__empty-state--description">
+              <EmptyDetailsView
+                title="Start by adding a model server"
+                description="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
+                iconImage={emptyStateImg}
+                imageAlt="add a model server"
+                allowCreate={false}
+              />
+            </div>
+            <div className="odh-model-serving-platform__empty-state--platforms">
+              <div className="odh-model-serving-platform__empty-state--cards">
+                <EmptySingleModelServingCard allowCreate={rbacLoaded && allowCreate} />
+                <EmptyMultiModelServingCard allowCreate={rbacLoaded && allowCreate} />
+              </div>
+              <Alert
+                variant="info"
+                isInline
+                isPlain
+                title="Your project can only support one platform"
+              >
+                <p>
+                  Choose a platform that best fits your needs. Changes cannot be made once a model
+                  has deployed.
+                </p>
+              </Alert>
+            </div>
+          </div>
         }
         labels={
           currentProjectServingPlatform && [
@@ -132,7 +184,7 @@ const ModelServingPlatform: React.FC = () => {
         )}
       </DetailsSection>
       <ManageServingRuntimeModal
-        isOpen={platformSelected === ServingRuntimePlatform.MULTI}
+        isOpen={modalShown && platformSelected === ServingRuntimePlatform.MULTI}
         currentProject={currentProject}
         servingRuntimeTemplates={templatesEnabled.filter((template) =>
           getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
@@ -142,7 +194,7 @@ const ModelServingPlatform: React.FC = () => {
         }}
       />
       <ManageKServeModal
-        isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
+        isOpen={modalShown && platformSelected === ServingRuntimePlatform.SINGLE}
         projectContext={{
           currentProject,
           dataConnections,

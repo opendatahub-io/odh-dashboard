@@ -1,28 +1,17 @@
 import * as React from 'react';
-import {
-  EmptyState,
-  EmptyStateIcon,
-  EmptyStateHeader,
-  EmptyStateFooter,
-} from '@patternfly/react-core';
-import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { CreatePipelineServerButton } from '~/concepts/pipelines/context';
+import EmptyDetailsView from '~/pages/projects/screens/detail/EmptyDetailsView';
+import emptyStateImg from '~/images/empty-state-pipelines.svg';
 
-type NoPipelineServerProps = {
-  variant: React.ComponentProps<typeof CreatePipelineServerButton>['variant'];
-};
-
-const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant }) => (
-  <EmptyState variant="xs">
-    <EmptyStateHeader
-      titleText="Enable pipelines"
-      icon={<EmptyStateIcon icon={WrenchIcon} />}
-      headingLevel="h3"
-    />
-    <EmptyStateFooter>
-      <CreatePipelineServerButton variant={variant} />
-    </EmptyStateFooter>
-  </EmptyState>
+const NoPipelineServer: React.FC = () => (
+  <EmptyDetailsView
+    title="Start by creating a pipeline"
+    description="Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models."
+    iconImage={emptyStateImg}
+    imageAlt="create a pipeline"
+    allowCreate
+    createButton={<CreatePipelineServerButton variant="link" />}
+  />
 );
 
 export default NoPipelineServer;

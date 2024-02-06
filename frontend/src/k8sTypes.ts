@@ -1105,6 +1105,7 @@ export type DashboardCommonConfig = {
   disableProjects: boolean;
   disableModelServing: boolean;
   disableProjectSharing: boolean;
+  disableHome: boolean;
   disableCustomServingRuntimes: boolean;
   disablePipelines: boolean;
   disableBiasMetrics: boolean;

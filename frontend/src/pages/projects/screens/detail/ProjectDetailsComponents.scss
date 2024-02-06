@@ -1,5 +1,0 @@
-.odh-project-details-components__item:has(> .odh-details-section--divide):has(
-    + .odh-project-details-components__item
-  ) {
-  border-bottom: 1px solid var(--pf-v5-global--BorderColor--100);
-}

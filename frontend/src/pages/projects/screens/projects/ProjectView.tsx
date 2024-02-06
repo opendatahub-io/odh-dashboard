@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { Flex, FlexItem } from '@patternfly/react-core';
+import projectIcon from '~/images/UI_icon-Red_Hat-Folder-RGB.svg';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
@@ -27,7 +29,15 @@ const ProjectView: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Data Science Projects"
+      title={
+        <Flex
+          spaceItems={{ default: 'spaceItemsSm' }}
+          alignItems={{ default: 'alignItemsFlexStart' }}
+        >
+          <img style={{ height: '32px' }} src={projectIcon} alt="prioject" />
+          <FlexItem>Data Science Projects</FlexItem>
+        </Flex>
+      }
       description={
         rbacLoaded
           ? `View your existing projects${allowCreate ? ' or create new projects' : ''}.`
@@ -42,6 +52,7 @@ const ProjectView: React.FC = () => {
       }
       emptyStatePage={<EmptyProjects allowCreate={allowCreate} />}
       provideChildrenPadding
+      removeChildrenTopPadding
     >
       <ProjectListView allowCreate={allowCreate} scope={scope} />
     </ApplicationsPage>

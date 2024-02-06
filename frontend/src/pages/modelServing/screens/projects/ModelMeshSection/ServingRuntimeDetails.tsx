@@ -10,8 +10,13 @@ import {
 } from '@patternfly/react-core';
 import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
+import {
+  getInferenceServiceFromServingRuntime,
+  getServingRuntimeSizes,
+} from '~/pages/modelServing/screens/projects/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import InferenceServiceCards from '~/pages/modelServing/screens/global/InferenceServiceCards';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -21,59 +26,52 @@ type ServingRuntimeDetailsProps = {
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
   const [acceleratorProfile] = useServingAcceleratorProfile(obj, isvc);
-  const selectedAcceleratorProfile = acceleratorProfile.acceleratorProfile;
-  const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
-    (ac) => ac.spec.enabled,
-  );
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find((currentSize) => _.isEqual(currentSize.resources, container.resources));
 
+  const {
+    inferenceServices: { data: inferenceServices },
+  } = React.useContext(ProjectDetailsContext);
+
+  const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
+
   return (
-    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Model server replicas</DescriptionListTerm>
-        <DescriptionListDescription>
-          {isvc?.spec.predictor.minReplicas || obj.spec.replicas || 'Unknown'}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      {container.resources && (
+    <>
+      <DescriptionList columnModifier={{ default: '3Col' }} isInlineGrid>
         <DescriptionListGroup>
-          <DescriptionListTerm>Model server size</DescriptionListTerm>
+          <DescriptionListTerm>Model server replicas</DescriptionListTerm>
           <DescriptionListDescription>
-            <List isPlain>
-              <ListItem>{size?.name || 'Custom'}</ListItem>
-              <ListItem>
-                {`${container.resources.requests?.cpu} CPUs, ${container.resources.requests?.memory} Memory requested`}
-              </ListItem>
-              <ListItem>
-                {`${container.resources.limits?.cpu} CPUs, ${container.resources.limits?.memory} Memory limit`}
-              </ListItem>
-            </List>
+            {isvc?.spec.predictor.minReplicas || obj.spec.replicas || 'Unknown'}
           </DescriptionListDescription>
         </DescriptionListGroup>
+        {container.resources && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Model server size</DescriptionListTerm>
+            <DescriptionListDescription>
+              <List isPlain>
+                <ListItem>{size?.name || 'Custom'}</ListItem>
+                <ListItem>
+                  {`${container.resources.requests?.cpu} CPUs, ${container.resources.requests?.memory} Memory requested`}
+                </ListItem>
+                <ListItem>
+                  {`${container.resources.limits?.cpu} CPUs, ${container.resources.limits?.memory} Memory limit`}
+                </ListItem>
+              </List>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
+        {!acceleratorProfile.useExisting && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Number of GPUs</DescriptionListTerm>
+            <DescriptionListDescription>[GPU count]</DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
+      </DescriptionList>
+      {modelInferenceServices.length && (
+        <InferenceServiceCards inferenceServices={modelInferenceServices} />
       )}
-      <DescriptionListGroup>
-        <DescriptionListTerm>Accelerator</DescriptionListTerm>
-        <DescriptionListDescription>
-          {selectedAcceleratorProfile
-            ? `${selectedAcceleratorProfile.spec.displayName}${
-                !selectedAcceleratorProfile.spec.enabled ? ' (disabled)' : ''
-              }`
-            : enabledAcceleratorProfiles.length === 0
-            ? 'No accelerator enabled'
-            : acceleratorProfile.useExisting
-            ? 'Unknown'
-            : 'No accelerator selected'}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      {!acceleratorProfile.useExisting && acceleratorProfile.acceleratorProfile && (
-        <DescriptionListGroup>
-          <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-          <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
-        </DescriptionListGroup>
-      )}
-    </DescriptionList>
+    </>
   );
 };
 

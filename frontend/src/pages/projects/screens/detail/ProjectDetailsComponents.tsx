@@ -12,7 +12,7 @@ import StorageList from './storage/StorageList';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
 
-import './ProjectDetailsComponents.scss';
+import './ProjectDetails.scss';
 
 type SectionType = {
   id: ProjectSectionID;

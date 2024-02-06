@@ -5,6 +5,7 @@ import {
   AlertActionLink,
   Bullseye,
   Button,
+  ButtonProps,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -38,7 +39,7 @@ type PipelineContext = {
   apiState: PipelineAPIState;
 };
 
-const PipelinesContext = React.createContext<PipelineContext>({
+export const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
   crInitializing: false,
   serverTimedOut: false,
@@ -166,12 +167,13 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
   };
 };
 
-type CreatePipelineServerButtonProps = {
-  variant: 'primary' | 'secondary';
+type CreatePipelineServerButtonProps = ButtonProps & {
+  title?: string;
 };
 
 export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProps> = ({
-  variant,
+  title = 'Create pipeline',
+  ...buttonProps
 }) => {
   const [configureModalVisible, setConfigureModalVisible] = React.useState(false);
   const { refreshState } = React.useContext(PipelinesContext);
@@ -180,8 +182,8 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
     <>
       <Stack hasGutter>
         <StackItem>
-          <Button variant={variant} onClick={() => setConfigureModalVisible(true)}>
-            Configure pipeline server
+          <Button onClick={() => setConfigureModalVisible(true)} {...buttonProps}>
+            {title}
           </Button>
         </StackItem>
       </Stack>

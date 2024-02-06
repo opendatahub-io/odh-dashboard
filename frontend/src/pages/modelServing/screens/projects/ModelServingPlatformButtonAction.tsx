@@ -5,7 +5,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 type ModelServingPlatformButtonActionProps = {
   isProjectModelMesh: boolean;
   emptyTemplates: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
 };
 
 const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActionProps> = ({
