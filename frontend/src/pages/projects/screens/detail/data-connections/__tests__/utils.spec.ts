@@ -23,7 +23,7 @@ jest.mock('~/api', () => ({
   deleteSecret: jest.fn(),
 }));
 
-const deletesecretMock = deleteSecret as jest.Mock;
+const deletesecretMock = jest.mocked(deleteSecret);
 
 const dataConnection: DataConnection = {
   type: 0,

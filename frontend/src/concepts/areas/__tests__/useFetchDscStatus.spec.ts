@@ -8,12 +8,12 @@ jest.mock('axios', () => ({
   get: jest.fn(),
 }));
 
-const mockAxios = axios.get as jest.Mock;
+const mockAxios = jest.mocked(axios.get);
 
 describe('useFetchDscStatus', () => {
   it('should return successful dsc status', async () => {
     const mockedResponse = { data: mockDscStatus({}) };
-    mockAxios.mockReturnValue(Promise.resolve(mockedResponse));
+    mockAxios.mockResolvedValue(mockedResponse);
 
     const renderResult = testHook(useFetchDscStatus)();
     expect(mockAxios).toHaveBeenCalledTimes(1);
@@ -29,7 +29,7 @@ describe('useFetchDscStatus', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     //refresh
-    mockAxios.mockReturnValue(Promise.resolve({ data: mockedResponse.data }));
+    mockAxios.mockResolvedValue({ data: mockedResponse.data });
     await act(() => renderResult.result.current[3]());
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(axios.get).toHaveBeenCalledWith(`/api/dsc/status`);
@@ -44,7 +44,7 @@ describe('useFetchDscStatus', () => {
       },
     };
 
-    mockAxios.mockReturnValue(Promise.reject(error));
+    mockAxios.mockRejectedValue(error);
     const renderResult = testHook(useFetchDscStatus)();
     expect(mockAxios).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(`/api/dsc/status`);
@@ -76,7 +76,7 @@ describe('useFetchDscStatus', () => {
       },
     });
 
-    mockAxios.mockReturnValue(Promise.reject(error('error1')));
+    mockAxios.mockRejectedValue(error('error1'));
     const renderResult = testHook(useFetchDscStatus)();
     expect(mockAxios).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(`/api/dsc/status`);
@@ -91,7 +91,7 @@ describe('useFetchDscStatus', () => {
     expect(renderResult).hookToBeStable([true, true, false, true]);
 
     // refresh
-    mockAxios.mockReturnValue(Promise.reject(error('error2')));
+    mockAxios.mockRejectedValue(error('error2'));
     await act(() => renderResult.result.current[3]());
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(axios.get).toHaveBeenCalledWith(`/api/dsc/status`);

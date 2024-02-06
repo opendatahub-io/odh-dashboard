@@ -40,7 +40,7 @@ jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
 
 jest.mock('axios');
 
-const mockedAxios = axios as jest.MockedFunction<typeof axios>;
+const mockedAxios = jest.mocked(axios);
 const listServingRuntimesMock = jest.mocked(listServingRuntimes);
 const k8sGetResourceMock = jest.mocked(k8sGetResource<ProjectKind>);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);

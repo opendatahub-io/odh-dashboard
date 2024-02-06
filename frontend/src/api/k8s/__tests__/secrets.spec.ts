@@ -1,11 +1,14 @@
 import {
+  K8sStatus,
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import {
   assembleISSecretBody,
   assembleSecret,
@@ -32,12 +35,12 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sDeleteResource: jest.fn(),
 }));
 
-const genRandomCharsMock = genRandomChars as jest.Mock;
-const k8sGetResourceMock = k8sGetResource as jest.Mock;
-const k8sListResourceMock = k8sListResource as jest.Mock;
-const k8sCreateResourceMock = k8sCreateResource as jest.Mock;
-const k8sUpdateResourceMock = k8sUpdateResource as jest.Mock;
-const k8sDeleteResourceMock = k8sDeleteResource as jest.Mock;
+const genRandomCharsMock = jest.mocked(genRandomChars);
+const k8sGetResourceMock = jest.mocked(k8sGetResource<SecretKind>);
+const k8sListResourceMock = jest.mocked(k8sListResource<SecretKind>);
+const k8sCreateResourceMock = jest.mocked(k8sCreateResource<SecretKind>);
+const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<SecretKind>);
+const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<SecretKind, K8sStatus>);
 
 const data = {
   Name: '',
@@ -184,9 +187,7 @@ describe('assembleSecretSA', () => {
 
 describe('getSecret', () => {
   it('should fetch return secret', async () => {
-    const secretMock = {
-      items: [{ metadata: { name: 'item 1' } }, { metadata: { name: 'item 2' } }] as SecretKind[],
-    };
+    const secretMock = mockSecretK8sResource({});
     k8sGetResourceMock.mockResolvedValue(secretMock);
     const result = await getSecret('projectName', 'secretName');
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
@@ -212,9 +213,7 @@ describe('getSecret', () => {
 
 describe('getSecretsByLabel', () => {
   it('should return secret by label', async () => {
-    const secretMock = {
-      items: [{ metadata: { name: 'item 1' } }, { metadata: { name: 'item 2' } }] as SecretKind[],
-    };
+    const secretMock = mockK8sResourceList([mockSecretK8sResource({})]);
     k8sListResourceMock.mockResolvedValue(secretMock);
     const result = await getSecretsByLabel('label', 'secretName');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
@@ -240,9 +239,7 @@ describe('getSecretsByLabel', () => {
 
 describe('createSecret', () => {
   it('should create secret ', async () => {
-    const secretMock = {
-      items: [{ metadata: { name: 'item 1' } }, { metadata: { name: 'item 2' } }] as SecretKind[],
-    };
+    const secretMock = mockSecretK8sResource({});
     k8sCreateResourceMock.mockResolvedValue(secretMock);
     const result = await createSecret(assembleSecret('secret', data, 'aws'));
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -276,9 +273,7 @@ describe('createSecret', () => {
 
 describe('replaceSecret', () => {
   it('should replace the secret ', async () => {
-    const secretMock = {
-      items: [{ metadata: { name: 'item 1' } }, { metadata: { name: 'item 2' } }] as SecretKind[],
-    };
+    const secretMock = mockSecretK8sResource({});
     k8sUpdateResourceMock.mockResolvedValue(secretMock);
     const result = await replaceSecret(assembleSecret('secret', data, 'aws'));
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
