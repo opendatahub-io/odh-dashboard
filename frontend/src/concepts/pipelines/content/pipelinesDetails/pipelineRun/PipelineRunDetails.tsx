@@ -17,12 +17,12 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import { PipelineRunKind } from '~/k8sTypes';
+// import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+// import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import { PipelineRunResourceKF } from '~/concepts/pipelines/kfTypes';
+// import { PipelineRunResourceKF } from '~/concepts/pipelines/kfTypes';
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
@@ -36,32 +36,43 @@ import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 
-const getPipelineRunKind = (
-  pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
-): PipelineRunKind | null => {
-  if (!pipelineRuntime) {
-    return null;
-  }
-  try {
-    return JSON.parse(pipelineRuntime.workflow_manifest);
-  } catch (e) {
-    return null;
-  }
-};
+// TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+// const getPipelineRunKind = (
+//   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
+// ): PipelineRunKind | null => {
+//   if (!pipelineRuntime) {
+//     return null;
+//   }
+//   try {
+//     return JSON.parse(pipelineRuntime.workflow_manifest);
+//   } catch (e) {
+//     return null;
+//   }
+// };
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { pipelineRunId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [runResource, loaded, error] = usePipelineRunById(pipelineRunId, true);
+  const [, loaded, error] = usePipelineRunById(pipelineRunId, true);
   const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const pipelineRuntime = getPipelineRunKind(runResource?.pipeline_runtime);
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineRuntime);
-  const run = runResource?.run;
+  // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+  // const pipelineRuntime = getPipelineRunKind(runResource?.pipeline_runtime);
+  // const { taskMap, nodes } = usePipelineTaskTopology(pipelineRuntime);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pipelineRuntime = {} as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const taskMap = {} as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const runResource = {} as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const run = {} as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nodes = [] as any;
 
   if (!loaded && !error) {
     return (
@@ -91,7 +102,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
-              parameters={pipelineRuntime?.spec.params}
+              parameters={pipelineRuntime?.spec?.params}
               taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />

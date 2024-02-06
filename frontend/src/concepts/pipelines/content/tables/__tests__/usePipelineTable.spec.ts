@@ -2,7 +2,11 @@ import { act } from '@testing-library/react';
 import * as React from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineCoreResourceKF,
+  PipelineCoreResourceKFv2,
+  PipelineRunKFv2,
+} from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
@@ -19,7 +23,7 @@ describe('usePipelineTable', () => {
       >([{ totalSize: 0, items: [] }, false, undefined, jest.fn()]);
       setInternalStateFn = setInternalState;
       return internalState;
-    }) as unknown as (options: PipelineOptions) => FetchState<PipelineListPaged<PipelineCoreResourceKF>>);
+    }) as unknown as (options: PipelineOptions) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
 
     // initialLoaded starts as `false`
     const renderResult = testHook(createUsePipelineTable(useMock))();
@@ -40,7 +44,7 @@ describe('usePipelineTable', () => {
   it('should call inner hook with query params', () => {
     const useMock = jest.fn((() => [{}, false]) as unknown as (
       options: PipelineOptions,
-    ) => FetchState<PipelineListPaged<PipelineCoreResourceKF>>);
+    ) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
 
     const renderResult = testHook(createUsePipelineTable(useMock))();
 
@@ -94,7 +98,7 @@ describe('usePipelineTable', () => {
   it('should prevent page changes when a limit is set', () => {
     const useMock = jest.fn((() => [{}, false]) as unknown as (
       options: PipelineOptions,
-    ) => FetchState<PipelineListPaged<PipelineCoreResourceKF>>);
+    ) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
 
     const renderResult = testHook(createUsePipelineTable(useMock))(25);
 
@@ -118,7 +122,7 @@ describe('usePipelineTable', () => {
   it('should provide stable callbacks', async () => {
     const useMock = jest.fn((() => [{}, false]) as unknown as (
       options: PipelineOptions,
-    ) => FetchState<PipelineListPaged<PipelineCoreResourceKF>>);
+    ) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
 
     const renderResult = testHook(createUsePipelineTable(useMock))();
 

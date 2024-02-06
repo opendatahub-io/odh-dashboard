@@ -1,26 +1,26 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
   RunCreated,
   RunDuration,
-  CoreResourceExperiment,
-  // CoreResourcePipelineVersion,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
 import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
-// import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
   onDelete: () => void;
-  run: PipelineRunKF;
+  run: PipelineRunKFv2;
   getJobInformation: GetJobInformation;
 };
 
@@ -29,31 +29,27 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   onToggleCheck,
   onDelete,
   run,
-  // getJobInformation,
 }) => {
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  // const { loading: isJobInfoLoading, data } = getJobInformation(run);
   const notification = useNotification();
   const navigate = useNavigate();
-  // const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(data || run);
+  const [experiment] = useExperimentById(run.experiment_id);
+  const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
 
   return (
     <Tr>
-      <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
+      <CheckboxTd id={run.run_id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td dataLabel="Name">
-        <PipelineRunTableRowTitle resource={run} />
+        <PipelineRunTableRowTitle run={run} />
       </Td>
-      <Td dataLabel="Experiment">
-        <CoreResourceExperiment resource={run} />
-      </Td>
+      <Td dataLabel="Experiment">{experiment?.display_name || 'Default'}</Td>
       <Td modifier="truncate" dataLabel="Pipeline">
-        {/* TODO: bring back with pipeline runs: https://issues.redhat.com/browse/RHOAIENG-2225 */}
-        {/* <CoreResourcePipelineVersion
-          resource={data || run}
-          loaded={!isJobInfoLoading && isVersionLoaded}
+        <PipelineVersionLink
+          displayName={version?.display_name}
           version={version}
-          error={error}
-        /> */}
+          error={versionError}
+          loaded={isVersionLoaded}
+        />
       </Td>
       <Td dataLabel="Created">
         <RunCreated run={run} />
@@ -69,10 +65,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           items={[
             {
               title: 'Stop',
-              isDisabled: run.status !== PipelineRunStatusesKF.RUNNING,
+              isDisabled: run.state !== RuntimeStateKF.RUNNING,
               onClick: () => {
                 api
-                  .stopPipelineRun({}, run.id)
+                  .stopPipelineRun({}, run.run_id)
                   .then(refreshAllAPI)
                   .catch((e) => notification.error('Unable to stop pipeline run', e.message));
               },
@@ -80,7 +76,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             {
               title: 'Duplicate',
               onClick: () => {
-                navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`);
+                navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.run_id}`);
               },
             },
             {

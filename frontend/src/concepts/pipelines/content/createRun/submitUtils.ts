@@ -7,57 +7,39 @@ import {
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   CreatePipelineRunJobKFData,
-  CreatePipelineRunKFData,
+  CreatePipelineRunKFv2Data,
   DateTimeKF,
-  RelationshipKF,
-  ResourceReferenceKF,
-  ResourceTypeKF,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds } from '~/utilities/time';
-
-const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[] => {
-  const refs: ResourceReferenceKF[] = [];
-
-  if (formData.version) {
-    refs.push({
-      key: {
-        id: formData.version.id,
-        type: ResourceTypeKF.PIPELINE_VERSION,
-      },
-      relationship: RelationshipKF.CREATOR,
-    });
-  }
-  // if (formData.experiment) {
-  //   refs.push({
-  //     key: {
-  //       id: formData.experiment.id,
-  //       type: ResourceTypeKF.EXPERIMENT,
-  //     },
-  //     relationship: RelationshipKF.OWNER,
-  //   });
-  // }
-
-  return refs;
-};
 
 const createRun = async (
   formData: SafeRunFormData,
   createRun: PipelineAPIs['createPipelineRun'],
 ): Promise<string> => {
   /* eslint-disable camelcase */
-  const data: CreatePipelineRunKFData = {
-    name: formData.nameDesc.name,
+  const data: CreatePipelineRunKFv2Data = {
+    display_name: formData.nameDesc.name,
     description: formData.nameDesc.description,
-    resource_references: getResourceReferences(formData),
+    pipeline_version_id: formData.version?.pipeline_version_id || '',
+    pipeline_version_reference: {
+      pipeline_id: formData.pipeline?.pipeline_id || '',
+      pipeline_version_id: formData.version?.pipeline_version_id || '',
+    },
+    // TODO, update runtime_config & pipeline_spec to be populated from formData
+    // https://issues.redhat.com/browse/RHOAIENG-2295
+    runtime_config: {
+      parameters: { min_max_scaler: false, standard_scaler: true, neighbors: 0 },
+      pipeline_root: '',
+    },
     pipeline_spec: {
       parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
     },
     service_account: '',
   };
+  return createRun({}, data).then((run) => `/pipelineRun/view/${run.run_id}`);
   /* eslint-enable camelcase */
-  return createRun({}, data).then((runResource) => `/pipelineRun/view/${runResource.run.id}`);
 };
 
 const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
@@ -84,7 +66,6 @@ const createJob = async (
   const data: CreatePipelineRunJobKFData = {
     name: formData.nameDesc.name,
     description: formData.nameDesc.description,
-    resource_references: getResourceReferences(formData),
     pipeline_spec: {
       parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
     },

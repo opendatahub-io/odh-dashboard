@@ -7,7 +7,6 @@ import {
   RunJobScheduled,
   RunJobStatus,
   RunJobTrigger,
-  CoreResourceExperiment,
   // CoreResourcePipelineVersion,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -45,10 +44,11 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Experiment">
-        <CoreResourceExperiment resource={job} />
+        {/* TODO, https://issues.redhat.com/browse/RHOAIENG-2273 */}
+        {/* <CoreResourceExperiment resource={job} /> */}
       </Td>
       <Td modifier="truncate" dataLabel="Pipeline">
-        {/* TODO: bring back with pipeline runs: https://issues.redhat.com/browse/RHOAIENG-2225*/}
+        {/* TODO, https://issues.redhat.com/browse/RHOAIENG-2273 */}
         {/* <CoreResourcePipelineVersion
           resource={job}
           loaded={isVersionLoaded}

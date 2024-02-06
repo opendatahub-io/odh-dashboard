@@ -50,8 +50,8 @@ describe('usePipelineFilter', () => {
     expect(setFilterMock).toHaveBeenCalledWith({
       predicates: [
         {
-          key: 'status',
-          op: PipelinesFilterOp.EQUALS,
+          key: 'state',
+          operation: PipelinesFilterOp.EQUALS,
           // eslint-disable-next-line camelcase
           string_value: 'success',
         },
@@ -84,7 +84,7 @@ describe('usePipelineFilter', () => {
       predicates: [
         {
           key: 'name',
-          op: PipelinesFilterOp.IS_SUBSTRING,
+          operation: PipelinesFilterOp.IS_SUBSTRING,
           // eslint-disable-next-line camelcase
           string_value: 'foo',
         },

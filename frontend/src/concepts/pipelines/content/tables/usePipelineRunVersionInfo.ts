@@ -1,21 +1,21 @@
 import * as React from 'react';
-import { getPipelineVersionResourceRef } from '~/concepts/pipelines/content/tables/utils';
-import { PipelineRunJobKF, PipelineRunKF, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const usePipelineRunVersionInfo = (
-  resource: PipelineRunKF | PipelineRunJobKF | null,
+  run: PipelineRunKFv2 | null,
 ): {
   version: PipelineVersionKFv2 | undefined;
-  isVersionLoaded: boolean;
+  loaded: boolean;
   error: Error | undefined;
 } => {
-  const { versions, loaded: isVersionLoaded, error } = React.useContext(PipelineRunVersionsContext);
-  const versionRef = getPipelineVersionResourceRef(resource);
-  const versionId = versionRef?.key.id;
-  const version = versions.find((v) => v.pipeline_version_id === versionId);
+  const { versions, loaded, error } = React.useContext(PipelineRunVersionsContext);
+  const version = versions.find(
+    (version) =>
+      version.pipeline_version_id === run?.pipeline_version_reference.pipeline_version_id,
+  );
 
-  return { version, isVersionLoaded, error };
+  return { version, loaded, error };
 };
 
 export default usePipelineRunVersionInfo;

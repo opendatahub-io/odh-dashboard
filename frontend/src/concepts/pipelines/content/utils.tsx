@@ -11,16 +11,14 @@ import { Icon } from '@patternfly/react-core';
 import {
   PipelineCoreResourceKFv2,
   PipelineRunJobKF,
-  PipelineRunKF,
-  PipelineRunStatusesKF,
-  PipelineVersionKF,
-  RelationshipKF,
-  ResourceTypeKF,
+  PipelineRunKFv2,
+  RuntimeStateKF,
+  runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
-  label: PipelineRunKF['status'];
+  label: PipelineRunKFv2['state'] | string;
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
 };
@@ -28,67 +26,66 @@ export type RunStatusDetails = {
 const UNKNOWN_ICON = <QuestionCircleIcon />;
 const UNKNOWN_STATUS = 'warning';
 
-export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
+export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails => {
   if (!run) {
     return { icon: UNKNOWN_ICON, status: UNKNOWN_STATUS, label: '-' };
   }
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
   let details: string | undefined;
-  let label: PipelineRunKF['status'];
+  let label: string;
 
-  switch (run.status) {
-    case PipelineRunStatusesKF.STARTED:
+  switch (run.state) {
+    case RuntimeStateKF.PENDING:
+    case RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED:
     case undefined:
       icon = <NotStartedIcon />;
-      label = PipelineRunStatusesKF.STARTED;
+      label = runtimeStateLabels[RuntimeStateKF.PENDING];
       break;
-    case PipelineRunStatusesKF.RUNNING:
+    case RuntimeStateKF.RUNNING:
       icon = <SyncAltIcon />;
-      label = PipelineRunStatusesKF.RUNNING;
+      label = runtimeStateLabels[RuntimeStateKF.RUNNING];
       break;
-    case PipelineRunStatusesKF.COMPLETED:
-    case 'Succeeded':
+    case RuntimeStateKF.SKIPPED:
+      icon = <CheckCircleIcon />;
+      label = runtimeStateLabels[RuntimeStateKF.SKIPPED];
+      break;
+    case RuntimeStateKF.SUCCEEDED:
       icon = <CheckCircleIcon />;
       status = 'success';
-      label = PipelineRunStatusesKF.COMPLETED;
+      label = runtimeStateLabels[RuntimeStateKF.SUCCEEDED];
       break;
-    case PipelineRunStatusesKF.FAILED:
-    case 'PipelineRunTimeout':
-    case 'CreateRunFailed':
+    case RuntimeStateKF.FAILED:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
-      label = PipelineRunStatusesKF.FAILED;
-      details = run.error;
+      label = runtimeStateLabels[RuntimeStateKF.FAILED];
+      details = run.error?.message;
       break;
-    case PipelineRunStatusesKF.CANCELLED:
+    case RuntimeStateKF.CANCELING:
       icon = <BanIcon />;
-      label = PipelineRunStatusesKF.CANCELLED;
+      label = runtimeStateLabels[RuntimeStateKF.CANCELING];
+      break;
+    case RuntimeStateKF.CANCELED:
+      icon = <BanIcon />;
+      label = runtimeStateLabels[RuntimeStateKF.CANCELED];
+      break;
+    case RuntimeStateKF.PAUSED:
+      icon = <BanIcon />;
+      label = runtimeStateLabels[RuntimeStateKF.PAUSED];
       break;
     default:
       icon = UNKNOWN_ICON;
       status = UNKNOWN_STATUS;
-      label = run.status || 'Starting';
-      details = run.status || 'No status yet';
+      label = run.state ?? 'Starting';
+      details = run.state ?? 'No status yet';
   }
 
   return { icon, label, status, details };
 };
 
 export const isPipelineRunJob = (
-  runOrJob?: PipelineRunJobKF | PipelineRunKF,
+  runOrJob?: PipelineRunJobKF | PipelineRunKFv2,
 ): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
-
-/**
- * @deprecated
- * pipeline id can be easily accessed from pipeline version by the param `pipeline_id` in v2
- */
-export const getPipelineIdByPipelineVersion = (
-  version: PipelineVersionKF | null,
-): string | undefined =>
-  version?.resource_references.find(
-    (ref) => ref.relationship === RelationshipKF.OWNER && ref.key.type === ResourceTypeKF.PIPELINE,
-  )?.key.id;
 
 export const getPipelineAndVersionDeleteString = (
   resources: PipelineCoreResourceKFv2[],

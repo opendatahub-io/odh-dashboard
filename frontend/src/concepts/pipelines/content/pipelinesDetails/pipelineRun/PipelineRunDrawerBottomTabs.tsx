@@ -3,7 +3,7 @@ import { Tabs, Tab, TabContent, DrawerPanelBody } from '@patternfly/react-core';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import { PipelineRunKind } from '~/k8sTypes';
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+// import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 import PipelineRunTabDetails from './PipelineRunTabDetails';
 import PipelineRunTabParameters from './PipelineRunTabParameters';
 
@@ -35,7 +35,9 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
   onSelection,
   pipelineRunDetails,
 }) => {
-  const isJob = isPipelineRunJob(pipelineRunDetails?.kf);
+  // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+  // const isJob = isPipelineRunJob(pipelineRunDetails?.kf);
+  const isJob = false;
 
   return (
     <>
@@ -66,7 +68,9 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             hidden={RunDetailsTabs.DETAILS !== selection}
           >
             <PipelineRunTabDetails
-              workflowName={pipelineRunDetails?.kind.metadata.name}
+              // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+              // workflowName={pipelineRunDetails?.kind.metadata.name}
+              workflowName={pipelineRunDetails?.kind?.metadata?.name}
               pipelineRunKF={pipelineRunDetails?.kf}
             />
           </TabContent>
@@ -76,7 +80,9 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             activeKey={selection}
             hidden={RunDetailsTabs.PARAMETERS !== selection}
           >
-            <PipelineRunTabParameters pipelineSpec={pipelineRunDetails?.kf.pipeline_spec} />
+            {/* TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+            <PipelineRunTabParameters pipelineSpec={pipelineRunDetails?.kf.pipeline_spec} /> */}
+            <PipelineRunTabParameters pipelineSpec={pipelineRunDetails?.kf?.pipeline_spec} />
           </TabContent>
           {!isJob && ( // do not include yaml tab for jobs
             <TabContent
@@ -87,7 +93,9 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
               style={{ height: '100%' }}
             >
               <PipelineDetailsYAML
-                filename={pipelineRunDetails?.kf.name}
+                // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+                // filename={pipelineRunDetails?.kf.name}
+                filename={pipelineRunDetails?.kf?.name}
                 content={
                   pipelineRunDetails
                     ? {

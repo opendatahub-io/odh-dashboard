@@ -10,13 +10,13 @@ import {
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 // import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
   pipeline: PipelineKF | null;
-  pipelineVersion: PipelineVersionKF | null;
+  pipelineVersion: PipelineVersionKFv2 | null;
 };
 
 const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({

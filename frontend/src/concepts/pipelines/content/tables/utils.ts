@@ -6,12 +6,13 @@ import {
   ResourceReferenceKF,
   ResourceTypeKF,
   PipelineVersionKF,
+  PipelineRunKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
 export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF | undefined => runs[0];
 
-export const getRunDuration = (run: PipelineRunKF): number => {
+export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
   if (finishedDate.getFullYear() <= 1970) {
     // Kubeflow initial timestamp -- epoch, not an actual value
