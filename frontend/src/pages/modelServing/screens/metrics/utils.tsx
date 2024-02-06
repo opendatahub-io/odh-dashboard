@@ -293,7 +293,7 @@ export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOp
   'biasMetricConfig' in obj;
 
 export const convertInputType = (input: string): number | boolean | string => {
-  if (input.trim() !== '' && !Number.isNaN(Number(input))) {
+  if (input !== '' && !Number.isNaN(Number(input))) {
     return Number(input);
   }
   if (input.toLowerCase() === 'true') {
