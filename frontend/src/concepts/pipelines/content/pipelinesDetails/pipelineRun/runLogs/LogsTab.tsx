@@ -205,6 +205,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                     {!showSearchbar && (
                       <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
                         <SimpleDropdownSelect
+                          data-testid="logs-step-select"
                           isDisabled={podStepStates.length <= 1}
                           options={podStepStates.map((podStepState) => ({
                             key: podStepState.stepName,
@@ -299,6 +300,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                         isOpen={isKebabOpen}
                         toggle={
                           <KebabToggle
+                            data-testid="logs-kebab-toggle"
                             onToggle={() => {
                               setIsKebabOpen(!isKebabOpen);
                             }}
@@ -316,6 +318,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                             rel="noopener noreferrer"
                             icon={<OutlinedWindowRestoreIcon />}
                             aria-label="View raw logs"
+                            data-testid="raw-logs"
                           >
                             View raw logs
                           </DropdownItem>
