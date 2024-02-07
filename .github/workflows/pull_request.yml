@@ -45,6 +45,9 @@ jobs:
       - name: Install Playwright Browsers
         working-directory: ./frontend
         run: npx playwright install --with-deps
+      - name: Check for uncomitted changes
+        run: |
+          git diff --quiet
       - name: Test
         if: ${{ success() }}
         run: npm run test
