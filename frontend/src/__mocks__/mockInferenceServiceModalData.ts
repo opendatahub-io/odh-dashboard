@@ -21,6 +21,19 @@ export const mockInferenceServiceModalData = ({
   },
   minReplicas = 1,
   maxReplicas = 1,
+  modelSize = {
+    name: 'Small',
+    resources: {
+      requests: {
+        cpu: '1',
+        memory: '1Gi',
+      },
+      limits: {
+        cpu: '2',
+        memory: '2Gi',
+      },
+    },
+  },
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
   project,
@@ -29,4 +42,5 @@ export const mockInferenceServiceModalData = ({
   format,
   minReplicas,
   maxReplicas,
+  modelSize,
 });

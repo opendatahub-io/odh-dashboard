@@ -19,7 +19,7 @@ import {
   InferenceServiceStorageType,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
-  ServingRuntimeSize,
+  ModelServingSize,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
@@ -29,6 +29,7 @@ import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import {
+  getInferenceServiceSize,
   getServingRuntimeSize,
   getServingRuntimeTokens,
   setUpTokenAuth,
@@ -46,7 +47,7 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlashes } from '~/utilities/string';
 
-export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
+export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_MODEL_SERVER_SIZES;
@@ -79,7 +80,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
   data: CreatingServingRuntimeObject,
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
-  sizes: ServingRuntimeSize[],
+  sizes: ModelServingSize[],
 ] => {
   const { dashboardConfig } = useAppContext();
 
@@ -144,6 +145,10 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   name: '',
   project: '',
   servingRuntimeName: '',
+  modelSize: {
+    name: '',
+    resources: {},
+  },
   storage: {
     type: InferenceServiceStorageType.EXISTING_STORAGE,
     path: '',
@@ -159,14 +164,21 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
 
 export const useCreateInferenceServiceObject = (
   existingData?: InferenceServiceKind,
-  existingServingRuntimeData?: ServingRuntimeKind, // upgrade path to already KServe models
+  existingServingRuntimeData?: ServingRuntimeKind, // upgrade path to get old size in already deployed models
 ): [
   data: CreatingInferenceServiceObject,
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   resetDefaults: () => void,
+  sizes: ModelServingSize[],
 ] => {
-  const createInferenceServiceState =
-    useGenericObjectState<CreatingInferenceServiceObject>(defaultInferenceService);
+  const { dashboardConfig } = useAppContext();
+
+  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
+
+  const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
+    ...defaultInferenceService,
+    modelSize: sizes[0],
+  });
 
   const [, setCreateData] = createInferenceServiceState;
 
@@ -183,11 +195,20 @@ export const useCreateInferenceServiceObject = (
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
 
+  const existingSize = getInferenceServiceSize(sizes, existingData, existingServingRuntimeData);
+
+  // TODO: this is creating an infinite loop
+  console.log("------")
+  console.log(existingData);
+  console.log(existingServingRuntimeData);
+  console.log("------")
+
   React.useEffect(() => {
     if (existingName) {
       setCreateData('name', existingName);
       setCreateData('servingRuntimeName', existingServingRuntime);
       setCreateData('project', existingProject);
+      setCreateData('modelSize', existingSize);
       setCreateData('storage', {
         type: InferenceServiceStorageType.EXISTING_STORAGE,
         path: existingStorage?.path || '',
@@ -207,6 +228,7 @@ export const useCreateInferenceServiceObject = (
     existingName,
     existingStorage,
     existingFormat,
+    existingSize,
     existingServingRuntime,
     existingProject,
     existingMinReplicas,
@@ -214,7 +236,7 @@ export const useCreateInferenceServiceObject = (
     setCreateData,
   ]);
 
-  return createInferenceServiceState;
+  return [...createInferenceServiceState, sizes];
 };
 
 export const getModelServerDisplayName = (server: ServingRuntimeKind): string =>

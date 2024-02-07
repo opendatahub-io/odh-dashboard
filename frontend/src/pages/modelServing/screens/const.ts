@@ -1,13 +1,13 @@
 import {
   RefreshIntervalTitle,
   RefreshIntervalValueType,
-  ServingRuntimeSize,
+  ModelServingSize,
   TimeframeStepType,
   TimeframeTimeType,
   TimeframeTitle,
 } from './types';
 
-export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
+export const DEFAULT_MODEL_SERVER_SIZES: ModelServingSize[] = [
   {
     name: 'Small',
     resources: {

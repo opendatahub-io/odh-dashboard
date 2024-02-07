@@ -134,6 +134,10 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByLabelText('Model server name *');
   }
 
+  findModelServerSizeValue() {
+    return this.find().findByLabelText('Model server size');
+  }
+
   findServingRuntimeTemplateDropdown() {
     return this.find().get('#serving-runtime-template-selection');
   }

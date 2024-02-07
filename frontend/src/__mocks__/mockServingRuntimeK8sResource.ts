@@ -1,4 +1,5 @@
 import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
+import { ContainerResources } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -8,6 +9,7 @@ type MockResourceConfigType = {
   auth?: boolean;
   route?: boolean;
   acceleratorName?: string;
+  resources?: ContainerResources;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -92,6 +94,7 @@ export const mockServingRuntimeK8sResource = ({
   route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
+  resources,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -132,16 +135,7 @@ export const mockServingRuntimeK8sResource = ({
         image:
           'registry.redhat.io/openshift-ai/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
         name: 'ovms',
-        resources: {
-          limits: {
-            cpu: '2',
-            memory: '8Gi',
-          },
-          requests: {
-            cpu: '1',
-            memory: '4Gi',
-          },
-        },
+        ...(resources && { resources }),
       },
     ],
     grpcDataEndpoint: 'port:8001',

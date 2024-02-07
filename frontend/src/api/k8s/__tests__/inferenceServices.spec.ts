@@ -25,6 +25,7 @@ import {
 } from '~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '~/api/models';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
+import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
@@ -208,6 +209,89 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.spec.predictor.maxReplicas).toBeUndefined();
     expect(inferenceService.spec.predictor.minReplicas).toBeUndefined();
+  });
+
+  it('should add requests on kserve', async () => {
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
+      count: 1,
+      additionalOptions: {},
+      useExisting: false,
+    };
+
+    const modelSize: ModelServingSize = {
+      name: 'Small',
+      resources: {
+        requests: {
+          cpu: '1',
+          memory: '1Gi',
+        },
+        limits: {
+          cpu: '2',
+          memory: '2Gi',
+        },
+      },
+    };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ modelSize }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      acceleratorProfileState,
+    );
+
+    expect(inferenceService.spec.predictor.model.resources?.requests?.cpu).toBe(
+      modelSize.resources.requests?.cpu,
+    );
+    expect(inferenceService.spec.predictor.model.resources?.requests?.memory).toBe(
+      modelSize.resources.requests?.memory,
+    );
+    expect(inferenceService.spec.predictor.model.resources?.limits?.cpu).toBe(
+      modelSize.resources.limits?.cpu,
+    );
+    expect(inferenceService.spec.predictor.model.resources?.limits?.memory).toBe(
+      modelSize.resources.limits?.memory,
+    );
+  });
+
+  it('should omit requests on mdoelmesh', async () => {
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
+      count: 1,
+      additionalOptions: {},
+      useExisting: false,
+    };
+
+    const modelSize: ModelServingSize = {
+      name: 'Small',
+      resources: {
+        requests: {
+          cpu: '1',
+          memory: '1Gi',
+        },
+        limits: {
+          cpu: '2',
+          memory: '2Gi',
+        },
+      },
+    };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ modelSize }),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      acceleratorProfileState,
+    );
+
+    expect(inferenceService.spec.predictor.model.resources).toBeUndefined();
   });
 });
 

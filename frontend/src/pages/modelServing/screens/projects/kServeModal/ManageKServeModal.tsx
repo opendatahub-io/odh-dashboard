@@ -59,7 +59,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
-    useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
+    useCreateInferenceServiceObject(
+      editInfo?.inferenceServiceEditInfo,
+      editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    );
   const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
     useServingAcceleratorProfile(
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
@@ -83,12 +86,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     projectContext?.currentProject.metadata.name || createDataInferenceService.project;
 
   // Serving Runtime Validation
-  const baseInputValueValid =
-    createDataServingRuntime.numReplicas >= 0 &&
-    resourcesArePositive(createDataServingRuntime.modelSize.resources) &&
-    requestsUnderLimits(createDataServingRuntime.modelSize.resources);
-
-  const isDisabledServingRuntime = namespace === '' || actionInProgress || !baseInputValueValid;
+  const isDisabledServingRuntime = namespace === '' || actionInProgress;
 
   // Inference Service Validation
   const storageCanCreate = (): boolean => {
@@ -97,6 +95,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     }
     return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
+
+  const baseInputValueValid = //createDataInferenceService.numReplicas >= 0 && TODO: Conflict with pending PR
+    resourcesArePositive(createDataInferenceService.modelSize.resources) &&
+    requestsUnderLimits(createDataInferenceService.modelSize.resources);
 
   const isDisabledInferenceService =
     actionInProgress ||
@@ -107,7 +109,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     containsOnlySlashes(createDataInferenceService.storage.path) ||
     createDataInferenceService.storage.path === '' ||
     !isInferenceServiceNameWithinLimit ||
-    !storageCanCreate();
+    !storageCanCreate() ||
+    !baseInputValueValid;
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -255,8 +258,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           </StackItem>
           <StackItem>
             <ServingRuntimeSizeSection
-              data={createDataServingRuntime}
-              setData={setCreateDataServingRuntime}
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
               acceleratorProfileState={acceleratorProfileState}
