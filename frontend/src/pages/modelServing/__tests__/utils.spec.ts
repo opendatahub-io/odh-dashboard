@@ -1,4 +1,9 @@
-import { resourcesArePositive, setUpTokenAuth } from '~/pages/modelServing/utils';
+import {
+  getInferenceServiceSizeOrReturnEmpty,
+  getServingRuntimeOrReturnEmpty,
+  resourcesArePositive,
+  setUpTokenAuth,
+} from '~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { ContainerResources } from '~/types';
 import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
@@ -11,6 +16,7 @@ import {
   getServiceAccount,
 } from '~/api';
 import { mock404Error } from '~/__mocks__/mockK8sStatus';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 
 jest.mock('~/api', () => ({
   ...jest.requireActual('~/api'),
@@ -150,5 +156,47 @@ describe('setUpTokenAuth', () => {
     expect(createServiceAccount).not.toHaveBeenCalled();
     expect(createRoleBinding).not.toHaveBeenCalled();
     expect(createSecret).toHaveBeenCalled();
+  });
+});
+
+describe('getInferenceServiceSizeOrReturnEmpty', () => {
+  it('should return undefined if Inference Service is undefined', () => {
+    const inferenceService = undefined;
+    expect(getInferenceServiceSizeOrReturnEmpty(inferenceService)).toBeUndefined();
+  });
+
+  it('should return undefined if resources attribute is empty', () => {
+    const inferenceService = mockInferenceServiceK8sResource({ resources: {} });
+    expect(getInferenceServiceSizeOrReturnEmpty(inferenceService)).toBeUndefined();
+  });
+
+  it('should return the right size', () => {
+    const resources = {
+      requests: { cpu: '1', memory: '1Gi' },
+      limits: { cpu: '1', memory: '1Gi' },
+    };
+    const inferenceService = mockInferenceServiceK8sResource({ resources });
+    expect(getInferenceServiceSizeOrReturnEmpty(inferenceService)).toBe(resources);
+  });
+});
+
+describe('getServingRuntimeSizeOrReturnEmpty', () => {
+  it('should return undefined if ServingRuntime is undefined', () => {
+    const servingRuntime = undefined;
+    expect(getServingRuntimeOrReturnEmpty(servingRuntime)).toBeUndefined();
+  });
+
+  it('should return undefined if resources attribute is empty', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({ resources: {} });
+    expect(getServingRuntimeOrReturnEmpty(servingRuntime)).toBeUndefined();
+  });
+
+  it('should return the right size', () => {
+    const resources = {
+      requests: { cpu: '1', memory: '1Gi' },
+      limits: { cpu: '1', memory: '1Gi' },
+    };
+    const servingRuntime = mockServingRuntimeK8sResource({ resources });
+    expect(getServingRuntimeOrReturnEmpty(servingRuntime)).toBe(resources);
   });
 });

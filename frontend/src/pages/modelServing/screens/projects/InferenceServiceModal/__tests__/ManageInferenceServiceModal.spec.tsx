@@ -4,13 +4,21 @@ import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/I
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { useAppContext } from '~/app/AppContext';
+import { mockDashboardConfig } from '~/__mocks__';
 
 jest.mock('~/pages/modelServing/useServingRuntimes', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
+jest.mock('~/app/AppContext', () => ({
+  __esModule: true,
+  useAppContext: jest.fn(),
+}));
+
 const useServingRuntimesMock = jest.mocked(useServingRuntimes);
+const useAppContextMock = jest.mocked(useAppContext);
 
 describe('ManageInferenceServiceModal', () => {
   it('should not re-render serving runtime selection', async () => {
@@ -23,6 +31,12 @@ describe('ManageInferenceServiceModal', () => {
       undefined,
       jest.fn(),
     ]);
+
+    useAppContextMock.mockReturnValue({
+      buildStatuses: [],
+      dashboardConfig: mockDashboardConfig({}),
+      storageClasses: [],
+    });
 
     const currentProject = mockProjectK8sResource({});
     const wrapper = render(

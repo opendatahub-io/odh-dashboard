@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import {
   DescriptionList,
   DescriptionListDescription,
@@ -12,6 +11,7 @@ import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import { getResourceSize } from '~/pages/modelServing/utils';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -25,9 +25,11 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
   const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
-  const container = obj.spec.containers[0]; // can we assume the first container?
+  const resources = obj.spec.containers[0].resources || isvc?.spec.predictor.model.resources;
   const sizes = getServingRuntimeSizes(dashboardConfig);
-  const size = sizes.find((currentSize) => _.isEqual(currentSize.resources, container.resources));
+  const size = sizes.find(
+    (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
+  );
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
@@ -37,17 +39,17 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
           {isvc?.spec.predictor.minReplicas || obj.spec.replicas || 'Unknown'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {container.resources && (
+      {resources && (
         <DescriptionListGroup>
           <DescriptionListTerm>Model server size</DescriptionListTerm>
           <DescriptionListDescription>
             <List isPlain>
               <ListItem>{size?.name || 'Custom'}</ListItem>
               <ListItem>
-                {`${container.resources.requests?.cpu} CPUs, ${container.resources.requests?.memory} Memory requested`}
+                {`${resources.requests?.cpu} CPUs, ${resources.requests?.memory} Memory requested`}
               </ListItem>
               <ListItem>
-                {`${container.resources.limits?.cpu} CPUs, ${container.resources.limits?.memory} Memory limit`}
+                {`${resources.limits?.cpu} CPUs, ${resources.limits?.memory} Memory limit`}
               </ListItem>
             </List>
           </DescriptionListDescription>

@@ -42,7 +42,7 @@ export type CreatingServingRuntimeObject = {
   name: string;
   servingRuntimeTemplateName: string;
   numReplicas: number;
-  modelSize: ServingRuntimeSize;
+  modelSize: ModelServingSize;
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];
@@ -55,7 +55,7 @@ export type ServingRuntimeToken = {
   editName?: string;
 };
 
-export type ServingRuntimeSize = {
+export type ModelServingSize = {
   name: string;
   resources: ContainerResources;
 };
@@ -65,6 +65,7 @@ export type CreatingInferenceServiceObject = {
   project: string;
   servingRuntimeName: string;
   storage: InferenceServiceStorage;
+  modelSize: ModelServingSize;
   format: InferenceServiceFormat;
   maxReplicas: number;
   minReplicas: number;

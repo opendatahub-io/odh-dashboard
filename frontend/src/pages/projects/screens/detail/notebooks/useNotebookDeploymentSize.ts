@@ -3,7 +3,7 @@ import { AppContext } from '~/app/AppContext';
 import { PodContainer, NotebookSize } from '~/types';
 import { getNotebookSizes } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '~/k8sTypes';
-import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
+import { isCpuResourceEqual, isMemoryResourceEqual } from '~/utilities/valueUnits';
 
 const useNotebookDeploymentSize = (
   notebook?: NotebookKind,
@@ -21,8 +21,11 @@ const useNotebookDeploymentSize = (
   const sizes = getNotebookSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) =>
-      isCpuLimitEqual(currentSize.resources.limits?.cpu, container.resources?.limits?.cpu) &&
-      isMemoryLimitEqual(currentSize.resources.limits?.memory, container.resources?.limits?.memory),
+      isCpuResourceEqual(currentSize.resources.limits?.cpu, container.resources?.limits?.cpu) &&
+      isMemoryResourceEqual(
+        currentSize.resources.limits?.memory,
+        container.resources?.limits?.memory,
+      ),
   );
 
   if (!size) {
