@@ -3,6 +3,7 @@ import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 class PipelineRunTable {
   protected testId = '';
+
   protected toolbarTestId = '';
 
   constructor(testId = 'pipeline-run-table', toolbarTestId = 'run-table-toolbar-item') {

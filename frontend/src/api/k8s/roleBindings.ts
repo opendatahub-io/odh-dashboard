@@ -134,7 +134,7 @@ export const createRoleBinding = (
   data: RoleBindingKind,
   opts?: K8sAPIOptions,
 ): Promise<RoleBindingKind> =>
-  k8sCreateResource(applyK8sAPIOptions(opts, { model: RoleBindingModel, resource: data }));
+  k8sCreateResource(applyK8sAPIOptions({ model: RoleBindingModel, resource: data }, opts));
 
 export const deleteRoleBinding = (
   rbName: string,
@@ -142,10 +142,13 @@ export const deleteRoleBinding = (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<RoleBindingKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: RoleBindingModel,
-      queryOptions: { name: rbName, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: RoleBindingModel,
+        queryOptions: { name: rbName, ns: namespace },
+      },
+      opts,
+    ),
   );
 
 export const patchRoleBindingName = (

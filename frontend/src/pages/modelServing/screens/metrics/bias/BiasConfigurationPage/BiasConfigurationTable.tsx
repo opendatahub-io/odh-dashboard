@@ -80,8 +80,8 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({
                 types={searchTypes}
                 searchType={searchType}
                 searchValue={search}
-                onSearchTypeChange={(searchType) => {
-                  setSearchType(searchType);
+                onSearchTypeChange={(newSearchType) => {
+                  setSearchType(newSearchType);
                 }}
                 onSearchValueChange={(searchValue) => {
                   setSearch(searchValue);

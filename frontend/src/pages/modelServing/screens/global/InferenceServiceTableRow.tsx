@@ -31,9 +31,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
-  const modelMetricsSupported = (inferenceService: InferenceServiceKind) =>
+  const modelMetricsSupported = (modelMetricsInferenceService: InferenceServiceKind) =>
     modelMetricsEnabled &&
-    inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
+    modelMetricsInferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+      'ModelMesh';
 
   return (
     <>

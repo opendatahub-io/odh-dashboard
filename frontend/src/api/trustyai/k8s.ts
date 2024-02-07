@@ -35,13 +35,16 @@ export const getTrustyAICR = async (
   opts?: K8sAPIOptions,
 ): Promise<TrustyAIKind> =>
   k8sGetResource<TrustyAIKind>(
-    applyK8sAPIOptions(opts, {
-      model: TrustyAIApplicationsModel,
-      queryOptions: {
-        ns: namespace,
-        name: TRUSTYAI_DEFINITION_NAME,
+    applyK8sAPIOptions(
+      {
+        model: TrustyAIApplicationsModel,
+        queryOptions: {
+          ns: namespace,
+          name: TRUSTYAI_DEFINITION_NAME,
+        },
       },
-    }),
+      opts,
+    ),
   );
 
 export const createTrustyAICR = async (
@@ -59,10 +62,13 @@ export const createTrustyAICR = async (
   };
 
   return k8sCreateResource<TrustyAIKind>(
-    applyK8sAPIOptions(opts, {
-      model: TrustyAIApplicationsModel,
-      resource,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: TrustyAIApplicationsModel,
+        resource,
+      },
+      opts,
+    ),
   );
 };
 
@@ -71,11 +77,14 @@ export const deleteTrustyAICR = async (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<TrustyAIKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: TrustyAIApplicationsModel,
-      queryOptions: {
-        name: TRUSTYAI_DEFINITION_NAME,
-        ns: namespace,
+    applyK8sAPIOptions(
+      {
+        model: TrustyAIApplicationsModel,
+        queryOptions: {
+          name: TRUSTYAI_DEFINITION_NAME,
+          ns: namespace,
+        },
       },
-    }),
+      opts,
+    ),
   );

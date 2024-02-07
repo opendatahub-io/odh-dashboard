@@ -27,7 +27,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
   );
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
-  const size = sizes.find((size) => _.isEqual(size.resources, container.resources));
+  const size = sizes.find((currentSize) => _.isEqual(currentSize.resources, container.resources));
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>

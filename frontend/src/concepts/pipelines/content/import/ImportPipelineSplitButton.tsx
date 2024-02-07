@@ -86,7 +86,9 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
         onClose={(pipeline) => {
           setPipelineModalOpen(false);
           if (pipeline) {
-            onImportPipeline && onImportPipeline(pipeline);
+            if (onImportPipeline) {
+              onImportPipeline(pipeline);
+            }
             refreshAllAPI();
           }
         }}
@@ -96,7 +98,9 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
           onClose={(pipelineVersion) => {
             setPipelineVersionModalOpen(false);
             if (pipelineVersion) {
-              onImportPipelineVersion && onImportPipelineVersion(pipelineVersion);
+              if (onImportPipelineVersion) {
+                onImportPipelineVersion(pipelineVersion);
+              }
               refreshAllAPI();
             }
           }}

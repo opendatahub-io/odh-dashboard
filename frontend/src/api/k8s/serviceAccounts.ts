@@ -31,10 +31,13 @@ export const createServiceAccount = (
   opts?: K8sAPIOptions,
 ): Promise<ServiceAccountKind> =>
   k8sCreateResource<ServiceAccountKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServiceAccountModel,
-      resource: data,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServiceAccountModel,
+        resource: data,
+      },
+      opts,
+    ),
   );
 
 export const deleteServiceAccount = (
@@ -43,8 +46,11 @@ export const deleteServiceAccount = (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<ServiceAccountKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: ServiceAccountModel,
-      queryOptions: { name, ns },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServiceAccountModel,
+        queryOptions: { name, ns },
+      },
+      opts,
+    ),
   );

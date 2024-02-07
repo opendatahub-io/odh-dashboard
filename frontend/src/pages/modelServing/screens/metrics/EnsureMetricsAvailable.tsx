@@ -30,7 +30,9 @@ const EnsureMetricsAvailable: React.FC<EnsureMetricsAvailableProps> = ({
     if (data[metric].error) {
       error = data[metric].error as AxiosError;
     }
-    data[metric].loaded && readyCount++;
+    if (data[metric].loaded) {
+      readyCount++;
+    }
   });
 
   // Check for errors first as `loaded` prop will always be false when there is an error. If you check

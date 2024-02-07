@@ -44,7 +44,7 @@ const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[]
 
 const createRun = async (
   formData: SafeRunFormData,
-  createRun: PipelineAPIs['createPipelineRun'],
+  createPipelineRun: PipelineAPIs['createPipelineRun'],
 ): Promise<string> => {
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
@@ -57,7 +57,9 @@ const createRun = async (
     service_account: '',
   };
   /* eslint-enable camelcase */
-  return createRun({}, data).then((runResource) => `/pipelineRun/view/${runResource.run.id}`);
+  return createPipelineRun({}, data).then(
+    (runResource) => `/pipelineRun/view/${runResource.run.id}`,
+  );
 };
 
 const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
@@ -71,7 +73,7 @@ const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null 
 
 const createJob = async (
   formData: SafeRunFormData,
-  createJob: PipelineAPIs['createPipelineRunJob'],
+  createPipelineRunJob: PipelineAPIs['createPipelineRunJob'],
 ): Promise<string> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a scheduled run with incomplete data.'));
@@ -110,7 +112,7 @@ const createJob = async (
     },
   };
   /* eslint-enable camelcase */
-  return createJob({}, data).then(() => '');
+  return createPipelineRunJob({}, data).then(() => '');
 };
 
 /** Returns the relative path to navigate to from the namespace qualified route */

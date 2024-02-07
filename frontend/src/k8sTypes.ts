@@ -1,6 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
@@ -142,7 +142,7 @@ export type BuildKind = K8sResourceCommon & {
     };
   };
   status: {
-    phase: BUILD_PHASE;
+    phase: BuildPhase;
     completionTimestamp?: string;
     startTimestamp?: string;
   };
@@ -151,7 +151,7 @@ export type BuildKind = K8sResourceCommon & {
 /**
  * Contains all the phases for BuildKind -> status -> phase (excluding NONE phase)
  */
-export enum BUILD_PHASE {
+export enum BuildPhase {
   NONE = 'Not started',
   NEW = 'New',
   RUNNING = 'Running',
@@ -479,7 +479,7 @@ export type AWSSecretKind = SecretKind & {
       [KnownLabels.DATA_CONNECTION_AWS]: 'true';
     };
   };
-  data: Record<AWS_KEYS, string>;
+  data: Record<AwsKeys, string>;
 };
 
 export type TrustyAIKind = K8sResourceCommon & {

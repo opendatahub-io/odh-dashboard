@@ -53,7 +53,7 @@ const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
       variant={SelectVariant.typeahead}
       onFilter={() => children}
       onTypeaheadInputChanged={setFilterText}
-      onToggle={(e, open) => setOpen(open)}
+      onToggle={(e, isOpen) => setOpen(isOpen)}
       selections={hasSelection ? selected?.value : undefined}
       onSelect={(_, value) => {
         if (typeof value === 'string') {

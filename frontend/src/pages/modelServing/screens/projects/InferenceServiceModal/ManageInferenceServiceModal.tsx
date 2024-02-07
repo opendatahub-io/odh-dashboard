@@ -10,7 +10,7 @@ import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
 import DataConnectionSection from './DataConnectionSection';
@@ -57,7 +57,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
     }
-    return isAWSValid(createData.storage.awsData, [AWS_KEYS.AWS_S3_BUCKET]);
+    return isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
 
   const isDisabled =
@@ -82,8 +82,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     onBeforeClose(true);
   };
 
-  const setErrorModal = (error: Error) => {
-    setError(error);
+  const setErrorModal = (e: Error) => {
+    setError(e);
     setActionInProgress(false);
   };
 

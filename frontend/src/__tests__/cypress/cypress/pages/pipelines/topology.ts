@@ -18,9 +18,11 @@ class PipelineRunBottomDrawer extends Contextual<HTMLDivElement> {
   findBottomDrawerDetailsTab() {
     return this.find().findByTestId('bottom-drawer-tab-details');
   }
+
   findBottomDrawerYamlTab() {
     return this.find().findByTestId('bottom-drawer-tab-run-output');
   }
+
   findBottomDrawerInputTab() {
     return this.find().findByTestId('bottom-drawer-tab-input-parameters');
   }
@@ -34,12 +36,15 @@ class PipelineRunRightDrawer extends Contextual<HTMLDivElement> {
   findRightDrawerInputOutputTab() {
     return this.find().findByTestId('right-drawer-tab-inputoutput');
   }
+
   findRightDrawerDetailsTab() {
     return this.find().findByTestId('right-drawer-tab-details');
   }
+
   findRightDrawerVolumesTab() {
     return this.find().findByTestId('right-drawer-tab-volumes');
   }
+
   findRightDrawerLogsTab() {
     return this.find().findByTestId('right-drawer-tab-logs');
   }
@@ -55,6 +60,7 @@ class RunDetails extends Topology {
       cy.findByTestId('pipeline-run-drawer-bottom').parent(),
     );
   }
+
   findRightDrawer() {
     return new PipelineRunRightDrawer(() =>
       cy.findByTestId('pipeline-run-drawer-right-content').parent(),
@@ -102,27 +108,35 @@ class PipelineRunDetails extends RunDetails {
     cy.get('[data-test-id="topology"]');
     cy.testA11y();
   }
+
   findRunTaskRightDrawer() {
     return cy.findByTestId('pipeline-run-drawer-right-content');
   }
+
   findLogsSuccessAlert() {
     return cy.findByTestId('logs-success-alert');
   }
+
   findLogs() {
     return cy.findByTestId('logs');
   }
+
   findDownloadStepsToggle() {
     return cy.findByTestId('download-steps-toggle');
   }
+
   findCurrentStepLogs() {
     return cy.findByTestId('download-current-step-logs');
   }
+
   findLogsKebabToggle() {
     return cy.findByTestId('logs-kebab-toggle');
   }
+
   findRawLogs() {
     return cy.findAllByTestId('raw-logs');
   }
+
   findStepSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('logs-step-select');
   }

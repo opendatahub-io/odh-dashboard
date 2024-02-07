@@ -22,8 +22,8 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
 
   const [validated, setValidated] = React.useState<Validate>('default');
 
-  const handlePathChange = (folderPath: string) => {
-    setFolderPath(folderPath);
+  const handlePathChange = (currentFolderPath: string) => {
+    setFolderPath(currentFolderPath);
     setValidated('default');
   };
   React.useEffect(() => {
@@ -44,7 +44,7 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
         value={folderPath}
         validated={validated}
         placeholder="Example, data_folder"
-        onChange={(e, folderPath: string) => handlePathChange(folderPath)}
+        onChange={(e, newFolderPath: string) => handlePathChange(newFolderPath)}
       />
       <FormHelperText>
         <HelperText>

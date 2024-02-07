@@ -85,10 +85,10 @@ export const renderHook = <
 
     getUpdateCount: () => updateCount,
 
-    waitForNextUpdate: async (options) => {
+    waitForNextUpdate: async (currentOptions) => {
       const expected = updateCount;
       try {
-        await waitFor(() => expect(updateCount).toBeGreaterThan(expected), options);
+        await waitFor(() => expect(updateCount).toBeGreaterThan(expected), currentOptions);
       } catch {
         throw new Error('waitForNextUpdate timed out');
       }

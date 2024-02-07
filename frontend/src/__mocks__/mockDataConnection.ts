@@ -1,6 +1,6 @@
 import { DataConnection } from '~/pages/projects/types';
 import { genUID } from '~/__mocks__/mockUtils';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { KnownLabels } from '~/k8sTypes';
 
 type MockDataConnectionType = {
@@ -36,7 +36,7 @@ export const mockDataConnection = ({
       },
     },
     data: {
-      [AWS_KEYS.NAME]: name,
+      [AwsKeys.NAME]: name,
       AWS_ACCESS_KEY_ID: 'c2RzZA==',
       AWS_DEFAULT_REGION: 'us-east-1',
       AWS_S3_BUCKET: s3Bucket,

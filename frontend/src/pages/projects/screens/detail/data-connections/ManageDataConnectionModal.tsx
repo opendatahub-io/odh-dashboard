@@ -123,7 +123,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       if (promiseActions.length > 0) {
         setErrorMessage('');
         setIsProgress(true);
-        return await Promise.all(promiseActions)
+        return Promise.all(promiseActions)
           .then(() => Promise.resolve())
           .catch((e) => {
             setErrorMessage(e.message || 'An unknown error occurred');

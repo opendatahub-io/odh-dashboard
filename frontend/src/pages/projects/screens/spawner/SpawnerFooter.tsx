@@ -57,7 +57,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
   const notebookState = data.find(
-    (notebookState) => notebookState.notebook.metadata.name === notebookName,
+    (currentNotebookState) => currentNotebookState.notebook.metadata.name === notebookName,
   );
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;

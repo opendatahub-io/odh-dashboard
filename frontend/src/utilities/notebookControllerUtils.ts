@@ -60,10 +60,10 @@ export const verifyResource = async <T extends K8sResourceCommon>(
   createFunc?: ResourceCreator<T>,
   createBody?: T,
 ): Promise<T | undefined> =>
-  await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
+  fetchFunc(namespace, name).catch(async (e: AxiosError) => {
     if (e.response?.status === 404) {
       if (createFunc && createBody) {
-        return await createFunc(createBody);
+        return createFunc(createBody);
       }
       return undefined;
     }
@@ -177,7 +177,7 @@ export const validateNotebookNamespaceRoleBinding = async (
       },
     ],
   };
-  return await verifyResource<RoleBinding>(
+  return verifyResource<RoleBinding>(
     roleBindingName,
     dashboardNamespace,
     getRoleBinding,

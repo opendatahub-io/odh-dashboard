@@ -17,7 +17,7 @@ const useNotebookImageData = (notebook?: NotebookKind): NotebookImageData => {
     }
 
     const container: PodContainer | undefined = notebook.spec.template.spec.containers.find(
-      (container) => container.name === notebook.metadata.name,
+      (currentContainer) => currentContainer.name === notebook.metadata.name,
     );
     const imageTag = container?.image.split('/').at(-1)?.split(':');
 

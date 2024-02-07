@@ -10,8 +10,8 @@ export const useQueryFilters = (key: string): string[] => {
       return [];
     }
     try {
-      const filters = JSON.parse(enabledFilters);
-      return Array.isArray(filters) ? filters : [filters];
+      const parsedFilters = JSON.parse(enabledFilters);
+      return Array.isArray(parsedFilters) ? parsedFilters : [parsedFilters];
     } catch {
       return [];
     }

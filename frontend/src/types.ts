@@ -201,7 +201,7 @@ export type OdhDocument = {
   };
 };
 
-export enum BUILD_PHASE {
+export enum BuildPhase {
   none = 'Not started',
   new = 'New',
   running = 'Running',
@@ -215,7 +215,7 @@ export enum BUILD_PHASE {
 export type BuildStatus = {
   name: string;
   imageTag: string;
-  status: BUILD_PHASE;
+  status: BuildPhase;
   timestamp: string;
 };
 

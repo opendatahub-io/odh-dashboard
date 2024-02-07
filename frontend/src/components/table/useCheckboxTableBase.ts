@@ -54,7 +54,9 @@ const useCheckboxTableBase = <T>(
         const id = dataMappingHelper(selection);
         setSelectedData((prevData) =>
           prevData.map(dataMappingHelper).includes(id)
-            ? prevData.filter((selectedData) => dataMappingHelper(selectedData) !== id)
+            ? prevData.filter(
+                (currentSelectedData) => dataMappingHelper(currentSelectedData) !== id,
+              )
             : [...prevData, selection],
         );
       },

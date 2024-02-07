@@ -51,7 +51,7 @@ export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
   },
 ];
 
-export enum STORAGE_KEYS {
+export enum StorageKeys {
   ACCESS_KEY_ID = 'access_key_id',
   SECRET_ACCESS_KEY = 'secret_access_key',
   S3_ENDPOINT = 'endpoint_url',
@@ -60,10 +60,10 @@ export enum STORAGE_KEYS {
   PATH = 'path',
 }
 
-export const STORAGE_KEYS_REQUIRED: STORAGE_KEYS[] = [
-  STORAGE_KEYS.ACCESS_KEY_ID,
-  STORAGE_KEYS.SECRET_ACCESS_KEY,
-  STORAGE_KEYS.S3_ENDPOINT,
+export const STORAGE_KEYS_REQUIRED: StorageKeys[] = [
+  StorageKeys.ACCESS_KEY_ID,
+  StorageKeys.SECRET_ACCESS_KEY,
+  StorageKeys.S3_ENDPOINT,
 ];
 
 /**

@@ -27,7 +27,7 @@ export enum ModelMetricType {
   TRUSTY_AI_DIR = 'trustyai_dir',
 }
 
-type ModelServingMetricsContext = {
+type ModelServingMetricsContextType = {
   data: Record<
     ModelMetricType | ServerMetricType,
     ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
@@ -42,7 +42,7 @@ type ModelServingMetricsContext = {
   namespace: string;
 };
 
-export const ModelServingMetricsContext = React.createContext<ModelServingMetricsContext>({
+export const ModelServingMetricsContext = React.createContext<ModelServingMetricsContextType>({
   data: {
     [ServerMetricType.REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
     [ServerMetricType.AVG_RESPONSE_TIME]: DEFAULT_CONTEXT_DATA,

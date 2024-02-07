@@ -108,8 +108,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     resetAcceleratorProfileData();
   };
 
-  const setErrorModal = (error: Error) => {
-    setError(error);
+  const setErrorModal = (e: Error) => {
+    setError(e);
     setActionInProgress(false);
   };
 
@@ -143,13 +143,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
     const duplicated = createData.tokens.filter((token) => token.name === name);
-    const error = duplicated.length > 0 ? 'Duplicates are invalid' : '';
+    const duplicatedError = duplicated.length > 0 ? 'Duplicates are invalid' : '';
     setCreateData('tokens', [
       ...createData.tokens,
       {
         name,
         uuid: getUniqueId('ml'),
-        error,
+        error: duplicatedError,
       },
     ]);
   }, [createData.tokens, setCreateData]);

@@ -43,13 +43,13 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ value, onChange }) => {
     };
     return (
       <>
-        {value.map(({ label, value }, i) => (
+        {value.map(({ label, value: currentValue }, i) => (
           <FormGroup key={label} label={label} fieldId={`${label}-param-field`}>
             <TextInput
               type="text"
               id={`${label}-param-field`}
               name={`${label}-param-field`}
-              value={value ?? ''}
+              value={currentValue ?? ''}
               onChange={(e, newValue) => handleChange(i, { label, value: newValue })}
             />
           </FormGroup>

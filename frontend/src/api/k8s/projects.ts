@@ -26,10 +26,13 @@ export const getProject = (projectName: string): Promise<ProjectKind> =>
 
 export const getProjects = (withLabel?: string, opts?: K8sAPIOptions): Promise<ProjectKind[]> =>
   k8sListResource<ProjectKind>(
-    applyK8sAPIOptions(opts, {
-      model: ProjectModel,
-      queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ProjectModel,
+        queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
+      },
+      opts,
+    ),
   ).then((listResource) => listResource.items);
 
 export const createProject = (
