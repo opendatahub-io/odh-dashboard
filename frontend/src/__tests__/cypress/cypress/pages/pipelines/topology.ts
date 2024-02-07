@@ -1,25 +1,5 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 
-class GlobalPipelines {
-  visit(namespace: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}`);
-    this.wait();
-  }
-
-  private wait() {
-    cy.findByTestId('app-page-title').contains('Pipelines');
-    cy.testA11y();
-  }
-
-  findIsApiAvailable() {
-    return cy.findByTestId('pipelines-api-available');
-  }
-
-  findIsServerIncompatible() {
-    return cy.findByTestId('incompatible-pipelines-server');
-  }
-}
-
 class PipelinesTopology {
   visit(namespace: string, pipelineId: string) {
     cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}`);
@@ -99,4 +79,3 @@ export const pipelineDetails = new PipelineDetails();
 export const pipelineRunDetails = new PipelineRunDetails();
 export const pipelineRunJobDetails = new PipelineRunJobDetails();
 export const pipelinesTopology = new PipelinesTopology();
-export const globalPipelines = new GlobalPipelines();

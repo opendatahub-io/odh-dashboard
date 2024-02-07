@@ -48,7 +48,7 @@
 //   }),
 // ];
 //
-// describe('Pipeline Runs Global', () => {
+// describe('Pipeline create runs', () => {
 //   beforeEach(() => {
 //     initIntercepts();
 //     pipelineRunsGlobal.visit(projectName);

@@ -47,11 +47,11 @@ const PipelineFilterBar = <Options extends FilterOptions>({
 
   return (
     <>
-      <ToolbarGroup variant="filter-group">
+      <ToolbarGroup variant="filter-group" data-testid="pipeline-filter-toolbar">
         <ToolbarItem>
           <Dropdown
             toggle={
-              <DropdownToggle id="toggle-basic" onToggle={() => setOpen(!open)}>
+              <DropdownToggle id="pipeline-filter-toggle-button" onToggle={() => setOpen(!open)}>
                 <>
                   <FilterIcon /> {filterOptions[currentFilterType]}
                 </>
@@ -69,6 +69,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
                 <>{filterOptions[filterKey]}</>
               </DropdownItem>
             ))}
+            data-testid="pipeline-filter-dropdown"
           />
         </ToolbarItem>
         <ToolbarFilter

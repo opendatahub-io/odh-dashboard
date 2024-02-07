@@ -35,6 +35,27 @@ describe('Pipelines', () => {
     pipelinesTable.findRowByName('Test pipeline');
   });
 
+  it('incompatible dpsa version shows error', () => {
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' })]),
+    );
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
+      },
+      mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' }),
+    );
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findIsApiAvailable().should('exist');
+    pipelinesGlobal.findIsServerIncompatible().should('exist');
+  });
+
   it('selects a different project', () => {
     cy.url().should('include', 'test-project-name');
 

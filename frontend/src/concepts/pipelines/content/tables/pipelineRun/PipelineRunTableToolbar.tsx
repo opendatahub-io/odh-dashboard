@@ -88,6 +88,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
               label: value,
             }))}
             onChange={(value) => onChange(value)}
+            data-testid="runtime-status-dropdown"
           />
         ),
       }}

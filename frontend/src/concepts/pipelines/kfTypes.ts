@@ -355,7 +355,7 @@ export type ExperimentKFv2 = {
   display_name: string;
   description: string;
   created_at: string;
-  namespace: string;
+  namespace?: string;
   storage_state: StorageStateKFv2;
 };
 
