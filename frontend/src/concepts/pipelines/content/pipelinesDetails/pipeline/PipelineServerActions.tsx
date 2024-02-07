@@ -43,7 +43,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
         )
       }
       isOpen={open}
-      position="right"
+      position={variant === 'kebab' ? 'left' : 'right'}
       isPlain={variant === 'kebab'}
       dropdownItems={[
         <DropdownItem key="view-server-details" onClick={() => setViewOpen(true)}>
