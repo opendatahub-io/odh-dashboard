@@ -49,11 +49,12 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
     tableProps: checkboxTableProps,
     isSelected,
     toggleSelection,
+    disableCheck,
   } = useCheckboxTableBase<PipelineKFv2>(
     pipelines,
     selectedPipelines,
     setSelectedPipelines,
-    (pipeline) => pipeline.pipeline_id,
+    React.useCallback((pipeline) => pipeline.pipeline_id, []),
   );
 
   const [deletePipelines, setDeletePipelines] = React.useState<PipelineKFv2[]>([]);
@@ -92,6 +93,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
             onDeletePipeline={() => setDeletePipelines([pipeline])}
             refreshPipelines={refreshPipelines}
             pipelineDetailsPath={pipelineDetailsPath}
+            disableCheck={disableCheck}
           />
         )}
         disableRowRenderSupport
