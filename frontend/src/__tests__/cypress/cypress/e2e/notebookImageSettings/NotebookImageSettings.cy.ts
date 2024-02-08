@@ -10,7 +10,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 
-describe('Notebook Image Secttings', () => {
+describe('Notebook Image Settings', () => {
   it('Table filtering, sorting, searching', () => {
     cy.intercept('/api/status', mockStatus());
     cy.intercept('/api/config', mockDashboardConfig({}));

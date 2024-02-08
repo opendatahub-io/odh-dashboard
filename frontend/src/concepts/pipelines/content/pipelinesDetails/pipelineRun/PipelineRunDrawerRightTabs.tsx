@@ -9,11 +9,11 @@ import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/r
 import './PipelineRunDrawer.scss';
 
 enum PipelineRunNodeTabs {
-  INPUT_OUTPUT = 'InputOutput',
+  INPUT_OUTPUT = 'inputoutput',
   // VISUALIZATIONS = 'Visualizations',
-  DETAILS = 'Details',
-  VOLUMES = 'Volumes',
-  LOGS = 'Logs',
+  DETAILS = 'details',
+  VOLUMES = 'volumes',
+  LOGS = 'logs',
   // POD = 'Pod',
   // EVENTS = 'Events',
   // ML_METADATA = 'ML Metadata',
@@ -61,6 +61,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
       <Tabs activeKey={selection} mountOnEnter>
         {Object.values(PipelineRunNodeTabs).map((tab) => (
           <Tab
+            data-testid={`right-drawer-tab-${tab}`}
             key={tab}
             title={PipelineRunNodeTabsTitles[tab]}
             eventKey={tab}
