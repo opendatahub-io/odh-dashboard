@@ -4,10 +4,12 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
+  initializing?: boolean;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
   namespace = 'test-project',
+  initializing = false,
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
@@ -49,7 +51,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         lastTransitionTime: '2023-07-20T16:58:12Z',
         message: '',
         reason: 'MinimumReplicasAvailable',
-        status: 'True',
+        status: initializing ? 'False' : 'True',
         type: 'APIServerReady',
       },
     ],
