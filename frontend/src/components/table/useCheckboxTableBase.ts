@@ -2,7 +2,7 @@ import * as React from 'react';
 import { intersection, xor } from 'lodash-es';
 import type Table from './Table';
 
-type UseCheckboxTableBase<DataType> = {
+export type UseCheckboxTableBaseProps<DataType> = {
   selections: DataType[];
   tableProps: Required<Pick<React.ComponentProps<typeof Table>, 'selectAll'>>;
   toggleSelection: (selection: DataType) => void;
@@ -15,7 +15,7 @@ const useCheckboxTableBase = <T>(
   setSelectedData: React.Dispatch<React.SetStateAction<T[]>>,
   dataMappingHelper: (selectData: T) => string,
   selectAll?: { selected?: boolean; disabled?: boolean },
-): UseCheckboxTableBase<T> => {
+): UseCheckboxTableBaseProps<T> => {
   const dataIds = React.useMemo(() => data.map(dataMappingHelper), [data, dataMappingHelper]);
   const selectedDataIds = React.useMemo(
     () => selectedData.map(dataMappingHelper),
