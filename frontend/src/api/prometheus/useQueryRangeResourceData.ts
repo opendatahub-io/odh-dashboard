@@ -1,5 +1,5 @@
 import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { PrometheusQueryRangeResultValue } from '~/types';
 import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
 import { TimeframeStepType, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
@@ -14,7 +14,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   responsePredicate: ResponsePredicate<T>,
   namespace: string,
   apiPath = '/api/prometheus/serving',
-): ContextResourceData<T> =>
+): ReturnType<typeof useRestructureContextResourceData<T>> =>
   useRestructureContextResourceData<T>(
     usePrometheusQueryRange<T>(
       active,
