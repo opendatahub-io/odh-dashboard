@@ -8,6 +8,7 @@
     "sourceMap": true,
     "jsx": "react",
     "moduleResolution": "node",
+    "downlevelIteration": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,

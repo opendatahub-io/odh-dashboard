@@ -1,9 +1,12 @@
-import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines';
-
 class PipelinesGlobal {
   visit(projectName: string) {
     cy.visitWithLogin(`/pipelines/${projectName}`);
-    pipelinesTable.find();
+    this.wait();
+  }
+
+  private wait() {
+    cy.findByTestId('app-page-title').contains('Pipelines');
+    cy.testA11y();
   }
 
   findImportPipelineButton() {
@@ -17,6 +20,14 @@ class PipelinesGlobal {
 
   findProjectSelect() {
     return cy.findByTestId('project-selector-dropdown');
+  }
+
+  findIsApiAvailable() {
+    return cy.findByTestId('pipelines-api-available');
+  }
+
+  findIsServerIncompatible() {
+    return cy.findByTestId('incompatible-pipelines-server');
   }
 
   selectProjectByName(name: string) {

@@ -1,19 +1,13 @@
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelineRunsGlobal {
-  private tabsTestId = 'pipeline-runs-global-tabs';
-
-  visit(namespace: string) {
-    cy.visitWithLogin(`/pipelineRuns/${namespace}`);
+  visit(projectName: string, runType?: 'scheduled' | 'triggered') {
+    cy.visitWithLogin(`/pipelineRuns/${projectName}${runType ? `?runType=${runType}` : ''}`);
     this.wait();
   }
 
-  findTabs() {
-    return cy.findByTestId(this.tabsTestId);
-  }
-
   private wait() {
-    this.findTabs();
+    cy.findByTestId('app-page-title').contains('Runs');
     cy.testA11y();
   }
 
@@ -35,6 +29,10 @@ class PipelineRunsGlobal {
 
   findCreateRunButton() {
     return cy.findByRole('button', { name: 'Create run' });
+  }
+
+  selectFilterByName(name: string) {
+    cy.findByTestId('pipeline-filter-dropdown').findDropdownItem(name).click();
   }
 
   selectProjectByName(name: string) {

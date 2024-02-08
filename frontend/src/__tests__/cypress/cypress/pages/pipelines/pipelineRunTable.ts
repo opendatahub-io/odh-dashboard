@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKF, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class PipelineRunTable {
   protected testId = '';
@@ -18,6 +18,10 @@ class PipelineRunTable {
     return this.find().findAllByRole('link', { name }).parents('tr');
   }
 
+  findRows() {
+    return this.find().find('[data-label=Name]').parents('tr');
+  }
+
   findRowKebabByName(name: string) {
     return this.findRowByName(name).findByRole('button', { name: 'Kebab toggle' });
   }
@@ -30,16 +34,21 @@ class PipelineRunTable {
     return cy.findByTestId('create-run-empty-state');
   }
 
+  findEmptyResults() {
+    return cy.findByRole('heading', { name: 'No results found' });
+  }
+
   selectRowActionByName(rowName: string, actionName: string) {
     this.findRowKebabByName(rowName).click();
     cy.findByRole('menu').get('span').contains(actionName).parents('button').click();
   }
 
-  mockGetRuns(runs: PipelineRunKF[]) {
+  mockGetRuns(runs: PipelineRunKFv2[], times?: number) {
     return cy.intercept(
       {
+        times,
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/runs',
+        pathname: '/api/proxy/apis/v2beta1/runs',
       },
       { runs, total_size: runs.length },
     );

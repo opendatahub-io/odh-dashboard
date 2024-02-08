@@ -75,6 +75,8 @@ const ExperimentSearchInput: React.FC<Props> = ({ selected, onChange }) => {
       noResultsFoundText="Search for an experiment name"
       loadingVariant={filter && !loaded ? 'spinner' : undefined}
       isInputValuePersisted
+      toggleId="experiment-search-input"
+      data-testid="experiment-search-select"
     >
       {children}
     </Select>

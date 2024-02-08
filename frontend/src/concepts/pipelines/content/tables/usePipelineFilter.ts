@@ -109,6 +109,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
     [FilterOptions.CREATED_AT]: createdAt,
     [FilterOptions.STATUS]: state,
     [FilterOptions.PIPELINE_VERSION]: pipelineVersionId,
+    [FilterOptions.EXPERIMENT]: experimentId,
   } = filterData;
 
   React.useEffect(() => {
@@ -122,7 +123,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
     doSetFilter(filterData);
     // perform filter change immediately
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createdAt, state, pipelineVersionId, doSetFilter]);
+  }, [createdAt, state, pipelineVersionId, experimentId, doSetFilter]);
 
   return toolbarProps;
 };
