@@ -29,7 +29,7 @@ const ModelGraphs: React.FC = () => {
             },
           ]}
           color="blue"
-          title="HTTP requests"
+          title="HTTP requests per 5 minutes"
           isStack
         />
       </StackItem>

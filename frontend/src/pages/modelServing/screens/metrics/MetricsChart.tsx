@@ -207,7 +207,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
             >
               <ChartAxis
                 tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
-                tickValues={[]}
                 domain={{
                   x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
                 }}
