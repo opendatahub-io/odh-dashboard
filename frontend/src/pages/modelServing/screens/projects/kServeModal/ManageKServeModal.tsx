@@ -17,7 +17,6 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '~/pages/modelServing/screens/types';
-import ServingRuntimeReplicaSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
@@ -29,6 +28,7 @@ import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/proje
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
+import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 
 type ManageKServeModalProps = {
   isOpen: boolean;
@@ -146,8 +146,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
-    const replicaCount = createDataServingRuntime.numReplicas;
-
     submitServingRuntimeResources(
       servingRuntimeSelected,
       createDataServingRuntime,
@@ -168,7 +166,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           servingRuntimeName,
           false,
           acceleratorProfileState,
-          replicaCount,
         ),
       )
       .then(() => onSuccess())
@@ -239,9 +236,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             />
           </StackItem>
           <StackItem>
-            <ServingRuntimeReplicaSection
-              data={createDataServingRuntime}
-              setData={setCreateDataServingRuntime}
+            <KServeAutoscalerReplicaSection
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
               infoContent="Consider network traffic and failover scenarios when specifying the number of model
                 server replicas."
             />

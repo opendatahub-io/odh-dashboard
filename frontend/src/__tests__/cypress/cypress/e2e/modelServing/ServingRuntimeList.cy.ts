@@ -963,4 +963,37 @@ describe('Serving Runtime List', () => {
         .should('exist');
     });
   });
+
+  it('Check number of replicas of model', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableKServeConfig: true,
+      disableModelMeshConfig: true,
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          modelName: 'llama-service',
+          isModelMesh: false,
+          minReplicas: 3,
+          maxReplicas: 3,
+        }),
+      ],
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          namespace: 'test-project',
+        }),
+      ],
+    });
+
+    projectDetails.visit('test-project');
+    modelServingSection.getKServeRow('Llama Service').findExpansion().should(be.collapsed);
+    modelServingSection.getKServeRow('Llama Service').findToggleButton().click();
+    modelServingSection
+      .findDescriptionListItem('Llama Service', 'Model server replicas')
+      .next('dd')
+      .should('have.text', '3');
+  });
 });

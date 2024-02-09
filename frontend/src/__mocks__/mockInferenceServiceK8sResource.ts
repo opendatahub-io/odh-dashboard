@@ -14,6 +14,8 @@ type MockResourceConfigType = {
   url?: string;
   path?: string;
   acceleratorIdentifier?: string;
+  minReplicas?: number;
+  maxReplicas?: number;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -65,6 +67,8 @@ export const mockInferenceServiceK8sResource = ({
   url = '',
   path = 'path/to/model',
   acceleratorIdentifier = '',
+  minReplicas = 1,
+  maxReplicas = 1,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -93,6 +97,8 @@ export const mockInferenceServiceK8sResource = ({
   },
   spec: {
     predictor: {
+      minReplicas,
+      maxReplicas,
       model: {
         modelFormat: {
           name: 'onnx',
