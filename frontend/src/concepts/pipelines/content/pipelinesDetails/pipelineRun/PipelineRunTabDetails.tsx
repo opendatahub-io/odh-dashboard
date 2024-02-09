@@ -7,26 +7,23 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import {
-  getPipelineVersionResourceRef,
-  // getRunDuration,
-} from '~/concepts/pipelines/content/tables/utils';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-// import { relativeDuration } from '~/utilities/time';
+import { relativeDuration } from '~/utilities/time';
 import {
-  // asTimestamp,
+  asTimestamp,
   DetailItem,
-  // isEmptyDateKF,
+  isEmptyDateKF,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-// import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
-// import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-// import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { isPipelineRun, isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 
 type PipelineRunTabDetailsProps = {
-  pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
+  pipelineRunKF?: PipelineRunKFv2 | PipelineRunJobKFv2;
   workflowName?: string;
 };
 
@@ -35,9 +32,10 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
-  const versionRef = getPipelineVersionResourceRef(pipelineRunKF);
-  // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
-  // const [version, loaded, error] = usePipelineVersionById(versionRef?.key.id);
+  const [version, loaded, error] = usePipelineVersionById(
+    pipelineRunKF?.pipeline_version_reference.pipeline_id,
+    pipelineRunKF?.pipeline_version_reference.pipeline_version_id,
+  );
 
   if (!pipelineRunKF || !workflowName) {
     return (
@@ -48,44 +46,46 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     );
   }
 
+  const runId = isPipelineRun(pipelineRunKF)
+    ? pipelineRunKF.run_id
+    : pipelineRunKF.recurring_run_id;
+
   const details: DetailItem[] = [
-    { key: 'Name', value: <Truncate content={pipelineRunKF.name} /> },
-    ...(versionRef
+    { key: 'Name', value: <Truncate content={pipelineRunKF.display_name} /> },
+    ...(version
       ? [
-          // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
-          // {
-          //   key: 'Pipeline version',
-          //   value: (
-          //     <PipelineVersionLink
-          //       displayName={versionRef.name}
-          //       loadingIndicator={<Spinner size="sm" />}
-          //       loaded={loaded}
-          //       version={version}
-          //       error={error}
-          //     />
-          //   ),
-          // },
+          {
+            key: 'Pipeline version',
+            value: (
+              <PipelineVersionLink
+                displayName={version.display_name}
+                loadingIndicator={<Spinner size="sm" />}
+                loaded={loaded}
+                version={version}
+                error={error}
+              />
+            ),
+          },
         ]
       : []),
     {
       key: 'Project',
       value: <Link to={`/projects/${namespace}`}>{getProjectDisplayName(project)}</Link>,
     },
-    { key: 'Run ID', value: pipelineRunKF.id },
+    { key: 'Run ID', value: runId },
     { key: 'Workflow name', value: workflowName },
-    // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
-    // ...(!isPipelineRunJob(pipelineRunKF)
-    //   ? [
-    //       { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
-    //       {
-    //         key: 'Finished at',
-    //         value: isEmptyDateKF(pipelineRunKF.finished_at)
-    //           ? 'N/A'
-    //           : asTimestamp(new Date(pipelineRunKF.finished_at)),
-    //       },
-    //       { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
-    //     ]
-    //   : []),
+    ...(!isPipelineRunJob(pipelineRunKF)
+      ? [
+          { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
+          {
+            key: 'Finished at',
+            value: isEmptyDateKF(pipelineRunKF.finished_at)
+              ? 'N/A'
+              : asTimestamp(new Date(pipelineRunKF.finished_at)),
+          },
+          { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
+        ]
+      : []),
   ];
 
   return <>{renderDetailItems(details)}</>;

@@ -8,10 +8,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
-import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 
 type PipelineRunDetailsActionsProps = {
-  run?: PipelineRunKF;
+  run?: PipelineRunKFv2 | null;
   onDelete: () => void;
 };
 
@@ -37,10 +37,10 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
           : [
               <DropdownItem
                 key="stop-run"
-                isDisabled={run.status !== PipelineRunStatusesKF.RUNNING}
+                isDisabled={run.state !== RuntimeStateKF.RUNNING}
                 onClick={() =>
                   api
-                    .stopPipelineRun({}, run.id)
+                    .stopPipelineRun({}, run.run_id)
                     .catch((e) => notification.error('Unable to stop pipeline run', e.message))
                 }
               >
@@ -48,7 +48,9 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
               </DropdownItem>,
               <DropdownItem
                 key="clone-run"
-                onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`)}
+                onClick={() =>
+                  navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.run_id}`)
+                }
               >
                 Duplicate
               </DropdownItem>,

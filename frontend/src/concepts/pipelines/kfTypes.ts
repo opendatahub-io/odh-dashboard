@@ -311,10 +311,50 @@ export const runtimeStateLabels = {
   [RuntimeStateKF.PAUSED]: 'Paused',
 };
 
+export type TaskDetailKF = {
+  run_id: string;
+  task_id: string;
+  display_name: string;
+  create_time: string;
+  start_time: string;
+  end_time: string;
+  executor_detail?: PipelineTaskExecutorDetailKF;
+  state: RuntimeStateKF;
+  execution_id?: string;
+  error?: GoogleRpcStatusKF;
+  inputs?: ArtifactListKF;
+  outputs?: ArtifactListKF;
+  parent_task_id?: string;
+  state_history: RuntimeStatusKF[];
+  pod_name?: string;
+  child_tasks?: PipelineTaskDetailChildTask[];
+};
+
+type PipelineTaskDetailChildTask = {
+  task_id?: string;
+  pod_name: string;
+};
+
+type ArtifactListKF = {
+  artifact_ids: string[];
+};
+
+type PipelineTaskExecutorDetailKF = {
+  main_job: string;
+  pre_caching_check_job: string;
+  failed_main_jobs: string[];
+  failed_pre_caching_check_jobs: string[];
+};
+
+export type RuntimeStatusKF = {
+  update_time: string;
+  state: RuntimeStateKF;
+  error?: GoogleRpcStatusKF;
+};
 export type RunDetailsKF = {
   pipeline_context_id: string;
   pipeline_run_context_id: string;
-  task_details: object[];
+  task_details: TaskDetailKF[];
 };
 
 export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {

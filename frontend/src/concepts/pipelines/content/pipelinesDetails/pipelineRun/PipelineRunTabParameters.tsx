@@ -6,18 +6,18 @@ import {
   EmptyStateBody,
   EmptyStateHeader,
 } from '@patternfly/react-core';
-import { PipelineSpecKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 
 type PipelineRunTabParametersProps = {
-  pipelineSpec?: PipelineSpecKF;
+  run?: PipelineRunJobKFv2 | PipelineRunKFv2;
 };
 
-const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pipelineSpec }) => {
-  if (!pipelineSpec) {
+const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ run }) => {
+  if (!run) {
     return (
       <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
         <Spinner size="xl" />
@@ -26,7 +26,11 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pip
     );
   }
 
-  if (!pipelineSpec.parameters || pipelineSpec.parameters.length === 0) {
+  const parameters = run?.runtime_config?.parameters
+    ? Object.entries(run?.runtime_config?.parameters)
+    : [];
+
+  if (parameters.length === 0) {
     return (
       <EmptyState variant={EmptyStateVariant.lg} data-id="parameters-empty-state">
         <EmptyStateHeader titleText="No parameters" headingLevel="h2" />
@@ -35,9 +39,9 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pip
     );
   }
 
-  const details: DetailItem[] = pipelineSpec.parameters.map((param) => ({
-    key: param.name,
-    value: param.value,
+  const details: DetailItem[] = parameters.map(([key, value]) => ({
+    key,
+    value: value?.toString() ?? '',
   }));
 
   return <>{renderDetailItems(details, true)}</>;

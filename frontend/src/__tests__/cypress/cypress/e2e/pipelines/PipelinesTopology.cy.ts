@@ -3,17 +3,13 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
-import { buildMockPipelineVersion } from '~/__mocks__/mockPipelineVersionsProxy';
-import { mockPipelinesVersionTemplateResourceKF } from '~/__mocks__/mockPipelinesTemplateResourceKF';
+import { buildMockPipelineVersionV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 import { mockPodLogs } from '~/__mocks__/mockPodLogs';
-import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import {
   pipelineDetails,
   pipelineRunJobDetails,
@@ -22,6 +18,34 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '~/__mocks__/mockPipelinePodK8sResource';
+import { buildMockPipelineV2 } from '~/__mocks__';
+
+const projectId = 'test-project';
+const mockPipeline = buildMockPipelineV2({
+  pipeline_id: 'test-pipeline',
+  display_name: 'test-pipeline',
+});
+const mockVersion = buildMockPipelineVersionV2({
+  pipeline_id: mockPipeline.pipeline_id,
+  pipeline_version_id: 'test-version-id',
+  display_name: 'test-version-name',
+});
+const mockRun = buildMockRunKF({
+  display_name: 'test-pipeline-run',
+  run_id: 'test-pipeline-run-id',
+  pipeline_version_reference: {
+    pipeline_id: mockPipeline.pipeline_id,
+    pipeline_version_id: mockVersion.pipeline_version_id,
+  },
+});
+const mockJob = buildMockJobKF({
+  display_name: 'test-pipeline',
+  recurring_run_id: 'test-pipeline',
+  pipeline_version_reference: {
+    pipeline_id: mockPipeline.pipeline_id,
+    pipeline_version_id: mockVersion.pipeline_version_id,
+  },
+});
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
@@ -34,135 +58,114 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline',
+      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
     },
-    mockPipelineKF({}),
+    mockK8sResourceList([mockProjectK8sResource({ k8sName: projectId })]),
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions/test-pipeline',
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectId}/datasciencepipelinesapplications/pipelines-definition`,
     },
-    buildMockPipelineVersion({
-      id: 'test-pipeline',
-      name: 'test-pipeline',
-      // eslint-disable-next-line camelcase
-      resource_references: [
-        {
-          key: { type: ResourceTypeKF.PIPELINE, id: 'test-pipeline' },
-          relationship: RelationshipKF.OWNER,
-        },
-      ],
-    }),
+    mockDataSciencePipelineApplicationK8sResource({ namespace: projectId }),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions/test-pipeline/templates',
-    },
-    mockPipelinesVersionTemplateResourceKF(),
-  );
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa',
-    },
-    mockRouteK8sResource({ notebookName: 'ds-pipeline-pipelines-definition' }),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/ds-pipeline-config',
-    },
-    mockSecretK8sResource({ name: 'ds-pipeline-config' }),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/aws-connection-testdb',
-    },
-    mockSecretK8sResource({ name: 'aws-connection-testdb' }),
-  );
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectId}/datasciencepipelinesapplications`,
     },
     mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
   );
+
   cy.intercept(
     {
       method: 'GET',
-      pathname:
-        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa',
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectId}/datasciencepipelinesapplications/dspa`,
     },
     mockDataSciencePipelineApplicationK8sResource({}),
   );
   cy.intercept(
     {
-      pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
+      pathname: `/api/k8s/api/v1/namespaces/${projectId}/secrets/ds-pipeline-config`,
     },
-    mockK8sResourceList([mockNotebookK8sResource({})]),
+    mockSecretK8sResource({ name: 'ds-pipeline-config' }),
   );
   cy.intercept(
     {
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
+      pathname: `/api/k8s/api/v1/namespaces/${projectId}/secrets/aws-connection-testdb`,
     },
-    mockK8sResourceList([mockProjectK8sResource({})]),
+    mockSecretK8sResource({ name: 'aws-connection-testdb' }),
+  );
+  cy.intercept(
+    {
+      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectId}/routes/ds-pipeline-dspa`,
+    },
+    mockRouteK8sResource({
+      notebookName: 'ds-pipeline-pipelines-definition',
+      namespace: projectId,
+    }),
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+      pathname: '/api/proxy/apis/v2beta1/pipelines',
     },
-    // eslint-disable-next-line camelcase
-    buildMockJobKF({ display_name: 'test-pipeline', recurring_run_id: 'test-pipeline' }),
+    { pipelines: [mockPipeline] },
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}`,
     },
-    mockPipelineKF({}),
+    mockPipeline,
   );
-  const mockRunVersionDetails = { id: 'test-version-id', name: 'test-version-name' };
-  const mockRun = buildMockRunKF({
-    display_name: 'test-pipeline-run',
-    run_id: 'test-pipeline-run-id',
-    pipeline_version_reference: {
-      pipeline_id: mockRunVersionDetails.id,
-      pipeline_version_id: mockRunVersionDetails.id,
-    },
-  });
 
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline-run-id',
+      pathname: `/api/proxy/apis/v2beta1/recurringruns/${mockJob.recurring_run_id}`,
+    },
+    mockJob,
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: `/api/proxy/apis/v2beta1/recurringruns`,
+    },
+    { recurringRuns: [mockJob] },
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: `/api/proxy/apis/v2beta1/runs/${mockRun.run_id}`,
     },
     mockRun,
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: `/api/proxy/apis/v1beta1/pipeline_versions/${mockRunVersionDetails.id}`,
+      pathname: `/api/proxy/apis/v2beta1/runs/`,
     },
-    buildMockPipelineVersion(mockRunVersionDetails),
+    { runs: [mockRun] },
   );
-
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
+    },
+    mockVersion,
+  );
   cy.intercept(
     {
       method: 'GET',
-      pathname:
-        '/api/k8s/api/v1/namespaces/test-project/pods/conditional-execution-pipeline-0858f-flip-coin-pod',
+      pathname: `/api/k8s/api/v1/namespaces/${projectId}/pods/conditional-execution-pipeline-0858f-flip-coin-pod`,
     },
     mockPipelinePodK8sResource({}),
   );
 
   cy.intercept(
-    '/api/k8s/api/v1/namespaces/test-project/pods/conditional-execution-pipeline-0858f-flip-coin-pod/log?container=step-main&tailLines=500',
+    `/api/k8s/api/v1/namespaces/${projectId}/pods/conditional-execution-pipeline-0858f-flip-coin-pod/log?container=step-main&tailLines=500`,
     mockPodLogs({
-      namespace: 'test-project',
+      namespace: projectId,
       podName: 'conditional-execution-pipeline-0858f-flip-coin-pod',
       containerName: 'step-main',
     }),
@@ -175,7 +178,7 @@ describe('Pipeline topology', () => {
     it.skip('Test pipeline topology renders', () => {
       initIntercepts();
 
-      pipelineDetails.visit('test-project', 'test-pipeline');
+      pipelineDetails.visit(projectId, mockPipeline.pipeline_id);
 
       pipelinesTopology.findTaskNode('print-msg').click();
       pipelinesTopology
@@ -190,18 +193,17 @@ describe('Pipeline topology', () => {
   });
 
   describe('Pipeline run details', () => {
-    // TODO, remove skip after https://issues.redhat.com/browse/RHOAIENG-2282
-    it.skip('Test pipeline run topology renders', () => {
+    it('Test pipeline job bottom drawer details', () => {
       initIntercepts();
 
-      pipelineRunJobDetails.visit('test-project', 'test-pipeline');
+      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
 
       pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
       pipelineRunJobDetails
         .findBottomDrawer()
         .findBottomDrawerDetailItem('Name')
         .findValue()
-        .contains('test-pipeline');
+        .contains(mockJob.display_name);
       pipelineRunJobDetails
         .findBottomDrawer()
         .findBottomDrawerDetailItem('Project')
@@ -211,19 +213,94 @@ describe('Pipeline topology', () => {
         .findBottomDrawer()
         .findBottomDrawerDetailItem('Run ID')
         .findValue()
-        .contains('test-pipeline');
+        .contains(mockJob.display_name);
       pipelineRunJobDetails
         .findBottomDrawer()
         .findBottomDrawerDetailItem('Workflow name')
         .findValue()
-        .contains('conditional-execution-pipeline');
+        .contains('test-pipeline');
+    });
+
+    it('Test pipeline job bottom drawer parameters', () => {
+      initIntercepts();
+
+      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+
+      pipelineRunJobDetails.findBottomDrawer().findBottomDrawerInputTab().click();
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('min_max_scaler')
+        .findValue()
+        .contains('false');
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('neighbors')
+        .findValue()
+        .contains('0');
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('standard_scaler')
+        .findValue()
+        .contains('yes');
+    });
+
+    it('Test pipeline triggered run bottom drawer details', () => {
+      initIntercepts();
+
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunJobDetails.findBottomDrawer().findBottomDrawerYamlTab();
+      pipelineRunDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Name')
+        .findValue()
+        .contains(mockJob.display_name);
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Project')
+        .findValue()
+        .contains('Test Project');
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Run ID')
+        .findValue()
+        .contains(mockJob.display_name);
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Workflow name')
+        .findValue()
+        .contains('test-pipeline');
+    });
+
+    it('Test pipeline triggered run bottom drawer parameters', () => {
+      initIntercepts();
+
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findBottomDrawer().findBottomDrawerInputTab().click();
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('min_max_scaler')
+        .findValue()
+        .contains('false');
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('neighbors')
+        .findValue()
+        .contains('0');
+      pipelineRunDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('standard_scaler')
+        .findValue()
+        .contains('yes');
     });
   });
 
   describe('Pipelines logs', () => {
     beforeEach(() => {
       initIntercepts();
-      pipelineRunDetails.visit('test-project', 'test-pipeline-run-id');
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
       pipelineRunDetails.findTaskNode('flip-coin').click();
       pipelineRunDetails.findRightDrawer().findRightDrawerDetailsTab().should('be.visible');
       pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().should('be.visible');
