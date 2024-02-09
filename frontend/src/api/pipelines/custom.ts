@@ -24,7 +24,7 @@ import {
   UploadPipelineVersionAPI,
   DeletePipelineVersionAPI,
   GetPipelineVersionAPI,
-  ListPipelineVersionsByPipelineAPI,
+  ListPipelineVersionsAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -55,7 +55,7 @@ export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data
   handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/runs`, data, {}, opts));
 
 export const createPipelineRunJob: CreatePipelineRunJobAPI = (hostPath) => (opts, data) =>
-  handlePipelineFailures(proxyCREATE(hostPath, `/apis/v1beta1/jobs`, data, {}, opts));
+  handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/recurringruns`, data, {}, opts));
 
 export const getExperiment: GetExperimentAPI = (hostPath) => (opts, experimentId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/experiments/${experimentId}`, {}, opts));
@@ -67,7 +67,9 @@ export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRu
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/runs/${pipelineRunId}`, {}, opts));
 
 export const getPipelineRunJob: GetPipelineRunJobAPI = (hostPath) => (opts, pipelineRunJobId) =>
-  handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/jobs/${pipelineRunJobId}`, {}, opts));
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v2beta1/recurringruns/${pipelineRunJobId}`, {}, opts),
+  );
 
 export const getPipelineVersion: GetPipelineVersionAPI =
   (hostPath) => (opts, pipelineId, pipelineVersionId) =>
@@ -154,7 +156,7 @@ export const listPipelineVersionTemplates: ListPipelineVersionTemplatesAPI =
       ),
     );
 
-export const listPipelineVersionsByPipeline: ListPipelineVersionsByPipelineAPI =
+export const listPipelineVersions: ListPipelineVersionsAPI =
   (hostPath) => (opts, pipelineId, params) =>
     handlePipelineFailures(
       proxyGET(

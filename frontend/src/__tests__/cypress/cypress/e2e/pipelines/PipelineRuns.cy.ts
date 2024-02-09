@@ -9,6 +9,7 @@ import {
   mockRouteK8sResource,
   mockStatus,
   buildMockRunKF,
+  buildMockJobKF,
   buildMockExperimentKF,
   buildMockPipelineVersionsV2,
   buildMockPipelineVersionV2,
@@ -21,10 +22,10 @@ import {
   pipelineRunFilterBar,
   pipelineRunJobTable,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
+
 const mockRuns = [
   buildMockRunKF({
     display_name: 'Test triggered run 1',
@@ -60,6 +61,7 @@ const mockRuns = [
     state: RuntimeStateKF.CANCELED,
   }),
 ];
+
 const mockExperimentIds = [...new Set(mockRuns.map((mockRun) => mockRun.experiment_id))];
 const mockVersionIds = [
   ...new Set(mockRuns.map((mockRun) => mockRun.pipeline_version_reference.pipeline_version_id)),

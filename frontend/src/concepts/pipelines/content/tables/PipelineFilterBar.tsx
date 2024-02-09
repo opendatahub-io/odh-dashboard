@@ -48,7 +48,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
 
   return (
     <>
-      <ToolbarGroup variant="filter-group" {...props}>
+      <ToolbarGroup variant="filter-group" data-testid="pipeline-filter-toolbar" {...props}>
         <ToolbarItem>
           <Dropdown
             toggle={

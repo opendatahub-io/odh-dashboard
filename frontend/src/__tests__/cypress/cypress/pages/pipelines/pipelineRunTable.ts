@@ -46,9 +46,9 @@ class PipelineRunTable {
   mockGetRuns(runs: PipelineRunKFv2[], times?: number) {
     return cy.intercept(
       {
-        times,
         method: 'POST',
         pathname: '/api/proxy/apis/v2beta1/runs',
+        ...(times && { times }),
       },
       { runs, total_size: runs.length },
     );

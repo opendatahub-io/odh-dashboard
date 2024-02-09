@@ -14,9 +14,8 @@ export const buildMockRunKF = (run?: Partial<PipelineRunKFv2>): PipelineRunKFv2 
     parameters: {
       min_max_scaler: false,
       neighbors: 0,
-      standard_scaler: true,
+      standard_scaler: 'yes',
     },
-    pipeline_root: '',
   },
   service_account: 'pipeline-runner-dspa',
   created_at: '2024-02-05T14:44:39Z',

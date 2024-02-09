@@ -8,16 +8,16 @@ import {
   ListExperimentsResponseKF,
   ExperimentKF,
   ExperimentKFv2,
-  PipelineRunJobKF,
-  CreatePipelineRunKFv2Data,
+  CreatePipelineRunKFData,
   CreatePipelineRunJobKFData,
   PipelinesFilterPredicate,
-  ListPipelineVersionsResourceKF,
+  ListPipelineVersionsKF,
   PipelineKFv2,
   PipelineVersionKFv2,
   PipelineCoreResourceKFv2,
   PipelineCoreResourceKF,
   PipelineRunKFv2,
+  PipelineRunJobKFv2,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -48,12 +48,12 @@ export type CreateExperiment = (
 ) => Promise<ExperimentKF>;
 export type CreatePipelineRun = (
   opts: K8sAPIOptions,
-  data: CreatePipelineRunKFv2Data,
+  data: CreatePipelineRunKFData,
 ) => Promise<PipelineRunKFv2>;
 export type CreatePipelineRunJob = (
   opts: K8sAPIOptions,
   data: CreatePipelineRunJobKFData,
-) => Promise<PipelineRunJobKF>;
+) => Promise<PipelineRunJobKFv2>;
 export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKFv2>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
 export type GetPipelineRun = (
@@ -63,7 +63,7 @@ export type GetPipelineRun = (
 export type GetPipelineRunJob = (
   opts: K8sAPIOptions,
   pipelineRunJobId: string,
-) => Promise<PipelineRunJobKF>;
+) => Promise<PipelineRunJobKFv2>;
 export type GetPipelineVersion = (
   opts: K8sAPIOptions,
   pipelineId: string | undefined,
@@ -102,11 +102,11 @@ export type ListPipelineVersionTemplates = (
   opts: K8sAPIOptions,
   pipelineVersionId: string,
 ) => Promise<ListPipelineVersionTemplateResourceKF>;
-export type ListPipelineVersionsByPipeline = (
+export type ListPipelineVersions = (
   opts: K8sAPIOptions,
   pipelineId: string,
   params?: PipelineParams,
-) => Promise<ListPipelineVersionsResourceKF>;
+) => Promise<ListPipelineVersionsKF>;
 export type StopPipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type UpdatePipelineRunJob = (
   opts: K8sAPIOptions,
@@ -146,7 +146,7 @@ export type PipelineAPIs = {
   listPipelineRunJobs: ListPipelineRunJobs;
   listPipelineRunsByPipeline: ListPipelineRunsByPipeline;
   listPipelineVersionTemplates: ListPipelineVersionTemplates;
-  listPipelineVersionsByPipeline: ListPipelineVersionsByPipeline;
+  listPipelineVersions: ListPipelineVersions;
   stopPipelineRun: StopPipelineRun;
   updatePipelineRunJob: UpdatePipelineRunJob;
   uploadPipeline: UploadPipeline;

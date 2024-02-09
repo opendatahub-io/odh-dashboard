@@ -86,10 +86,20 @@ export enum PipelineRunStatusesKF {
   FAILED = 'Failed',
 }
 
+/**
+ * @deprecated
+ * Replace with RecurringRunMode
+ */
 export enum JobModeKF {
   UNKNOWN_MODE = 'UNKNOWN_MODE',
   ENABLED = 'ENABLE',
   DISABLED = 'DISABLED',
+}
+
+export enum RecurringRunMode {
+  MODE_UNSPECIFIED = 'MODE_UNSPECIFIED',
+  ENABLE = 'ENABLE',
+  DISABLE = 'DISABLE',
 }
 
 export enum RecurringRunStatus {
@@ -134,10 +144,30 @@ export type PipelineVersionKF = {
   description?: string;
 };
 
+export enum InputDefinitionParameterType {
+  NumberInteger = 'NUMBER_INTEGER',
+  Boolean = 'BOOLEAN',
+  String = 'STRING',
+}
+
+// https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/#/definitions/v2beta1PipelineVersion
+export type PipelineSpec = Record<string, unknown> & {
+  pipelineInfo: {
+    name: string;
+  };
+  root: Record<string, unknown> & {
+    inputDefinitions: {
+      parameters: Record<string, { parameterType: InputDefinitionParameterType }>;
+    };
+  };
+  schemaVersion: string;
+  sdkVersion: string;
+};
+
 export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_id: string;
   pipeline_version_id: string;
-  pipeline_spec: NonNullable<unknown>; // TODO replace this with the actual type: https://issues.redhat.com/browse/RHOAIENG-2279
+  pipeline_spec: PipelineSpec;
   code_source_url?: string;
   package_url?: UrlKF;
   error?: GoogleRpcStatusKF;
@@ -162,8 +192,10 @@ export type UrlKF = {
   pipeline_url: string;
 };
 
+export type RuntimeConfigParameters = Record<string, string | number | boolean>;
+
 export type PipelineSpecRuntimeConfig = {
-  parameters: Record<string, unknown>;
+  parameters: RuntimeConfigParameters;
   pipeline_root?: string;
 };
 
@@ -343,10 +375,11 @@ export type PipelineVersionReference = {
 };
 
 export type PipelineRunJobKFv2 = PipelineCoreResourceKFv2 & {
+  pipeline_spec?: PipelineSpecKF;
   service_account?: string;
   max_concurrency: string;
   trigger: TriggerKF;
-  mode: JobModeKF;
+  mode: RecurringRunMode;
   created_at: DateTimeKF;
   updated_at: DateTimeKF;
   status: RecurringRunStatus;
@@ -354,6 +387,7 @@ export type PipelineRunJobKFv2 = PipelineCoreResourceKFv2 & {
   no_catchup?: boolean;
   recurring_run_id: string;
   pipeline_version_reference: PipelineVersionReference;
+  runtime_config?: PipelineSpecRuntimeConfig;
   namespace: string;
   experiment_id: string;
 };
@@ -407,30 +441,11 @@ export type ListPipelineVersionTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */
   template: string;
 };
-export type ListPipelineVersionsResourceKF = PipelineKFCallCommon<{
+export type ListPipelineVersionsKF = PipelineKFCallCommon<{
   pipeline_versions: PipelineVersionKFv2[];
 }>;
 
-/**
- * @deprecated
- * Replace with CreatePipelineRunKFv2Data
- */
 export type CreatePipelineRunKFData = Omit<
-  PipelineRunKF,
-  | 'id'
-  | 'status'
-  | 'created_at'
-  | 'finished_at'
-  | 'scheduled_at'
-  | 'pipeline_spec'
-  | 'storage_state'
-  | 'error'
-  | 'metrics'
-> & {
-  pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
-};
-
-export type CreatePipelineRunKFv2Data = Omit<
   PipelineRunKFv2,
   | 'run_id'
   | 'recurring_run_id'
@@ -444,24 +459,18 @@ export type CreatePipelineRunKFv2Data = Omit<
   | 'state'
   | 'state_history'
   | 'run_details'
-> & {
-  pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
-};
+>;
 
 export type CreatePipelineRunJobKFData = Omit<
-  PipelineRunJobKF,
-  | 'id'
+  PipelineRunJobKFv2,
+  | 'recurring_run_id'
   | 'status'
   | 'created_at'
-  | 'finished_at'
   | 'updated_at'
   | 'scheduled_at'
   | 'pipeline_spec'
   | 'storage_state'
-  | 'mode'
   | 'error'
-  | 'metrics'
-  | 'no_catchup'
-> & {
-  pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
-};
+  | 'experiment_id'
+  | 'namespace'
+>;

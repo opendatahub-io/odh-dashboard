@@ -5,12 +5,14 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 
-const usePipelineRunJobById = (pipelineRunJobId?: string): FetchState<PipelineRunJobKF | null> => {
+const usePipelineRunJobById = (
+  pipelineRunJobId?: string,
+): FetchState<PipelineRunJobKFv2 | null> => {
   const { api } = usePipelinesAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<PipelineRunJobKF | null>>(
+  const call = React.useCallback<FetchStateCallbackPromise<PipelineRunJobKFv2 | null>>(
     (opts) => {
       if (!pipelineRunJobId) {
         return Promise.reject(new NotReadyError('No pipeline run job id'));

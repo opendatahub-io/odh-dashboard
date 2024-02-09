@@ -19,7 +19,7 @@ const usePipelineVersionsForPipeline = (
           return Promise.reject(new NotReadyError('No pipeline id'));
         }
         return api
-          .listPipelineVersionsByPipeline(opts, pipelineId, params)
+          .listPipelineVersions(opts, pipelineId, params)
           .then((result) => ({ ...result, items: result.pipeline_versions }));
       },
       [api, pipelineId],

@@ -15,6 +15,8 @@ import RunPageFooter from '~/concepts/pipelines/content/createRun/RunPageFooter'
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
+import { ValueOf } from '~/typeHelpers';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2;
@@ -37,6 +39,11 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     location.state?.lastVersion || cloneRunPipelineVersion,
   );
 
+  const onValueChange = React.useCallback(
+    (key: keyof RunFormData, value: ValueOf<RunFormData>) => setFormDataValue(key, value),
+    [setFormDataValue],
+  );
+
   return (
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
@@ -45,7 +52,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
           titles={runPageSectionTitles}
           maxWidth={175}
         >
-          <RunForm data={formData} onValueChange={(key, value) => setFormDataValue(key, value)} />
+          <RunForm data={formData} onValueChange={onValueChange} />
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
