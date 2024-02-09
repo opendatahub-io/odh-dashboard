@@ -68,7 +68,7 @@ export const printSeconds = (seconds: number): string => {
 
   const [text] = timeBlocks.reduce<[displayText: string, remainingUnit: number]>(
     (acc, timeBlock) => {
-      const [text, unit] = acc;
+      const [currentText, unit] = acc;
       if (unit === 0) {
         return acc;
       }
@@ -87,11 +87,11 @@ export const printSeconds = (seconds: number): string => {
         newUnit = 0; // hit max, zero out the unit
       }
 
-      if (!text) {
+      if (!currentText) {
         return [thisText, newUnit];
       }
 
-      return [`${text}, ${thisText}`, newUnit];
+      return [`${currentText}, ${thisText}`, newUnit];
     },
     ['', seconds],
   );

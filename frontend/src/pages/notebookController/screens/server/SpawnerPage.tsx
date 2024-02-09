@@ -94,8 +94,8 @@ const SpawnerPage: React.FC = () => {
       };
       if (currentUserState.lastSelectedImage) {
         const [imageName, tagName] = [...currentUserState.lastSelectedImage.split(':')];
-        const image = images.find((image) => image.name === imageName);
-        const tag = image?.tags && image.tags.find((tag) => tag.name === tagName);
+        const image = images.find((currentImage) => currentImage.name === imageName);
+        const tag = image?.tags && image.tags.find((currentTag) => currentTag.name === tagName);
         if (tag && isImageTagBuildValid(buildStatuses, image, tag)) {
           setSelectedImageTag({ image, tag });
         } else {

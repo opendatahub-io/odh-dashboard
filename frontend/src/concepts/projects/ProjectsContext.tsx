@@ -6,7 +6,7 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import { isAvailableProject } from '~/concepts/projects/utils';
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
-type ProjectsContext = {
+type ProjectsContextType = {
   projects: ProjectKind[];
   dataScienceProjects: ProjectKind[];
   modelServingProjects: ProjectKind[];
@@ -27,7 +27,7 @@ type ProjectsContext = {
   loadError: ProjectFetchState[2];
 };
 
-export const ProjectsContext = React.createContext<ProjectsContext>({
+export const ProjectsContext = React.createContext<ProjectsContextType>({
   projects: [],
   dataScienceProjects: [],
   modelServingProjects: [],
@@ -50,7 +50,7 @@ type ProjectsProviderProps = {
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
   const fetchProjects = React.useCallback(() => getProjects(), []);
   const [preferredProject, setPreferredProject] =
-    React.useState<ProjectsContext['preferredProject']>(null);
+    React.useState<ProjectsContextType['preferredProject']>(null);
   const [projectData, loaded, loadError, refreshProjects] = useFetchState<ProjectKind[]>(
     fetchProjects,
     [],
@@ -90,7 +90,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [projectData, dashboardNamespace],
   );
 
-  const refresh = React.useCallback<ProjectsContext['refresh']>(
+  const refresh = React.useCallback<ProjectsContextType['refresh']>(
     (waitForName?: string) =>
       new Promise((resolve) => {
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
@@ -99,8 +99,8 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
           setTimeout(
             () =>
               // refresh until we find the name we are expecting
-              refreshProjects().then((projects) => {
-                if (!waitForName || projects?.find(byName(waitForName))) {
+              refreshProjects().then((fetchedProjects) => {
+                if (!waitForName || fetchedProjects?.find(byName(waitForName))) {
                   resolve();
                   return;
                 }
@@ -114,7 +114,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [refreshProjects],
   );
 
-  const updatePreferredProject = React.useCallback<ProjectsContext['updatePreferredProject']>(
+  const updatePreferredProject = React.useCallback<ProjectsContextType['updatePreferredProject']>(
     (project) => {
       setPreferredProject(project);
     },

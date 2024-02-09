@@ -38,7 +38,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const notification = useNotification();
 
   const newNotifications = React.useMemo(
-    () => notifications.filter((notification) => !notification.read).length,
+    () => notifications.filter((currentNotification) => !currentNotification.read).length,
     [notifications],
   );
 

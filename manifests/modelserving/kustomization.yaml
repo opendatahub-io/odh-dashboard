@@ -14,10 +14,10 @@ images:
     digest: sha256:ccfce13c89c4ddfd31e6c56fc35fd46afe10c2d3d3998ab1c2bf14448fdd389f
   - name: caikit-tgis-serving
     newName: quay.io/opendatahub/caikit-tgis-serving
-    digest: sha256:fdec8839a5599b38dd0f3565c8f66f0c859d4267d2d58cffba6e7883594b7cdd
+    digest: sha256:153294140ecc87839defeca317b4b67cc16e8f56ec2211f3540ed00e0efa0ae0
   - name: text-generation-inference
     newName: quay.io/opendatahub/text-generation-inference
-    digest: sha256:66071edb8a76cb5949bf8f0b8af6f53810e66a5ef5e4388fd78f74cc155f83a5
+    digest: sha256:e50101c1245b22e080b5754efb7c2b69fd1422e5a608d276eab249bdc5cc5a55
   - name: ovms-kserve
     newName: quay.io/modh/openvino_model_server
     digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4

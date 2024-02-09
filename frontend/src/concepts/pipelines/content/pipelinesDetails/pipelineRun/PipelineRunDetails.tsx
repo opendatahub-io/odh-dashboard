@@ -15,7 +15,7 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 // import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 // import { PipelineRunKind } from '~/k8sTypes';

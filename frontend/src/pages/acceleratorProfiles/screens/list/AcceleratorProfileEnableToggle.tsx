@@ -47,7 +47,11 @@ const AcceleratorProfileEnableToggle: React.FC<AcceleratorProfileEnableTogglePro
         isChecked={isEnabled}
         isDisabled={isLoading}
         onChange={() => {
-          isEnabled ? setIsModalOpen(true) : handleChange(true);
+          if (isEnabled) {
+            setIsModalOpen(true);
+          } else {
+            handleChange(true);
+          }
         }}
       />
       <DisableAcceleratorProfileModal

@@ -12,8 +12,9 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PasswordHiddenText from '~/components/PasswordHiddenText';
 import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '~/concepts/projects/apiHooks/useNamespaceSecret';
-import { EXTERNAL_DATABASE_SECRET } from '~/concepts/pipelines/content/configurePipelinesServer/const';
+import { ExternalDatabaseSecret } from '~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineKind } from '~/k8sTypes';
+
 type ViewPipelineServerModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -31,7 +32,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
     pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
   );
   const pipelineSecret = dataEntryToRecord(pipelineResult?.values?.data ?? []);
-  const [result] = useNamespaceSecret(namespace, EXTERNAL_DATABASE_SECRET.NAME);
+  const [result] = useNamespaceSecret(namespace, ExternalDatabaseSecret.NAME);
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
 
   return (
@@ -83,7 +84,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
           )}
           {!!pipelineNamespaceCR.spec.database &&
             !!pipelineNamespaceCR.spec.database.externalDB &&
-            !!databaseSecret[EXTERNAL_DATABASE_SECRET.KEY] && (
+            !!databaseSecret[ExternalDatabaseSecret.KEY] && (
               <>
                 <Title headingLevel="h2">Database</Title>
                 <DescriptionListGroup>
@@ -107,7 +108,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>Password</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <PasswordHiddenText password={databaseSecret[EXTERNAL_DATABASE_SECRET.KEY]} />
+                    <PasswordHiddenText password={databaseSecret[ExternalDatabaseSecret.KEY]} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>

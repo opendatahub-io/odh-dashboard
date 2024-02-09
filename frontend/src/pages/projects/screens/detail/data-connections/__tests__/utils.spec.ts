@@ -12,7 +12,7 @@ import {
   isDataConnectionAWS,
   isSecretAWSSecretKind,
 } from '~/pages/projects/screens/detail/data-connections/utils';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { deleteSecret } from '~/api';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 
@@ -46,7 +46,7 @@ const dataConnection: DataConnection = {
       },
     },
     data: {
-      [AWS_KEYS.NAME]: 'test-secret',
+      [AwsKeys.NAME]: 'test-secret',
       AWS_ACCESS_KEY_ID: 'test',
       AWS_DEFAULT_REGION: 'region',
       AWS_S3_BUCKET: 'bucket',
@@ -210,7 +210,7 @@ describe('convertAWSSecretData', () => {
   it('should return empty string', () => {
     dataConnection.data.metadata.name = '';
     dataConnection.data.data = {
-      [AWS_KEYS.NAME]: '',
+      [AwsKeys.NAME]: '',
       AWS_ACCESS_KEY_ID: '',
       AWS_DEFAULT_REGION: '',
       AWS_S3_BUCKET: '',

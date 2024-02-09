@@ -201,7 +201,7 @@ export type OdhDocument = {
   };
 };
 
-export enum BUILD_PHASE {
+export enum BuildPhase {
   none = 'Not started',
   new = 'New',
   running = 'Running',
@@ -215,7 +215,7 @@ export enum BUILD_PHASE {
 export type BuildStatus = {
   name: string;
   imageTag: string;
-  status: BUILD_PHASE;
+  status: BuildPhase;
   timestamp: string;
 };
 
@@ -318,16 +318,25 @@ export type PodContainer = {
   volumeMounts?: VolumeMount[];
 };
 
-export type PodStepState = {
-  stepName: string;
-  state: PodStepStateType;
-};
+export type PodStepState = { stepName: string; state: PodStepStateType };
 
 export enum PodStepStateType {
   success = 'Success',
   error = 'Error',
   loading = 'Loading',
 }
+
+export type PodContainerStatus = {
+  name?: string;
+  ready: boolean;
+  state?: {
+    running?: boolean | undefined;
+    waiting?: boolean | undefined;
+    terminated?: boolean | undefined;
+  };
+};
+
+export type PodContainerStatuses = (PodContainerStatus | undefined)[];
 
 export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };

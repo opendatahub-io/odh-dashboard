@@ -21,9 +21,7 @@ export interface FilterSidePanelCategoryItemProps extends React.HTMLProps<HTMLDi
 }
 
 // FIXME: Remove this component when https://github.com/patternfly/patternfly-react/issues/5940 is resolved
-export const FilterSidePanelCategoryItem: React.FunctionComponent<
-  FilterSidePanelCategoryItemProps
-> = ({
+const FilterSidePanelCategoryItem: React.FunctionComponent<FilterSidePanelCategoryItemProps> = ({
   id,
   children = null,
   className = '',

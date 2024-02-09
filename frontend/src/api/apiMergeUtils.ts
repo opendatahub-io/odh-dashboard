@@ -22,8 +22,8 @@ export const mergeRequestInit = (
 });
 
 export const applyK8sAPIOptions = <T extends K8sResourceBaseOptions>(
-  opts: K8sAPIOptions = {},
   apiData: T,
+  opts: K8sAPIOptions = {},
 ): T => ({
   ...dryRunPayload(opts.dryRun),
   ...apiData,

@@ -1,6 +1,6 @@
 import { PipelineServerConfigType } from '~/concepts/pipelines/content/configurePipelinesServer/types';
 import { createDSPipelineResourceSpec } from '~/concepts/pipelines/content/configurePipelinesServer/utils';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 describe('configure pipeline server utils', () => {
   describe('createDSPipelineResourceSpec', () => {
@@ -53,7 +53,7 @@ describe('configure pipeline server utils', () => {
       const config = createPipelineServerConfig();
       const secretsResponse = createSecretsResponse();
       config.objectStorage.newValue = [
-        { key: AWS_KEYS.S3_ENDPOINT, value: 'http://s3.amazonaws.com' },
+        { key: AwsKeys.S3_ENDPOINT, value: 'http://s3.amazonaws.com' },
       ];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
@@ -63,7 +63,7 @@ describe('configure pipeline server utils', () => {
     it('should parse S3 endpoint without scheme', () => {
       const secretsResponse = createSecretsResponse();
       const config = createPipelineServerConfig();
-      config.objectStorage.newValue = [{ key: AWS_KEYS.S3_ENDPOINT, value: 's3.amazonaws.com' }];
+      config.objectStorage.newValue = [{ key: AwsKeys.S3_ENDPOINT, value: 's3.amazonaws.com' }];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('https');
       expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
@@ -72,7 +72,7 @@ describe('configure pipeline server utils', () => {
     it('should include bucket', () => {
       const secretsResponse = createSecretsResponse();
       const config = createPipelineServerConfig();
-      config.objectStorage.newValue = [{ key: AWS_KEYS.AWS_S3_BUCKET, value: 'my-bucket' }];
+      config.objectStorage.newValue = [{ key: AwsKeys.AWS_S3_BUCKET, value: 'my-bucket' }];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.bucket).toBe('my-bucket');
     });

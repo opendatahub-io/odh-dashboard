@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { getNotebookBuildConfigs, getBuildsForBuildConfig } from '~/api';
 import useNotification from '~/utilities/useNotification';
-import { BuildConfigKind, BuildKind, BUILD_PHASE } from '~/k8sTypes';
+import { BuildConfigKind, BuildKind, BuildPhase } from '~/k8sTypes';
 import { BuildStatus } from './types';
 import { compareBuilds } from './spawnerUtils';
 
@@ -11,18 +11,18 @@ const useBuildStatuses = (namespace?: string): BuildStatus[] => {
 
   React.useEffect(() => {
     const getBuildStatus = async (
-      namespace: string,
+      ns: string,
       buildConfig: BuildConfigKind,
     ): Promise<BuildStatus> => {
       const bcName = buildConfig.metadata.name;
       const buildNotebookName =
         buildConfig.metadata.labels?.['opendatahub.io/notebook-name'] || bcName;
-      return getBuildsForBuildConfig(namespace, bcName)
+      return getBuildsForBuildConfig(ns, bcName)
         .then((builds) => {
           if (builds.length <= 0) {
             return {
               name: buildNotebookName,
-              status: BUILD_PHASE.NONE,
+              status: BuildPhase.NONE,
               imageStreamVersion: buildConfig.spec.output.to.name,
             };
           }
@@ -38,7 +38,7 @@ const useBuildStatuses = (namespace?: string): BuildStatus[] => {
           notification.error(`failed to get builds of ${buildNotebookName}`, e);
           return {
             name: buildNotebookName,
-            status: BUILD_PHASE.PENDING,
+            status: BuildPhase.PENDING,
             imageStreamVersion: buildConfig.spec.output.to.name,
           };
         });

@@ -1,4 +1,4 @@
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import {
   getExistingVersionsForImageStream,
   isAWSValid,
@@ -18,27 +18,27 @@ describe('isAWSValid', () => {
     bucket = '',
   }): EnvVariableDataEntry[] => [
     {
-      key: AWS_KEYS.NAME,
+      key: AwsKeys.NAME,
       value: name,
     },
     {
-      key: AWS_KEYS.ACCESS_KEY_ID,
+      key: AwsKeys.ACCESS_KEY_ID,
       value: accessKey,
     },
     {
-      key: AWS_KEYS.SECRET_ACCESS_KEY,
+      key: AwsKeys.SECRET_ACCESS_KEY,
       value: accessSecret,
     },
     {
-      key: AWS_KEYS.S3_ENDPOINT,
+      key: AwsKeys.S3_ENDPOINT,
       value: endpoint,
     },
     {
-      key: AWS_KEYS.DEFAULT_REGION,
+      key: AwsKeys.DEFAULT_REGION,
       value: region,
     },
     {
-      key: AWS_KEYS.AWS_S3_BUCKET,
+      key: AwsKeys.AWS_S3_BUCKET,
       value: bucket,
     },
   ];
@@ -64,11 +64,11 @@ describe('isAWSValid', () => {
   });
 
   it('should be invalid when the bucket field is set to required while the value is missing', () => {
-    expect(isAWSValid(getMockAWSData({}), [AWS_KEYS.AWS_S3_BUCKET])).toBe(false);
+    expect(isAWSValid(getMockAWSData({}), [AwsKeys.AWS_S3_BUCKET])).toBe(false);
   });
 
   it('should be valid when the bucket field is set to required and the value is set', () => {
-    expect(isAWSValid(getMockAWSData({ bucket: 'test-bucket' }), [AWS_KEYS.AWS_S3_BUCKET])).toBe(
+    expect(isAWSValid(getMockAWSData({ bucket: 'test-bucket' }), [AwsKeys.AWS_S3_BUCKET])).toBe(
       true,
     );
   });

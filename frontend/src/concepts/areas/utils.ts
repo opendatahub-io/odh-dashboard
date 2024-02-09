@@ -32,9 +32,9 @@ export const isAreaAvailable = (
 
   const reliantAreasState = reliantAreas
     ? reliantAreas.reduce<IsAreaAvailableStatus['reliantAreas']>(
-        (areaStates, area) => ({
+        (areaStates, currentArea) => ({
           ...areaStates,
-          [area]: isAreaAvailable(area, dashboardConfigSpec, dscStatus).status,
+          [currentArea]: isAreaAvailable(currentArea, dashboardConfigSpec, dscStatus).status,
         }),
         {},
       )

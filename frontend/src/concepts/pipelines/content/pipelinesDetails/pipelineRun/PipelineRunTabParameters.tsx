@@ -11,6 +11,7 @@ import {
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+
 type PipelineRunTabParametersProps = {
   pipelineSpec?: PipelineSpecKF;
 };
@@ -39,7 +40,7 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pip
     value: param.value,
   }));
 
-  return <>{renderDetailItems(details)}</>;
+  return <>{renderDetailItems(details, true)}</>;
 };
 
 export default PipelineRunTabParameters;

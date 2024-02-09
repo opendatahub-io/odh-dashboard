@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Title } from '@patternfly/react-core';
 import ErrorDetails from './ErrorDetails';
+
 type ErrorBoundaryProps = {
   children?: React.ReactNode;
 };

@@ -24,7 +24,7 @@ type TolerationFieldsProps = {
   onUpdate: (data: Toleration) => void;
 };
 
-export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdate }) => {
+const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdate }) => {
   const handleFieldUpdate = (field: keyof Toleration, value: unknown) => {
     onUpdate({ ...toleration, [field]: value });
   };

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PodContainer } from '~/types';
+import { PodContainer, PodContainerStatuses } from '~/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePod from '~/concepts/k8s/pods/usePod';
 import { getPodContainers } from '~/concepts/k8s/pods/utils';
@@ -17,12 +17,14 @@ const usePodContainerLogState = (
   podError: Error | undefined;
   podStatus: PodStatus | null;
   podContainers: PodContainer[];
+  podContainerStatuses: PodContainerStatuses;
   selectedContainer: PodContainer | null;
   setSelectedContainer: (podContainer: PodContainer | null) => void;
 } => {
   const { namespace } = usePipelinesAPI();
   const [pod, podLoaded, podError] = usePod(namespace, podName);
-  const { containers: podContainers } = getPodContainers(pod);
+  const { containers: podContainers, containerStatuses: podContainerStatuses } =
+    getPodContainers(pod);
   const [selectedContainer, setSelectedContainer] = React.useState<PodContainer | null>(null);
 
   React.useEffect(() => {
@@ -44,6 +46,7 @@ const usePodContainerLogState = (
     podStatus,
     podError,
     podContainers,
+    podContainerStatuses,
     selectedContainer,
     setSelectedContainer,
   };

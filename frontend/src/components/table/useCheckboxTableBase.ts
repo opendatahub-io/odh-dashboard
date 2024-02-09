@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { intersection, xor } from 'lodash';
+import { intersection, xor } from 'lodash-es';
 import type Table from './Table';
 
-type UseCheckboxTableBase<DataType> = {
+export type UseCheckboxTableBaseProps<DataType> = {
   selections: DataType[];
   tableProps: Required<Pick<React.ComponentProps<typeof Table>, 'selectAll'>>;
   toggleSelection: (selection: DataType) => void;
@@ -16,7 +16,7 @@ const useCheckboxTableBase = <T>(
   setSelectedData: React.Dispatch<React.SetStateAction<T[]>>,
   dataMappingHelper: (selectData: T) => string,
   selectAll?: { selected?: boolean; disabled?: boolean },
-): UseCheckboxTableBase<T> => {
+): UseCheckboxTableBaseProps<T> => {
   const dataIds = React.useMemo(() => data.map(dataMappingHelper), [data, dataMappingHelper]);
 
   const [disabledData, setDisabledData] = React.useState<T[]>([]);
@@ -37,18 +37,14 @@ const useCheckboxTableBase = <T>(
     }
   }, [data, dataIds, dataMappingHelper, selectedData, selectedDataIds, setSelectedData]);
 
-  const disableCheck = React.useCallback<UseCheckboxTableBase<T>['disableCheck']>(
+  const disableCheck = React.useCallback<UseCheckboxTableBaseProps<T>['disableCheck']>(
     (item, disabled) =>
       setDisabledData((prevData) =>
         disabled
-          ? prevData.some(
-              (selectedData) => dataMappingHelper(selectedData) === dataMappingHelper(item),
-            )
+          ? prevData.some((d) => dataMappingHelper(d) === dataMappingHelper(item))
             ? prevData
             : [...prevData, item]
-          : prevData.filter(
-              (selectedData) => dataMappingHelper(selectedData) !== dataMappingHelper(item),
-            ),
+          : prevData.filter((d) => dataMappingHelper(d) !== dataMappingHelper(item)),
       ),
     [dataMappingHelper],
   );
@@ -57,7 +53,7 @@ const useCheckboxTableBase = <T>(
     // Header is selected if all selections and all ids are equal
     // This will allow for checking of the header to "reset" to provided ids during a trim/filter
     const checkable = data.filter(
-      (data) => !disabledData.some((item) => dataMappingHelper(item) === dataMappingHelper(data)),
+      (d) => !disabledData.some((item) => dataMappingHelper(item) === dataMappingHelper(d)),
     );
 
     const headerSelected =
@@ -85,7 +81,9 @@ const useCheckboxTableBase = <T>(
         const id = dataMappingHelper(selection);
         setSelectedData((prevData) =>
           prevData.map(dataMappingHelper).includes(id)
-            ? prevData.filter((selectedData) => dataMappingHelper(selectedData) !== id)
+            ? prevData.filter(
+                (currentSelectedData) => dataMappingHelper(currentSelectedData) !== id,
+              )
             : [...prevData, selection],
         );
       },

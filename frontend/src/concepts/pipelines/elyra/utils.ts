@@ -7,7 +7,7 @@ import {
   ELYRA_SECRET_DATA_TYPE,
   ELYRA_SECRET_NAME,
 } from '~/concepts/pipelines/elyra/const';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
@@ -89,10 +89,10 @@ export const generateElyraSecret = (
         [ELYRA_SECRET_DATA_ENDPOINT]: `${location.origin}/pipelineRuns/${namespace}/pipelineRun/view/`,
         [ELYRA_SECRET_DATA_TYPE]: 'KUBERNETES_SECRET',
         cos_secret: dataConnectionName,
-        cos_endpoint: atob(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
-        cos_bucket: atob(dataConnectionData[AWS_KEYS.AWS_S3_BUCKET]),
-        cos_username: atob(dataConnectionData[AWS_KEYS.ACCESS_KEY_ID]),
-        cos_password: atob(dataConnectionData[AWS_KEYS.SECRET_ACCESS_KEY]),
+        cos_endpoint: atob(dataConnectionData[AwsKeys.S3_ENDPOINT]),
+        cos_bucket: atob(dataConnectionData[AwsKeys.AWS_S3_BUCKET]),
+        cos_username: atob(dataConnectionData[AwsKeys.ACCESS_KEY_ID]),
+        cos_password: atob(dataConnectionData[AwsKeys.SECRET_ACCESS_KEY]),
         runtime_type: 'KUBEFLOW_PIPELINES',
       },
       schema_name: 'kfp',

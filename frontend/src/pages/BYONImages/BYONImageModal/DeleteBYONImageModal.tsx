@@ -8,7 +8,7 @@ export type DeleteBYONImageModalProps = {
   onClose: (deleted: boolean) => void;
 };
 
-export const DeleteBYONImageModal: React.FC<DeleteBYONImageModalProps> = ({ image, onClose }) => {
+const DeleteBYONImageModal: React.FC<DeleteBYONImageModalProps> = ({ image, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 

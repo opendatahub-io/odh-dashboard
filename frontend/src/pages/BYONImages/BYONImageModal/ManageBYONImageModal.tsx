@@ -32,7 +32,7 @@ export enum DisplayedContentTab {
   PACKAGES,
 }
 
-export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
+const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
   existingImage,
   isOpen,
   onClose,

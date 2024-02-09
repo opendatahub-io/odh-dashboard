@@ -4,7 +4,7 @@ import { NotebookDataState } from './types';
 import { hasStopAnnotation } from './utils';
 
 const checkPodContainersReady = (pod: PodKind): boolean => {
-  const containerStatuses = pod.status.containerStatuses || [];
+  const containerStatuses = pod.status?.containerStatuses || [];
   if (containerStatuses.length === 0) {
     return false;
   }

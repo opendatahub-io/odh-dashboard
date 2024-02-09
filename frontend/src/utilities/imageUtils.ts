@@ -1,7 +1,7 @@
 import compareVersions from 'compare-versions';
 import {
   BuildStatus,
-  BUILD_PHASE,
+  BuildPhase,
   ImageInfo,
   ImageSoftwareType,
   ImageTag,
@@ -10,12 +10,12 @@ import {
 } from '~/types';
 
 const PENDING_PHASES = [
-  BUILD_PHASE.new,
-  BUILD_PHASE.pending,
-  BUILD_PHASE.running,
-  BUILD_PHASE.cancelled,
+  BuildPhase.new,
+  BuildPhase.pending,
+  BuildPhase.running,
+  BuildPhase.cancelled,
 ];
-const FAILED_PHASES = [BUILD_PHASE.error, BUILD_PHASE.failed];
+const FAILED_PHASES = [BuildPhase.error, BuildPhase.failed];
 
 export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => {
   // Recommended tags should be first
@@ -104,7 +104,7 @@ export const getTagForImage = (
 
   if (image.tags.length > 1) {
     if (image.name === selectedImage && selectedTag) {
-      tag = image.tags.find((tag) => tag.name === selectedTag);
+      tag = image.tags.find((currentTag) => currentTag.name === selectedTag);
     } else {
       tag = getDefaultTag(buildStatuses, image);
     }
@@ -144,7 +144,7 @@ export const getImageTagByContainer = (images: ImageInfo[], container?: PodConta
   if (!imageTag || imageTag.length < 2) {
     return { image: undefined, tag: undefined };
   }
-  const image = images.find((image) => image.name === imageTag[0]);
-  const tag = image?.tags.find((tag) => tag.name === imageTag[1]);
+  const image = images.find((currentImage) => currentImage.name === imageTag[0]);
+  const tag = image?.tags.find((currentTag) => currentTag.name === imageTag[1]);
   return { image, tag };
 };

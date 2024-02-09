@@ -36,13 +36,13 @@ export const getNotebookPVCMountPathMap = (
   return notebook.spec.template.spec.containers.reduce(
     (acc, container) => ({
       ...acc,
-      ...(container.volumeMounts || []).reduce((acc, volumeMount) => {
+      ...(container.volumeMounts || []).reduce((innerAcc, volumeMount) => {
         const claimName = pvcVolumeNames[volumeMount.name];
         if (!claimName) {
-          return acc;
+          return innerAcc;
         }
 
-        return { ...acc, [claimName]: relativeMountPath(volumeMount.mountPath) };
+        return { ...innerAcc, [claimName]: relativeMountPath(volumeMount.mountPath) };
       }, {}),
     }),
     {},

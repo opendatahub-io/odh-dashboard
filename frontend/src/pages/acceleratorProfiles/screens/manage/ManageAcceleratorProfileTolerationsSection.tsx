@@ -41,7 +41,7 @@ export const ManageAcceleratorProfileTolerationsSection: React.FC<
       >
         <TolerationsTable
           tolerations={tolerations}
-          onUpdate={(tolerations) => setTolerations(tolerations)}
+          onUpdate={(newTolerations) => setTolerations(newTolerations)}
         />
       </FormSection>
       <ManageTolerationModal

@@ -6,7 +6,7 @@ import {
   EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import WrenchIcon from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
 import NewProjectButton from '~/pages/projects/screens/projects/NewProjectButton';
 

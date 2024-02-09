@@ -5,7 +5,7 @@ import {
   EmptyStateIcon,
   EmptyStateHeader,
 } from '@patternfly/react-core';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 
 const PipelineTopologyEmpty: React.FC = () => (
   <EmptyState>

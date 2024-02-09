@@ -33,6 +33,11 @@ class PipelinesGlobal {
   selectProjectByName(name: string) {
     this.findProjectSelect().findDropdownItem(name).click();
   }
+
+  findDeleteButton() {
+    cy.findByTestId('global-pipelines-kebab-actions').click();
+    return cy.findAllByRole('menuitem').get('a').contains('Delete selected');
+  }
 }
 
 export const pipelinesGlobal = new PipelinesGlobal();

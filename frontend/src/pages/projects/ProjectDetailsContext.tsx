@@ -161,7 +161,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
       <InvalidProject
         namespace={namespace}
         title="Problem loading project details"
-        getRedirectPath={(namespace) => `/projects/${namespace}`}
+        getRedirectPath={(ns) => `/projects/${ns}`}
       />
     );
   }

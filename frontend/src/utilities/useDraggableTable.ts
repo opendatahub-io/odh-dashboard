@@ -31,12 +31,12 @@ const useDraggableTable = (
   const onDragStart: TrProps['onDragStart'] = (assignableEvent) => {
     assignableEvent.dataTransfer.effectAllowed = 'move';
     assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
-    const draggedItemId = assignableEvent.currentTarget.id;
+    const currentDraggedItemId = assignableEvent.currentTarget.id;
 
     assignableEvent.currentTarget.classList.add(styles.modifiers.ghostRow);
     assignableEvent.currentTarget.setAttribute('aria-pressed', 'true');
 
-    setDraggedItemId(draggedItemId);
+    setDraggedItemId(currentDraggedItemId);
     setIsDragging(true);
   };
 
@@ -51,13 +51,13 @@ const useDraggableTable = (
     return arr;
   };
 
-  const move = (itemOrder: string[]) => {
+  const move = (currentItemOrder: string[]) => {
     if (!bodyRef.current) {
       return;
     }
     const ulNode = bodyRef.current;
     const nodes = Array.from(ulNode.children);
-    if (nodes.map((node) => node.id).every((id, i) => id === itemOrder[i])) {
+    if (nodes.map((node) => node.id).every((id, i) => id === currentItemOrder[i])) {
       return;
     }
     while (ulNode.firstChild) {
@@ -66,7 +66,7 @@ const useDraggableTable = (
       }
     }
 
-    itemOrder.forEach((id) => {
+    currentItemOrder.forEach((id) => {
       const node = nodes.find((n) => n.id === id);
       if (node) {
         ulNode.appendChild(node);

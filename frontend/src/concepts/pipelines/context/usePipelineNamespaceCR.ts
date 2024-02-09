@@ -13,9 +13,9 @@ export const dspaLoaded = ([state, loaded]: FetchState<State>): boolean =>
 
 export const hasServerTimedOut = (
   [state, loaded]: FetchState<State>,
-  dspaLoaded: boolean,
+  isDspaLoaded: boolean,
 ): boolean => {
-  if (!state || !loaded || dspaLoaded) {
+  if (!state || !loaded || isDspaLoaded) {
     return false;
   }
 

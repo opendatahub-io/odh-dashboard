@@ -7,12 +7,14 @@ const DashboardLogViewer: React.FC<{
   toolbar: JSX.Element | boolean;
   footer: JSX.Element | false;
   onScroll: React.ComponentProps<typeof LogViewer>['onScroll'];
-}> = ({ data, logViewerRef, toolbar, footer, onScroll }) => (
+  height?: number | string;
+}> = ({ data, logViewerRef, toolbar, footer, onScroll, height = '100%' }) => (
   <LogViewer
+    data-testid="logs"
     hasLineNumbers={false}
     data={data}
     innerRef={logViewerRef}
-    height="100%"
+    height={height}
     toolbar={toolbar}
     footer={footer}
     onScroll={onScroll}

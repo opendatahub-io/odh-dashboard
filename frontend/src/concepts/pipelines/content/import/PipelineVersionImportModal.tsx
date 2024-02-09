@@ -37,8 +37,11 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
 
   const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents || !pipeline;
 
-  const onBeforeClose = (pipelineVersion?: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => {
-    onClose(pipelineVersion, pipeline);
+  const onBeforeClose = (
+    pipelineVersion?: PipelineVersionKFv2,
+    currentPipeline?: PipelineKFv2 | null,
+  ) => {
+    onClose(pipelineVersion, currentPipeline);
     setImporting(false);
     setError(undefined);
     resetData();
@@ -86,9 +89,9 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
             <FormGroup label="Pipeline" isRequired fieldId="pipeline-selection">
               <PipelineSelector
                 selection={pipelineName}
-                onSelect={(pipeline) => {
-                  setData('pipeline', pipeline);
-                  setData('name', generatePipelineVersionName(pipeline));
+                onSelect={(newPipeline) => {
+                  setData('pipeline', newPipeline);
+                  setData('name', generatePipelineVersionName(newPipeline));
                 }}
               />
             </FormGroup>

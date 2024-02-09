@@ -14,10 +14,10 @@ const useTopologyController = (graphId: string): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   React.useEffect(() => {
-    const controller = new Visualization();
-    controller.setFitToScreenOnLayout(true);
-    controller.registerComponentFactory(pipelineComponentFactory);
-    controller.registerLayoutFactory(
+    const visualizationController = new Visualization();
+    visualizationController.setFitToScreenOnLayout(true);
+    visualizationController.registerComponentFactory(pipelineComponentFactory);
+    visualizationController.registerLayoutFactory(
       (type: string, graph: Graph): Layout | undefined =>
         new PipelineDagreLayout(graph, {
           nodesep: PIPELINE_NODE_SEPARATION_VERTICAL,
@@ -25,7 +25,7 @@ const useTopologyController = (graphId: string): Visualization | null => {
           ignoreGroups: true,
         }),
     );
-    controller.fromModel(
+    visualizationController.fromModel(
       {
         graph: {
           id: graphId,
@@ -37,11 +37,11 @@ const useTopologyController = (graphId: string): Visualization | null => {
       },
       false,
     );
-    controller.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
-      controller.getGraph().fit(75);
+    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, () => {
+      visualizationController.getGraph().fit(75);
     });
 
-    setController(controller);
+    setController(visualizationController);
   }, [graphId]);
 
   return controller;

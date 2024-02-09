@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { TableBase, getTableColumnSort, useCheckboxTableBase } from '~/components/table';
+import { TableBase, getTableColumnSort } from '~/components/table';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineVersionTableRow from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';
 import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import usePipelineVersionsCheckboxTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsCheckboxTable';
 
 type PipelineVersionTableProps = {
   pipeline: PipelineKFv2;
@@ -41,20 +42,13 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
     sortField,
     loaded: !loading,
   });
-  const { isPipelineChecked, versionDataSelector } = React.useContext(PipelineAndVersionContext);
+  const { isPipelineChecked } = React.useContext(PipelineAndVersionContext);
   const pipelineChecked = isPipelineChecked(pipelineId);
-  const { selectedVersions, setSelectedVersions } = versionDataSelector(pipeline);
   const {
     tableProps: checkboxTableProps,
     isSelected,
     toggleSelection,
-  } = useCheckboxTableBase<PipelineVersionKFv2>(
-    versions,
-    selectedVersions,
-    setSelectedVersions,
-    React.useCallback((version) => version.pipeline_version_id, []),
-    { disabled: pipelineChecked, ...(pipelineChecked ? { selected: true } : {}) },
-  );
+  } = usePipelineVersionsCheckboxTable(pipeline, versions);
 
   return (
     <TableBase

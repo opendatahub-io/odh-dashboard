@@ -10,7 +10,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 const GlobalNoPipelines: React.FC = () => (
-  <EmptyState>
+  <EmptyState data-testid="global-no-pipelines">
     <EmptyStateHeader
       titleText="No pipelines yet"
       icon={<EmptyStateIcon icon={PlusCircleIcon} />}

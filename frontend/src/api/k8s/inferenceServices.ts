@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -23,9 +23,8 @@ export const assembleInferenceService = (
   isModelMesh?: boolean,
   inferenceService?: InferenceServiceKind,
   acceleratorState?: AcceleratorProfileState,
-  replicaCount?: number,
 ): InferenceServiceKind => {
-  const { storage, format, servingRuntimeName, project } = data;
+  const { storage, format, servingRuntimeName, project, maxReplicas, minReplicas } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
   const { path, dataConnection } = storage;
   const dataConnectionKey = secretKey || dataConnection;
@@ -50,8 +49,8 @@ export const assembleInferenceService = (
         },
         spec: {
           predictor: {
-            ...(replicaCount && { minReplicas: replicaCount }),
-            ...(replicaCount && { maxReplicas: replicaCount }),
+            ...(!isModelMesh && { minReplicas }),
+            ...(!isModelMesh && { maxReplicas }),
             model: {
               modelFormat: {
                 name: format.name,
@@ -88,8 +87,8 @@ export const assembleInferenceService = (
         },
         spec: {
           predictor: {
-            ...(replicaCount && { minReplicas: replicaCount }),
-            ...(replicaCount && { maxReplicas: replicaCount }),
+            ...(!isModelMesh && { minReplicas }),
+            ...(!isModelMesh && { maxReplicas }),
             model: {
               modelFormat: {
                 name: format.name,
@@ -119,26 +118,33 @@ export const assembleInferenceService = (
 export const listInferenceService = (
   namespace?: string,
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind[]> => {
   const queryOptions = {
     ...(namespace && { ns: namespace }),
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
-  return k8sListResource<InferenceServiceKind>({
-    model: InferenceServiceModel,
-    queryOptions,
-  }).then((listResource) => listResource.items);
+  return k8sListResource<InferenceServiceKind>(
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        queryOptions,
+      },
+      opts,
+    ),
+  ).then((listResource) => listResource.items);
 };
 
 export const listScopedInferenceService = (
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind[]> =>
-  getModelServingProjects().then((projects) =>
+  getModelServingProjects(opts).then((projects) =>
     Promise.all(
-      projects.map((project) => listInferenceService(project.metadata.name, labelSelector)),
-    ).then((listInferenceService) =>
+      projects.map((project) => listInferenceService(project.metadata.name, labelSelector, opts)),
+    ).then((fetchedListInferenceService) =>
       _.flatten(
-        listInferenceService.map((projectInferenceServices) =>
+        fetchedListInferenceService.map((projectInferenceServices) =>
           _.uniqBy(projectInferenceServices, (is) => is.metadata.name),
         ),
       ),
@@ -148,28 +154,34 @@ export const listScopedInferenceService = (
 export const getInferenceServiceContext = (
   namespace?: string,
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind[]> => {
   if (namespace) {
-    return listInferenceService(namespace, labelSelector);
+    return listInferenceService(namespace, labelSelector, opts);
   }
-  return listScopedInferenceService(labelSelector);
+  return listScopedInferenceService(labelSelector, opts);
 };
 
 export const getInferenceService = (
   name: string,
   namespace: string,
+  opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind> =>
-  k8sGetResource<InferenceServiceKind>({
-    model: InferenceServiceModel,
-    queryOptions: { name, ns: namespace },
-  });
+  k8sGetResource<InferenceServiceKind>(
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
+  );
 
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   isModelMesh?: boolean,
   acceleratorState?: AcceleratorProfileState,
-  replicaCount?: number,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -178,7 +190,6 @@ export const createInferenceService = (
     isModelMesh,
     undefined,
     acceleratorState,
-    replicaCount,
   );
   return k8sCreateResource<InferenceServiceKind>({
     model: InferenceServiceModel,
@@ -192,7 +203,6 @@ export const updateInferenceService = (
   secretKey?: string,
   isModelMesh?: boolean,
   acceleratorState?: AcceleratorProfileState,
-  replicaCount?: number,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -201,7 +211,6 @@ export const updateInferenceService = (
     isModelMesh,
     existingData,
     acceleratorState,
-    replicaCount,
   );
 
   return k8sUpdateResource<InferenceServiceKind>({
@@ -216,8 +225,11 @@ export const deleteInferenceService = (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<InferenceServiceKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: InferenceServiceModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );

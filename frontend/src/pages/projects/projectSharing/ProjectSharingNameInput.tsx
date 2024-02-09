@@ -30,7 +30,7 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
         type="text"
         value={value}
         placeholder={`Type ${type === ProjectSharingRBType.GROUP ? 'group name' : 'username'}`}
-        onChange={(e, value) => onChange(value)}
+        onChange={(e, newValue) => onChange(newValue)}
       />
     );
   }

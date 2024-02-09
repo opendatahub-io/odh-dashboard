@@ -218,6 +218,7 @@ describe('getSecretsByLabel', () => {
     k8sListResourceMock.mockResolvedValue(secretMock);
     const result = await getSecretsByLabel('label', 'secretName');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
       queryOptions: { ns: 'secretName', queryParams: { labelSelector: 'label' } },
     });
@@ -230,6 +231,7 @@ describe('getSecretsByLabel', () => {
     await expect(getSecretsByLabel('label', 'secretName')).rejects.toThrow('error1');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
       queryOptions: { ns: 'secretName', queryParams: { labelSelector: 'label' } },
     });

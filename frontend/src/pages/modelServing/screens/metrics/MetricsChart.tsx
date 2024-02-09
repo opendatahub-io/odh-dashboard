@@ -10,6 +10,7 @@ import {
   Title,
   Toolbar,
   ToolbarContent,
+  getResizeObserver,
 } from '@patternfly/react-core';
 import {
   Chart,
@@ -25,7 +26,6 @@ import {
   ChartVoronoiContainer,
   createContainer,
 } from '@patternfly/react-charts';
-import { getResizeObserver } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
@@ -207,7 +207,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
             >
               <ChartAxis
                 tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
-                tickValues={[]}
                 domain={{
                   x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
                 }}

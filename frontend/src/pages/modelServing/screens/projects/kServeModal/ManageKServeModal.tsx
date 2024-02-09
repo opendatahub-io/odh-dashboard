@@ -17,18 +17,18 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '~/pages/modelServing/screens/types';
-import ServingRuntimeReplicaSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceNameSection';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
+import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 
 type ManageKServeModalProps = {
   isOpen: boolean;
@@ -95,7 +95,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createDataInferenceService.storage.dataConnection !== '';
     }
-    return isAWSValid(createDataInferenceService.storage.awsData, [AWS_KEYS.AWS_S3_BUCKET]);
+    return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
 
   const isDisabledInferenceService =
@@ -128,8 +128,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     resetAcceleratorProfileData();
   };
 
-  const setErrorModal = (error: Error) => {
-    setError(error);
+  const setErrorModal = (e: Error) => {
+    setError(e);
     setActionInProgress(false);
   };
 
@@ -145,8 +145,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     const servingRuntimeName =
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
-
-    const replicaCount = createDataServingRuntime.numReplicas;
 
     submitServingRuntimeResources(
       servingRuntimeSelected,
@@ -168,7 +166,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           servingRuntimeName,
           false,
           acceleratorProfileState,
-          replicaCount,
         ),
       )
       .then(() => onSuccess())
@@ -239,9 +236,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             />
           </StackItem>
           <StackItem>
-            <ServingRuntimeReplicaSection
-              data={createDataServingRuntime}
-              setData={setCreateDataServingRuntime}
+            <KServeAutoscalerReplicaSection
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
               infoContent="Consider network traffic and failover scenarios when specifying the number of model
                 server replicas."
             />

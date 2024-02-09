@@ -24,14 +24,14 @@ const DateRange: React.FC<DateRangeProps> = ({ value, onChange }) => {
         <DatePicker
           placeholder="Start date"
           value={startDate ?? undefined}
-          onChange={(e, value) => handleChange(true, value)}
+          onChange={(e, newValue) => handleChange(true, newValue)}
         />
       </SplitItem>
       <SplitItem>
         <DatePicker
           placeholder="End date"
           value={endDate ?? undefined}
-          onChange={(e, value) => handleChange(false, value)}
+          onChange={(e, newValue) => handleChange(false, newValue)}
         />
       </SplitItem>
     </Split>

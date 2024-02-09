@@ -38,7 +38,7 @@ export const createConfigMap = (
   opts?: K8sAPIOptions,
 ): Promise<ConfigMapKind> =>
   k8sCreateResource<ConfigMapKind>(
-    applyK8sAPIOptions(opts, { model: ConfigMapModel, resource: data }),
+    applyK8sAPIOptions({ model: ConfigMapModel, resource: data }, opts),
   );
 
 export const replaceConfigMap = (
@@ -46,7 +46,7 @@ export const replaceConfigMap = (
   opts?: K8sAPIOptions,
 ): Promise<ConfigMapKind> =>
   k8sUpdateResource<ConfigMapKind>(
-    applyK8sAPIOptions(opts, { model: ConfigMapModel, resource: data }),
+    applyK8sAPIOptions({ model: ConfigMapModel, resource: data }, opts),
   );
 
 export const deleteConfigMap = (
@@ -55,8 +55,11 @@ export const deleteConfigMap = (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<ConfigMapKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: ConfigMapModel,
-      queryOptions: { name: configMapName, ns: projectName },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ConfigMapModel,
+        queryOptions: { name: configMapName, ns: projectName },
+      },
+      opts,
+    ),
   );

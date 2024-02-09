@@ -55,7 +55,7 @@ export const assembleISSecretBody = (
 ): [Record<string, string>, string] => {
   const secretKey = `secret-${genRandomChars()}`;
   delete assignableData.path;
-  assignableData['type'] = 's3';
+  assignableData.type = 's3';
   return [
     {
       [secretKey]: JSON.stringify(assignableData),
@@ -119,32 +119,50 @@ export const getSecret = (
   opts?: K8sAPIOptions,
 ): Promise<SecretKind> =>
   k8sGetResource<SecretKind>(
-    applyK8sAPIOptions(opts, {
-      model: SecretModel,
-      queryOptions: { name: secretName, ns: projectName },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        queryOptions: { name: secretName, ns: projectName },
+      },
+      opts,
+    ),
   );
 
-export const getSecretsByLabel = (label: string, namespace: string): Promise<SecretKind[]> =>
-  k8sListResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { ns: namespace, queryParams: { labelSelector: label } },
-  }).then((result) => result.items);
+export const getSecretsByLabel = (
+  label: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<SecretKind[]> =>
+  k8sListResource<SecretKind>(
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        queryOptions: { ns: namespace, queryParams: { labelSelector: label } },
+      },
+      opts,
+    ),
+  ).then((result) => result.items);
 
 export const createSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> =>
   k8sCreateResource<SecretKind>(
-    applyK8sAPIOptions(opts, {
-      model: SecretModel,
-      resource: data,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        resource: data,
+      },
+      opts,
+    ),
   );
 
 export const replaceSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> =>
   k8sUpdateResource<SecretKind>(
-    applyK8sAPIOptions(opts, {
-      model: SecretModel,
-      resource: data,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        resource: data,
+      },
+      opts,
+    ),
   );
 
 export const deleteSecret = (
@@ -153,8 +171,11 @@ export const deleteSecret = (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<SecretKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: SecretModel,
-      queryOptions: { name: secretName, ns: projectName },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        queryOptions: { name: secretName, ns: projectName },
+      },
+      opts,
+    ),
   );

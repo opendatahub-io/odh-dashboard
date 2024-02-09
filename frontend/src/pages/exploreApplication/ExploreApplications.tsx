@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import {
   Drawer,
   DrawerContent,
@@ -100,10 +100,12 @@ const ExploreApplications: React.FC = () => {
   const isEmpty = components.length === 0;
 
   const updateSelection = React.useCallback(
-    (selectedId?: string | null): void => {
-      const selection = components.find((c) => c.metadata.name && c.metadata.name === selectedId);
-      if (selectedId && selection) {
-        setQueryArgument(navigate, 'selectId', selectedId);
+    (currentSelectedId?: string | null): void => {
+      const selection = components.find(
+        (c) => c.metadata.name && c.metadata.name === currentSelectedId,
+      );
+      if (currentSelectedId && selection) {
+        setQueryArgument(navigate, 'selectId', currentSelectedId);
         setSelectedComponent(selection);
         return;
       }

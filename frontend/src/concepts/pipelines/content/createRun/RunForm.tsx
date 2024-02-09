@@ -90,7 +90,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => {
       <ParamsSection
         runParams={data.params}
         versionId={selectedVersion?.pipeline_version_id}
-        onChange={(params) => onValueChange('params', params)}
+        onChange={(p) => onValueChange('params', p)}
       />
     </Form>
   );
