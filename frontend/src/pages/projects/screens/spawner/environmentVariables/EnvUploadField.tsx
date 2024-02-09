@@ -76,7 +76,7 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
                 );
               }
             }
-          } catch (e) {
+          } catch (err) {
             setError(
               `Cannot parse this file, please make sure this is a valid YAML file with only one ${envVarType} defined.`,
             );

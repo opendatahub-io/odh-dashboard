@@ -22,7 +22,9 @@ const GlobalPipelineRunsTab: React.FC = () => {
       activeKey={tab}
       onSelect={(_event, tabId) => {
         setTab(tabId as PipelineRunType);
-        runTypeSearchParam && setSearchParams({});
+        if (runTypeSearchParam) {
+          setSearchParams({});
+        }
       }}
       aria-label="Pipeline run page tabs"
       role="region"

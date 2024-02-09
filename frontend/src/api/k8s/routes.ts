@@ -9,8 +9,11 @@ export const getRoute = (
   opts?: K8sAPIOptions,
 ): Promise<RouteKind> =>
   k8sGetResource<RouteKind>(
-    applyK8sAPIOptions(opts, {
-      model: RouteModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: RouteModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );

@@ -155,10 +155,13 @@ export const listServingRuntimes = (
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
   return k8sListResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      queryOptions,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        queryOptions,
+      },
+      opts,
+    ),
   ).then((listResource) => listResource.items);
 };
 
@@ -169,8 +172,8 @@ export const listScopedServingRuntimes = (
   getModelServingProjects(opts).then((projects) =>
     Promise.all(
       projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector, opts)),
-    ).then((listServingRuntimes) =>
-      _.uniqBy(_.flatten(listServingRuntimes), (sr) => sr.metadata.name),
+    ).then((fetchedListServingRuntimes) =>
+      _.uniqBy(_.flatten(fetchedListServingRuntimes), (sr) => sr.metadata.name),
     ),
   );
 
@@ -191,10 +194,13 @@ export const getServingRuntime = (
   opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> =>
   k8sGetResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );
 
 export const updateServingRuntime = (options: {
@@ -225,10 +231,13 @@ export const updateServingRuntime = (options: {
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      resource: updatedServingRuntime,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        resource: updatedServingRuntime,
+      },
+      opts,
+    ),
   );
 };
 
@@ -261,10 +270,13 @@ export const createServingRuntime = (options: {
   );
 
   return k8sCreateResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      resource: assembledServingRuntime,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        resource: assembledServingRuntime,
+      },
+      opts,
+    ),
   );
 };
 
@@ -274,8 +286,11 @@ export const deleteServingRuntime = (
   opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> =>
   k8sDeleteResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );

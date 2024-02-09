@@ -37,7 +37,7 @@ export const FieldListField = ({
         isRequired={options.isRequired}
         value={value}
         placeholder={options.placeholder}
-        onChange={(e, value) => onChange(options.key, value)}
+        onChange={(e, newValue) => onChange(options.key, newValue)}
       />
     </FormGroup>
   );

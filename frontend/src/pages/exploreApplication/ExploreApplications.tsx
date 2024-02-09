@@ -100,10 +100,12 @@ const ExploreApplications: React.FC = () => {
   const isEmpty = components.length === 0;
 
   const updateSelection = React.useCallback(
-    (selectedId?: string | null): void => {
-      const selection = components.find((c) => c.metadata.name && c.metadata.name === selectedId);
-      if (selectedId && selection) {
-        setQueryArgument(navigate, 'selectId', selectedId);
+    (currentSelectedId?: string | null): void => {
+      const selection = components.find(
+        (c) => c.metadata.name && c.metadata.name === currentSelectedId,
+      );
+      if (currentSelectedId && selection) {
+        setQueryArgument(navigate, 'selectId', currentSelectedId);
         setSelectedComponent(selection);
         return;
       }

@@ -80,12 +80,12 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             {...props}
             value={value ?? ''}
             aria-label="Select a status"
-            options={Object.values(PipelineRunStatusesKF).map((value) => ({
-              key: value,
-              label: value,
+            options={Object.values(PipelineRunStatusesKF).map((status) => ({
+              key: status,
+              label: status,
             }))}
-            onChange={(value) => {
-              onChange(value);
+            onChange={(newValue) => {
+              onChange(newValue);
             }}
           />
         ),

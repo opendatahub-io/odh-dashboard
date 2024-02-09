@@ -169,9 +169,9 @@ export const getServingRuntimeSize = (
 ): ServingRuntimeSize => {
   const existingResources = servingRuntime?.spec.containers[0]?.resources || sizes[0].resources;
   const size = sizes.find(
-    (size) =>
-      isCpuLimitEqual(size.resources.limits?.cpu, existingResources.limits?.cpu) &&
-      isMemoryLimitEqual(size.resources.limits?.memory, existingResources.limits?.memory),
+    (currentSize) =>
+      isCpuLimitEqual(currentSize.resources.limits?.cpu, existingResources.limits?.cpu) &&
+      isMemoryLimitEqual(currentSize.resources.limits?.memory, existingResources.limits?.memory),
   );
   return (
     size || {

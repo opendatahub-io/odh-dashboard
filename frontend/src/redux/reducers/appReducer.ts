@@ -5,7 +5,7 @@ const initialState: AppState = {
   notifications: [],
   forceComponentsUpdate: 0,
 };
-
+//eslint-disable-next-line @typescript-eslint/default-param-last
 const appReducer = (state: AppState = initialState, action: GetUserAction): AppState => {
   let index;
   switch (action.type) {

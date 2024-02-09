@@ -25,9 +25,11 @@ class ModelSergingSettings extends ClusterSettings {
   findSinglePlatformCheckbox() {
     return cy.get('[data-id="single-model-serving-platform-enabled-checkbox"]');
   }
+
   findMultiPlatformCheckbox() {
     return cy.get('[data-id="multi-model-serving-platform-enabled-checkbox"]');
   }
+
   findAlert() {
     return cy.get('[data-id="serving-platform-warning-alert"]');
   }

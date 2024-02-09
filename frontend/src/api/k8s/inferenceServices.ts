@@ -125,10 +125,13 @@ export const listInferenceService = (
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
   return k8sListResource<InferenceServiceKind>(
-    applyK8sAPIOptions(opts, {
-      model: InferenceServiceModel,
-      queryOptions,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        queryOptions,
+      },
+      opts,
+    ),
   ).then((listResource) => listResource.items);
 };
 
@@ -139,9 +142,9 @@ export const listScopedInferenceService = (
   getModelServingProjects(opts).then((projects) =>
     Promise.all(
       projects.map((project) => listInferenceService(project.metadata.name, labelSelector, opts)),
-    ).then((listInferenceService) =>
+    ).then((fetchedListInferenceService) =>
       _.flatten(
-        listInferenceService.map((projectInferenceServices) =>
+        fetchedListInferenceService.map((projectInferenceServices) =>
           _.uniqBy(projectInferenceServices, (is) => is.metadata.name),
         ),
       ),
@@ -165,10 +168,13 @@ export const getInferenceService = (
   opts?: K8sAPIOptions,
 ): Promise<InferenceServiceKind> =>
   k8sGetResource<InferenceServiceKind>(
-    applyK8sAPIOptions(opts, {
-      model: InferenceServiceModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );
 
 export const createInferenceService = (
@@ -219,8 +225,11 @@ export const deleteInferenceService = (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<InferenceServiceKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: InferenceServiceModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: InferenceServiceModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );

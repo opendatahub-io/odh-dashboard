@@ -420,7 +420,7 @@ export const submitServingRuntimeResources = async (
     await Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises(true));
     if (!editInfo && !currentProject) {
       // This should be impossible to hit, currentProject just comes from React context that could be undefined
-      return Promise.reject(new Error('Cannot update project with no project selected'));
+      return await Promise.reject(new Error('Cannot update project with no project selected'));
     }
     if (currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined) {
       await addSupportServingPlatformProject(
@@ -442,5 +442,5 @@ export const filterOutConnectionsWithoutBucket = (
   connections: DataConnection[],
 ): DataConnection[] =>
   connections.filter(
-    (obj) => isDataConnectionAWS(obj) && obj.data.data['AWS_S3_BUCKET'].trim() !== '',
+    (obj) => isDataConnectionAWS(obj) && obj.data.data.AWS_S3_BUCKET.trim() !== '',
   );

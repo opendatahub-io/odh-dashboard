@@ -142,27 +142,35 @@ class ConfigureBiasMetricModal extends Modal {
   findMetricNameInput() {
     return this.find().find('#metric-name');
   }
+
   findProtectedAttributeInput() {
     return this.find().find('#protected-attribute');
   }
+
   findMetricTypeSelect() {
     return this.find().find('#metric-type');
   }
+
   findPrivilegedValueInput() {
     return this.find().find('#privileged-value');
   }
+
   findUnprivilegedValueInput() {
     return this.find().find('#unprivileged-value');
   }
+
   findOutputInput() {
     return this.find().find('#output');
   }
+
   findOutputValueInput() {
     return this.find().find('#output-value');
   }
+
   findViolationThresholdInput() {
     return this.find().find('#violation-threshold');
   }
+
   findMetricBatchSizeInput() {
     return this.find().find('#metric-batch-size');
   }

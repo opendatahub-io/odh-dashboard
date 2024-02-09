@@ -80,11 +80,11 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
       {isVersionImportModalOpen && (
         <PipelineVersionImportModal
           existingPipeline={pipeline}
-          onClose={(pipelineVersion) => {
+          onClose={(currentPipelineVersion) => {
             setIsVersionImportModalOpen(false);
-            if (pipelineVersion) {
+            if (currentPipelineVersion) {
               refreshAllAPI();
-              navigate(`/pipelines/${namespace}/pipeline/view/${pipelineVersion.id}`);
+              navigate(`/pipelines/${namespace}/pipeline/view/${currentPipelineVersion.id}`);
             }
           }}
         />

@@ -29,7 +29,9 @@ export const getInferenceServiceProjectDisplayName = (
 };
 
 export const checkModelStatus = (model: PodKind): ModelStatus => {
-  const modelStatus = model.status.conditions.some((model) => model.reason === 'Unschedulable');
+  const modelStatus = model.status.conditions.some(
+    (currentModel) => currentModel.reason === 'Unschedulable',
+  );
   return {
     failedToSchedule: model.status.phase === 'Pending' && modelStatus,
   };

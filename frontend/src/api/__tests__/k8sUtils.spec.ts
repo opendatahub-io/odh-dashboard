@@ -64,15 +64,15 @@ describe('addOwnerReference', () => {
 
   it('should return owner reference when owner reference uid is equal to owner uid', () => {
     const owner = mockProjectK8sResource({});
-    const resource = mockSecretK8sResource({ uid: 'test2' });
-    resource.metadata.ownerReferences = [{ apiVersion: '', kind: '', name: '', uid: 'test2' }];
-    const target = addOwnerReference(resource, owner);
-    expect(target).not.toBe(resource);
+    const resourceMock = mockSecretK8sResource({ uid: 'test2' });
+    resourceMock.metadata.ownerReferences = [{ apiVersion: '', kind: '', name: '', uid: 'test2' }];
+    const target = addOwnerReference(resourceMock, owner);
+    expect(target).not.toBe(resourceMock);
     expect(target).toStrictEqual({
-      ...resource,
+      ...resourceMock,
       metadata: {
-        ...resource.metadata,
-        ownerReferences: resource.metadata.ownerReferences,
+        ...resourceMock.metadata,
+        ownerReferences: resourceMock.metadata.ownerReferences,
       },
     });
   });

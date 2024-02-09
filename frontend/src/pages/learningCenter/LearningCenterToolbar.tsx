@@ -207,7 +207,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
           <SearchInput
             placeholder="Search"
             value={searchInputText}
-            onChange={(_, value) => handleTextChange(value)}
+            onChange={(e, value) => handleTextChange(value)}
             onClear={() => handleTextChange('')}
           />
         </ToolbarItem>

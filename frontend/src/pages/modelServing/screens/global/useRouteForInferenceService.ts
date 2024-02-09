@@ -33,8 +33,8 @@ const useRouteForInferenceService = (
       return;
     }
     getRoute(routeName, routeNamespace)
-      .then((route) => {
-        setRoute(`https://${route.spec.host}${route.spec.path}`);
+      .then((fetchedRoute) => {
+        setRoute(`https://${fetchedRoute.spec.host}${fetchedRoute.spec.path}`);
         setLoaded(true);
       })
       .catch((e) => {

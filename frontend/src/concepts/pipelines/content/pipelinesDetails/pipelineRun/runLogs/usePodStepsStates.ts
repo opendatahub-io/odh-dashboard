@@ -15,10 +15,11 @@ const usePodStepsStates = (
   const [allpodStepsState, setAllPodStepsState] = React.useState<PodStepState[]>([]);
 
   React.useEffect(() => {
-    podContainerStatuses &&
+    if (podContainerStatuses) {
       getPodStepsStates(podContainerStatuses, namespace, podName).then((result) => {
         setAllPodStepsState(result);
       });
+    }
   }, [podContainerStatuses, namespace, podName]);
   return allpodStepsState;
 };

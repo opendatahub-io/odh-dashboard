@@ -46,16 +46,16 @@ export default {
         ),
         rest.post('/api/proxy/apis/v1beta1/pipeline_versions', async (req, res, ctx) => {
           const reqBody = await req.json();
-          if (reqBody.queryParams['filter']) {
+          if (reqBody.queryParams.filter) {
             return res(
               ctx.json(
                 mockPipelineVersionsListSearch(
-                  JSON.parse(reqBody.queryParams['filter'])['predicates'][0]['string_value'],
+                  JSON.parse(reqBody.queryParams.filter).predicates[0].string_value,
                 ),
               ),
             );
           }
-          if (reqBody.queryParams['page_token'] === 'next-page-token') {
+          if (reqBody.queryParams.page_token === 'next-page-token') {
             return res(ctx.json(mockPipelineVersionsListPage2));
           }
           return res(ctx.json(mockPipelineVersionsListPage1));

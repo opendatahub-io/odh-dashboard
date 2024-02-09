@@ -414,6 +414,7 @@ describe('Model Metrics', () => {
       .click();
 
     cy.wait('@uninstallTrustyAI').then((interception) => {
+      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(interception.request).to.exist;
     });
   });
@@ -516,6 +517,7 @@ describe('Model Metrics', () => {
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
     cy.wait('@installTrustyAI').then((interception) => {
+      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(interception.request).to.exist;
     });
 
@@ -562,6 +564,7 @@ describe('Model Metrics', () => {
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
     cy.wait('@installTrustyAI').then((interception) => {
+      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(interception.request).to.exist;
     });
 

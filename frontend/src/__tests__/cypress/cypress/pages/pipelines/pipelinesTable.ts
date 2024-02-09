@@ -15,6 +15,7 @@ class PipelinesTable {
   }
 
   private shouldRowExist = (name: string) => this.find().get('tr').contains(name).should('exist');
+
   private shouldRowNotExist = (name: string) =>
     this.find().get('tr').contains(name).should('not.exist');
 

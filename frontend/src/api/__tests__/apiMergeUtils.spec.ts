@@ -12,14 +12,14 @@ describe('applyK8sAPIOptions', () => {
   };
 
   it('should not apply any options', () => {
-    expect(applyK8sAPIOptions({}, mockBaseOptions)).toStrictEqual(defaultExpect);
+    expect(applyK8sAPIOptions(mockBaseOptions, {})).toStrictEqual(defaultExpect);
   });
 
   it('should apply dryRun option to payload and query options', () => {
     expect(
       applyK8sAPIOptions(
-        { dryRun: true },
         { ...mockBaseOptions, queryOptions: { name: 'test', queryParams: { foo: 'bar' } } },
+        { dryRun: true },
       ),
     ).toStrictEqual({
       ...defaultExpect,
@@ -31,8 +31,8 @@ describe('applyK8sAPIOptions', () => {
   it('should apply signal to fetch options', () => {
     expect(
       applyK8sAPIOptions(
-        { signal },
         { ...mockBaseOptions, fetchOptions: { timeout: 100, requestInit: { pathPrefix: 'test' } } },
+        { signal },
       ),
     ).toStrictEqual({
       ...defaultExpect,
@@ -42,7 +42,7 @@ describe('applyK8sAPIOptions', () => {
 
   it('should not override payload with dryRun option', () => {
     expect(
-      applyK8sAPIOptions({ dryRun: true }, { ...mockBaseOptions, payload: 'testing' }),
+      applyK8sAPIOptions({ ...mockBaseOptions, payload: 'testing' }, { dryRun: true }),
     ).toStrictEqual({
       ...defaultExpect,
       payload: 'testing',
@@ -51,7 +51,7 @@ describe('applyK8sAPIOptions', () => {
   });
 
   it('should include all API Data', () => {
-    expect(applyK8sAPIOptions({}, { ...mockBaseOptions, foo: 'bar' })).toStrictEqual({
+    expect(applyK8sAPIOptions({ ...mockBaseOptions, foo: 'bar' }, {})).toStrictEqual({
       ...defaultExpect,
       foo: 'bar',
     });

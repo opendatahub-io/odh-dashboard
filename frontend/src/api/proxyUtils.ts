@@ -38,11 +38,11 @@ const callProxyJSON = <T>(
       fileContents,
     }),
   }).then((response) =>
-    response.text().then((data) => {
+    response.text().then((fetchedData) => {
       if (parseJSON) {
-        return JSON.parse(data);
+        return JSON.parse(fetchedData);
       }
-      return data;
+      return fetchedData;
     }),
   );
 };

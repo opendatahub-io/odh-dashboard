@@ -102,7 +102,9 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     const observer = new ResizeObserver(() => {
       dispatchResizeEvent();
     });
-    logsTabRef.current && observer.observe(logsTabRef.current);
+    if (logsTabRef.current) {
+      observer.observe(logsTabRef.current);
+    }
     return () => {
       observer.disconnect();
     };
@@ -155,9 +157,9 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
 
   const onToggleExpand = (
     _evt: React.SyntheticEvent<HTMLButtonElement, Event>,
-    showSearchbar: boolean,
+    isShowSearchbar: boolean,
   ) => {
-    setShowsearchbar(!showSearchbar);
+    setShowsearchbar(!isShowSearchbar);
   };
 
   const handleFullScreen = () => {

@@ -11,7 +11,7 @@ import {
 import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AWS_KEYS } from './dataConnections/const';
+import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -119,7 +119,7 @@ export type DataConnection =
     }
   | DataConnectionAWS;
 
-export type AWSDataEntry = { key: AWS_KEYS; value: string }[];
+export type AWSDataEntry = { key: AwsKeys; value: string }[];
 
 export type EnvVariableDataEntry = {
   key: string;

@@ -30,7 +30,9 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
         onClose={(pipeline) => {
           setOpen(false);
           if (pipeline) {
-            onCreate && onCreate(pipeline);
+            if (onCreate) {
+              onCreate(pipeline);
+            }
             refreshAllAPI();
           }
         }}

@@ -29,7 +29,7 @@ const CustomServingRuntimePlatformsSelector: React.FC<
     },
     {
       key: 'both',
-      label: RuntimePlatformSelectOptionLabels['both'],
+      label: RuntimePlatformSelectOptionLabels.both,
     },
   ];
 
