@@ -59,7 +59,6 @@ const DeletePipelineModalExpandableSection: React.FC<DeletePipelineModalExpandab
           }
 
           const key = getPipelineResourceUniqueID(resource);
-
           return (
             <ListItem key={key} icon={icon}>
               {children(resource)}

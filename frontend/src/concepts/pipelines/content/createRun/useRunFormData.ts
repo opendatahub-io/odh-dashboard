@@ -11,7 +11,7 @@ import {
 import {
   DateTimeKF,
   PipelineKFv2,
-  PipelineRunJobKF,
+  PipelineRunJobKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
@@ -37,16 +37,14 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 
 const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKFv2,
+  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2,
 ): void => {
   React.useEffect(() => {
-    // TODO, remove cast after https://issues.redhat.com/browse/RHOAIENG-2273
-    if (!isPipelineRunJob(initialData as PipelineRunKFv2 | PipelineRunJobKF)) {
+    if (!initialData || !isPipelineRunJob(initialData)) {
       return;
     }
 
-    // TODO, remove cast after https://issues.redhat.com/browse/RHOAIENG-2273
-    const { trigger } = initialData as PipelineRunKFv2 & PipelineRunJobKF;
+    const { trigger } = initialData;
     let triggerType: ScheduledType;
     let start: RunDateTime | undefined;
     let end: RunDateTime | undefined;
@@ -117,7 +115,7 @@ const useUpdatePipelineRunFormData = (
 };
 
 const useRunFormData = (
-  initialData?: PipelineRunKFv2 | undefined,
+  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2 | undefined,
   pipeline?: PipelineKFv2,
   version?: PipelineVersionKFv2,
 ): GenericObjectState<RunFormData> => {

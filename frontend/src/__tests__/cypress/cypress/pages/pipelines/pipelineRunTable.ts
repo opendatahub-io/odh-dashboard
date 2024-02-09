@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineRunJobKF, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class PipelineRunTable {
   protected testId = '';
@@ -60,13 +60,64 @@ class PipelineRunJobTable extends PipelineRunTable {
     super(testId, toolbarTestId);
   }
 
-  mockGetJobs(jobs: PipelineRunJobKF[]) {
+  selectFilterByName(name: string) {
+    cy.findByTestId('pipeline-run-job-table-toolbar')
+      .findByTestId('pipeline-filter-dropdown')
+      .findDropdownItem(name)
+      .click();
+  }
+
+  findFilterTextField() {
+    return cy
+      .findByTestId('pipeline-run-job-table-toolbar')
+      .findByTestId('run-table-toolbar-filter-text-field');
+  }
+
+  findExperimentFilterSelect() {
+    return cy.findByTestId('experiment-search-select');
+  }
+
+  findStatusSwitchByRowName(name: string) {
+    return this.findRowByName(name).findByTestId('job-status-switch');
+  }
+
+  mockGetJobs(jobs: PipelineRunJobKFv2[]) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/jobs',
+        pathname: '/api/proxy/apis/v2beta1/recurringruns',
       },
-      { jobs, total_size: jobs.length },
+      { recurringRuns: jobs, total_size: jobs.length },
+    );
+  }
+
+  mockGetJob(job: PipelineRunJobKFv2) {
+    return cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/proxy/apis/v2beta1/recurringruns/${job.recurring_run_id}`,
+      },
+      job,
+    );
+  }
+
+  mockEnableJob(job: PipelineRunJobKFv2) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/recurringruns/${job.recurring_run_id}:enable`,
+      },
+      {},
+    );
+  }
+
+  mockDisableJob(job: PipelineRunJobKFv2) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/recurringruns/${job.recurring_run_id}:disable`,
+      },
+      {},
     );
   }
 }

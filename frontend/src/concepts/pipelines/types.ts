@@ -12,7 +12,6 @@ import {
   CreatePipelineRunKFv2Data,
   CreatePipelineRunJobKFData,
   PipelinesFilterPredicate,
-  ResourceKeyKF,
   ListPipelineVersionsResourceKF,
   PipelineKFv2,
   PipelineVersionKFv2,
@@ -22,7 +21,6 @@ import {
 } from './kfTypes';
 
 export type PipelinesFilter = {
-  resourceReference?: ResourceKeyKF;
   predicates?: PipelinesFilterPredicate[];
 };
 

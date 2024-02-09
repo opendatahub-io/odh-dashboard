@@ -93,6 +93,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         }
         toolbarContent={
           <PipelineRunTableToolbar
+            data-testid="pipeline-run-table-toolbar"
             {...filterToolbarProps}
             deleteAllEnabled={selections.length > 0}
             onDeleteAll={() =>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineCoreResourceKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions, PipelinesFilter } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
@@ -48,8 +48,7 @@ export const getTablePagingProps = (
   }))(tableProps);
 
 const createUsePipelineTable =
-  <T extends PipelineCoreResourceKFv2 | PipelineRunKFv2>(
-    // TODO: remove this OR when we remove v1 pipelines types
+  <T extends PipelineCoreResourceKFv2>(
     useState: (options: PipelineOptions) => FetchState<PipelineListPaged<T>>,
   ) =>
   // providing a limit overrides pageSize and prevents paging

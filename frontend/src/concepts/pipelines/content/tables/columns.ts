@@ -5,10 +5,9 @@ import {
   kebabTableColumn,
 } from '~/components/table';
 import {
-  PipelineRunJobKF,
-  PipelineCoreResourceKF,
   PipelineVersionKFv2,
   PipelineKFv2,
+  PipelineRunJobKFv2,
   PipelineRunKFv2,
 } from '~/concepts/pipelines/kfTypes';
 
@@ -64,28 +63,6 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKFv2>[] = [
   },
 ];
 
-const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
-  checkboxTableColumn(),
-  {
-    label: 'Name',
-    field: 'name',
-    sortable: true,
-    width: 20,
-  },
-  {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: false,
-    width: 10,
-  },
-  {
-    label: 'Pipeline version',
-    field: 'pipeline_version',
-    sortable: false,
-    width: 15,
-  },
-];
-
 export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
   checkboxTableColumn(),
   {
@@ -124,8 +101,26 @@ export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
   kebabTableColumn(),
 ];
 
-export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
-  ...sharedRunLikeColumns,
+export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
+  checkboxTableColumn(),
+  {
+    label: 'Name',
+    field: 'name',
+    sortable: true,
+    width: 20,
+  },
+  {
+    label: 'Experiment',
+    field: 'experiment',
+    sortable: false,
+    width: 10,
+  },
+  {
+    label: 'Pipeline version',
+    field: 'pipeline_version',
+    sortable: false,
+    width: 15,
+  },
   {
     label: 'Trigger',
     field: 'trigger',

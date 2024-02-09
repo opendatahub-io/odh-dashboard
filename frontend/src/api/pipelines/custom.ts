@@ -44,8 +44,6 @@ const commonPipelineQueryParams = (params?: PipelineParams) => ({
 
 const pipelineParamsToQuery = (params?: PipelineParams) => ({
   ...commonPipelineQueryParams(params),
-  'resource_reference_key.type': params?.filter?.resourceReference?.type,
-  'resource_reference_key.id': params?.filter?.resourceReference?.id,
 });
 
 export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, name, description) =>
@@ -91,7 +89,9 @@ export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runI
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v2beta1/runs/${runId}`, {}, {}, opts));
 
 export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, {}, opts));
+  handlePipelineFailures(
+    proxyDELETE(hostPath, `/apis/v2beta1/recurringruns/${jobId}`, {}, {}, opts),
+  );
 
 export const deletePipelineVersion: DeletePipelineVersionAPI =
   (hostPath) => (opts, pipelineId, pipelineVersionId) =>
@@ -122,7 +122,7 @@ export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params
 
 export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    proxyGET(hostPath, '/apis/v1beta1/jobs', pipelineParamsToQuery(params), opts),
+    proxyGET(hostPath, '/apis/v2beta1/recurringruns', pipelineParamsToQuery(params), opts),
   );
 
 export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
@@ -178,7 +178,7 @@ export const updatePipelineRunJob: UpdatePipelineRunJobAPI = (hostPath) => (opts
   handlePipelineFailures(
     proxyENDPOINT(
       hostPath,
-      `/apis/v1beta1/jobs/${jobId}/${enabled ? 'enable' : 'disable'}`,
+      `/apis/v2beta1/recurringruns/${jobId}:${enabled ? 'enable' : 'disable'}`,
       {},
       opts,
     ),

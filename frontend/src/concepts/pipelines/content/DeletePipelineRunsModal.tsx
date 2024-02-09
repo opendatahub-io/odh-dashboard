@@ -2,19 +2,27 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
-// import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
-// import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
+import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
+import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import useDeleteStatuses from '~/concepts/pipelines/content/useDeleteStatuses';
-// import PipelineJobReferenceName from './PipelineJobReferenceName';
-// import PipelineRunTypeLabel from './PipelineRunTypeLabel';
+import PipelineJobReferenceName from './PipelineJobReferenceName';
+import PipelineRunTypeLabel from './PipelineRunTypeLabel';
+import { isPipelineRunJob } from './utils';
 
 type DeletePipelineRunsModalProps = {
-  type: 'triggered run' | 'scheduled run';
-  toDeleteResources: PipelineRunKFv2[];
   onClose: (deleted?: boolean) => void;
-};
+} & (
+  | {
+      type: 'triggered run';
+      toDeleteResources: PipelineRunKFv2[];
+    }
+  | {
+      type: 'scheduled run';
+      toDeleteResources: PipelineRunJobKFv2[];
+    }
+);
 
 const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
   toDeleteResources,
@@ -22,14 +30,8 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
   type,
 }) => {
   const { api } = usePipelinesAPI();
-  // TODO: bring back during https://issues.redhat.com/browse/RHOAIENG-2225
-  // const { deleting, setDeleting, error, setError, deleteStatuses, onBeforeClose, abortSignal } =
-  //   useDeleteStatuses({ onClose, type, toDeleteResources })
-  const { deleting, setDeleting, error, setError, onBeforeClose, abortSignal } = useDeleteStatuses({
-    onClose,
-    type,
-    toDeleteResources,
-  });
+  const { deleting, setDeleting, error, setError, deleteStatuses, onBeforeClose, abortSignal } =
+    useDeleteStatuses({ onClose, type, toDeleteResources });
 
   const resourceCount = toDeleteResources.length;
 
@@ -65,7 +67,12 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
         setError(undefined);
 
         if (resourceCount === 1) {
-          callFunc({ signal: abortSignal }, toDeleteResources[0].run_id)
+          callFunc(
+            { signal: abortSignal },
+            type === 'triggered run'
+              ? toDeleteResources[0].run_id
+              : toDeleteResources[0].recurring_run_id,
+          )
             .then(() => onBeforeClose(true))
             .catch((e) => {
               setError(e);
@@ -73,7 +80,14 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             });
         } else {
           Promise.allSettled(
-            toDeleteResources.map((run) => callFunc({ signal: abortSignal }, run.run_id)),
+            toDeleteResources.map((_run, i) =>
+              callFunc(
+                { signal: abortSignal },
+                type === 'triggered run'
+                  ? toDeleteResources[i].run_id
+                  : toDeleteResources[i].recurring_run_id,
+              ),
+            ),
           ).then((results) =>
             onBeforeClose(
               true,
@@ -95,8 +109,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             You are about to delete {resourceCount} {type}s. This action cannot be undone.
           </StackItem>
           <StackItem>
-            {/* TODO: Out of scope for this PR: bring back during https://issues.redhat.com/browse/RHOAIENG-2225 */}
-            {/* <DeletePipelineModalExpandableSection
+            <DeletePipelineModalExpandableSection
               toDeleteResources={toDeleteResources}
               type="runs"
               deleting={deleting}
@@ -104,16 +117,16 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             >
               {(resource) => (
                 <div>
-                  <b>{resource.name}</b>{' '}
-                  {type === PipelineType.TRIGGERED_RUN && (
+                  <b>{resource.display_name}</b>{' '}
+                  {type === PipelineType.TRIGGERED_RUN && isPipelineRunJob(resource) && (
                     <>
-                      <PipelineRunTypeLabel resource={resource} isCompact />
+                      <PipelineRunTypeLabel run={resource} isCompact />
                       <PipelineJobReferenceName resource={resource} />
                     </>
                   )}
                 </div>
               )}
-            </DeletePipelineModalExpandableSection> */}
+            </DeletePipelineModalExpandableSection>
           </StackItem>
         </Stack>
       )}

@@ -19,7 +19,9 @@ import {
   pipelineRunTable,
   pipelineRunsGlobal,
   pipelineRunFilterBar,
+  pipelineRunJobTable,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -76,6 +78,36 @@ const mockVersions = mockVersionIds.map((versionId) =>
     display_name: startCase(versionId),
   }),
 );
+
+const mockJobs = [
+  buildMockJobKF({
+    display_name: 'test-pipeline',
+    recurring_run_id: 'test-pipeline',
+    experiment_id: 'test-experiment-1',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-1',
+    },
+  }),
+  buildMockJobKF({
+    display_name: 'other-pipeline',
+    recurring_run_id: 'other-test-pipeline',
+    experiment_id: 'test-experiment-2',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-2',
+    },
+  }),
+  buildMockJobKF({
+    display_name: 'another-pipeline',
+    recurring_run_id: 'another-test-pipeline',
+    experiment_id: 'test-experiment-1',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-2',
+    },
+  }),
+];
 
 describe('Pipeline runs', () => {
   beforeEach(() => {
@@ -245,6 +277,54 @@ describe('Pipeline runs', () => {
       });
     });
   });
+
+  describe('Scheduled runs', () => {
+    it('has shows empty state when no jobs', () => {
+      // mock no jobs
+      pipelineRunJobTable.mockGetJobs([]);
+      pipelineRunsGlobal.visit(projectName, 'scheduled');
+      pipelineRunsGlobal.isApiAvailable();
+      pipelineRunJobTable.findEmptyState().should('exist');
+    });
+
+    describe('Non Empty Table', () => {
+      beforeEach(() => {
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
+        pipelineRunsGlobal.isApiAvailable();
+      });
+
+      it('has rows when jobs is not empty', () => {
+        pipelineRunJobTable.find().should('exist');
+        pipelineRunJobTable.findRowByName('test-pipeline').should('exist');
+        pipelineRunJobTable.findRowByName('other-pipeline').should('exist');
+        pipelineRunJobTable.findRowByName('another-pipeline').should('exist');
+      });
+
+      it('filter by name', () => {
+        // Verify initial job rows exist
+        pipelineRunJobTable.findRows().should('have.length', 3);
+
+        // Select the "Name" filter, enter a value to filter by
+        pipelineRunJobTable.selectFilterByName('Name');
+        pipelineRunJobTable.findFilterTextField().type('test-pipeline');
+
+        // Mock jobs (filtered by typed job name)
+        pipelineRunJobTable.mockGetJobs(
+          mockJobs.filter((mockJob) => mockJob.display_name.includes('test-pipeline')),
+        );
+
+        // Verify only rows with the typed job name exist
+        pipelineRunJobTable.findRows().should('have.length', 1);
+        pipelineRunJobTable.findRowByName('test-pipeline');
+      });
+
+      it('can be disabled', () => {
+        pipelineRunJobTable.mockDisableJob(mockJobs[0]).as('disableJob');
+        pipelineRunJobTable.findStatusSwitchByRowName(mockJobs[0].display_name).click();
+        cy.wait('@disableJob');
+      });
+    });
+  });
 });
 
 const initIntercepts = () => {
@@ -269,6 +349,16 @@ const initIntercepts = () => {
     },
     {
       runs: mockRuns,
+    },
+  );
+
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: `/api/proxy/apis/v2beta1/recurringruns`,
+    },
+    {
+      recurringRuns: mockJobs,
     },
   );
 

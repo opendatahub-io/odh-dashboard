@@ -7,7 +7,7 @@ import useFetchState, {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 
-const usePipelineById = (pipelineRunJobId?: string): FetchState<PipelineRunJobKF | null> => {
+const usePipelineRunJobById = (pipelineRunJobId?: string): FetchState<PipelineRunJobKF | null> => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineRunJobKF | null>>(
@@ -24,4 +24,4 @@ const usePipelineById = (pipelineRunJobId?: string): FetchState<PipelineRunJobKF
   return useFetchState(call, null);
 };
 
-export default usePipelineById;
+export default usePipelineRunJobById;

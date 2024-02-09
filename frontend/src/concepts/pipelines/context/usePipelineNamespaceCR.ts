@@ -33,7 +33,14 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (name) {
-        return getPipelinesCR(namespace, name, opts);
+        return getPipelinesCR(namespace, name, opts).catch((e) => {
+          if (e.statusObject?.code === 404) {
+            setName(undefined);
+            return null;
+          }
+
+          throw e;
+        });
       }
 
       return listPipelinesCR(namespace, opts).then((r) => {

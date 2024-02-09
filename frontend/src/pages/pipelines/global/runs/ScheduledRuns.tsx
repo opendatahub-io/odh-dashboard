@@ -11,13 +11,10 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
 import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
-import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 
 const ScheduledRuns: React.FC = () => {
-  // TODO, https://issues.redhat.com/browse/RHOAIENG-2273
-  const [[{ totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
+  const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineRunJobTable();
-  const jobs: PipelineRunJobKF[] = [];
 
   if (error) {
     return (

@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import { getJobResourceRef } from '~/concepts/pipelines/content/tables/utils';
+import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
 
 type JobStatus = {
   loading: boolean;
-  data: PipelineRunJobKF | null;
+  data: PipelineRunJobKFv2 | null;
 };
 
-export type GetJobInformation = (resource?: PipelineCoreResourceKF) => JobStatus;
+export type GetJobInformation = (resource?: PipelineRunJobKFv2) => JobStatus;
 
 const useJobRelatedInformation = (
   apiState: PipelineAPIState,
@@ -24,11 +23,10 @@ const useJobRelatedInformation = (
         if (!apiState.apiAvailable) {
           return { loading: false, data: null };
         }
-        const jobReference = getJobResourceRef(resource);
-        if (!jobReference) {
+        if (!resource) {
           return { loading: false, data: null };
         }
-        const jobId = jobReference.key.id;
+        const jobId = resource.recurring_run_id;
         if (jobStorage?.[jobId]) {
           return jobStorage[jobId];
         }
@@ -40,7 +38,12 @@ const useJobRelatedInformation = (
         apiState.api
           .getPipelineRunJob({}, jobId)
           .then((job) => {
-            setJobStorage((jobState) => ({ ...jobState, [jobId]: { loading: false, data: job } }));
+            // TODO: remove cast https://issues.redhat.com/browse/RHOAIENG-2294
+            const castedJob = job as unknown as PipelineRunJobKFv2;
+            setJobStorage((jobState) => ({
+              ...jobState,
+              [jobId]: { loading: false, data: castedJob },
+            }));
           })
           .catch((e) => {
             // eslint-disable-next-line no-console

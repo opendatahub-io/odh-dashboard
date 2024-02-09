@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 import { PageSection } from '@patternfly/react-core';
 
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
   CreateRunPageSections,
@@ -17,9 +17,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 
 type RunPageProps = {
-  // TODO, https://issues.redhat.com/browse/RHOAIENG-2273
-  // cloneRun?: PipelineRunKFv2 | PipelineRunJobKF;
-  cloneRun?: PipelineRunKFv2;
+  cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2;
   contextPath?: string;
   testId?: string;
 };

@@ -32,7 +32,10 @@ class PipelineRunsGlobal {
   }
 
   selectFilterByName(name: string) {
-    cy.findByTestId('pipeline-filter-dropdown').findDropdownItem(name).click();
+    cy.findByTestId('pipeline-run-table-toolbar')
+      .findByTestId('pipeline-filter-dropdown')
+      .findDropdownItem(name)
+      .click();
   }
 
   selectProjectByName(name: string) {

@@ -7,6 +7,7 @@ import {
   ResourceTypeKF,
   PipelineVersionKF,
   PipelineRunKFv2,
+  PipelineRunJobKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
@@ -57,14 +58,14 @@ export const getExperimentResourceRef = (
   resource: Parameters<typeof getResourceRef>[0],
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.EXPERIMENT);
 
-export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
+export const getPipelineRunJobStartTime = (job: PipelineRunJobKFv2): Date | null => {
   const startTime =
     job.trigger.cron_schedule?.start_time || job.trigger.periodic_schedule?.start_time;
 
   return startTime ? new Date(startTime) : null;
 };
 
-export const getPipelineRunJobEndTime = (job: PipelineRunJobKF): Date | null => {
+export const getPipelineRunJobEndTime = (job: PipelineRunJobKFv2): Date | null => {
   const endTime = job.trigger.cron_schedule?.end_time || job.trigger.periodic_schedule?.end_time;
 
   return endTime ? new Date(endTime) : null;
@@ -86,7 +87,7 @@ export enum PipelineType {
 }
 const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
 export const getPipelineRunJobScheduledState = (
-  job: PipelineRunJobKF,
+  job: PipelineRunJobKFv2,
 ): [state: ScheduledState, started: Date | null, ended: Date | null] => {
   const startDate = getPipelineRunJobStartTime(job);
   const endDate = getPipelineRunJobEndTime(job);
@@ -109,7 +110,7 @@ export const getPipelineRunJobScheduledState = (
   return [state, startDate, endDate];
 };
 
-export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
+export const getScheduledStateWeight = (job: PipelineRunJobKFv2): number => {
   const [state] = getPipelineRunJobScheduledState(job);
 
   const weights: Record<ScheduledState, number> = {
@@ -123,7 +124,7 @@ export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
 };
 
 export const isJobWithinDateRange = (
-  job: PipelineRunJobKF,
+  job: PipelineRunJobKFv2,
   dateRange: DateRangeString,
 ): boolean => {
   const jobStart = getPipelineRunJobStartTime(job);
