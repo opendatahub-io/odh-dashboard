@@ -701,7 +701,6 @@ export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
-
 export type MachineAutoscaler = {
   spec: {
     maxReplicas: number;
@@ -731,7 +730,6 @@ export type MachineAutoscalerList = {
 export type MachineSetList = {
   items: MachineSet[];
 } & K8sResourceCommon;
-
 
 export type DetectedAccelerators = {
   configured: boolean;
@@ -970,3 +968,18 @@ export type SubscriptionStatusData = {
   installedCSV?: string;
   installPlanRefNamespace?: string;
 };
+
+export type CronJobKind = {
+  spec: {
+    jobTemplate: {
+      spec: {
+        template: {
+          metadata: {
+            labels?: { [key: string]: string };
+          };
+        };
+      };
+    };
+    suspend: boolean;
+  };
+} & K8sResourceCommon;
