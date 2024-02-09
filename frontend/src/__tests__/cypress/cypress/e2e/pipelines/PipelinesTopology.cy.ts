@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
@@ -10,13 +11,13 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
+import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import {
   pipelineDetails,
   pipelineRunJobDetails,
   pipelinesTopology,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());

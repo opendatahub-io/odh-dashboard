@@ -28,7 +28,7 @@ export const useAllPipelineVersions = (
         }
 
         const pipelineVersionRequests = pipelineIds.map((pipelineId) =>
-          api.listPipelineVersionsByPipeline(opts, pipelineId, params),
+          api.listPipelineVersions(opts, pipelineId, params),
         );
         const results = await Promise.all(pipelineVersionRequests);
 

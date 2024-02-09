@@ -98,7 +98,7 @@ export const usePipelineVersionLoadMore = ({
     if (!pipelineId) {
       throw new NotReadyError('No pipeline id');
     }
-    const result = await api.listPipelineVersionsByPipeline({}, pipelineId, {
+    const result = await api.listPipelineVersions({}, pipelineId, {
       pageToken: pageTokenRef.current,
       pageSize: 10,
       sortField,

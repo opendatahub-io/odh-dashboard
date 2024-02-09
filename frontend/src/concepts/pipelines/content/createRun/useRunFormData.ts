@@ -77,21 +77,7 @@ const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-// TODO, https://issues.redhat.com/browse/RHOAIENG-2295
-// const getPipelineInputParams = (
-//   version: PipelineVersionKFv2 | undefined,
-//   pipeline?: PipelineKFv2 | undefined,
-// ): RunParam[] | undefined => {
-//   let parameters = version?.parameters;
-
-//   if (!version) {
-//     parameters = pipeline?.default_version?.parameters || pipeline?.parameters;
-//   }
-
-//   return (parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }));
-// };
-
-const useUpdatePipelineRunFormData = (
+const useUpdatePipelineFormData = (
   runFormState: GenericObjectState<RunFormData>,
   pipeline: PipelineKFv2 | undefined,
   version: PipelineVersionKFv2 | undefined,
@@ -106,16 +92,11 @@ const useUpdatePipelineRunFormData = (
     if (!formData.version && version) {
       setFormValue('version', version);
     }
-
-    // TODO, https://issues.redhat.com/browse/RHOAIENG-2295
-    // if (!formData?.params?.length && (version || pipeline)) {
-    //   setFormValue('params', getPipelineInputParams(version, pipeline));
-    // }
-  }, [pipeline, version, formData?.pipeline, formData?.version, formData?.params, setFormValue]);
+  }, [formData.pipeline, formData.version, pipeline, setFormValue, version]);
 };
 
 const useRunFormData = (
-  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2 | undefined,
+  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | undefined,
   pipeline?: PipelineKFv2,
   version?: PipelineVersionKFv2,
 ): GenericObjectState<RunFormData> => {
@@ -124,20 +105,18 @@ const useRunFormData = (
   const runFormDataState = useGenericObjectState<RunFormData>({
     project,
     nameDesc: {
-      name: initialData?.display_name ? `Duplicate of ${initialData.display_name}` : '',
-      description: initialData?.description ?? '',
+      name: run?.display_name ? `Duplicate of ${run.display_name}` : '',
+      description: run?.description ?? '',
     },
     pipeline: pipeline ?? null,
     version: version ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    // TODO, https://issues.redhat.com/browse/RHOAIENG-2295
-    params: [],
-    // params: getPipelineInputParams(version, pipeline),
+    params: run?.runtime_config?.parameters || {},
   });
   const [, setFormValue] = runFormDataState;
 
-  useUpdatePipelineRunFormData(runFormDataState, pipeline, version);
-  useUpdateRunType(setFormValue, initialData);
+  useUpdatePipelineFormData(runFormDataState, pipeline, version);
+  useUpdateRunType(setFormValue, run);
 
   return runFormDataState;
 };

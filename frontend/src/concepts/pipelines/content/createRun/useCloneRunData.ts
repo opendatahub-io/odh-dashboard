@@ -1,10 +1,10 @@
 import { useParams } from 'react-router-dom';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { PipelineRunJobKF, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 
 const useCloneRunData = (): [
-  run: PipelineRunKFv2 | PipelineRunJobKF | null,
+  run: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
   loaded: boolean,
   error: Error | undefined,
 ] => {

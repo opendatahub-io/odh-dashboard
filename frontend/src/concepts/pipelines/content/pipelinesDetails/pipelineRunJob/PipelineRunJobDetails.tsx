@@ -53,7 +53,11 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   const { pipelineRunJobId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [job, loaded, error] = usePipelineRunJobById(pipelineRunJobId);
+
+  // TODO, issues.redhat.com/browse/RHOAIENG-2282
+  const [, loaded, error] = usePipelineRunJobById(pipelineRunJobId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const job = {} as any;
   const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
@@ -105,9 +109,10 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                       setDetailsTab(selection);
                       setSelectedId(null);
                     }}
-                    pipelineRunDetails={
-                      job && pipelineRuntime ? { kf: job, kind: pipelineRuntime } : undefined
-                    }
+                    // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
+                    // pipelineRunDetails={
+                    //   job && pipelineRuntime ? { kf: job, kind: pipelineRuntime } : undefined
+                    // }
                   />
                 }
               >
