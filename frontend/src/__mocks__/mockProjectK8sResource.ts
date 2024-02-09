@@ -9,6 +9,7 @@ type MockResourceConfigType = {
   k8sName?: string;
   enableModelMesh?: boolean;
   isDSProject?: boolean;
+  phase?: 'Active' | 'Terminating';
 };
 
 export const mockProjectK8sResource = ({
@@ -18,6 +19,7 @@ export const mockProjectK8sResource = ({
   enableModelMesh,
   description = '',
   isDSProject = true,
+  phase = 'Active',
 }: MockResourceConfigType): ProjectKind => ({
   kind: 'Project',
   apiVersion: 'project.openshift.io/v1',
@@ -39,7 +41,7 @@ export const mockProjectK8sResource = ({
     },
   },
   status: {
-    phase: 'Active',
+    phase,
   },
 });
 
