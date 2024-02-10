@@ -101,7 +101,7 @@ describe('createPipelinesCR', () => {
   delete DSPipelinemock.status;
   it('should create pipelines CR', async () => {
     k8sCreateResourceMock.mockResolvedValue(DSPipelinemock);
-    const result = await createPipelinesCR('test-project', DSPipelinemock['spec']);
+    const result = await createPipelinesCR('test-project', DSPipelinemock.spec);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: {
@@ -119,9 +119,7 @@ describe('createPipelinesCR', () => {
 
   it('should handle errors and rethrow', async () => {
     k8sCreateResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(createPipelinesCR('test-project', DSPipelinemock['spec'])).rejects.toThrow(
-      'error1',
-    );
+    await expect(createPipelinesCR('test-project', DSPipelinemock.spec)).rejects.toThrow('error1');
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
