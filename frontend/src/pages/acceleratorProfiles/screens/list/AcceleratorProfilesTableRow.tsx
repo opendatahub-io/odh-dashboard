@@ -13,12 +13,12 @@ import { AcceleratorProfileKind } from '~/k8sTypes';
 import AcceleratorProfileEnableToggle from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfileEnableToggle';
 import { relativeTime } from '~/utilities/time';
 
-type AcceleratorProfilesTableRow = {
+type AcceleratorProfilesTableRowType = {
   acceleratorProfile: AcceleratorProfileKind;
   handleDelete: (cr: AcceleratorProfileKind) => void;
 };
 
-const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRow> = ({
+const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = ({
   acceleratorProfile,
   handleDelete,
 }) => {

@@ -26,8 +26,8 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites })
       .reduce((acc, docApp) => {
         const categoryAnnotation = docApp.metadata.annotations?.[CATEGORY_ANNOTATION];
         if (categoryAnnotation) {
-          const categories = categoryAnnotation.split(',');
-          categories
+          const annotationCategories = categoryAnnotation.split(',');
+          annotationCategories
             .map((category) => category.trim())
             .forEach((category) => {
               if (!acc.includes(category)) {

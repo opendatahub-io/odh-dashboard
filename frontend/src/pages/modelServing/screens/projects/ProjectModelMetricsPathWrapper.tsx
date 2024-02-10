@@ -22,7 +22,7 @@ const ProjectModelMetricsPathWrapper: React.FC<ProjectModelMetricsPathWrapperPro
     currentProject,
     inferenceServices: { data: models, loaded },
   } = React.useContext(ProjectDetailsContext);
-  const model = models.find((model) => model.metadata.name === modelName);
+  const model = models.find((currentModel) => currentModel.metadata.name === modelName);
   if (!loaded) {
     return (
       <Bullseye>

@@ -8,7 +8,7 @@ import {
   Patch,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { NotebookModel } from '~/api/models';
 import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
@@ -262,8 +262,8 @@ export const createNotebook = (
   });
 
   if (canEnablePipelines) {
-    return notebookPromise.then((notebook) =>
-      createElyraServiceAccountRoleBinding(notebook).then(() => notebook),
+    return notebookPromise.then((fetchedNotebook) =>
+      createElyraServiceAccountRoleBinding(fetchedNotebook).then(() => fetchedNotebook),
     );
   }
 
@@ -290,10 +290,13 @@ export const updateNotebook = (
   container.resources = {};
 
   return k8sUpdateResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      resource: _.merge({}, oldNotebook, notebook),
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        resource: _.merge({}, oldNotebook, notebook),
+      },
+      opts,
+    ),
   );
 };
 
@@ -348,11 +351,14 @@ export const attachNotebookSecret = (
   });
 
   return k8sPatchResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      queryOptions: { name: notebookName, ns: namespace },
-      patches,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
   );
 };
 
@@ -372,11 +378,14 @@ export const replaceNotebookSecret = (
   ];
 
   return k8sPatchResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      queryOptions: { name: notebookName, ns: namespace },
-      patches,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
   );
 };
 
@@ -402,11 +411,14 @@ export const attachNotebookPVC = (
   ];
 
   return k8sPatchResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      queryOptions: { name: notebookName, ns: namespace },
-      patches,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
   );
 };
 
@@ -444,11 +456,14 @@ export const removeNotebookPVC = (
         ];
 
         k8sPatchResource<NotebookKind>(
-          applyK8sAPIOptions(opts, {
-            model: NotebookModel,
-            queryOptions: { name: notebookName, ns: namespace },
-            patches,
-          }),
+          applyK8sAPIOptions(
+            {
+              model: NotebookModel,
+              queryOptions: { name: notebookName, ns: namespace },
+              patches,
+            },
+            opts,
+          ),
         )
           .then(resolve)
           .catch(reject);

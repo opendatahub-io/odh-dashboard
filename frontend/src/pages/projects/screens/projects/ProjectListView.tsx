@@ -82,8 +82,8 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
                 types={[SearchType.NAME, SearchType.USER]}
                 searchType={searchType}
                 searchValue={search}
-                onSearchTypeChange={(searchType: SearchType) => {
-                  setSearchType(searchType);
+                onSearchTypeChange={(newSearchType: SearchType) => {
+                  setSearchType(newSearchType);
                 }}
                 onSearchValueChange={(searchValue: string) => {
                   setSearch(searchValue);

@@ -9,6 +9,7 @@ import { InferenceServiceKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { getInferenceServiceActiveModelState, getInferenceServiceStatusMessage } from './utils';
 import { useModelStatus } from './useModelStatus';
+
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
   isKserve: boolean;

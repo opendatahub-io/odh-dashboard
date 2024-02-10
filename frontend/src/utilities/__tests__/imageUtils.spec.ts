@@ -15,7 +15,7 @@ import {
   ImageTagInfo,
   ImageInfo,
   BuildStatus,
-  BUILD_PHASE,
+  BuildPhase,
   NameVersionPair,
   ImageSoftwareType,
   ImageTag,
@@ -44,7 +44,7 @@ describe('isImageBuildInProgress', () => {
       {
         name: 'Build1',
         imageTag: 'image:tag1',
-        status: BUILD_PHASE.new,
+        status: BuildPhase.new,
         timestamp: '2022-01-01',
       },
     ];
@@ -60,7 +60,7 @@ describe('isImageBuildInProgress', () => {
       {
         name: 'Build1',
         imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -79,7 +79,7 @@ describe('isImageTagBuildValid', () => {
       {
         name: 'Build1',
         imageTag: 'image:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -96,7 +96,7 @@ describe('isImageTagBuildValid', () => {
       {
         name: 'Build1',
         imageTag: 'image:tag1',
-        status: BUILD_PHASE.failed,
+        status: BuildPhase.failed,
         timestamp: '2022-01-01',
       },
     ];
@@ -146,7 +146,7 @@ describe('getDefaultTag', () => {
       {
         name: 'Build1',
         imageTag: 'image:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -164,7 +164,7 @@ describe('getTagForImage', () => {
       {
         name: 'Build1',
         imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -186,7 +186,7 @@ describe('getTagForImage', () => {
       {
         name: 'Build1',
         imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -211,7 +211,7 @@ describe('getImageTagVersion', () => {
       {
         name: 'Build1',
         imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -233,7 +233,7 @@ describe('getImageTagVersion', () => {
       {
         name: 'Build1',
         imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];
@@ -257,7 +257,7 @@ describe('getImageTagVersion', () => {
       {
         name: 'Build1',
         imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
+        status: BuildPhase.complete,
         timestamp: '2022-01-01',
       },
     ];

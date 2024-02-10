@@ -52,7 +52,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
         <Td />
         <Td colSpan={6}>
           <ExpandableRowContent>
-            <EmptyState variant={EmptyStateVariant.xs}>
+            <EmptyState variant={EmptyStateVariant.xs} data-testid="no-pipeline-versions">
               <EmptyStateHeader titleText="No pipeline versions" headingLevel="h3" />
               <EmptyStateFooter>
                 <EmptyStateActions>

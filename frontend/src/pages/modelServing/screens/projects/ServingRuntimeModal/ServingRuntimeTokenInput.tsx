@@ -33,7 +33,8 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
 }) => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter(
-      (token) => token.name === name || token.editName === translateDisplayNameForK8s(name),
+      (currentToken) =>
+        currentToken.name === name || currentToken.editName === translateDisplayNameForK8s(name),
     );
     return duplicates.length > 0;
   };

@@ -47,14 +47,14 @@ export const usePipelineTaskTopology = (
         }
       }
 
-      return targets.reduce<Record<string, Set<string> | undefined>>((acc, target) => {
-        let set = acc[name];
+      return targets.reduce<Record<string, Set<string> | undefined>>((innerAcc, target) => {
+        let set = innerAcc[name];
         if (!set) {
           set = new Set();
         }
         set.add(target);
 
-        return { ...acc, [name]: set };
+        return { ...innerAcc, [name]: set };
       }, acc);
     }, {});
 
@@ -82,7 +82,7 @@ export const usePipelineTaskTopology = (
             }));
             if (taskStatusList.length > 0) {
               const thisTaskStatus = taskStatusList.find(
-                (status) => status.pipelineTaskName === task.name,
+                (currentStatus) => currentStatus.pipelineTaskName === task.name,
               );
               if (thisTaskStatus) {
                 relatedStatusData = thisTaskStatus;

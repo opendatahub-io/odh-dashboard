@@ -121,6 +121,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
       }}
       submitButtonLabel="Delete"
       deleteName={deleteName}
+      testId="delete-pipeline-modal"
     >
       {resourceCount <= 1 ? (
         deleteDescription

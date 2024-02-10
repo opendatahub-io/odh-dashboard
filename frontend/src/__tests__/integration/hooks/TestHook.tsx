@@ -58,8 +58,8 @@ export const TestHook = <T extends any[]>({
 
   // get individual result stability
   hookResultArray.forEach((prop, index) => {
-    const isStable = previousResultArrayRef.current[index] === prop;
-    resultArrayStatusesRef.current[index] = isStable ? 'stable' : 'unstable';
+    const currentIsStable = previousResultArrayRef.current[index] === prop;
+    resultArrayStatusesRef.current[index] = currentIsStable ? 'stable' : 'unstable';
   });
   previousResultArrayRef.current = hookResultArray;
 

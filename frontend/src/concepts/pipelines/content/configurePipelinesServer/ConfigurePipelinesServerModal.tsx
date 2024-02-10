@@ -9,9 +9,9 @@ import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
-  DATABASE_CONNECTION_KEYS,
+  DatabaseConnectionKeys,
   EMPTY_DATABASE_CONNECTION,
-  EXTERNAL_DATABASE_SECRET,
+  ExternalDatabaseSecret,
 } from './const';
 import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
@@ -47,7 +47,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     : config.database.value.every(({ key, value }) =>
         DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
           .map((field) => field.key)
-          .includes(key as DATABASE_CONNECTION_KEYS)
+          .includes(key as DatabaseConnectionKeys)
           ? !!value
           : true,
       );
@@ -85,7 +85,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             setError(e);
 
             // Cleanup created password secret
-            deleteSecret(project.metadata.name, EXTERNAL_DATABASE_SECRET.NAME);
+            deleteSecret(project.metadata.name, ExternalDatabaseSecret.NAME);
           });
       })
       .catch((e) => {

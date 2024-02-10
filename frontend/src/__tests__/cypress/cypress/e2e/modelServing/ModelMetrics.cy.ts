@@ -222,7 +222,7 @@ describe('Model Metrics', () => {
     });
 
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
-    modelMetricsPerformance.getMetricsChart('HTTP requests').shouldHaveNoData();
+    modelMetricsPerformance.getMetricsChart('HTTP requests per 5 minutes').shouldHaveNoData();
   });
   it('Serving Chart Shows Data', () => {
     initIntercepts({
@@ -233,7 +233,7 @@ describe('Model Metrics', () => {
     });
 
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
-    modelMetricsPerformance.getMetricsChart('HTTP requests').shouldHaveData();
+    modelMetricsPerformance.getMetricsChart('HTTP requests per 5 minutes').shouldHaveData();
   });
   it('Empty State No Bias Data Available', () => {
     initIntercepts({
@@ -322,7 +322,7 @@ describe('Model Metrics', () => {
     });
 
     serverMetrics.visit('test-project', 'test-model');
-    serverMetrics.getMetricsChart('HTTP requests').shouldHaveNoData();
+    serverMetrics.getMetricsChart('HTTP requests per 5 minutes').shouldHaveNoData();
     serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveNoData();
     serverMetrics.getMetricsChart('CPU utilization %').shouldHaveNoData();
     serverMetrics.getMetricsChart('Memory utilization %').shouldHaveNoData();
@@ -336,7 +336,7 @@ describe('Model Metrics', () => {
     });
 
     serverMetrics.visit('test-project', 'test-model');
-    serverMetrics.getMetricsChart('HTTP requests').shouldHaveData();
+    serverMetrics.getMetricsChart('HTTP requests per 5 minutes').shouldHaveData();
     serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveData();
     serverMetrics.getMetricsChart('CPU utilization %').shouldHaveData();
     serverMetrics.getMetricsChart('Memory utilization %').shouldHaveData();
@@ -414,6 +414,7 @@ describe('Model Metrics', () => {
       .click();
 
     cy.wait('@uninstallTrustyAI').then((interception) => {
+      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(interception.request).to.exist;
     });
   });
@@ -516,6 +517,7 @@ describe('Model Metrics', () => {
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
     cy.wait('@installTrustyAI').then((interception) => {
+      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(interception.request).to.exist;
     });
 
@@ -562,6 +564,7 @@ describe('Model Metrics', () => {
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
     cy.wait('@installTrustyAI').then((interception) => {
+      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(interception.request).to.exist;
     });
 

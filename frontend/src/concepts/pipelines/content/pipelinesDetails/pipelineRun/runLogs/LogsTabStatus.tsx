@@ -62,6 +62,7 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
 
   return (
     <Alert
+      data-testid="logs-success-alert"
       component="h2"
       isExpandable
       isInline

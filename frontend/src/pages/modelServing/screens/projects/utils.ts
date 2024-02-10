@@ -153,10 +153,13 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   format: {
     name: '',
   },
+  minReplicas: 1,
+  maxReplicas: 1,
 };
 
 export const useCreateInferenceServiceObject = (
   existingData?: InferenceServiceKind,
+  existingServingRuntimeData?: ServingRuntimeKind, // upgrade path to already KServe models
 ): [
   data: CreatingInferenceServiceObject,
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
@@ -175,6 +178,10 @@ export const useCreateInferenceServiceObject = (
   const existingServingRuntime = existingData?.spec.predictor.model.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
   const existingFormat = existingData?.spec.predictor.model.modelFormat || undefined;
+  const existingMinReplicas =
+    existingData?.spec.predictor.minReplicas || existingServingRuntimeData?.spec.replicas || 1;
+  const existingMaxReplicas =
+    existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
 
   React.useEffect(() => {
     if (existingName) {
@@ -193,6 +200,8 @@ export const useCreateInferenceServiceObject = (
           name: '',
         },
       );
+      setCreateData('minReplicas', existingMinReplicas);
+      setCreateData('maxReplicas', existingMaxReplicas);
     }
   }, [
     existingName,
@@ -200,6 +209,8 @@ export const useCreateInferenceServiceObject = (
     existingFormat,
     existingServingRuntime,
     existingProject,
+    existingMinReplicas,
+    existingMaxReplicas,
     setCreateData,
   ]);
 
@@ -260,7 +271,6 @@ const createInferenceServiceAndDataConnection = (
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
-  replicaCount?: number,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData).then((secret) =>
@@ -271,14 +281,12 @@ const createInferenceServiceAndDataConnection = (
             secret.metadata.name,
             isModelMesh,
             acceleratorProfileState,
-            replicaCount,
           )
         : createInferenceService(
             inferenceServiceData,
             secret.metadata.name,
             isModelMesh,
             acceleratorProfileState,
-            replicaCount,
           ),
     );
   }
@@ -289,15 +297,8 @@ const createInferenceServiceAndDataConnection = (
         undefined,
         isModelMesh,
         acceleratorProfileState,
-        replicaCount,
       )
-    : createInferenceService(
-        inferenceServiceData,
-        undefined,
-        isModelMesh,
-        acceleratorProfileState,
-        replicaCount,
-      );
+    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorProfileState);
 };
 
 export const submitInferenceServiceResource = (
@@ -306,7 +307,6 @@ export const submitInferenceServiceResource = (
   servingRuntimeName?: string,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
-  replicaCount?: number,
 ): Promise<InferenceServiceKind> => {
   const inferenceServiceData = {
     ...createData,
@@ -330,7 +330,6 @@ export const submitInferenceServiceResource = (
     editInfo,
     isModelMesh,
     acceleratorProfileState,
-    replicaCount,
   );
 };
 
@@ -421,11 +420,11 @@ export const submitServingRuntimeResources = async (
     await Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises(true));
     if (!editInfo && !currentProject) {
       // This should be impossible to hit, currentProject just comes from React context that could be undefined
-      return Promise.reject(new Error('Cannot update project with no project selected'));
+      return await Promise.reject(new Error('Cannot update project with no project selected'));
     }
     if (currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined) {
       await addSupportServingPlatformProject(
-        currentProject.metadata.name,
+        currentProject?.metadata.name,
         servingPlatformEnablement,
       );
     }
@@ -443,5 +442,5 @@ export const filterOutConnectionsWithoutBucket = (
   connections: DataConnection[],
 ): DataConnection[] =>
   connections.filter(
-    (obj) => isDataConnectionAWS(obj) && obj.data.data['AWS_S3_BUCKET'].trim() !== '',
+    (obj) => isDataConnectionAWS(obj) && obj.data.data.AWS_S3_BUCKET.trim() !== '',
   );

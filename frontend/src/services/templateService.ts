@@ -43,13 +43,14 @@ export const createServingRuntimeTemplateBackend = async (
     if (templates.find((t) => t.objects[0].metadata.name === servingRuntimeName)) {
       throw new Error(`Serving runtime name "${servingRuntimeName}" already exists.`);
     }
-    return dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(() =>
-      axios
-        .post('/api/templates/', template)
-        .then((response) => response.data)
-        .catch((e) => {
-          throw new Error(e.response.data.message);
-        }),
+    return await dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(
+      () =>
+        axios
+          .post('/api/templates/', template)
+          .then((response) => response.data)
+          .catch((e) => {
+            throw new Error(e.response.data.message);
+          }),
     );
   } catch (e) {
     return Promise.reject(e);

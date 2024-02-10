@@ -100,8 +100,8 @@ const task: PipelineRunTaskDetails = {
 
 describe('getNameAndPathFromTaskRef', () => {
   it("should return null when name and task from path ref doesn't match", () => {
-    const taskRef = 'random-string';
-    const nameandTaskfromPath = getNameAndPathFromTaskRef(taskRef);
+    const taskRefMock = 'random-string';
+    const nameandTaskfromPath = getNameAndPathFromTaskRef(taskRefMock);
     expect(nameandTaskfromPath).toBe(null);
   });
 
@@ -114,8 +114,8 @@ describe('getNameAndPathFromTaskRef', () => {
 
 describe('getNameFromTaskRef', () => {
   it('should get null from task ref', () => {
-    const taskRef = 'random-string';
-    const nameFromTaskRef = getNameFromTaskRef(taskRef);
+    const taskRefMock = 'random-string';
+    const nameFromTaskRef = getNameFromTaskRef(taskRefMock);
     expect(nameFromTaskRef).toBe(null);
   });
 
@@ -158,19 +158,19 @@ describe('getRunStatus', () => {
   });
 
   it('should get run status as failed', () => {
-    status.conditions[0].status = 'False';
+    (status.conditions || [])[0].status = 'False';
     const getrunStatus = getRunStatus(status);
     expect(getrunStatus).toBe(RunStatus.Failed);
   });
 
   it('should get run status as running', () => {
-    status.conditions[0].status = 'Unkonown';
+    (status.conditions || [])[0].status = 'Unkonown';
     const getrunStatus = getRunStatus(status);
     expect(getrunStatus).toBe(RunStatus.Running);
   });
 
   it('should get run status as idle', () => {
-    status.conditions[0].type = 'Failed';
+    (status.conditions || [])[0].type = 'Failed';
     const getrunStatus = getRunStatus(status);
     expect(getrunStatus).toBe(RunStatus.Idle);
   });
@@ -178,7 +178,7 @@ describe('getRunStatus', () => {
 
 describe('getValue', () => {
   it('should get value as null when runDetails is undefined', () => {
-    const task: PipelineRunTaskDetails = {
+    const taskMock: PipelineRunTaskDetails = {
       name: 'flip-coin',
       runDetails: undefined,
       skipped: true,
@@ -199,7 +199,7 @@ describe('getValue', () => {
       },
     };
     const path = 'results.Output';
-    const getvalue = getValue(task, path);
+    const getvalue = getValue(taskMock, path);
     expect(getvalue).toBe(null);
   });
 

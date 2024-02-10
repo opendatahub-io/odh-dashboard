@@ -11,7 +11,7 @@ import StopServerModal from './StopServerModal';
 
 import '~/pages/notebookController/NotebookController.scss';
 
-export const NotebookServer: React.FC = () => {
+const NotebookServer: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const {

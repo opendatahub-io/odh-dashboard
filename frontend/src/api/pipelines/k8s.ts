@@ -45,10 +45,13 @@ export const createPipelinesCR = async (
   };
 
   return k8sCreateResource<DSPipelineKind>(
-    applyK8sAPIOptions(opts, {
-      model: DataSciencePipelineApplicationModel,
-      resource,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: DataSciencePipelineApplicationModel,
+        resource,
+      },
+      opts,
+    ),
   );
 };
 
@@ -58,10 +61,13 @@ export const getPipelinesCR = async (
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> =>
   k8sGetResource<DSPipelineKind>(
-    applyK8sAPIOptions(opts, {
-      model: DataSciencePipelineApplicationModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: DataSciencePipelineApplicationModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );
 
 export const listPipelinesCR = async (
@@ -69,10 +75,13 @@ export const listPipelinesCR = async (
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind[]> =>
   k8sListResource<DSPipelineKind>(
-    applyK8sAPIOptions(opts, {
-      model: DataSciencePipelineApplicationModel,
-      queryOptions: { ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: DataSciencePipelineApplicationModel,
+        queryOptions: { ns: namespace },
+      },
+      opts,
+    ),
   ).then((r) => r.items);
 
 export const deletePipelineCR = async (
@@ -81,8 +90,11 @@ export const deletePipelineCR = async (
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<DSPipelineKind, K8sStatus>(
-    applyK8sAPIOptions(opts, {
-      model: DataSciencePipelineApplicationModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: DataSciencePipelineApplicationModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );

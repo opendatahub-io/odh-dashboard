@@ -37,7 +37,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   const { namespace } = usePipelinesAPI();
   const { versions } = React.useContext(PipelineRunVersionsContext);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: _unspecifiedState, ...statusRuntimeStates } =
+  const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState, ...statusRuntimeStates } =
     runtimeStateLabels;
 
   return (
@@ -83,11 +83,11 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             {...props}
             value={value ?? ''}
             aria-label="Select a status"
-            options={Object.values(statusRuntimeStates).map((value) => ({
-              key: value,
-              label: value,
+            options={Object.values(statusRuntimeStates).map((v) => ({
+              key: v,
+              label: v,
             }))}
-            onChange={(value) => onChange(value)}
+            onChange={(v) => onChange(v)}
             data-testid="runtime-status-dropdown"
           />
         ),

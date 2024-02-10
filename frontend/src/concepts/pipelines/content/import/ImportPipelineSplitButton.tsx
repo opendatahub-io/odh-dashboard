@@ -5,6 +5,8 @@ import {
   DropdownList,
   MenuToggle,
   MenuToggleAction,
+  MenuToggleProps,
+  Tooltip,
 } from '@patternfly/react-core';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -14,16 +16,23 @@ import PipelineVersionImportModal from '~/concepts/pipelines/content/import/Pipe
 type ImportPipelineSplitButtonProps = {
   onImportPipeline?: (pipeline: PipelineKFv2) => void;
   onImportPipelineVersion?: (pipelineVersion: PipelineVersionKFv2) => void;
+  variant?: MenuToggleProps['variant'];
+  disable?: boolean;
+  disableUploadVersion?: boolean;
 };
 
 const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
   onImportPipeline,
   onImportPipelineVersion,
+  disable,
+  disableUploadVersion,
+  variant = 'primary',
 }) => {
   const { apiAvailable, refreshAllAPI } = usePipelinesAPI();
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
   const [isPipelineModalOpen, setPipelineModalOpen] = React.useState(false);
   const [isPipelineVersionModalOpen, setPipelineVersionModalOpen] = React.useState(false);
+  const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
   return (
     <>
@@ -34,10 +43,11 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
         toggle={(toggleRef) => (
           <MenuToggle
             isFullWidth
-            variant="primary"
+            variant={variant}
             ref={toggleRef}
             onClick={() => setDropdownOpen(!isDropdownOpen)}
             isExpanded={isDropdownOpen}
+            isDisabled={!apiAvailable || disable}
             splitButtonOptions={{
               variant: 'action',
               items: [
@@ -46,21 +56,26 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
                   key="import-pipeline-button"
                   aria-label="Import pipeline"
                   onClick={() => setPipelineModalOpen(true)}
-                  isDisabled={!apiAvailable}
                 >
                   Import pipeline
                 </MenuToggleAction>,
               ],
             }}
             aria-label="Import pipeline and pipeline version button"
+            data-testid="import-pipeline-split-button"
           />
         )}
       >
         <DropdownList>
+          {disableUploadVersion && (
+            <Tooltip triggerRef={tooltipRef} content="Create a pipeline to upload a new version." />
+          )}
           <DropdownItem
             id="import-pipeline-version-button"
             key="import-pipeline-version-button"
+            isAriaDisabled={!apiAvailable || disableUploadVersion}
             onClick={() => setPipelineVersionModalOpen(true)}
+            ref={tooltipRef}
           >
             Upload new version
           </DropdownItem>
@@ -71,7 +86,9 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
         onClose={(pipeline) => {
           setPipelineModalOpen(false);
           if (pipeline) {
-            onImportPipeline && onImportPipeline(pipeline);
+            if (onImportPipeline) {
+              onImportPipeline(pipeline);
+            }
             refreshAllAPI();
           }
         }}
@@ -81,7 +98,9 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
           onClose={(pipelineVersion) => {
             setPipelineVersionModalOpen(false);
             if (pipelineVersion) {
-              onImportPipelineVersion && onImportPipelineVersion(pipelineVersion);
+              if (onImportPipelineVersion) {
+                onImportPipelineVersion(pipelineVersion);
+              }
               refreshAllAPI();
             }
           }}

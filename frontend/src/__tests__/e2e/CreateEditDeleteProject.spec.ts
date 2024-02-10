@@ -17,8 +17,8 @@ const cleanTestProject = async (page: Page) => {
   }
 };
 
-test.beforeEach(async ({ page }) => await cleanTestProject(page));
-test.afterEach(async ({ page }) => await cleanTestProject(page));
+test.beforeEach(async ({ page }) => cleanTestProject(page));
+test.afterEach(async ({ page }) => cleanTestProject(page));
 
 test('Create, edit, and delete a project', async ({ page }) => {
   await page.goto('');

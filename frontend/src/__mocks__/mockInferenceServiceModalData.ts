@@ -19,10 +19,14 @@ export const mockInferenceServiceModalData = ({
     name: 'caikit',
     version: '1.0.0',
   },
+  minReplicas = 1,
+  maxReplicas = 1,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
   project,
   servingRuntimeName,
   storage,
   format,
+  minReplicas,
+  maxReplicas,
 });

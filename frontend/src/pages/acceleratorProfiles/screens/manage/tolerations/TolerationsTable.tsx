@@ -40,8 +40,8 @@ export const TolerationsTable: React.FC<TolerationTableProps> = ({ tolerations, 
           <TolerationRow
             key={toleration.key + rowIndex}
             toleration={toleration}
-            onEdit={(toleration) => {
-              setEditToleration(toleration);
+            onEdit={(newToleration) => {
+              setEditToleration(newToleration);
               setCurrentIndex(rowIndex);
             }}
             onDelete={() => {

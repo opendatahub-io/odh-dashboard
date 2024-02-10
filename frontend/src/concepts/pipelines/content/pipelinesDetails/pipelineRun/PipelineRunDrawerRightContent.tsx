@@ -32,10 +32,6 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
 
   return (
     <DrawerPanelContent
-      // This forces a re-render to solve resize of the Log viewer inside Drawer.
-      onResize={() => {
-        window.dispatchEvent(new Event('resize'));
-      }}
       isResizable
       widths={{ default: 'width_33', lg: 'width_50' }}
       minSize="500px"
@@ -46,7 +42,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
           {task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
             task.name}
         </Title>
-        {task.runDetails && <Text component="small">{task.runDetails.status.podName}</Text>}
+        {task.runDetails && <Text component="small">{task.runDetails.status?.podName}</Text>}
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>

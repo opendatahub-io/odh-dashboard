@@ -33,7 +33,9 @@ const ImportPipelineVersionButton: React.FC<ImportPipelineVersionButtonProps> = 
           onClose={(pipelineVersion, pipeline) => {
             setOpen(false);
             if (pipelineVersion) {
-              onCreate && onCreate(pipelineVersion, pipeline);
+              if (onCreate) {
+                onCreate(pipelineVersion, pipeline);
+              }
               refreshAllAPI();
             }
           }}

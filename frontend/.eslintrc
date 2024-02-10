@@ -54,6 +54,39 @@
   "rules": {
     "arrow-body-style": "error",
     "curly": "error",
+    "@typescript-eslint/default-param-last": "error",
+    "@typescript-eslint/dot-notation": ["error", { "allowKeywords": true }],
+    "@typescript-eslint/lines-between-class-members": [
+      "error",
+      "always",
+      { "exceptAfterSingleLine": false }
+    ],
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variable",
+        "format": ["camelCase", "PascalCase", "UPPER_CASE"]
+      },
+      {
+        "selector": "function",
+        "format": ["camelCase", "PascalCase"]
+      },
+      {
+        "selector": "typeLike",
+        "format": ["PascalCase"]
+      }
+    ],
+    "@typescript-eslint/no-unused-expressions": [
+      "error",
+      {
+        "allowShortCircuit": false,
+        "allowTernary": false,
+        "allowTaggedTemplates": false
+      }
+    ],
+    "@typescript-eslint/no-redeclare": "error",
+    "@typescript-eslint/no-shadow": "error",
+    "@typescript-eslint/return-await": ["error", "in-try-catch"],
     "camelcase": "warn",
     "no-else-return": ["error", { "allowElseIf": false }],
     "eqeqeq": ["error", "always", { "null": "ignore" }],
@@ -101,7 +134,7 @@
     "@typescript-eslint/explicit-module-boundary-types": "error",
     "react/self-closing-comp": "error",
     // temporarily turn off @typescript-eslint/no-unnecessary-condition to merge pipeline versions and logs feature into main branch
-    "@typescript-eslint/no-unnecessary-condition": "off", 
+    "@typescript-eslint/no-unnecessary-condition": "off",
     "react-hooks/exhaustive-deps": "error",
     "prefer-destructuring": [
       "error",
@@ -143,6 +176,16 @@
           "object",
           "unknown"
         ]
+      }
+    ],
+    "import/newline-after-import": "error",
+    "import/no-duplicates": "error",
+    "import/no-named-as-default": "error",
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": true,
+        "optionalDependencies": true
       }
     ],
     "no-relative-import-paths/no-relative-import-paths": [

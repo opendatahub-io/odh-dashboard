@@ -7,7 +7,7 @@ import {
 } from '~/pages/modelServing/screens/types';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import DataConnectionExistingField from './DataConnectionExistingField';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
@@ -85,7 +85,7 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
                     <AWSField
                       values={data.storage.awsData}
                       onUpdate={(awsData) => setData('storage', { ...data.storage, awsData })}
-                      additionalRequiredFields={[AWS_KEYS.AWS_S3_BUCKET]}
+                      additionalRequiredFields={[AwsKeys.AWS_S3_BUCKET]}
                     />
                   </StackItem>
                   <StackItem>

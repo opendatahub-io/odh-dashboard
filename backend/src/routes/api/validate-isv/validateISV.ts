@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret, V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
-import { KubeFastifyInstance, OdhApplication } from '../../../types';
+import { CronJobKind, KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplication, updateApplications } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
 
@@ -86,9 +86,9 @@ export const runValidation = async (
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
   const stringData = JSON.parse(query?.values ?? '');
-  const batchV1beta1Api = fastify.kube.batchV1beta1Api;
   const batchV1Api = fastify.kube.batchV1Api;
   const coreV1Api = fastify.kube.coreV1Api;
+  const customObjectsApi = fastify.kube.customObjectsApi;
   const appDef = getApplication(appName);
   const { enable } = appDef.spec;
 
@@ -102,9 +102,9 @@ export const runValidation = async (
     fastify.log.error(`Unable to create secret: ${e.response?.body?.message ?? e.message}`);
   });
 
-  const cronJob = await batchV1beta1Api
-    .readNamespacedCronJob(cronjobName, namespace)
-    .then((res) => res.body)
+  const cronJob = await customObjectsApi
+    .getNamespacedCustomObject('batch', 'v1', namespace, 'cronjobs', cronjobName)
+    .then((res) => res.body as CronJobKind)
     .catch(() => {
       fastify.log.error(`validation cronjob does not exist`);
     });
@@ -120,13 +120,20 @@ export const runValidation = async (
 
   const updateCronJobSuspension = async (suspend: boolean) => {
     try {
-      const updateCronJob = await batchV1beta1Api
-        .readNamespacedCronJob(cronjobName, namespace)
-        .then((res) => res.body);
+      const updateCronJob = await customObjectsApi
+        .getNamespacedCustomObject('batch', 'v1', namespace, 'cronjobs', cronjobName)
+        .then((res) => res.body as CronJobKind);
 
       // Flag the cronjob as no longer suspended
       updateCronJob.spec.suspend = suspend;
-      await batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, updateCronJob);
+      await customObjectsApi.replaceNamespacedCustomObject(
+        'batch',
+        'v1',
+        namespace,
+        'cronjobs',
+        cronjobName,
+        updateCronJob,
+      );
     } catch (e) {
       fastify.log.error(
         `failed to ${suspend ? 'suspend' : 'unsuspend'} cronjob: ${e.response.body.message}`,

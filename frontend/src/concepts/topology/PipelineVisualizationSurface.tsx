@@ -45,12 +45,12 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         },
         true,
       );
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error);
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e);
       } else {
         // eslint-disable-next-line no-console
-        console.error('Unknown error occurred rendering Pipeline Graph', error);
+        console.error('Unknown error occurred rendering Pipeline Graph', e);
       }
     }
   }, [controller, nodes]);

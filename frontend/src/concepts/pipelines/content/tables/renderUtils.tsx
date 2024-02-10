@@ -150,8 +150,8 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
           onChange={(e, checked) => {
             setIsChangingFlag(true);
             setError(null);
-            onToggle(checked).catch((e) => {
-              setError(e);
+            onToggle(checked).catch((err) => {
+              setError(err);
               setIsChangingFlag(false);
             });
           }}

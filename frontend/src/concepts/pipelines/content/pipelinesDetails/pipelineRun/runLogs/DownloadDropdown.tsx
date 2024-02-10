@@ -21,6 +21,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
       position="right"
       toggle={
         <DropdownToggle
+          data-testid="download-steps-toggle"
           className="pf-v5-u-px-sm"
           style={{ width: '60px' }}
           aria-label="Download step logs"
@@ -33,13 +34,14 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
       isOpen={isDownloadDropdownOpen}
       dropdownItems={[
         <DropdownItem
+          data-testid="download-current-step-logs"
           isDisabled={isSingleStepLogsEmpty}
-          key="current-container-logs"
+          key="current-step-logs"
           onClick={onDownload}
         >
           Download current step log
         </DropdownItem>,
-        <DropdownItem key="all-container-logs" onClick={onDownloadAll}>
+        <DropdownItem key="all-step-logs" onClick={onDownloadAll}>
           Download all step logs
         </DropdownItem>,
       ]}

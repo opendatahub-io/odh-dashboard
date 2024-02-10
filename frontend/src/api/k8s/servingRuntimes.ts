@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -148,41 +148,60 @@ export const assembleServingRuntime = (
 export const listServingRuntimes = (
   namespace?: string,
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind[]> => {
   const queryOptions = {
     ...(namespace && { ns: namespace }),
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
-  return k8sListResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    queryOptions,
-  }).then((listResource) => listResource.items);
+  return k8sListResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        queryOptions,
+      },
+      opts,
+    ),
+  ).then((listResource) => listResource.items);
 };
 
-export const listScopedServingRuntimes = (labelSelector?: string): Promise<ServingRuntimeKind[]> =>
-  getModelServingProjects().then((projects) =>
+export const listScopedServingRuntimes = (
+  labelSelector?: string,
+  opts?: K8sAPIOptions,
+): Promise<ServingRuntimeKind[]> =>
+  getModelServingProjects(opts).then((projects) =>
     Promise.all(
-      projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector)),
-    ).then((listServingRuntimes) =>
-      _.uniqBy(_.flatten(listServingRuntimes), (sr) => sr.metadata.name),
+      projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector, opts)),
+    ).then((fetchedListServingRuntimes) =>
+      _.uniqBy(_.flatten(fetchedListServingRuntimes), (sr) => sr.metadata.name),
     ),
   );
 
 export const getServingRuntimeContext = (
   namespace?: string,
   labelSelector?: string,
+  opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind[]> => {
   if (namespace) {
-    return listServingRuntimes(namespace, labelSelector);
+    return listServingRuntimes(namespace, labelSelector, opts);
   }
-  return listScopedServingRuntimes(labelSelector);
+  return listScopedServingRuntimes(labelSelector, opts);
 };
 
-export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> =>
-  k8sGetResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    queryOptions: { name, ns: namespace },
-  });
+export const getServingRuntime = (
+  name: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<ServingRuntimeKind> =>
+  k8sGetResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
+  );
 
 export const updateServingRuntime = (options: {
   data: CreatingServingRuntimeObject;
@@ -212,10 +231,13 @@ export const updateServingRuntime = (options: {
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      resource: updatedServingRuntime,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        resource: updatedServingRuntime,
+      },
+      opts,
+    ),
   );
 };
 
@@ -248,10 +270,13 @@ export const createServingRuntime = (options: {
   );
 
   return k8sCreateResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      resource: assembledServingRuntime,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        resource: assembledServingRuntime,
+      },
+      opts,
+    ),
   );
 };
 
@@ -261,8 +286,11 @@ export const deleteServingRuntime = (
   opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> =>
   k8sDeleteResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(opts, {
-      model: ServingRuntimeModel,
-      queryOptions: { name, ns: namespace },
-    }),
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
   );

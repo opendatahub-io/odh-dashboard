@@ -31,7 +31,7 @@ const NotebookServerDetails: React.FC = () => {
   const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
-    (container) => container.name === notebook.metadata.name,
+    (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
 
   if (!container) {
@@ -47,7 +47,9 @@ const NotebookServerDetails: React.FC = () => {
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag?.content.dependencies ?? [];
   const sizes = getNotebookSizes(dashboardConfig);
-  const size = sizes.find((size) => _.isEqual(size.resources.limits, container.resources?.limits));
+  const size = sizes.find((currentSize) =>
+    _.isEqual(currentSize.resources.limits, container.resources?.limits),
+  );
 
   const onToggle = (expanded: boolean) => setExpanded(expanded);
 

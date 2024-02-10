@@ -293,6 +293,7 @@ export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF =>
 };
 
 export const buildMockPipelineV2 = (pipeline?: Partial<PipelineKFv2>): PipelineKFv2 => {
+  /* eslint-disable @typescript-eslint/naming-convention */
   const display_name = pipeline?.display_name || 'Test pipeline';
   const pipeline_id = display_name.replace(/ /g, '-').toLowerCase();
 

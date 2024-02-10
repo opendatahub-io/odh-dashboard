@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Button, Modal } from '@patternfly/react-core';
 
-type DisableAcceleratorProfileModal = {
+type DisableAcceleratorProfileModalType = {
   isOpen: boolean;
   onClose: (confirmStatus: boolean) => void;
 };
 
-const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModal> = ({
+const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModalType> = ({
   isOpen,
   onClose,
 }) => (

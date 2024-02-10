@@ -59,7 +59,9 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
         placeholder="Select one"
         value={selectedImageStream?.metadata.name ?? ''}
         onChange={(key) => {
-          const imageStream = imageStreams.find((imageStream) => imageStream.metadata.name === key);
+          const imageStream = imageStreams.find(
+            (currentImageStream) => currentImageStream.metadata.name === key,
+          );
           if (imageStream) {
             onImageStreamSelect(imageStream);
           }

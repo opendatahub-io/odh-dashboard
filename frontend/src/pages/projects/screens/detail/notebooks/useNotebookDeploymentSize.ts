@@ -11,7 +11,7 @@ const useNotebookDeploymentSize = (
   const { dashboardConfig } = React.useContext(AppContext);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
-    (container) => container.name === notebook.metadata.name,
+    (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
 
   if (!container) {
@@ -20,9 +20,9 @@ const useNotebookDeploymentSize = (
 
   const sizes = getNotebookSizes(dashboardConfig);
   const size = sizes.find(
-    (size) =>
-      isCpuLimitEqual(size.resources.limits?.cpu, container.resources?.limits?.cpu) &&
-      isMemoryLimitEqual(size.resources.limits?.memory, container.resources?.limits?.memory),
+    (currentSize) =>
+      isCpuLimitEqual(currentSize.resources.limits?.cpu, container.resources?.limits?.cpu) &&
+      isMemoryLimitEqual(currentSize.resources.limits?.memory, container.resources?.limits?.memory),
   );
 
   if (!size) {

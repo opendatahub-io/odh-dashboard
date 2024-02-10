@@ -71,39 +71,42 @@ const createUsePipelineTable =
     }, [loaded]);
 
     const setLimitedPage = React.useCallback<typeof setPage>(
-      (page) => {
+      (currentPage) => {
         if (!limit) {
-          setPage(page);
+          setPage(currentPage);
         }
       },
       [limit],
     );
 
     const setPageSizeAndReset = React.useCallback<typeof setPageSize>(
-      (pageSize) => {
+      (currentPageSize) => {
         if (!limit) {
-          setPageSize(pageSize);
+          setPageSize(currentPageSize);
           setPage(1);
         }
       },
       [limit],
     );
 
-    const setSortFieldAndReset = React.useCallback<typeof setSortField>((sortField) => {
+    const setSortFieldAndReset = React.useCallback<typeof setSortField>((currentSortField) => {
       // when sort field changes, move back to first page
-      setSortField(sortField);
+      setSortField(currentSortField);
       setPage(1);
     }, []);
 
-    const setSortDirectionAndReset = React.useCallback<typeof setSortDirection>((sortDirection) => {
-      // when sort direction changes, move back to first page
-      setSortDirection(sortDirection);
-      setPage(1);
-    }, []);
+    const setSortDirectionAndReset = React.useCallback<typeof setSortDirection>(
+      (currentSortDirection) => {
+        // when sort direction changes, move back to first page
+        setSortDirection(currentSortDirection);
+        setPage(1);
+      },
+      [],
+    );
 
-    const setFilterAndReset = React.useCallback<typeof setFilter>((filter) => {
+    const setFilterAndReset = React.useCallback<typeof setFilter>((currentFilter) => {
       // when filter changes, move back to first page
-      setFilter(filter);
+      setFilter(currentFilter);
       setPage(1);
     }, []);
 

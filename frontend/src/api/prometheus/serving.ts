@@ -15,7 +15,7 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
-import { QueryTimeframeStep, RefreshIntervalValue } from '~/pages/modelServing/screens/const';
+import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PROMETHEUS_BIAS_PATH } from '~/api/prometheus/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
@@ -46,7 +46,7 @@ export const useModelServingMetrics = (
     [],
   );
 
-  const trustyResponsePredicate = React.useCallback<
+  const prometheusQueryRangeResponsePredicate = React.useCallback<
     ResponsePredicate<PrometheusQueryRangeResponseDataResult>
   >((data) => data.result || [], []);
 
@@ -55,7 +55,6 @@ export const useModelServingMetrics = (
     (queries as { [key in ServerMetricType]: string })[ServerMetricType.REQUEST_COUNT],
     end,
     timeframe,
-    QueryTimeframeStep[ServerMetricType.REQUEST_COUNT],
     defaultResponsePredicate,
     namespace,
   );
@@ -66,8 +65,7 @@ export const useModelServingMetrics = (
       (queries as { [key in ServerMetricType]: string })[ServerMetricType.AVG_RESPONSE_TIME],
       end,
       timeframe,
-      QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME],
-      trustyResponsePredicate,
+      prometheusQueryRangeResponsePredicate,
       namespace,
     );
 
@@ -76,7 +74,6 @@ export const useModelServingMetrics = (
     (queries as { [key in ServerMetricType]: string })[ServerMetricType.CPU_UTILIZATION],
     end,
     timeframe,
-    QueryTimeframeStep[ServerMetricType.CPU_UTILIZATION],
     defaultResponsePredicate,
     namespace,
   );
@@ -86,7 +83,6 @@ export const useModelServingMetrics = (
     (queries as { [key in ServerMetricType]: string })[ServerMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
-    QueryTimeframeStep[ServerMetricType.MEMORY_UTILIZATION],
     defaultResponsePredicate,
     namespace,
   );
@@ -96,7 +92,6 @@ export const useModelServingMetrics = (
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
-    QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS],
     defaultResponsePredicate,
     namespace,
   );
@@ -106,7 +101,6 @@ export const useModelServingMetrics = (
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
-    QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED],
     defaultResponsePredicate,
     namespace,
   );
@@ -116,8 +110,7 @@ export const useModelServingMetrics = (
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
-    QueryTimeframeStep[ModelMetricType.TRUSTY_AI_SPD],
-    trustyResponsePredicate,
+    prometheusQueryRangeResponsePredicate,
     namespace,
     PROMETHEUS_BIAS_PATH,
   );
@@ -127,8 +120,7 @@ export const useModelServingMetrics = (
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
-    QueryTimeframeStep[ModelMetricType.TRUSTY_AI_DIR],
-    trustyResponsePredicate,
+    prometheusQueryRangeResponsePredicate,
     namespace,
     PROMETHEUS_BIAS_PATH,
   );
@@ -154,7 +146,7 @@ export const useModelServingMetrics = (
 
   useRefreshInterval(RefreshIntervalValue[refreshInterval], refreshAllMetrics);
 
-  return React.useMemo(
+  const result = React.useMemo(
     () => ({
       data: {
         [ServerMetricType.REQUEST_COUNT]: serverRequestCount,
@@ -180,4 +172,22 @@ export const useModelServingMetrics = (
       refreshAllMetrics,
     ],
   );
+
+  // store the result in a reference and only update the reference so long as there are no pending queries
+  const resultRef = React.useRef(result);
+  if (
+    !(
+      serverRequestCount.pending ||
+      serverAverageResponseTime.pending ||
+      serverCPUUtilization.pending ||
+      serverMemoryUtilization.pending ||
+      modelRequestSuccessCount.pending ||
+      modelRequestFailedCount.pending ||
+      modelTrustyAIDIR.pending ||
+      modelTrustyAISPD.pending
+    )
+  ) {
+    resultRef.current = result;
+  }
+  return resultRef.current;
 };

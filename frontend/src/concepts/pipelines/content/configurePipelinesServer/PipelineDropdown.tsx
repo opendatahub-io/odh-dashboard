@@ -22,7 +22,8 @@ import {
 import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
 import { PipelineServerConfigType } from './types';
 import { getLabelName } from './utils';
-type pipelineDropdownProps = {
+
+type PipelineDropdownProps = {
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
   dataConnections: DataConnection[];
@@ -31,7 +32,7 @@ export const PipelineDropdown = ({
   config,
   setConfig,
   dataConnections,
-}: pipelineDropdownProps): React.JSX.Element => {
+}: PipelineDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState<boolean[]>([]);
 
