@@ -2,14 +2,10 @@ import * as React from 'react';
 import { FormGroup, FormSection, Radio, Stack, StackItem } from '@patternfly/react-core';
 import {
   CreateRunPageSections,
-  DEFAULT_PERIODIC_OPTION,
+  DEFAULT_PERIODIC_DATA,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import {
-  RunType,
-  RunTypeOption,
-  ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
+import { RunType, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 
 type RunTypeSectionProps = {
@@ -42,7 +38,7 @@ const RunTypeSection: React.FC<RunTypeSectionProps> = ({ value, onChange }) => (
             onChange={() =>
               onChange({
                 type: RunTypeOption.SCHEDULED,
-                data: { triggerType: ScheduledType.PERIODIC, value: DEFAULT_PERIODIC_OPTION },
+                data: DEFAULT_PERIODIC_DATA,
               })
             }
             body={

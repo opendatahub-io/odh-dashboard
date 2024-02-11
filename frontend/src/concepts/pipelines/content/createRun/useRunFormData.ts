@@ -19,6 +19,7 @@ import {
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   DEFAULT_CRON_STRING,
+  DEFAULT_MAX_CONCURRENCY,
   DEFAULT_PERIODIC_OPTION,
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
@@ -44,7 +45,12 @@ const useUpdateRunType = (
       return;
     }
 
-    const { trigger } = initialData;
+    const {
+      trigger,
+      no_catchup: noCatchUp = false,
+      max_concurrency: maxConcurrencyString,
+    } = initialData;
+
     let triggerType: ScheduledType;
     let start: RunDateTime | undefined;
     let end: RunDateTime | undefined;
@@ -64,9 +70,16 @@ const useUpdateRunType = (
       value = DEFAULT_PERIODIC_OPTION;
     }
 
+    let maxConcurrency = parseInt(maxConcurrencyString);
+    if (Number.isNaN(maxConcurrency)) {
+      maxConcurrency = DEFAULT_MAX_CONCURRENCY;
+    }
+
     const runType: RunType = {
       type: RunTypeOption.SCHEDULED,
       data: {
+        catchUp: !noCatchUp,
+        maxConcurrency,
         triggerType,
         value,
         start,

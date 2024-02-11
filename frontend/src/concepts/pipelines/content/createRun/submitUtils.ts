@@ -92,9 +92,9 @@ const createJob = async (
             }
           : undefined,
     },
-    max_concurrency: '10',
+    max_concurrency: String(formData.runType.data.maxConcurrency),
     mode: RecurringRunMode.ENABLE,
-    no_catchup: false,
+    no_catchup: !formData.runType.data.catchUp,
     service_account: '',
   };
 

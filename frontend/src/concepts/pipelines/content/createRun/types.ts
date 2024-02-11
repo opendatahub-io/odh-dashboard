@@ -29,6 +29,8 @@ export const periodicOptionAsSeconds: Record<PeriodicOptions, number> = {
 
 export type RunDateTime = { date: string; time: string };
 export type RunTypeScheduledData = {
+  catchUp: boolean;
+  maxConcurrency: number;
   triggerType: ScheduledType;
   value: string;
   start?: RunDateTime;

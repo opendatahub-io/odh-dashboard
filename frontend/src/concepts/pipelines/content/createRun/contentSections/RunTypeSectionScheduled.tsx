@@ -1,27 +1,11 @@
 import * as React from 'react';
-import {
-  ClipboardCopy,
-  Radio,
-  Stack,
-  StackItem,
-  Split,
-  SplitItem,
-  Text,
-} from '@patternfly/react-core';
-import {
-  PeriodicOptions,
-  RunTypeScheduledData,
-  ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import { Stack, StackItem } from '@patternfly/react-core';
+import { RunTypeScheduledData } from '~/concepts/pipelines/content/createRun/types';
 import RunTypeSectionDateTime from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionDateTime';
-import {
-  DEFAULT_CRON_STRING,
-  DEFAULT_PERIODIC_OPTION,
-} from '~/concepts/pipelines/content/createRun/const';
 import EndDateBeforeStartDateError from '~/concepts/pipelines/content/createRun/contentSections/EndDateBeforeStartDateError';
-import { replaceNonNumericPartWithString, replaceNumericPartWithString } from '~/utilities/string';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
+import CatchUp from '~/concepts/pipelines/content/createRun/contentSections/CatchUp';
+import MaxConcurrencyField from '~/concepts/pipelines/content/createRun/contentSections/MaxConcurrencyField';
+import TriggerTypeField from '~/concepts/pipelines/content/createRun/contentSections/TriggerTypeField';
 
 type RunTypeSectionScheduledProps = {
   data: RunTypeScheduledData;
@@ -31,97 +15,13 @@ type RunTypeSectionScheduledProps = {
 const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data, onChange }) => (
   <Stack hasGutter>
     <StackItem>
-      <Text>
-        <b>Trigger type</b>
-      </Text>
+      <TriggerTypeField data={data} onChange={onChange} />
     </StackItem>
     <StackItem>
-      <Radio
-        name="run-type-option-trigger-type"
-        label="Periodic"
-        isChecked={data.triggerType === ScheduledType.PERIODIC}
-        id={ScheduledType.PERIODIC}
-        onChange={() =>
-          onChange({
-            ...data,
-            triggerType: ScheduledType.PERIODIC,
-            value: DEFAULT_PERIODIC_OPTION,
-          })
-        }
-        body={
-          data.triggerType === ScheduledType.PERIODIC && (
-            <>
-              <Text>
-                <b>Run every</b>
-              </Text>
-              <Split hasGutter>
-                <SplitItem>
-                  <NumberInputWrapper
-                    min={1}
-                    value={parseInt(data.value) || 1}
-                    onChange={(value) =>
-                      onChange({
-                        ...data,
-                        value: replaceNumericPartWithString(data.value, value),
-                      })
-                    }
-                  />
-                </SplitItem>
-                <SplitItem>
-                  <SimpleDropdownSelect
-                    options={Object.values(PeriodicOptions).map((v) => ({
-                      key: v,
-                      label: v,
-                    }))}
-                    value={data.value.replace(/\d+/, '')}
-                    onChange={(value) =>
-                      onChange({
-                        ...data,
-                        value: replaceNonNumericPartWithString(data.value, value),
-                      })
-                    }
-                  />
-                </SplitItem>
-              </Split>
-            </>
-          )
-        }
+      <MaxConcurrencyField
+        onChange={(maxConcurrency) => onChange({ ...data, maxConcurrency })}
+        value={data.maxConcurrency}
       />
-    </StackItem>
-    <StackItem>
-      <Radio
-        name="run-type-option-trigger-type"
-        label="Cron"
-        id={ScheduledType.CRON}
-        isChecked={data.triggerType === ScheduledType.CRON}
-        onChange={() =>
-          onChange({
-            ...data,
-            triggerType: ScheduledType.CRON,
-            value: DEFAULT_CRON_STRING,
-          })
-        }
-        body={
-          data.triggerType === ScheduledType.CRON && (
-            <ClipboardCopy
-              hoverTip="Copy"
-              clickTip="Copied"
-              onChange={(e, value) => {
-                if (typeof value === 'string') {
-                  onChange({ ...data, value });
-                }
-              }}
-            >
-              {data.value}
-            </ClipboardCopy>
-          )
-        }
-      />
-    </StackItem>
-    <StackItem>
-      <Text>
-        <b>Duration</b>
-      </Text>
     </StackItem>
     <StackItem>
       <RunTypeSectionDateTime
@@ -147,6 +47,12 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
         }}
       />
       <EndDateBeforeStartDateError start={data.start} end={data.end} />
+    </StackItem>
+    <StackItem>
+      <CatchUp
+        enabled={data.catchUp ?? false}
+        onChange={(catchUp) => onChange({ ...data, catchUp })}
+      />
     </StackItem>
   </Stack>
 );
