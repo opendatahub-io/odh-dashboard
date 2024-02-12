@@ -46,6 +46,8 @@ type HandlersProps = {
   rejectAddSupportServingPlatformProject?: boolean;
   serviceAccountAlreadyExists?: boolean;
   roleBindingAlreadyExists?: boolean;
+  rejectInferenceService?: boolean;
+  rejectServingRuntime?: boolean;
 };
 
 const initIntercepts = ({
@@ -79,6 +81,8 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   serviceAccountAlreadyExists = false,
   roleBindingAlreadyExists = false,
+  rejectInferenceService = false,
+  rejectServingRuntime = false,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -132,7 +136,12 @@ const initIntercepts = ({
       method: 'POST',
       pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     },
-    mockInferenceServiceK8sResource({ name: 'test-inference' }),
+    rejectInferenceService
+      ? { statusCode: 404 }
+      : {
+          statusCode: 200,
+          body: mockInferenceServiceK8sResource({ name: 'test-inference' }),
+        },
   ).as('createInferenceService');
   cy.intercept(
     {
@@ -228,12 +237,17 @@ const initIntercepts = ({
       method: 'POST',
       pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     },
-    mockServingRuntimeK8sResource({
-      name: 'test-model',
-      namespace: 'test-project',
-      auth: true,
-      route: true,
-    }),
+    rejectServingRuntime
+      ? { statusCode: 401 }
+      : {
+          statusCode: 200,
+          body: mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+          }),
+        },
   ).as('createServingRuntime');
   cy.intercept(
     {
@@ -995,5 +1009,73 @@ describe('Serving Runtime List', () => {
       .findDescriptionListItem('Llama Service', 'Model server replicas')
       .next('dd')
       .should('have.text', '3');
+  });
+
+  describe('Dry run check', () => {
+    it('Check when inference service dryRun fails', () => {
+      initIntercepts({
+        disableModelMeshConfig: true,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+        rejectInferenceService: true,
+      });
+
+      projectDetails.visit('test-project');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.shouldBeOpen();
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findSubmitButton().click();
+
+      // check only dryRun should execute
+      cy.get('@createInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
+
+      // check url should be dryRun
+      cy.wait('@createInferenceService').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+    });
+
+    it('Check when serving runtime dryRun fails', () => {
+      initIntercepts({
+        disableModelMeshConfig: true,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+        rejectServingRuntime: true,
+      });
+
+      projectDetails.visit('test-project');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.shouldBeOpen();
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findSubmitButton().click();
+
+      // check only dryRun should execute
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
+
+      // check url should be dryRun
+      cy.wait('@createServingRuntime').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+    });
   });
 });

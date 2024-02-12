@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
-  submitInferenceServiceResource,
-  submitServingRuntimeResources,
+  getSubmitInferenceServiceResourceFn,
+  getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -146,7 +146,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
-    submitServingRuntimeResources(
+    const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
       servingRuntimeSelected,
       createDataServingRuntime,
       customServingRuntimesEnabled,
@@ -158,15 +158,25 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       projectContext?.currentProject,
       servingRuntimeName,
       false,
-    )
+    );
+
+    const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
+      createDataInferenceService,
+      editInfo?.inferenceServiceEditInfo,
+      servingRuntimeName,
+      false,
+      acceleratorProfileState,
+    );
+
+    Promise.all([
+      submitServingRuntimeResources({ dryRun: true }),
+      submitInferenceServiceResource({ dryRun: true }),
+    ])
       .then(() =>
-        submitInferenceServiceResource(
-          createDataInferenceService,
-          editInfo?.inferenceServiceEditInfo,
-          servingRuntimeName,
-          false,
-          acceleratorProfileState,
-        ),
+        Promise.all([
+          submitServingRuntimeResources({ dryRun: false }),
+          submitInferenceServiceResource({ dryRun: false }),
+        ]),
       )
       .then(() => onSuccess())
       .catch((e) => {
