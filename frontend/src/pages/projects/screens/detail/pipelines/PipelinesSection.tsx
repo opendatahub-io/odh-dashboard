@@ -13,30 +13,39 @@ import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/Impor
 const PipelinesSection: React.FC = () => {
   const {
     apiAvailable,
-    pipelinesServer: { initializing, installed, timedOut },
+    pipelinesServer: { initializing, installed, timedOut, compatible },
   } = usePipelinesAPI();
 
   const [isPipelinesEmpty, setIsPipelinesEmpty] = React.useState(false);
+
+  const hideImportButton = installed && !compatible;
+
+  const actions: React.ComponentProps<typeof DetailsSection>['actions'] = [];
+  if (!hideImportButton) {
+    actions.push(
+      <ImportPipelineSplitButton
+        disable={!installed}
+        disableUploadVersion={installed && isPipelinesEmpty}
+        key={`action-${ProjectSectionID.PIPELINES}`}
+        variant="secondary"
+      />,
+    );
+  }
+  actions.push(
+    <PipelineServerActions
+      key={`action-${ProjectSectionID.PIPELINES}-1`}
+      isDisabled={!initializing && !installed}
+      variant="kebab"
+    />,
+  );
 
   return (
     <PipelineAndVersionContextProvider>
       <DetailsSection
         id={ProjectSectionID.PIPELINES}
         title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
-        actions={[
-          <ImportPipelineSplitButton
-            disable={!installed}
-            disableUploadVersion={installed && isPipelinesEmpty}
-            key={`action-${ProjectSectionID.PIPELINES}`}
-            variant="secondary"
-          />,
-          <PipelineServerActions
-            key={`action-${ProjectSectionID.PIPELINES}-1`}
-            isDisabled={!initializing && !installed}
-            variant="kebab"
-          />,
-        ]}
-        isLoading={(!apiAvailable && installed) || initializing}
+        actions={actions}
+        isLoading={(compatible && !apiAvailable && installed) || initializing}
         isEmpty={!installed}
         emptyState={<NoPipelineServer variant="secondary" />}
         showDivider={isPipelinesEmpty}

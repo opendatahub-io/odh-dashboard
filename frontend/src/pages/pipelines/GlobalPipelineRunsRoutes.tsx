@@ -12,7 +12,6 @@ import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pi
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
-import PipelinesDeprecatedBanner from '~/concepts/pipelines/PipelinesDeprecatedBanner';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 
 const GlobalPipelineRunRoutes: React.FC = () => (
@@ -20,14 +19,11 @@ const GlobalPipelineRunRoutes: React.FC = () => (
     <Route
       path="/:namespace?/*"
       element={
-        <>
-          <PipelinesDeprecatedBanner />
-          <GlobalPipelineCoreLoader
-            title={pipelineRunsPageTitle}
-            description={pipelineRunsPageDescription}
-            getInvalidRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
-          />
-        </>
+        <GlobalPipelineCoreLoader
+          title={pipelineRunsPageTitle}
+          description={pipelineRunsPageDescription}
+          getInvalidRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+        />
       }
     >
       <Route index element={<GlobalPipelineRuns />} />
