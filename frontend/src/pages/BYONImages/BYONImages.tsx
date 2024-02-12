@@ -9,7 +9,7 @@ const BYONImages: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Notebook image settings"
+      title="Notebook images"
       description="Manage your notebook images."
       loaded={loaded}
       empty={images.length === 0}
