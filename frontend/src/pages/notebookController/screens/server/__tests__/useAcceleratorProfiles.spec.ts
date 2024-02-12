@@ -4,17 +4,18 @@ import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hook
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
-const k8sListResourceMock = k8sListResource as jest.Mock;
+const k8sListResourceMock = jest.mocked(k8sListResource<AcceleratorProfileKind>);
 
 describe('useAcceleratorProfiles', () => {
   it('should return successful list of accelerators profiles', async () => {
-    k8sListResourceMock.mockReturnValue(
-      Promise.resolve(mockK8sResourceList([mockAcceleratorProfile({ uid: 'test-project-12m' })])),
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([mockAcceleratorProfile({ uid: 'test-project-12m' })]),
     );
 
     const renderResult = testHook(useAcceleratorProfiles)('test-project');
@@ -32,9 +33,7 @@ describe('useAcceleratorProfiles', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(
-      Promise.resolve(mockK8sResourceList([mockAcceleratorProfile({})])),
-    );
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockAcceleratorProfile({})]));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
@@ -42,7 +41,7 @@ describe('useAcceleratorProfiles', () => {
   });
 
   it('should handle other errors and rethrow', async () => {
-    k8sListResourceMock.mockReturnValue(Promise.reject(new Error('error1')));
+    k8sListResourceMock.mockRejectedValue(new Error('error1'));
 
     const renderResult = testHook(useAcceleratorProfiles)('test-project');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -57,7 +56,7 @@ describe('useAcceleratorProfiles', () => {
     expect(renderResult).hookToBeStable([true, true, false, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(Promise.reject(new Error('error2')));
+    k8sListResourceMock.mockRejectedValue(new Error('error2'));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([], false, new Error('error2')));

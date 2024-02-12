@@ -3,19 +3,21 @@ import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import useGroups from '~/pages/projects/projectSharing/useGroups';
 import { GroupKind } from '~/k8sTypes';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
-const k8sListResourceMock = k8sListResource as jest.Mock;
+const k8sListResourceMock = jest.mocked(k8sListResource<GroupKind>);
 
 describe('useGroups', () => {
   it('should return successful list of groups', async () => {
-    const mockList = {
-      items: [{ metadata: { name: 'item 1' } }, { metadata: { name: 'item 2' } }] as GroupKind[],
-    };
-    k8sListResourceMock.mockReturnValue(Promise.resolve(mockList));
+    const mockList = mockK8sResourceList([
+      { metadata: { name: 'item 1' } } as GroupKind,
+      { metadata: { name: 'item 2' } } as GroupKind,
+    ]);
+    k8sListResourceMock.mockResolvedValue(mockList);
 
     const renderResult = testHook(useGroups)();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -30,7 +32,7 @@ describe('useGroups', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(Promise.resolve({ items: [...mockList.items] }));
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockList.items]));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
@@ -43,7 +45,7 @@ describe('useGroups', () => {
         code: 403,
       },
     };
-    k8sListResourceMock.mockReturnValue(Promise.reject(error));
+    k8sListResourceMock.mockRejectedValue(error);
 
     const renderResult = testHook(useGroups)();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -72,7 +74,7 @@ describe('useGroups', () => {
         code: 404,
       },
     };
-    k8sListResourceMock.mockReturnValue(Promise.reject(error));
+    k8sListResourceMock.mockRejectedValue(error);
 
     const renderResult = testHook(useGroups)();
 
@@ -102,7 +104,7 @@ describe('useGroups', () => {
   });
 
   it('should handle other errors and rethrow', async () => {
-    k8sListResourceMock.mockReturnValue(Promise.reject(new Error('error1')));
+    k8sListResourceMock.mockRejectedValue(new Error('error1'));
 
     const renderResult = testHook(useGroups)();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -117,7 +119,7 @@ describe('useGroups', () => {
     expect(renderResult).hookToBeStable([true, true, false, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(Promise.reject(new Error('error2')));
+    k8sListResourceMock.mockRejectedValue(new Error('error2'));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([], false, new Error('error2')));

@@ -22,7 +22,7 @@ jest.mock('~/redux/selectors/clusterInfo', () => ({
   useClusterInfo: jest.fn(),
 }));
 
-const useClusterInfoMock = useClusterInfo as jest.MockedFunction<typeof useClusterInfo>;
+const useClusterInfoMock = jest.mocked(useClusterInfo);
 const devModeMock = jest.spyOn(jest.requireMock('~/utilities/const'), 'DEV_MODE', 'get');
 
 describe('getOpenShiftConsoleServerURL', () => {

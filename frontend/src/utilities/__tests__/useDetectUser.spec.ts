@@ -14,7 +14,7 @@ jest.mock('~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 
-const useAppDispatchMock = useAppDispatch as jest.Mock;
+const useAppDispatchMock = jest.mocked(useAppDispatch);
 const dispatchMock = jest.fn();
 
 describe('useDetectUser', () => {
@@ -38,7 +38,7 @@ describe('useDetectUser', () => {
     };
 
     // Mock axios.get to return a resolved promise with the statusResponseMock
-    (axios.get as jest.Mock).mockResolvedValueOnce({ data: statusResponseMock });
+    jest.mocked(axios.get).mockResolvedValueOnce({ data: statusResponseMock });
     useAppDispatchMock.mockReturnValueOnce(dispatchMock);
 
     // Render the component with the hook
@@ -54,7 +54,7 @@ describe('useDetectUser', () => {
   it('should dispatch getUserPending and getUserRejected on failed API call', async () => {
     const testError = new Error('Test error');
     // Mock axios.get to return a rejected promise with the errorResponseMock
-    (axios.get as jest.MockedFunction<typeof axios.get>).mockRejectedValueOnce({
+    jest.mocked(axios.get).mockRejectedValueOnce({
       response: { data: testError },
     });
     useAppDispatchMock.mockReturnValueOnce(dispatchMock);
@@ -69,7 +69,7 @@ describe('useDetectUser', () => {
     });
   });
   it('should cancel the API call when cancelled is true', async () => {
-    (axios.get as jest.Mock).mockResolvedValueOnce({ data: {} });
+    jest.mocked(axios.get).mockResolvedValueOnce({ data: {} });
     useAppDispatchMock.mockReturnValueOnce(dispatchMock);
 
     // Act
