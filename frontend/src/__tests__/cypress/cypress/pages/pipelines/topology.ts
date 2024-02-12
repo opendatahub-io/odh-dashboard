@@ -7,7 +7,7 @@ class PipelinesTopology {
   }
 
   protected wait() {
-    cy.get('[data-test-id="topology"]');
+    cy.findByTestId('topology');
     cy.testA11y();
   }
 
@@ -161,15 +161,15 @@ class PipelineRunDetails extends RunDetails {
 
 class PipelineRunBottomDrawer extends Contextual<HTMLDivElement> {
   findBottomDrawerDetailsTab() {
-    return this.find().findByTestId('bottom-drawer-tab-Details');
+    return this.find().findByTestId('bottom-drawer-tab-details');
   }
 
   findBottomDrawerYamlTab() {
-    return this.find().findByTestId('bottom-drawer-tab-Run Output');
+    return this.find().findByTestId('bottom-drawer-tab-run-output');
   }
 
   findBottomDrawerInputTab() {
-    return this.find().findByTestId('bottom-drawer-tab-Input parameters');
+    return this.find().findByTestId('bottom-drawer-tab-input-parameters');
   }
 
   findBottomDrawerDetailItem(key: string) {

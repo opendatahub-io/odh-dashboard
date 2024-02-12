@@ -8,7 +8,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 
 const PipelineTopologyEmpty: React.FC = () => (
-  <EmptyState>
+  <EmptyState data-testid="topology">
     <EmptyStateHeader
       titleText="No tasks to render"
       icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}

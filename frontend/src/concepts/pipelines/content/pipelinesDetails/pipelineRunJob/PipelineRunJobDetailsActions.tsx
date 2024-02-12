@@ -7,10 +7,10 @@ import {
 } from '@patternfly/react-core/deprecated';
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type PipelineRunJobDetailsActionsProps = {
-  job?: PipelineRunJobKF;
+  job?: PipelineRunJobKFv2;
   onDelete: () => void;
 };
 
@@ -39,7 +39,9 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
               <DropdownItem
                 key="clone-run"
                 onClick={() =>
-                  navigate(`/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.id}`)
+                  navigate(
+                    `/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.recurring_run_id}`,
+                  )
                 }
               >
                 Duplicate run

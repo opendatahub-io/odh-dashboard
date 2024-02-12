@@ -17,12 +17,9 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-// import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-// import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-// import { PipelineRunResourceKF } from '~/concepts/pipelines/kfTypes';
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
@@ -35,44 +32,26 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
-
-// TODO, https://issues.redhat.com/browse/RHOAIENG-2282
-// const getPipelineRunKind = (
-//   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
-// ): PipelineRunKind | null => {
-//   if (!pipelineRuntime) {
-//     return null;
-//   }
-//   try {
-//     return JSON.parse(pipelineRuntime.workflow_manifest);
-//   } catch (e) {
-//     return null;
-//   }
-// };
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { pipelineRunId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [, loaded, error] = usePipelineRunById(pipelineRunId, true);
+  const [runResource, loaded, error] = usePipelineRunById(pipelineRunId, true);
+  const [job] = usePipelineRunJobById(runResource?.recurring_run_id);
+  const [version] = usePipelineVersionById(
+    runResource?.pipeline_version_reference.pipeline_id,
+    runResource?.pipeline_version_reference.pipeline_version_id,
+  );
   const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  // TODO, https://issues.redhat.com/browse/RHOAIENG-2282
-  // const pipelineRuntime = getPipelineRunKind(runResource?.pipeline_runtime);
-  // const { taskMap, nodes } = usePipelineTaskTopology(pipelineRuntime);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pipelineRuntime = {} as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const taskMap = {} as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const runResource = {} as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const run = {} as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const nodes = [] as any;
+  const { taskMap, nodes } = usePipelineTaskTopology(version?.pipeline_spec);
 
   if (!loaded && !error) {
     return (
@@ -102,7 +81,8 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
-              parameters={pipelineRuntime?.spec?.params}
+              // TODO need to get pipeline runtime for v2. https://issues.redhat.com/browse/RHOAIENG-2297
+              // parameters={pipelineRuntime?.spec?.params}
               taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
@@ -119,8 +99,8 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                       setSelectedId(null);
                     }}
                     pipelineRunDetails={
-                      runResource && pipelineRuntime
-                        ? { kf: runResource.run, kind: pipelineRuntime }
+                      runResource && version?.pipeline_spec
+                        ? { kf: runResource, kind: version?.pipeline_spec }
                         : undefined
                     }
                   />
@@ -128,15 +108,19 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
               >
                 <ApplicationsPage
                   title={
-                    run ? (
-                      <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
+                    runResource ? (
+                      <PipelineDetailsTitle run={runResource} statusIcon pipelineRunLabel />
                     ) : (
                       'Error loading run'
                     )
                   }
-                  jobReferenceName={run && <PipelineJobReferenceName resource={run} />}
+                  jobReferenceName={job && <PipelineJobReferenceName resource={job} />}
                   description={
-                    run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
+                    runResource ? (
+                      <MarkdownView conciseDisplay markdown={runResource.description} />
+                    ) : (
+                      ''
+                    )
                   }
                   loaded={loaded}
                   loadError={error}
@@ -144,13 +128,16 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     <Breadcrumb>
                       {breadcrumbPath}
                       <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                        <Truncate content={run?.name ?? 'Loading...'} />
+                        <Truncate content={runResource?.display_name ?? 'Loading...'} />
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
                     loaded && (
-                      <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
+                      <PipelineRunDetailsActions
+                        run={runResource}
+                        onDelete={() => setDeleting(true)}
+                      />
                     )
                   }
                   empty={false}
@@ -180,7 +167,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
       </Drawer>
       <DeletePipelineRunsModal
         type="triggered run"
-        toDeleteResources={deleting && run ? [run] : []}
+        toDeleteResources={deleting && runResource ? [runResource] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
             navigate(contextPath ?? `/pipelineRuns/${namespace}`);

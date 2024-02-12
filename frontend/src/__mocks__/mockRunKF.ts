@@ -33,11 +33,11 @@ export const buildMockRunKF = (run?: Partial<PipelineRunKFv2>): PipelineRunKFv2 
         create_time: '2024-02-05T14:44:39Z',
         start_time: '2024-02-05T14:44:39Z',
         end_time: '0001-01-01T00:00:00Z',
-        state: 'RUNNING',
+        state: RuntimeStateKF.RUNNING,
         state_history: [
           {
             update_time: '2024-02-05T14:44:40Z',
-            state: 'RUNNING',
+            state: RuntimeStateKF.RUNNING,
           },
         ],
         child_tasks: [
@@ -53,11 +53,11 @@ export const buildMockRunKF = (run?: Partial<PipelineRunKFv2>): PipelineRunKFv2 
         create_time: '2024-02-05T14:44:39Z',
         start_time: '2024-02-05T14:44:39Z',
         end_time: '0001-01-01T00:00:00Z',
-        state: 'PENDING',
+        state: RuntimeStateKF.PENDING,
         state_history: [
           {
             update_time: '2024-02-05T14:44:40Z',
-            state: 'PENDING',
+            state: RuntimeStateKF.PENDING,
           },
         ],
       },
