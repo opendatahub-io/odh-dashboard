@@ -1,17 +1,15 @@
 import {
-  PipelineRunJobKF,
-  PipelineRunKF,
-  PipelineCoreResourceKF,
-  PipelineRunStatusesKF,
-  ResourceReferenceKF,
-  ResourceTypeKF,
-  PipelineVersionKF,
-  PipelineRunKFv2,
   PipelineRunJobKFv2,
+  PipelineRunKFv2,
+  PipelineRunStatusesKF,
+  PipelineCoreResourceKF,
+  ResourceTypeKF,
+  ResourceReferenceKF,
+  PipelineRunKF,
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF | undefined => runs[0];
+export const getLastRun = (runs: PipelineRunKFv2[]): PipelineRunKFv2 | undefined => runs[0];
 
 export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
@@ -24,6 +22,10 @@ export const getRunDuration = (run: PipelineRunKFv2): number => {
   return finishedDate.getTime() - createdDate.getTime();
 };
 
+/**
+ * @deprecated
+ *  v2 api now uses RuntimeStateKF
+ */
 export const getStatusWeight = (run: PipelineRunKF): number => {
   const weights: Record<PipelineRunStatusesKF | string, number | undefined> = {
     [PipelineRunStatusesKF.CANCELLED]: 0,
@@ -36,24 +38,44 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
   return weights[run.status] ?? Infinity;
 };
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getResourceRef = (
   resource: PipelineCoreResourceKF | null | undefined,
   type: ResourceTypeKF,
 ): ResourceReferenceKF | undefined =>
   resource?.resource_references?.find((ref) => ref.key.type === type);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getJobResourceRef = (
   resource: Parameters<typeof getResourceRef>[0],
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.JOB);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getPipelineVersionResourceRef = (
-  resource: PipelineCoreResourceKF | PipelineRunKF | PipelineRunJobKF | null | undefined,
+  resource: PipelineCoreResourceKF | null | undefined,
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE_VERSION);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getPipelineResourceRef = (
-  resource: PipelineCoreResourceKF | PipelineVersionKF | null,
+  resource: PipelineCoreResourceKF | null,
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getExperimentResourceRef = (
   resource: Parameters<typeof getResourceRef>[0],
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.EXPERIMENT);

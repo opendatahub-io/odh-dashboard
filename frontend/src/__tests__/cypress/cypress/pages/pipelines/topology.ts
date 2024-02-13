@@ -1,8 +1,8 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 
 class PipelinesTopology {
-  visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}`);
+  visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
+    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
     this.wait();
   }
 
@@ -67,8 +67,8 @@ class DetailsItem extends Contextual<HTMLDivElement> {
 }
 
 class PipelineDetails extends PipelinesTopology {
-  visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}`);
+  visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
+    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
     this.wait();
   }
 

@@ -178,7 +178,7 @@ describe('Pipeline topology', () => {
     it.skip('Test pipeline topology renders', () => {
       initIntercepts();
 
-      pipelineDetails.visit(projectId, mockPipeline.pipeline_id);
+      pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
 
       pipelinesTopology.findTaskNode('print-msg').click();
       pipelinesTopology

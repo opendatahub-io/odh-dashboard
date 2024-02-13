@@ -19,7 +19,7 @@ type PipelineVersionTableProps = {
   sortDirection?: 'asc' | 'desc';
   setSortField: (field: string) => void;
   setSortDirection: (dir: 'asc' | 'desc') => void;
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
 };
 
 const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({

@@ -11,7 +11,11 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRun
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
-  pipelineVersionDetailsPath: (namespace: string, id: string) => string;
+  pipelineVersionDetailsPath: (
+    namespace: string,
+    pipelineId: string,
+    pipelineVersionId: string,
+  ) => string;
   version: PipelineVersionKFv2;
   isDisabled: boolean;
 };
@@ -38,7 +42,13 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
       <Td>
         <TableRowTitleDescription
           title={
-            <Link to={pipelineVersionDetailsPath(namespace, version.pipeline_version_id)}>
+            <Link
+              to={pipelineVersionDetailsPath(
+                namespace,
+                version.pipeline_id,
+                version.pipeline_version_id,
+              )}
+            >
               {version.display_name}
             </Link>
           }

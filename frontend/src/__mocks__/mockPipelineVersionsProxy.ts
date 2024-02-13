@@ -7,6 +7,9 @@ import {
   ResourceTypeKF,
 } from '~/concepts/pipelines/kfTypes';
 
+/**
+ * @deprecated Use `mockPipelineVersionsListV2` instead.
+ */
 export const mockPipelineVersionsList: PipelineVersionKF[] = [
   {
     id: 'ad1b7153-d2fd-4e5e-ae12-30c824b19b03',

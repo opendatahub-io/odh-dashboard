@@ -2,24 +2,20 @@ import { act } from '@testing-library/react';
 import * as React from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
-import {
-  PipelineCoreResourceKF,
-  PipelineCoreResourceKFv2,
-  PipelineRunKFv2,
-} from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
 describe('usePipelineTable', () => {
   it('should indicate initialLoaded after first load', async () => {
     let setInternalStateFn: (
-      state: FetchState<PipelineListPaged<PipelineCoreResourceKF>>,
+      state: FetchState<PipelineListPaged<PipelineCoreResourceKFv2>>,
     ) => void = () => {
       // empty
     };
     const useMock = jest.fn((() => {
       const [internalState, setInternalState] = React.useState<
-        FetchState<PipelineListPaged<PipelineCoreResourceKF>>
+        FetchState<PipelineListPaged<PipelineCoreResourceKFv2>>
       >([{ totalSize: 0, items: [] }, false, undefined, jest.fn()]);
       setInternalStateFn = setInternalState;
       return internalState;

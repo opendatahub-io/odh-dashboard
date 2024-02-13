@@ -15,7 +15,6 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import usePipelineVersionTemplate from '~/concepts/pipelines/apiHooks/usePipelineVersionTemplates';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import MarkdownView from '~/components/MarkdownView';
@@ -25,7 +24,7 @@ import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/t
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-// // import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -36,26 +35,22 @@ enum PipelineDetailsTab {
 }
 
 const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
-  const { pipelineId, pipelineVersionId } = useParams();
   const navigate = useNavigate();
 
-  // const [isDeletionOpen, setDeletionOpen] = React.useState(false);
-  const [, setDeletionOpen] = React.useState(false);
+  const [isDeletionOpen, setDeletionOpen] = React.useState(false);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(PipelineDetailsTab.GRAPH);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const { namespace } = usePipelinesAPI();
-  const [pipelineVersion, isPipelineVersionLoaded, pipelineVersionLoadError] =
-    usePipelineVersionById(pipelineId || '', pipelineVersionId || '');
 
-  const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(
-    pipelineVersion?.pipeline_id,
-  );
-  const pipelineName = pipeline?.name;
-  const [pipelineVersionRun, isPipelineVersionTemplateLoaded, templateLoadError] =
-    usePipelineVersionTemplate(pipelineVersionId);
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersionRun);
-  const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && isPipelineVersionTemplateLoaded;
+  // get pipeline and version from url
+  const { pipelineId, pipelineVersionId } = useParams();
+  const [pipelineVersion, isPipelineVersionLoaded, pipelineVersionLoadError] =
+    usePipelineVersionById(pipelineId, pipelineVersionId);
+  const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
+
+  const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersion?.pipeline_spec);
+  const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && !!pipelineVersion?.pipeline_spec;
 
   if (pipelineVersionLoadError || pipelineLoadError) {
     const title = 'Pipeline version not found';
@@ -93,7 +88,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               breadcrumb={
                 <Breadcrumb>
                   {breadcrumbPath}
-                  <BreadcrumbItem>{pipelineName || 'Loading...'}</BreadcrumbItem>
+                  <BreadcrumbItem>{pipeline?.display_name || 'Loading...'}</BreadcrumbItem>
                   <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                     <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
                   </BreadcrumbItem>
@@ -111,7 +106,6 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               })}
               empty={false}
               loaded={isLoaded}
-              loadError={templateLoadError}
               headerAction={
                 isPipelineVersionLoaded && (
                   <Flex
@@ -120,11 +114,11 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   >
                     <FlexItem style={{ width: '300px' }}>
                       <PipelineVersionSelector
-                        pipelineId={pipeline?.id}
+                        pipelineId={pipeline?.pipeline_id}
                         selection={pipelineVersion?.display_name}
                         onSelect={(version) =>
                           navigate(
-                            `/pipelines/${namespace}/pipeline/view/${version.pipeline_version_id}`,
+                            `/pipelines/${namespace}/pipeline/view/${version.pipeline_id}/${version.pipeline_version_id}`,
                           )
                         }
                       />
@@ -199,8 +193,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   style={{ height: '100%' }}
                 >
                   <PipelineDetailsYAML
-                    filename={`Pipeline ${pipelineVersionRun?.metadata.name}`}
-                    content={pipelineVersionRun}
+                    filename={`Pipeline ${pipelineVersion?.pipeline_spec.pipelineInfo.name}`}
+                    content={pipelineVersion?.pipeline_spec}
                   />
                 </TabContent>
               </div>
@@ -208,12 +202,13 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      {/* TODO: removed bc out of scope for this PR. bring back during https://issues.redhat.com/browse/RHOAIENG-2295 */}
-      {/* {pipelineName && (
+      {pipeline && (
         <DeletePipelinesModal
           isOpen={isDeletionOpen}
           toDeletePipelineVersions={
-            pipelineVersion ? [{ pipelineName, version: pipelineVersion }] : []
+            pipelineVersion
+              ? [{ pipelineName: pipeline.display_name, version: pipelineVersion }]
+              : []
           }
           onClose={(deleted) => {
             setDeletionOpen(false);
@@ -222,7 +217,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
             }
           }}
         />
-      )} */}
+      )}
     </>
   );
 };

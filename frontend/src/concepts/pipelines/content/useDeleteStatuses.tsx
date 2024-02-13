@@ -1,13 +1,12 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF, PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import useNotification from '~/utilities/useNotification';
 import { getPipelineResourceUniqueID } from './utils';
 
 type DeleteStatusesProps = {
   onClose: (deleted?: boolean) => void;
   type: 'triggered run' | 'scheduled run' | 'pipeline';
-  // TODO: remove OR when we move all to v2
-  toDeleteResources: (PipelineCoreResourceKF | PipelineCoreResourceKFv2)[];
+  toDeleteResources: PipelineCoreResourceKFv2[];
 };
 
 export type PipelineResourceDeleteResult = true | Error | undefined;
@@ -41,16 +40,10 @@ const useDeleteStatuses = ({
     const deleteErrors = deleteResults.reduce<React.ReactNode[]>((acc, state, i) => {
       if (state instanceof Error) {
         const resource = toDeleteResources[i];
-        const name =
-          (resource as PipelineCoreResourceKF).name ??
-          (resource as PipelineCoreResourceKFv2).display_name;
-        const key =
-          (resource as PipelineCoreResourceKF).id ??
-          getPipelineResourceUniqueID(resource as PipelineCoreResourceKFv2);
-        // TODO: remove this casting when we move all to v2
+
         acc.push(
-          <p key={key}>
-            <b>{name}</b>: {state.message}
+          <p key={getPipelineResourceUniqueID(resource)}>
+            <b>{resource.display_name}</b>: {state.message}
           </p>,
         );
       }

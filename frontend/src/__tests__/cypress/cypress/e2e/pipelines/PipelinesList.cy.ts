@@ -111,7 +111,7 @@ describe('PipelinesList', () => {
     cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines([]),
     );

@@ -11,6 +11,9 @@ type MockResourceConfigType = {
   id?: string;
 };
 
+/**
+ * @deprecated use buildMockPipelineV2 instead
+ */
 export const mockPipelineKF = ({
   name = 'test-pipeline',
   id = 'test-pipeline',

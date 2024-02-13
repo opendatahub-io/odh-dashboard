@@ -2,16 +2,19 @@ import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hook
 import usePipelineQuery, {
   PipelineKFCallCommonWithItems,
 } from '~/concepts/pipelines/apiHooks/usePipelineQuery';
-import { PipelineCoreResourceKF, PipelinesFilterOp } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2, PipelinesFilterOp } from '~/concepts/pipelines/kfTypes';
 
-const createMockItems = (count: number, prefix = 'item'): PipelineCoreResourceKF[] =>
-  new Array(count)
-    .fill(null)
-    .map((_, i) => ({ id: `${prefix}-id-${i}`, name: `${prefix}-name-${i}` }));
+const createMockItems = (count: number, prefix = 'item'): PipelineCoreResourceKFv2[] =>
+  new Array(count).fill(null).map((_, i) => ({
+    // eslint-disable-next-line camelcase
+    created_at: `${prefix}-created_at-${i}`,
+    // eslint-disable-next-line camelcase
+    display_name: `${prefix}-name-${i}`,
+  }));
 
-type APIResult = PipelineKFCallCommonWithItems<PipelineCoreResourceKF>;
+type APIResult = PipelineKFCallCommonWithItems<PipelineCoreResourceKFv2>;
 const createMockResult = (
-  items: PipelineCoreResourceKF[],
+  items: PipelineCoreResourceKFv2[],
   totalSize?: number | boolean,
   nextPageToken?: string,
 ): APIResult => ({

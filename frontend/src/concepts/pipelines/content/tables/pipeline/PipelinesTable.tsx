@@ -9,7 +9,7 @@ import usePipelinesCheckboxTable from '~/concepts/pipelines/content/tables/pipel
 
 type PipelinesTableProps = {
   pipelines: PipelineKFv2[];
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
   refreshPipelines: () => Promise<unknown>;
   loading?: boolean;
   totalSize?: number;

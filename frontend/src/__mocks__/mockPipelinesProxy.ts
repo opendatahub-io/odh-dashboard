@@ -5,6 +5,9 @@ import {
   ResourceTypeKF,
 } from '~/concepts/pipelines/kfTypes';
 
+/**
+ * @deprecated uses v1 of the API
+ */
 /* eslint-disable camelcase */
 export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number } = {
   pipelines: [
@@ -307,13 +310,13 @@ export const buildMockPipelineV2 = (pipeline?: Partial<PipelineKFv2>): PipelineK
 };
 
 export const buildMockPipelines = (
-  pipelines: (PipelineKF | PipelineKFv2)[] = mockPipelinesProxy.pipelines,
+  pipelines: PipelineKFv2[] = mockPipelinesV2Proxy.pipelines,
   totalSize?: number,
   nextPageToken?: string,
 ): {
   total_size?: number | undefined;
   next_page_token?: string | undefined;
-  pipelines: (PipelineKF | PipelineKFv2)[];
+  pipelines: PipelineKFv2[];
 } => ({
   pipelines,
   total_size: totalSize || pipelines.length,

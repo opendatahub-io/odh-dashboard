@@ -4,9 +4,8 @@ import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockD
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
+import { mockPipelineKFv2 } from '~/__mocks__/mockPipelineKF';
 import { buildMockJobKF } from '~/__mocks__/mockJobKF';
-import { mockPipelinesVersionTemplateResourceKF } from '~/__mocks__/mockPipelinesTemplateResourceKF';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
@@ -36,7 +35,7 @@ const initIntercepts = () => {
       method: 'POST',
       pathname: '/api/proxy/apis/v2beta1/pipelines/test-pipeline',
     },
-    mockPipelineKF({}),
+    mockPipelineKFv2({}),
   );
   cy.intercept(
     {
@@ -67,14 +66,7 @@ const initIntercepts = () => {
       method: 'POST',
       pathname: '/api/proxy/apis/v2beta1/pipelines',
     },
-    mockPipelineKF({}),
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline/templates',
-    },
-    mockPipelinesVersionTemplateResourceKF(),
+    mockPipelineKFv2({}),
   );
   cy.intercept(
     {

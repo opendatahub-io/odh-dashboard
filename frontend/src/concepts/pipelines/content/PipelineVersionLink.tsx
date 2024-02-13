@@ -39,7 +39,9 @@ export const PipelineVersionLink: React.FC<PipelineVersionLinkProps> = ({
   }
 
   return (
-    <Link to={`/pipelines/${namespace}/pipeline/view/${version.pipeline_version_id}`}>
+    <Link
+      to={`/pipelines/${namespace}/pipeline/view/${version.pipeline_id}/${version.pipeline_version_id}`}
+    >
       {version.display_name}
     </Link>
   );
