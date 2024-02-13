@@ -1,29 +1,31 @@
 import compareVersions from 'compare-versions';
 import {
   BuildStatus,
-  BUILD_PHASE,
+  BuildPhase,
   ImageInfo,
   ImageSoftwareType,
   ImageTag,
   ImageTagInfo,
-  NotebookContainer,
+  PodContainer,
 } from '~/types';
 
 const PENDING_PHASES = [
-  BUILD_PHASE.new,
-  BUILD_PHASE.pending,
-  BUILD_PHASE.running,
-  BUILD_PHASE.cancelled,
+  BuildPhase.new,
+  BuildPhase.pending,
+  BuildPhase.running,
+  BuildPhase.cancelled,
 ];
-const FAILED_PHASES = [BUILD_PHASE.error, BUILD_PHASE.failed];
+const FAILED_PHASES = [BuildPhase.error, BuildPhase.failed];
 
 export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => {
   // Recommended tags should be first
   if (a.recommended) {
     return -1;
-  } else if (b.recommended) {
+  }
+  if (b.recommended) {
     return 1;
   }
+
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
     return compareVersions(b.name, a.name);
   }
@@ -31,7 +33,7 @@ export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => 
 };
 
 export const isImageBuildInProgress = (buildStatuses: BuildStatus[], image: ImageInfo): boolean => {
-  const inProgressTag = image.tags?.find((tag) => {
+  const inProgressTag = image.tags.find((tag) => {
     const imageTag = `${image.name}:${tag.name}`;
     const build = buildStatuses.find((buildStatus) => buildStatus.imageTag === imageTag);
     if (!build) {
@@ -61,10 +63,11 @@ export const getVersion = (version?: string, prefix?: string): string => {
   if (!version) {
     return '';
   }
+
   const versionString =
     version.startsWith('v') || version.startsWith('V') ? version.slice(1) : version;
 
-  return `${prefix ? prefix : ''}${versionString}`;
+  return `${prefix || ''}${versionString}`;
 };
 
 export const getNameVersionString = (software: ImageSoftwareType): string =>
@@ -74,20 +77,12 @@ export const getDefaultTag = (
   buildStatuses: BuildStatus[],
   image: ImageInfo,
 ): ImageTagInfo | undefined => {
-  if (!image.tags) {
-    return undefined;
-  }
-
-  if (image.tags?.length <= 1) {
+  if (image.tags.length <= 1) {
     return image.tags[0];
   }
 
   const validTags = image.tags.filter((tag) => isImageTagBuildValid(buildStatuses, image, tag));
   const tags = validTags.length ? validTags : image.tags;
-
-  if (!tags) {
-    return undefined;
-  }
 
   // Return the recommended tag or the default tag
   const defaultTag = tags.find((tag) => tag.recommended) || tags.find((tag) => tag.default);
@@ -107,13 +102,9 @@ export const getTagForImage = (
 ): ImageTagInfo | undefined => {
   let tag;
 
-  if (!image.tags) {
-    return undefined;
-  }
-
   if (image.tags.length > 1) {
     if (image.name === selectedImage && selectedTag) {
-      tag = image.tags.find((tag) => tag.name === selectedTag);
+      tag = image.tags.find((currentTag) => currentTag.name === selectedTag);
     } else {
       tag = getDefaultTag(buildStatuses, image);
     }
@@ -128,10 +119,7 @@ export const getImageTagVersion = (
   selectedImage?: string,
   selectedTag?: string,
 ): string => {
-  if (!image.tags) {
-    return '';
-  }
-  if (image?.tags.length > 1) {
+  if (image.tags.length > 1) {
     const defaultTag = getDefaultTag(buildStatuses, image);
     if (image.name === selectedImage && selectedTag) {
       return selectedTag;
@@ -145,21 +133,18 @@ export const getDescriptionForTag = (imageTag?: ImageTagInfo): string => {
   if (!imageTag) {
     return '';
   }
-  const softwareDescriptions = imageTag.content?.software.map((software) =>
+  const softwareDescriptions = imageTag.content.software.map((software) =>
     getNameVersionString(software),
-  ) ?? [''];
+  );
   return softwareDescriptions.join(', ');
 };
 
-export const getImageTagByContainer = (
-  images: ImageInfo[],
-  container?: NotebookContainer,
-): ImageTag => {
+export const getImageTagByContainer = (images: ImageInfo[], container?: PodContainer): ImageTag => {
   const imageTag = container?.image.split('/').at(-1)?.split(':');
   if (!imageTag || imageTag.length < 2) {
     return { image: undefined, tag: undefined };
   }
-  const image = images.find((image) => image.name === imageTag[0]);
-  const tag = image?.tags.find((tag) => tag.name === imageTag[1]);
+  const image = images.find((currentImage) => currentImage.name === imageTag[0]);
+  const tag = image?.tags.find((currentTag) => currentTag.name === imageTag[1]);
   return { image, tag };
 };

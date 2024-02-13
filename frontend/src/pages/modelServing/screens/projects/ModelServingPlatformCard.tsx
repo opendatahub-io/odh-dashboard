@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  CardHeaderMain,
-  CardTitle,
-  Icon,
-} from '@patternfly/react-core';
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Icon } from '@patternfly/react-core';
 import { CogsIcon } from '@patternfly/react-icons';
 
 type ModelServingPlatformCardProps = {
@@ -25,11 +17,9 @@ const ModelServingPlatformCard: React.FC<ModelServingPlatformCardProps> = ({
 }) => (
   <Card id={id} isFullHeight isFlat>
     <CardHeader>
-      <CardHeaderMain>
-        <Icon size="xl">
-          <CogsIcon />
-        </Icon>
-      </CardHeaderMain>
+      <Icon size="xl">
+        <CogsIcon />
+      </Icon>
     </CardHeader>
     <CardTitle>{title}</CardTitle>
     <CardBody>{description}</CardBody>

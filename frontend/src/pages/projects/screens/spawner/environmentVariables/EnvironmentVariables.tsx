@@ -19,8 +19,8 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           envVariable={envVariable}
           onUpdate={(updatedVariable) => {
             setEnvVariables(
-              envVariables.map((envVariable, mapIndex) =>
-                mapIndex === i ? updatedVariable : envVariable,
+              envVariables.map((currentEnvVariable, mapIndex) =>
+                mapIndex === i ? updatedVariable : currentEnvVariable,
               ),
             );
           }}

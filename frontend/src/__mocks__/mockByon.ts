@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import _ from 'lodash';
+import _ from 'lodash-es';
 
 import { RecursivePartial } from '~/typeHelpers';
 import { BYONImage } from '~/types';
@@ -12,6 +12,7 @@ export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>
         name: 'byon-123',
         display_name: 'Testing Custom Image',
         description: 'A custom notebook image',
+        recommendedAcceleratorIdentifiers: [],
         visible: true,
         packages: [
           {

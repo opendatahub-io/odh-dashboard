@@ -1,11 +1,6 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  HelperText,
-  HelperTextItem,
-  Select,
-  SelectOption,
-} from '@patternfly/react-core';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { NotebookSize } from '~/types';
 
 type SizeSelectFieldProps = {
@@ -19,7 +14,7 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
 
   const sizeOptions = () =>
     sizes.map((size) => {
-      const name = size.name;
+      const { name } = size;
       const desc =
         `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
         `${size.resources.limits?.memory || '??'} Memory | ` +
@@ -29,22 +24,8 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
     });
 
   return (
-    <FormGroup
-      label="Container Size"
-      fieldId="modal-notebook-container-size"
-      helperText={
-        value.notUserDefined ? (
-          <HelperText>
-            <HelperTextItem variant="warning" hasIcon>
-              Your last selected size was no longer available, we have set the size to the default
-              one.
-            </HelperTextItem>
-          </HelperText>
-        ) : undefined
-      }
-    >
+    <FormGroup label="Container Size" fieldId="modal-notebook-container-size">
       <Select
-        removeFindDomNode
         width="70%"
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
@@ -61,6 +42,16 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
       >
         {sizeOptions()}
       </Select>
+      {value.notUserDefined ? (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem variant="warning" hasIcon>
+              Your last selected size was no longer available, we have set the size to the default
+              one.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      ) : undefined}
     </FormGroup>
   );
 };

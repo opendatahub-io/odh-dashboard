@@ -33,7 +33,7 @@ const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
           <ProjectSharingNameInput
             type={type}
             value={roleBindingName}
-            onChange={(selection) => {
+            onChange={(selection: React.SetStateAction<string>) => {
               setRoleBindingName(selection);
             }}
             onClear={() => setRoleBindingName('')}
@@ -49,7 +49,7 @@ const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
             }}
           />
         </Td>
-        <Td dataLabel="Date added"></Td>
+        <Td dataLabel="Date added" />
         <Td isActionCell modifier="nowrap">
           <Split>
             <SplitItem>

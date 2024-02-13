@@ -1,4 +1,4 @@
-import { Select, SelectOption } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import React from 'react';
 import { ProjectSharingRoleType } from './types';
 import { castProjectSharingRoleType, roleLabel } from './utils';
@@ -27,16 +27,15 @@ const ProjectSharingPermissionSelection: React.FC<ProjectSharingPermissionSelect
 
   return (
     <Select
-      removeFindDomNode
       selections={selection}
       isOpen={isOpen}
-      onSelect={(e, selection) => {
-        if (typeof selection === 'string') {
-          onSelect(castProjectSharingRoleType(selection) || ProjectSharingRoleType.EDIT);
+      onSelect={(e, newSelection) => {
+        if (typeof newSelection === 'string') {
+          onSelect(castProjectSharingRoleType(newSelection));
           setIsOpen(false);
         }
       }}
-      onToggle={setIsOpen}
+      onToggle={(e, val) => setIsOpen(val)}
       placeholderText={selection}
       direction="down"
     >

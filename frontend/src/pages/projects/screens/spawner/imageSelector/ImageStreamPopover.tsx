@@ -30,7 +30,6 @@ const ImageStreamPopover: React.FC<ImageStreamPopoverProps> = ({ selectedImage }
     // have to use <span> here to make sure the Button is inline, maybe it's an PF bug
     <span>
       <Popover
-        removeFindDomNode
         headerContent="Package information"
         bodyContent={
           <Stack hasGutter>

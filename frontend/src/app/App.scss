@@ -11,51 +11,55 @@ body,
 
 .odh-dashboard {
   &__page-content {
-    border: 1px solid var(--pf-global--BorderColor--100);
+    border: 1px solid var(--pf-v5-global--BorderColor--100);
     display: flex;
     flex: 1;
-    margin: var(--pf-global--spacer--md);
+    margin: var(--pf-v5-global--spacer--md);
   }
 
-  .pf-c-app-launcher__group-title {
+  .pf-v5-c-app-launcher__group-title {
     font-size: 13px;
   }
 
-  .pf-c-app-launcher__menu-item-external-icon {
-    opacity: 1;
-    color: var(--pf-global--icon--Color--light);
-  }
 
   &__brand {
     height: 36px;
   }
 }
 
-// specificity targeting form elements to override --pf-global--FontSize--md
-.pf-c-page,
-.pf-c-modal-box {
+// specificity targeting form elements to override --pf-v5-global--FontSize--md
+.pf-v5-c-page,
+.pf-v5-c-modal-box {
 
-  .pf-c-app-launcher,
-  .pf-c-button,
-  .pf-c-dropdown,
-  .pf-c-dropdown__menu-item,
-  .pf-c-dropdown__toggle,
-  .pf-c-select,
-  .pf-c-select__menu-item,
-  .pf-c-select__toggle,
-  .pf-c-text-input-group,
-  .pf-c-form-control {
-    font-size: var(--pf-global--FontSize--sm);
+  .pf-v5-c-app-launcher,
+  .pf-v5-c-button,
+  .pf-v5-c-dropdown,
+  .pf-v5-c-dropdown__menu-item,
+  .pf-v5-c-dropdown__toggle,
+  .pf-v5-c-menu-toggle,
+  .pf-v5-c-menu__item,
+  .pf-v5-c-select,
+  .pf-v5-c-select__menu-item,
+  .pf-v5-c-select__toggle,
+  .pf-v5-c-text-input-group,
+  .pf-v5-c-form-control {
+    font-size: var(--pf-v5-global--FontSize--sm);
     height: auto;
   }
+}
+
+// TODO: Remove when PF bug is fixed. See https://github.com/patternfly/patternfly-react/issues/9769
+// Override to prevent drawer body content from taking over scroll container
+.pf-v5-c-drawer__body {
+  min-height: 0;
 }
 
 // temp fix until https://github.com/patternfly/patternfly-react/issues/8028 is resolved
 // Remove this file and its uses after bumping to PF5
 .checkbox-radio-fix-body-width {
 
-  .pf-c-check__body,
-  .pf-c-radio__body {
+  .pf-v5-c-check__body,
+  .pf-v5-c-radio__body {
     width: 100%;
   }
 }

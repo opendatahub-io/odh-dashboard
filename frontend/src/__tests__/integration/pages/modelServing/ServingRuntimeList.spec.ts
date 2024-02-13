@@ -60,6 +60,28 @@ test('Deploy KServe model', async ({ page }) => {
   // test that you can not submit on empty
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
+  // test popovers
+  const expectedContent = [
+    {
+      ariaLabel: 'Model server replicas info',
+      content:
+        'Consider network traffic and failover scenarios when specifying the number of model server replicas.',
+    },
+    {
+      ariaLabel: 'Model server size info',
+      content:
+        'Select a server size that will accommodate your largest model. See the product documentation for more information.',
+    },
+  ];
+
+  for (const item of expectedContent) {
+    const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
+    if (await iconPopover.isVisible()) {
+      await iconPopover.click();
+      await expect(page.getByText(item.content)).toBeTruthy();
+    }
+  }
+
   // test filling in minimum required fields
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#serving-runtime-template-selection').click();
@@ -130,14 +152,14 @@ test('ModelMesh ServingRuntime list', async ({ page }) => {
   const secondRow = page.getByRole('rowgroup').filter({ has: secondButton });
 
   // Check that both of the rows are not expanded
-  await expect(firstRow).not.toHaveClass('pf-m-expanded');
-  await expect(secondRow).not.toHaveClass('pf-m-expanded');
+  await expect(firstRow).not.toHaveClass(/pf-m-expanded/);
+  await expect(secondRow).not.toHaveClass(/pf-m-expanded/);
 
   await firstButton.click();
 
   // Check that the first row is expanded while the second is not
-  await expect(firstRow).toHaveClass('pf-m-expanded');
-  await expect(secondRow).not.toHaveClass('pf-m-expanded');
+  await expect(firstRow).toHaveClass(/pf-m-expanded/);
+  await expect(secondRow).not.toHaveClass(/pf-m-expanded/);
 });
 
 test('KServe Model list', async ({ page }) => {
@@ -149,18 +171,17 @@ test('KServe Model list', async ({ page }) => {
   await page.waitForSelector('text=Deploy model');
 
   // Check that we get the correct model name
-  expect(page.getByText('Test Inference Service')).toBeTruthy();
+  await expect(page.getByText('Test Inference Service')).toBeAttached();
 
   // Check that the serving runtime displays the correct Serving Runtime
-  expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)')).toBeTruthy();
+  await expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)').first()).toBeAttached();
 
   // Check for resource marked for deletion
-  expect(page.getByText('Another Inference Service')).toBeTruthy();
-  const actionButton = page
-    .getByRole('row')
-    .first()
-    .getByRole('button', { name: 'This resource is marked for deletion.' });
-  expect(actionButton).toBeTruthy();
+  await expect(page.getByText('Another Inference Service')).toBeAttached();
+
+  await expect(
+    page.getByRole('button', { name: 'This resource is marked for deletion.' }),
+  ).toBeAttached();
 });
 
 test('Add ModelMesh model server', async ({ page }) => {
@@ -202,18 +223,17 @@ test('Add ModelMesh model server', async ({ page }) => {
     },
   ];
 
-  for (const item of expectedContent) {
+  for await (const item of expectedContent) {
     const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
     if (await iconPopover.isVisible()) {
       await iconPopover.click();
-      const popoverContent = await page.locator('div.pf-c-popover__content').textContent();
+      const popoverContent = await page.locator('div.pf-v5-c-popover__content').textContent();
       expect(popoverContent).toContain(item.content);
 
-      const closeButton = await page.locator('div.pf-c-popover__content>button');
-      if (closeButton) {
-        closeButton.click();
-      }
+      const closeButton = await page.locator('div.pf-v5-c-popover__close');
+      await closeButton.click();
     }
+    await page.waitForTimeout(300);
   }
   // test the if the alert is visible when route is external while token is not set
   await expect(page.locator('#alt-form-checkbox-route')).not.toBeChecked();
@@ -246,7 +266,7 @@ test('Edit ModelMesh model server', async ({ page }) => {
   await page
     .getByRole('rowgroup')
     .filter({ has: page.getByRole('button', { name: 'ovms', exact: true }) })
-    .getByLabel('Actions')
+    .getByLabel('Kebab toggle')
     .click();
   await page.getByText('Edit model server').click();
 

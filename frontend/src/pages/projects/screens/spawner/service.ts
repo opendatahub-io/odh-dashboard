@@ -1,4 +1,5 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   assembleConfigMap,
   assembleSecret,
@@ -22,7 +23,7 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { ConfigMapKind, K8sStatus, NotebookKind, SecretKind } from '~/k8sTypes';
+import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
 import { getVolumesByStorageData } from './spawnerUtils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 
@@ -48,6 +49,7 @@ export const replaceRootVolumesForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   storageData: StorageData,
+  dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {
     storageType,
@@ -67,7 +69,7 @@ export const replaceRootVolumesForNotebook = async (
     };
     replacedVolumeMount = { name: existingName, mountPath: ROOT_MOUNT_PATH };
   } else {
-    const pvc = await createPvc(storageData.creating, projectName);
+    const pvc = await createPvc(storageData.creating, projectName, { dryRun });
     const newPvcName = pvc.metadata.name;
     replacedVolume = { name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } };
     replacedVolumeMount = { mountPath: ROOT_MOUNT_PATH, name: newPvcName };
@@ -99,6 +101,7 @@ const getPromisesForConfigMapsAndSecrets = (
   projectName: string,
   envVariables: EnvVariable[],
   type: 'create' | 'update',
+  dryRun = false,
 ): Promise<SecretKind | ConfigMapKind>[] =>
   envVariables
     .map<Promise<SecretKind | ConfigMapKind> | null>((envVar) => {
@@ -115,19 +118,24 @@ const getPromisesForConfigMapsAndSecrets = (
         case SecretCategory.GENERIC:
         case SecretCategory.UPLOAD:
           return type === 'create'
-            ? createSecret(assembleSecret(projectName, dataAsRecord))
+            ? createSecret(assembleSecret(projectName, dataAsRecord), { dryRun })
             : replaceSecret(
                 assembleSecret(projectName, dataAsRecord, 'generic', envVar.existingName),
+                { dryRun },
               );
         case SecretCategory.AWS:
           return type === 'create'
-            ? createSecret(assembleSecret(projectName, dataAsRecord, 'aws'))
-            : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName));
+            ? createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), { dryRun })
+            : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName), {
+                dryRun,
+              });
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'
-            ? createConfigMap(assembleConfigMap(projectName, dataAsRecord))
-            : replaceConfigMap(assembleConfigMap(projectName, dataAsRecord, envVar.existingName));
+            ? createConfigMap(assembleConfigMap(projectName, dataAsRecord), { dryRun })
+            : replaceConfigMap(assembleConfigMap(projectName, dataAsRecord, envVar.existingName), {
+                dryRun,
+              });
         default:
           return null;
       }
@@ -179,6 +187,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   envVariables: EnvVariable[],
   dataConnection?: DataConnectionData,
   existingDataConnection?: DataConnection,
+  dryRun = false,
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
   const newDataConnection =
@@ -223,9 +232,9 @@ export const updateConfigMapsAndSecretsForNotebook = async (
       }
       switch (envVar.values?.category) {
         case SecretCategory.GENERIC:
-          return deleteSecret(projectName, envVar.existingName);
+          return deleteSecret(projectName, envVar.existingName, { dryRun });
         case ConfigMapCategory.GENERIC:
-          return deleteConfigMap(projectName, envVar.existingName);
+          return deleteConfigMap(projectName, envVar.existingName, { dryRun });
         default:
           return null;
       }
@@ -235,12 +244,14 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     projectName,
     [...newResources, ...typeChangeResources, ...(newDataConnection ? [newDataConnection] : [])],
     'create',
+    dryRun,
   );
 
   const updatingPromises = getPromisesForConfigMapsAndSecrets(
     projectName,
     updateResources,
     'update',
+    dryRun,
   );
 
   const [created] = await Promise.all([
@@ -259,7 +270,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     ...(replaceDataConnection ? [replaceDataConnection] : []),
   ]).filter(
     (envFrom) =>
-      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef?.name)) &&
-      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef?.name)),
+      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef.name)) &&
+      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
   );
 };

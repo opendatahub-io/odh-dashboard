@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { AlertVariant } from '@patternfly/react-core';
 import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
@@ -27,7 +28,7 @@ export const useEnableApplication = (
       if (!error) {
         dispatch(
           addNotification({
-            status: 'success',
+            status: AlertVariant.success,
             title: `${appName} has been added to the Enabled page.`,
             timestamp: new Date(),
           }),
@@ -37,7 +38,7 @@ export const useEnableApplication = (
       }
       dispatch(
         addNotification({
-          status: 'danger',
+          status: AlertVariant.danger,
           title: `Error attempting to validate ${appName}.`,
           message: error,
           timestamp: new Date(),
@@ -83,9 +84,7 @@ export const useEnableApplication = (
     }
     return () => {
       cancelled = true;
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, [appId, dispatchResults, enableStatus.status]);
 

@@ -11,6 +11,8 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
+import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
+import PipelinesDeprecatedBanner from '~/concepts/pipelines/PipelinesDeprecatedBanner';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 
 const GlobalPipelineRunRoutes: React.FC = () => (
@@ -18,16 +20,19 @@ const GlobalPipelineRunRoutes: React.FC = () => (
     <Route
       path="/:namespace?/*"
       element={
-        <GlobalPipelineCoreLoader
-          title={pipelineRunsPageTitle}
-          description={pipelineRunsPageDescription}
-          getInvalidRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
-        />
+        <>
+          <PipelinesDeprecatedBanner />
+          <GlobalPipelineCoreLoader
+            title={pipelineRunsPageTitle}
+            description={pipelineRunsPageDescription}
+            getInvalidRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+          />
+        </>
       }
     >
       <Route index element={<GlobalPipelineRuns />} />
       <Route
-        path="pipeline/view/:pipelineId"
+        path="pipeline/view/:pipelineVersionId"
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineDetails}
@@ -41,6 +46,16 @@ const GlobalPipelineRunRoutes: React.FC = () => (
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineRunDetails}
+            pageName="Runs"
+            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+          />
+        }
+      />
+      <Route
+        path="pipelineRunJob/view/:pipelineRunJobId"
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={PipelineRunJobDetails}
             pageName="Runs"
             redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
           />

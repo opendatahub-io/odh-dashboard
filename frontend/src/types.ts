@@ -1,10 +1,10 @@
 /*
  * Common types, should be kept up to date with backend types
  */
+import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
-import { AcceleratorState } from './utilities/useAcceleratorState';
 
 export type PrometheusQueryResponse = {
   data: {
@@ -16,30 +16,23 @@ export type PrometheusQueryResponse = {
   status: string;
 };
 
-export type PrometheusQueryRangeResponse = {
-  data: {
-    result: [
-      {
-        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
-        metric: unknown;
-        values: PrometheusQueryRangeResultValue[];
-      },
-    ];
-    resultType: string;
+export type PrometheusQueryRangeResponseDataResult = {
+  metric: {
+    request?: string;
+    pod?: string;
   };
+  values: PrometheusQueryRangeResultValue[];
+};
+export type PrometheusQueryRangeResponseData = {
+  result?: PrometheusQueryRangeResponseDataResult[];
+  resultType: string;
+};
+export type PrometheusQueryRangeResponse = {
+  data: PrometheusQueryRangeResponseData;
   status: string;
 };
 
 export type PrometheusQueryRangeResultValue = [number, string];
-
-/**
- * @deprecated - Use AcceleratorProfiles
- * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
- * "any string" as a documentation touch point. Has no baring on the type checking.
- */
-type NumberString = string;
-/** @deprecated - Use AcceleratorProfiles */
-export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
 
 export type NotebookControllerUserState = {
   user: string;
@@ -48,11 +41,6 @@ export type NotebookControllerUserState = {
   /** Omission denotes no history */
   lastActivity?: number;
 };
-
-/**
- * OdhDashboardConfig contains gpuSetting as a string value override -- proper gpus return as numbers
- * TODO: Look to make it just number by properly parsing the value
- */
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
@@ -213,7 +201,7 @@ export type OdhDocument = {
   };
 };
 
-export enum BUILD_PHASE {
+export enum BuildPhase {
   none = 'Not started',
   new = 'New',
   running = 'Running',
@@ -227,7 +215,7 @@ export enum BUILD_PHASE {
 export type BuildStatus = {
   name: string;
   imageTag: string;
-  status: BUILD_PHASE;
+  status: BuildPhase;
   timestamp: string;
 };
 
@@ -297,15 +285,26 @@ export type NotebookPort = {
   protocol: string;
 };
 
-export type PodToleration = {
+export enum TolerationOperator {
+  EXISTS = 'Exists',
+  EQUAL = 'Equal',
+}
+
+export enum TolerationEffect {
+  NO_SCHEDULE = 'NoSchedule',
+  PREFER_NO_SCHEDULE = 'PreferNoSchedule',
+  NO_EXECUTE = 'NoExecute',
+}
+
+export type Toleration = {
   key: string;
-  operator?: string;
+  operator?: TolerationOperator;
   value?: string;
-  effect?: string;
+  effect?: TolerationEffect;
   tolerationSeconds?: number;
 };
 
-export type NotebookContainer = {
+export type PodContainer = {
   name: string;
   image: string;
   imagePullPolicy?: string;
@@ -319,13 +318,33 @@ export type NotebookContainer = {
   volumeMounts?: VolumeMount[];
 };
 
+export type PodStepState = { stepName: string; state: PodStepStateType };
+
+export enum PodStepStateType {
+  success = 'Success',
+  error = 'Error',
+  loading = 'Loading',
+}
+
+export type PodContainerStatus = {
+  name?: string;
+  ready: boolean;
+  state?: {
+    running?: boolean | undefined;
+    waiting?: boolean | undefined;
+    terminated?: boolean | undefined;
+  };
+};
+
+export type PodContainerStatuses = (PodContainerStatus | undefined)[];
+
 export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
 
 export type Notebook = K8sResourceCommon & {
   metadata: {
-    annotations: Partial<{
+    annotations?: Partial<{
       'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
@@ -334,7 +353,7 @@ export type Notebook = K8sResourceCommon & {
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
       'opendatahub.io/accelerator-name': string | undefined;
     }>;
-    labels: Partial<{
+    labels?: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
@@ -343,9 +362,9 @@ export type Notebook = K8sResourceCommon & {
       spec: {
         affinity?: PodAffinity;
         enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
+        containers: PodContainer[];
         volumes?: Volume[];
-        tolerations?: PodToleration[];
+        tolerations?: Toleration[];
       };
     };
   };
@@ -406,6 +425,7 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
+  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type BYONImagePackage = {
@@ -437,7 +457,7 @@ export type EnvVarCategoryType = {
 export type VariableRow = {
   variableType: string;
   variables: EnvVarType[];
-  errors: { [key: string]: string };
+  errors: { [key: string]: string | undefined };
 };
 
 export type EnvVarType = {
@@ -647,7 +667,10 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  accelerator: AcceleratorState;
+  acceleratorProfile: {
+    acceleratorProfile?: AcceleratorProfileKind;
+    count: number;
+  };
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field
@@ -661,21 +684,10 @@ export type ImageStreamAndVersion = {
   imageVersion?: ImageStreamSpecTagType;
 };
 
-export type gpuScale = {
-  availableScale: number;
-  gpuNumber: number;
-};
-
-export type GPUInfo = {
-  configured: boolean;
-  available: number;
-  autoscalers: gpuScale[];
-};
-
 export type ContextResourceData<T> = {
   data: T[];
   loaded: boolean;
-  error?: Error;
+  error?: Error | AxiosError;
   refresh: () => void;
 };
 
@@ -683,7 +695,7 @@ export type BreadcrumbItemType = {
   label: string;
 } & EitherNotBoth<{ link: string }, { isActive: boolean }>;
 
-export type AcceleratorInfo = {
+export type DetectedAccelerators = {
   configured: boolean;
   available: { [key: string]: number };
   total: { [key: string]: number };

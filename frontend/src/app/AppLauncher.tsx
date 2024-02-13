@@ -4,11 +4,10 @@ import {
   ApplicationLauncherGroup,
   ApplicationLauncherItem,
   ApplicationLauncherSeparator,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/deprecated';
 import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useAppSelector } from '~/redux/hooks';
 import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '~/types';
@@ -60,15 +59,11 @@ const sectionSortValue = (section: Section): number => {
 
 const AppLauncher: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [clusterID, clusterBranding] = useAppSelector((state) => [
-    state.clusterID,
-    state.clusterBranding,
-  ]);
+  const { clusterID, clusterBranding, serverURL } = useClusterInfo();
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();
-  const { serverURL } = useClusterInfo();
 
-  const disableClusterManager = dashboardConfig.spec.dashboardConfig.disableClusterManager;
+  const { disableClusterManager } = dashboardConfig.spec.dashboardConfig;
 
   const applicationSections = React.useMemo<Section[]>(() => {
     const applicationLinks = consoleLinks
@@ -104,7 +99,9 @@ const AppLauncher: React.FC = () => {
         href: link.spec.href,
         image: <img src={link.spec.applicationMenu?.imageUrl} alt="" />,
       };
-      const section = acc.find((section) => section.label === link.spec.applicationMenu?.section);
+      const section = acc.find(
+        (currentSection) => currentSection.label === link.spec.applicationMenu?.section,
+      );
       if (section) {
         section.actions.push(action);
       } else {
@@ -132,7 +129,6 @@ const AppLauncher: React.FC = () => {
 
   return (
     <ApplicationLauncher
-      removeFindDomNode
       aria-label="Application launcher"
       onSelect={onSelect}
       onToggle={onToggle}

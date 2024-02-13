@@ -9,19 +9,17 @@ import {
   EmptyStateVariant,
   EmptyStateIcon,
   Spinner,
-  Title,
   EmptyStateBody,
-  Split,
-  SplitItem,
   PageBreadcrumb,
   StackItem,
   Stack,
+  EmptyStateHeader,
+  Flex,
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
   title: React.ReactNode;
   breadcrumb?: React.ReactNode;
-  toolbar?: React.ReactNode;
   description?: React.ReactNode;
   loaded: boolean;
   empty: boolean;
@@ -33,12 +31,13 @@ type ApplicationsPageProps = {
   headerAction?: React.ReactNode;
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
+  jobReferenceName?: React.ReactNode;
+  loadingContent?: React.ReactNode;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   title,
   breadcrumb,
-  toolbar,
   description,
   loaded,
   empty,
@@ -50,25 +49,31 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerAction,
   headerContent,
   provideChildrenPadding,
+  jobReferenceName,
+  loadingContent,
 }) => {
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
       <Stack hasGutter>
         <StackItem>
-          <Split>
-            <SplitItem isFilled>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            flexWrap={{ default: 'nowrap' }}
+          >
+            <>
               <TextContent>
-                <Text component="h1">{title}</Text>
+                <Text component="h1" data-testid="app-page-title">
+                  {title}
+                </Text>
+                {jobReferenceName}
                 {description && <Text component="p">{description}</Text>}
               </TextContent>
-            </SplitItem>
-            {headerAction && <SplitItem>{headerAction}</SplitItem>}
-          </Split>
+            </>
+            {headerAction}
+          </Flex>
         </StackItem>
         {headerContent && <StackItem>{headerContent}</StackItem>}
       </Stack>
-      {/* Deprecated */}
-      {toolbar}
     </PageSection>
   );
 
@@ -76,11 +81,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (loadError) {
       return (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
-            <EmptyStateIcon icon={ExclamationCircleIcon} />
-            <Title headingLevel="h1" size="lg">
-              {errorMessage !== undefined ? errorMessage : 'Error loading components'}
-            </Title>
+          <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
+            <EmptyStateHeader
+              titleText={
+                <>{errorMessage !== undefined ? errorMessage : 'Error loading components'}</>
+              }
+              icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+              headingLevel="h1"
+            />
             <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -89,25 +97,26 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (!loaded) {
       return (
-        <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
-            <Spinner size="xl" />
-            <Title headingLevel="h1" size="lg">
-              Loading
-            </Title>
-          </EmptyState>
-        </PageSection>
+        loadingContent || (
+          <PageSection isFilled>
+            <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+              <Spinner size="xl" />
+              <EmptyStateHeader titleText="Loading" headingLevel="h1" />
+            </EmptyState>
+          </PageSection>
+        )
       );
     }
 
     if (empty) {
       return !emptyStatePage ? (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.large} data-id="empty-empty-state">
-            <EmptyStateIcon icon={QuestionCircleIcon} />
-            <Title headingLevel="h1" size="lg">
-              {emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
-            </Title>
+          <EmptyState variant={EmptyStateVariant.lg} data-id="empty-empty-state">
+            <EmptyStateHeader
+              titleText={<>{emptyMessage !== undefined ? emptyMessage : 'No Components Found'}</>}
+              icon={<EmptyStateIcon icon={QuestionCircleIcon} />}
+              headingLevel="h1"
+            />
           </EmptyState>
         </PageSection>
       ) : (

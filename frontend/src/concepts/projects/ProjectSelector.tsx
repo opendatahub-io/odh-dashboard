@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
@@ -31,7 +31,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     : invalidDropdownPlaceholder ?? namespace;
 
   const filteredProjects = filterLabel
-    ? projects.filter((project) => project.metadata.labels[filterLabel] !== undefined)
+    ? projects.filter((project) => project.metadata.labels?.[filterLabel] !== undefined)
     : projects;
 
   return (
@@ -50,7 +50,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         ...(selectAllProjects
           ? [
               <DropdownItem
-                key={'all-projects'}
+                key="all-projects"
                 onClick={() => {
                   setDropdownOpen(false);
                   onSelection('');
@@ -73,6 +73,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           </DropdownItem>
         )),
       ]}
+      data-testid="project-selector-dropdown"
     />
   );
 };

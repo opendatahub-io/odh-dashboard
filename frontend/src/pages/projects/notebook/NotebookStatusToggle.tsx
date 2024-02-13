@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Flex, FlexItem, Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '~/api';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import useNotebookAccelerators from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { useAppContext } from '~/app/AppContext';
@@ -27,7 +27,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   isDisabled,
 }) => {
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
-  const [acceleratorData] = useNotebookAccelerators(notebook);
+  const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
   const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
@@ -53,10 +53,10 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   const fireNotebookTrackingEvent = React.useCallback(
     (action: 'started' | 'stopped') => {
       fireTrackingEvent(`Workbench ${action}`, {
-        acceleratorCount: acceleratorData.useExisting ? undefined : acceleratorData.count,
-        accelerator: acceleratorData.accelerator
-          ? `${acceleratorData.accelerator.spec.displayName} (${acceleratorData.accelerator.metadata.name}): ${acceleratorData.accelerator.spec.identifier}`
-          : acceleratorData.useExisting
+        acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
+        accelerator: acceleratorProfile.acceleratorProfile
+          ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
+          : acceleratorProfile.useExisting
           ? 'Unknown'
           : 'None',
         lastSelectedSize:
@@ -71,7 +71,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         }),
       });
     },
-    [acceleratorData, notebook, size],
+    [acceleratorProfile, notebook, size],
   );
 
   const handleStop = React.useCallback(() => {

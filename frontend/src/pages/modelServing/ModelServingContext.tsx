@@ -5,7 +5,8 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -35,6 +36,8 @@ type ModelServingContextType = {
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   project: ProjectKind | null;
+  preferredProject: ProjectKind | null;
+  projects: ProjectKind[] | null;
 };
 
 type ModelServingContextProviderProps = {
@@ -51,6 +54,8 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   project: null,
+  preferredProject: null,
+  projects: null,
 });
 
 const ModelServingContextProvider = conditionalArea<ModelServingContextProviderProps>(
@@ -59,7 +64,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
 )(({ children, namespace }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, preferredProject } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
@@ -108,10 +113,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     return (
       <Bullseye>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h2" size="lg">
-            Problem loading model serving page
-          </Title>
+          <EmptyStateHeader
+            titleText="Problem loading model serving page"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h2"
+          />
           <EmptyStateBody>
             {notInstalledError?.message ||
               servingRuntimes.error?.message ||
@@ -121,9 +127,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
               servingRuntimeTemplateDisablement.error?.message ||
               dataConnections.error?.message}
           </EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
-            View my projects
-          </Button>
+          <EmptyStateFooter>
+            <Button variant="primary" onClick={() => navigate('/projects')}>
+              View my projects
+            </Button>
+          </EmptyStateFooter>
         </EmptyState>
       </Bullseye>
     );
@@ -140,6 +148,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         dataConnections,
         refreshAllData,
         project,
+        preferredProject,
+        projects,
       }}
     >
       {children}

@@ -8,9 +8,12 @@ type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline' | 
 /**
  * Overriding PF's button styles to allow for a11y in opening tooltips or popovers on a single item
  */
-const DashboardPopupIconButton = ({ icon, ...props }: DashboardPopupIconButtonProps) => (
+const DashboardPopupIconButton = ({
+  icon,
+  ...props
+}: DashboardPopupIconButtonProps): React.JSX.Element => (
   <Button variant="plain" isInline style={{ padding: 0 }} {...props}>
-    <Icon tabIndex={0} isInline style={{ marginLeft: 'var(--pf-global--spacer--xs)' }}>
+    <Icon tabIndex={0} isInline style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
       {icon}
     </Icon>
   </Button>

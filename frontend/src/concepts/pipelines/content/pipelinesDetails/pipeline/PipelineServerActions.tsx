@@ -1,13 +1,15 @@
 import * as React from 'react';
+import { Tooltip } from '@patternfly/react-core';
 import {
   Dropdown,
   DropdownItem,
   DropdownSeparator,
   DropdownToggle,
   KebabToggle,
-  Tooltip,
-} from '@patternfly/react-core';
-import { DeleteServerModal, ViewServerModal } from '~/concepts/pipelines/context';
+} from '@patternfly/react-core/deprecated';
+import { DeleteServerModal, ViewServerModal, usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 
 type PipelineServerActionsProps = {
   variant?: 'kebab' | 'dropdown';
@@ -18,10 +20,14 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
   const [open, setOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [viewOpen, setViewOpen] = React.useState(false);
+  const { refreshAllAPI } = usePipelinesAPI();
+  const { getResourcesForDeletion, clearAfterDeletion } =
+    React.useContext(PipelineAndVersionContext);
+  const { pipelines, versions } = getResourcesForDeletion();
+  const [deletePipelinesOpen, setDeletePipelinesOpen] = React.useState(false);
 
   const DropdownComponent = (
     <Dropdown
-      removeFindDomNode
       onSelect={() => setOpen(false)}
       toggle={
         variant === 'kebab' ? (
@@ -37,7 +43,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
         )
       }
       isOpen={open}
-      position="right"
+      position={variant === 'kebab' ? 'left' : 'right'}
       isPlain={variant === 'kebab'}
       dropdownItems={[
         <DropdownItem key="view-server-details" onClick={() => setViewOpen(true)}>
@@ -52,6 +58,17 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
         >
           Delete pipeline server
         </DropdownItem>,
+        ...(variant === 'kebab'
+          ? [
+              <DropdownItem
+                key="deleted-selected"
+                onClick={() => setDeletePipelinesOpen(true)}
+                isDisabled={pipelines.length === 0 && versions.length === 0}
+              >
+                Delete selected
+              </DropdownItem>,
+            ]
+          : []),
       ]}
     />
   );
@@ -77,6 +94,18 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
         }}
       />
       <ViewServerModal isOpen={viewOpen} onClose={() => setViewOpen(false)} />
+      <DeletePipelinesModal
+        isOpen={deletePipelinesOpen}
+        toDeletePipelines={pipelines}
+        toDeletePipelineVersions={versions}
+        onClose={(deleted) => {
+          if (deleted) {
+            refreshAllAPI();
+            clearAfterDeletion();
+          }
+          setDeletePipelinesOpen(false);
+        }}
+      />
     </>
   );
 };

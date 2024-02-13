@@ -1,31 +1,34 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import _ from 'lodash';
-import { PodToleration, TolerationSettings } from '~/types';
+import _ from 'lodash-es';
+import { Toleration, TolerationEffect, TolerationOperator, TolerationSettings } from '~/types';
 import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
-import { AcceleratorState } from './useAcceleratorState';
+import { AcceleratorProfileState } from './useAcceleratorProfileState';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';
-  settings: PodToleration[];
+  settings: Toleration[];
 };
 
 export const determineTolerations = (
   tolerationSettings?: TolerationSettings,
-  acceleratorState?: AcceleratorState,
-  existingTolerations?: PodToleration[],
-): PodToleration[] => {
+  acceleratorProfileState?: AcceleratorProfileState,
+  existingTolerations?: Toleration[],
+): Toleration[] => {
   let tolerations = existingTolerations || [];
 
   // remove old accelerator tolerations if they exist
-  if (acceleratorState?.initialAccelerator) {
+  if (acceleratorProfileState?.initialAcceleratorProfile) {
     tolerations = tolerations.filter(
-      (t) => !acceleratorState.initialAccelerator?.spec.tolerations?.some((t2) => _.isEqual(t2, t)),
+      (t) =>
+        !acceleratorProfileState.initialAcceleratorProfile?.spec.tolerations?.some((t2) =>
+          _.isEqual(t2, t),
+        ),
     );
   }
 
   // add new accelerator tolerations if they exist
-  if (acceleratorState?.accelerator?.spec.tolerations) {
-    tolerations.push(...acceleratorState.accelerator.spec.tolerations);
+  if (acceleratorProfileState?.acceleratorProfile?.spec.tolerations) {
+    tolerations.push(...acceleratorProfileState.acceleratorProfile.spec.tolerations);
   }
 
   // remove duplicated tolerations
@@ -40,9 +43,9 @@ export const determineTolerations = (
     )
   ) {
     tolerations.push({
-      effect: 'NoSchedule',
+      effect: TolerationEffect.NO_SCHEDULE,
       key: tolerationSettings.key,
-      operator: 'Exists',
+      operator: TolerationOperator.EXISTS,
     });
   }
 
@@ -57,9 +60,11 @@ export const computeNotebooksTolerations = (
 
   const settings = determineTolerations(
     dashboardConfig.spec.notebookController?.notebookTolerationSettings,
+    undefined,
+    tolerations,
   );
 
-  const hasTolerations = !!tolerations && tolerations.length > 0;
+  const hasTolerations = tolerations.length > 0;
   const doNothing = settings.length === 0 && !hasTolerations;
   const tolerationsRemoved = settings.length === 0 && hasTolerations;
   const updateTolerations = settings.length > 0 && hasTolerations;

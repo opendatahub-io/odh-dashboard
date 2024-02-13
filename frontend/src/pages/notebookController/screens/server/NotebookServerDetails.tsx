@@ -11,7 +11,7 @@ import {
   Text,
   TextVariants,
 } from '@patternfly/react-core';
-import { NotebookContainer } from '~/types';
+import { PodContainer } from '~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
@@ -20,7 +20,7 @@ import {
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -28,10 +28,10 @@ const NotebookServerDetails: React.FC = () => {
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
-  const [accelerator] = useNotebookAccelerator(notebook);
+  const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
 
-  const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
-    (container) => container.name === notebook.metadata.name,
+  const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
+    (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
 
   if (!container) {
@@ -47,7 +47,9 @@ const NotebookServerDetails: React.FC = () => {
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag?.content.dependencies ?? [];
   const sizes = getNotebookSizes(dashboardConfig);
-  const size = sizes.find((size) => _.isEqual(size.resources.limits, container.resources?.limits));
+  const size = sizes.find((currentSize) =>
+    _.isEqual(currentSize.resources.limits, container.resources?.limits),
+  );
 
   const onToggle = (expanded: boolean) => setExpanded(expanded);
 
@@ -56,7 +58,7 @@ const NotebookServerDetails: React.FC = () => {
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
       toggleText="Notebook server details"
-      onToggle={onToggle}
+      onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
     >
@@ -108,17 +110,17 @@ const NotebookServerDetails: React.FC = () => {
         <DescriptionListGroup>
           <DescriptionListTerm>Accelerator</DescriptionListTerm>
           <DescriptionListDescription>
-            {accelerator.accelerator
-              ? accelerator.accelerator.spec.displayName
-              : accelerator.useExisting
+            {acceleratorProfile.acceleratorProfile
+              ? acceleratorProfile.acceleratorProfile.spec.displayName
+              : acceleratorProfile.useExisting
               ? 'Unknown'
               : 'None'}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        {!accelerator.useExisting && (
+        {!acceleratorProfile.useExisting && (
           <DescriptionListGroup>
             <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-            <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
+            <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
       </DescriptionList>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Select, SelectOption } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { isInEnum } from '~/typeHelpers';
 import { ProjectScope } from '~/pages/projects/types';
 
@@ -17,10 +17,10 @@ const ProjectScopeSelect: React.FC<ProjectScopeSelectProps> = ({ selection, setS
       toggleId="project-scope-selection"
       selections={selection}
       width="200px"
-      onToggle={(open) => setOpen(open)}
-      onSelect={(_, selection) => {
-        if (isProjectScope(selection)) {
-          setSelection(selection);
+      onToggle={(e, open: boolean) => setOpen(open)}
+      onSelect={(_, newSelection) => {
+        if (isProjectScope(newSelection)) {
+          setSelection(newSelection);
         }
         setOpen(false);
       }}

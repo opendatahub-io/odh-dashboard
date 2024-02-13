@@ -54,8 +54,12 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
       setValidationInProgress(false);
+      // TODO: Disable rule below temporarily. Refactor to notify the owner and avoid modifying the object directly.
+      /* eslint-disable no-param-reassign */
       selectedApp.spec.isEnabled = true;
       selectedApp.spec.shownOnEnabledPage = true;
+      /* eslint-enable no-param-reassign */
+
       onClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
@@ -81,7 +85,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     onClose();
   };
 
-  if (!selectedApp?.spec?.enable || !shown) {
+  if (!selectedApp.spec.enable || !shown) {
     return null;
   }
   const { enable } = selectedApp.spec;
@@ -141,7 +145,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
                 variant="info"
                 title={
                   <div className="odh-enable-modal__progress-title">
-                    <Spinner isSVG size="md" /> Validating your entries
+                    <Spinner size="md" /> Validating your entries
                   </div>
                 }
                 aria-live="polite"

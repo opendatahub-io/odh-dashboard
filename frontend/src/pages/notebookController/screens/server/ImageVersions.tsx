@@ -23,7 +23,7 @@ type ImageVersionsProps = {
 const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag, onSelect }) => {
   const { buildStatuses } = useAppContext();
   const [isExpanded, setExpanded] = React.useState(false);
-  if (!image.tags || image.tags.length < 2) {
+  if (image.tags.length < 2) {
     return null;
   }
   const onToggle = (isOpen: boolean) => {
@@ -33,7 +33,7 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
   return (
     <ExpandableSection
       toggleText="Versions"
-      onToggle={onToggle}
+      onToggle={(e, isOpen: boolean) => onToggle(isOpen)}
       isExpanded={isExpanded}
       className="odh-notebook-controller__notebook-image-tags"
     >
@@ -64,7 +64,7 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
             }
             description={getDescriptionForTag(tag)}
             isChecked={tag.name === selectedTag?.name}
-            onChange={(checked: boolean) => onSelect(tag, checked)}
+            onChange={(e, checked: boolean) => onSelect(tag, checked)}
           />
         );
       })}

@@ -5,10 +5,11 @@ import {
   PipelineRunStatusesKF,
   ResourceReferenceKF,
   ResourceTypeKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const getLastRun = (runs: PipelineRunKF[]) => runs[0];
+export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF | undefined => runs[0];
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
@@ -22,7 +23,7 @@ export const getRunDuration = (run: PipelineRunKF): number => {
 };
 
 export const getStatusWeight = (run: PipelineRunKF): number => {
-  const weights: Record<PipelineRunStatusesKF, number> = {
+  const weights: Record<PipelineRunStatusesKF | string, number | undefined> = {
     [PipelineRunStatusesKF.CANCELLED]: 0,
     [PipelineRunStatusesKF.COMPLETED]: 1,
     [PipelineRunStatusesKF.FAILED]: 2,
@@ -30,33 +31,30 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
     [PipelineRunStatusesKF.STARTED]: 4,
   };
 
-  return weights[run.status as PipelineRunStatusesKF] ?? Infinity;
+  return weights[run.status] ?? Infinity;
 };
 
-export const getRunResourceReference = (
-  resource: PipelineCoreResourceKF,
+export const getResourceRef = (
+  resource: PipelineCoreResourceKF | null | undefined,
   type: ResourceTypeKF,
 ): ResourceReferenceKF | undefined =>
-  resource.resource_references?.find((ref) => ref.key.type === type);
+  resource?.resource_references?.find((ref) => ref.key.type === type);
 
-export const getPipelineCoreResourceJobReference = (
-  resource: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.JOB);
+export const getJobResourceRef = (
+  resource: Parameters<typeof getResourceRef>[0],
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.JOB);
 
-export const getPipelineCoreResourcePipelineReference = (
-  resource: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined =>
-  getRunResourceReference(resource, ResourceTypeKF.PIPELINE_VERSION);
+export const getPipelineVersionResourceRef = (
+  resource: PipelineCoreResourceKF | PipelineRunKF | PipelineRunJobKF | null | undefined,
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE_VERSION);
 
-export const getPipelineCoreResourceExperimentReference = (
-  resource: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.EXPERIMENT);
+export const getPipelineResourceRef = (
+  resource: PipelineCoreResourceKF | PipelineVersionKF | null,
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE);
 
-export const getPipelineCoreResourceExperimentName = (resource: PipelineCoreResourceKF): string =>
-  getPipelineCoreResourceExperimentReference(resource)?.name || 'Default';
-
-export const getPipelineCoreResourcePipelineName = (resource: PipelineCoreResourceKF): string =>
-  getPipelineCoreResourcePipelineReference(resource)?.name || '';
+export const getExperimentResourceRef = (
+  resource: Parameters<typeof getResourceRef>[0],
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.EXPERIMENT);
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
   const startTime =
@@ -77,7 +75,14 @@ export enum ScheduledState {
   STARTED_NOT_ENDED,
   ENDED,
 }
-
+export enum PipelineRunLabels {
+  RECURRING = 'Recurring',
+  ONEOFF = 'One-off',
+}
+export enum PipelineType {
+  SCHEDULED_RUN = 'scheduled run',
+  TRIGGERED_RUN = 'triggered run',
+}
 const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
 export const getPipelineRunJobScheduledState = (
   job: PipelineRunJobKF,
@@ -113,7 +118,7 @@ export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
     [ScheduledState.ENDED]: 3,
   };
 
-  return weights[state] ?? Infinity;
+  return weights[state];
 };
 
 export const isJobWithinDateRange = (
@@ -138,4 +143,10 @@ export const isJobWithinDateRange = (
     (startNumber >= jobStartNumber && startNumber <= jobEndNumber) ||
     (endNumber >= jobStartNumber && endNumber <= jobEndNumber)
   );
+};
+
+export const getPipelineJobExecutionCount = (resourceName: string): string | null => {
+  const regex = /(\w+)(?:-[^-]*)?$/;
+  const match = resourceName?.match(regex);
+  return match ? match[1] : null;
 };

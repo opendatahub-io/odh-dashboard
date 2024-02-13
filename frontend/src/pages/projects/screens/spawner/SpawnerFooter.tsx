@@ -60,7 +60,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
   const notebookState = data.find(
-    (notebookState) => notebookState.notebook.metadata.name === notebookName,
+    (currentNotebookState) => currentNotebookState.notebook.metadata.name === notebookName,
   );
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
@@ -81,18 +81,18 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   );
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
-    const { accelerator, notebookSize, image } = startNotebookData;
+    const { acceleratorProfile, notebookSize, image } = startNotebookData;
     fireTrackingEvent(`Workbench ${type}`, {
-      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
-      accelerator: accelerator.accelerator
-        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
-        : accelerator.useExisting
+      acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
+      accelerator: acceleratorProfile.acceleratorProfile
+        ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
+        : acceleratorProfile.useExisting
         ? 'Unknown'
         : 'None',
       lastSelectedSize: notebookSize.name,
       lastSelectedImage: image.imageVersion?.from
         ? `${image.imageVersion.from.name}`
-        : `${image.imageStream?.metadata?.name || 'unknown image'} - ${
+        : `${image.imageStream?.metadata.name || 'unknown image'} - ${
             image.imageVersion?.name || 'unknown version'
           }`,
       projectName,
@@ -133,32 +133,48 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     handleStart();
     if (editNotebook) {
-      const pvcDetails = await replaceRootVolumesForNotebook(
-        projectName,
-        editNotebook,
-        storageData,
-      ).catch(handleError);
-      const envFrom = await updateConfigMapsAndSecretsForNotebook(
-        projectName,
-        editNotebook,
-        envVariables,
-        dataConnection,
-        existingNotebookDataConnection,
-      ).catch(handleError);
+      const updateNotebookPromise = async (dryRun: boolean) => {
+        const pvcDetails = await replaceRootVolumesForNotebook(
+          projectName,
+          editNotebook,
+          storageData,
+          dryRun,
+        ).catch(handleError);
 
-      if (!pvcDetails || !envFrom) {
-        return;
-      }
-      const { volumes, volumeMounts } = pvcDetails;
-      const newStartNotebookData = {
-        ...startNotebookData,
-        volumes,
-        volumeMounts,
-        envFrom,
-        tolerationSettings,
+        const envFrom = await updateConfigMapsAndSecretsForNotebook(
+          projectName,
+          editNotebook,
+          envVariables,
+          dataConnection,
+          existingNotebookDataConnection,
+          dryRun,
+        ).catch(handleError);
+
+        if (!pvcDetails || !envFrom) {
+          return;
+        }
+
+        const { volumes, volumeMounts } = pvcDetails;
+        const newStartNotebookData = {
+          ...startNotebookData,
+          volumes,
+          volumeMounts,
+          envFrom,
+          tolerationSettings,
+        };
+        return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
       };
-      updateNotebook(editNotebook, newStartNotebookData, username)
-        .then((notebook) => afterStart(notebook.metadata.name, 'updated'))
+
+      updateNotebookPromise(true)
+        .then(() =>
+          updateNotebookPromise(false)
+            .then((notebook) => {
+              if (notebook) {
+                afterStart(notebook.metadata.name, 'updated');
+              }
+            })
+            .catch(handleError),
+        )
         .catch(handleError);
     }
   };

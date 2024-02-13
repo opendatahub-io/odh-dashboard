@@ -1,18 +1,27 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateHeader,
+  EmptyStateFooter,
+} from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 const GlobalNoPipelines: React.FC = () => (
-  <EmptyState>
-    <EmptyStateIcon icon={PlusCircleIcon} />
-    <Title headingLevel="h4" size="lg">
-      No pipelines yet
-    </Title>
+  <EmptyState data-testid="global-no-pipelines">
+    <EmptyStateHeader
+      titleText="No pipelines yet"
+      icon={<EmptyStateIcon icon={PlusCircleIcon} />}
+      headingLevel="h4"
+    />
     <EmptyStateBody>
       To get started, import a pipeline, or create one using the Jupyter visual editor.
     </EmptyStateBody>
-    <ImportPipelineButton variant="primary" />
+    <EmptyStateFooter>
+      <ImportPipelineButton variant="primary" />
+    </EmptyStateFooter>
   </EmptyState>
 );
 

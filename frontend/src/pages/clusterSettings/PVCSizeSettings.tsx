@@ -6,10 +6,10 @@ import {
   HelperTextItem,
   InputGroup,
   InputGroupText,
-  InputGroupTextVariant,
   Stack,
   StackItem,
   TextInput,
+  InputGroupItem,
 } from '@patternfly/react-core';
 import SettingSection from '~/components/SettingSection';
 import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE } from './const';
@@ -34,34 +34,36 @@ all users."
       <Stack hasGutter>
         <StackItem>
           <InputGroup>
-            <TextInput
-              id="pvc-size-input"
-              style={{ maxWidth: '200px' }}
-              name="pvc"
-              data-id="pvc-size-input"
-              type="text"
-              aria-label="PVC Size Input"
-              value={pvcSize}
-              pattern="/^(\s*|\d+)$/"
-              onChange={async (value: string) => {
-                const modifiedValue = value.replace(/ /g, '');
-                if (modifiedValue !== '') {
-                  let newValue = Number.isInteger(Number(modifiedValue))
-                    ? Number(modifiedValue)
-                    : pvcSize;
-                  newValue =
-                    newValue > MAX_PVC_SIZE
-                      ? MAX_PVC_SIZE
-                      : newValue < MIN_PVC_SIZE
-                      ? MIN_PVC_SIZE
-                      : newValue;
-                  setPvcSize(newValue);
-                } else {
-                  setPvcSize(0);
-                }
-              }}
-            />
-            <InputGroupText variant={InputGroupTextVariant.plain}>GiB</InputGroupText>
+            <InputGroupItem>
+              <TextInput
+                id="pvc-size-input"
+                style={{ maxWidth: '200px' }}
+                name="pvc"
+                data-id="pvc-size-input"
+                type="text"
+                aria-label="PVC Size Input"
+                value={pvcSize}
+                pattern="/^(\s*|\d+)$/"
+                onChange={async (e, value: string) => {
+                  const modifiedValue = value.replace(/ /g, '');
+                  if (modifiedValue !== '') {
+                    let newValue = Number.isInteger(Number(modifiedValue))
+                      ? Number(modifiedValue)
+                      : pvcSize;
+                    newValue =
+                      newValue > MAX_PVC_SIZE
+                        ? MAX_PVC_SIZE
+                        : newValue < MIN_PVC_SIZE
+                        ? MIN_PVC_SIZE
+                        : newValue;
+                    setPvcSize(newValue);
+                  } else {
+                    setPvcSize(0);
+                  }
+                }}
+              />
+            </InputGroupItem>
+            <InputGroupText isPlain>GiB</InputGroupText>
           </InputGroup>
         </StackItem>
         <StackItem>

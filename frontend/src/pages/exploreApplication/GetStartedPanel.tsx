@@ -35,7 +35,7 @@ type GetStartedPanelProps = {
 
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
-  const enablement = dashboardConfig.spec.dashboardConfig.enablement;
+  const { enablement } = dashboardConfig.spec.dashboardConfig;
   if (!selectedApp) {
     return null;
   }
@@ -53,7 +53,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       return button;
     }
     return (
-      <Tooltip removeFindDomNode content="This feature has been disabled by an administrator.">
+      <Tooltip content="This feature has been disabled by an administrator.">
         <span>{button}</span>
       </Tooltip>
     );
@@ -62,7 +62,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   return (
     <>
       <DrawerPanelContent
-        data-id="explore-drawer-panel"
+        data-testid="explore-drawer-panel"
         className="odh-get-started"
         isResizable
         minSize="350px"
@@ -126,7 +126,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               />
             </Alert>
           ) : null}
-          {<MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />}
+          <MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />
         </DrawerPanelBody>
       </DrawerPanelContent>
     </>

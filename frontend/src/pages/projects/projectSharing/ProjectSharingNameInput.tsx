@@ -1,5 +1,6 @@
-import { Select, SelectOption, SelectVariant, TextInput } from '@patternfly/react-core';
 import React from 'react';
+import { TextInput } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import { ProjectSharingRBType } from '~/pages/projects/projectSharing/types';
 
 type ProjectSharingNameInputProps = {
@@ -29,18 +30,17 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
         type="text"
         value={value}
         placeholder={`Type ${type === ProjectSharingRBType.GROUP ? 'group name' : 'username'}`}
-        onChange={onChange}
+        onChange={(e, newValue) => onChange(newValue)}
       />
     );
   }
 
   return (
     <Select
-      removeFindDomNode
       variant={SelectVariant.typeahead}
       typeAheadAriaLabel="Name selection"
       selections={value}
-      onToggle={(isOpened) => {
+      onToggle={(e, isOpened) => {
         setIsOpen(isOpened);
       }}
       onSelect={(e, selection) => {

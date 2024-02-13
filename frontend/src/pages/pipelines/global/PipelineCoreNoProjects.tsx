@@ -1,6 +1,12 @@
 import * as React from 'react';
-import { Title, EmptyState, EmptyStateIcon, EmptyStateBody } from '@patternfly/react-core';
-import WrenchIcon from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import {
+  EmptyState,
+  EmptyStateIcon,
+  EmptyStateBody,
+  EmptyStateHeader,
+  EmptyStateFooter,
+} from '@patternfly/react-core';
+import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
 import NewProjectButton from '~/pages/projects/screens/projects/NewProjectButton';
 
@@ -9,17 +15,20 @@ const PipelineCoreNoProjects: React.FC = () => {
 
   return (
     <EmptyState>
-      <EmptyStateIcon icon={WrenchIcon} />
-      <Title headingLevel="h4" size="lg">
-        No data science projects
-      </Title>
+      <EmptyStateHeader
+        titleText="No data science projects"
+        icon={<EmptyStateIcon icon={WrenchIcon} />}
+        headingLevel="h4"
+      />
       <EmptyStateBody>
         To create a pipeline server and import a pipeline, first create a data science project.
       </EmptyStateBody>
-      <NewProjectButton
-        closeOnCreate
-        onProjectCreated={(projectName) => navigate(`/pipelines/${projectName}`)}
-      />
+      <EmptyStateFooter>
+        <NewProjectButton
+          closeOnCreate
+          onProjectCreated={(projectName) => navigate(`/pipelines/${projectName}`)}
+        />
+      </EmptyStateFooter>
     </EmptyState>
   );
 };

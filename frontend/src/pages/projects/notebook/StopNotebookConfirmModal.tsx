@@ -45,7 +45,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
         <StackItem>
           Are you sure you want to stop the workbench? Any changes without saving will be erased.
         </StackItem>
-        {notebook && isRunning && (
+        {isRunning && (
           <StackItem>
             <Flex>
               <FlexItem spacer={{ default: 'spacerXs' }}>To save changes, access your</FlexItem>
@@ -61,7 +61,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
             id="dont-show-again"
             label="Don't show again"
             isChecked={dontShowModalValue}
-            onChange={(checked) => setDontShowModalValue(checked)}
+            onChange={(e, checked) => setDontShowModalValue(checked)}
           />
         </StackItem>
       </Stack>

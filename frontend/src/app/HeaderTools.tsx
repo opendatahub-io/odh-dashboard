@@ -1,10 +1,6 @@
 import React from 'react';
 import {
-  Dropdown,
-  DropdownPosition,
-  DropdownToggle,
   NotificationBadge,
-  DropdownItem,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
@@ -12,6 +8,12 @@ import {
   Button,
   Tooltip,
 } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownPosition,
+  DropdownToggle,
+  DropdownItem,
+} from '@patternfly/react-core/deprecated';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
@@ -36,7 +38,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const notification = useNotification();
 
   const newNotifications = React.useMemo(
-    () => notifications.filter((notification) => !notification.read).length,
+    () => notifications.filter((currentNotification) => !currentNotification.read).length,
     [notifications],
   );
 
@@ -118,7 +120,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   return (
     <Toolbar isFullHeight>
       <ToolbarContent>
-        <ToolbarGroup variant="icon-button-group" alignment={{ default: 'alignRight' }}>
+        <ToolbarGroup variant="icon-button-group" align={{ default: 'alignRight' }}>
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
             <ToolbarItem>
               <AppLauncher />
@@ -135,7 +137,6 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
           {helpMenuItems.length > 0 ? (
             <ToolbarItem>
               <Dropdown
-                removeFindDomNode
                 isPlain
                 position={DropdownPosition.right}
                 toggle={
@@ -174,7 +175,6 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         )}
         <ToolbarItem>
           <Dropdown
-            removeFindDomNode
             isPlain
             position={DropdownPosition.right}
             toggle={

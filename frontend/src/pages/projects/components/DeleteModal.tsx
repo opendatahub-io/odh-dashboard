@@ -11,6 +11,7 @@ type DeleteModalProps = {
   submitButtonLabel?: string;
   error?: Error;
   children: React.ReactNode;
+  testId?: string;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -23,6 +24,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   deleteName,
   error,
   submitButtonLabel = 'Delete',
+  testId,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -66,18 +68,19 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         </Button>,
       ]}
       variant="small"
+      data-testid={testId}
     >
       <Stack hasGutter>
         <StackItem>{children}</StackItem>
         <StackItem>
-          Confirm deletion by typing <strong>{deleteNameSanitized}</strong> below:
+          Type <strong>{deleteNameSanitized}</strong> to confirm deletion.
         </StackItem>
         <StackItem>
           <TextInput
             id="delete-modal-input"
             aria-label="Delete modal input"
             value={value}
-            onChange={(newValue) => setValue(newValue)}
+            onChange={(e, newValue) => setValue(newValue)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && value === deleteNameSanitized && !deleting) {
                 onDelete();

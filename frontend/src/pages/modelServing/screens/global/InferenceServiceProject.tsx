@@ -35,7 +35,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({ infer
           <Label>
             {project.metadata.labels?.['modelmesh-enabled'] === 'true'
               ? 'Multi-model serving enabled'
-              : 'Single model serving enabled'}
+              : 'Single-model serving enabled'}
           </Label>
         </>
       ) : (

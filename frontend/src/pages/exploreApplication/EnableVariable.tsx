@@ -3,6 +3,11 @@ import {
   Button,
   ButtonVariant,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  InputGroup,
+  InputGroupItem,
   TextInput,
   TextInputTypes,
 } from '@patternfly/react-core';
@@ -22,28 +27,36 @@ const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
     const [showPassword, setShowPassword] = React.useState(false);
 
     return (
-      <FormGroup fieldId={label} label={label} helperText={helperText}>
-        <TextInput
-          id={label}
-          className="odh-enable-modal__variable-input"
-          data-id={label}
-          ref={ref}
-          isDisabled={validationInProgress}
-          type={
-            inputType === TextInputTypes.password && showPassword ? TextInputTypes.text : inputType
-          }
-          value={value || ''}
-          onChange={(newValue) => updateValue(newValue)}
-        />
-        {inputType === TextInputTypes.password ? (
-          <Button
-            className="odh-enable-modal__toggle-password-vis"
-            variant={ButtonVariant.link}
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
-          </Button>
-        ) : null}
+      <FormGroup fieldId={label} label={label}>
+        <InputGroup>
+          <InputGroupItem isFill>
+            <TextInput
+              id={label}
+              data-id={label}
+              ref={ref}
+              isDisabled={validationInProgress}
+              type={
+                inputType === TextInputTypes.password && showPassword
+                  ? TextInputTypes.text
+                  : inputType
+              }
+              value={value || ''}
+              onChange={(e, newValue) => updateValue(newValue)}
+            />
+          </InputGroupItem>
+          {inputType === TextInputTypes.password ? (
+            <InputGroupItem>
+              <Button variant={ButtonVariant.link} onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
+              </Button>
+            </InputGroupItem>
+          ) : null}
+        </InputGroup>
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>{helperText}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
       </FormGroup>
     );
   },

@@ -63,42 +63,29 @@ npm run make:login
 
 ## Debugging and Testing
 
+See [frontend testing guidelines](docs/testing.md) for more information.
+
 ### Unit testing
 
-Tests using Jest to test util functions (not components).
+Jest unit tests cover all utility and hook functions.
 
 ```bash
 npm run test:unit
 ```
 
-### Accessibility testing
-
-Storybook tests using axe a11y testing plugin. This command requires a already running storybook instance. Start storybook with:
-
-```bash
-cd ./frontend && npm run storybook
-```
-
-Then run the accessibility tests with:
-
-```bash
-npm run test:accessibility
-```
-
-### Integration testing
-
-Playwright tests using storybook stories to test components. This command will start a storybook instance and run the tests or it will run the tests against an already running storybook instance.
-    
-```bash
-npm run test:integration
-```
-
 ### End to end testing
 
-Playwright tests using a running instance of the dashboard to test the full application. This command uses the environment variable `E2E_DASHBOARD_URL=http://localhost:4010` in `/frontend/.env.test` to determine the url to test against.
+Cypress tests using a production instance of the dashboard frontend to test the full application.
 
 ```bash
-npm run test:e2e
+cd ./frontend
+
+# Build and start the server
+npm run cypress:server:build
+npm run cypress:server
+
+# Run cypress in a separate terminal
+npm run cypress:run:mock
 ```
 
 ### Linter testing
@@ -114,15 +101,7 @@ npm run test:fix
 
 ### CI tests
 
-The CI will run the command `npm run test` which will run the following tests:
-
-```bash
-npm run test:lint
-npm run test:type-check
-npm run tests:unit
-npm run test:accessibility
-npm run test:integration
-```
+The CI will run the command `npm run test` which will run tests for both backend and frontend.
 
 ## Environment variables
 
@@ -185,7 +164,11 @@ or
 npm run make:build
 ```
 
-in the root of this repository. By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by setting the `CONTAINER_TOOL` environment variable to `docker`.
+in the root of this repository. 
+
+By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by 
+- setting the `CONTAINER_BUILDER` environment variable to `docker`
+- passing it as environment overrides when using `make build -e CONTAINER_BUILDER=docker`
 
 After building the image, you need to push it to a container registry accessible by your cluster. You can do that by running
 

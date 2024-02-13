@@ -16,7 +16,7 @@ const CustomServingRuntimeHeaderLabels: React.FC = () => {
   return (
     <>
       <LabelGroup>
-        {kServeEnabled && <Label>Single model serving enabled</Label>}
+        {kServeEnabled && <Label>Single-model serving enabled</Label>}
         {modelMeshEnabled && <Label>Multi-model serving enabled</Label>}
       </LabelGroup>
       <Popover
@@ -24,7 +24,7 @@ const CustomServingRuntimeHeaderLabels: React.FC = () => {
         bodyContent={
           <>
             You can change which model serving platforms are enabled in the{' '}
-            <Button isSmall isInline variant="link">
+            <Button size="sm" isInline variant="link">
               <Link to="/clusterSettings">Cluster settings</Link>
             </Button>
             .

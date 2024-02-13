@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { getNotebookDisplayName } from '~/pages/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
 
@@ -40,13 +41,8 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   }
 
   return (
-    <FormGroup
-      label="Connected workbench"
-      helperText={!noNotebooks && selectionHelperText}
-      fieldId="connect-existing-workbench"
-    >
+    <FormGroup label="Connected workbench" fieldId="connect-existing-workbench">
       <Select
-        removeFindDomNode
         variant={isMultiSelect ? 'typeaheadmulti' : 'typeahead'}
         selections={selections}
         isOpen={notebookSelectOpen}
@@ -70,7 +66,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
           }
           setNotebookSelectOpen(false);
         }}
-        onToggle={(isOpen) => setNotebookSelectOpen(isOpen)}
+        onToggle={(e, isOpen) => setNotebookSelectOpen(isOpen)}
         placeholderText={placeholderText}
         menuAppendTo="parent"
       >
@@ -80,6 +76,11 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
           </SelectOption>
         ))}
       </Select>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>{!noNotebooks && selectionHelperText}</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
     </FormGroup>
   );
 };

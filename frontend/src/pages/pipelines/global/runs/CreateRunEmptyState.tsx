@@ -4,8 +4,9 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  EmptyStatePrimary,
-  Title,
+  EmptyStateActions,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -21,20 +22,23 @@ const CreateRunEmptyState: React.FC<CreateRunEmptyStateProps> = ({ title, descri
   const navigate = useNavigate();
 
   return (
-    <EmptyState>
-      <EmptyStateIcon icon={PlusCircleIcon} />
-      <Title size="lg" headingLevel="h2">
-        {title}
-      </Title>
+    <EmptyState data-testid="create-run-empty-state">
+      <EmptyStateHeader
+        titleText={<>{title}</>}
+        icon={<EmptyStateIcon icon={PlusCircleIcon} />}
+        headingLevel="h2"
+      />
       <EmptyStateBody>{description}</EmptyStateBody>
-      <EmptyStatePrimary>
-        <Button
-          variant="primary"
-          onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
-        >
-          Create run
-        </Button>
-      </EmptyStatePrimary>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button
+            variant="primary"
+            onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
+          >
+            Create run
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
     </EmptyState>
   );
 };

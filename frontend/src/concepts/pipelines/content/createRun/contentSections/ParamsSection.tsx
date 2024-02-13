@@ -27,6 +27,7 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ value, onChange }) => {
     if (value.length === 0) {
       return (
         <Alert
+          component="h2"
           variant="info"
           isInline
           isPlain
@@ -42,14 +43,14 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ value, onChange }) => {
     };
     return (
       <>
-        {value.map(({ label, value }, i) => (
+        {value.map(({ label, value: currentValue }, i) => (
           <FormGroup key={label} label={label} fieldId={`${label}-param-field`}>
             <TextInput
               type="text"
               id={`${label}-param-field`}
               name={`${label}-param-field`}
-              value={value}
-              onChange={(newValue) => handleChange(i, { label, value: newValue })}
+              value={currentValue ?? ''}
+              onChange={(e, newValue) => handleChange(i, { label, value: newValue })}
             />
           </FormGroup>
         ))}

@@ -7,7 +7,7 @@ type AreaComponentProps = {
   /** What area do you need to be active to show the `children` */
   area: SupportedArea;
   /** Lazy rendered children, keeps from executing the content until we know it's available */
-  children: () => React.ReactNode;
+  children: (() => React.ReactNode) | undefined;
   /** Optionally, if the children are the whole page context, render a 404 page */
   isFullPage?: boolean;
 };
@@ -47,7 +47,7 @@ const AreaComponent: React.FC<AreaComponentProps> = ({ area, children, isFullPag
  */
 export const conditionalArea =
   <Props extends object>(area: SupportedArea, isFullPage?: boolean) =>
-  (Component: React.FC<Props>) => {
+  (Component: React.FC<Props>): ((props: Props) => React.JSX.Element) => {
     const ConditionalArea = (props: Props) => (
       <AreaComponent area={area} isFullPage={isFullPage}>
         {() => <Component {...props} />}

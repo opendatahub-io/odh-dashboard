@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Button, Flex, Select, SelectOption } from '@patternfly/react-core';
+import { Button, Flex } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
 import { EnvVarCategoryType, EnvVarType, VariableRow } from '~/types';
@@ -65,7 +66,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
 
     const updatedRow: VariableRow = {
       variableType: newType,
-      variables: variables,
+      variables,
       errors: {},
     };
 
@@ -77,7 +78,6 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
     <div className="odh-notebook-controller__env-var-row">
       <Flex>
         <Select
-          removeFindDomNode
           isOpen={typeDropdownOpen}
           onToggle={() => setTypeDropdownOpen(!typeDropdownOpen)}
           aria-labelledby="container-size"

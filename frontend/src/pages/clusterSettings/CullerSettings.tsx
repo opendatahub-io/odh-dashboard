@@ -6,11 +6,11 @@ import {
   HelperTextItem,
   InputGroup,
   InputGroupText,
-  InputGroupTextVariant,
   Radio,
   Stack,
   StackItem,
   TextInput,
+  InputGroupItem,
 } from '@patternfly/react-core';
 import SettingSection from '~/components/SettingSection';
 import { getHourAndMinuteByTimeout, getTimeoutByHourAndMinute } from '~/utilities/utils';
@@ -59,7 +59,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
     }
   }, [hour, minute, cullerTimeoutChecked, setCullerTimeout]);
 
-  const radioCheckedChange: React.ComponentProps<typeof Radio>['onChange'] = (_, event) => {
+  const radioCheckedChange: React.ComponentProps<typeof Radio>['onChange'] = (event) => {
     const { value } = event.currentTarget;
     setCullerTimeoutChecked(value);
   };
@@ -103,62 +103,66 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                 value={CULLER_TIMEOUT_LIMITED}
                 body={
                   <InputGroup>
-                    <TextInput
-                      id="hour-input"
-                      style={{ maxWidth: '60px' }}
-                      name="hour"
-                      data-id="hour-input"
-                      type="text"
-                      aria-label="Culler Timeout Hour Input"
-                      value={hour}
-                      isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                      onChange={(value: string) => {
-                        let newValue =
-                          isNaN(Number(value)) || !Number.isInteger(Number(value))
-                            ? hour
-                            : Number(value);
-                        newValue =
-                          newValue > MAX_HOUR
-                            ? MAX_HOUR
-                            : newValue < MIN_HOUR
-                            ? MIN_HOUR
-                            : newValue;
-                        // if the hour is max, then the minute can only be set to 0
-                        if (newValue === MAX_HOUR && minute !== MIN_MINUTE) {
-                          setMinute(MIN_MINUTE);
-                        }
-                        setHour(newValue);
-                      }}
-                    />
-                    <InputGroupText variant={InputGroupTextVariant.plain}>hours</InputGroupText>
-                    <TextInput
-                      id="minute-input"
-                      style={{ maxWidth: '40px' }}
-                      name="minute"
-                      data-id="minute-input"
-                      type="text"
-                      aria-label="Culler Timeout Minute Input"
-                      value={minute}
-                      isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                      onChange={(value: string) => {
-                        let newValue =
-                          isNaN(Number(value)) || !Number.isInteger(Number(value))
-                            ? minute
-                            : Number(value);
-                        newValue =
-                          newValue > MAX_MINUTE
-                            ? MAX_MINUTE
-                            : newValue < MIN_MINUTE
-                            ? MIN_MINUTE
-                            : newValue;
-                        // if the hour is max, then the minute can only be set to 0
-                        if (hour === MAX_HOUR) {
-                          newValue = MIN_MINUTE;
-                        }
-                        setMinute(newValue);
-                      }}
-                    />
-                    <InputGroupText variant={InputGroupTextVariant.plain}>minutes</InputGroupText>
+                    <InputGroupItem>
+                      <TextInput
+                        id="hour-input"
+                        style={{ maxWidth: '60px' }}
+                        name="hour"
+                        data-id="hour-input"
+                        type="text"
+                        aria-label="Culler Timeout Hour Input"
+                        value={hour}
+                        isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
+                        onChange={(e, value: string) => {
+                          let newValue =
+                            Number.isNaN(Number(value)) || !Number.isInteger(Number(value))
+                              ? hour
+                              : Number(value);
+                          newValue =
+                            newValue > MAX_HOUR
+                              ? MAX_HOUR
+                              : newValue < MIN_HOUR
+                              ? MIN_HOUR
+                              : newValue;
+                          // if the hour is max, then the minute can only be set to 0
+                          if (newValue === MAX_HOUR && minute !== MIN_MINUTE) {
+                            setMinute(MIN_MINUTE);
+                          }
+                          setHour(newValue);
+                        }}
+                      />
+                    </InputGroupItem>
+                    <InputGroupText isPlain>hours</InputGroupText>
+                    <InputGroupItem>
+                      <TextInput
+                        id="minute-input"
+                        style={{ maxWidth: '40px' }}
+                        name="minute"
+                        data-id="minute-input"
+                        type="text"
+                        aria-label="Culler Timeout Minute Input"
+                        value={minute}
+                        isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
+                        onChange={(e, value: string) => {
+                          let newValue =
+                            Number.isNaN(Number(value)) || !Number.isInteger(Number(value))
+                              ? minute
+                              : Number(value);
+                          newValue =
+                            newValue > MAX_MINUTE
+                              ? MAX_MINUTE
+                              : newValue < MIN_MINUTE
+                              ? MIN_MINUTE
+                              : newValue;
+                          // if the hour is max, then the minute can only be set to 0
+                          if (hour === MAX_HOUR) {
+                            newValue = MIN_MINUTE;
+                          }
+                          setMinute(newValue);
+                        }}
+                      />
+                    </InputGroupItem>
+                    <InputGroupText isPlain>minutes</InputGroupText>
                   </InputGroup>
                 }
               />

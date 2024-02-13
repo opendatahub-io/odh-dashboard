@@ -15,7 +15,7 @@ import {
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { HelpIcon } from '@patternfly/react-icons';
 import {
-  submitServingRuntimeResources,
+  submitServingRuntimeResourcesWithDryRun,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '~/k8sTypes';
@@ -27,7 +27,7 @@ import {
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
@@ -62,9 +62,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
-  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
-    editInfo?.servingRuntime,
-  );
+  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
+    useServingAcceleratorProfile(editInfo?.servingRuntime);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -92,7 +91,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     actionInProgress ||
     tokenErrors ||
     !inputValueValid ||
-    !isModelServerEditInfoChanged(createData, sizes, acceleratorState, editInfo);
+    !isModelServerEditInfoChanged(createData, sizes, acceleratorProfileState, editInfo);
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -106,11 +105,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(false);
     resetData();
-    resetAcceleratorData();
+    resetAcceleratorProfileData();
   };
 
-  const setErrorModal = (error: Error) => {
-    setError(error);
+  const setErrorModal = (e: Error) => {
+    setError(e);
     setActionInProgress(false);
   };
 
@@ -122,16 +121,18 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
-    submitServingRuntimeResources(
+    submitServingRuntimeResourcesWithDryRun(
       servingRuntimeSelected,
       createData,
       customServingRuntimesEnabled,
       namespace,
       editInfo,
       allowCreate,
-      acceleratorState,
+      acceleratorProfileState,
       NamespaceApplicationCase.MODEL_MESH_PROMOTION,
       currentProject,
+      undefined,
+      true,
     )
       .then(() => onSuccess())
       .catch((e) => {
@@ -142,13 +143,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
     const duplicated = createData.tokens.filter((token) => token.name === name);
-    const error = duplicated.length > 0 ? 'Duplicates are invalid' : '';
+    const duplicatedError = duplicated.length > 0 ? 'Duplicates are invalid' : '';
     setCreateData('tokens', [
       ...createData.tokens,
       {
         name,
         uuid: getUniqueId('ml'),
-        error,
+        error: duplicatedError,
       },
     ]);
   }, [createData.tokens, setCreateData]);
@@ -180,10 +181,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ServingRuntimeNameSection
-              data={createData}
-              setData={setCreateData}
-            ></ServingRuntimeNameSection>
+            <ServingRuntimeNameSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
             <ServingRuntimeTemplateSection
@@ -191,7 +189,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              acceleratorState={acceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
             />
           </StackItem>
           <StackItem>
@@ -208,20 +206,19 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorState={acceleratorState}
-              setAcceleratorState={setAcceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
+              setAcceleratorProfileState={setAcceleratorProfileState}
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
           {!allowCreate && (
             <StackItem>
               <Popover
-                removeFindDomNode
                 showClose
                 bodyContent="Model route and token authorization can only be changed by administrator users."
               >
                 <Button variant="link" icon={<HelpIcon />} isInline>
-                  {"Why can't I change the model route and token authorization fields?"}
+                  Why can&apos;t I change the model route and token authorization fields?
                 </Button>
               </Popover>
             </StackItem>
@@ -235,7 +232,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   name="alt-form-checkbox-route"
                   isChecked={createData.externalRoute}
                   isDisabled={!allowCreate}
-                  onChange={(check) => {
+                  onChange={(e, check) => {
                     setCreateData('externalRoute', check);
                     if (check && allowCreate) {
                       setCreateData('tokenAuth', check);

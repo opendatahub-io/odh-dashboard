@@ -41,7 +41,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
       footerRow={() =>
         isAdding ? (
           <ProjectSharingTableRowAdd
-            key={'add-permission-row'}
+            key="add-permission-row"
             type={type}
             typeAhead={typeAhead}
             onChange={(name, roleType) => {
@@ -66,7 +66,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
       }
       rowRenderer={(rb) => (
         <ProjectSharingTableRow
-          key={rb.metadata?.name || ''}
+          key={rb.metadata.name || ''}
           obj={rb}
           type={type}
           isEditing={firstSubject(rb) === '' || editCell.includes(rb.metadata.name)}

@@ -5,31 +5,33 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   Spinner,
-  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
-import usePipelineRuns from '~/concepts/pipelines/apiHooks/usePipelineRuns';
+import usePipelineRunsTable from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 
 const TriggeredRuns: React.FC = () => {
-  const [runs, loaded, error] = usePipelineRuns();
+  const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
+    usePipelineRunsTable();
 
   if (error) {
     return (
       <Bullseye>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title size="lg" headingLevel="h2">
-            There was an issue loading runs
-          </Title>
+          <EmptyStateHeader
+            titleText="There was an issue loading runs"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h2"
+          />
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );
   }
 
-  if (!loaded) {
+  if (!loaded && !initialLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -37,7 +39,7 @@ const TriggeredRuns: React.FC = () => {
     );
   }
 
-  if (runs.length === 0) {
+  if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
       <CreateRunEmptyState
         title="No triggered runs yet"
@@ -46,7 +48,7 @@ const TriggeredRuns: React.FC = () => {
     );
   }
 
-  return <PipelineRunTable runs={runs} />;
+  return <PipelineRunTable runs={runs} loading={!loaded} totalSize={totalSize} {...tableProps} />;
 };
 
 export default TriggeredRuns;

@@ -70,8 +70,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       if (removedNotebooks.length > 0) {
         // Remove connected pvcs
         pvcPromises.push(
-          ...removedNotebooks.map((notebookName) =>
-            removeNotebookPVC(notebookName, namespace, pvcName, { dryRun }),
+          ...removedNotebooks.map((currentNotebookName) =>
+            removeNotebookPVC(currentNotebookName, namespace, pvcName, { dryRun }),
           ),
         );
       }

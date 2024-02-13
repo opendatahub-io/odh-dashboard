@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
-import { FormGroup, TextInput } from '@patternfly/react-core';
+import { Stack, StackItem, FormGroup, TextInput } from '@patternfly/react-core';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import PasswordInput from '~/pages/projects/components/PasswordInput';
 
@@ -24,7 +23,11 @@ type InputFieldProps = {
   value: string;
 };
 
-const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
+export const FieldListField = ({
+  options,
+  onChange,
+  value,
+}: InputFieldProps): React.JSX.Element => {
   const ComponentField = options.isPassword ? PasswordInput : TextInput;
 
   return (
@@ -34,13 +37,13 @@ const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
         isRequired={options.isRequired}
         value={value}
         placeholder={options.placeholder}
-        onChange={(value) => onChange(options.key, value)}
+        onChange={(e, newValue) => onChange(options.key, newValue)}
       />
     </FormGroup>
   );
 };
 
-const FieldList = ({ values, onUpdate, fields }: FieldListProps) => {
+const FieldList = ({ values, onUpdate, fields }: FieldListProps): React.JSX.Element => {
   const update = (key: FieldOptions['key'], value: string) => {
     onUpdate(values.map((d) => (d.key === key ? { key, value } : d)));
   };

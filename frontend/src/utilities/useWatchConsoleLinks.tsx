@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { ConsoleLinkKind } from '~/k8sTypes';
 import { fetchConsoleLinks } from '~/services/consoleLinksService';
 import { POLL_INTERVAL } from './const';
@@ -42,9 +42,7 @@ export const useWatchConsoleLinks = (): ConsoleLinkResults => {
     watchConsoleLinks();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 

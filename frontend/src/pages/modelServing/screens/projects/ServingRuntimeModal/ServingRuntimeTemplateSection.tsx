@@ -8,16 +8,16 @@ import {
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
-import { isCompatibleWithAccelerator } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
-  acceleratorState: AcceleratorState;
+  acceleratorProfileState: AcceleratorProfileState;
 };
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
@@ -25,7 +25,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   setData,
   templates,
   isEditing,
-  acceleratorState,
+  acceleratorProfileState,
 }) => {
   const filteredTemplates = React.useMemo(
     () =>
@@ -45,12 +45,12 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     dropdownLabel: (
       <Split>
         <SplitItem>
-          {<Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />}
+          <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
         </SplitItem>
         <SplitItem isFilled />
         <SplitItem>
-          {isCompatibleWithAccelerator(
-            acceleratorState.accelerator?.spec.identifier,
+          {isCompatibleWithAcceleratorProfile(
+            acceleratorProfileState.acceleratorProfile?.spec.identifier,
             template.objects[0],
           ) && <Label color="blue">Compatible with accelerator</Label>}
         </SplitItem>
@@ -71,7 +71,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             ? data.servingRuntimeTemplateName
             : 'Select one'
         }
-        value={data.servingRuntimeTemplateName ?? ''}
+        value={data.servingRuntimeTemplateName}
         onChange={(name) => {
           setData('servingRuntimeTemplateName', name);
         }}

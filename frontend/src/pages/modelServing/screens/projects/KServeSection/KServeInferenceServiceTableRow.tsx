@@ -50,7 +50,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
       <ResourceTr resource={obj}>
         <Td
           expand={{
-            rowIndex: rowIndex,
+            rowIndex,
             expandId: 'kserve-model-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),
@@ -96,7 +96,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               </StackItem>
               {servingRuntime && (
                 <StackItem>
-                  <ServingRuntimeDetails obj={servingRuntime} />
+                  <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
                 </StackItem>
               )}
             </Stack>

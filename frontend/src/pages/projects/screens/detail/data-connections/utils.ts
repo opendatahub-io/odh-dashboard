@@ -1,7 +1,8 @@
 import * as React from 'react';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { deleteSecret } from '~/api';
-import { AWSSecretKind, K8sStatus, KnownLabels, SecretKind } from '~/k8sTypes';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AWSSecretKind, KnownLabels, SecretKind } from '~/k8sTypes';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import {
   AWSDataEntry,
   DataConnection,
@@ -81,16 +82,19 @@ export const deleteDataConnection = (dataConnection: DataConnection): Promise<K8
 };
 
 export const convertAWSSecretData = (dataConnection: DataConnection): AWSDataEntry => {
+  if (!isDataConnectionAWS(dataConnection)) {
+    return [];
+  }
   const secretData = dataConnection.data.data;
-  const convertedData = Object.values(AWS_KEYS)
-    .filter((key) => key !== AWS_KEYS.NAME)
-    .map((key: AWS_KEYS) => ({
+  const convertedData = Object.values(AwsKeys)
+    .filter((key) => key !== AwsKeys.NAME)
+    .map((key: AwsKeys) => ({
       key,
-      value: secretData?.[key] ? atob(secretData?.[key]) : '',
+      value: secretData[key] ? atob(secretData[key]) : '',
     }));
   const convertedSecret: AWSDataEntry = [
     {
-      key: AWS_KEYS.NAME,
+      key: AwsKeys.NAME,
       value: getDataConnectionDisplayName(dataConnection),
     },
     ...convertedData,

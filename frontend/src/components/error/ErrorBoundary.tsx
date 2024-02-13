@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Title } from '@patternfly/react-core';
 import ErrorDetails from './ErrorDetails';
+
 type ErrorBoundaryProps = {
   children?: React.ReactNode;
 };
@@ -21,7 +22,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     this.setState({
       hasError: true,
       error,
@@ -31,13 +32,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     console.error('Caught error:', error, errorInfo);
   }
 
-  render() {
+  render(): React.ReactNode {
     const { children } = this.props;
 
     if (this.state.hasError) {
       return (
-        <div className="pf-u-p-lg">
-          <Title headingLevel="h1" className="pf-u-mb-lg">
+        <div className="pf-v5-u-p-lg">
+          <Title headingLevel="h1" className="pf-v5-u-mb-lg">
             An error occurred.
           </Title>
           <ErrorDetails

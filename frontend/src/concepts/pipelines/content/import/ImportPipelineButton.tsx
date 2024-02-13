@@ -23,14 +23,16 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
         isDisabled={!apiAvailable || buttonProps.isDisabled}
         onClick={() => setOpen(true)}
       >
-        {children || <>Import pipeline</>}
+        {children || 'Import pipeline'}
       </Button>
       <PipelineImportModal
         isOpen={open}
         onClose={(pipeline) => {
           setOpen(false);
           if (pipeline) {
-            onCreate && onCreate(pipeline);
+            if (onCreate) {
+              onCreate(pipeline);
+            }
             refreshAllAPI();
           }
         }}

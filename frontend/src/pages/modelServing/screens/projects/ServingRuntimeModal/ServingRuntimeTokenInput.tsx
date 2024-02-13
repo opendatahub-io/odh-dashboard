@@ -2,6 +2,9 @@ import * as React from 'react';
 import {
   Button,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Split,
   SplitItem,
   TextInput,
@@ -30,7 +33,8 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
 }) => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter(
-      (token) => token.name === name || token.editName === translateDisplayNameForK8s(name),
+      (currentToken) =>
+        currentToken.name === name || currentToken.editName === translateDisplayNameForK8s(name),
     );
     return duplicates.length > 0;
   };
@@ -38,21 +42,15 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   const checkValid = (value: string) => {
     if (value.length === 0) {
       return 'Required';
-    } else if (checkDuplicates(value)) {
+    }
+    if (checkDuplicates(value)) {
       return 'Duplicates are invalid';
     }
     return '';
   };
 
   return (
-    <FormGroup
-      label="Service account name"
-      fieldId="service-account-form-name"
-      helperText="Enter the service account name for which the token will be generated"
-      helperTextInvalid={token.error}
-      helperTextInvalidIcon={<ExclamationCircleIcon />}
-      validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
-    >
+    <FormGroup label="Service account name" fieldId="service-account-form-name">
       <Split>
         <SplitItem isFilled>
           <TextInput
@@ -64,8 +62,8 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             aria-describedby="service-account-form-name-helper"
             validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
             isDisabled={disabled}
-            onChange={(value) => {
-              const tokens = data.tokens?.map((item) =>
+            onChange={(e, value) => {
+              const tokens = data.tokens.map((item) =>
                 item.uuid === token.uuid
                   ? {
                       uuid: token.uuid,
@@ -78,6 +76,17 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
               setData('tokens', tokens);
             }}
           />
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem
+                {...(token.error && { icon: <ExclamationCircleIcon />, variant: 'error' })}
+              >
+                {token.error
+                  ? token.error
+                  : 'Enter the service account name for which the token will be generated'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
         </SplitItem>
         <SplitItem>
           <Button

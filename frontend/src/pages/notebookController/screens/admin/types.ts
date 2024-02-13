@@ -32,5 +32,5 @@ export type ServerStatus = {
  */
 export const isField = <T extends AdminViewUserData[keyof AdminViewUserData]>(
   content: unknown,
-  isField: boolean,
-): content is T => isField;
+  isFieldFlag: boolean,
+): content is T => isFieldFlag;

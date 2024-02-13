@@ -9,20 +9,20 @@ import {
   EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
-  Title,
   Bullseye,
   Spinner,
+  Truncate,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import { PipelineRunResourceKF } from '~/concepts/pipelines/kfTypes';
-import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
@@ -30,9 +30,11 @@ import {
   RunDetailsTabs,
   RunDetailsTabSelection,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
+import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
+import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
+import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 
 const getPipelineRunKind = (
   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
@@ -71,11 +73,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
-        <EmptyStateIcon icon={ExclamationCircleIcon} />
-        <Title headingLevel="h4" size="lg">
-          Error loading pipeline run details
-        </Title>
+      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
+        <EmptyStateHeader
+          titleText="Error loading pipeline run details"
+          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+          headingLevel="h4"
+        />
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -88,6 +91,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
+              parameters={pipelineRuntime?.spec.params}
               taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
@@ -112,7 +116,14 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading run' : <PipelineRunTitle run={run} />}
+                  title={
+                    run ? (
+                      <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
+                    ) : (
+                      'Error loading run'
+                    )
+                  }
+                  jobReferenceName={run && <PipelineJobReferenceName resource={run} />}
                   description={
                     run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
                   }
@@ -121,14 +132,13 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
-                      <BreadcrumbItem isActive>
-                        {error ? 'Run details' : run?.name ?? 'Loading...'}
+                      <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                        <Truncate content={run?.name ?? 'Loading...'} />
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
-                    loaded &&
-                    !error && (
+                    loaded && (
                       <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
                     )
                   }
@@ -157,11 +167,15 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         type="triggered run"
         toDeleteResources={deleting && run ? [run] : []}
-        onClose={() => {
-          navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+        onClose={(deleteComplete) => {
+          if (deleteComplete) {
+            navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+          } else {
+            setDeleting(false);
+          }
         }}
       />
     </>

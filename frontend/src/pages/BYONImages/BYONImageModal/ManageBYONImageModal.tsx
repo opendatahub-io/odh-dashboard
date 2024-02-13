@@ -8,12 +8,16 @@ import {
   Tabs,
   Tab,
   TabTitleText,
+  Popover,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { importBYONImage, updateBYONImage } from '~/services/imagesService';
 import { ResponseStatus, BYONImagePackage, BYONImage } from '~/types';
 import { useAppSelector } from '~/redux/hooks';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { filterBlankPackages } from '~/pages/BYONImages/utils';
+import { AcceleratorIdentifierMultiselect } from '~/pages/BYONImages/BYONImageModal/AcceleratorIdentifierMultiselect';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 
@@ -28,7 +32,7 @@ export enum DisplayedContentTab {
   PACKAGES,
 }
 
-export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
+const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
   existingImage,
   isOpen,
   onClose,
@@ -40,6 +44,9 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
   const [repository, setRepository] = React.useState('');
   const [displayName, setDisplayName] = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [recommendedAcceleratorIdentifiers, setRecommendedAcceleratorIdentifiers] = React.useState<
+    string[]
+  >([]);
   const [software, setSoftware] = React.useState<BYONImagePackage[]>([]);
   const [packages, setPackages] = React.useState<BYONImagePackage[]>([]);
   const [tempSoftware, setTempSoftware] = React.useState<BYONImagePackage[]>([]);
@@ -59,6 +66,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
       setSoftware(existingImage.software);
       setTempPackages(existingImage.packages);
       setTempSoftware(existingImage.software);
+      setRecommendedAcceleratorIdentifiers(existingImage.recommendedAcceleratorIdentifiers);
     }
   }, [existingImage]);
 
@@ -69,6 +77,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
     setRepository('');
     setDisplayName('');
     setDescription('');
+    setRecommendedAcceleratorIdentifiers([]);
     setSoftware([]);
     setPackages([]);
     setTempSoftware([]);
@@ -90,7 +99,8 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         name: existingImage.name,
         // eslint-disable-next-line camelcase
         display_name: displayName,
-        description: description,
+        description,
+        recommendedAcceleratorIdentifiers,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
       }).then(handleResponse);
@@ -99,7 +109,8 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         // eslint-disable-next-line camelcase
         display_name: displayName,
         url: repository,
-        description: description,
+        description,
+        recommendedAcceleratorIdentifiers,
         provider: userName,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
@@ -126,6 +137,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           isCancelDisabled={isEditing}
         />
       }
+      data-testid="notebook-image-modal"
     >
       <Form
         onSubmit={(e) => {
@@ -133,22 +145,21 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           submit();
         }}
       >
-        {
-          <ImageLocationField
-            isDisabled={!!existingImage}
-            location={repository}
-            setLocation={setRepository}
-          />
-        }
+        <ImageLocationField
+          isDisabled={!!existingImage}
+          location={repository}
+          setLocation={setRepository}
+        />
+
         <FormGroup label="Name" isRequired fieldId="byon-image-name-input">
           <TextInput
             id="byon-image-name-input"
             isRequired
             type="text"
-            data-id="byon-image-name-input"
+            data-testid="byon-image-name-input"
             name="byon-image-name-input"
             value={displayName}
-            onChange={(value) => {
+            onChange={(e, value) => {
               setDisplayName(value);
             }}
           />
@@ -158,20 +169,36 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
             id="byon-image-description-input"
             isRequired
             type="text"
-            data-id="byon-image-description-input"
+            data-testid="byon-image-description-input"
             name="byon-image-description-input"
             aria-describedby="byon-image-description-input"
             value={description}
-            onChange={(value) => {
+            onChange={(e, value) => {
               setDescription(value);
             }}
+          />
+        </FormGroup>
+        <FormGroup
+          label="Accelerator identifier"
+          labelIcon={
+            <Popover bodyContent="Add recommended accelerator identifiers for this image.">
+              <DashboardPopupIconButton
+                icon={<OutlinedQuestionCircleIcon />}
+                aria-label="More info for identifier field"
+              />
+            </Popover>
+          }
+        >
+          <AcceleratorIdentifierMultiselect
+            setData={(identifiers) => setRecommendedAcceleratorIdentifiers(identifiers)}
+            data={recommendedAcceleratorIdentifiers}
           />
         </FormGroup>
         <FormGroup label="Displayed contents" fieldId="byon-image-software-packages">
           <Tabs
             id="byon-image-software-packages"
             activeKey={activeTabKey}
-            onSelect={(_event, indexKey) => {
+            onSelect={(e, indexKey) => {
               setActiveTabKey(indexKey);
             }}
           >

@@ -1,16 +1,21 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownSeparator, DropdownToggle } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownSeparator,
+  DropdownToggle,
+} from '@patternfly/react-core/deprecated';
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
 
-type PipelineDetailsActionsProps = {
+type PipelineRunDetailsActionsProps = {
   run?: PipelineRunKF;
   onDelete: () => void;
 };
 
-const PipelineRunDetailsActions: React.FC<PipelineDetailsActionsProps> = ({ onDelete, run }) => {
+const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ onDelete, run }) => {
   const navigate = useNavigate();
   const { namespace, api } = usePipelinesAPI();
   const notification = useNotification();

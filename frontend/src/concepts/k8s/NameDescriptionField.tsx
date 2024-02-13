@@ -1,6 +1,16 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Stack,
+  StackItem,
+  TextArea,
+  TextInput,
+  Tooltip,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon, HelpIcon } from '@patternfly/react-icons';
 import { NameDescType } from '~/pages/projects/types';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 
@@ -49,7 +59,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             id={nameFieldId}
             name={nameFieldId}
             value={data.name}
-            onChange={(name) => setData({ ...data, name })}
+            onChange={(e, name) => setData({ ...data, name })}
           />
         </FormGroup>
       </StackItem>
@@ -59,7 +69,6 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             label="Resource name"
             labelIcon={
               <Tooltip
-                removeFindDomNode
                 position="right"
                 content={
                   <Stack hasGutter>
@@ -75,10 +84,6 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             }
             isRequired
             fieldId={`resource-${nameFieldId}`}
-            helperText={
-              !disableK8sName &&
-              "Must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
-            }
           >
             <TextInput
               isRequired
@@ -86,11 +91,26 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
               value={data.k8sName ?? k8sName}
-              onChange={(k8sName) => {
-                setData({ ...data, k8sName });
+              onChange={(e, value) => {
+                setData({ ...data, k8sName: value });
               }}
               validated={!isValidK8sName(data.k8sName) ? 'error' : undefined}
             />
+            {!disableK8sName && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem
+                    {...(!isValidK8sName(data.k8sName) && {
+                      icon: <ExclamationCircleIcon />,
+                      variant: 'error',
+                    })}
+                  >
+                    {`Must consist of lower case alphanumeric characters or '-', and must start and
+                    end with an alphanumeric character`}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
         </StackItem>
       )}
@@ -101,7 +121,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             id={descriptionFieldId}
             name={descriptionFieldId}
             value={data.description}
-            onChange={(description) => setData({ ...data, description })}
+            onChange={(e, description) => setData({ ...data, description })}
           />
         </FormGroup>
       </StackItem>

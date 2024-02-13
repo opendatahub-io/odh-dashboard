@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { InputGroup, SearchInput, Select, SelectOption } from '@patternfly/react-core';
+import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
+import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 
 // List all the possible search fields here
 export enum SearchType {
@@ -14,6 +15,7 @@ export enum SearchType {
   OUTPUT = 'Output',
   OUTPUT_VALUE = 'Output value',
   PROVIDER = 'Provider',
+  IDENTIFIER = 'Identifier',
 }
 
 type DashboardSearchFieldProps = {
@@ -30,29 +32,23 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
   searchType,
   onSearchValueChange,
   onSearchTypeChange,
-}) => {
-  const [typeOpen, setTypeOpen] = React.useState(false);
-
-  return (
-    <InputGroup>
-      <Select
-        removeFindDomNode
-        isOpen={typeOpen}
-        onToggle={() => setTypeOpen(!typeOpen)}
-        selections={searchType}
-        onSelect={(e, key) => {
-          if (typeof key === 'string') {
-            onSearchTypeChange(key as SearchType);
-            setTypeOpen(false);
-          }
+}) => (
+  <InputGroup>
+    <InputGroupItem>
+      <SimpleDropdownSelect
+        aria-label="Filter type"
+        data-testid="filter-dropdown-select"
+        options={types.map((key) => ({
+          key,
+          label: key,
+        }))}
+        value={searchType}
+        onChange={(key) => {
+          onSearchTypeChange(key as SearchType);
         }}
-      >
-        {types.map((key) => (
-          <SelectOption key={key} value={key}>
-            {key}
-          </SelectOption>
-        ))}
-      </Select>
+      />
+    </InputGroupItem>
+    <InputGroupItem>
       <SearchInput
         placeholder={`Find by ${searchType.toLowerCase()}`}
         value={searchValue}
@@ -62,8 +58,8 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
         onClear={() => onSearchValueChange('')}
         style={{ minWidth: '200px' }}
       />
-    </InputGroup>
-  );
-};
+    </InputGroupItem>
+  </InputGroup>
+);
 
 export default DashboardSearchField;

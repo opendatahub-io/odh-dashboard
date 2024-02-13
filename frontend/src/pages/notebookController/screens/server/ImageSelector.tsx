@@ -28,12 +28,12 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
 }) => {
   const { buildStatuses } = useAppContext();
   const currentTag = getTagForImage(buildStatuses, image, selectedImage?.name, selectedTag?.name);
-  const tags = image.tags || [];
-  const getImagePopover = (image: ImageInfo) => {
-    if (!image.description && !currentTag?.content?.dependencies?.length) {
+  const { tags } = image;
+  const getImagePopover = (currentImage: ImageInfo) => {
+    if (!currentImage.description && !currentTag?.content.dependencies.length) {
       return null;
     }
-    return <ImageTagPopover tag={currentTag} description={image.description} />;
+    return <ImageTagPopover tag={currentTag} description={currentImage.description} />;
   };
 
   const disabled = tags.every((tag) => !isImageTagBuildValid(buildStatuses, image, tag));
@@ -59,7 +59,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         }
         description={getDescriptionForTag(currentTag)}
         isChecked={image.name === selectedImage?.name}
-        onChange={(checked: boolean) => {
+        onChange={(e, checked: boolean) => {
           if (currentTag) {
             handleSelection(image, currentTag, checked);
           }

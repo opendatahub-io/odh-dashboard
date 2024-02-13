@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import { useWatchComponents } from '~/utilities/useWatchComponents';
 import { OdhApplication } from '~/types';
@@ -20,7 +20,7 @@ let enabledComponents: OdhApplication[] = [];
 
 export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
   ({ loaded, loadError, components }) => {
-    const isEmpty = !components || components.length === 0;
+    const isEmpty = components.length === 0;
 
     return (
       <ApplicationsPage

@@ -28,7 +28,10 @@ type RenderContentByColumn = {
   createDates: React.ReactNode[];
 };
 
-export const combineRunsByColumn = (runs: PipelineRunKF[], sliceCount?: number) =>
+export const combineRunsByColumn = (
+  runs: PipelineRunKF[],
+  sliceCount?: number,
+): RenderContentByColumn =>
   runs.reduce<RenderContentByColumn>(
     (acc, run, i) => {
       if (sliceCount && i >= sliceCount) {

@@ -7,7 +7,11 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  DataConnection,
+  NamespaceApplicationCase,
+  UpdateObjectAtPropAndValue,
+} from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
@@ -29,7 +33,7 @@ import {
   getServingRuntimeTokens,
   setUpTokenAuth,
 } from '~/pages/modelServing/utils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import {
   addSupportServingPlatformProject,
   assembleSecret,
@@ -39,6 +43,8 @@ import {
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
+import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
+import { removeLeadingSlashes } from '~/utilities/string';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -147,10 +153,13 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   format: {
     name: '',
   },
+  minReplicas: 1,
+  maxReplicas: 1,
 };
 
 export const useCreateInferenceServiceObject = (
   existingData?: InferenceServiceKind,
+  existingServingRuntimeData?: ServingRuntimeKind, // upgrade path to already KServe models
 ): [
   data: CreatingInferenceServiceObject,
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
@@ -165,10 +174,14 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
     existingData?.metadata.name ||
     '';
-  const existingStorage = existingData?.spec?.predictor.model.storage || undefined;
-  const existingServingRuntime = existingData?.spec?.predictor.model.runtime || '';
+  const existingStorage = existingData?.spec.predictor.model.storage || undefined;
+  const existingServingRuntime = existingData?.spec.predictor.model.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
-  const existingFormat = existingData?.spec?.predictor.model.modelFormat || undefined;
+  const existingFormat = existingData?.spec.predictor.model.modelFormat || undefined;
+  const existingMinReplicas =
+    existingData?.spec.predictor.minReplicas || existingServingRuntimeData?.spec.replicas || 1;
+  const existingMaxReplicas =
+    existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
 
   React.useEffect(() => {
     if (existingName) {
@@ -187,6 +200,8 @@ export const useCreateInferenceServiceObject = (
           name: '',
         },
       );
+      setCreateData('minReplicas', existingMinReplicas);
+      setCreateData('maxReplicas', existingMaxReplicas);
     }
   }, [
     existingName,
@@ -194,12 +209,16 @@ export const useCreateInferenceServiceObject = (
     existingFormat,
     existingServingRuntime,
     existingProject,
+    existingMinReplicas,
+    existingMaxReplicas,
     setCreateData,
   ]);
 
   return createInferenceServiceState;
 };
 
+export const getModelServerDisplayName = (server: ServingRuntimeKind): string =>
+  getDisplayNameFromK8sResource(server);
 export const getProjectModelServingPlatform = (
   project: ProjectKind | null,
   platformStatuses: ServingPlatformStatuses,
@@ -211,7 +230,7 @@ export const getProjectModelServingPlatform = (
   if (!project) {
     return {};
   }
-  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
+  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
     if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
       return {};
     }
@@ -222,7 +241,7 @@ export const getProjectModelServingPlatform = (
       return { platform: ServingRuntimePlatform.SINGLE };
     }
   }
-  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
     return {
       platform: ServingRuntimePlatform.MULTI,
       error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
@@ -230,7 +249,7 @@ export const getProjectModelServingPlatform = (
   }
   return {
     platform: ServingRuntimePlatform.SINGLE,
-    error: kServeInstalled ? undefined : new Error('Single model platform is not installed'),
+    error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
   };
 };
 
@@ -251,61 +270,109 @@ const createInferenceServiceAndDataConnection = (
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
+  acceleratorProfileState?: AcceleratorProfileState,
+  dryRun = false,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData).then((secret) =>
       editInfo
-        ? updateInferenceService(inferenceServiceData, editInfo, secret.metadata.name, isModelMesh)
-        : createInferenceService(inferenceServiceData, secret.metadata.name, isModelMesh),
+        ? updateInferenceService(
+            inferenceServiceData,
+            editInfo,
+            secret.metadata.name,
+            isModelMesh,
+            acceleratorProfileState,
+            dryRun,
+          )
+        : createInferenceService(
+            inferenceServiceData,
+            secret.metadata.name,
+            isModelMesh,
+            acceleratorProfileState,
+            dryRun,
+          ),
     );
   }
   return editInfo !== undefined
-    ? updateInferenceService(inferenceServiceData, editInfo, undefined, isModelMesh)
-    : createInferenceService(inferenceServiceData, undefined, isModelMesh);
+    ? updateInferenceService(
+        inferenceServiceData,
+        editInfo,
+        undefined,
+        isModelMesh,
+        acceleratorProfileState,
+        dryRun,
+      )
+    : createInferenceService(
+        inferenceServiceData,
+        undefined,
+        isModelMesh,
+        acceleratorProfileState,
+        dryRun,
+      );
 };
 
-export const submitInferenceServiceResource = (
+export const getSubmitInferenceServiceResourceFn = (
   createData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
   servingRuntimeName?: string,
   isModelMesh?: boolean,
-): Promise<InferenceServiceKind> => {
+  acceleratorProfileState?: AcceleratorProfileState,
+): ((opts: { dryRun?: boolean }) => Promise<InferenceServiceKind>) => {
   const inferenceServiceData = {
     ...createData,
     ...(servingRuntimeName !== undefined && {
       servingRuntimeName: translateDisplayNameForK8s(servingRuntimeName),
     }),
+    ...{
+      storage: {
+        ...createData.storage,
+        path: removeLeadingSlashes(createData.storage.path),
+      },
+    },
   };
 
   const existingStorage =
     inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE;
 
-  return createInferenceServiceAndDataConnection(
-    inferenceServiceData,
-    existingStorage,
-    editInfo,
-    isModelMesh,
-  );
+  return ({ dryRun = false }) =>
+    createInferenceServiceAndDataConnection(
+      inferenceServiceData,
+      existingStorage,
+      editInfo,
+      isModelMesh,
+      acceleratorProfileState,
+      dryRun,
+    );
 };
 
-export const submitServingRuntimeResources = (
+export const submitInferenceServiceResourceWithDryRun = async (
+  ...params: Parameters<typeof getSubmitInferenceServiceResourceFn>
+): Promise<InferenceServiceKind> => {
+  const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(...params);
+  await submitInferenceServiceResource({ dryRun: true });
+  return submitInferenceServiceResource({ dryRun: false });
+};
+
+export const getSubmitServingRuntimeResourcesFn = (
   servingRuntimeSelected: ServingRuntimeKind | undefined,
   createData: CreatingServingRuntimeObject,
   customServingRuntimesEnabled: boolean,
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  acceleratorState: AcceleratorState,
+  acceleratorProfileState: AcceleratorProfileState,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
-): Promise<void | (string | void | ServingRuntimeKind)[]> => {
+  isModelMesh?: boolean,
+): ((opts: { dryRun?: boolean }) => Promise<void | (string | void | ServingRuntimeKind)[]>) => {
   if (!servingRuntimeSelected) {
-    return Promise.reject(
-      new Error(
-        'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
-      ),
-    );
+    return () =>
+      Promise.reject(
+        new Error(
+          'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
+        ),
+      );
   }
   const servingRuntimeData = {
     ...createData,
@@ -313,74 +380,95 @@ export const submitServingRuntimeResources = (
     ...(name !== undefined && { name }),
   };
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
-  const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
+  const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
-  const accelerator = isGpuDisabled(servingRuntimeSelected)
-    ? { count: 0, accelerators: [], useExisting: false }
-    : acceleratorState;
+  const controlledState = isGpuDisabled(servingRuntimeSelected)
+    ? { count: 0, acceleratorProfiles: [], useExisting: false }
+    : acceleratorProfileState;
 
-  const getUpdatePromises = (dryRun = false) => [
-    ...(!dryRun &&
-    currentProject &&
-    currentProject.metadata.labels?.['modelmesh-enabled'] === undefined &&
-    allowCreate
-      ? [addSupportServingPlatformProject(currentProject.metadata.name, servingPlatformEnablement)]
-      : []),
-    ...(editInfo?.servingRuntime
-      ? [
-          updateServingRuntime({
-            data: servingRuntimeData,
-            existingData: editInfo.servingRuntime,
-            isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+  if (!editInfo && !currentProject) {
+    // This should be impossible to hit on resource creation, current project is undefined only on edit
+    return () => Promise.reject(new Error('Cannot update project with no project selected'));
+  }
 
-            opts: {
+  return ({ dryRun = false }) =>
+    Promise.all([
+      ...(currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined
+        ? [
+            addSupportServingPlatformProject(
+              currentProject.metadata.name,
+              servingPlatformEnablement,
               dryRun,
-            },
-            acceleratorState: accelerator,
-          }),
-          setUpTokenAuth(
-            servingRuntimeData,
-            servingRuntimeName,
-            namespace,
-            createRolebinding,
-            editInfo.servingRuntime,
-            editInfo.secrets,
-            {
-              dryRun,
-            },
-          ),
-        ]
-      : [
-          createServingRuntime({
-            data: servingRuntimeData,
-            namespace,
-            servingRuntime: servingRuntimeSelected,
-            isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-            opts: {
-              dryRun,
-            },
-            acceleratorState: accelerator,
-          }).then((servingRuntime) =>
+            ),
+          ]
+        : []),
+      ...(editInfo?.servingRuntime
+        ? [
+            updateServingRuntime({
+              data: servingRuntimeData,
+              existingData: editInfo.servingRuntime,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              opts: {
+                dryRun,
+              },
+              acceleratorProfileState: controlledState,
+              isModelMesh,
+            }),
             setUpTokenAuth(
               servingRuntimeData,
               servingRuntimeName,
               namespace,
-              createRolebinding,
-              servingRuntime,
-              editInfo?.secrets,
+              createTokenAuth,
+              editInfo.servingRuntime,
+              editInfo.secrets,
               {
                 dryRun,
               },
             ),
-          ),
-        ]),
-  ];
+          ]
+        : [
+            createServingRuntime({
+              data: servingRuntimeData,
+              namespace,
+              servingRuntime: servingRuntimeSelected,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              opts: {
+                dryRun,
+              },
+              acceleratorProfileState: controlledState,
+              isModelMesh,
+            }).then((servingRuntime) =>
+              setUpTokenAuth(
+                servingRuntimeData,
+                servingRuntimeName,
+                namespace,
+                createTokenAuth,
+                servingRuntime,
+                editInfo?.secrets,
+                {
+                  dryRun,
+                },
+              ),
+            ),
+          ]),
+    ]);
+};
 
-  return Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises(true)).then(() =>
-    Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises()),
-  );
+export const submitServingRuntimeResourcesWithDryRun = async (
+  ...params: Parameters<typeof getSubmitServingRuntimeResourcesFn>
+): Promise<void | (string | void | ServingRuntimeKind)[]> => {
+  const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(...params);
+  await submitServingRuntimeResources({ dryRun: true });
+  return submitServingRuntimeResources({ dryRun: false });
 };
 
 export const getUrlFromKserveInferenceService = (
   inferenceService: InferenceServiceKind,
 ): string | undefined => inferenceService.status?.url;
+
+export const filterOutConnectionsWithoutBucket = (
+  connections: DataConnection[],
+): DataConnection[] =>
+  connections.filter(
+    (obj) => isDataConnectionAWS(obj) && obj.data.data.AWS_S3_BUCKET.trim() !== '',
+  );

@@ -5,7 +5,7 @@ const initialState: AppState = {
   notifications: [],
   forceComponentsUpdate: 0,
 };
-
+//eslint-disable-next-line @typescript-eslint/default-param-last
 const appReducer = (state: AppState = initialState, action: GetUserAction): AppState => {
   let index;
   switch (action.type) {
@@ -50,7 +50,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
       }
       return {
         ...state,
-        notifications: [...(state.notifications || []), action.payload.notification],
+        notifications: [...state.notifications, action.payload.notification],
       };
     case Actions.HIDE_NOTIFICATION:
       if (!action.payload.notification) {

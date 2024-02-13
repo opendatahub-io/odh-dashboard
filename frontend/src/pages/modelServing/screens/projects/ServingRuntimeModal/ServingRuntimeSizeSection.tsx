@@ -1,14 +1,6 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  FormSection,
-  Select,
-  SelectOption,
-  Stack,
-  StackItem,
-  Popover,
-  Icon,
-} from '@patternfly/react-core';
+import { FormGroup, FormSection, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
@@ -17,9 +9,9 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import AcceleratorSelectField from '~/pages/notebookController/screens/server/AcceleratorSelectField';
+import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
@@ -27,8 +19,8 @@ type ServingRuntimeSizeSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
-  acceleratorState: AcceleratorState;
-  setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
+  acceleratorProfileState: AcceleratorProfileState;
+  setAcceleratorProfileState: UpdateObjectAtPropAndValue<AcceleratorProfileState>;
   infoContent?: string;
 };
 
@@ -37,18 +29,20 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   setData,
   sizes,
   servingRuntimeSelected,
-  acceleratorState,
-  setAcceleratorState,
+  acceleratorProfileState,
+  setAcceleratorProfileState,
   infoContent,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
-  const [supportedAccelerators, setSupportedAccelerators] = React.useState<string[] | undefined>();
+  const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
+    string[] | undefined
+  >();
 
   React.useEffect(() => {
     if (servingRuntimeSelected) {
-      setSupportedAccelerators(getCompatibleAcceleratorIdentifiers(servingRuntimeSelected));
+      setSupportedAcceleratorProfiles(getCompatibleAcceleratorIdentifiers(servingRuntimeSelected));
     } else {
-      setSupportedAccelerators(undefined);
+      setSupportedAcceleratorProfiles(undefined);
     }
   }, [servingRuntimeSelected]);
 
@@ -64,7 +58,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
 
   const sizeOptions = () =>
     sizeCustom.map((size) => {
-      const name = size.name;
+      const { name } = size;
       const desc =
         name !== 'Custom'
           ? `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
@@ -92,11 +86,10 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
         <Stack hasGutter>
           <StackItem>
             <Select
-              removeFindDomNode
               id="model-server-size-selection"
               isOpen={sizeDropdownOpen}
               placeholderText="Select a model server size"
-              onToggle={(open) => setSizeDropdownOpen(open)}
+              onToggle={(e, open) => setSizeDropdownOpen(open)}
               onSelect={(_, option) => {
                 const valuesSelected = sizeCustom.find((element) => element.name === option);
                 if (valuesSelected) {
@@ -119,10 +112,10 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
       </FormGroup>
       {!gpuDisabled && (
         <FormGroup>
-          <AcceleratorSelectField
-            acceleratorState={acceleratorState}
-            setAcceleratorState={setAcceleratorState}
-            supportedAccelerators={supportedAccelerators}
+          <AcceleratorProfileSelectField
+            acceleratorProfileState={acceleratorProfileState}
+            setAcceleratorProfileState={setAcceleratorProfileState}
+            supportedAcceleratorProfiles={supportedAcceleratorProfiles}
             resourceDisplayName="serving runtime"
             infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
           />

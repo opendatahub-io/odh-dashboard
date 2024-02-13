@@ -2,7 +2,7 @@ import * as React from 'react';
 import { DSPipelineKind } from '~/k8sTypes';
 import { getPipelinesCR } from '~/api';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '~/utilities/const';
 
 type State = DSPipelineKind | null;
 
@@ -13,9 +13,9 @@ export const dspaLoaded = ([state, loaded]: FetchState<State>): boolean =>
 
 export const hasServerTimedOut = (
   [state, loaded]: FetchState<State>,
-  dspaLoaded: boolean,
+  isDspaLoaded: boolean,
 ): boolean => {
-  if (!state || !loaded || dspaLoaded) {
+  if (!state || !loaded || isDspaLoaded) {
     return false;
   }
 
@@ -25,7 +25,7 @@ export const hasServerTimedOut = (
   }
 
   // If we are here, and 5 mins have past, we are having issues
-  return Date.now() - new Date(createTime).getTime() > 60 * 5 * 1000;
+  return Date.now() - new Date(createTime).getTime() > SERVER_TIMEOUT;
 };
 
 const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {

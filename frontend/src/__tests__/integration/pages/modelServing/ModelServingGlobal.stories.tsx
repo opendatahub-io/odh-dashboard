@@ -12,7 +12,6 @@ import {
   mockInferenceServiceK8sResource,
   mockInferenceServicek8sError,
 } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import ModelServingGlobal from '~/pages/modelServing/screens/global/ModelServingGlobal';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
@@ -28,8 +27,10 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import useDetectUser from '~/utilities/useDetectUser';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
 import { AppContext } from '~/app/AppContext';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, PodKind, ServingRuntimeKind } from '~/k8sTypes';
 import GlobalModelServingCoreLoader from '~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
+import { mockDataConnection } from '~/__mocks__/mockDataConnection';
+import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -37,6 +38,7 @@ type HandlersProps = {
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
+  pod?: PodKind;
 };
 
 const getHandlers = ({
@@ -45,6 +47,7 @@ const getHandlers = ({
   projectEnableModelMesh,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({})],
+  pod = mockPodK8sResource({}),
 }: HandlersProps) => [
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
   rest.get('/api/config', (req, res, ctx) =>
@@ -61,12 +64,15 @@ const getHandlers = ({
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(servingRuntimes))),
   ),
+  rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
+    res(ctx.json(mockK8sResourceList([pod]))),
+  ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(inferenceServices))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockDataConnection({}).data]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/modelServing/servingruntimes',
@@ -77,7 +83,7 @@ const getHandlers = ({
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(inferenceServices))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/modelServing/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockDataConnection({}).data]))),
   ),
   rest.get(
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
@@ -139,8 +145,16 @@ export default {
   component: ModelServingGlobal,
   parameters: {
     reactRouter: {
-      routePath: '/modelServing/:namespace/*',
-      routeParams: { namespace: 'test-project' },
+      location: {
+        pathParams: {
+          namespace: 'test-project',
+        },
+      },
+      routing: [
+        {
+          path: '/modelServing/:namespace/*',
+        },
+      ],
     },
   },
 } as Meta<typeof ModelServingGlobal>;
@@ -208,6 +222,16 @@ export const EmptyStateNoServingRuntime: StoryObj = {
   },
 };
 
+export const InsufficientResourcesError: StoryObj = {
+  render: Template({}),
+
+  parameters: {
+    msw: {
+      handlers: getHandlers({ pod: mockPodK8sResource({ isPending: true }) }),
+    },
+  },
+};
+
 export const EmptyStateNoInferenceServices: StoryObj = {
   render: Template({}),
 
@@ -241,7 +265,7 @@ export const EditModel: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({}),
@@ -254,8 +278,8 @@ export const EditModel: StoryObj = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for editing a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Edit', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Edit'));
   },
 };
 
@@ -264,7 +288,7 @@ export const DeleteModel: StoryObj = {
 
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({}),
@@ -277,8 +301,8 @@ export const DeleteModel: StoryObj = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Delete', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Delete'));
   },
 };
 
@@ -288,7 +312,7 @@ export const DeployModelModelMesh: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({
@@ -313,7 +337,7 @@ export const DeployModelModelKServe: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({

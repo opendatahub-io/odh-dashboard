@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { DropdownDirection } from '@patternfly/react-core';
 import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { isModelMesh } from '~/pages/modelServing/utils';
-import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
@@ -32,15 +31,20 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
+  const modelMetricsSupported = (modelMetricsInferenceService: InferenceServiceKind) =>
+    modelMetricsEnabled &&
+    modelMetricsInferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+      'ModelMesh';
+
   return (
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMetricsEnabled ? (
+          {modelMetricsSupported(inferenceService) ? (
             <Link
               to={
                 isGlobal
-                  ? `/modelServing/metrics/${inferenceService.metadata.namespace}/${inferenceService.metadata.name}`
+                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
                   : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
               }
             >
@@ -69,12 +73,14 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!isModelMesh(inferenceService)}
+        />
       </Td>
       <Td isActionCell>
         <ResourceActionsColumn
           resource={inferenceService}
-          dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
           items={[
             {
               title: 'Edit',

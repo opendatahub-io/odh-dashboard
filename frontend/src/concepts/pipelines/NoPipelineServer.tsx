@@ -1,13 +1,11 @@
 import * as React from 'react';
 import {
-  Title,
   EmptyState,
   EmptyStateIcon,
-  EmptyStateBody,
-  Flex,
-  FlexItem,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
-import WrenchIcon from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { CreatePipelineServerButton } from '~/concepts/pipelines/context';
 
 type NoPipelineServerProps = {
@@ -15,18 +13,15 @@ type NoPipelineServerProps = {
 };
 
 const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant }) => (
-  <EmptyState>
-    <EmptyStateIcon icon={WrenchIcon} />
-    <Title headingLevel="h2" size="lg">
-      No pipeline server
-    </Title>
-    <EmptyStateBody>To import a pipeline, first create a pipeline server.</EmptyStateBody>
-    <Flex direction={{ default: 'column' }}>
-      <FlexItem spacer={{ default: 'spacerLg' }} />
-      <FlexItem>
-        <CreatePipelineServerButton variant={variant} />
-      </FlexItem>
-    </Flex>
+  <EmptyState variant="xs">
+    <EmptyStateHeader
+      titleText="Enable pipelines"
+      icon={<EmptyStateIcon icon={WrenchIcon} />}
+      headingLevel="h3"
+    />
+    <EmptyStateFooter>
+      <CreatePipelineServerButton variant={variant} />
+    </EmptyStateFooter>
   </EmptyState>
 );
 

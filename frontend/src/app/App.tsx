@@ -77,6 +77,7 @@ const App: React.FC = () => {
         </Page>
       );
     }
+
     // Assume we are still waiting on the API to finish
     return (
       <Bullseye>

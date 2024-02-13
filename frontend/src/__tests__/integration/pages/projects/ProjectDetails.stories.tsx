@@ -12,7 +12,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -29,6 +29,7 @@ import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { StackComponent } from '~/concepts/areas';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
+import { mock404Error } from '~/__mocks__/mockK8sStatus';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
   rest.get(
@@ -125,7 +126,7 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
       ),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockDataConnection({}).data]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
@@ -173,14 +174,28 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
     (req, res, ctx) => res(ctx.json(mockDashboardConfig({}))),
   ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
+  ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
+  ),
 ];
 
 export default {
   component: ProjectDetails,
   parameters: {
     reactRouter: {
-      routePath: '/projects/:namespace/*',
-      routeParams: { namespace: 'test-project' },
+      location: {
+        pathParams: { namespace: 'test-project' },
+      },
+      routing: [
+        {
+          path: '/projects/:namespace/*',
+        },
+      ],
     },
     msw: {
       handlers: handlers(false),

@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle, Truncate } from '@patternfly/react-core';
+import { Truncate } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import './SimpleDropdownSelect.scss';
 
 export type SimpleDropdownOption = {
@@ -20,12 +21,12 @@ type SimpleDropdownProps = {
 } & Omit<React.ComponentProps<typeof Dropdown>, 'isOpen' | 'toggle' | 'dropdownItems' | 'onChange'>;
 
 const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
+  isDisabled,
   onChange,
   options,
   placeholder = 'Select...',
   value,
   isFullWidth,
-  isDisabled,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);

@@ -9,7 +9,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { TableComposable, Thead, Tr, Th, Tbody, Td, Caption } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th, Tbody, Td, Caption } from '@patternfly/react-table';
 
 type TestHookProps<T extends unknown[]> = {
   hook: (...args: T) => unknown;
@@ -21,7 +21,7 @@ export const TestHook = <T extends any[]>({
   hook,
   defaultHookParams,
   hookParams = [],
-}: TestHookProps<T>) => {
+}: TestHookProps<T>): React.JSX.Element => {
   const [selectedParam, setSelectedParam] = useState<T>(defaultHookParams);
 
   // call hook
@@ -58,8 +58,8 @@ export const TestHook = <T extends any[]>({
 
   // get individual result stability
   hookResultArray.forEach((prop, index) => {
-    const isStable = previousResultArrayRef.current[index] === prop;
-    resultArrayStatusesRef.current[index] = isStable ? 'stable' : 'unstable';
+    const currentIsStable = previousResultArrayRef.current[index] === prop;
+    resultArrayStatusesRef.current[index] = currentIsStable ? 'stable' : 'unstable';
   });
   previousResultArrayRef.current = hookResultArray;
 
@@ -81,7 +81,7 @@ export const TestHook = <T extends any[]>({
     dataIdPrefix: string,
     showButtons = false,
   ) => (
-    <TableComposable variant="compact">
+    <Table variant="compact">
       <Thead>
         <Tr>
           <Th>Type</Th>
@@ -107,7 +107,7 @@ export const TestHook = <T extends any[]>({
             <Td isActionCell>
               {showButtons && typeof value === 'function' && (
                 <Button
-                  isSmall
+                  size="sm"
                   data-testid={`call-function-${index}`}
                   variant="secondary"
                   onClick={() => value()}
@@ -119,13 +119,13 @@ export const TestHook = <T extends any[]>({
           </Tr>
         ))}
       </Tbody>
-    </TableComposable>
+    </Table>
   );
 
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel={'h3'}>Select Parameter Set</Title>
+        <Title headingLevel="h3">Select Parameter Set</Title>
         <Split hasGutter>
           <SplitItem>
             <Button
@@ -153,11 +153,11 @@ export const TestHook = <T extends any[]>({
         </Split>
       </StackItem>
       <StackItem>
-        <Title headingLevel={'h3'}>Selected Parameters</Title>
+        <Title headingLevel="h3">Selected Parameters</Title>
         {renderTable(propStatusesRef.current, selectedParam, 'param')}
       </StackItem>
       <StackItem>
-        <Title headingLevel={'h3'}>Result</Title>
+        <Title headingLevel="h3">Result</Title>
         <Caption>
           <Split hasGutter>
             <SplitItem>
@@ -175,7 +175,7 @@ export const TestHook = <T extends any[]>({
         {renderTable(resultArrayStatusesRef.current, hookResultArray, 'result', true)}
       </StackItem>
       <StackItem>
-        <Title headingLevel={'h4'}>data-testid key</Title>
+        <Title headingLevel="h4">data-testid key</Title>
         <List>
           <ListItem>
             <span style={{ color: 'grey' }}>data-testid=params-default</span> - default parameters

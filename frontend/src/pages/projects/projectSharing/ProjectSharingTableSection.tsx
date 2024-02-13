@@ -44,8 +44,8 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           onDismissNewRow={() => {
             setAddField(false);
           }}
-          onError={(error) => {
-            setError(error);
+          onError={(e) => {
+            setError(e);
           }}
           refresh={() => {
             refresh();
@@ -71,7 +71,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           icon={<PlusCircleIcon />}
           iconPosition="left"
           onClick={() => setAddField(true)}
-          style={{ paddingLeft: 'var(--pf-global--spacer--lg)' }}
+          style={{ paddingLeft: 'var(--pf-v5-global--spacer--lg)' }}
         >
           {projectSharingTableType === ProjectSharingRBType.USER ? 'Add user' : 'Add group'}
         </Button>

@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -6,8 +6,9 @@ import {
   k8sListResourceItems,
   k8sPatchResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, K8sStatus, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
@@ -77,7 +78,7 @@ export const getAvailableMultiUsePvcs = (
 ): Promise<PersistentVolumeClaimKind[]> =>
   getDashboardPvcs(projectName).then((pvcs) =>
     pvcs.filter((pvc) => {
-      const accessModes = pvc.spec.accessModes;
+      const { accessModes } = pvc.spec;
       return accessModes.includes('ReadOnlyMany') || accessModes.includes('ReadWriteMany');
     }),
   );
@@ -91,7 +92,7 @@ export const createPvc = (
   const pvc = assemblePvc(data, namespace, undefined, storageClassName);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
-    applyK8sAPIOptions(opts, { model: PVCModel, resource: pvc }),
+    applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),
   );
 };
 
@@ -104,7 +105,7 @@ export const updatePvc = (
   const pvc = assemblePvc(data, namespace, existingData.metadata.name);
 
   return k8sUpdateResource<PersistentVolumeClaimKind>(
-    applyK8sAPIOptions(opts, { model: PVCModel, resource: _.merge({}, existingData, pvc) }),
+    applyK8sAPIOptions({ model: PVCModel, resource: _.merge({}, existingData, pvc) }, opts),
   );
 };
 
@@ -121,17 +122,20 @@ export const updatePvcSize = (
   opts?: K8sAPIOptions,
 ): Promise<PersistentVolumeClaimKind> =>
   k8sPatchResource(
-    applyK8sAPIOptions(opts, {
-      model: PVCModel,
-      queryOptions: { name: pvcName, ns: namespace },
-      patches: [
-        {
-          op: 'replace',
-          path: '/spec/resources/requests',
-          value: {
-            storage: size,
+    applyK8sAPIOptions(
+      {
+        model: PVCModel,
+        queryOptions: { name: pvcName, ns: namespace },
+        patches: [
+          {
+            op: 'replace',
+            path: '/spec/resources/requests',
+            value: {
+              storage: size,
+            },
           },
-        },
-      ],
-    }),
+        ],
+      },
+      opts,
+    ),
   );

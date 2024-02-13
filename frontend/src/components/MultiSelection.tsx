@@ -1,11 +1,6 @@
 import * as React from 'react';
-import {
-  HelperText,
-  HelperTextItem,
-  Select,
-  SelectOption,
-  SelectVariant,
-} from '@patternfly/react-core';
+import { HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import { MenuItemStatus } from '~/pages/groupSettings/groupTypes';
 
 type MultiSelectionProps = {
@@ -22,20 +17,19 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue,
   };
 
   const clearSelection = () => {
-    const newState = value?.map((element) => ({ ...element, enabled: false }));
+    const newState = value.map((element) => ({ ...element, enabled: false }));
     setValue(newState);
   };
 
-  const noSelectedItems = value?.filter((option) => option.enabled).length === 0;
+  const noSelectedItems = value.filter((option) => option.enabled).length === 0;
 
   return (
     <>
       <Select
-        removeFindDomNode
         variant={SelectVariant.typeaheadMulti}
-        onToggle={toggleMenu}
+        onToggle={(e, isOpen: React.SetStateAction<boolean>) => toggleMenu(isOpen)}
         onSelect={(e, newValue) => {
-          if (value?.filter((option) => option.name === newValue).length) {
+          if (value.filter((option) => option.name === newValue).length) {
             const newState = value.map((element) =>
               element.name === newValue ? { ...element, enabled: !element.enabled } : element,
             );
@@ -43,7 +37,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue,
           }
         }}
         onClear={clearSelection}
-        selections={value?.filter((element) => element.enabled).map((element) => element.name)}
+        selections={value.filter((element) => element.enabled).map((element) => element.name)}
         isOpen={showMenu}
         aria-label="Select groups menu"
         typeAheadAriaLabel={ariaLabel}
@@ -51,7 +45,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue,
         onCreateOption={undefined}
         validated={noSelectedItems ? 'error' : 'default'}
       >
-        {value?.map((option, index) => (
+        {value.map((option, index) => (
           <SelectOption isDisabled={false} key={index} value={option.name} />
         ))}
       </Select>

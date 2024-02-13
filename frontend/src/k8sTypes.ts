@@ -1,15 +1,14 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
-  NotebookContainer,
-  PodToleration,
+  PodContainer,
+  Toleration,
   Volume,
   ContainerResources,
   NotebookSize,
-  GpuSettingString,
   TolerationSettings,
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
@@ -100,6 +99,7 @@ export type K8sCondition = {
   status: string;
   reason?: string;
   message?: string;
+  lastProbeTime?: string | null;
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
@@ -150,7 +150,7 @@ export type BuildKind = K8sResourceCommon & {
     };
   };
   status: {
-    phase: BUILD_PHASE;
+    phase: BuildPhase;
     completionTimestamp?: string;
     startTimestamp?: string;
   };
@@ -159,7 +159,7 @@ export type BuildKind = K8sResourceCommon & {
 /**
  * Contains all the phases for BuildKind -> status -> phase (excluding NONE phase)
  */
-export enum BUILD_PHASE {
+export enum BuildPhase {
   NONE = 'Not started',
   NEW = 'New',
   RUNNING = 'Running',
@@ -234,16 +234,7 @@ export type ImageStreamSpecTagType = {
 export type K8sAPIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
-};
-
-/** A status object when Kube backend can't handle a request. */
-export type K8sStatus = {
-  kind: string;
-  apiVersion: string;
-  code: number;
-  message: string;
-  reason: string;
-  status: string;
+  parseJSON?: boolean;
 };
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
@@ -282,6 +273,15 @@ export type StorageClassKind = K8sResourceCommon & {
   allowVolumeExpansion?: boolean;
 };
 
+export type PodSpec = {
+  affinity?: PodAffinity;
+  enableServiceLinks?: boolean;
+  containers: PodContainer[];
+  initContainers?: PodContainer[];
+  volumes?: Volume[];
+  tolerations?: Toleration[];
+};
+
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & NotebookAnnotations;
@@ -293,13 +293,7 @@ export type NotebookKind = K8sResourceCommon & {
   };
   spec: {
     template: {
-      spec: {
-        affinity?: PodAffinity;
-        enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
-        volumes?: Volume[];
-        tolerations?: PodToleration[];
-      };
+      spec: PodSpec;
     };
   };
   status?: {
@@ -310,8 +304,18 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: PodSpec;
   status: {
-    containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
+    phase: string;
+    conditions: K8sCondition[];
+    containerStatuses?: {
+      name?: string;
+      ready: boolean;
+      state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
+    }[];
   };
 };
 
@@ -321,7 +325,7 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
-    labels: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
+    labels?: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -349,7 +353,7 @@ export type ServingContainer = {
   image: string;
   name: string;
   affinity?: PodAffinity;
-  resources: ContainerResources;
+  resources?: ContainerResources;
   volumeMounts?: VolumeMount[];
 };
 
@@ -368,8 +372,8 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     };
     containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
-    tolerations?: PodToleration[];
+    replicas?: number;
+    tolerations?: Toleration[];
     volumes?: Volume[];
   };
 };
@@ -398,11 +402,13 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      tolerations?: Toleration[];
       model: {
         modelFormat: {
           name: string;
           version?: string;
         };
+        resources?: ContainerResources;
         runtime?: string;
         storageUri?: string;
         storage?: {
@@ -412,6 +418,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
           schemaPath?: string;
         };
       };
+      maxReplicas?: number;
+      minReplicas?: number;
     };
   };
   status?: {
@@ -468,6 +476,9 @@ export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
     path: string;
+    port: {
+      targetPort: string;
+    };
   };
 };
 
@@ -488,7 +499,35 @@ export type AWSSecretKind = SecretKind & {
       [KnownLabels.DATA_CONNECTION_AWS]: 'true';
     };
   };
-  data: Record<AWS_KEYS, string>;
+  data: Record<AwsKeys, string>;
+};
+
+export type TrustyAIKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    storage: {
+      format: string;
+      folder: string;
+      size: string;
+    };
+    data: {
+      filename: string;
+      format: string;
+    };
+    metrics: {
+      schedule: string;
+      batchSize?: number;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+    ready?: string;
+    replicas?: number;
+  };
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
@@ -606,7 +645,7 @@ export type PipelineRunTaskSpecDigest = {
 type PipelineRunTaskSpecStep = {
   name: string;
   args?: string[];
-  command: string[];
+  command: string[] | undefined;
   image: string;
 };
 
@@ -626,7 +665,7 @@ export type PipelineRunTaskSpec = {
   stepTemplate?: {
     volumeMounts?: PipelineRunTaskVolumeMount[];
   };
-  results: PipelineRunTaskSpecResult[];
+  results: PipelineRunTaskSpecResult[] | undefined;
   metadata?: {
     annotations?: {
       /** @see PipelineRunTaskSpecDigest */
@@ -679,7 +718,7 @@ export type PipelineRunTaskStatusStep = {
 };
 
 export type PipelineRunTaskRunStatusProperties = {
-  conditions: K8sCondition[];
+  conditions?: K8sCondition[];
   podName: string;
   startTime: string;
   completionTime?: string;
@@ -695,7 +734,7 @@ export type PipelineRunTaskRunStatusProperties = {
 export type PipelineRunTaskRunStatus = {
   /** The task name; pipelineSpec.tasks[].name */
   pipelineTaskName: string;
-  status: PipelineRunTaskRunStatusProperties;
+  status?: PipelineRunTaskRunStatusProperties;
 };
 
 export type PipelineRunKind = K8sResourceCommon & {
@@ -704,6 +743,7 @@ export type PipelineRunKind = K8sResourceCommon & {
   };
   spec: {
     pipelineSpec?: PipelineRunPipelineSpec;
+    params?: PipelineRunTaskParam[];
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;
@@ -775,10 +815,12 @@ export type DashboardCommonConfig = {
   disableModelServing: boolean;
   disableProjectSharing: boolean;
   disableCustomServingRuntimes: boolean;
-  modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableModelMesh: boolean;
+  disableAcceleratorProfiles: boolean;
 };
 
 export type OperatorStatus = {
@@ -802,8 +844,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       pvcSize?: string;
       storageClassName?: string;
       notebookNamespace?: string;
-      /** @deprecated - Use AcceleratorProfiles */
-      gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
@@ -820,7 +860,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
   };
 };
 
-export type AcceleratorKind = K8sResourceCommon & {
+export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: Partial<{
@@ -832,7 +872,7 @@ export type AcceleratorKind = K8sResourceCommon & {
     enabled: boolean;
     identifier: string;
     description?: string;
-    tolerations?: PodToleration[];
+    tolerations?: Toleration[];
   };
 };
 

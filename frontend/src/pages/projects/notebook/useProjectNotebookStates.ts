@@ -16,11 +16,6 @@ const refreshNotebookState = (
   new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
       .then((notebook) => {
-        if (!notebook) {
-          resolve();
-          return;
-        }
-
         // Have a notebook, get a proper status of it
         getNotebookStatus(notebook)
           .then((notebookStatus) => {
@@ -47,10 +42,10 @@ const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[
               const adhocUpdate: AdHocUpdate<NotebookState[]> = (lazySetState) => {
                 // Save and overwrite everything immediately
                 lazySetState(() =>
-                  state.map((state) => {
+                  state.map((currentState) => {
                     // Setup each one to be able to refresh later
                     const refresh = () => {
-                      const notebookName = state.notebook.metadata.name;
+                      const notebookName = currentState.notebook.metadata.name;
                       return refreshNotebookState(notebookName, namespace).then((newState) => {
                         lazySetState((notebookStates) => {
                           if (newState) {
@@ -71,7 +66,7 @@ const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[
                     };
 
                     return {
-                      ...state,
+                      ...currentState,
                       refresh,
                     };
                   }),

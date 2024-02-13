@@ -23,13 +23,10 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   const [inUseInBytes, loaded, error] = usePVCFreeAmount(pvc);
   const maxValue = getPvcTotalSize(pvc);
 
-  if (!error && isNaN(inUseInBytes)) {
+  if (!error && Number.isNaN(inUseInBytes)) {
     return (
       <div>
-        <Tooltip
-          removeFindDomNode
-          content="No active storage information at this time, check back later"
-        >
+        <Tooltip content="No active storage information at this time, check back later">
           <Text component="small">Max {maxValue}</Text>
         </Tooltip>
       </div>
@@ -43,9 +40,9 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   let inUseRender: React.ReactNode;
   if (error) {
     inUseRender = (
-      <Tooltip removeFindDomNode content={`Unable to get storage data. ${error.message}`}>
+      <Tooltip content={`Unable to get storage data. ${error.message}`}>
         <ExclamationCircleIcon
-          color="var(--pf-global--danger-color--100)"
+          color="var(--pf-v5-global--danger-color--100)"
           aria-label="error icon"
           tabIndex={0}
         />
@@ -74,13 +71,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
         </Bullseye>
       </SplitItem>
       <SplitItem isFilled style={{ maxWidth: 200 }}>
-        {percentageLabel ? (
-          <Tooltip removeFindDomNode content={percentageLabel}>
-            {progressBar}
-          </Tooltip>
-        ) : (
-          progressBar
-        )}
+        {percentageLabel ? <Tooltip content={percentageLabel}>{progressBar}</Tooltip> : progressBar}
       </SplitItem>
       <SplitItem>
         <Bullseye>

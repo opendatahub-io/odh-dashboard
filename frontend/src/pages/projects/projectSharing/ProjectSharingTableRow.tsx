@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   Button,
-  DropdownDirection,
   Split,
   SplitItem,
   Text,
@@ -29,8 +28,7 @@ type ProjectSharingTableRowProps = {
 };
 
 const defaultValueName = (obj: RoleBindingKind) => firstSubject(obj);
-const defaultValueRole = (obj: RoleBindingKind) =>
-  castProjectSharingRoleType(obj.roleRef.name) || ProjectSharingRoleType.EDIT;
+const defaultValueRole = (obj: RoleBindingKind) => castProjectSharingRoleType(obj.roleRef.name);
 
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,
@@ -124,7 +122,6 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
             </Split>
           ) : (
             <ActionsColumn
-              dropdownDirection={DropdownDirection.up}
               items={[
                 {
                   title: 'Edit',

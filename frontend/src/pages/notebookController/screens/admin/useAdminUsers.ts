@@ -25,7 +25,8 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
   );
 
   const users: AdminViewUserData[] = allowedUsers.map<AdminViewUserData>((allowedUser) => {
-    const notebookRunningState: NotebookRunningState = notebooks[allowedUser.username] || null;
+    const notebookRunningState: NotebookRunningState | null =
+      notebooks[allowedUser.username] || null;
     const notebook = notebookRunningState?.notebook ?? null;
     const isNotebookRunning = notebookRunningState?.isRunning ?? false;
 

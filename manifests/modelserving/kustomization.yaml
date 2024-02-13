@@ -6,13 +6,18 @@ commonLabels:
 resources:
   - ovms-ootb.yaml
   - caikit-ootb.yaml
+  - tgis-ootb.yaml
+  - ovms-kserve-ootd.yaml
 images:
   - name: ovms-1
     newName: quay.io/opendatahub/openvino_model_server
-    digest: sha256:2cbe8a48ab0bc6fe7fb76919bf33253e83a6218a9c4b486b744c3dcf30679616
+    digest: sha256:ccfce13c89c4ddfd31e6c56fc35fd46afe10c2d3d3998ab1c2bf14448fdd389f
   - name: caikit-tgis-serving
     newName: quay.io/opendatahub/caikit-tgis-serving
-    digest: sha256:9d6e8bc10f3b61774f9d321790f8593f6ded5674b64a366248fcde6a07d66833
+    digest: sha256:153294140ecc87839defeca317b4b67cc16e8f56ec2211f3540ed00e0efa0ae0
   - name: text-generation-inference
     newName: quay.io/opendatahub/text-generation-inference
-    digest: sha256:efcc60c671a5da62c0251bc543f6de73f6578aac40a9a745eae3f60b0208f9e9
+    digest: sha256:e50101c1245b22e080b5754efb7c2b69fd1422e5a608d276eab249bdc5cc5a55
+  - name: ovms-kserve
+    newName: quay.io/modh/openvino_model_server
+    digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4

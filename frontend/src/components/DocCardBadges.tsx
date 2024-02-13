@@ -19,9 +19,9 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const [completionStatus, setCompletionStatus] = React.useState<
     CompletionStatusEnum | undefined
   >();
-  const docType = odhDoc?.spec.type as OdhDocumentType;
-  const docName = odhDoc?.metadata.name;
-  const duration = odhDoc?.spec.durationMinutes;
+  const docType = odhDoc.spec.type as OdhDocumentType;
+  const docName = odhDoc.metadata.name;
+  const duration = odhDoc.spec.durationMinutes;
 
   React.useEffect(() => {
     if (docType === OdhDocumentType.QuickStart && qsContext.allQuickStarts) {
@@ -36,7 +36,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
 
   return (
     <LabelGroup defaultIsOpen numLabels={3}>
-      <Tooltip removeFindDomNode content={DOC_TYPE_TOOLTIPS[docType]}>
+      <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
         <Label color={getLabelColorForDocType(docType)}>{label}</Label>
       </Tooltip>
       {duration ? (
