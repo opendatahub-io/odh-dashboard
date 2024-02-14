@@ -268,6 +268,79 @@ describe('Pipeline create runs', () => {
       cy.wait('@refreshRecurringRuns');
       pipelineRunJobTable.findRowByName('Duplicate of Test job');
     });
+
+    it('shows cron & periodic fields', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.findScheduledRunTypeRadioInput().click();
+
+      createRunPage.findScheduledRunTypeSelector().click();
+      createRunPage.findScheduledRunTypeSelectorPeriodic().click();
+      createRunPage.findScheduledRunRunEvery().should('exist');
+      createRunPage.findScheduledRunCron().should('not.exist');
+
+      createRunPage.findScheduledRunTypeSelector().click();
+      createRunPage.findScheduledRunTypeSelectorCron().click();
+      createRunPage.findScheduledRunCron().should('exist');
+      createRunPage.findScheduledRunRunEvery().should('not.exist');
+    });
+
+    it('should start concurrent at the max, 10', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.findScheduledRunTypeRadioInput().click();
+
+      createRunPage.findMaxConcurrencyFieldMinus().should('be.enabled');
+      createRunPage.findMaxConcurrencyFieldPlus().should('be.disabled');
+      createRunPage.findMaxConcurrencyFieldValue().should('have.value', '10');
+    });
+
+    it('should allow the concurrency to update via +/-', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.findScheduledRunTypeRadioInput().click();
+
+      createRunPage.findMaxConcurrencyFieldMinus().click();
+      createRunPage.findMaxConcurrencyFieldMinus().click();
+      createRunPage.findMaxConcurrencyFieldValue().should('have.value', '8');
+
+      createRunPage.findMaxConcurrencyFieldPlus().click();
+      createRunPage.findMaxConcurrencyFieldValue().should('have.value', '9');
+    });
+
+    it('should not allow concurrency to go under or above the bounds', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.findScheduledRunTypeRadioInput().click();
+
+      createRunPage.findMaxConcurrencyFieldValue().fill('0');
+      createRunPage.findMaxConcurrencyFieldValue().should('have.value', 1);
+
+      createRunPage.findMaxConcurrencyFieldValue().fill('20');
+      createRunPage.findMaxConcurrencyFieldValue().should('have.value', 10);
+    });
+
+    it('should hide and show date toggles', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.findScheduledRunTypeRadioInput().click();
+
+      createRunPage.findStartDatePickerDate().should('not.be.visible');
+      createRunPage.findStartDatePickerTime().should('not.be.visible');
+      createRunPage.findStartDatePickerSwitch().click();
+      createRunPage.findStartDatePickerDate().should('be.visible');
+      createRunPage.findStartDatePickerTime().should('be.visible');
+
+      createRunPage.findEndDatePickerDate().should('not.be.visible');
+      createRunPage.findEndDatePickerTime().should('not.be.visible');
+      createRunPage.findEndDatePickerSwitch().click();
+      createRunPage.findEndDatePickerDate().should('be.visible');
+      createRunPage.findEndDatePickerTime().should('be.visible');
+    });
+
+    it('should see catch up is enabled by default', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.findScheduledRunTypeRadioInput().click();
+
+      createRunPage.findCatchUpSwitchValue().should('be.checked');
+      createRunPage.findCatchUpSwitch().click();
+      createRunPage.findCatchUpSwitchValue().should('not.be.checked');
+    });
   });
 });
 

@@ -52,6 +52,20 @@ declare global {
         text: string,
         options?: Partial<Cypress.TypeOptions> | undefined,
       ): Cypress.Chainable<unknown>;
+
+      /**
+       * Returns a PF Switch label for clickable actions.
+       *
+       * @param dataId - the data test id you provided to the PF Switch
+       */
+      pfSwitch(dataId: string): Cypress.Chainable<JQuery>;
+
+      /**
+       * Returns a PF Switch input behind the checkbox to compare .should('be.checked') like ops
+       *
+       * @param dataId
+       */
+      pfSwitchValue(dataId: string): Cypress.Chainable<JQuery>;
     }
   }
 }
@@ -132,4 +146,14 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
 Cypress.Commands.add('fill', { prevSubject: 'optional' }, (subject, text, options) => {
   cy.wrap(subject).clear();
   return cy.wrap(subject).type(text, options);
+});
+
+Cypress.Commands.add('pfSwitch', (dataId) => {
+  Cypress.log({ displayName: 'pfSwitch', message: dataId });
+  return cy.findByTestId(dataId).parent();
+});
+
+Cypress.Commands.add('pfSwitchValue', (dataId) => {
+  Cypress.log({ displayName: 'pfSwitchValue', message: dataId });
+  return cy.pfSwitch(dataId).find('[type=checkbox]');
 });

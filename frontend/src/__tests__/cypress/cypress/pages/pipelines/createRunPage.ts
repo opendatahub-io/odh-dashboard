@@ -40,6 +40,82 @@ export class CreateRunPage {
     return this.find().findByRole('radio', { name: 'Schedule recurring run' });
   }
 
+  findScheduledRunTypeSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('triggerTypeSelector');
+  }
+
+  findScheduledRunTypeSelectorPeriodic(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('menuitem', { name: 'Periodic' });
+  }
+
+  findScheduledRunTypeSelectorCron(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('menuitem', { name: 'Cron' });
+  }
+
+  findScheduledRunRunEvery(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Run every');
+  }
+
+  findScheduledRunCron(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Cron string');
+  }
+
+  findMaxConcurrencyField(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('maxConcurrencyField');
+  }
+
+  findMaxConcurrencyFieldValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMaxConcurrencyField().findByLabelText('Input');
+  }
+
+  findMaxConcurrencyFieldMinus(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMaxConcurrencyField().findByLabelText('Minus');
+  }
+
+  findMaxConcurrencyFieldPlus(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMaxConcurrencyField().findByLabelText('Plus');
+  }
+
+  findStartDatePickerSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitch('start-date-toggle');
+  }
+
+  findEndDatePickerSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitch('end-date-toggle');
+  }
+
+  findCatchUpSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitch('run-catch-up-toggle');
+  }
+
+  findCatchUpSwitchValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitchValue('run-catch-up-toggle');
+  }
+
+  private findDatePickerDate(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`${id}-date`);
+  }
+
+  findStartDatePickerDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerDate('start-date');
+  }
+
+  findEndDatePickerDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerDate('end-date');
+  }
+
+  private findDatePickerTime(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`${id}-time`);
+  }
+
+  findStartDatePickerTime(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerTime('start-date');
+  }
+
+  findEndDatePickerTime(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerTime('end-date');
+  }
+
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: 'Create' });
   }
