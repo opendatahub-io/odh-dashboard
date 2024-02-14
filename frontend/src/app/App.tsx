@@ -47,75 +47,79 @@ const App: React.FC = () => {
 
   useDetectUser();
 
-  if (!username || !configLoaded || !dashboardConfig) {
-    // We lack the critical data to startup the app
-    if (userError || fetchConfigError) {
-      // There was an error fetching critical data
-      return (
-        <Page>
-          <PageSection>
-            <Stack hasGutter>
-              <StackItem>
-                <Alert variant="danger" isInline title="General loading error">
-                  <p>
-                    {(userError ? userError.message : fetchConfigError?.message) ||
-                      'Unknown error occurred during startup.'}
-                  </p>
-                  <p>Logging out and logging back in may solve the issue.</p>
-                </Alert>
-              </StackItem>
-              <StackItem>
-                <Button
-                  variant="secondary"
-                  onClick={() => logout().then(() => window.location.reload())}
-                >
-                  Logout
-                </Button>
-              </StackItem>
-            </Stack>
-          </PageSection>
-        </Page>
-      );
-    }
-
-    // Assume we are still waiting on the API to finish
+  // We lack the critical data to startup the app
+  if (userError || fetchConfigError) {
+    // There was an error fetching critical data
     return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
+      <Page>
+        <PageSection>
+          <Stack hasGutter>
+            <StackItem>
+              <Alert variant="danger" isInline title="General loading error">
+                <p>
+                  {(userError ? userError.message : fetchConfigError?.message) ||
+                    'Unknown error occurred during startup.'}
+                </p>
+                <p>Logging out and logging back in may solve the issue.</p>
+              </Alert>
+            </StackItem>
+            <StackItem>
+              <Button
+                variant="secondary"
+                onClick={() => logout().then(() => window.location.reload())}
+              >
+                Logout
+              </Button>
+            </StackItem>
+          </Stack>
+        </PageSection>
+      </Page>
     );
   }
 
+  // Waiting on the API to finish
+  const loading = !username || !configLoaded || !dashboardConfig;
+
   return (
-    <AppContext.Provider
-      value={{
-        buildStatuses,
-        dashboardConfig,
-        storageClasses,
-      }}
-    >
-      <AreaContextProvider>
-        <Page
-          className="odh-dashboard"
-          isManagedSidebar
-          header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
-          sidebar={isAllowed ? <NavSidebar /> : undefined}
-          notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
-          isNotificationDrawerExpanded={notificationsOpen}
-          mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+    <AreaContextProvider>
+      {loading ? (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      ) : (
+        <AppContext.Provider
+          value={{
+            buildStatuses,
+            dashboardConfig,
+            storageClasses,
+          }}
         >
-          <ErrorBoundary>
-            <ProjectsContextProvider>
-              <QuickStarts>
-                <AppRoutes />
-              </QuickStarts>
-            </ProjectsContextProvider>
-            <ToastNotifications />
-            <TelemetrySetup />
-          </ErrorBoundary>
-        </Page>
-      </AreaContextProvider>
-    </AppContext.Provider>
+          <Page
+            className="odh-dashboard"
+            isManagedSidebar
+            header={
+              <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+            }
+            sidebar={isAllowed ? <NavSidebar /> : undefined}
+            notificationDrawer={
+              <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+            }
+            isNotificationDrawerExpanded={notificationsOpen}
+            mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+          >
+            <ErrorBoundary>
+              <ProjectsContextProvider>
+                <QuickStarts>
+                  <AppRoutes />
+                </QuickStarts>
+              </ProjectsContextProvider>
+              <ToastNotifications />
+              <TelemetrySetup />
+            </ErrorBoundary>
+          </Page>
+        </AppContext.Provider>
+      )}
+    </AreaContextProvider>
   );
 };
 
