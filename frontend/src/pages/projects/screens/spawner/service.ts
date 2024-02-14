@@ -69,7 +69,7 @@ export const replaceRootVolumesForNotebook = async (
     };
     replacedVolumeMount = { name: existingName, mountPath: ROOT_MOUNT_PATH };
   } else {
-    const pvc = await createPvc(storageData.creating, projectName, { dryRun });
+    const pvc = await createPvc(storageData.creating, projectName, undefined, { dryRun });
     const newPvcName = pvc.metadata.name;
     replacedVolume = { name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } };
     replacedVolumeMount = { mountPath: ROOT_MOUNT_PATH, name: newPvcName };
