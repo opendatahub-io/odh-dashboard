@@ -5,7 +5,7 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 resources:
   - ../apps
-  - ../modelserving
+  - ../crd
   - role.yaml
   - cluster-role.yaml
   - service-account.yaml
@@ -23,9 +23,9 @@ resources:
   - model-serving-role-binding.yaml
   - fetch-accelerators.rbac.yaml
 images:
-- name: odh-dashboard
-  newName: quay.io/opendatahub/odh-dashboard
-  newTag: main
-- name: oauth-proxy
-  newName: registry.redhat.io/openshift4/ose-oauth-proxy
-  digest: sha256:ab112105ac37352a2a4916a39d6736f5db6ab4c29bad4467de8d613e80e9bb33
+  - name: odh-dashboard
+    newName: quay.io/opendatahub/odh-dashboard
+    newTag: main
+  - name: oauth-proxy
+    newName: registry.redhat.io/openshift4/ose-oauth-proxy
+    digest: sha256:ab112105ac37352a2a4916a39d6736f5db6ab4c29bad4467de8d613e80e9bb33

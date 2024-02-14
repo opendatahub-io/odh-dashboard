@@ -1,0 +1,195 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: auto-ai-experiment-model-tutorial
+  annotations:
+    opendatahub.io/categories: 'Model development,Model training'
+spec:
+  appName: watson-studio
+  type: tutorial
+  displayName: Running an AutoAI experiment to build a model 
+  description: |-
+    Watch a video about building a binary classification model for a marketing campaign.
+  url: https://video.ibm.com/channel/23952663/video/cpd35-ws-autoai
+  durationMinutes: 8
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: build-binary-classification-model-tutorial
+  annotations:
+    opendatahub.io/categories: 'Model development,Model training'
+spec:
+  appName: watson-studio
+  type: tutorial
+  displayName: Buildng a binary classification model
+  description: |-
+    Train a model to predict if a customer is likely to subscribe to a bank promotion.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/autoai_example_binary_classifier.html
+  durationMinutes: 10
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: jupyter-notebooks-in-watson-studio-tutorial
+  annotations:
+    opendatahub.io/categories: 'Notebook environments,Model development'
+spec:
+  appName: watson-studio
+  type: tutorial
+  displayName: Using Jupyter notebooks in Watson Studio 
+  description: |-
+    Watch a video about working with Jupyter notebooks in Watson Studio.
+  url: https://video.ibm.com/channel/23952663/video/cpd35-ws-notebook-basics
+  durationMinutes: 3
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: python-notebook-generate-results-open-scale-tutorial
+  annotations:
+    opendatahub.io/categories: 'Model training,Model serving,Model development'
+spec:
+  appName: watson-studio
+  type: tutorial
+  displayName: Run a Python notebook to generate results in Watson OpenScale
+  description: |-
+    Run a Python notebook to create, train, and deploy a machine learning model.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/model/wos-tutorial-adv.html
+  durationMinutes: 15
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-clean-shape-visualize-how-to
+  annotations:
+    opendatahub.io/categories: 'Data management,Data preprocessing,Data cleaning,Data visualization'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to clean, shape, and visualize data
+  description: |-
+    Learn how to clean and shape tabular data using Watson Studio data refinery. 
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/refinery/refining_data.html
+  durationMinutes: 10
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-create-connection-how-to
+  annotations:
+    opendatahub.io/categories: 'Data management'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to create a connection to access data
+  description: |-
+    Learn how to create connections to various data sources across the platform.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/cpd/access/connect-data-sources.html
+  durationMinutes: 10
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-create-deployment-space-how-to
+  annotations:
+    opendatahub.io/categories: 'Model serving'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to create a deployment space
+  description: |-
+    Learn how to create a deployment space for machine learning. 
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/ml-spaces_local.html
+  durationMinutes: 10
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-create-notebook-how-to
+  annotations:
+    opendatahub.io/categories: 'Notebook environments,Getting started'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to create a notebook in Watson Studio
+  description: |-
+    Learn how to create a basic Jupyter notebook in Watson Studio. 
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/creating-notebooks.html
+  durationMinutes: 3
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-create-project-how-to
+  annotations:
+    opendatahub.io/categories: 'Getting started,Notebook environments'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to create a project in Watson Studio
+  description: |-
+    Learn how to create an analytics project in Watson Studio. 
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/getting-started/projects.html
+  durationMinutes: 5
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-integrate-with-git-how-to
+  annotations:
+    opendatahub.io/categories: 'Data management,Getting started,Notebook environments'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to create a project that integrates with Git
+  description: |-
+    Learn how to add assets from a Git repository into a project. 
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/manage-data/git-integration.html
+  durationMinutes: 10
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-load-data-how-to
+  annotations:
+    opendatahub.io/categories: 'Data management,Getting started,Notebook environments'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to load data into a Jupyter notebook 
+  description: |-
+    Learn how to integrate data sources into a Jupyter notebook by loading data.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/load-and-access-data.html
+  durationMinutes: 5
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-runtime-env-how-to
+  annotations:
+    opendatahub.io/categories: 'Notebook environments,Getting started'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to choose between notebook runtime environment options
+  description: |-
+    Explore available options for configuring your notebook runtime environment.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/notebook-environments.html
+  durationMinutes: 5
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: watson-studio-setup-openscale-how-to
+  annotations:
+    opendatahub.io/categories: 'Model monitoring,Getting started'
+spec:
+  appName: watson-studio
+  type: how-to
+  displayName: How to set up Watson OpenScale
+  description: |-
+    Learn how to track and measure outcomes from models with OpenScale.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/model/getting-started.html
+  durationMinutes: 10
+---
