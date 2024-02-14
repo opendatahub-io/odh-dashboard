@@ -10,6 +10,7 @@ import {
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
+import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   pipelinesGlobal,
   pipelinesTable,
@@ -135,6 +136,50 @@ describe('Pipelines', () => {
     pipelinesTable.toggleExpandRowByIndex(0);
     pipelinesTable.findRowByName('New pipeline version');
   });
+
+  it('delete a single pipeline version', () => {
+    createDeleteVersionIntercept(
+      initialMockPipelineVersion.pipeline_id,
+      initialMockPipelineVersion.pipeline_version_id,
+    ).as('deleteVersion');
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Check pipeline version
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    // Delete the selected version
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('Delete pipeline version')
+      .click();
+    deleteModal.shouldBeOpen();
+    deleteModal.findInput().type(initialMockPipelineVersion.display_name);
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+      },
+      buildMockPipelineVersionsV2([]),
+    ).as('refreshVersions');
+    deleteModal.findSubmitButton().click();
+
+    cy.wait('@deleteVersion');
+
+    pipelinesTable.toggleExpandRowByIndex(0);
+    cy.wait('@refreshVersions').then(() =>
+      pipelinesTable
+        .findRowByName(initialMockPipeline.display_name)
+        .parents('tbody')
+        .findByTestId('no-pipeline-versions')
+        .should('exist'),
+    );
+  });
 });
 
 const initIntercepts = () => {
@@ -182,8 +227,21 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipeline_versions',
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
 };
+
+const createDeleteVersionIntercept = (pipelineId: string, pipelineVersionId: string) =>
+  cy.intercept(
+    {
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions/${pipelineVersionId}`,
+      method: 'POST',
+      times: 1,
+    },
+    (req) => {
+      expect(req.body.method).eq('DELETE');
+      req.reply({ body: {} });
+    },
+  );

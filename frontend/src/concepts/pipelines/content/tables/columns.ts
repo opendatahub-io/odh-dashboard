@@ -55,12 +55,7 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKFv2>[] = [
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     width: 20,
   },
-  {
-    label: '',
-    field: 'Action',
-    sortable: false,
-    width: 20,
-  },
+  kebabTableColumn(),
 ];
 
 export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
