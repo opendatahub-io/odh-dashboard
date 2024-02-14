@@ -14,7 +14,6 @@ import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/p
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import PipelinesDeprecatedBanner from '~/concepts/pipelines/PipelinesDeprecatedBanner';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -31,15 +30,7 @@ const ProjectViewRoutes: React.FC = () => {
   return (
     <ProjectsRoutes>
       <Route path="/" element={<ProjectView />} />
-      <Route
-        path="/:namespace/*"
-        element={
-          <>
-            <PipelinesDeprecatedBanner />
-            <ProjectDetailsContextProvider />
-          </>
-        }
-      >
+      <Route path="/:namespace/*" element={<ProjectDetailsContextProvider />}>
         <Route index element={<ProjectDetails />} />
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />

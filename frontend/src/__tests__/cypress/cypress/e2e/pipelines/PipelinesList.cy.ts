@@ -111,7 +111,7 @@ describe('PipelinesList', () => {
     cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines([]),
     );
@@ -119,5 +119,30 @@ describe('PipelinesList', () => {
 
     pipelinesSection.findImportPipelineButton().should('be.enabled').click();
     pipelinesSection.findUploadVersionButton().should('have.attr', 'aria-disabled', 'true');
+  });
+
+  it('should show the ability to delete the pipeline server kebab option', () => {
+    initIntercepts();
+    cy.intercept(
+      {
+        pathname:
+          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' })]),
+    );
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname:
+          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa',
+      },
+      mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' }),
+    );
+    projectDetails.visit('test-project');
+
+    pipelinesSection.findAllActions().should('have.length', 1);
+    pipelinesSection.findImportPipelineButton().should('not.exist');
+    pipelinesSection.findKebabActions().should('be.visible').should('be.enabled');
+    pipelinesSection.findKebabActionItem('Delete pipeline server').should('be.visible');
   });
 });

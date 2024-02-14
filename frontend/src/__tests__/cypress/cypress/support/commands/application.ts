@@ -19,15 +19,18 @@ declare global {
 
       /**
        * Find a patternfly kebab toggle button.
+       *
+       * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
        */
-      findKebab(): Cypress.Chainable<JQuery>;
+      findKebab(isDropdownToggle?: boolean): Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly kebab toggle button, opens the menu, and finds the action.
        *
        * @param name the name of the action in the kebeb menu
+       * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
        */
-      findKebabAction(name: string | RegExp): Cypress.Chainable<JQuery>;
+      findKebabAction(name: string | RegExp, isDropdownToggle?: boolean): Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
@@ -104,23 +107,29 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject) => {
+Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject, isDropdownToggle) => {
   Cypress.log({ displayName: 'findKebab' });
-  return cy.wrap(subject).findByRole('button', { name: 'Kebab toggle' });
-});
-
-Cypress.Commands.add('findKebabAction', { prevSubject: 'element' }, (subject, name) => {
-  Cypress.log({ displayName: 'findKebab', message: name });
   return cy
     .wrap(subject)
-    .findKebab()
-    .then(($el) => {
-      if ($el.attr('aria-expanded') === 'false') {
-        cy.wrap($el).click();
-      }
-      return cy.wrap($el.parent()).findByRole('menuitem', { name });
-    });
+    .findByRole('button', { name: isDropdownToggle ? 'Actions' : 'Kebab toggle' });
 });
+
+Cypress.Commands.add(
+  'findKebabAction',
+  { prevSubject: 'element' },
+  (subject, name, isDropdownToggle) => {
+    Cypress.log({ displayName: 'findKebab', message: name });
+    return cy
+      .wrap(subject)
+      .findKebab(isDropdownToggle)
+      .then(($el) => {
+        if ($el.attr('aria-expanded') === 'false') {
+          cy.wrap($el).click();
+        }
+        return cy.wrap($el.parent()).findByRole('menuitem', { name });
+      });
+  },
+);
 
 Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findDropdownItem', message: name });
