@@ -4,4 +4,10 @@ commonLabels:
   app: rhods-dashboard
   app.kubernetes.io/part-of: rhods-dashboard
 resources:
-- consolelink.yaml
+  - ../../consolelink
+patchesJson6902:
+  - path: consolelink.yaml
+    target:
+      version: v1
+      kind: ConsoleLink
+      name: odhlink

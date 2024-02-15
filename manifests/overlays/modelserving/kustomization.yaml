@@ -1,6 +1,20 @@
-# apiVersion: kustomize.config.k8s.io/v1beta1
-# kind: Kustomization
-# resources:
-#   - ../../modelserving
-# configurations:
-# - params.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app: odh-dashboard
+  app.kubernetes.io/part-of: odh-dashboard
+resources:
+  - ../../modelserving
+images:
+  - name: quay.io/opendatahub/openvino_model_server
+    newName: quay.io/modh/openvino_model_server
+    digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4
+  - name: quay.io/opendatahub/caikit-tgis-serving
+    newName: quay.io/modh/caikit-tgis-serving
+    digest: sha256:0fd3584362e8780aed922fe124c8829c1c7df9d55590ba2ae76bb6aef0155c1f
+  - name: quay.io/opendatahub/text-generation-inference
+    newName: quay.io/modh/text-generation-inference
+    digest: sha256:9f18a63cd84b084c3cbf15534f22d5ba6916d9501298abcc03271d26ebf5cdfb
+  - name: quay.io/modh/openvino_model_server
+    newName: quay.io/modh/openvino_model_server
+    digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4
