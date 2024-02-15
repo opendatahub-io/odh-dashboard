@@ -61,6 +61,8 @@ spec:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
+                    disablePipelineExperiments:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

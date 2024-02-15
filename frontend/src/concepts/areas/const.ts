@@ -58,4 +58,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.BIAS_METRICS],
   },
+  [SupportedArea.PIPELINE_EXPERIMENTS]: {
+    featureFlags: ['disablePipelineExperiments'],
+    reliantAreas: [SupportedArea.DS_PIPELINES],
+  },
 };
