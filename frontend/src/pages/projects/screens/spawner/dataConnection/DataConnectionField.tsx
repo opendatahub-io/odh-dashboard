@@ -64,7 +64,7 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
                   dataConnectionData.type === 'existing' && (
                     <ExistingDataConnectionField
                       fieldId="select-existing-data-connection"
-                      selectedDataConnection={dataConnectionData?.existing?.secretRef.name}
+                      selectedDataConnection={dataConnectionData.existing?.secretRef.name}
                       setDataConnection={(name) =>
                         setDataConnectionData('existing', { secretRef: { name: name ?? '' } })
                       }

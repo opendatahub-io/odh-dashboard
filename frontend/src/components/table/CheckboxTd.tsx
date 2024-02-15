@@ -4,13 +4,20 @@ import { Checkbox } from '@patternfly/react-core';
 
 type CheckboxTrProps = {
   id: string;
-  isChecked: boolean;
+  isChecked: boolean | null;
   onToggle: () => void;
+  isDisabled?: boolean;
 };
 
-const CheckboxTd: React.FC<CheckboxTrProps> = ({ id, isChecked, onToggle }) => (
-  <Td>
-    <Checkbox id={`${id}-checkbox`} isChecked={isChecked} onChange={() => onToggle()} />
+const CheckboxTd: React.FC<CheckboxTrProps> = ({ id, isChecked, onToggle, isDisabled }) => (
+  <Td dataLabel="Checkbox">
+    <Checkbox
+      aria-label="Checkbox"
+      id={`${id}-checkbox`}
+      isChecked={isChecked}
+      onChange={() => onToggle()}
+      isDisabled={isDisabled}
+    />
   </Td>
 );
 

@@ -6,6 +6,7 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   s3Bucket?: string;
+  uid?: string;
 };
 
 export const mockSecretK8sResource = ({
@@ -13,13 +14,14 @@ export const mockSecretK8sResource = ({
   namespace = 'test-project',
   displayName = 'Test Secret',
   s3Bucket = 'test-bucket',
+  uid = genUID('secret'),
 }: MockResourceConfigType): SecretKind => ({
   kind: 'Secret',
   apiVersion: 'route.openshift.io/v1',
   metadata: {
-    name: name,
-    namespace: namespace,
-    uid: genUID('secret'),
+    name,
+    namespace,
+    uid,
     resourceVersion: '5985371',
     creationTimestamp: '2023-03-22T16:18:56Z',
     labels: {

@@ -9,7 +9,7 @@ import { NotebookImageAvailability } from './const';
 import { NotebookImage } from './types';
 
 const useNotebookImage = (
-  notebook: NotebookKind,
+  notebook: NotebookKind | undefined,
 ):
   | [notebookImage: null, loaded: false, loadError?: Error]
   | [notebookImage: NotebookImage, loaded: true, loadError: undefined] => {

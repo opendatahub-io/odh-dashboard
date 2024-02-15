@@ -1,14 +1,10 @@
 import { createSecret, assembleSecret } from '~/api';
 import { DSPipelineKind } from '~/k8sTypes';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import {
-  isSecretAWSSecretKind,
-  convertAWSSecretData,
-} from '~/pages/projects/screens/detail/data-connections/utils';
-import { AWSDataEntry, DataConnectionType } from '~/pages/projects/types';
+import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
-import { DATABASE_CONNECTION_KEYS, EXTERNAL_DATABASE_SECRET } from './const';
-import { ObjectStorageExisting, PipelineServerConfigType } from './types';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
+import { DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
+import { PipelineServerConfigType } from './types';
 
 type SecretsResponse = [
   (
@@ -20,12 +16,8 @@ type SecretsResponse = [
   ),
   {
     secretName: string;
-    awsData: AWSDataEntry;
   },
 ];
-
-export const isUseExisting = (config: unknown): config is ObjectStorageExisting =>
-  (config as ObjectStorageExisting).existingName !== undefined;
 
 const createDatabaseSecret = (
   databaseConfig: PipelineServerConfigType['database'],
@@ -39,21 +31,21 @@ const createDatabaseSecret = (
   | undefined
 > => {
   if (!databaseConfig.useDefault) {
-    const secretKey = EXTERNAL_DATABASE_SECRET.KEY;
-    const databaseRecord = databaseConfig.value?.reduce<Record<string, string>>(
+    const secretKey = ExternalDatabaseSecret.KEY;
+    const databaseRecord = databaseConfig.value.reduce<Record<string, string>>(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {},
     );
     const assembledSecret = assembleSecret(
       projectName,
       {
-        [secretKey]: databaseRecord[DATABASE_CONNECTION_KEYS.PASSWORD],
+        [secretKey]: databaseRecord[DatabaseConnectionKeys.PASSWORD],
       },
       'generic',
-      EXTERNAL_DATABASE_SECRET.NAME,
+      ExternalDatabaseSecret.NAME,
     );
 
-    return createSecret(assembledSecret, { dryRun: dryRun }).then((secret) => ({
+    return createSecret(assembledSecret, { dryRun }).then((secret) => ({
       key: secretKey,
       name: secret.metadata.name,
     }));
@@ -68,35 +60,16 @@ const createObjectStorageSecret = (
   dryRun: boolean,
 ): Promise<{
   secretName: string;
-  awsData: AWSDataEntry;
 }> => {
-  if (objectStorageConfig.useExisting) {
-    return Promise.resolve({
-      secretName: objectStorageConfig.existingName,
-      awsData: objectStorageConfig.existingValue,
-    });
-  }
   const assembledSecret = assembleSecret(
     projectName,
-    objectStorageConfig.newValue.reduce<Record<string, string>>(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {},
-    ),
-    'aws',
+    objectStorageConfig.newValue.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {}),
+    'generic',
   );
 
-  return createSecret(assembledSecret, { dryRun: dryRun }).then((secret) => {
-    if (isSecretAWSSecretKind(secret)) {
-      return {
-        secretName: assembledSecret.metadata.name,
-        awsData: convertAWSSecretData({
-          type: DataConnectionType.AWS,
-          data: secret,
-        }),
-      };
-    }
-    throw new Error('Error creating data connection');
-  });
+  return createSecret(assembledSecret, { dryRun }).then((secret) => ({
+    secretName: secret.metadata.name,
+  }));
 };
 
 const createSecrets = (config: PipelineServerConfigType, projectName: string) =>
@@ -120,42 +93,40 @@ export const createDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
   [databaseSecret, objectStorageSecret]: SecretsResponse,
 ): DSPipelineKind['spec'] => {
-  {
-    const awsRecord = dataEntryToRecord(objectStorageSecret.awsData);
-    const databaseRecord = dataEntryToRecord(config.database.value);
+  const databaseRecord = dataEntryToRecord(config.database.value);
+  const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
+  const [, externalStorageScheme, externalStorageHost] = awsRecord.AWS_S3_ENDPOINT?.match(
+    /^(?:(\w+):\/\/)?(.*)/,
+  ) ?? [undefined];
 
-    const [, externalStorageScheme, externalStorageHost] =
-      awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
-
-    return {
-      objectStorage: {
-        externalStorage: {
-          host: externalStorageHost?.replace(/\/$/, '') || '',
-          scheme: externalStorageScheme || 'https',
-          bucket: awsRecord.AWS_S3_BUCKET || '',
-          s3CredentialsSecret: {
-            accessKey: AWS_KEYS.ACCESS_KEY_ID,
-            secretKey: AWS_KEYS.SECRET_ACCESS_KEY,
-            secretName: objectStorageSecret?.secretName,
-          },
+  return {
+    objectStorage: {
+      externalStorage: {
+        host: externalStorageHost?.replace(/\/$/, '') || '',
+        scheme: externalStorageScheme || 'https',
+        bucket: awsRecord.AWS_S3_BUCKET || '',
+        s3CredentialsSecret: {
+          accessKey: AwsKeys.ACCESS_KEY_ID,
+          secretKey: AwsKeys.SECRET_ACCESS_KEY,
+          secretName: objectStorageSecret.secretName,
         },
       },
-      database: databaseSecret
-        ? {
-            externalDB: {
-              host: databaseRecord?.[DATABASE_CONNECTION_KEYS.HOST],
-              passwordSecret: {
-                key: databaseSecret.key,
-                name: databaseSecret.name,
-              },
-              pipelineDBName: databaseRecord?.[DATABASE_CONNECTION_KEYS.DATABASE],
-              port: databaseRecord?.[DATABASE_CONNECTION_KEYS.PORT],
-              username: databaseRecord?.[DATABASE_CONNECTION_KEYS.USERNAME],
+    },
+    database: databaseSecret
+      ? {
+          externalDB: {
+            host: databaseRecord[DatabaseConnectionKeys.HOST],
+            passwordSecret: {
+              key: databaseSecret.key,
+              name: databaseSecret.name,
             },
-          }
-        : undefined,
-    };
-  }
+            pipelineDBName: databaseRecord[DatabaseConnectionKeys.DATABASE],
+            port: databaseRecord[DatabaseConnectionKeys.PORT],
+            username: databaseRecord[DatabaseConnectionKeys.USERNAME],
+          },
+        }
+      : undefined,
+  };
 };
 
 export const configureDSPipelineResourceSpec = (
@@ -165,3 +136,17 @@ export const configureDSPipelineResourceSpec = (
   createSecrets(config, projectName).then((secretsResponse) =>
     createDSPipelineResourceSpec(config, secretsResponse),
   );
+
+export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boolean =>
+  objectStorage.every(({ key, value }) =>
+    PIPELINE_AWS_FIELDS.filter((field) => field.isRequired)
+      .map((field) => field.key)
+      .includes(key)
+      ? !!value
+      : true,
+  );
+
+export const getLabelName = (index: string): string => {
+  const field = PIPELINE_AWS_FIELDS.find((currentField) => currentField.key === index);
+  return field ? field.label : '';
+};

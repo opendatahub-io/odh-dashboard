@@ -48,9 +48,9 @@ const ClusterSettings: React.FC = () => {
 
   React.useEffect(() => {
     fetchClusterSettings()
-      .then((clusterSettings: ClusterSettingsType) => {
-        setClusterSettings(clusterSettings);
-        setModelServingEnabledPlatforms(clusterSettings.modelServingPlatformEnabled);
+      .then((fetchedClusterSettings: ClusterSettingsType) => {
+        setClusterSettings(fetchedClusterSettings);
+        setModelServingEnabledPlatforms(fetchedClusterSettings.modelServingPlatformEnabled);
         setLoaded(true);
         setLoadError(undefined);
       })

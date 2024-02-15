@@ -2,18 +2,18 @@ import * as React from 'react';
 import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
-import DateRange from '~/components/dateRange/DateRange';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
+import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
+import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
-export enum FilterOptions {
-  NAME = 'Name',
-  EXPERIMENT = 'Experiment',
-  PIPELINE = 'Pipeline',
-  SCHEDULED = 'Scheduled',
-  STATUS = 'Status',
-}
+const options = {
+  [FilterOptions.NAME]: 'Name',
+  [FilterOptions.EXPERIMENT]: 'Experiment',
+  [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+};
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -30,11 +30,12 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
+  const { versions } = React.useContext(PipelineRunVersionsContext);
 
   return (
-    <PipelineFilterBar
+    <PipelineFilterBar<keyof typeof options>
       {...toolbarProps}
-      filterOptions={FilterOptions}
+      filterOptions={options}
       filterOptionRenders={{
         [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
@@ -44,32 +45,17 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             onChange={(event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.EXPERIMENT]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            aria-label="Search for a experiment name"
-            placeholder="Experiment name"
-            onChange={(event, value) => onChange(value)}
+        [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (
+          <ExperimentSearchInput
+            onChange={(data) => onChange(data?.value, data?.label)}
+            selected={value && label ? { value, label } : undefined}
           />
         ),
-        [FilterOptions.PIPELINE]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            aria-label="Search for a pipeline name"
-            placeholder="Pipeline name"
-            onChange={(event, value) => onChange(value)}
-          />
-        ),
-        [FilterOptions.SCHEDULED]: (props) => (
-          <DateRange {...props} aria-label="Select a scheduled date range" />
-        ),
-        [FilterOptions.STATUS]: (props) => (
-          <SimpleDropdownSelect
-            {...props}
-            options={[
-              { key: 'Enabled', label: 'Enabled' },
-              { key: 'Disabled', label: 'Disabled' },
-            ]}
+        [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
+          <PipelineVersionSelect
+            versions={versions}
+            selection={label}
+            onSelect={(version) => onChange(version.id, version.name)}
           />
         ),
       }}
@@ -82,7 +68,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
           Create run
         </Button>
       </ToolbarItem>
-      <ToolbarItem>
+      <ToolbarItem data-testid="job-table-toolbar-item">
         <RunTableToolbarActions deleteAllEnabled={deleteAllEnabled} onDeleteAll={onDeleteAll} />
       </ToolbarItem>
     </PipelineFilterBar>

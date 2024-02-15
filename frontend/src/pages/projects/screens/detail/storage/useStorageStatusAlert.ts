@@ -6,10 +6,12 @@ import { getPvcDisplayName } from '~/pages/projects/utils';
 import { getFullStatusFromPercentage } from './utils';
 
 type PercentageStorageStatus = {
-  [projectName: string]: {
-    /** string value is the last status that was used for this pvcName */
-    [pvcName: string]: string;
-  };
+  [projectName: string]:
+    | {
+        /** string value is the last status that was used for this pvcName */
+        [pvcName: string]: string;
+      }
+    | undefined;
 };
 
 const useStorageStatusAlert = (pvc: PersistentVolumeClaimKind, percentageFull: number): void => {
@@ -27,7 +29,7 @@ const useStorageStatusAlert = (pvc: PersistentVolumeClaimKind, percentageFull: n
 
   React.useEffect(() => {
     const currentStatus = getFullStatusFromPercentage(percentageFull);
-    if (!isNaN(percentageFull)) {
+    if (!Number.isNaN(percentageFull)) {
       if (lastStatus !== currentStatus) {
         if (currentStatus) {
           notification[currentStatus](

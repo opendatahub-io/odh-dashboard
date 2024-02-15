@@ -8,12 +8,14 @@ import {
   K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ProjectKind } from '~/k8sTypes';
+import { K8sAPIOptions, ProjectKind } from '~/k8sTypes';
 import { ProjectModel } from '~/api/models';
+import { throwErrorFromAxios } from '~/api/errorUtils';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '~/const';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { listServingRuntimes } from './servingRuntimes';
 
 export const getProject = (projectName: string): Promise<ProjectKind> =>
@@ -22,11 +24,16 @@ export const getProject = (projectName: string): Promise<ProjectKind> =>
     queryOptions: { name: projectName },
   });
 
-export const getProjects = (withLabel?: string): Promise<ProjectKind[]> =>
-  k8sListResource<ProjectKind>({
-    model: ProjectModel,
-    queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
-  }).then((listResource) => listResource.items);
+export const getProjects = (withLabel?: string, opts?: K8sAPIOptions): Promise<ProjectKind[]> =>
+  k8sListResource<ProjectKind>(
+    applyK8sAPIOptions(
+      {
+        model: ProjectModel,
+        queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
+      },
+      opts,
+    ),
+  ).then((listResource) => listResource.items);
 
 export const createProject = (
   username: string,
@@ -65,10 +72,6 @@ export const createProject = (
       },
     })
       .then((project) => {
-        if (!project) {
-          throw new Error('Unable to create a project due to permissions.');
-        }
-
         const projectName = project.metadata.name;
 
         axios(`/api/namespaces/${projectName}/0`)
@@ -84,17 +87,18 @@ export const createProject = (
 
             resolve(projectName);
           })
+          .catch(throwErrorFromAxios)
           .catch(reject);
       })
       .catch(reject);
   });
 };
 
-export const getModelServingProjects = (): Promise<ProjectKind[]> =>
-  getProjects(`${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_MODEL_SERVING_PROJECT}`);
+export const getModelServingProjects = (opts?: K8sAPIOptions): Promise<ProjectKind[]> =>
+  getProjects(`${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_MODEL_SERVING_PROJECT}`, opts);
 
 const filter = async (arr: ProjectKind[], callback: (project: ProjectKind) => Promise<boolean>) => {
-  const fail = Symbol();
+  const fail = Symbol('fail');
   const isProject = (i: ProjectKind | typeof fail): i is ProjectKind => i !== fail;
   return (
     await Promise.all(arr.map(async (item) => ((await callback(item)) ? item : fail)))
@@ -112,16 +116,21 @@ export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]>
 export const addSupportServingPlatformProject = (
   name: string,
   servingPlatform: NamespaceApplicationCase,
+  dryRun = false,
 ): Promise<string> =>
-  axios(`/api/namespaces/${name}/${servingPlatform}`).then((response) => {
-    const applied = response.data?.applied ?? false;
-    if (!applied) {
-      throw new Error(
-        `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
-      );
-    }
-    return name;
-  });
+  axios(`/api/namespaces/${name}/${servingPlatform}`, {
+    params: dryRun ? { dryRun: 'All' } : {},
+  })
+    .then((response) => {
+      const applied = response.data?.applied ?? false;
+      if (!applied) {
+        throw new Error(
+          `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
+        );
+      }
+      return name;
+    })
+    .catch(throwErrorFromAxios);
 
 export const updateProject = (
   editProjectData: ProjectKind,

@@ -25,6 +25,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
       isResizable
       widths={{ default: 'width_33', lg: 'width_50' }}
       minSize="300px"
+      data-testid="task-drawer"
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">

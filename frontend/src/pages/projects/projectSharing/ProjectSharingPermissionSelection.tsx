@@ -29,9 +29,9 @@ const ProjectSharingPermissionSelection: React.FC<ProjectSharingPermissionSelect
     <Select
       selections={selection}
       isOpen={isOpen}
-      onSelect={(e, selection) => {
-        if (typeof selection === 'string') {
-          onSelect(castProjectSharingRoleType(selection) || ProjectSharingRoleType.EDIT);
+      onSelect={(e, newSelection) => {
+        if (typeof newSelection === 'string') {
+          onSelect(castProjectSharingRoleType(newSelection));
           setIsOpen(false);
         }
       }}

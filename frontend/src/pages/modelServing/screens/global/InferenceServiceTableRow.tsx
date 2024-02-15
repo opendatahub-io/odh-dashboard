@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { ActionsColumn, Td } from '@patternfly/react-table';
+import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -30,15 +31,20 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
+  const modelMetricsSupported = (modelMetricsInferenceService: InferenceServiceKind) =>
+    modelMetricsEnabled &&
+    modelMetricsInferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+      'ModelMesh';
+
   return (
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMetricsEnabled ? (
+          {modelMetricsSupported(inferenceService) ? (
             <Link
               to={
                 isGlobal
-                  ? `/modelServing/metrics/${inferenceService.metadata.namespace}/${inferenceService.metadata.name}`
+                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
                   : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
               }
             >
@@ -67,10 +73,14 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!isModelMesh(inferenceService)}
+        />
       </Td>
       <Td isActionCell>
-        <ActionsColumn
+        <ResourceActionsColumn
+          resource={inferenceService}
           items={[
             {
               title: 'Edit',

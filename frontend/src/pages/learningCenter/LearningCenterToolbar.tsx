@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -207,7 +207,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
           <SearchInput
             placeholder="Search"
             value={searchInputText}
-            onChange={(_, value) => handleTextChange(value)}
+            onChange={(e, value) => handleTextChange(value)}
             onClear={() => handleTextChange('')}
           />
         </ToolbarItem>

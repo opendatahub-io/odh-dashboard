@@ -2,37 +2,75 @@ import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
-import { useCheckboxTable, Table } from '~/components/table';
+import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
-import usePipelineRunJobFilter from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobFilter';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
+import { PipelinesFilter } from '~/concepts/pipelines/types';
+import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRunTableProps = {
   jobs: PipelineRunJobKF[];
+  loading?: boolean;
+  totalSize: number;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
+  setSortField: (field: string) => void;
+  setSortDirection: (dir: 'asc' | 'desc') => void;
+  setFilter: (filter?: PipelinesFilter) => void;
 };
 
-const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
+const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
+  jobs,
+  loading,
+  totalSize,
+  page,
+  pageSize,
+  setPage,
+  setPageSize,
+  setFilter,
+  ...tableProps
+}) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const [filterJobs, toolbarProps] = usePipelineRunJobFilter(jobs);
-  const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
-    filterJobs.map(({ id }) => id),
-  );
+  const filterToolbarProps = usePipelineFilter(setFilter);
+  const {
+    selections,
+    tableProps: checkboxTableProps,
+    toggleSelection,
+    isSelected,
+  } = useCheckboxTable(jobs.map(({ id }) => id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
 
   return (
     <>
-      <Table
-        {...tableProps}
-        data={filterJobs}
+      <TableBase
+        {...checkboxTableProps}
+        loading={loading}
+        page={page}
+        perPage={pageSize}
+        onSetPage={(_, newPage) => {
+          if (newPage < page || !loading) {
+            setPage(newPage);
+          }
+        }}
+        onPerPageSelect={(_, newSize) => setPageSize(newSize)}
+        itemCount={totalSize}
+        data={jobs}
         columns={pipelineRunJobColumns}
         enablePagination
-        emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+        emptyTableView={
+          <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
+        }
         toolbarContent={
           <PipelineRunJobTableToolbar
-            {...toolbarProps}
+            {...filterToolbarProps}
             deleteAllEnabled={selections.length > 0}
             onDeleteAll={() =>
               setDeleteResources(
@@ -55,10 +93,12 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
           />
         )}
         variant={TableVariant.compact}
+        getColumnSort={getTableColumnSort({ columns: pipelineRunJobColumns, ...tableProps })}
+        data-testid="pipeline-run-job-table"
       />
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         toDeleteResources={deleteResources}
-        type="scheduled run"
+        type={PipelineType.SCHEDULED_RUN}
         onClose={(deleted) => {
           if (deleted) {
             refreshAllAPI();

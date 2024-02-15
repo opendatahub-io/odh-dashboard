@@ -106,11 +106,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       title={
         existingTemplate
           ? `Edit ${getServingRuntimeDisplayNameFromTemplate(existingTemplate)}`
-          : 'Add serving runtime'
+          : `${state ? 'Duplicate' : 'Add'} serving runtime`
       }
       description={
         existingTemplate
           ? 'Modify properties for your serving runtime.'
+          : state
+          ? 'Add a new, editable runtime by duplicating an existing runtime.'
           : 'Add a new runtime that will be available for users on this cluster.'
       }
       breadcrumb={
@@ -123,7 +125,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
             </BreadcrumbItem>
           )}
           <BreadcrumbItem isActive>
-            {existingTemplate ? 'Edit' : 'Add'} serving runtime
+            {existingTemplate ? 'Edit' : state ? 'Duplicate' : 'Add'} serving runtime
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -211,7 +213,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                     });
                 }}
               >
-                {existingTemplate ? 'Update' : 'Add'}
+                {existingTemplate ? 'Update' : 'Create'}
               </Button>
               <Button
                 isDisabled={loading}

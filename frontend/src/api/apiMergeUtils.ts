@@ -8,10 +8,7 @@ import { K8sAPIOptions } from '~/k8sTypes';
 const dryRunPayload = (dryRun?: boolean): Pick<K8sResourceDeleteOptions, 'payload'> =>
   dryRun ? { payload: { dryRun: ['All'] } } : {};
 
-const mergeK8sQueryParams = (
-  opts: K8sAPIOptions = {},
-  specificOpts: QueryParams = {},
-): QueryParams => ({
+const mergeK8sQueryParams = (opts: K8sAPIOptions, specificOpts: QueryParams = {}): QueryParams => ({
   ...specificOpts,
   ...(opts.dryRun && { dryRun: 'All' }),
 });
@@ -25,8 +22,8 @@ export const mergeRequestInit = (
 });
 
 export const applyK8sAPIOptions = <T extends K8sResourceBaseOptions>(
-  opts: K8sAPIOptions = {},
   apiData: T,
+  opts: K8sAPIOptions = {},
 ): T => ({
   ...dryRunPayload(opts.dryRun),
   ...apiData,

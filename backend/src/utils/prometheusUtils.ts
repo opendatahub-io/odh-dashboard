@@ -1,13 +1,5 @@
-import {
-  KubeFastifyInstance,
-  OauthFastifyRequest,
-  PrometheusQueryRangeResponse,
-  PrometheusQueryResponse,
-  QueryType,
-} from '../types';
-import { DEV_MODE } from './constants';
-import { getNamespaces } from './notebookUtils';
-import { getDashboardConfig } from './resourceUtils';
+import { KubeFastifyInstance, OauthFastifyRequest, QueryType } from '../types';
+import { DEV_MODE, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_RBAC_PORT } from './constants';
 import { createCustomError } from './requestUtils';
 import { proxyCall, ProxyError, ProxyErrorType } from './httpUtils';
 
@@ -17,6 +9,7 @@ const callPrometheus = async <T>(
   query: string,
   host: string,
   queryType: QueryType,
+  rejectOnHttpErrorCode = false,
 ): Promise<{ code: number; response: T }> => {
   if (!query) {
     fastify.log.warn('Prometheus call was made without a query');
@@ -31,8 +24,15 @@ const callPrometheus = async <T>(
   const url = `${host}/api/v1/${queryType}?${query}`;
 
   fastify.log.info(`Prometheus query: ${query}`);
-  return proxyCall(fastify, request, { method: 'GET', url, rejectUnauthorized: false })
-    .then((rawData) => {
+  return proxyCall(fastify, request, {
+    method: 'GET',
+    url,
+    rejectUnauthorized: false,
+  })
+    .then(([rawData, status]) => {
+      if (rejectOnHttpErrorCode && status.code >= 400) {
+        throw createCustomError(status.message, rawData, status.code);
+      }
       try {
         const parsedData = JSON.parse(rawData);
         if (parsedData.status === 'error') {
@@ -84,51 +84,17 @@ const generatePrometheusHostURL = (
   return `https://${instanceName}.${namespace}.svc.cluster.local:${port}`;
 };
 
-export const callPrometheusPVC = (
+export const callPrometheusThanos = <T>(
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   query: string,
-): Promise<{ code: number; response: PrometheusQueryResponse }> =>
-  callPrometheus(
+  queryType: QueryType = QueryType.QUERY,
+): Promise<{ code: number; response: T }> =>
+  callPrometheus<T>(
     fastify,
     request,
     query,
-    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', '9092'),
-    QueryType.QUERY,
+    generatePrometheusHostURL(fastify, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_RBAC_PORT),
+    queryType,
+    true,
   );
-
-export const callPrometheusServing = (
-  fastify: KubeFastifyInstance,
-  request: OauthFastifyRequest,
-  query: string,
-): Promise<{ code: number; response: PrometheusQueryRangeResponse | undefined }> => {
-  const { dashboardNamespace } = getNamespaces(fastify);
-
-  const modelMetricsNamespace = getDashboardConfig().spec.dashboardConfig.modelMetricsNamespace;
-
-  if (dashboardNamespace !== 'redhat-ods-applications' && modelMetricsNamespace) {
-    return callPrometheus(
-      fastify,
-      request,
-      query,
-      generatePrometheusHostURL(fastify, 'odh-model-monitoring', modelMetricsNamespace, '443'),
-      QueryType.QUERY_RANGE,
-    );
-  }
-
-  if (dashboardNamespace === 'redhat-ods-applications' && !modelMetricsNamespace) {
-    return callPrometheus(
-      fastify,
-      request,
-      query,
-      generatePrometheusHostURL(fastify, 'rhods-model-monitoring', 'redhat-ods-monitoring', '443'),
-      QueryType.QUERY_RANGE,
-    );
-  }
-
-  throw createCustomError(
-    'Service Unavailable',
-    'Service Prometheus is down or misconfigured',
-    503,
-  );
-};

@@ -39,7 +39,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   }, [variable.type]);
 
   const handleSecretChange = (checked: boolean) => {
+    // TODO: Likely needs to call onUpdateVariable.
+    /* eslint-disable no-param-reassign */
     variable.type = checked ? 'password' : 'text';
+    /* eslint-enable no-param-reassign */
     setVariableType(variable.type);
   };
 
@@ -64,7 +67,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
         {validated === 'error' && (
           <FormHelperText>
             <HelperText>
-              <HelperTextItem icon={<ExclamationCircleIcon />} variant={'error'}>
+              <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
                 {variableRow.errors[variable.name]}
               </HelperTextItem>
             </HelperText>

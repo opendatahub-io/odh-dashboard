@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
-  submitInferenceServiceResource,
+  submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -10,8 +10,9 @@ import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
+import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
@@ -41,6 +42,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const [createData, setCreateData, resetData] = useCreateInferenceServiceObject(editInfo);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createData.name).length <= 253;
 
   React.useEffect(() => {
     if (projectContext) {
@@ -54,7 +57,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
     }
-    return isAWSValid(createData.storage.awsData, [AWS_KEYS.AWS_S3_BUCKET]);
+    return isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
 
   const isDisabled =
@@ -62,9 +65,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.name.trim() === '' ||
     createData.project === '' ||
     createData.format.name === '' ||
-    createData.storage.path.includes('//') ||
+    removeLeadingSlashes(createData.storage.path).includes('//') ||
+    containsOnlySlashes(createData.storage.path) ||
     createData.storage.path === '' ||
-    createData.storage.path === '/' ||
+    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
   const onBeforeClose = (submitted: boolean) => {
@@ -78,8 +82,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     onBeforeClose(true);
   };
 
-  const setErrorModal = (error: Error) => {
-    setError(error);
+  const setErrorModal = (e: Error) => {
+    setError(e);
     setActionInProgress(false);
   };
 
@@ -87,7 +91,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     setError(undefined);
     setActionInProgress(true);
 
-    submitInferenceServiceResource(createData, editInfo, undefined, true)
+    submitInferenceServiceResourceWithDryRun(createData, editInfo, undefined, true)
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
@@ -119,14 +123,18 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.metadata.namespace ||
                 ''
               }
             />
           </StackItem>
           <StackItem>
-            <InferenceServiceNameSection data={createData} setData={setCreateData} />
+            <InferenceServiceNameSection
+              data={createData}
+              setData={setCreateData}
+              isNameValid={isInferenceServiceNameWithinLimit}
+            />
           </StackItem>
           <StackItem>
             <InferenceServiceServingRuntimeSection

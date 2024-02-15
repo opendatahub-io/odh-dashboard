@@ -2,22 +2,41 @@ import * as React from 'react';
 import { TbodyProps, TrProps } from '@patternfly/react-table';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 
-const useDraggableTable = (itemOrder: string[], setItemOrder: (itemOrder: string[]) => void) => {
+type UseDraggableTable = {
+  tableProps: {
+    className: string | undefined;
+    tbodyProps: {
+      onDragOver: React.DragEventHandler<HTMLTableSectionElement>;
+      onDragLeave: React.DragEventHandler<HTMLTableSectionElement>;
+      ref: React.RefObject<HTMLTableSectionElement>;
+    };
+  };
+  rowProps: {
+    onDragStart: React.DragEventHandler<HTMLTableRowElement>;
+    onDragEnd: React.DragEventHandler<HTMLTableRowElement>;
+    onDrop: React.DragEventHandler<HTMLTableRowElement>;
+  };
+};
+
+const useDraggableTable = (
+  itemOrder: string[],
+  setItemOrder: (itemOrder: string[]) => void,
+): UseDraggableTable => {
   const [draggedItemId, setDraggedItemId] = React.useState('');
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
   const [isDragging, setIsDragging] = React.useState(false);
   const [tempItemOrder, setTempItemOrder] = React.useState<string[]>(itemOrder);
   const bodyRef = React.useRef<HTMLTableSectionElement>(null);
 
-  const onDragStart: TrProps['onDragStart'] = (evt) => {
-    evt.dataTransfer.effectAllowed = 'move';
-    evt.dataTransfer.setData('text/plain', evt.currentTarget.id);
-    const draggedItemId = evt.currentTarget.id;
+  const onDragStart: TrProps['onDragStart'] = (assignableEvent) => {
+    assignableEvent.dataTransfer.effectAllowed = 'move';
+    assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
+    const currentDraggedItemId = assignableEvent.currentTarget.id;
 
-    evt.currentTarget.classList.add(styles.modifiers.ghostRow);
-    evt.currentTarget.setAttribute('aria-pressed', 'true');
+    assignableEvent.currentTarget.classList.add(styles.modifiers.ghostRow);
+    assignableEvent.currentTarget.setAttribute('aria-pressed', 'true');
 
-    setDraggedItemId(draggedItemId);
+    setDraggedItemId(currentDraggedItemId);
     setIsDragging(true);
   };
 
@@ -32,13 +51,13 @@ const useDraggableTable = (itemOrder: string[], setItemOrder: (itemOrder: string
     return arr;
   };
 
-  const move = (itemOrder: string[]) => {
+  const move = (currentItemOrder: string[]) => {
     if (!bodyRef.current) {
       return;
     }
     const ulNode = bodyRef.current;
     const nodes = Array.from(ulNode.children);
-    if (nodes.map((node) => node.id).every((id, i) => id === itemOrder[i])) {
+    if (nodes.map((node) => node.id).every((id, i) => id === currentItemOrder[i])) {
       return;
     }
     while (ulNode.firstChild) {
@@ -47,7 +66,7 @@ const useDraggableTable = (itemOrder: string[], setItemOrder: (itemOrder: string
       }
     }
 
-    itemOrder.forEach((id) => {
+    currentItemOrder.forEach((id) => {
       const node = nodes.find((n) => n.id === id);
       if (node) {
         ulNode.appendChild(node);

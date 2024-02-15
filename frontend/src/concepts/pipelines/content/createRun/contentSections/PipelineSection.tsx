@@ -1,49 +1,31 @@
 import * as React from 'react';
-import { FormSection, Skeleton, Stack, StackItem } from '@patternfly/react-core';
+import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
+import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 type PipelineSectionProps = {
-  onLoaded: (loaded: boolean) => void;
   value: PipelineKF | null;
   onChange: (pipeline: PipelineKF) => void;
 };
 
-const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onChange }) => {
-  const [pipelines, loaded] = usePipelines();
-  React.useEffect(() => {
-    onLoaded(loaded);
-    // only run when `loaded` changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded]);
-  if (!loaded) {
-    return <Skeleton />;
-  }
-  return (
-    <FormSection
-      id={CreateRunPageSections.PIPELINE}
-      title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
-    >
+const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) => (
+  <FormSection
+    id={CreateRunPageSections.PIPELINE}
+    title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
+  >
+    {/* `minWidth` a temp fix for PF issue https://github.com/patternfly/patternfly/issues/6062
+      We can remove this after bumping to PF v5.2.0
+    */}
+    <FormGroup style={{ minWidth: 0 }}>
       <Stack hasGutter>
         <StackItem>
-          <SimpleDropdownSelect
-            placeholder="Select a pipeline"
-            options={pipelines.map((p) => ({ key: p.id, label: p.name }))}
-            value={value?.id ?? ''}
-            onChange={(id) => {
-              const pipeline = pipelines.find((p) => p.id === id);
-              if (pipeline) {
-                onChange(pipeline);
-              }
-            }}
-          />
+          <PipelineSelector selection={value?.name} onSelect={(pipeline) => onChange(pipeline)} />
         </StackItem>
         <StackItem>
           <ImportPipelineButton
@@ -51,12 +33,12 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onCh
             icon={<PlusCircleIcon />}
             onCreate={(pipeline) => onChange(pipeline)}
           >
-            Import pipeline
+            Create new pipeline
           </ImportPipelineButton>
         </StackItem>
       </Stack>
-    </FormSection>
-  );
-};
+    </FormGroup>
+  </FormSection>
+);
 
 export default PipelineSection;

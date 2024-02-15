@@ -18,9 +18,9 @@ const ProjectScopeSelect: React.FC<ProjectScopeSelectProps> = ({ selection, setS
       selections={selection}
       width="200px"
       onToggle={(e, open: boolean) => setOpen(open)}
-      onSelect={(_, selection) => {
-        if (isProjectScope(selection)) {
-          setSelection(selection);
+      onSelect={(_, newSelection) => {
+        if (isProjectScope(newSelection)) {
+          setSelection(newSelection);
         }
         setOpen(false);
       }}

@@ -16,7 +16,7 @@ type ImageStreamSelectorProps = {
   buildStatuses: BuildStatus[];
   selectedImageStream?: ImageStreamKind;
   onImageStreamSelect: (selection: ImageStreamKind) => void;
-  compatibleAccelerator?: string;
+  compatibleAcceleratorIdentifier?: string;
 };
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
@@ -24,7 +24,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   selectedImageStream,
   onImageStreamSelect,
   buildStatuses,
-  compatibleAccelerator,
+  compatibleAcceleratorIdentifier,
 }) => {
   const options = [...imageStreams].sort(compareImageStreamOrder).map((imageStream) => {
     const description = getRelatedVersionDescription(imageStream);
@@ -33,14 +33,14 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     return {
       key: imageStream.metadata.name,
       label: displayName,
-      description: description,
+      description,
       disabled: !checkImageStreamAvailability(imageStream, buildStatuses),
       dropdownLabel: (
         <Split>
           <SplitItem>{displayName}</SplitItem>
           <SplitItem isFilled />
           <SplitItem>
-            {isCompatibleWithAccelerator(compatibleAccelerator, imageStream) && (
+            {isCompatibleWithAccelerator(compatibleAcceleratorIdentifier, imageStream) && (
               <Label color="blue">Compatible with accelerator</Label>
             )}
           </SplitItem>
@@ -59,7 +59,9 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
         placeholder="Select one"
         value={selectedImageStream?.metadata.name ?? ''}
         onChange={(key) => {
-          const imageStream = imageStreams.find((imageStream) => imageStream.metadata.name === key);
+          const imageStream = imageStreams.find(
+            (currentImageStream) => currentImageStream.metadata.name === key,
+          );
           if (imageStream) {
             onImageStreamSelect(imageStream);
           }

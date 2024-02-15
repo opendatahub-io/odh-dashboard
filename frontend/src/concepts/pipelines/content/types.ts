@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { PipelineRunTask, PipelineRunTaskRunStatus } from '~/k8sTypes';
-import { createNode } from '~/concepts/pipelines/topology';
+import { createNode } from '~/concepts/topology';
 
 export type PipelineCoreDetailsPageComponent = React.FC<{
   breadcrumbPath: React.ReactElement<typeof BreadcrumbItem>[];

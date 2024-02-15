@@ -4,6 +4,8 @@ import { BYONImage } from '~/types';
 import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { useDashboardNamespace } from '~/redux/selectors';
+import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -47,6 +49,9 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
+  const { dashboardNamespace } = useDashboardNamespace();
+  const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
+
   return (
     <>
       <Table
@@ -64,6 +69,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
             obj={image}
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
+            acceleratorProfiles={acceleratorProfiles}
           />
         )}
         toolbarContent={
@@ -73,8 +79,8 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
                 types={searchTypes}
                 searchType={searchType}
                 searchValue={search}
-                onSearchTypeChange={(searchType) => {
-                  setSearchType(searchType);
+                onSearchTypeChange={(newSearchType) => {
+                  setSearchType(newSearchType);
                 }}
                 onSearchValueChange={(searchValue) => {
                   setSearch(searchValue);

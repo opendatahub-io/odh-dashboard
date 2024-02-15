@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useEventListener } from '~/utilities/useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
-export type BrowserStorageContext = {
+export type BrowserStorageContextType = {
   /** Based on parseJSON it can be any jsonify-able item */
   getValue: (storageKey: string, parseJSON: boolean, isSessionStorage?: boolean) => unknown;
   /** Returns a boolean if it was able to json-ify it. */
@@ -10,7 +10,7 @@ export type BrowserStorageContext = {
   setStringValue: (storageKey: string, value: string, isSessionStorage?: boolean) => void;
 };
 
-const BrowserStorageContext = React.createContext<BrowserStorageContext>({
+const BrowserStorageContext = React.createContext<BrowserStorageContextType>({
   getValue: () => null,
   setJSONValue: () => false,
   setStringValue: () => undefined,
@@ -36,7 +36,8 @@ export const useBrowserStorage = <T,>(
     (value) => {
       if (jsonify) {
         return setJSONValue(storageKey, value, isSessionStorage);
-      } else if (typeof value === 'string') {
+      }
+      if (typeof value === 'string') {
         setStringValue(storageKey, value, isSessionStorage);
         return true;
       }
@@ -86,7 +87,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
     );
   });
 
-  const getValue = React.useCallback<BrowserStorageContext['getValue']>(
+  const getValue = React.useCallback<BrowserStorageContextType['getValue']>(
     (key, parseJSON, isSessionStorage = false) => {
       const value = getStorage(isSessionStorage).getItem(key);
       if (value === null) {
@@ -108,7 +109,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
     [],
   );
 
-  const setJSONValue = React.useCallback<BrowserStorageContext['setJSONValue']>(
+  const setJSONValue = React.useCallback<BrowserStorageContextType['setJSONValue']>(
     (storageKey, value, isSessionStorage = false) => {
       try {
         const storageValue = JSON.stringify(value);
@@ -126,7 +127,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
     },
     [],
   );
-  const setStringValue = React.useCallback<BrowserStorageContext['setStringValue']>(
+  const setStringValue = React.useCallback<BrowserStorageContextType['setStringValue']>(
     (storageKey, value, isSessionStorage = false) => {
       getStorage(isSessionStorage).setItem(storageKey, value);
       setValues((oldValues) => ({ ...oldValues, [storageKey]: value }));

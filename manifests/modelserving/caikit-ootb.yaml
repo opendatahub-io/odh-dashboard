@@ -20,6 +20,7 @@ objects:
     name: caikit-tgis-runtime
     annotations:
       openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
+      opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
   labels:
     opendatahub.io/dashboard: 'true'
   spec:
@@ -42,9 +43,29 @@ objects:
         env:
           - name: RUNTIME_LOCAL_MODELS_DIR
             value: /mnt/models
+          - name: TRANSFORMERS_CACHE
+            value: /tmp/transformers_cache
+          - name: RUNTIME_GRPC_ENABLED
+            value: "false"
+          - name: RUNTIME_HTTP_ENABLED
+            value: "true"
           - name: RUNTIME_GRPC_SERVER_THREAD_POOL_SIZE
             value: "64"
         ports:
           - containerPort: 8080
             protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - caikit_health_probe
+              - readiness
+        livenessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - caikit_health_probe
+              - liveness
 parameters: []

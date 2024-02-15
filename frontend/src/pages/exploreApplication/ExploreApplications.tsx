@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import {
   Drawer,
   DrawerContent,
@@ -36,12 +36,12 @@ type ExploreApplicationsInnerProps = {
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
     const { dashboardConfig } = useAppContext();
-    const disableInfo = dashboardConfig.spec.dashboardConfig.disableInfo;
+    const { disableInfo } = dashboardConfig.spec.dashboardConfig;
     const [enableApp, setEnableApp] = React.useState<OdhApplication>();
 
     return (
       <Drawer
-        data-id="explore-applications"
+        data-testid="explore-applications"
         isExpanded={!disableInfo && !!selectedComponent}
         isInline
       >
@@ -97,13 +97,15 @@ const ExploreApplications: React.FC = () => {
   const queryParams = useQueryParams();
   const selectedId = queryParams.get('selectId');
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
-  const isEmpty = !components || components.length === 0;
+  const isEmpty = components.length === 0;
 
   const updateSelection = React.useCallback(
-    (selectedId?: string | null): void => {
-      const selection = components.find((c) => c.metadata.name && c.metadata.name === selectedId);
-      if (selectedId && selection) {
-        setQueryArgument(navigate, 'selectId', selectedId);
+    (currentSelectedId?: string | null): void => {
+      const selection = components.find(
+        (c) => c.metadata.name && c.metadata.name === currentSelectedId,
+      );
+      if (currentSelectedId && selection) {
+        setQueryArgument(navigate, 'selectId', currentSelectedId);
         setSelectedComponent(selection);
         return;
       }
@@ -122,7 +124,7 @@ const ExploreApplications: React.FC = () => {
   );
 
   React.useEffect(() => {
-    if (components?.length > 0) {
+    if (components.length > 0) {
       updateSelection(selectedId);
     }
   }, [updateSelection, selectedId, components]);

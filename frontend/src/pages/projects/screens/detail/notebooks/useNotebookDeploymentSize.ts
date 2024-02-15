@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AppContext } from '~/app/AppContext';
-import { NotebookContainer, NotebookSize } from '~/types';
+import { PodContainer, NotebookSize } from '~/types';
 import { getNotebookSizes } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '~/k8sTypes';
 import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
@@ -10,8 +10,8 @@ const useNotebookDeploymentSize = (
 ): { size: NotebookSize | null; error: string } => {
   const { dashboardConfig } = React.useContext(AppContext);
 
-  const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
-    (container) => container.name === notebook.metadata.name,
+  const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
+    (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
 
   if (!container) {
@@ -20,9 +20,9 @@ const useNotebookDeploymentSize = (
 
   const sizes = getNotebookSizes(dashboardConfig);
   const size = sizes.find(
-    (size) =>
-      isCpuLimitEqual(size.resources.limits?.cpu, container.resources?.limits?.cpu) &&
-      isMemoryLimitEqual(size.resources.limits?.memory, container.resources?.limits?.memory),
+    (currentSize) =>
+      isCpuLimitEqual(currentSize.resources.limits?.cpu, container.resources?.limits?.cpu) &&
+      isMemoryLimitEqual(currentSize.resources.limits?.memory, container.resources?.limits?.memory),
   );
 
   if (!size) {

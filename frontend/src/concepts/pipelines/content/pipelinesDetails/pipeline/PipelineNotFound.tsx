@@ -11,13 +11,14 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+
 const PipelineNotFound: React.FC = () => {
   const { namespace } = usePipelinesAPI();
   const navigate = useNavigate();
   return (
     <EmptyState>
       <EmptyStateHeader
-        titleText="Pipeline not found"
+        titleText="Pipeline version not found"
         icon={<EmptyStateIcon icon={CubesIcon} />}
         headingLevel="h4"
       />

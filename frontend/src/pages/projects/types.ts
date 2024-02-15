@@ -1,16 +1,17 @@
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   ContainerResources,
   ImageStreamAndVersion,
   NotebookSize,
-  PodToleration,
+  Toleration,
   TolerationSettings,
   Volume,
   VolumeMount,
 } from '~/types';
 import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
-import { AWS_KEYS } from './dataConnections/const';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -63,12 +64,12 @@ export type StartNotebookData = {
   projectName: string;
   notebookName: string;
   notebookSize: NotebookSize;
-  accelerator: AcceleratorState;
+  acceleratorProfile: AcceleratorProfileState;
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   tolerationSettings?: TolerationSettings;
-  existingTolerations?: PodToleration[];
+  existingTolerations?: Toleration[];
   existingResources?: ContainerResources;
   envFrom?: EnvironmentFromVariable[];
   description?: string;
@@ -97,6 +98,7 @@ export type DataConnectionData = {
 };
 
 export enum DataConnectionType {
+  UNKNOWN = -1,
   AWS,
 }
 
@@ -105,12 +107,19 @@ export type DataConnectionAWS = {
   data: AWSSecretKind;
 };
 
-export type DataConnection = {
-  type: DataConnectionType;
-  data: Record<string, unknown>; // likely will be a unified CR at some point
-} & DataConnectionAWS;
+export type DataConnection =
+  | {
+      type: DataConnectionType;
+      data: K8sResourceCommon & {
+        metadata: {
+          name: string;
+          namespace: string;
+        };
+      };
+    }
+  | DataConnectionAWS;
 
-export type AWSDataEntry = { key: AWS_KEYS; value: string }[];
+export type AWSDataEntry = { key: AwsKeys; value: string }[];
 
 export type EnvVariableDataEntry = {
   key: string;

@@ -14,10 +14,10 @@ const useManageElyraSecret = (
   namespace: string,
   cr: DSPipelineKind | null,
   routePath: string | null,
-) => {
+): void => {
   const [elyraSecret, elyraSecretLoaded, elyraSecretError] = useElyraSecret(namespace, !!cr);
   const [dataConnection, dataConnectionLoaded, dataConnectionError] = useAWSSecret(
-    cr?.spec.objectStorage?.externalStorage?.s3CredentialsSecret?.secretName ?? null,
+    cr?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? null,
     namespace,
   );
 

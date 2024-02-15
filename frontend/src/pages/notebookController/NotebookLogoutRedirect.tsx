@@ -48,10 +48,6 @@ const NotebookLogoutRedirect: React.FC = () => {
   }, [namespace, notebookName, navigate, notification, notebookNamespace]);
 
   React.useEffect(() => {
-    let cancelled = false;
-    if (cancelled) {
-      return;
-    }
     if (namespace && notebookName && namespace !== notebookNamespace) {
       if (loaded) {
         if (error) {
@@ -63,9 +59,6 @@ const NotebookLogoutRedirect: React.FC = () => {
         }
       }
     }
-    return () => {
-      cancelled = true;
-    };
   }, [
     routeLink,
     loaded,

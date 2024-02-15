@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import _ from 'lodash-es';
 import { ImageStreamKind } from '~/k8sTypes';
 import { RecursivePartial } from '~/typeHelpers';
 
@@ -20,8 +20,8 @@ export const mockImageStreamK8sResource = ({
       apiVersion: 'image.openshift.io/v1',
       kind: 'ImageStream',
       metadata: {
-        name: name,
-        namespace: namespace,
+        name,
+        namespace,
         uid: 'd6a75af7-f215-47d1-a167-e1c1e78d465c',
         resourceVersion: '1579802',
         generation: 2,

@@ -106,18 +106,13 @@ const ModelServingPlatform: React.FC = () => {
         emptyState={
           <EmptyDetailsList
             title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-            description={
-              isProjectModelMesh
-                ? 'Before deploying a model, you must first add a model server.'
-                : 'To get started, deploy a model.'
-            }
             icon={PlusCircleIcon}
           />
         }
         labels={
           currentProjectServingPlatform && [
             <Label key="serving-platform-label">
-              {isProjectModelMesh ? 'Multi-model serving enabled' : 'Single model serving enabled'}
+              {isProjectModelMesh ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
             </Label>,
           ]
         }

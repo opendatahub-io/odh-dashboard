@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
+import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import {
@@ -8,9 +8,10 @@ import {
   RunJobStatus,
   RunJobTrigger,
   CoreResourceExperiment,
-  CoreResourcePipeline,
+  CoreResourcePipelineVersion,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;
@@ -27,32 +28,46 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
+  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(job);
 
   return (
     <Tr>
       <CheckboxTd id={job.id} isChecked={isChecked} onToggle={onToggleCheck} />
-      <Td>
-        <TableRowTitleDescription title={job.name} description={job.description} />
+      <Td dataLabel="Name">
+        <TableRowTitleDescription
+          title={
+            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>
+              <TableText wrapModifier="truncate">{job.name}</TableText>
+            </Link>
+          }
+          description={job.description}
+          descriptionAsMarkdown
+        />
       </Td>
-      <Td>
+      <Td dataLabel="Experiment">
         <CoreResourceExperiment resource={job} />
       </Td>
-      <Td>
-        <CoreResourcePipeline resource={job} namespace={namespace} />
+      <Td modifier="truncate" dataLabel="Pipeline">
+        <CoreResourcePipelineVersion
+          resource={job}
+          loaded={isVersionLoaded}
+          version={version}
+          error={error}
+        />
       </Td>
-      <Td>
+      <Td dataLabel="Trigger">
         <RunJobTrigger job={job} />
       </Td>
-      <Td>
+      <Td dataLabel="Scheduled">
         <RunJobScheduled job={job} />
       </Td>
-      <Td>
+      <Td dataLabel="Status">
         <RunJobStatus
           job={job}
           onToggle={(checked) => api.updatePipelineRunJob({}, job.id, checked).then(refreshAllAPI)}
         />
       </Td>
-      <Td isActionCell>
+      <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
             {

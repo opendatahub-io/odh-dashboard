@@ -21,12 +21,11 @@ export const getLaunchStatus = (
   quickStartId: string,
   qsContext?: QuickStartContextValues,
 ): LaunchStatusEnum => {
-  if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
+  if (!quickStartId || !qsContext) {
     return LaunchStatusEnum.Open;
   }
 
-  const quickStartState = qsContext.allQuickStartStates[quickStartId];
-
+  const quickStartState = qsContext.allQuickStartStates?.[quickStartId];
   if (!quickStartState) {
     return LaunchStatusEnum.Open;
   }
@@ -72,11 +71,11 @@ export const getQuickStartCompletionStatus = (
   quickStartId?: string | null,
   qsContext?: QuickStartContextValues,
 ): CompletionStatusEnum | undefined => {
-  if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
+  if (!quickStartId || !qsContext) {
     return undefined;
   }
 
-  const quickStartState = qsContext.allQuickStartStates[quickStartId];
+  const quickStartState = qsContext.allQuickStartStates?.[quickStartId];
   if (!quickStartState || quickStartState.taskNumber === -1) {
     return undefined;
   }
@@ -112,7 +111,7 @@ export const getQuickStartCompletionStatus = (
 
 export const launchQuickStart = (
   quickStartId: string | null,
-  qsContext: QuickStartContextValues,
+  qsContext: QuickStartContextValues | undefined,
 ): void => {
   if (
     !quickStartId ||
@@ -132,7 +131,7 @@ export const launchQuickStart = (
 
   if (launchStatus === LaunchStatusEnum.Restart) {
     const quickStart = qsContext.allQuickStarts?.find((qs) => qs.metadata.name === quickStartId);
-    qsContext.restartQuickStart(quickStartId, quickStart?.spec?.tasks?.length ?? 0);
+    qsContext.restartQuickStart(quickStartId, quickStart?.spec.tasks?.length ?? 0);
     return;
   }
 

@@ -93,7 +93,7 @@ describe('InferenceServiceProject', () => {
     );
 
     expect(result.queryByText('My Project')).toBeInTheDocument();
-    expect(result.queryByText('Single model serving enabled')).toBeInTheDocument();
+    expect(result.queryByText('Single-model serving enabled')).toBeInTheDocument();
   });
 
   it('should render kserve project', () => {
@@ -121,7 +121,7 @@ describe('InferenceServiceProject', () => {
 
     expect(result.queryByText('My Project')).not.toBeInTheDocument();
     expect(result.queryByText('Unknown')).toBeInTheDocument();
-    expect(result.queryByText('Single model serving enabled')).not.toBeInTheDocument();
+    expect(result.queryByText('Single-model serving enabled')).not.toBeInTheDocument();
     expect(result.queryByText('Multi-model serving enabled')).not.toBeInTheDocument();
   });
 });

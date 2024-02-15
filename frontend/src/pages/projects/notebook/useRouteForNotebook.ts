@@ -20,11 +20,11 @@ const useRouteForNotebook = (
       }
       if (notebookName && projectName) {
         getRoute(notebookName, projectName)
-          .then((route) => {
+          .then((fetchedRoute) => {
             if (cancelled) {
               return;
             }
-            setRoute(`https://${route.spec.host}/notebook/${projectName}/${notebookName}`);
+            setRoute(`https://${fetchedRoute.spec.host}/notebook/${projectName}/${notebookName}`);
             setLoadError(null);
             setLoaded(true);
           })

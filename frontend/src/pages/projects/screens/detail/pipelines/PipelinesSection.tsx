@@ -4,9 +4,10 @@ import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
 import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineServerActions';
+import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
 
 const PipelinesSection: React.FC = () => {
   const {
@@ -17,13 +18,14 @@ const PipelinesSection: React.FC = () => {
   const [isPipelinesEmpty, setIsPipelinesEmpty] = React.useState(false);
 
   return (
-    <>
+    <PipelineAndVersionContextProvider>
       <DetailsSection
         id={ProjectSectionID.PIPELINES}
         title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
         actions={[
-          <ImportPipelineButton
-            isDisabled={!installed}
+          <ImportPipelineSplitButton
+            disable={!installed}
+            disableUploadVersion={installed && isPipelinesEmpty}
             key={`action-${ProjectSectionID.PIPELINES}`}
             variant="secondary"
           />,
@@ -44,7 +46,7 @@ const PipelinesSection: React.FC = () => {
           <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
         )}
       </DetailsSection>
-    </>
+    </PipelineAndVersionContextProvider>
   );
 };
 

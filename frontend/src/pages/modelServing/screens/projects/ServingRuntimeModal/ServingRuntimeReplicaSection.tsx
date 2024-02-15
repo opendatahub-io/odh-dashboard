@@ -48,7 +48,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
               const newSize = Number(event.target.value);
               setData(
                 'numReplicas',
-                isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE),
+                Number.isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE),
               );
             }
           }}

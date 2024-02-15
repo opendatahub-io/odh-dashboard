@@ -1,3 +1,8 @@
+import {
+  PeriodicOptions,
+  periodicOptionAsSeconds,
+} from '~/concepts/pipelines/content/createRun/types';
+
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;
 const leadZero = (v: number) => (v < 10 ? `0${v}` : `${v}`);
@@ -51,7 +56,7 @@ export const ensureTimeFormat = (time: string): string | null => {
   return `${match[1]} ${match[2]}`;
 };
 
-export const printSeconds = (seconds: number) => {
+export const printSeconds = (seconds: number): string => {
   const timeBlocks = [
     { unit: 'second', maxPer: 60 },
     { unit: 'minute', maxPer: 60 },
@@ -63,7 +68,7 @@ export const printSeconds = (seconds: number) => {
 
   const [text] = timeBlocks.reduce<[displayText: string, remainingUnit: number]>(
     (acc, timeBlock) => {
-      const [text, unit] = acc;
+      const [currentText, unit] = acc;
       if (unit === 0) {
         return acc;
       }
@@ -82,11 +87,11 @@ export const printSeconds = (seconds: number) => {
         newUnit = 0; // hit max, zero out the unit
       }
 
-      if (!text) {
+      if (!currentText) {
         return [thisText, newUnit];
       }
 
-      return [`${text}, ${thisText}`, newUnit];
+      return [`${currentText}, ${thisText}`, newUnit];
     },
     ['', seconds],
   );
@@ -101,7 +106,7 @@ export const relativeTime = (current: number, previous: number): string => {
   const msPerMonth = msPerDay * 30;
   const msPerYear = msPerDay * 365;
 
-  if (isNaN(previous)) {
+  if (Number.isNaN(previous)) {
     return 'Just now';
   }
 
@@ -115,13 +120,17 @@ export const relativeTime = (current: number, previous: number): string => {
 
   if (elapsed < msPerMinute) {
     return 'Just now';
-  } else if (elapsed < msPerHour) {
+  }
+  if (elapsed < msPerHour) {
     return shortPrintFn(Math.round(elapsed / msPerMinute), 'minute');
-  } else if (elapsed < msPerDay) {
+  }
+  if (elapsed < msPerDay) {
     return shortPrintFn(Math.round(elapsed / msPerHour), 'hour');
-  } else if (elapsed < msPerMonth) {
+  }
+  if (elapsed < msPerMonth) {
     return shortPrintFn(Math.round(elapsed / msPerDay), 'day');
-  } else if (elapsed < msPerYear) {
+  }
+  if (elapsed < msPerYear) {
     return shortPrintFn(Math.round(elapsed / msPerMonth), 'month');
   }
   const date = new Date(previous);
@@ -153,4 +162,46 @@ export const relativeTime = (current: number, previous: number): string => {
   }
 
   return `${date.getDate()} ${monthAsString} ${date.getFullYear()}`;
+};
+
+/** Function to convert time strings like "2Hour" to seconds */
+export const convertPeriodicTimeToSeconds = (timeString: string): number => {
+  let numericValue = parseInt(timeString, 10);
+
+  if (Number.isNaN(numericValue)) {
+    numericValue = 1;
+  }
+
+  const unit = timeString.toLowerCase().replace(/\d+/g, '');
+
+  switch (unit) {
+    case 'hour':
+      return numericValue * 60 * 60;
+    case 'minute':
+      return numericValue * 60;
+    case 'day':
+      return numericValue * 24 * 60 * 60;
+    case 'week':
+      return numericValue * 7 * 24 * 60 * 60;
+    default:
+      return 0;
+  }
+};
+
+/** Function to convert seconds to time strings like "2Hour" */
+export const convertSecondsToPeriodicTime = (seconds: number): string => {
+  const units = Object.values(PeriodicOptions).reverse();
+  const unitFactors = Object.values(periodicOptionAsSeconds).reverse();
+
+  for (let i = 0; i < units.length; i++) {
+    const unit = units[i];
+    const unitFactor = unitFactors[i];
+
+    if (seconds >= unitFactor) {
+      const count = Math.floor(seconds / unitFactor);
+      return `${count}${unit}`;
+    }
+  }
+
+  return '';
 };

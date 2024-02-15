@@ -19,9 +19,9 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const [completionStatus, setCompletionStatus] = React.useState<
     CompletionStatusEnum | undefined
   >();
-  const docType = odhDoc?.spec.type as OdhDocumentType;
-  const docName = odhDoc?.metadata.name;
-  const duration = odhDoc?.spec.durationMinutes;
+  const docType = odhDoc.spec.type as OdhDocumentType;
+  const docName = odhDoc.metadata.name;
+  const duration = odhDoc.spec.durationMinutes;
 
   React.useEffect(() => {
     if (docType === OdhDocumentType.QuickStart && qsContext.allQuickStarts) {

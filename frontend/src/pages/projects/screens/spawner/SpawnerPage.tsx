@@ -27,8 +27,8 @@ import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import AcceleratorSelectField from '~/pages/notebookController/screens/server/AcceleratorSelectField';
-import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
@@ -66,7 +66,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageVersion: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
-  const [supportedAccelerators, setSupportedAccelerators] = React.useState<string[] | undefined>();
+  const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
+    string[] | undefined
+  >();
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
@@ -104,14 +106,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [notebookSize, setSelectedSize]);
 
-  const [notebookAcceleratorState, setNotebookAcceleratorState] =
-    useNotebookAccelerator(existingNotebook);
+  const [notebookAcceleratorProfileState, setNotebookAcceleratorProfileState] =
+    useNotebookAcceleratorProfile(existingNotebook);
 
   React.useEffect(() => {
     if (selectedImage.imageStream) {
-      setSupportedAccelerators(getCompatibleAcceleratorIdentifiers(selectedImage.imageStream));
+      setSupportedAcceleratorProfiles(
+        getCompatibleAcceleratorIdentifiers(selectedImage.imageStream),
+      );
     } else {
-      setSupportedAccelerators(undefined);
+      setSupportedAcceleratorProfiles(undefined);
     }
   }, [selectedImage.imageStream]);
 
@@ -170,7 +174,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <ImageSelectorField
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
-                compatibleAccelerator={notebookAcceleratorState.accelerator?.spec?.identifier}
+                compatibleAcceleratorIdentifier={
+                  notebookAcceleratorProfileState.acceleratorProfile?.spec.identifier
+                }
               />
             </FormSection>
             <FormSection
@@ -183,10 +189,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 setValue={setSelectedSize}
                 value={selectedSize}
               />
-              <AcceleratorSelectField
-                acceleratorState={notebookAcceleratorState}
-                setAcceleratorState={setNotebookAcceleratorState}
-                supportedAccelerators={supportedAccelerators}
+              <AcceleratorProfileSelectField
+                acceleratorProfileState={notebookAcceleratorProfileState}
+                setAcceleratorProfileState={setNotebookAcceleratorProfileState}
+                supportedAcceleratorProfiles={supportedAcceleratorProfiles}
               />
             </FormSection>
             <FormSection
@@ -244,7 +250,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     projectName: currentProject.metadata.name,
                     image: selectedImage,
                     notebookSize: selectedSize,
-                    accelerator: notebookAcceleratorState,
+                    acceleratorProfile: notebookAcceleratorProfileState,
                     volumes: [],
                     volumeMounts: [],
                     existingTolerations: existingNotebook?.spec.template.spec.tolerations || [],

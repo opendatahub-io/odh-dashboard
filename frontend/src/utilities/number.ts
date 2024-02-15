@@ -3,7 +3,7 @@
  * return 2 decimal points so the value is not rounded to zero.
  */
 export const bytesAsGB = (bytes: number | typeof NaN): number => {
-  if (isNaN(bytes)) {
+  if (Number.isNaN(bytes)) {
     return 0;
   }
 

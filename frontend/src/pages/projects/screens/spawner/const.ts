@@ -1,4 +1,4 @@
-import { BUILD_PHASE } from '~/k8sTypes';
+import { BuildPhase } from '~/k8sTypes';
 import { SpawnerPageSectionID, SpawnerPageSectionTitlesType } from './types';
 
 export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
@@ -12,8 +12,8 @@ export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
 
 export const ScrollableSelectorID = 'workbench-spawner-page';
 
-export const FAILED_PHASES = [BUILD_PHASE.ERROR, BUILD_PHASE.FAILED];
-export const PENDING_PHASES = [BUILD_PHASE.NEW, BUILD_PHASE.PENDING, BUILD_PHASE.CANCELLED];
+export const FAILED_PHASES = [BuildPhase.ERROR, BuildPhase.FAILED];
+export const PENDING_PHASES = [BuildPhase.NEW, BuildPhase.PENDING, BuildPhase.CANCELLED];
 
 // TODO: Convert to enum
 export const IMAGE_ANNOTATIONS = {

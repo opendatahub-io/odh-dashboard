@@ -91,8 +91,8 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
               value={data.k8sName ?? k8sName}
-              onChange={(e, k8sName) => {
-                setData({ ...data, k8sName });
+              onChange={(e, value) => {
+                setData({ ...data, k8sName: value });
               }}
               validated={!isValidK8sName(data.k8sName) ? 'error' : undefined}
             />

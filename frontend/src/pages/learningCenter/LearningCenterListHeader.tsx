@@ -21,8 +21,8 @@ const LearningCenterListHeaders: React.FC = () => {
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
 
   const onSortSelect = React.useCallback(
-    (sortType: string, ascending: boolean) => {
-      setQueryArgument(navigate, DOC_SORT_KEY, sortType);
+    (currentSortType: string, ascending: boolean) => {
+      setQueryArgument(navigate, DOC_SORT_KEY, currentSortType);
       setQueryArgument(navigate, DOC_SORT_ORDER_KEY, ascending ? SORT_ASC : SORT_DESC);
     },
     [navigate],

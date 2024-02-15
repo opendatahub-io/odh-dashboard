@@ -80,11 +80,11 @@ const dryRunServingRuntimeForTemplateCreation = (
 ): Promise<ServingRuntimeKind> =>
   k8sCreateResource<ServingRuntimeKind>(
     applyK8sAPIOptions(
-      { dryRun: true },
       {
         model: ServingRuntimeModel,
         resource: { ...servingRuntime, metadata: { ...servingRuntime.metadata, namespace } },
       },
+      { dryRun: true },
     ),
   );
 
@@ -103,7 +103,7 @@ export const createServingRuntimeTemplate = async (
     if (templates.find((t) => t.objects[0].metadata.name === servingRuntimeName)) {
       throw new Error(`Serving runtime name "${servingRuntimeName}" already exists.`);
     }
-    return dryRunServingRuntimeForTemplateCreation(servingRuntime, namespace).then(() =>
+    return await dryRunServingRuntimeForTemplateCreation(servingRuntime, namespace).then(() =>
       k8sCreateResource<TemplateKind>({
         model: TemplateModel,
         resource: template,
