@@ -21,7 +21,7 @@ type PipelinesTableRowProps = {
   rowIndex: number;
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
   disableCheck: (id: PipelineKFv2, disabled: boolean) => void;
 };
 

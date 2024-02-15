@@ -28,7 +28,7 @@ const GlobalPipelinesRoutes: React.FC = () => (
     >
       <Route index element={<GlobalPipelines />} />
       <Route
-        path="pipeline/view/:pipelineVersionId"
+        path="pipeline/view/:pipelineId/:pipelineVersionId"
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineDetails}

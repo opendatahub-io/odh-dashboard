@@ -1,14 +1,11 @@
 import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
-import { ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineParams } from '~/concepts/pipelines/types';
 import {
   GetPipelineAPI,
   DeletePipelineAPI,
-  ListPipelineRunsByPipelineAPI,
   ListPipelinesRunAPI,
   ListPipelinesRunJobAPI,
   ListPipelinesAPI,
-  ListPipelineVersionTemplatesAPI,
   UploadPipelineAPI,
   UpdatePipelineRunJobAPI,
   GetPipelineRunAPI,
@@ -48,7 +45,7 @@ const pipelineParamsToQuery = (params?: PipelineParams) => ({
 
 export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, name, description) =>
   handlePipelineFailures(
-    proxyCREATE(hostPath, `/apis/v1beta1/experiments`, { name, description }, {}, opts),
+    proxyCREATE(hostPath, `/apis/v2beta1/experiments`, { name, description }, {}, opts),
   );
 
 export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data) =>
@@ -126,35 +123,6 @@ export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, 
   handlePipelineFailures(
     proxyGET(hostPath, '/apis/v2beta1/recurringruns', pipelineParamsToQuery(params), opts),
   );
-
-export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
-  (hostPath) => (opts, pipelineId, count) =>
-    handlePipelineFailures(
-      proxyGET(
-        hostPath,
-        '/apis/vbeta1/runs',
-        {
-          'resource_reference_key.id': pipelineId,
-          'resource_reference_key.type': ResourceTypeKF.PIPELINE_VERSION,
-          // eslint-disable-next-line camelcase
-          page_size: count,
-          // eslint-disable-next-line camelcase
-          sort_by: 'created_at desc',
-        },
-        opts,
-      ),
-    );
-
-export const listPipelineVersionTemplates: ListPipelineVersionTemplatesAPI =
-  (hostPath) => (opts, pipelineVersionId) =>
-    handlePipelineFailures(
-      proxyGET(
-        hostPath,
-        `/apis/v1beta1/pipeline_versions/${pipelineVersionId}/templates`,
-        {},
-        opts,
-      ),
-    );
 
 export const listPipelineVersions: ListPipelineVersionsAPI =
   (hostPath) => (opts, pipelineId, params) =>

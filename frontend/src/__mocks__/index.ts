@@ -12,5 +12,4 @@ export * from './mockPipelinesProxy';
 export * from './mockDscStatus';
 export * from './mockNotebookK8sResource';
 export * from './mockPipelineKF';
-export * from './mockPipelinesTemplateResourceKF';
 export * from './mockSecretK8sResource';

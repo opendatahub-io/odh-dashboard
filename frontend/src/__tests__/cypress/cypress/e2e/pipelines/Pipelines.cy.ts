@@ -52,7 +52,7 @@ describe('Pipelines', () => {
     );
 
     pipelinesGlobal.visit(projectName);
-    pipelinesGlobal.findIsApiAvailable().should('exist');
+    pipelinesGlobal.isApiAvailable();
     pipelinesGlobal.findIsServerIncompatible().should('exist');
   });
 

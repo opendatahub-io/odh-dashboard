@@ -57,12 +57,19 @@ export enum ResourceTypeKF {
   PIPELINE_VERSION = 'PIPELINE_VERSION',
   NAMESPACE = 'NAMESPACE',
 }
+/**
+ * @deprecated relationship is not a concept in v2
+ */
 export enum RelationshipKF {
   UNKNOWN_RELATIONSHIP = 'UNKNOWN_RELATIONSHIP',
   OWNER = 'OWNER',
   CREATOR = 'CREATOR',
 }
 
+/**
+ * @deprecated
+ * Replace with RunStorageStateKFv2
+ */
 export enum RunStorageStateKF {
   AVAILABLE = 'STORAGESTATE_AVAILABLE',
   ARCHIVED = 'STORAGESTATE_ARCHIVED',
@@ -466,21 +473,17 @@ export type ExperimentKFv2 = {
 };
 
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{
-  experiments: ExperimentKF[];
+  experiments: ExperimentKFv2[];
 }>;
 export type ListPipelinesResponseKF = PipelineKFCallCommon<{
   pipelines: PipelineKFv2[];
 }>;
 export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
-  runs: PipelineRunKF[];
+  runs: PipelineRunKFv2[];
 }>;
 export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
-  recurringRuns: PipelineRunJobKF[];
+  recurringRuns: PipelineRunJobKFv2[];
 }>;
-export type ListPipelineVersionTemplateResourceKF = {
-  /** YAML template of a PipelineRunKind */
-  template: string;
-};
 export type ListPipelineVersionsKF = PipelineKFCallCommon<{
   pipeline_versions: PipelineVersionKFv2[];
 }>;

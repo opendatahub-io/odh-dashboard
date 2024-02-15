@@ -4,7 +4,7 @@ import { SearchIcon } from '@patternfly/react-icons';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelinesFilterOp } from '~/concepts/pipelines/kfTypes';
-import { useExperimentsV2 } from '~/concepts/pipelines/apiHooks/useExperiments';
+import useExperiments from '~/concepts/pipelines/apiHooks/useExperiments';
 
 type Props = {
   onChange: (selected?: { label: string; value: string }) => void;
@@ -15,7 +15,7 @@ const ExperimentSearchInput: React.FC<Props> = ({ selected, onChange }) => {
   const [open, setOpen] = React.useState(false);
   const [filterText, setFilterText] = React.useState('');
   const [filter, setFilter] = React.useState<PipelinesFilter>();
-  const [{ items }, loaded] = useExperimentsV2({ pageSize: filter ? 10 : 0, filter });
+  const [{ items }, loaded] = useExperiments({ pageSize: filter ? 10 : 0, filter });
   const experiments = React.useMemo(() => (filter && loaded ? items : []), [filter, loaded, items]);
 
   const setDebouncedFilter = useDebounceCallback(setFilter);

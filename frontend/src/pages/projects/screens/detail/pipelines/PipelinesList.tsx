@@ -55,7 +55,9 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
           loading={!loaded}
           pipelines={pipelines}
           aria-label="pipelines table"
-          pipelineDetailsPath={(ns, id) => `/projects/${ns}/pipeline/view/${id}`}
+          pipelineDetailsPath={(ns, pipelineId, pipelineVersionId) =>
+            `/projects/${ns}/pipeline/view/${pipelineId}/${pipelineVersionId}`
+          }
           refreshPipelines={refresh}
           variant={TableVariant.compact}
         />

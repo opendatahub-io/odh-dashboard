@@ -17,7 +17,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     );
   }
 
-  return <div data-testid="pipelines-api-available">{children}</div>;
+  return <>{children}</>;
 };
 
 export default EnsureAPIAvailability;

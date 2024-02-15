@@ -9,13 +9,13 @@ import {
 } from '@patternfly/react-core/deprecated';
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-// import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { PipelineKF, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
-  pipeline: PipelineKF | null;
+  pipeline: PipelineKFv2 | null;
   pipelineVersion: PipelineVersionKFv2 | null;
 };
 
@@ -25,8 +25,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   pipelineVersion,
 }) => {
   const navigate = useNavigate();
-  // const { namespace, refreshAllAPI } = usePipelinesAPI();
-  const { namespace } = usePipelinesAPI();
+  const { namespace, refreshAllAPI } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
   const [isVersionImportModalOpen, setIsVersionImportModalOpen] = React.useState(false);
 
@@ -79,19 +78,18 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
         ]}
       />
       {isVersionImportModalOpen && (
-        // TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2279
-
-        // <PipelineVersionImportModal
-        //   existingPipeline={pipeline}
-        //   onClose={(pipelineVersion) => {
-        //     setIsVersionImportModalOpen(false);
-        //     if (pipelineVersion) {
-        //       refreshAllAPI();
-        //       navigate(`/pipelines/${namespace}/pipeline/view/${pipelineVersion.id}`);
-        //     }
-        //   }}
-        // />
-        <></>
+        <PipelineVersionImportModal
+          existingPipeline={pipeline}
+          onClose={(resource) => {
+            setIsVersionImportModalOpen(false);
+            if (resource) {
+              refreshAllAPI();
+              navigate(
+                `/pipelines/${namespace}/pipeline/view/${resource.pipeline_id}/${resource.pipeline_version_id}`,
+              );
+            }
+          }}
+        />
       )}
     </>
   );

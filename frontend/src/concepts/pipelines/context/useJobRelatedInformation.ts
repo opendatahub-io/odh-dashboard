@@ -38,11 +38,9 @@ const useJobRelatedInformation = (
         apiState.api
           .getPipelineRunJob({}, jobId)
           .then((job) => {
-            // TODO: remove cast https://issues.redhat.com/browse/RHOAIENG-2294
-            const castedJob = job as unknown as PipelineRunJobKFv2;
             setJobStorage((jobState) => ({
               ...jobState,
-              [jobId]: { loading: false, data: castedJob },
+              [jobId]: { loading: false, data: job },
             }));
           })
           .catch((e) => {

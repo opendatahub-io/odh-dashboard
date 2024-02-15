@@ -66,7 +66,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             hidden={RunDetailsTabs.DETAILS !== selection}
           >
             <PipelineRunTabDetails
-              // TODO may need to change with parse for topology https://issues.redhat.com/browse/RHOAIENG-2297
+              // TODO may need to change workflow name with parse for topology https://issues.redhat.com/browse/RHOAIENG-2297
               workflowName={pipelineRunDetails?.kf.display_name}
               pipelineRunKF={pipelineRunDetails?.kf}
             />
