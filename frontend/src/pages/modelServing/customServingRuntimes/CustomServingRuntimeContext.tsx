@@ -80,7 +80,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
             headingLevel="h2"
           />
           <EmptyStateBody>
-            {servingRuntimeTemplates?.error?.message || servingRuntimeTemplateOrder?.error?.message}
+            {servingRuntimeTemplates.error?.message || servingRuntimeTemplateOrder.error?.message}
           </EmptyStateBody>
         </EmptyState>
       </Bullseye>

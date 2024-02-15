@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AlertVariant, List, ListItem, Stack, StackItem } from '@patternfly/react-core';
-import { BUILD_PHASE, BuildStatus } from '~/types';
+import { BuildPhase, BuildStatus } from '~/types';
 import { fetchBuildStatuses } from '~/services/buildsService';
 import { addNotification } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
@@ -8,14 +8,14 @@ import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { POLL_INTERVAL } from './const';
 
 const runningStatuses = [
-  BUILD_PHASE.new,
-  BUILD_PHASE.pending,
-  BUILD_PHASE.running,
-  BUILD_PHASE.cancelled,
+  BuildPhase.new,
+  BuildPhase.pending,
+  BuildPhase.running,
+  BuildPhase.cancelled,
 ];
-const failedStatuses = [BUILD_PHASE.failed];
+const failedStatuses = [BuildPhase.failed];
 
-const filterBuilds = (buildStatuses: BuildStatus[], filterStatuses: BUILD_PHASE[]): BuildStatus[] =>
+const filterBuilds = (buildStatuses: BuildStatus[], filterStatuses: BuildPhase[]): BuildStatus[] =>
   buildStatuses.filter((buildStatus) => filterStatuses.includes(buildStatus.status));
 
 export const useWatchBuildStatus = (): BuildStatus[] => {
@@ -27,9 +27,9 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     let watchHandle: ReturnType<typeof setTimeout>;
     const watchBuildStatuses = () => {
       fetchBuildStatuses()
-        .then((statuses: BuildStatus[]) => {
-          statuses.sort((a, b) => a.name.localeCompare(b.name));
-          setStatuses(statuses);
+        .then((buildStatuses: BuildStatus[]) => {
+          buildStatuses.sort((a, b) => a.name.localeCompare(b.name));
+          setStatuses(buildStatuses);
         })
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         .catch(() => {});
@@ -38,25 +38,20 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     watchBuildStatuses();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 
-  const buildStatuses = useDeepCompareMemoize<BuildStatus[]>(statuses);
+  const buildStatuses = useDeepCompareMemoize(statuses);
 
   React.useEffect(() => {
-    if (!buildStatuses) {
-      return;
-    }
-    const wasNotStarted = filterBuilds(prevBuildStatuses.current, [BUILD_PHASE.none]);
+    const wasNotStarted = filterBuilds(prevBuildStatuses.current, [BuildPhase.none]);
     const wasBuilding = filterBuilds(prevBuildStatuses.current, runningStatuses);
     const wasFailed = filterBuilds(prevBuildStatuses.current, failedStatuses);
-    const notStarted = filterBuilds(buildStatuses, [BUILD_PHASE.none]);
+    const notStarted = filterBuilds(buildStatuses, [BuildPhase.none]);
     const building = filterBuilds(buildStatuses, runningStatuses);
     const failed = filterBuilds(buildStatuses, failedStatuses);
-    const complete = filterBuilds(buildStatuses, [BUILD_PHASE.complete]);
+    const complete = filterBuilds(buildStatuses, [BuildPhase.complete]);
 
     // Add notifications for new failures
     if (failed.length > 0) {
@@ -147,5 +142,5 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     prevBuildStatuses.current = buildStatuses;
   }, [buildStatuses, dispatch]);
 
-  return buildStatuses || [];
+  return buildStatuses;
 };

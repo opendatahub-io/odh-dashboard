@@ -1,5 +1,4 @@
 import {
-  periodicOptionAsSeconds,
   RunDateTime,
   RunFormData,
   RunTypeOption,
@@ -16,14 +15,15 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
+import { convertPeriodicTimeToSeconds } from '~/utilities/time';
 
 const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[] => {
   const refs: ResourceReferenceKF[] = [];
 
-  if (formData.pipeline) {
+  if (formData.version) {
     refs.push({
       key: {
-        id: formData.pipeline.id,
+        id: formData.version.id,
         type: ResourceTypeKF.PIPELINE_VERSION,
       },
       relationship: RelationshipKF.CREATOR,
@@ -44,7 +44,7 @@ const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[]
 
 const createRun = async (
   formData: SafeRunFormData,
-  createRun: PipelineAPIs['createPipelineRun'],
+  createPipelineRun: PipelineAPIs['createPipelineRun'],
 ): Promise<string> => {
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
@@ -52,12 +52,14 @@ const createRun = async (
     description: formData.nameDesc.description,
     resource_references: getResourceReferences(formData),
     pipeline_spec: {
-      parameters: formData.params.map(({ value, label }) => ({ name: label, value })) ?? [],
+      parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
     },
     service_account: '',
   };
   /* eslint-enable camelcase */
-  return createRun({}, data).then((runResource) => `/pipelineRun/view/${runResource.run.id}`);
+  return createPipelineRun({}, data).then(
+    (runResource) => `/pipelineRun/view/${runResource.run.id}`,
+  );
 };
 
 const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
@@ -71,7 +73,7 @@ const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null 
 
 const createJob = async (
   formData: SafeRunFormData,
-  createJob: PipelineAPIs['createPipelineRunJob'],
+  createPipelineRunJob: PipelineAPIs['createPipelineRunJob'],
 ): Promise<string> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a scheduled run with incomplete data.'));
@@ -79,6 +81,7 @@ const createJob = async (
 
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;
   const endDate = convertDateDataToKFDateTime(formData.runType.data.end) ?? undefined;
+  const periodicScheduleIntervalTime = convertPeriodicTimeToSeconds(formData.runType.data.value);
   /* eslint-disable camelcase */
   const data: CreatePipelineRunJobKFData = {
     name: formData.nameDesc.name,
@@ -93,10 +96,7 @@ const createJob = async (
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
           ? {
-              interval_second:
-                periodicOptionAsSeconds[
-                  formData.runType.data.value as keyof typeof periodicOptionAsSeconds
-                ].toString(),
+              interval_second: periodicScheduleIntervalTime.toString(),
               start_time: startDate,
               end_time: endDate,
             }
@@ -112,7 +112,7 @@ const createJob = async (
     },
   };
   /* eslint-enable camelcase */
-  return createJob({}, data).then(() => '');
+  return createPipelineRunJob({}, data).then(() => '');
 };
 
 /** Returns the relative path to navigate to from the namespace qualified route */

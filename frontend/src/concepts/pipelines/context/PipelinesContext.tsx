@@ -16,10 +16,14 @@ import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineSe
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import { deleteServer } from '~/concepts/pipelines/utils';
+import useJobRelatedInformation from '~/concepts/pipelines/context/useJobRelatedInformation';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import useAPIState, { APIState } from './useAPIState';
+import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
+
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
+
+type GetJobInformationType = ReturnType<typeof useJobRelatedInformation>['getJobInformation'];
 
 type PipelineContext = {
   hasCR: boolean;
@@ -30,7 +34,8 @@ type PipelineContext = {
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
-  apiState: APIState;
+  getJobInformation: GetJobInformationType;
+  apiState: PipelineAPIState;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -42,7 +47,11 @@ const PipelinesContext = React.createContext<PipelineContext>({
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
-  apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
+  getJobInformation: () => ({
+    loading: false,
+    data: null,
+  }),
+  apiState: { apiAvailable: false, api: null as unknown as PipelineAPIState['api'] },
 });
 
 type PipelineContextProviderProps = {
@@ -71,6 +80,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     isCRReady,
     namespace,
   );
+
   const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
   useManageElyraSecret(namespace, pipelineNamespaceCR, hostPath);
 
@@ -79,8 +89,8 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     [refreshRoute, refreshCR],
   );
 
-  const [apiState, refreshAPIState] = useAPIState(hostPath);
-
+  const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
+  const { getJobInformation } = useJobRelatedInformation(apiState);
   let error = crLoadError || routeLoadError;
   if (error || !project) {
     error = error || new Error('Project not found');
@@ -105,6 +115,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         namespace,
         refreshState,
         refreshAPIState,
+        getJobInformation,
       }}
     >
       {children}
@@ -112,7 +123,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
-type UsePipelinesAPI = APIState & {
+type UsePipelinesAPI = PipelineAPIState & {
   /** The contextual namespace */
   namespace: string;
   /** The Project resource behind the namespace */
@@ -123,6 +134,7 @@ type UsePipelinesAPI = APIState & {
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
    */
+  getJobInformation: GetJobInformationType;
   refreshAllAPI: () => void;
 };
 
@@ -135,6 +147,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     namespace,
     project,
     refreshAPIState: refreshAllAPI,
+    getJobInformation,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -148,6 +161,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     namespace,
     project,
     refreshAllAPI,
+    getJobInformation,
     ...apiState,
   };
 };
@@ -167,7 +181,7 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
       <Stack hasGutter>
         <StackItem>
           <Button variant={variant} onClick={() => setConfigureModalVisible(true)}>
-            Create a pipeline server
+            Configure pipeline server
           </Button>
         </StackItem>
       </Stack>
@@ -188,7 +202,7 @@ export const DeleteServerModal = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-}) => {
+}): React.JSX.Element => {
   const { refreshState } = React.useContext(PipelinesContext);
   return (
     <DeletePipelineServerModal
@@ -204,7 +218,13 @@ export const DeleteServerModal = ({
   );
 };
 
-export const ViewServerModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+export const ViewServerModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}): React.JSX.Element => {
   const { namespace } = React.useContext(PipelinesContext);
   const [pipelineNamespaceCR] = usePipelineNamespaceCR(namespace);
 

@@ -11,12 +11,12 @@ const getFlags = (dashboardConfigSpec: DashboardConfigKind['spec']): FlagState =
     typeof value === 'boolean';
 
   return {
-    ...Object.keys(flags).reduce<FlagState>((flagState, key) => {
+    ...Object.keys(flags).reduce<FlagState>((acc, key) => {
       const value = flags[key as FeatureFlag];
       if (isFeatureFlag(key, value)) {
-        flagState[key] = key.startsWith('disable') ? !value : value;
+        acc[key] = key.startsWith('disable') ? !value : value;
       }
-      return flagState;
+      return acc;
     }, {}),
     // TODO: support this better; improve types
     // notebookController: dashboardConfigSpec.notebookController?.enabled ?? false,
@@ -32,9 +32,9 @@ export const isAreaAvailable = (
 
   const reliantAreasState = reliantAreas
     ? reliantAreas.reduce<IsAreaAvailableStatus['reliantAreas']>(
-        (areaStates, area) => ({
+        (areaStates, currentArea) => ({
           ...areaStates,
-          [area]: isAreaAvailable(area, dashboardConfigSpec, dscStatus).status,
+          [currentArea]: isAreaAvailable(currentArea, dashboardConfigSpec, dscStatus).status,
         }),
         {},
       )

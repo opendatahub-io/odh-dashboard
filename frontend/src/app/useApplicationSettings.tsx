@@ -49,9 +49,7 @@ export const useApplicationSettings = (): {
 
     return () => {
       cancelled = true;
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, [setRefreshMarker]);
 

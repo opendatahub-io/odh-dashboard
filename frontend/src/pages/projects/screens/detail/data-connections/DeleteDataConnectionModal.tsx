@@ -52,12 +52,13 @@ const DeleteDataConnectionModal: React.FC<DeleteDataConnectionModalProps> = ({
           Promise.all(
             connectedNotebooks.map((notebook) => {
               if (dataConnection.type === DataConnectionType.AWS) {
-                removeNotebookSecret(
+                return removeNotebookSecret(
                   notebook.metadata.name,
                   notebook.metadata.namespace,
                   resourceName,
                 );
               }
+              return null;
             }),
           )
             .then(() =>

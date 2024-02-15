@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { RunStatus } from '@patternfly/react-topology';
-import { createNode } from '~/concepts/pipelines/topology/core/utils';
+import { createNode } from '~/concepts/topology';
 import { PipelineRunKind, PipelineRunTask } from '~/k8sTypes';
 import {
   KubeFlowTaskTopology,
@@ -27,7 +27,7 @@ export const usePipelineTaskTopology = (
 
     const hasRunAfters = tasks.some((t) => !!t.runAfter);
 
-    const edgeLookupMap = tasks.reduce<Record<string, Set<string>>>((acc, task) => {
+    const edgeLookupMap = tasks.reduce<Record<string, Set<string> | undefined>>((acc, task) => {
       const { name, params, when, runAfter } = task;
 
       const targets: string[] = [];
@@ -47,21 +47,21 @@ export const usePipelineTaskTopology = (
         }
       }
 
-      return targets.reduce((acc, target) => {
-        let set = acc[name];
+      return targets.reduce<Record<string, Set<string> | undefined>>((innerAcc, target) => {
+        let set = innerAcc[name];
         if (!set) {
           set = new Set();
         }
         set.add(target);
 
-        return { ...acc, [name]: set };
+        return { ...innerAcc, [name]: set };
       }, acc);
     }, {});
 
     return tasks.reduce<KubeFlowTaskTopology>(
       (acc, task) => {
         const runAfter: string[] | undefined = edgeLookupMap[task.name]
-          ? Array.from(edgeLookupMap[task.name])
+          ? Array.from(edgeLookupMap[task.name] || [])
           : undefined;
 
         let relatedStatusData: PipelineRunTaskRunDetails | undefined;
@@ -82,7 +82,7 @@ export const usePipelineTaskTopology = (
             }));
             if (taskStatusList.length > 0) {
               const thisTaskStatus = taskStatusList.find(
-                (status) => status.pipelineTaskName === task.name,
+                (currentStatus) => currentStatus.pipelineTaskName === task.name,
               );
               if (thisTaskStatus) {
                 relatedStatusData = thisTaskStatus;

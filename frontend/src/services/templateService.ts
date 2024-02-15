@@ -43,13 +43,14 @@ export const createServingRuntimeTemplateBackend = async (
     if (templates.find((t) => t.objects[0].metadata.name === servingRuntimeName)) {
       throw new Error(`Serving runtime name "${servingRuntimeName}" already exists.`);
     }
-    return dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(() =>
-      axios
-        .post('/api/templates/', template)
-        .then((response) => response.data)
-        .catch((e) => {
-          throw new Error(e.response.data.message);
-        }),
+    return await dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(
+      () =>
+        axios
+          .post('/api/templates/', template)
+          .then((response) => response.data)
+          .catch((e) => {
+            throw new Error(e.response.data.message);
+          }),
     );
   } catch (e) {
     return Promise.reject(e);
@@ -63,7 +64,7 @@ export const updateServingRuntimeTemplateBackend = (
   platforms: ServingRuntimePlatform[],
 ): Promise<TemplateKind> => {
   try {
-    const name = existingTemplate.metadata.name;
+    const { name } = existingTemplate.metadata;
     const servingRuntimeName = existingTemplate.objects[0].metadata.name;
     const servingRuntime: ServingRuntimeKind = YAML.parse(body);
     if (!servingRuntime.metadata.name) {

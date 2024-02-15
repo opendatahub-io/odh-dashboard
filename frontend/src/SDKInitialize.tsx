@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-utils';
+import { AppInitSDK, isUtilsConfigSet, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { K8sStatus } from './k8sTypes';
 import { isK8sStatus, K8sStatusError } from './api';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
@@ -42,8 +41,8 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   wsAppSettings: () =>
     Promise.resolve({
       host: `${location.protocol.replace(/^http/i, 'ws')}//${location.host}/wss/k8s`,
-      urlAugment: (url: string) => {
-        const [origUrl, query] = url.split('?') || [];
+      urlAugment: (url) => {
+        const [origUrl, query] = url.split('?');
         const queryParams = new URLSearchParams(query);
         if (!queryParams.get('watch')) {
           queryParams.set('watch', 'true');

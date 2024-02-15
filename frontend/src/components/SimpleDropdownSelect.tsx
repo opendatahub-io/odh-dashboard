@@ -21,12 +21,12 @@ type SimpleDropdownProps = {
 } & Omit<React.ComponentProps<typeof Dropdown>, 'isOpen' | 'toggle' | 'dropdownItems' | 'onChange'>;
 
 const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
+  isDisabled,
   onChange,
   options,
   placeholder = 'Select...',
   value,
   isFullWidth,
-  isDisabled,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);

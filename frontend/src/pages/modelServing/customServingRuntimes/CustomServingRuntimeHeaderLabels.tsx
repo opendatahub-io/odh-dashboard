@@ -16,7 +16,7 @@ const CustomServingRuntimeHeaderLabels: React.FC = () => {
   return (
     <>
       <LabelGroup>
-        {kServeEnabled && <Label>Single model serving enabled</Label>}
+        {kServeEnabled && <Label>Single-model serving enabled</Label>}
         {modelMeshEnabled && <Label>Multi-model serving enabled</Label>}
       </LabelGroup>
       <Popover

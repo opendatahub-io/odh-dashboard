@@ -3,10 +3,12 @@ import {
   k8sDeleteResource,
   k8sGetResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapKind, K8sStatus, KnownLabels } from '~/k8sTypes';
+import { ConfigMapKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { ConfigMapModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const assembleConfigMap = (
   projectName: string,
@@ -31,14 +33,33 @@ export const getConfigMap = (projectName: string, configMapName: string): Promis
     queryOptions: { name: configMapName, ns: projectName },
   });
 
-export const createConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> =>
-  k8sCreateResource<ConfigMapKind>({ model: ConfigMapModel, resource: data });
+export const createConfigMap = (
+  data: ConfigMapKind,
+  opts?: K8sAPIOptions,
+): Promise<ConfigMapKind> =>
+  k8sCreateResource<ConfigMapKind>(
+    applyK8sAPIOptions({ model: ConfigMapModel, resource: data }, opts),
+  );
 
-export const replaceConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> =>
-  k8sUpdateResource<ConfigMapKind>({ model: ConfigMapModel, resource: data });
+export const replaceConfigMap = (
+  data: ConfigMapKind,
+  opts?: K8sAPIOptions,
+): Promise<ConfigMapKind> =>
+  k8sUpdateResource<ConfigMapKind>(
+    applyK8sAPIOptions({ model: ConfigMapModel, resource: data }, opts),
+  );
 
-export const deleteConfigMap = (projectName: string, configMapName: string): Promise<K8sStatus> =>
-  k8sDeleteResource<ConfigMapKind, K8sStatus>({
-    model: ConfigMapModel,
-    queryOptions: { name: configMapName, ns: projectName },
-  });
+export const deleteConfigMap = (
+  projectName: string,
+  configMapName: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<ConfigMapKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: ConfigMapModel,
+        queryOptions: { name: configMapName, ns: projectName },
+      },
+      opts,
+    ),
+  );

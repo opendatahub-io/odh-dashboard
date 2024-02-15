@@ -34,8 +34,8 @@ export const getNotebookAndStatus = (
       // Notebooks are unreliable to live status on replicas -- but if we have nothing else...
       const isRunning = !!(
         notebook?.status?.readyReplicas &&
-        notebook?.status?.readyReplicas >= 1 &&
-        !notebook?.metadata.annotations?.['kubeflow-resource-stopped']
+        notebook.status.readyReplicas >= 1 &&
+        !notebook.metadata.annotations?.['kubeflow-resource-stopped']
       );
       return { notebook, isRunning };
     });
@@ -58,7 +58,7 @@ export const stopNotebook = (username?: string): Promise<Notebook> => {
   const patch: RecursivePartial<NotebookData> = {
     state: NotebookState.Stopped,
     // only used for admin calls
-    username: username,
+    username,
   };
 
   return axios

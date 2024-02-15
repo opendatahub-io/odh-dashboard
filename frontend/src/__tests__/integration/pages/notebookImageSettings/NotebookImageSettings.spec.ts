@@ -19,6 +19,12 @@ test('Table filtering, sorting, searching', async ({ page }) => {
   await page.getByRole('button', { name: 'Provider' }).click();
   expect(page.getByText('image-0'));
 
+  // by accelerator
+  await page.getByRole('button', { name: 'Recommended accelerators' }).click();
+  expect(page.getByText('test-accelerator')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Recommended accelerators' }).click();
+  expect(page.getByText('test-accelerator'));
+
   // by enabled
   await page.getByRole('button', { name: 'Enable', exact: true }).click();
   expect(page.getByText('image-14'));
@@ -116,6 +122,24 @@ test('Import form fields', async ({ page }) => {
   await page.getByLabel('Name *').fill('image');
   await expect(page.getByRole('button', { name: 'Import' })).toBeEnabled();
 
+  // test accelerator select field
+  // select accelerator from api call
+  await page.getByPlaceholder('Example, nvidia.com/gpu').click();
+  await page.getByRole('option', { name: 'nvidia.com/gpu' }).click();
+
+  // create new and select
+  await page.getByPlaceholder('Example, nvidia.com/gpu').click();
+  await page.getByPlaceholder('Example, nvidia.com/gpu').fill('test.com/gpu');
+  await page.getByRole('option', { name: 'Create new option "test.com/gpu"' }).click();
+  await page.getByPlaceholder('Example, nvidia.com/gpu').press('Escape');
+  await page.getByLabel('Menu toggle').click();
+  expect(page.getByText('test.com/gpu'));
+
+  // remove custom
+  await page.getByLabel('test.com/gpu').click();
+  await page.getByLabel('Menu toggle').click();
+  await expect(page.getByText('test.com/gpu')).toHaveCount(0);
+
   // test form is disabled after entering software add form
   await page.getByTestId('add-software-button').click();
   await expect(page.getByRole('button', { name: 'Import' })).toBeDisabled();
@@ -198,6 +222,8 @@ test('Edit form fields match', async ({ page }) => {
     navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'edit-modal'),
   );
 
+  await page.waitForSelector('[data-testid="notebook-image-modal"]');
+
   // test inputs have correct values
   expect(await page.getByTestId('byon-image-location-input').inputValue()).toBe(
     'test-image:latest',
@@ -206,7 +232,7 @@ test('Edit form fields match', async ({ page }) => {
   expect(await page.getByTestId('byon-image-description-input').inputValue()).toBe(
     'A custom notebook image',
   );
-
+  expect(page.getByText('nvidia.com/gpu'));
   // test software and packages have correct values
   expect(page.getByRole('gridcell', { name: 'test-software' }));
   expect(page.getByRole('gridcell', { name: '2.0' }));

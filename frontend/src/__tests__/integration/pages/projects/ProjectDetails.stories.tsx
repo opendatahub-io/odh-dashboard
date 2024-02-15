@@ -25,11 +25,11 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
-import { mock404Error } from '~/__mocks__/mock404Error';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { StackComponent } from '~/concepts/areas';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
+import { mock404Error } from '~/__mocks__/mockK8sStatus';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
   rest.get(
@@ -188,8 +188,14 @@ export default {
   component: ProjectDetails,
   parameters: {
     reactRouter: {
-      routePath: '/projects/:namespace/*',
-      routeParams: { namespace: 'test-project' },
+      location: {
+        pathParams: { namespace: 'test-project' },
+      },
+      routing: [
+        {
+          path: '/projects/:namespace/*',
+        },
+      ],
     },
     msw: {
       handlers: handlers(false),

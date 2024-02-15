@@ -1,12 +1,12 @@
 import { FieldOptions } from '~/components/FieldList';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 
-export enum EXTERNAL_DATABASE_SECRET {
+export enum ExternalDatabaseSecret {
   KEY = 'db-password',
   NAME = 'pipelines-db-password',
 }
 
-export enum DATABASE_CONNECTION_KEYS {
+export enum DatabaseConnectionKeys {
   HOST = 'Host',
   PORT = 'Port',
   USERNAME = 'Username',
@@ -16,31 +16,31 @@ export enum DATABASE_CONNECTION_KEYS {
 
 export const DATABASE_CONNECTION_FIELDS: FieldOptions[] = [
   {
-    key: DATABASE_CONNECTION_KEYS.HOST,
-    label: DATABASE_CONNECTION_KEYS.HOST,
+    key: DatabaseConnectionKeys.HOST,
+    label: DatabaseConnectionKeys.HOST,
     isRequired: true,
     placeholder: 'Example, mysql',
   },
   {
-    key: DATABASE_CONNECTION_KEYS.PORT,
-    label: DATABASE_CONNECTION_KEYS.PORT,
+    key: DatabaseConnectionKeys.PORT,
+    label: DatabaseConnectionKeys.PORT,
     isRequired: true,
     placeholder: 'Example, 3306',
   },
   {
-    key: DATABASE_CONNECTION_KEYS.USERNAME,
-    label: DATABASE_CONNECTION_KEYS.USERNAME,
+    key: DatabaseConnectionKeys.USERNAME,
+    label: DatabaseConnectionKeys.USERNAME,
     isRequired: true,
   },
   {
-    key: DATABASE_CONNECTION_KEYS.PASSWORD,
-    label: DATABASE_CONNECTION_KEYS.PASSWORD,
+    key: DatabaseConnectionKeys.PASSWORD,
+    label: DatabaseConnectionKeys.PASSWORD,
     isPassword: true,
     isRequired: true,
   },
   {
-    key: DATABASE_CONNECTION_KEYS.DATABASE,
-    label: DATABASE_CONNECTION_KEYS.DATABASE,
+    key: DatabaseConnectionKeys.DATABASE,
+    label: DatabaseConnectionKeys.DATABASE,
     isRequired: true,
     placeholder: 'Example, mlpipelines',
   },
@@ -48,23 +48,23 @@ export const DATABASE_CONNECTION_FIELDS: FieldOptions[] = [
 
 export const EMPTY_DATABASE_CONNECTION: EnvVariableDataEntry[] = [
   {
-    key: DATABASE_CONNECTION_KEYS.HOST,
+    key: DatabaseConnectionKeys.HOST,
     value: '',
   },
   {
-    key: DATABASE_CONNECTION_KEYS.PORT,
+    key: DatabaseConnectionKeys.PORT,
     value: '',
   },
   {
-    key: DATABASE_CONNECTION_KEYS.USERNAME,
+    key: DatabaseConnectionKeys.USERNAME,
     value: '',
   },
   {
-    key: DATABASE_CONNECTION_KEYS.PASSWORD,
+    key: DatabaseConnectionKeys.PASSWORD,
     value: '',
   },
   {
-    key: DATABASE_CONNECTION_KEYS.DATABASE,
+    key: DatabaseConnectionKeys.DATABASE,
     value: '',
   },
 ];

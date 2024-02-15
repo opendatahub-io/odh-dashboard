@@ -8,7 +8,15 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { Icon } from '@patternfly/react-core';
-import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineCoreResourceKF,
+  PipelineRunJobKF,
+  PipelineRunKF,
+  PipelineRunStatusesKF,
+  PipelineVersionKF,
+  RelationshipKF,
+  ResourceTypeKF,
+} from '~/concepts/pipelines/kfTypes';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
@@ -26,7 +34,7 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
   }
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
-  let details: string | undefined = undefined;
+  let details: string | undefined;
   let label: PipelineRunKF['status'];
 
   switch (run.status) {
@@ -60,9 +68,25 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
     default:
       icon = UNKNOWN_ICON;
       status = UNKNOWN_STATUS;
-      label = run.status ?? 'Starting';
-      details = run.status ?? 'No status yet';
+      label = run.status || 'Starting';
+      details = run.status || 'No status yet';
   }
 
   return { icon, label, status, details };
 };
+
+export const isPipelineRunJob = (
+  runOrJob?: PipelineRunJobKF | PipelineRunKF,
+): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
+
+export const getPipelineIdByPipelineVersion = (
+  version: PipelineVersionKF | null,
+): string | undefined =>
+  version?.resource_references.find(
+    (ref) => ref.relationship === RelationshipKF.OWNER && ref.key.type === ResourceTypeKF.PIPELINE,
+  )?.key.id;
+
+export const getPipelineAndVersionDeleteString = (
+  resources: PipelineCoreResourceKF[],
+  type: 'pipeline' | 'version',
+): string => `${resources.length} ${type}${resources.length !== 1 ? 's' : ''}`;

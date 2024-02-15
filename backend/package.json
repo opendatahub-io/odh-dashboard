@@ -23,9 +23,9 @@
     "start:dev": "npm run clean && export NODE_TLS_REJECT_UNAUTHORIZED=0 && export NODE_ENV=development && nodemon src/server.ts --log=1 --registry=localhost:50051",
     "debug": "npm run tsc && export NODE_TLS_REJECT_UNAUTHORIZED=0 && export NODE_ENV=development && node --inspect ./dist/server.js --log=1 --registry=localhost:50051",
     "build-only": "tsc -p . && node ./dist/server.js --log=1 --registry=localhost:50051 --buildonly",
-    "build": "npm run build:clean; npm run tsc:prod",
+    "build": "run-s build:clean tsc:prod",
     "build:clean": "rimraf ./dist",
-    "test": "npm run test:lint; npm run test:type-check; npm run test:jest",
+    "test": "run-s test:lint test:type-check test:jest",
     "test:lint": "eslint --max-warnings 0 --ext .json,.js,.ts src/plugins src/routes src/utils",
     "test:fix": "eslint --ext .json,.js,.ts src/plugins src/routes src/utils --fix",
     "test:type-check": "tsc --noEmit",
@@ -37,6 +37,7 @@
     "watch": "tsc -p . -w"
   },
   "dependencies": {
+    "@fastify/accepts": "^4.3.0",
     "@fastify/autoload": "^5.7.1",
     "@fastify/sensible": "^5.2.0",
     "@fastify/static": "^6.10.2",
@@ -60,7 +61,7 @@
     "@typescript-eslint/parser": "^4.4.1",
     "babel-eslint": "^10.1.0",
     "fastify-cli": "^5.7.1",
-    "nodemon": "^2.0.20",
+    "nodemon": "^3.0.2",
     "pino-pretty": "^9.4.0",
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",

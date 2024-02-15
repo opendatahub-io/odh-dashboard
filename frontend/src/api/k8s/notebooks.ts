@@ -6,10 +6,11 @@ import {
   k8sPatchResource,
   k8sUpdateResource,
   Patch,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, K8sStatus, KnownLabels, NotebookKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -40,7 +41,7 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    accelerator,
+    acceleratorProfile,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -54,7 +55,7 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    accelerator,
+    acceleratorProfile,
     tolerationSettings,
     existingTolerations,
     undefined,
@@ -64,7 +65,7 @@ const assembleNotebook = (
   const translatedUsername = usernameTranslate(username);
 
   const location = new URL(window.location.href);
-  const origin = location.origin;
+  const { origin } = location;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
@@ -106,7 +107,8 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          acceleratorProfile.acceleratorProfile?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -260,8 +262,8 @@ export const createNotebook = (
   });
 
   if (canEnablePipelines) {
-    return notebookPromise.then((notebook) =>
-      createElyraServiceAccountRoleBinding(notebook).then(() => notebook),
+    return notebookPromise.then((fetchedNotebook) =>
+      createElyraServiceAccountRoleBinding(fetchedNotebook).then(() => fetchedNotebook),
     );
   }
 
@@ -270,11 +272,12 @@ export const createNotebook = (
 
 export const updateNotebook = (
   existingNotebook: NotebookKind,
-  data: StartNotebookData,
+  assignableData: StartNotebookData,
   username: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
-  data.notebookId = existingNotebook.metadata.name;
-  const notebook = assembleNotebook(data, username);
+  assignableData.notebookId = existingNotebook.metadata.name;
+  const notebook = assembleNotebook(assignableData, username);
 
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
@@ -286,27 +289,30 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};
 
-  return k8sUpdateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: _.merge({}, oldNotebook, notebook),
-  });
+  return k8sUpdateResource<NotebookKind>(
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        resource: _.merge({}, oldNotebook, notebook),
+      },
+      opts,
+    ),
+  );
 };
 
 export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
 ): Promise<NotebookKind> =>
-  new Promise((resolve, reject) =>
-    createNotebook(data, username).then((notebook) =>
-      setTimeout(
-        () =>
-          stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
-            .then(resolve)
-            .catch(reject),
-        10_000,
-      ),
-    ),
-  );
+  new Promise((resolve, reject) => {
+    createNotebook(data, username).then((notebook) => {
+      setTimeout(() => {
+        stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
+          .then(resolve)
+          .catch(reject);
+      }, 10_000);
+    });
+  });
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
@@ -345,11 +351,14 @@ export const attachNotebookSecret = (
   });
 
   return k8sPatchResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      queryOptions: { name: notebookName, ns: namespace },
-      patches,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
   );
 };
 
@@ -369,11 +378,14 @@ export const replaceNotebookSecret = (
   ];
 
   return k8sPatchResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      queryOptions: { name: notebookName, ns: namespace },
-      patches,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
   );
 };
 
@@ -399,11 +411,14 @@ export const attachNotebookPVC = (
   ];
 
   return k8sPatchResource<NotebookKind>(
-    applyK8sAPIOptions(opts, {
-      model: NotebookModel,
-      queryOptions: { name: notebookName, ns: namespace },
-      patches,
-    }),
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
   );
 };
 
@@ -441,11 +456,14 @@ export const removeNotebookPVC = (
         ];
 
         k8sPatchResource<NotebookKind>(
-          applyK8sAPIOptions(opts, {
-            model: NotebookModel,
-            queryOptions: { name: notebookName, ns: namespace },
-            patches,
-          }),
+          applyK8sAPIOptions(
+            {
+              model: NotebookModel,
+              queryOptions: { name: notebookName, ns: namespace },
+              patches,
+            },
+            opts,
+          ),
         )
           .then(resolve)
           .catch(reject);

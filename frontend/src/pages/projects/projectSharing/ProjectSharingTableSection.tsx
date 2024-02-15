@@ -44,8 +44,8 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           onDismissNewRow={() => {
             setAddField(false);
           }}
-          onError={(error) => {
-            setError(error);
+          onError={(e) => {
+            setError(e);
           }}
           refresh={() => {
             refresh();

@@ -8,36 +8,41 @@ import {
 } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { FilterIcon } from '@patternfly/react-icons';
-import { ValueOf } from '~/typeHelpers';
+import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
-type FilterProps = {
-  onChange: (value: string) => void;
-  value: string;
+type FilterOptionRenders = {
+  onChange: (value?: string, label?: string) => void;
+  value?: string;
+  label?: string;
 };
 
 type Child = React.ReactElement<typeof ToolbarItem>;
-type PipelineFilterBarProps<Options extends Record<string, string>> = {
+type PipelineFilterBarProps<Options extends FilterOptions> = {
   children: Child | Child[];
-  filterOptions: Options;
-  filterOptionRenders: Record<ValueOf<Options>, (props: FilterProps) => React.ReactNode>;
-  filterData: Record<ValueOf<Options>, string>;
-  onFilterUpdate: (filterType: ValueOf<Options>, value: string) => void;
+  filterOptions: Record<Options, string>;
+  filterOptionRenders: Record<Options, (props: FilterOptionRenders) => React.ReactNode>;
+  filterData: Record<Options, string | { label: string; value: string } | undefined>;
+  onFilterUpdate: (filterType: Options, value?: string | { label: string; value: string }) => void;
   onClearFilters: () => void;
 };
 
-const PipelineFilterBar = <Options extends Record<string, string>>({
+export type FilterProps = Pick<
+  React.ComponentProps<typeof PipelineFilterBar>,
+  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+>;
+
+const PipelineFilterBar = <Options extends FilterOptions>({
   filterOptions,
   filterOptionRenders,
   filterData,
   onFilterUpdate,
   onClearFilters,
   children,
-}: PipelineFilterBarProps<Options>) => {
+}: PipelineFilterBarProps<Options>): React.JSX.Element => {
+  const keys = Object.keys(filterOptions) as Array<Options>;
   const [open, setOpen] = React.useState(false);
-  const [currentFilterType, setCurrentFilterType] = React.useState<keyof Options>(
-    Object.keys(filterOptions)[0],
-  );
-  const isToolbarChip = (v: unknown): v is ToolbarChip & { key: keyof Options } =>
+  const [currentFilterType, setCurrentFilterType] = React.useState<Options>(keys[0]);
+  const isToolbarChip = (v: unknown): v is ToolbarChip & { key: Options } =>
     !!v && Object.keys(v as ToolbarChip).every((k) => ['key', 'node'].includes(k));
 
   return (
@@ -53,15 +58,15 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
               </DropdownToggle>
             }
             isOpen={open}
-            dropdownItems={Object.keys(filterOptions).map((filterKey) => (
+            dropdownItems={keys.map((filterKey) => (
               <DropdownItem
-                key={filterKey}
+                key={filterKey.toString()}
                 onClick={() => {
                   setOpen(false);
                   setCurrentFilterType(filterKey);
                 }}
               >
-                {filterOptions[filterKey]}
+                <>{filterOptions[filterKey]}</>
               </DropdownItem>
             ))}
           />
@@ -69,18 +74,20 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
         <ToolbarFilter
           categoryName="Filters"
           variant="search-filter"
-          chips={Object.keys(filterOptions)
+          chips={keys
             .map<ToolbarChip | null>((filterKey) => {
               const optionValue = filterOptions[filterKey];
-              const dataValue = filterData[optionValue as ValueOf<Options>];
-              if (dataValue) {
+              const data = filterData[filterKey];
+              if (data) {
+                const dataValue: { label: string; value: string } | undefined =
+                  typeof data === 'string' ? { label: data, value: data } : data;
                 return {
                   key: filterKey,
                   node: (
                     <>
                       <b>{optionValue}:</b>{' '}
-                      <Tooltip content={dataValue} position="top-start">
-                        <span>{dataValue}</span>
+                      <Tooltip content={dataValue.value} position="top-start">
+                        <span>{dataValue.label}</span>
                       </Tooltip>
                     </>
                   ),
@@ -91,14 +98,17 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
             .filter(isToolbarChip)}
           deleteChip={(_, chip) => {
             if (isToolbarChip(chip)) {
-              onFilterUpdate(filterOptions[chip.key as keyof Options], '');
+              onFilterUpdate(chip.key);
             }
           }}
           deleteChipGroup={() => onClearFilters()}
         >
-          {filterOptionRenders[filterOptions[currentFilterType]]({
-            onChange: (value) => onFilterUpdate(filterOptions[currentFilterType], value),
-            value: filterData[filterOptions[currentFilterType]],
+          {filterOptionRenders[currentFilterType]({
+            onChange: (value, label) =>
+              onFilterUpdate(currentFilterType, label && value ? { label, value } : value),
+            ...(typeof filterData[currentFilterType] === 'string'
+              ? { value: filterData[currentFilterType] as string }
+              : (filterData[currentFilterType] as { label: string; value: string })),
           })}
         </ToolbarFilter>
       </ToolbarGroup>

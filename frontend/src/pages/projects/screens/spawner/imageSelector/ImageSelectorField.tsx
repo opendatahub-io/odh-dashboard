@@ -17,20 +17,20 @@ import ImageStreamSelector from './ImageStreamSelector';
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;
   setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
-  compatibleAccelerator?: string;
+  compatibleAcceleratorIdentifier?: string;
 };
 
 const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   selectedImage,
   setSelectedImage,
-  compatibleAccelerator,
+  compatibleAcceleratorIdentifier,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
   const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
 
   const imageVersionData = React.useMemo(() => {
-    const imageStream = selectedImage.imageStream;
+    const { imageStream } = selectedImage;
     if (!imageStream) {
       return { buildStatuses, imageStream, imageVersions: [] };
     }
@@ -39,7 +39,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
       imageStream,
       imageVersions: getExistingVersionsForImageStream(imageStream),
     };
-  }, [selectedImage.imageStream, buildStatuses]);
+  }, [selectedImage, buildStatuses]);
 
   const onImageStreamSelect = (newImageStream: ImageStreamKind) => {
     const version = getDefaultVersionForImageStream(newImageStream, buildStatuses);
@@ -71,7 +71,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
         buildStatuses={buildStatuses}
         onImageStreamSelect={onImageStreamSelect}
         selectedImageStream={selectedImage.imageStream}
-        compatibleAccelerator={compatibleAccelerator}
+        compatibleAcceleratorIdentifier={compatibleAcceleratorIdentifier}
       />
       <ImageVersionSelector
         data={imageVersionData}

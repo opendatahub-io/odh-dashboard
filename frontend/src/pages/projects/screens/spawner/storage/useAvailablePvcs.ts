@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { getDashboardPvcs } from '~/api';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { NotebookState } from '~/pages/projects/notebook/types';

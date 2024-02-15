@@ -36,13 +36,13 @@ export const getNotebookPVCMountPathMap = (
   return notebook.spec.template.spec.containers.reduce(
     (acc, container) => ({
       ...acc,
-      ...(container.volumeMounts || []).reduce((acc, volumeMount) => {
+      ...(container.volumeMounts || []).reduce((innerAcc, volumeMount) => {
         const claimName = pvcVolumeNames[volumeMount.name];
         if (!claimName) {
-          return acc;
+          return innerAcc;
         }
 
-        return { ...acc, [claimName]: relativeMountPath(volumeMount.mountPath) };
+        return { ...innerAcc, [claimName]: relativeMountPath(volumeMount.mountPath) };
       }, {}),
     }),
     {},
@@ -123,7 +123,7 @@ export const useNotebookStatus = (
 ): [status: NotebookStatus | null, events: EventKind[]] => {
   const events = useWatchNotebookEvents(notebook, podUid, spawnInProgress);
 
-  const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+  const annotationTime = notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime
     ? new Date(annotationTime)
     : spawnInProgress || podUid

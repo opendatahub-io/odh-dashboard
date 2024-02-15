@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
-  submitInferenceServiceResource,
-  submitServingRuntimeResources,
+  getSubmitInferenceServiceResourceFn,
+  getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -11,23 +11,24 @@ import { TemplateKind, ProjectKind, InferenceServiceKind } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '~/pages/modelServing/screens/types';
-import ServingRuntimeReplicaSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceNameSection';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
+import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 
 type ManageKServeModalProps = {
   isOpen: boolean;
@@ -59,16 +60,20 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
     useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
-  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-  );
+  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
+    useServingAcceleratorProfile(
+      editInfo?.servingRuntimeEditInfo?.servingRuntime,
+      editInfo?.inferenceServiceEditInfo,
+    );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
   React.useEffect(() => {
     if (projectContext?.currentProject) {
-      setCreateDataInferenceService('project', projectContext?.currentProject.metadata.name);
+      setCreateDataInferenceService('project', projectContext.currentProject.metadata.name);
     }
   }, [projectContext, setCreateDataInferenceService]);
 
@@ -90,7 +95,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createDataInferenceService.storage.dataConnection !== '';
     }
-    return isAWSValid(createDataInferenceService.storage.awsData, [AWS_KEYS.AWS_S3_BUCKET]);
+    return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
 
   const isDisabledInferenceService =
@@ -98,9 +103,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.name.trim() === '' ||
     createDataInferenceService.project === '' ||
     createDataInferenceService.format.name === '' ||
-    createDataInferenceService.storage.path.includes('//') ||
+    removeLeadingSlashes(createDataInferenceService.storage.path).includes('//') ||
+    containsOnlySlashes(createDataInferenceService.storage.path) ||
     createDataInferenceService.storage.path === '' ||
-    createDataInferenceService.storage.path === '/' ||
+    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
   const servingRuntimeSelected = React.useMemo(
@@ -119,11 +125,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     setActionInProgress(false);
     resetDataServingRuntime();
     resetDataInferenceService();
-    resetAcceleratorData();
+    resetAcceleratorProfileData();
   };
 
-  const setErrorModal = (error: Error) => {
-    setError(error);
+  const setErrorModal = (e: Error) => {
+    setError(e);
     setActionInProgress(false);
   };
 
@@ -140,26 +146,38 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
+    const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
+      servingRuntimeSelected,
+      createDataServingRuntime,
+      customServingRuntimesEnabled,
+      namespace,
+      editInfo?.servingRuntimeEditInfo,
+      true,
+      acceleratorProfileState,
+      NamespaceApplicationCase.KSERVE_PROMOTION,
+      projectContext?.currentProject,
+      servingRuntimeName,
+      false,
+    );
+
+    const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
+      createDataInferenceService,
+      editInfo?.inferenceServiceEditInfo,
+      servingRuntimeName,
+      false,
+      acceleratorProfileState,
+    );
+
     Promise.all([
-      submitServingRuntimeResources(
-        servingRuntimeSelected,
-        createDataServingRuntime,
-        customServingRuntimesEnabled,
-        namespace,
-        editInfo?.servingRuntimeEditInfo,
-        true,
-        acceleratorState,
-        NamespaceApplicationCase.KSERVE_PROMOTION,
-        projectContext?.currentProject,
-        servingRuntimeName,
-      ),
-      submitInferenceServiceResource(
-        createDataInferenceService,
-        editInfo?.inferenceServiceEditInfo,
-        servingRuntimeName,
-        false,
-      ),
+      submitServingRuntimeResources({ dryRun: true }),
+      submitInferenceServiceResource({ dryRun: true }),
     ])
+      .then(() =>
+        Promise.all([
+          submitServingRuntimeResources({ dryRun: false }),
+          submitInferenceServiceResource({ dryRun: false }),
+        ]),
+      )
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
@@ -196,7 +214,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
                 ''
               }
@@ -207,6 +225,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               <InferenceServiceNameSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
+                isNameValid={isInferenceServiceNameWithinLimit}
               />
             </StackItem>
           </StackItem>
@@ -216,7 +235,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               setData={setCreateDataServingRuntime}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              acceleratorState={acceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
             />
           </StackItem>
           <StackItem>
@@ -227,9 +246,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             />
           </StackItem>
           <StackItem>
-            <ServingRuntimeReplicaSection
-              data={createDataServingRuntime}
-              setData={setCreateDataServingRuntime}
+            <KServeAutoscalerReplicaSection
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
+              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
             />
           </StackItem>
           <StackItem>
@@ -238,8 +259,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               setData={setCreateDataServingRuntime}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorState={acceleratorState}
-              setAcceleratorState={setAcceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
+              setAcceleratorProfileState={setAcceleratorProfileState}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
           <StackItem>

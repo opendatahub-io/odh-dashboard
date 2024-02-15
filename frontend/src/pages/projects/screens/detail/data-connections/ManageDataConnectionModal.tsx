@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
@@ -83,7 +83,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
 
       if (existingData) {
         if (AWSDataChanged) {
-          promiseActions.push(replaceSecret(assembledSecret, { dryRun: dryRun }));
+          promiseActions.push(replaceSecret(assembledSecret, { dryRun }));
         }
 
         const notebooksToDisconnect = allAvailableNotebooks.filter((notebook) =>
@@ -96,12 +96,12 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
               notebook.metadata.name,
               projectName,
               getSecretsFromList(notebook).filter(({ secretRef: { name } }) => name !== secretName),
-              { dryRun: dryRun },
+              { dryRun },
             ),
           ),
         );
       } else {
-        promiseActions.push(createSecret(assembledSecret, { dryRun: dryRun }));
+        promiseActions.push(createSecret(assembledSecret, { dryRun }));
       }
 
       const notebooksToConnect = allAvailableNotebooks.filter((notebook) =>
@@ -115,7 +115,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
             projectName,
             secretName,
             hasEnvFrom(notebook),
-            { dryRun: dryRun },
+            { dryRun },
           ),
         ),
       );
@@ -123,7 +123,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       if (promiseActions.length > 0) {
         setErrorMessage('');
         setIsProgress(true);
-        return await Promise.all(promiseActions)
+        return Promise.all(promiseActions)
           .then(() => Promise.resolve())
           .catch((e) => {
             setErrorMessage(e.message || 'An unknown error occurred');

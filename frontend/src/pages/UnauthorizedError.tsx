@@ -5,13 +5,21 @@ import {
   EmptyStateIcon,
   EmptyStateBody,
   PageSection,
+  PageSectionVariants,
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
-const UnauthorizedError: React.FC = () => (
-  <PageSection isFilled>
+type UnauthorizedErrorProps = {
+  variant?: PageSectionVariants;
+  accessDomain?: React.ReactNode;
+};
+const UnauthorizedError: React.FC<UnauthorizedErrorProps> = ({
+  variant = PageSectionVariants.default,
+  accessDomain = ODH_PRODUCT_NAME,
+}) => (
+  <PageSection isFilled variant={variant}>
     <EmptyState variant={EmptyStateVariant.lg}>
       <EmptyStateHeader
         titleText="Access permissions needed"
@@ -19,7 +27,7 @@ const UnauthorizedError: React.FC = () => (
         headingLevel="h5"
       />
       <EmptyStateBody>
-        To access {ODH_PRODUCT_NAME}, ask your administrator to adjust your permissions.
+        To access {accessDomain}, ask your administrator to adjust your permissions.
       </EmptyStateBody>
     </EmptyState>
   </PageSection>

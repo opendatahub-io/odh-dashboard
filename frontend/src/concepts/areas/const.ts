@@ -4,6 +4,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
     featureFlags: ['disableBYONImageStream'],
   },
+  [SupportedArea.ACCELERATOR_PROFILES]: {
+    featureFlags: ['disableAcceleratorProfiles'],
+  },
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
   },
@@ -40,5 +43,19 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     // featureFlags: [], // TODO: We want to disable, no flag exists today
     requiredComponents: [StackComponent.WORKBENCHES],
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
+  },
+  [SupportedArea.BIAS_METRICS]: {
+    featureFlags: ['disableBiasMetrics'],
+    requiredComponents: [StackComponent.TRUSTY_AI],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.PERFORMANCE_METRICS]: {
+    featureFlags: ['disablePerformanceMetrics'],
+    requiredComponents: [StackComponent.MODEL_MESH], // TODO: remove when KServe support is added
+    reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.TRUSTY_AI]: {
+    requiredComponents: [StackComponent.TRUSTY_AI],
+    reliantAreas: [SupportedArea.BIAS_METRICS],
   },
 };

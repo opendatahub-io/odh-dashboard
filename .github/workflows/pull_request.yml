@@ -10,11 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3.8.1
+        uses: actions/setup-node@v4.0.0
         with:
           node-version: ${{ matrix.node-version }}
       - name: Node.js modules cache, repository
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: repo-cache
         with:
           path: ${{ github.workspace }}/node_modules
@@ -22,7 +22,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
       - name: Node.js modules cache, backend
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: backend-cache
         with:
           path: ${{ github.workspace }}/backend/node_modules
@@ -30,10 +30,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
       - name: Node.js modules cache, frontend
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: frontend-cache
         with:
-          path: ${{ github.workspace }}/frontend/node_modules
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
@@ -43,6 +45,9 @@ jobs:
       - name: Install Playwright Browsers
         working-directory: ./frontend
         run: npx playwright install --with-deps
+      - name: Check for uncomitted changes
+        run: |
+          git diff --exit-code
       - name: Test
         if: ${{ success() }}
         run: npm run test

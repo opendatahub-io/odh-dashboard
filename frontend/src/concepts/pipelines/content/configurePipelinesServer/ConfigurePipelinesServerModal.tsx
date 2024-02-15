@@ -1,21 +1,19 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import './ConfigurePipelinesServerModal.scss';
-import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { createPipelinesCR, deleteSecret } from '~/api';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
-  DATABASE_CONNECTION_KEYS,
+  DatabaseConnectionKeys,
   EMPTY_DATABASE_CONNECTION,
-  EXTERNAL_DATABASE_SECRET,
+  ExternalDatabaseSecret,
 } from './const';
-import { configureDSPipelineResourceSpec } from './utils';
+import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
 
 type ConfigurePipelinesServerModalProps = {
@@ -25,7 +23,7 @@ type ConfigurePipelinesServerModalProps = {
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
-  objectStorage: { useExisting: true, existingName: '', existingValue: EMPTY_AWS_SECRET_DATA },
+  objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
 };
 
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
@@ -33,7 +31,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   open,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const [dataConnections, , , refresh] = useDataConnections(namespace);
+  const [dataConnections, loaded, , refresh] = useDataConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
@@ -44,23 +42,18 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     }
   }, [open, refresh]);
 
-  const canSubmit = () => {
-    const databaseIsValid = config.database.useDefault
-      ? true
-      : config.database.value.every(({ key, value }) =>
-          DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
-            .map((field) => field.key)
-            .includes(key as DATABASE_CONNECTION_KEYS)
-            ? !!value
-            : true,
-        );
+  const databaseIsValid = config.database.useDefault
+    ? true
+    : config.database.value.every(({ key, value }) =>
+        DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
+          .map((field) => field.key)
+          .includes(key as DatabaseConnectionKeys)
+          ? !!value
+          : true,
+      );
 
-    const objectStorageIsValid = config.objectStorage.useExisting
-      ? !!config.objectStorage.existingName
-      : isAWSValid(config.objectStorage.newValue);
-
-    return databaseIsValid && objectStorageIsValid;
-  };
+  const objectIsValid = objectStorageIsValid(config.objectStorage.newValue);
+  const canSubmit = databaseIsValid && objectIsValid;
 
   const onBeforeClose = () => {
     onClose();
@@ -70,25 +63,9 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   };
 
   const submit = () => {
-    let objectStorage: PipelineServerConfigType['objectStorage'];
-    if (config.objectStorage.useExisting) {
-      const existingName = config.objectStorage.existingName;
-      const existingValue = dataConnections?.find((dc) => dc.data.metadata.name === existingName);
-      if (existingValue) {
-        objectStorage = {
-          existingValue: convertAWSSecretData(existingValue),
-          existingName,
-          useExisting: true,
-        };
-      } else {
-        throw new Error('Selected data connection does not exist');
-      }
-    } else {
-      objectStorage = {
-        newValue: config.objectStorage.newValue,
-        useExisting: false,
-      };
-    }
+    const objectStorage: PipelineServerConfigType['objectStorage'] = {
+      newValue: config.objectStorage.newValue,
+    };
     setFetching(true);
     setError(null);
 
@@ -108,7 +85,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             setError(e);
 
             // Cleanup created password secret
-            deleteSecret(project.metadata.name, EXTERNAL_DATABASE_SECRET.NAME);
+            deleteSecret(project.metadata.name, ExternalDatabaseSecret.NAME);
           });
       })
       .catch((e) => {
@@ -121,17 +98,18 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     <Modal
       title="Configure pipeline server"
       variant="medium"
+      description="Configuring a pipeline server enables you to create and manage pipelines."
       isOpen={open}
       onClose={onBeforeClose}
       actions={[
         <Button
           key="configure"
           variant="primary"
-          isDisabled={!canSubmit() || fetching}
+          isDisabled={!canSubmit || fetching}
           isLoading={fetching}
           onClick={submit}
         >
-          Configure
+          Configure pipeline server
         </Button>,
         <Button key="cancel" variant="link" onClick={onBeforeClose}>
           Cancel
@@ -139,6 +117,13 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       ]}
     >
       <Stack hasGutter>
+        <StackItem>
+          <Alert
+            variant="info"
+            isInline
+            title="Pipeline server configuration cannot be edited after creation. To use a different configuration after creation, delete the pipeline server and create a new one."
+          />
+        </StackItem>
         <StackItem>
           <Form
             onSubmit={(e) => {
@@ -149,6 +134,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             <ObjectStorageSection
               setConfig={setConfig}
               config={config}
+              loaded={loaded}
               dataConnections={dataConnections}
             />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />

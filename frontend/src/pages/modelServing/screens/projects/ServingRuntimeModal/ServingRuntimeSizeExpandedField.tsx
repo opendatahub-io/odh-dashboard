@@ -41,7 +41,7 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
         <FormGroup label="CPUs requested">
           <CPUField
             onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'requests', value)}
-            value={data.modelSize.resources?.requests?.cpu}
+            value={data.modelSize.resources.requests?.cpu}
           />
         </FormGroup>
         <FormGroup label="Memory requested">
@@ -49,19 +49,19 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             onChange={(value) =>
               handleChange(ContainerResourceAttributes.MEMORY, 'requests', value)
             }
-            value={data.modelSize.resources?.requests?.memory}
+            value={data.modelSize.resources.requests?.memory}
           />
         </FormGroup>
         <FormGroup label="CPU limit">
           <CPUField
             onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'limits', value)}
-            value={data.modelSize.resources?.limits?.cpu}
+            value={data.modelSize.resources.limits?.cpu}
           />
         </FormGroup>
         <FormGroup label="Memory limit">
           <MemoryField
             onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'limits', value)}
-            value={data.modelSize.resources?.limits?.memory}
+            value={data.modelSize.resources.limits?.memory}
           />
         </FormGroup>
       </Grid>

@@ -27,10 +27,12 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelServing: boolean;
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
-      modelMetricsNamespace: string;
       disablePipelines: boolean;
+      disableBiasMetrics: boolean;
+      disablePerformanceMetrics: boolean;
       disableKServe: boolean;
       disableModelMesh: boolean;
+      disableAcceleratorProfiles: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -369,12 +371,6 @@ export type NotebookPort = {
   protocol: string;
 };
 
-export type NotebookToleration = {
-  effect: string;
-  key: string;
-  operator: string;
-};
-
 export type VolumeMount = { mountPath: string; name: string };
 
 type EnvFrom = {
@@ -430,7 +426,7 @@ export type Notebook = K8sResourceCommon & {
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: NotebookToleration[];
+        tolerations?: Toleration[];
       };
     };
   };
@@ -489,6 +485,7 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
+  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type ImageInfo = {
@@ -703,12 +700,6 @@ export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
-export type GPUScaleType = {
-  type: 'nvidia.com/gpu' | 'amd.com/gpu';
-  min: number;
-  max: number;
-};
-
 export type MachineAutoscaler = {
   spec: {
     maxReplicas: number;
@@ -739,18 +730,7 @@ export type MachineSetList = {
   items: MachineSet[];
 } & K8sResourceCommon;
 
-export type gpuScale = {
-  availableScale: number;
-  gpuNumber: number;
-};
-
-export type GPUInfo = {
-  configured: boolean;
-  available: number;
-  autoscalers: gpuScale[];
-};
-
-export type AcceleratorInfo = {
+export type DetectedAccelerators = {
   configured: boolean;
   available: { [key: string]: number };
   total: { [key: string]: number };
@@ -807,18 +787,16 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  accelerator: AcceleratorState;
+  acceleratorProfile: AcceleratorProfileState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
 };
 
-export type AcceleratorState = {
-  accelerator?: AcceleratorKind;
+export type AcceleratorProfileState = {
+  acceleratorProfile?: AcceleratorProfileKind;
   count: number;
 };
-
-export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
 
 type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string; // the description provided by the user
@@ -908,16 +886,35 @@ export type ServingRuntime = K8sResourceCommon & {
       args: string[];
       image: string;
       name: string;
-      resources: ContainerResources;
+      resources?: ContainerResources;
       volumeMounts?: VolumeMount[];
     }[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
+    replicas?: number;
     volumes?: Volume[];
   };
 };
 
-export type AcceleratorKind = K8sResourceCommon & {
+export enum TolerationOperator {
+  EXISTS = 'Exists',
+  EQUAL = 'Equal',
+}
+
+export enum TolerationEffect {
+  NO_SCHEDULE = 'NoSchedule',
+  PREFER_NO_SCHEDULE = 'PreferNoSchedule',
+  NO_EXECUTE = 'NoExecute',
+}
+
+export type Toleration = {
+  key: string;
+  operator?: TolerationOperator;
+  value?: string;
+  effect?: TolerationEffect;
+  tolerationSeconds?: number;
+};
+
+export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: Partial<{
@@ -929,7 +926,7 @@ export type AcceleratorKind = K8sResourceCommon & {
     enabled: boolean;
     identifier: string;
     description?: string;
-    tolerations?: NotebookToleration[];
+    tolerations?: Toleration[];
   };
 };
 
@@ -965,3 +962,23 @@ export type DataScienceClusterList = {
   kind: 'DataScienceClusterList';
   items: DataScienceClusterKind[];
 };
+
+export type SubscriptionStatusData = {
+  installedCSV?: string;
+  installPlanRefNamespace?: string;
+};
+
+export type CronJobKind = {
+  spec: {
+    jobTemplate: {
+      spec: {
+        template: {
+          metadata: {
+            labels?: { [key: string]: string };
+          };
+        };
+      };
+    };
+    suspend: boolean;
+  };
+} & K8sResourceCommon;

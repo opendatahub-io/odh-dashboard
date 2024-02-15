@@ -75,7 +75,13 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
               {title}
             </Title>
           </FlexItem>
-          {actions && <FlexItem>{actions}</FlexItem>}
+          {actions && (
+            <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
+              {actions.map((action, index) => (
+                <FlexItem key={index}>{action}</FlexItem>
+              ))}
+            </Flex>
+          )}
           {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
         </Flex>
       </StackItem>

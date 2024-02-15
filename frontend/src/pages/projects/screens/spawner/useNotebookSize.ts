@@ -29,7 +29,7 @@ export const useNotebookSize = (): {
     (name: string) => {
       let foundSize = sizes.find((size) => size.name === name);
       if (!foundSize) {
-        foundSize = sizes[0];
+        [foundSize] = sizes;
         notification.warning(
           'The size you select is no longer available, we have set the size to the default one.',
         );

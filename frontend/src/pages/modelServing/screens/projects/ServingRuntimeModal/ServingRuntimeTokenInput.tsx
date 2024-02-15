@@ -33,7 +33,8 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
 }) => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter(
-      (token) => token.name === name || token.editName === translateDisplayNameForK8s(name),
+      (currentToken) =>
+        currentToken.name === name || currentToken.editName === translateDisplayNameForK8s(name),
     );
     return duplicates.length > 0;
   };
@@ -41,7 +42,8 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   const checkValid = (value: string) => {
     if (value.length === 0) {
       return 'Required';
-    } else if (checkDuplicates(value)) {
+    }
+    if (checkDuplicates(value)) {
       return 'Duplicates are invalid';
     }
     return '';
@@ -61,7 +63,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
             isDisabled={disabled}
             onChange={(e, value) => {
-              const tokens = data.tokens?.map((item) =>
+              const tokens = data.tokens.map((item) =>
                 item.uuid === token.uuid
                   ? {
                       uuid: token.uuid,

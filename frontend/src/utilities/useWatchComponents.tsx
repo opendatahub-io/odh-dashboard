@@ -31,9 +31,7 @@ export const useWatchComponents = (
     watchComponents();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, [installed]);
 
@@ -52,7 +50,7 @@ export const useWatchComponents = (
     }
   }, [forceUpdate, installed]);
 
-  const retComponents = useDeepCompareMemoize<OdhApplication[]>(components);
+  const retComponents = useDeepCompareMemoize(components);
 
-  return { components: retComponents || [], loaded, loadError };
+  return { components: retComponents, loaded, loadError };
 };

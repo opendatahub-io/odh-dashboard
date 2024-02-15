@@ -14,18 +14,6 @@
       display: none;
     }
   }
-  &__variable-input {
-    max-width: calc(400px - var(--pf-v5-global--spacer--md));
-    margin-right: var(--pf-v5-global--spacer--xl);
-  }
-  &__toggle-password-vis {
-    border: 1px solid var(--pf-v5-global--BorderColor--300);
-    border-radius: 0;
-    color: var(--pf-v5-global--Color--200) !important;
-    padding: 6px var(--pf-v5-global--spacer--sm) 5px;
-    position: relative;
-    right: 33px;
-  }
   .pf-v5-c-modal-box__title-text {
     text-overflow: initial;
     white-space: break-spaces;

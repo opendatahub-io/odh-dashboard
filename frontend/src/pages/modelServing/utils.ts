@@ -1,4 +1,5 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   isCpuLimitEqual,
   isCpuLimitLarger,
@@ -16,15 +17,16 @@ import {
   createServiceAccount,
   getRoleBinding,
   addOwnerReference,
+  getServiceAccount,
 } from '~/api';
 import {
   SecretKind,
-  K8sStatus,
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
   DataScienceClusterKindStatus,
   InferenceServiceKind,
+  ServiceAccountKind,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -34,8 +36,13 @@ import {
   ServingRuntimeSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
-import { getAcceleratorGpuCount } from '~/utilities/utils';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { getAcceleratorProfileCount } from '~/utilities/utils';
+
+type TokenNames = {
+  serviceAccountName: string;
+  roleBindingName: string;
+};
 
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
@@ -61,7 +68,7 @@ export const setUpTokenAuth = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
-  createRolebinding: boolean,
+  createTokenAuth: boolean,
   owner: ServingRuntimeKind,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
@@ -76,13 +83,29 @@ export const setUpTokenAuth = async (
     generateRoleBindingServingRuntime(roleBindingName, serviceAccountName, namespace),
     owner,
   );
-  return Promise.all([
-    ...(existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
-    ...(createRolebinding ? [createRoleBindingIfMissing(roleBinding, namespace, opts)] : []),
-  ])
+  return (
+    createTokenAuth
+      ? Promise.all([
+          createServiceAccountIfMissing(serviceAccount, namespace, opts),
+          createRoleBindingIfMissing(roleBinding, namespace, opts),
+        ])
+      : Promise.resolve()
+  )
     .then(() => createSecrets(fillData, servingRuntimeName, namespace, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
+
+export const createServiceAccountIfMissing = async (
+  serviceAccount: ServiceAccountKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<ServiceAccountKind> =>
+  getServiceAccount(serviceAccount.metadata.name, namespace).catch((e) => {
+    if (e.statusObject?.code === 404) {
+      return createServiceAccount(serviceAccount, opts);
+    }
+    return Promise.reject(e);
+  });
 
 export const createRoleBindingIfMissing = async (
   rolebinding: RoleBindingKind,
@@ -130,7 +153,7 @@ export const createSecrets = async (
     .catch((error) => Promise.reject(error));
 };
 
-export const getTokenNames = (servingRuntimeName: string, namespace: string) => {
+export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
   const name =
     servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
 
@@ -144,11 +167,11 @@ export const getServingRuntimeSize = (
   sizes: ServingRuntimeSize[],
   servingRuntime?: ServingRuntimeKind,
 ): ServingRuntimeSize => {
-  const existingResources = servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
+  const existingResources = servingRuntime?.spec.containers[0]?.resources || sizes[0].resources;
   const size = sizes.find(
-    (size) =>
-      isCpuLimitEqual(size.resources.limits?.cpu, existingResources.limits?.cpu) &&
-      isMemoryLimitEqual(size.resources.limits?.memory, existingResources.limits?.memory),
+    (currentSize) =>
+      isCpuLimitEqual(currentSize.resources.limits?.cpu, existingResources.limits?.cpu) &&
+      isMemoryLimitEqual(currentSize.resources.limits?.memory, existingResources.limits?.memory),
   );
   return (
     size || {
@@ -166,49 +189,52 @@ export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeTo
     error: '',
   }));
 
-const isAcceleratorChanged = (
-  acceleratorState: AcceleratorState,
+const isAcceleratorProfileChanged = (
+  acceleratorProfileState: AcceleratorProfileState,
   servingRuntime: ServingRuntimeKind,
 ) => {
-  const accelerator = acceleratorState.accelerator;
-  const initialAccelerator = acceleratorState.initialAccelerator;
+  const { acceleratorProfile } = acceleratorProfileState;
+  const { initialAcceleratorProfile } = acceleratorProfileState;
 
   // both are none, check if it's using existing
-  if (!accelerator && !initialAccelerator) {
-    if (acceleratorState.additionalOptions?.useExisting) {
-      return !acceleratorState.useExisting;
+  if (!acceleratorProfile && !initialAcceleratorProfile) {
+    if (acceleratorProfileState.additionalOptions?.useExisting) {
+      return !acceleratorProfileState.useExisting;
     }
     return false;
   }
 
   // one is none, another is set, changed
-  if (!accelerator || !initialAccelerator) {
+  if (!acceleratorProfile || !initialAcceleratorProfile) {
     return true;
   }
 
   // compare the name, gpu count
   return (
-    accelerator.metadata.name !== initialAccelerator.metadata.name ||
-    acceleratorState.count !==
-      getAcceleratorGpuCount(initialAccelerator, servingRuntime.spec.containers[0].resources)
+    acceleratorProfile.metadata.name !== initialAcceleratorProfile.metadata.name ||
+    acceleratorProfileState.count !==
+      getAcceleratorProfileCount(
+        initialAcceleratorProfile,
+        servingRuntime.spec.containers[0].resources || {},
+      )
   );
 };
 
 export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
   sizes: ServingRuntimeSize[],
-  acceleratorState: AcceleratorState,
+  acceleratorProfileState: AcceleratorProfileState,
   editInfo?: ServingRuntimeEditInfo,
-) =>
+): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
       editInfo.servingRuntime.spec.replicas !== createData.numReplicas ||
       !_.isEqual(getServingRuntimeSize(sizes, editInfo.servingRuntime), createData.modelSize) ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
-      editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
+      editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
         String(createData.tokenAuth) ||
-      isAcceleratorChanged(acceleratorState, editInfo.servingRuntime) ||
+      isAcceleratorProfileChanged(acceleratorProfileState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&
         !_.isEqual(
           getServingRuntimeTokens(editInfo.secrets)
@@ -223,5 +249,5 @@ export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus
     (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
   )?.message || '';
 
-export const isModelMesh = (inferenceService: InferenceServiceKind) =>
+export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';

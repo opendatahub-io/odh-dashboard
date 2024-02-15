@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
-import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
+import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
@@ -45,8 +45,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
     setSearch('');
   };
 
-  const searchTypes = React.useMemo(() => Object.values(SearchType), []);
-
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
   const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
@@ -78,14 +76,14 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
         toolbarContent={
           <React.Fragment>
             <ToolbarItem>
-              <SearchField
-                types={searchTypes}
+              <DashboardSearchField
+                types={[SearchType.NAME, SearchType.USER]}
                 searchType={searchType}
                 searchValue={search}
-                onSearchTypeChange={(searchType) => {
-                  setSearchType(searchType);
+                onSearchTypeChange={(newSearchType: SearchType) => {
+                  setSearchType(newSearchType);
                 }}
-                onSearchValueChange={(searchValue) => {
+                onSearchValueChange={(searchValue: string) => {
                   setSearch(searchValue);
                 }}
               />

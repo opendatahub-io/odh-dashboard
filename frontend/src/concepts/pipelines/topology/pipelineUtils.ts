@@ -6,6 +6,14 @@ import {
 } from '~/k8sTypes';
 import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 
+export const getParamName = (param: string): string | null => {
+  const paramValueMatch = param.match(/^\$\((params\.([a-zA-Z0-9-_]+))\)/);
+  if (!paramValueMatch) {
+    return null;
+  }
+  return paramValueMatch[1].split('.')[1];
+};
+
 export const getNameAndPathFromTaskRef = (taskRef: string): [string, string] | null => {
   const match = taskRef.match(/\$\(tasks\.([a-z0-9-]+)\.(.+)\)/);
   if (!match) {
@@ -33,8 +41,8 @@ export const whenAsRunAfter: AsRunAfter<PipelineRunTaskWhen> = (when) => {
   return null;
 };
 
-export const getRunStatus = (status: PipelineRunTaskRunStatusProperties): RunStatus => {
-  const successCondition = status.conditions?.find((s) => s.type === 'Succeeded');
+export const getRunStatus = (status?: PipelineRunTaskRunStatusProperties): RunStatus => {
+  const successCondition = status?.conditions?.find((s) => s.type === 'Succeeded');
   // const cancelledCondition = status.conditions.find((s) => s.status === 'Cancelled');
 
   if (!successCondition || !successCondition.status) {
@@ -62,7 +70,7 @@ export const getValue = (task: PipelineRunTaskDetails, path: string): string | n
   if (parts[0] === 'results' && parts[1]) {
     const name = parts[1];
     return (
-      task.runDetails.status.taskResults?.find((result) => result.name === name)?.value ?? null
+      task.runDetails.status?.taskResults?.find((result) => result.name === name)?.value ?? null
     );
   }
 

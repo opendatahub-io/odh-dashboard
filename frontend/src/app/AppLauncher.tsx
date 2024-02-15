@@ -63,7 +63,7 @@ const AppLauncher: React.FC = () => {
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();
 
-  const disableClusterManager = dashboardConfig.spec.dashboardConfig.disableClusterManager;
+  const { disableClusterManager } = dashboardConfig.spec.dashboardConfig;
 
   const applicationSections = React.useMemo<Section[]>(() => {
     const applicationLinks = consoleLinks
@@ -99,7 +99,9 @@ const AppLauncher: React.FC = () => {
         href: link.spec.href,
         image: <img src={link.spec.applicationMenu?.imageUrl} alt="" />,
       };
-      const section = acc.find((section) => section.label === link.spec.applicationMenu?.section);
+      const section = acc.find(
+        (currentSection) => currentSection.label === link.spec.applicationMenu?.section,
+      );
       if (section) {
         section.actions.push(action);
       } else {

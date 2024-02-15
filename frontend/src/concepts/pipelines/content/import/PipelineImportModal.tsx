@@ -10,7 +10,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useImportModalData from '~/concepts/pipelines/content/import/useImportModalData';
+import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
@@ -24,9 +24,9 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [{ name, description, fileContents }, setData, resetData] = useImportModalData();
+  const [{ name, description, fileContents }, setData, resetData] = usePipelineImportModalData();
 
-  const haveEnoughData = !!name && !!fileContents;
+  const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents;
 
   const onBeforeClose = (pipeline?: PipelineKF) => {
     onClose(pipeline);
@@ -44,7 +44,8 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
         <Button
           key="import-button"
           variant="primary"
-          isDisabled={!apiAvailable || importing || !haveEnoughData}
+          isDisabled={isImportButtonDisabled}
+          isLoading={importing}
           onClick={() => {
             setImporting(true);
             setError(undefined);
@@ -64,6 +65,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
         </Button>,
       ]}
       variant="medium"
+      data-testid="import-pipeline-modal"
     >
       <Form>
         <Stack hasGutter>
