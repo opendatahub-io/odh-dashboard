@@ -135,6 +135,7 @@ export type OdhApplication = {
     link?: string | null;
     img: string;
     docsLink: string;
+    hidden?: boolean | null;
     getStartedLink: string;
     getStartedMarkDown: string;
     category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
