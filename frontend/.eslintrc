@@ -178,6 +178,14 @@
         ]
       }
     ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "Promise",
+        "property": "allSettled",
+        "message": "Avoid using Promise.allSettled, use allSettledPromises utility function instead."
+      }
+    ],
     "import/newline-after-import": "error",
     "import/no-duplicates": "error",
     "import/no-named-as-default": "error",
