@@ -18,6 +18,11 @@ describe('Explore Page', { testIsolation: false }, () => {
     explorePage.findDrawerPanel().should('be.visible');
   });
 
+  it('hidden app should not exist', () => {
+    explorePage.visit();
+    explorePage.findExploreCard('rhoai').should('not.exist');
+  });
+
   it('card title should be visible', () => {
     cy.get('span').should('contain', 'Jupyter');
   });
