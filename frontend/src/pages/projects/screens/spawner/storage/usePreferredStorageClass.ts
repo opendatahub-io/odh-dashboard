@@ -33,7 +33,7 @@ const usePreferredStorageClass = (): StorageClassKind | undefined => {
   if (storageClassDashBoardConfigVsCluster.length === 0) {
     // eslint-disable-next-line no-console
     console.error(
-      'no cluster default storageclass set and notebooks.storageClassName entry is not in list of cluster StorageClasses',
+      'no cluster default storageclass set and notebookController.storageClassName entry is not in list of cluster StorageClasses',
     );
 
     return undefined;
