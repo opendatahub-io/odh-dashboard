@@ -103,7 +103,7 @@ const useCustomNotebooksNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.BYON, [
     {
       id: 'settings-notebook-images',
-      label: 'Notebook image settings',
+      label: 'Notebook images',
       href: '/notebookImages',
     },
   ]);

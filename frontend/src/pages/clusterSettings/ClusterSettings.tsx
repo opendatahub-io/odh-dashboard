@@ -133,7 +133,7 @@ const ClusterSettings: React.FC = () => {
   return (
     <ApplicationsPage
       title="Cluster settings"
-      description="Update global settings for all users."
+      description="Manage global settings for all users."
       loaded={loaded}
       empty={false}
       loadError={loadError}
