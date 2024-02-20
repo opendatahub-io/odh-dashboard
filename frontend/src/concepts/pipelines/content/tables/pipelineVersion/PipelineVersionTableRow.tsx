@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Td, Tr } from '@patternfly/react-table';
-import { Button } from '@patternfly/react-core';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
@@ -18,6 +17,8 @@ type PipelineVersionTableRowProps = {
   ) => string;
   version: PipelineVersionKFv2;
   isDisabled: boolean;
+  pipeline: PipelineKFv2;
+  onDeleteVersion: () => void;
 };
 
 const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
@@ -26,6 +27,8 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   pipelineVersionDetailsPath,
   version,
   isDisabled,
+  pipeline,
+  onDeleteVersion,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
@@ -59,24 +62,42 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
       <Td>
         <PipelinesTableRowTime date={createdDate} />
       </Td>
-      <Td>
-        <Button
-          variant="link"
-          isInline
-          onClick={() =>
-            navigate(
-              {
-                pathname: `/pipelineRuns/${namespace}`,
-                search: `?runType=${PipelineRunType.Triggered}`,
+      <Td isActionCell>
+        <ActionsColumn
+          items={[
+            {
+              title: 'Create run',
+              onClick: () => {
+                navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                  state: { lastPipeline: pipeline, lastVersion: version },
+                });
               },
-              {
-                state: { lastVersion: version },
+            },
+            {
+              title: 'View runs',
+              onClick: () => {
+                navigate(
+                  {
+                    pathname: `/pipelineRuns/${namespace}`,
+                    search: `?runType=${PipelineRunType.Triggered}`,
+                  },
+                  {
+                    state: { lastVersion: version },
+                  },
+                );
               },
-            )
-          }
-        >
-          View runs
-        </Button>
+            },
+            {
+              isSeparator: true,
+            },
+            {
+              title: 'Delete pipeline version',
+              onClick: () => {
+                onDeleteVersion();
+              },
+            },
+          ]}
+        />
       </Td>
     </Tr>
   );
