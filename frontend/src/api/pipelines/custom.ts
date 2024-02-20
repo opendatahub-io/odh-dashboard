@@ -44,10 +44,8 @@ const pipelineParamsToQuery = (params?: PipelineParams) => ({
   ...commonPipelineQueryParams(params),
 });
 
-export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, name, description) =>
-  handlePipelineFailures(
-    proxyCREATE(hostPath, `/apis/v2beta1/experiments`, { name, description }, {}, opts),
-  );
+export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, data) =>
+  handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/experiments`, data, {}, opts));
 
 export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data) =>
   handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/runs`, data, {}, opts));

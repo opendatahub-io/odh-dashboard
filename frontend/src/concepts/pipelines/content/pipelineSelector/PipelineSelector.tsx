@@ -17,14 +17,11 @@ import {
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
-import { usePipelineLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
+import { usePipelineSelector } from '~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
 
 type PipelineSelectorProps = {
   selection?: string;
@@ -34,30 +31,23 @@ type PipelineSelectorProps = {
 const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect }) => {
   const [isOpen, setOpen] = React.useState(false);
 
-  const [
-    [{ items: initialData, totalSize: fetchedSize, nextPageToken: initialPageToken }, loaded],
-    { initialLoaded, ...tableProps },
-  ] = usePipelinesTable();
-  const sortProps = getTableSortProps(tableProps);
-  const { setFilter, filter, sortDirection, sortField } = tableProps;
-
-  const { totalSize, ...searchProps } = useSelectorSearch({ setFilter, fetchedSize, loaded });
-  const { onClear } = searchProps;
-
-  const { data: pipelines, onLoadMore } = usePipelineLoadMore({
-    initialData,
-    initialPageToken,
-    sortDirection,
-    sortField,
+  const {
+    fetchedSize,
+    totalSize,
+    searchProps,
+    onSearchClear,
+    onLoadMore,
+    sortProps,
     loaded,
-    filter,
-  });
+    initialLoaded,
+    data: pipelines,
+  } = usePipelineSelector();
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
 
   const menu = (
-    <Menu data-id="pipeline-selector-menu" ref={menuRef} isScrollable>
+    <Menu data-testid="pipeline-selector-menu" ref={menuRef} isScrollable>
       <MenuContent>
         <MenuSearch>
           <MenuSearchInput>
@@ -76,7 +66,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}
-                  onClearFilters={onClear}
+                  onClearFilters={onSearchClear}
                   variant={EmptyStateVariant.xs}
                 />
               }

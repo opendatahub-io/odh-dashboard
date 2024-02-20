@@ -1,5 +1,6 @@
 import { ProjectKind } from '~/k8sTypes';
 import {
+  ExperimentKFv2,
   PipelineKFv2,
   PipelineVersionKFv2,
   RuntimeConfigParameters,
@@ -48,6 +49,7 @@ export type RunFormData = {
   nameDesc: { name: string; description: string };
   pipeline: PipelineKFv2 | null;
   version: PipelineVersionKFv2 | null;
+  experiment: ExperimentKFv2 | null;
   runType: RunType;
   params?: RuntimeConfigParameters;
 };

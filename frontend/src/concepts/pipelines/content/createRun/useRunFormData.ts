@@ -10,6 +10,7 @@ import {
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
+  ExperimentKFv2,
   PipelineKFv2,
   PipelineRunJobKFv2,
   PipelineRunKFv2,
@@ -90,6 +91,19 @@ const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
+const useUpdateExperimentFormData = (
+  formState: GenericObjectState<RunFormData>,
+  experiment: ExperimentKFv2 | null | undefined,
+) => {
+  const [formData, setFormValue] = formState;
+
+  React.useEffect(() => {
+    if (!formData.experiment && experiment) {
+      setFormValue('experiment', experiment);
+    }
+  }, [formData.experiment, setFormValue, experiment]);
+};
+
 const useUpdatePipelineFormData = (
   formState: GenericObjectState<RunFormData>,
   pipeline: PipelineKFv2 | null | undefined,
@@ -113,7 +127,7 @@ const useRunFormData = (
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
-  const { pipeline, version } = initialFormData || {};
+  const { pipeline, version, experiment } = initialFormData || {};
 
   const formState = useGenericObjectState<RunFormData>({
     project,
@@ -123,12 +137,14 @@ const useRunFormData = (
     },
     pipeline: pipeline ?? null,
     version: version ?? null,
+    experiment: experiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: run?.runtime_config?.parameters || {},
     ...initialFormData,
   });
   const [, setFormValue] = formState;
 
+  useUpdateExperimentFormData(formState, experiment);
   useUpdatePipelineFormData(formState, pipeline, version);
   useUpdateRunType(setFormValue, run);
 

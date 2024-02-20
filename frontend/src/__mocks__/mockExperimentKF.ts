@@ -9,3 +9,17 @@ export const buildMockExperimentKF = (experiment?: Partial<ExperimentKFv2>): Exp
   storage_state: StorageStateKF.AVAILABLE,
   ...experiment,
 });
+
+export const buildMockExperiments = (
+  experiments: ExperimentKFv2[] = [buildMockExperimentKF()],
+  totalSize?: number,
+  nextPageToken?: string,
+): {
+  total_size?: number | undefined;
+  next_page_token?: string | undefined;
+  experiments: ExperimentKFv2[];
+} => ({
+  experiments,
+  total_size: totalSize || experiments.length,
+  next_page_token: nextPageToken,
+});

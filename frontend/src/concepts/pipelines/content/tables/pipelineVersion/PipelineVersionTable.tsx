@@ -36,14 +36,14 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
   ...tableProps
 }) => {
   const pipelineId = pipeline.pipeline_id;
-  const { data: versions, onLoadMore } = usePipelineVersionLoadMore({
+  const [versions, onLoadMore] = usePipelineVersionLoadMore(
+    {
+      initialData: initialVersions,
+      initialPageToken: nextPageToken,
+      loaded: !loading,
+    },
     pipelineId,
-    initialData: initialVersions,
-    initialPageToken: nextPageToken,
-    sortDirection,
-    sortField,
-    loaded: !loading,
-  });
+  )({ sortDirection, sortField });
   const { isPipelineChecked } = React.useContext(PipelineAndVersionContext);
   const pipelineChecked = isPipelineChecked(pipelineId);
   const {

@@ -1,5 +1,4 @@
 /* eslint-disable camelcase */
-import startCase from 'lodash-es/startCase';
 import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   mockStatus,
@@ -11,8 +10,8 @@ import {
   buildMockPipelineV2,
   buildMockPipelineVersionV2,
   mockProjectK8sResource,
-  buildMockExperimentKF,
   buildMockJobKF,
+  buildMockExperimentKF,
 } from '~/__mocks__';
 import {
   createRunPage,
@@ -31,23 +30,28 @@ const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
   pipeline_version_id: mockPipelineVersion.pipeline_version_id,
 };
+const mockExperiments = [
+  buildMockExperimentKF({
+    display_name: 'Test experiment 1',
+    experiment_id: 'experiment-1',
+  }),
+  buildMockExperimentKF({
+    display_name: 'Test experiment 2',
+    experiment_id: 'experiment-1',
+  }),
+];
 const initialMockRuns = [
   buildMockRunKF({
     pipeline_version_reference: pipelineVersionRef,
+    experiment_id: 'experiment-1',
   }),
 ];
 const initialMockRecurringRuns = [
   buildMockJobKF({
     pipeline_version_reference: pipelineVersionRef,
+    experiment_id: 'experiment-1',
   }),
 ];
-const buildMockExperiments = (experimentIds: string[]) =>
-  experimentIds.map((experimentId) =>
-    buildMockExperimentKF({
-      experiment_id: experimentId,
-      display_name: startCase(experimentId),
-    }),
-  );
 
 describe('Pipeline create runs', () => {
   beforeEach(() => {
@@ -65,11 +69,7 @@ describe('Pipeline create runs', () => {
 
   describe('Runs', () => {
     beforeEach(() => {
-      const mockExperimentIds = [
-        ...new Set(initialMockRuns.map((mockRun) => mockRun.experiment_id)),
-      ];
-
-      buildMockExperiments(mockExperimentIds).forEach((experiment) => {
+      mockExperiments.forEach((experiment) => {
         cy.intercept(
           {
             method: 'POST',
@@ -94,7 +94,8 @@ describe('Pipeline create runs', () => {
         },
       };
 
-      // Mock pipelines & versions for form select dropdowns
+      // Mock experiments & pipelines & versions for form select dropdowns
+      createRunPage.mockGetExperiments(mockExperiments).as('getExperiments');
       createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
       createRunPage
         .mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id)
@@ -108,6 +109,8 @@ describe('Pipeline create runs', () => {
       // Fill out the form without a schedule and submit
       createRunPage.fillName('New run');
       createRunPage.fillDescription('New run description');
+      createRunPage.findExperimentSelect().should('not.be.disabled');
+      createRunPage.selectExperimentByName('Test experiment 1');
       createRunPage.findPipelineSelect().should('not.be.disabled');
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.findPipelineVersionSelect().should('not.be.disabled');
@@ -123,12 +126,15 @@ describe('Pipeline create runs', () => {
 
     it('duplicates an active run', () => {
       const [mockRun] = initialMockRuns;
+      const mockExperiment = mockExperiments[0];
       const mockDuplicateRun = buildMockRunKF({
         display_name: 'Duplicate of Test run',
         run_id: 'duplicate-run-id',
+        experiment_id: mockExperiment.experiment_id,
       });
 
-      // Mock pipelines & versions for form select dropdowns
+      // Mock experiments & pipelines & versions for form select dropdowns
+      cloneRunPage.mockGetExperiments(mockExperiments).as('getExperiments');
       cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
       cloneRunPage
         .mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id)
@@ -136,6 +142,7 @@ describe('Pipeline create runs', () => {
       cloneRunPage.mockGetRun(mockRun);
       cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
       cloneRunPage.mockGetPipeline(mockPipeline);
+      cloneRunPage.mockGetExperiment(mockExperiment);
 
       // Mock runs list with newly cloned run
       activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun]).as('refreshRuns');
@@ -146,6 +153,7 @@ describe('Pipeline create runs', () => {
       cy.url().should('include', `/pipelineRun/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
+      cloneRunPage.findExperimentSelect().should('have.text', mockExperiment.display_name);
       cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.display_name);
       cloneRunPage
         .findPipelineVersionSelect()
@@ -165,11 +173,7 @@ describe('Pipeline create runs', () => {
 
   describe('Schedules', () => {
     beforeEach(() => {
-      const mockExperimentIds = [
-        ...new Set(initialMockRecurringRuns.map((mockRun) => mockRun.experiment_id)),
-      ];
-
-      buildMockExperiments(mockExperimentIds).forEach((experiment) => {
+      mockExperiments.forEach((experiment) => {
         cy.intercept(
           {
             method: 'POST',
@@ -197,6 +201,7 @@ describe('Pipeline create runs', () => {
       };
 
       // Mock pipelines & versions for form select dropdowns
+      createSchedulePage.mockGetExperiments(mockExperiments).as('getExperiments');
       createSchedulePage.mockGetPipelines([mockPipeline]).as('getPipelines');
       createSchedulePage
         .mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id)
@@ -215,6 +220,8 @@ describe('Pipeline create runs', () => {
       // Fill out the form with a schedule and submit
       createSchedulePage.fillName('New job');
       createSchedulePage.fillDescription('New job description');
+      createSchedulePage.findExperimentSelect().should('not.be.disabled');
+      createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage.findPipelineSelect().should('not.be.disabled');
       createSchedulePage.selectPipelineByName('Test pipeline');
       createSchedulePage.findPipelineVersionSelect().should('not.be.disabled');
@@ -231,12 +238,15 @@ describe('Pipeline create runs', () => {
 
     it('duplicates a schedule', () => {
       const [mockRecurringRun] = initialMockRecurringRuns;
+      const mockExperiment = mockExperiments[0];
       const mockDuplicateRecurringRun = buildMockJobKF({
         display_name: 'Duplicate of Test job',
         recurring_run_id: 'duplicate-job-id',
+        experiment_id: mockExperiment.experiment_id,
       });
 
       // Mock pipelines & versions for form select dropdowns
+      cloneSchedulePage.mockGetExperiments(mockExperiments).as('getExperiments');
       cloneSchedulePage.mockGetPipelines([mockPipeline]).as('getPipelines');
       cloneSchedulePage
         .mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id)
@@ -244,6 +254,7 @@ describe('Pipeline create runs', () => {
       cloneSchedulePage.mockGetRecurringRun(mockRecurringRun);
       cloneSchedulePage.mockGetPipelineVersion(mockPipelineVersion);
       cloneSchedulePage.mockGetPipeline(mockPipeline);
+      cloneSchedulePage.mockGetExperiment(mockExperiment);
 
       // Mock jobs list with newly cloned job
       pipelineRunJobTable
@@ -255,6 +266,7 @@ describe('Pipeline create runs', () => {
       cy.url().should('include', `/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}`);
 
       // Verify pre-populated values & submit
+      cloneSchedulePage.findExperimentSelect().should('have.text', mockExperiment.display_name);
       cloneSchedulePage.findPipelineSelect().should('have.text', mockPipeline.display_name);
       cloneSchedulePage
         .findPipelineVersionSelect()
@@ -346,7 +358,7 @@ describe('Pipeline create runs', () => {
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
+  cy.intercept('/api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
   mockDspaIntercepts();
 
   cy.intercept(

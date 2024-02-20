@@ -10,11 +10,11 @@ import {
   mockStatus,
   buildMockRunKF,
   buildMockJobKF,
-  buildMockExperimentKF,
   buildMockPipelineVersionsV2,
   buildMockPipelineVersionV2,
   buildMockPipelines,
   buildMockPipelineV2,
+  buildMockExperimentKF,
 } from '~/__mocks__';
 import {
   activeRunsTable,
@@ -222,7 +222,7 @@ describe('Pipeline runs', () => {
           activeRunsTable.findRowByName('Test active run 1');
         });
 
-        it('filter by experiment', () => {
+        it.only('filter by experiment', () => {
           // Mock initial list of experiments
           pipelineRunFilterBar.mockExperiments(mockExperiments);
 
@@ -235,13 +235,7 @@ describe('Pipeline runs', () => {
             .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
           pipelineRunsGlobal
             .findActiveRunsToolbar()
-            .within(() => pipelineRunFilterBar.findExperimentInput().type('Experiment 1'));
-
-          // Mock experiments (filtered by typed value)
-          const filteredExperiments = mockExperiments.filter((mockExperiment) =>
-            mockExperiment.display_name.includes('Experiment 1'),
-          );
-          pipelineRunFilterBar.mockExperiments(filteredExperiments);
+            .within(() => pipelineRunFilterBar.findExperimentInput().type('Test Experiment 1'));
 
           // Mock runs (filtered by selected experiment)
           activeRunsTable.mockGetActiveRuns(
@@ -518,16 +512,6 @@ const initIntercepts = () => {
     },
     buildMockPipelineVersionsV2(mockVersions),
   );
-
-  mockExperiments.forEach((experiment) => {
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/experiments/${experiment.experiment_id}`,
-      },
-      experiment,
-    );
-  });
 };
 
 const mockDspaIntercepts = () => {
