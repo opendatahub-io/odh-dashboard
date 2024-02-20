@@ -1,6 +1,17 @@
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { TableRow } from './components/table';
+
+class NotebookRow extends TableRow {
+  findNotebookImageAvailability() {
+    return cy.findByTestId('notebook-image-availability');
+  }
+
+  shouldHaveNotebookImageName(name: string) {
+    return cy.findByTestId('image-display-name').should('have.text', name);
+  }
+}
 
 class ProjectListPage {
   visit() {
@@ -72,6 +83,33 @@ class ProjectDetails {
   private wait() {
     cy.findByRole('tab', { name: 'Components' });
     cy.testA11y();
+  }
+
+  findComponent(componentName: string) {
+    return cy.findByTestId(componentName);
+  }
+
+  findEmptyState(componentName: string) {
+    return this.findComponent(componentName).findByTestId('empty-state-title');
+  }
+
+  shouldDivide() {
+    cy.findAllByTestId('details-page-section').then((sections) => {
+      cy.wrap(sections)
+        .find('.odh-details-section--divide')
+        .should('have.length', sections.length - 1);
+    });
+    return this;
+  }
+
+  private findTable() {
+    return cy.findByTestId('notebook-image');
+  }
+
+  getNotebookRow(name: string) {
+    return new NotebookRow(() =>
+      this.findTable().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
   }
 
   findTab(name: string) {
