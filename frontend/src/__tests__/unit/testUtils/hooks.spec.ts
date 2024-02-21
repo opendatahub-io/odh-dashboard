@@ -168,6 +168,10 @@ describe('hook test utils', () => {
       expect([1, 2, 3]).toStrictEqual(createComparativeValue([1, 2, 4], [true, true, false]));
       expect([1, 2, 3]).toStrictEqual(createComparativeValue([1, 2, 4], [true, true]));
       expect([1, 2, 3]).not.toStrictEqual(createComparativeValue([1, 4, 3], [true, true, true]));
+      expect([3, 2, 1]).not.toStrictEqual(createComparativeValue([1, 2, 3], [true, true, true]));
+      expect([true, false]).not.toStrictEqual(createComparativeValue([false, true], [true, true]));
+      // array comparison must have the same length, however the stability array may have a lesser length
+      expect([1, 2, 3, 4]).toStrictEqual(createComparativeValue([1, 2, 3, 5], [true, true, true]));
     });
 
     it('should extract object values according to the boolean object', () => {
@@ -198,7 +202,7 @@ describe('hook test utils', () => {
       };
       expect(testValue).toStrictEqual(
         createComparativeValue(
-          { a: 10, b: { c: 2, d: [null, 'f'] } },
+          { a: 10, b: { c: 2, d: [null, 'f', null] } },
           {
             b: {
               c: true,
