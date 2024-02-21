@@ -142,7 +142,7 @@ export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boo
     PIPELINE_AWS_FIELDS.filter((field) => field.isRequired)
       .map((field) => field.key)
       .includes(key)
-      ? !!value
+      ? !!value.trim()
       : true,
   );
 
