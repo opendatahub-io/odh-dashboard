@@ -28,11 +28,6 @@ export const columns: SortableData<DataConnection>[] = [
     sortable: false,
   },
   {
-    field: 'provider',
-    label: 'Provider',
-    sortable: false,
-  },
-  {
     field: 'kebab',
     label: '',
     sortable: false,
