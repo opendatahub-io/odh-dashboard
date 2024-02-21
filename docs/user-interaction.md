@@ -156,3 +156,19 @@ type: Opaque
 data:
    segmentKey: [segment key in base64]
 ```
+
+### odh-dashboard-config.yaml 
+
+Last but not least the `disableTracking` property in the odh-config must
+be set appropriately:
+
+```yaml
+apiVersion: opendatahub.io/v1alpha
+kind: OdhDashboardConfig
+metadata:
+  name: odh-dashboard-config
+  namespace: opendatahub
+spec:
+  dashboardConfig:
+    disableTracking: false
+```
