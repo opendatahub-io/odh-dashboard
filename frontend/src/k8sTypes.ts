@@ -1,4 +1,4 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
@@ -589,6 +589,295 @@ export type DSPipelineKind = K8sResourceCommon & {
   };
 };
 
+export type ClusterQueueKind = K8sResourceCommon & {
+  spec: {
+    admissionChecks?: string[];
+    cohort?: string;
+    flavorFungibility?: {
+      whenCanBorrow: 'Borrow' | 'TryNextFlavor';
+      whenCanPreempt: 'Preempt' | 'TryNextFlavor';
+    };
+    namespaceSelector?: {
+      matchExpressions?: MatchExpression[];
+      matchLabels?: Record<string, string>;
+    };
+    preemption?: {
+      borrowWithinCohort?: {
+        maxPriorityThreshold?: number;
+        policy?: 'Never' | 'LowerPriority';
+      };
+      reclaimWithinCohort?: 'Never' | 'LowerPriority' | 'Any';
+      withinClusterQueue?: 'Never' | 'LowerPriority' | 'LowerOrNewerEqualPriority';
+    };
+    queueingStrategy?: 'StrictFIFO' | 'BestEffortFIFO';
+    resourceGroups?: {
+      coveredResources: string[];
+      flavors: {
+        name: string;
+        resources: {
+          name: string;
+          nominalQuota: string | number; // e.g. 9 for cpu/pods, "36Gi" for memory
+        }[];
+      }[];
+    }[];
+    stopPolicy?: 'None' | 'Hold' | 'HoldAndDrain';
+  };
+  status?: {
+    admittedWorkloads?: number;
+    conditions?: {
+      lastTransitionTime: string;
+      message: string;
+      observedGeneration?: number;
+      reason: string;
+      status: 'True' | 'False' | 'Unknown';
+      type: string;
+    }[];
+    flavorsReservation?: {
+      name: string;
+      resources: {
+        name: string;
+        borrowed?: string | number;
+        total?: string | number;
+      }[];
+    }[];
+    flavorsUsage?: {
+      name: string;
+      resources: {
+        name: string;
+        borrowed?: string | number;
+        total?: string | number;
+      }[];
+    }[];
+    pendingWorkloads?: number;
+    pendingWorkloadsStatus?: {
+      clusterQueuePendingWorkload?: {
+        name: string;
+        namespace: string;
+      }[];
+      lastChangeTime: string;
+    };
+    reservingWorkloads?: number;
+  };
+};
+
+type WorkloadPodAffinityTerm = {
+  labelSelector?: {
+    matchExpressions?: MatchExpression[];
+    matchLabels?: Record<string, string>;
+  };
+  matchLabelKeys?: string[];
+  mismatchLabelKeys?: string[];
+  namespaceSelector?: {
+    matchExpressions?: MatchExpression[];
+    matchLabels?: Record<string, string>;
+  };
+  namespaces?: string[];
+  topologyKey: string;
+};
+
+export type WorkloadKind = K8sResourceCommon & {
+  spec: {
+    active?: boolean;
+    podSets: {
+      count: number;
+      minCount?: number;
+      name: string;
+      template: {
+        metadata?: K8sResourceCommon['metadata'];
+        spec: {
+          activeDeadlineSeconds?: number;
+          affinity?: {
+            nodeAffinity?: {
+              preferredDuringSchedulingIgnoredDuringExecution: {
+                preference: {
+                  matchExpressions?: MatchExpression[];
+                  matchFields?: MatchExpression[];
+                };
+                weight: number;
+              }[];
+              requiredDuringSchedulingIgnoredDuringExecution: {
+                nodeSelectorTerms: {
+                  matchExpressions?: MatchExpression[];
+                  matchFields?: MatchExpression[];
+                }[];
+              };
+            };
+            podAffinity?: {
+              preferredDuringSchedulingIgnoredDuringExecution?: {
+                podAffinityTerm: WorkloadPodAffinityTerm;
+                weight: number;
+              }[];
+              requiredDuringSchedulingIgnoredDuringExecution?: WorkloadPodAffinityTerm[];
+              weight: number;
+            }[];
+            podAntiAffinity?: {
+              preferredDuringSchedulingIgnoredDuringExecution?: {
+                podAffinityTerm: WorkloadPodAffinityTerm;
+                weight: number;
+              }[];
+              requiredDuringSchedulingIgnoredDuringExecution?: WorkloadPodAffinityTerm[];
+              weight: number;
+            };
+          };
+          automountServiceAccountToken?: boolean;
+          containers: PodContainer[];
+          dnsConfig?: {
+            nameservers?: string[];
+            options?: {
+              name: string;
+              value?: string;
+            }[];
+            searches?: string[];
+          };
+          dnsPolicy?: string;
+          enableServiceLinks?: boolean;
+          ephemeralContainers?: PodContainer[];
+          hostAliases?: {
+            hostnames?: string[];
+            ip: string;
+          }[];
+          hostIPC?: boolean;
+          hostNetwork?: boolean;
+          hostPID?: boolean;
+          hostUsers?: boolean;
+          hostname?: string;
+          imagePullSecrets?: {
+            name?: string;
+          }[];
+          initContainers?: PodContainer[];
+          nodeName?: string;
+          nodeSelector?: Record<string, string>;
+          os?: { name: string };
+          overhead?: Record<string, string | number>;
+          preemptionPolicy?: string;
+          priority?: number;
+          priorityClassName?: string;
+          readinessGates?: {
+            conditionType: string;
+          }[];
+          resourceClaims?: {
+            name: string;
+            source?: {
+              resourceClaimName?: string;
+              resourceClaimTemplateName: string;
+            };
+          }[];
+          restartPolicy?: string;
+          runtimeClassName?: string;
+          schedulerName?: string;
+          schedulingGates?: {
+            name: string;
+          }[];
+          securityContext?: {
+            fsGroup?: number;
+            fsGroupChangePolicy?: string;
+            runAsGroup?: number;
+            runAsNonRoot?: boolean;
+            runAsUser?: number;
+            seLinuxOptions?: {
+              level?: string;
+              role?: string;
+              type?: string;
+              user?: string;
+            };
+            seccompProfile?: {
+              localhostProfile?: string;
+              type: string;
+            };
+            supplementalGroups?: number[];
+            sysctls?: {
+              name: string;
+              value: string;
+            }[];
+            windowsOptions?: {
+              gmsaCredentialSpec?: string;
+              gmsaCredentialSpecName?: string;
+              hostProcess?: string;
+              runAsUserName?: string;
+            };
+          };
+          serviceAccount?: string;
+          serviceAccountName?: string;
+          setHostnameAsFQDN?: boolean;
+          shareProcessNamespace?: boolean;
+          subdomain?: string;
+          terminationGracePeriodSeconds?: number;
+          tolerations?: {
+            effect?: string;
+            key?: string;
+            operator?: string;
+            tolerationSeconds?: number;
+            value?: string;
+          }[];
+          topologySpreadConstraints?: {
+            labelSelector?: {
+              matchExpressions?: MatchExpression[];
+              matchLabels?: Record<string, string>;
+            };
+            matchLabelKeys?: [];
+            maxSkew: number;
+            minDomains?: number;
+            nodeAffinityPolicy?: string;
+            nodeTaintsPolicy?: string;
+            topologyKey: string;
+            whenUnsatisfiable: string;
+          }[];
+          volumes?: {
+            name: string;
+            [key: string]: unknown; // Lots of storage types with various properties in here, add later from CRD if needed
+          }[];
+        };
+      };
+    }[];
+    priority?: number;
+    priorityClassName?: string;
+    priorityClassSource?:
+      | 'kueue.x-k8s.io/workloadpriorityclass'
+      | 'scheduling.k8s.io/priorityclass';
+    queueName?: string;
+  };
+  status?: {
+    admission?: {
+      clusterQueue: string;
+      podSetAssignments: {
+        name: string;
+        count?: number;
+        flavors?: Record<string, string>;
+        resourceUsage?: Record<string, string | number>;
+      }[];
+    };
+    admissionChecks?: {
+      name: string;
+      message: string;
+      state: 'Pending' | 'Ready' | 'Retry' | 'Rejected';
+      lastTransitionTime: string;
+      podSetUpdates?: {
+        annotations?: Record<string, string>;
+        labels?: Record<string, string>;
+        name: string;
+        nodeSelector?: Record<string, string>;
+        tolerations?: Toleration[];
+      }[];
+    }[];
+    conditions?: {
+      lastTransitionTime: string;
+      message: string;
+      observedGeneration?: number;
+      reason: string;
+      status: 'True' | 'False' | 'Unknown';
+      type: string;
+    }[];
+    reclaimablePods?: {
+      count: number;
+      name: string;
+    }[];
+    requeueState?: {
+      count?: number;
+      requeueAt?: string;
+    };
+  };
+};
+
 export type AccessReviewResourceAttributes = {
   /** CRD group, '*' for all groups, omit for core resources */
   group?: '*' | string;
@@ -801,6 +1090,7 @@ export type DashboardCommonConfig = {
   disableKServe: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
+  disableDistributedWorkloads: boolean;
 };
 
 export type OperatorStatus = {

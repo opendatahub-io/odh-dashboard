@@ -28,6 +28,41 @@ const handleError = (e: createError.HttpError) => {
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.post(
+    '/query',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
+      logRequestDetails(fastify, request);
+      const { query } = request.body;
+      return callPrometheusThanos<PrometheusQueryResponse>(fastify, request, query).catch(
+        handleError,
+      );
+    },
+  );
+
+  fastify.post(
+    '/queryRange',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryRangeResponse }> => {
+      logRequestDetails(fastify, request);
+      const { query } = request.body;
+      return callPrometheusThanos<PrometheusQueryRangeResponse>(
+        fastify,
+        request,
+        query,
+        QueryType.QUERY_RANGE,
+      ).catch(handleError);
+    },
+  );
+
+  // TODO the /pvc, /bias and /serving routes here should be removed in favor of the generic /query and /queryRange above
+
+  fastify.post(
     '/pvc',
     async (
       request: OauthFastifyRequest<{
