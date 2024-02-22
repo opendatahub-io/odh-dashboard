@@ -13,6 +13,7 @@ import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAle
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
+import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 type AddStorageModalProps = {
@@ -38,6 +39,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     ...removedNotebooks,
     createData.forNotebook.name,
   ]);
+
+  const storageClassName = usePreferredStorageClass();
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -84,7 +87,9 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       }
       return;
     }
-    const createdPvc = await createPvc(createData, namespace, undefined, { dryRun });
+    const createdPvc = await createPvc(createData, namespace, storageClassName?.metadata.name, {
+      dryRun,
+    });
     if (notebookName) {
       await attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value, {
         dryRun,
