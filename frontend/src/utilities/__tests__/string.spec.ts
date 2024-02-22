@@ -1,9 +1,33 @@
 import {
   containsOnlySlashes,
+  downloadString,
   removeLeadingSlashes,
   replaceNonNumericPartWithString,
   replaceNumericPartWithString,
 } from '~/utilities/string';
+
+global.URL.createObjectURL = jest.fn(() => 'test-url');
+
+describe('downloadString', () => {
+  it('should download a string as a file', () => {
+    const createElementMock = jest.spyOn(document, 'createElement');
+    const appendChildMock = jest.spyOn(document.body, 'appendChild');
+    const removeChildMock = jest.spyOn(document.body, 'removeChild');
+
+    downloadString('test.txt', 'test string');
+    const linkElement = createElementMock.mock.results[0].value;
+
+    expect(linkElement.download).toBe('test.txt');
+    expect(linkElement.href).toBe('http://localhost/test-url');
+    expect(createElementMock).toHaveBeenCalledTimes(1);
+    expect(createElementMock).toHaveBeenCalledWith('a');
+    expect(appendChildMock).toHaveBeenCalledTimes(1);
+    expect(appendChildMock).toHaveBeenCalledWith(linkElement);
+    expect(removeChildMock).toHaveBeenCalledTimes(1);
+    expect(removeChildMock).toHaveBeenCalledWith(linkElement);
+    expect(document.body.innerHTML).toBe('');
+  });
+});
 
 describe('replaceNumericPartWithString', () => {
   it('should replace the numeric part of a string with a number', () => {
