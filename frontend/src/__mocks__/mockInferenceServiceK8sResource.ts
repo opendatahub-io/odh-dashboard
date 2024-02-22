@@ -16,6 +16,7 @@ type MockResourceConfigType = {
   acceleratorIdentifier?: string;
   minReplicas?: number;
   maxReplicas?: number;
+  lastFailureInfoMessage?: string;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -69,6 +70,7 @@ export const mockInferenceServiceK8sResource = ({
   acceleratorIdentifier = '',
   minReplicas = 1,
   maxReplicas = 1,
+  lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -145,7 +147,7 @@ export const mockInferenceServiceK8sResource = ({
         totalCopies: 0,
       },
       lastFailureInfo: {
-        message: 'Waiting for runtime Pod to become available',
+        message: lastFailureInfoMessage,
         modelRevisionName: 'model-size__isvc-59ce37c85b',
         reason: 'RuntimeUnhealthy',
         location: '',
