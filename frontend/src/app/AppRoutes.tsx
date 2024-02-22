@@ -57,9 +57,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <React.Suspense
-      fallback={<ApplicationsPage title="" description="" loaded={false} empty={true} />}
-    >
+    <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <Routes>
         <Route path="/" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />

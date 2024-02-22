@@ -33,11 +33,9 @@ const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
         isVisible={isPopoverVisible}
         headerContent="Notebook status"
         bodyContent={
-          <>
-            {events[events.length - 1]
-              ? getEventFullMessage(events[events.length - 1])
-              : 'Waiting for notebook to start...'}
-          </>
+          events[events.length - 1]
+            ? getEventFullMessage(events[events.length - 1])
+            : 'Waiting for notebook to start...'
         }
         footerContent={
           <Button

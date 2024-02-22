@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 import React from 'react';
 import { Meta, StoryFn, StoryObj } from '@storybook/react';
 import { rest } from 'msw';

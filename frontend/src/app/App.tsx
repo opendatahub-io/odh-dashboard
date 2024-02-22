@@ -47,6 +47,18 @@ const App: React.FC = () => {
 
   useDetectUser();
 
+  const contextValue = React.useMemo(
+    () =>
+      dashboardConfig
+        ? {
+            buildStatuses,
+            dashboardConfig,
+            storageClasses,
+          }
+        : null,
+    [buildStatuses, dashboardConfig, storageClasses],
+  );
+
   // We lack the critical data to startup the app
   if (userError || fetchConfigError) {
     // There was an error fetching critical data
@@ -78,7 +90,7 @@ const App: React.FC = () => {
   }
 
   // Waiting on the API to finish
-  const loading = !username || !configLoaded || !dashboardConfig;
+  const loading = !username || !configLoaded || !dashboardConfig || !contextValue;
 
   return (
     <AreaContextProvider>
@@ -87,13 +99,7 @@ const App: React.FC = () => {
           <Spinner />
         </Bullseye>
       ) : (
-        <AppContext.Provider
-          value={{
-            buildStatuses,
-            dashboardConfig,
-            storageClasses,
-          }}
-        >
+        <AppContext.Provider value={contextValue}>
           <Page
             className="odh-dashboard"
             isManagedSidebar

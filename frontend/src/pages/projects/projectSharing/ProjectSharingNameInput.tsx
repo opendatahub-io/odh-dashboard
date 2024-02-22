@@ -51,7 +51,7 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
       }}
       onClear={onClear}
       isOpen={isOpen}
-      isCreatable={true}
+      isCreatable
       aria-labelledby="name-selection"
       placeholderText={placeholderText}
     >

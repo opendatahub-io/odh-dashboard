@@ -48,35 +48,33 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROJECT], []);
 
   return (
-    <>
-      <InferenceServiceTable
-        clearFilters={resetFilters}
-        servingRuntimes={servingRuntimes}
-        inferenceServices={filteredInferenceServices}
-        refresh={refresh}
-        enablePagination
-        toolbarContent={
-          <>
-            <ToolbarItem>
-              <DashboardSearchField
-                types={searchTypes}
-                searchType={searchType}
-                searchValue={search}
-                onSearchTypeChange={(newSearchType) => {
-                  setSearchType(newSearchType);
-                }}
-                onSearchValueChange={(searchValue) => {
-                  setSearch(searchValue);
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem>
-              <ServeModelButton />
-            </ToolbarItem>
-          </>
-        }
-      />
-    </>
+    <InferenceServiceTable
+      clearFilters={resetFilters}
+      servingRuntimes={servingRuntimes}
+      inferenceServices={filteredInferenceServices}
+      refresh={refresh}
+      enablePagination
+      toolbarContent={
+        <>
+          <ToolbarItem>
+            <DashboardSearchField
+              types={searchTypes}
+              searchType={searchType}
+              searchValue={search}
+              onSearchTypeChange={(newSearchType) => {
+                setSearchType(newSearchType);
+              }}
+              onSearchValueChange={(searchValue) => {
+                setSearch(searchValue);
+              }}
+            />
+          </ToolbarItem>
+          <ToolbarItem>
+            <ServeModelButton />
+          </ToolbarItem>
+        </>
+      }
+    />
   );
 };
 

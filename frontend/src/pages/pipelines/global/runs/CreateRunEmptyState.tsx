@@ -24,7 +24,7 @@ const CreateRunEmptyState: React.FC<CreateRunEmptyStateProps> = ({ title, descri
   return (
     <EmptyState data-testid="create-run-empty-state">
       <EmptyStateHeader
-        titleText={<>{title}</>}
+        titleText={title}
         icon={<EmptyStateIcon icon={PlusCircleIcon} />}
         headingLevel="h2"
       />

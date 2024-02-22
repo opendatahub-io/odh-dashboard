@@ -60,15 +60,13 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <>
-              <TextContent>
-                <Text component="h1" data-testid="app-page-title">
-                  {title}
-                </Text>
-                {jobReferenceName}
-                {description && <Text component="p">{description}</Text>}
-              </TextContent>
-            </>
+            <TextContent>
+              <Text component="h1" data-testid="app-page-title">
+                {title}
+              </Text>
+              {jobReferenceName}
+              {description && <Text component="p">{description}</Text>}
+            </TextContent>
             {headerAction}
           </Flex>
         </StackItem>
@@ -83,9 +81,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         <PageSection isFilled>
           <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
             <EmptyStateHeader
-              titleText={
-                <>{errorMessage !== undefined ? errorMessage : 'Error loading components'}</>
-              }
+              titleText={errorMessage !== undefined ? errorMessage : 'Error loading components'}
               icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
               headingLevel="h1"
             />
@@ -113,7 +109,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         <PageSection isFilled>
           <EmptyState variant={EmptyStateVariant.lg} data-id="empty-empty-state">
             <EmptyStateHeader
-              titleText={<>{emptyMessage !== undefined ? emptyMessage : 'No Components Found'}</>}
+              titleText={emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
               icon={<EmptyStateIcon icon={QuestionCircleIcon} />}
               headingLevel="h1"
             />
