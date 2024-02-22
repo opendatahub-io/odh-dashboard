@@ -18,8 +18,8 @@ import {
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
 import {
   createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
@@ -82,7 +82,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { acceleratorProfile, notebookSize, image } = startNotebookData;
-    fireTrackingEvent(`Workbench ${type}`, {
+    fireTrackingEventRaw(`Workbench ${type}`, {
       acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
@@ -90,13 +90,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         ? 'Unknown'
         : 'None',
       lastSelectedSize: notebookSize.name,
-      lastSelectedImage: image.imageVersion?.from
-        ? `${image.imageVersion.from.name}`
-        : `${image.imageStream?.metadata.name || 'unknown image'} - ${
-            image.imageVersion?.name || 'unknown version'
-          }`,
+      lastSelectedImage: `${image.imageStream?.metadata.name || 'unknown image'}`,
       projectName,
       notebookName: name,
+      storageDataSize: storageData.creating?.size, // TODO do we want to add those as individual events?
+      dataConnectionType: dataConnection.creating?.type,
+      dataConnectionCategory: dataConnection.creating?.values?.category,
+      dataConnectionEnabled: dataConnection.enabled,
     });
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);

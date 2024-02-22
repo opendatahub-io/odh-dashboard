@@ -1,6 +1,22 @@
 import { TrackingEventProperties } from '~/types';
 import { DEV_MODE } from './const';
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const fireTrackingEventRaw = (eventType: string, properties?: any): void => {
+  const clusterID = window.clusterID ?? '';
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(
+      `Telemetry event triggered: ${eventType}${
+        properties ? ` - ${JSON.stringify(properties)}` : ''
+      }`,
+    );
+  }
+  if (window.analytics) {
+    window.analytics.track(eventType, { ...properties, clusterID });
+  }
+};
+
 export const fireTrackingEvent = (
   eventType: string,
   properties?: TrackingEventProperties,
@@ -13,7 +29,8 @@ export const fireTrackingEvent = (
         properties ? ` - ${JSON.stringify(properties)}` : ''
       }`,
     );
-  } else if (window.analytics) {
+  }
+  if (window.analytics) {
     switch (eventType) {
       case 'identify':
         window.analytics.identify(properties?.anonymousID, { clusterID });
@@ -24,6 +41,9 @@ export const fireTrackingEvent = (
       default:
         window.analytics.track(eventType, { ...properties, clusterID });
     }
+  } else {
+    /* eslint-disable-next-line no-console */
+    console.log('==>> window.analytics is not defined');
   }
 };
 
@@ -35,6 +55,7 @@ export const initSegment = async (props: {
   const { segmentKey, username, enabled } = props;
   const analytics = (window.analytics = window.analytics || []);
   if (analytics.initialize) {
+    console.error(`Analytics.init ${enabled}`);
     return;
   }
   if (analytics.invoked) {

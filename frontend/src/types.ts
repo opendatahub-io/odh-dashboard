@@ -265,6 +265,11 @@ export type Section = {
   actions: ApplicationAction[];
 };
 
+export enum TrackingOutcome {
+  submit = 'submit',
+  cancel = 'cancel',
+}
+
 export type TrackingEventProperties = {
   name?: string;
   anonymousID?: string;
@@ -277,6 +282,11 @@ export type TrackingEventProperties = {
   projectName?: string;
   notebookName?: string;
   lastActivity?: string;
+  href?: string;
+  replicaCount?: number;
+  outcome?: TrackingOutcome; // TODO better name for key?
+  success?: boolean;
+  error?: string;
 };
 
 export type NotebookPort = {

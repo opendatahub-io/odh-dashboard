@@ -3,6 +3,8 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { deleteServer } from '~/concepts/pipelines/utils';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 
 type DeletePipelineServerModalProps = {
   isOpen: boolean;
@@ -18,6 +20,10 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
   const { project, namespace } = usePipelinesAPI();
 
   const onBeforeClose = (deleted: boolean) => {
+    fireTrackingEvent('PipelineServerDeleted', {
+      outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+      success: true,
+    });
     onClose(deleted);
   };
 
@@ -35,6 +41,11 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
         deleteServer(namespace)
           .then(() => onBeforeClose(true))
           .catch((e) => {
+            fireTrackingEvent('PipelineServerDeleted', {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: e,
+            });
             onBeforeClose(false);
             setError(e);
           });

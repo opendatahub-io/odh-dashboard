@@ -2,6 +2,7 @@ import React from 'react';
 import * as _ from 'lodash-es';
 import useDimensions from 'react-cool-dimensions';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
+import ExternalLink from '~/components/ExternalLink';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '~/types';
 import { useWatchComponents } from '~/utilities/useWatchComponents';
@@ -177,9 +178,10 @@ export const LearningCenter: React.FC = () => {
   const docLink = DOC_LINK ? (
     <>
       {docText}
-      <a href={DOC_LINK} target="_blank" rel="noopener noreferrer">
-        view the documentation. <ExternalLinkAltIcon />
-      </a>
+      <ExternalLink text="view the documentation." to={DOC_LINK} />
+      {/*<a href={DOC_LINK} target="_blank" rel="noopener noreferrer">*/}
+      {/*  view the documentation. <ExternalLinkAltIcon />*/}
+      {/*</a>*/}
     </>
   ) : null;
 

@@ -6,11 +6,11 @@ import {
   Form,
   FormGroup,
   FormSection,
+  getUniqueId,
   Modal,
   Popover,
   Stack,
   StackItem,
-  getUniqueId,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { HelpIcon } from '@patternfly/react-icons';
@@ -18,24 +18,23 @@ import {
   submitServingRuntimeResourcesWithDryRun,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
-import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '~/k8sTypes';
+import { AccessReviewResourceAttributes, ProjectKind, TemplateKind } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
-import {
-  isModelServerEditInfoChanged,
-  requestsUnderLimits,
-  resourcesArePositive,
-} from '~/pages/modelServing/utils';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { isModelServerEditInfoChanged, requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
+import useCustomServingRuntimesEnabled
+  from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
 import ServingRuntimeNameSection from './ServingRuntimeNameSection';
+import { TrackingOutcome } from '~/types';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -101,6 +100,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   );
 
   const onBeforeClose = (submitted: boolean) => {
+    if (!submitted) {
+      fireTrackingEvent('AddServingRuntime', { outcome: TrackingOutcome.cancel });
+    }
+
     onClose(submitted);
     setError(undefined);
     setActionInProgress(false);
@@ -120,6 +123,14 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
+
+    // TODO: can we differentiate add/modify?
+    fireTrackingEvent('AddServingRuntime', {
+      outcome: TrackingOutcome.submit,
+      replicaCount: servingRuntimeSelected?.spec.replicas,
+      name: createData?.servingRuntimeTemplateName,
+      lastSelectedSize: createData?.modelSize.name,
+    });
 
     submitServingRuntimeResourcesWithDryRun(
       servingRuntimeSelected,

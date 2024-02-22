@@ -18,6 +18,8 @@ import ConnectedNotebookField from '~/pages/projects/notebook/ConnectedNotebookF
 import { getSecretsFromList, hasEnvFrom } from '~/pages/projects/pvc/utils';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 import useSelectedNotebooks from './useSelectedNotebooks';
 import { convertAWSSecretData } from './utils';
 
@@ -75,6 +77,8 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       'aws',
       existingData?.data.metadata.name,
     );
+
+    fireTrackingEvent('AddDataConnection', { outcome: TrackingOutcome.submit });
 
     const secretName = assembledSecret.metadata.name;
 

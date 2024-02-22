@@ -3,17 +3,28 @@ import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
   deleteData?: ProjectKind;
 };
 
+const deleteProjectEventType = 'ProjectDeleted';
 const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onClose }) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   const onBeforeClose = (deleted: boolean) => {
+    if (!deleted) {
+      fireTrackingEvent(deleteProjectEventType, { outcome: TrackingOutcome.cancel });
+    } else {
+      fireTrackingEvent(deleteProjectEventType, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
+    }
     onClose(deleted);
     setDeleting(false);
     setError(undefined);
@@ -34,6 +45,11 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
           deleteProject(deleteData.metadata.name)
             .then(() => onBeforeClose(true))
             .catch((e) => {
+              fireTrackingEvent(deleteProjectEventType, {
+                outcome: TrackingOutcome.submit,
+                success: false,
+                error: e,
+              });
               setError(e);
               setDeleting(false);
             });

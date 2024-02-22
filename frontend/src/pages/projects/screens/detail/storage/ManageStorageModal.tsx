@@ -14,6 +14,8 @@ import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksR
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 type AddStorageModalProps = {
@@ -43,6 +45,10 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const storageClass = usePreferredStorageClass();
 
   const onBeforeClose = (submitted: boolean) => {
+    if (!submitted) {
+      fireTrackingEvent('AddClusterStorage', { outcome: TrackingOutcome.cancel });
+    }
+
     onClose(submitted);
     setActionInProgress(false);
     setRemovedNotebooks([]);
@@ -100,6 +106,11 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
+
+    fireTrackingEvent('AddClusterStorage', {
+      outcome: TrackingOutcome.submit,
+      lastSelectedSize: createData.size,
+    });
 
     runPromiseActions(true)
       .then(() => runPromiseActions(false).then(() => onBeforeClose(true)))

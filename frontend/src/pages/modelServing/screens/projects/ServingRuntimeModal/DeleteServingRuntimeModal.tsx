@@ -10,6 +10,8 @@ import {
 } from '~/api';
 import { getTokenNames } from '~/pages/modelServing/utils';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 
 type DeleteServingRuntimeModalProps = {
   servingRuntime?: ServingRuntimeKind;
@@ -35,11 +37,18 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
     <DeleteModal
       title="Delete model server?"
       isOpen={!!servingRuntime}
-      onClose={() => onBeforeClose(false)}
+      onClose={() => {
+        fireTrackingEvent('DeleteModelServer', { outcome: TrackingOutcome.cancel });
+        onBeforeClose(false);
+      }}
       submitButtonLabel="Delete model server"
       onDelete={() => {
         if (servingRuntime) {
           setIsDeleting(true);
+
+          fireTrackingEvent('DeleteModelServer', {
+            outcome: TrackingOutcome.submit,
+          });
 
           const { serviceAccountName, roleBindingName } = getTokenNames(
             servingRuntime.metadata.name,

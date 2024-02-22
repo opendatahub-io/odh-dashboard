@@ -5,6 +5,7 @@ import { NotebookKind } from '~/k8sTypes';
 import { getNotebookDisplayName } from '~/pages/projects/utils';
 import useRouteForNotebook from './useRouteForNotebook';
 import { hasStopAnnotation } from './utils';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 
 type NotebookRouteLinkProps = {
   label?: React.ReactNode;
@@ -47,6 +48,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
               ? 'var(--pf-v5-global--FontSize--md)'
               : 'var(--pf-v5-global--FontSize--sm)',
           }}
+          onClick={() => fireTrackingEvent('WorkbenchOpened')}
         >
           {label ?? getNotebookDisplayName(notebook)}
         </Button>

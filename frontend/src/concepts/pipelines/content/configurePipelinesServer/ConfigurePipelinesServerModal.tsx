@@ -5,6 +5,8 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -55,7 +57,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const objectIsValid = objectStorageIsValid(config.objectStorage.newValue);
   const canSubmit = databaseIsValid && objectIsValid;
 
-  const onBeforeClose = () => {
+  const onBeforeClose = (submitted: boolean) => {
+    fireTrackingEvent('PipelineServerConfigured', {
+      outcome: submitted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+      success: true,
+    });
     onClose();
     setFetching(false);
     setError(null);
@@ -78,7 +84,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       .then((spec) => {
         createPipelinesCR(namespace, spec)
           .then(() => {
-            onBeforeClose();
+            onBeforeClose(true);
           })
           .catch((e) => {
             setFetching(false);
@@ -89,6 +95,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           });
       })
       .catch((e) => {
+        fireTrackingEvent('PipelineServerConfigured', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: e,
+        });
         setFetching(false);
         setError(e);
       });
@@ -100,7 +111,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       variant="medium"
       description="Configuring a pipeline server enables you to create and manage pipelines."
       isOpen={open}
-      onClose={onBeforeClose}
+      onClose={() => onBeforeClose(false)}
       actions={[
         <Button
           key="configure"
@@ -111,7 +122,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         >
           Configure pipeline server
         </Button>,
-        <Button key="cancel" variant="link" onClick={onBeforeClose}>
+        <Button key="cancel" variant="link" onClick={() => onBeforeClose(false)}>
           Cancel
         </Button>,
       ]}
