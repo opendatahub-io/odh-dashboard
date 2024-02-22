@@ -56,6 +56,9 @@ spec:
           periodSeconds: 30
           successThreshold: 1
           failureThreshold: 3
+        volumeMounts:
+          - mountPath: /etc/pki/tls/certs
+            name: trusted-ca-bundle
       - name: oauth-proxy
         env:
           - name: NAMESPACE
@@ -125,3 +128,7 @@ spec:
       - name: oauth-client
         secret:
           secretName: dashboard-oauth-client-generated
+      - name: trusted-ca-bundle
+        configMap:
+          name: odh-trusted-ca-bundle
+          optional: true
