@@ -502,7 +502,16 @@ describe('Serving Runtime List', () => {
         mockInferenceServiceK8sResource({
           name: 'ovms-testing',
           displayName: 'OVMS ONNX',
+          activeModelState: 'FailedToLoad',
           isModelMesh: true,
+          lastFailureInfoMessage: 'Failed to pull model from storage due to error',
+        }),
+        mockInferenceServiceK8sResource({
+          name: 'loaded-model',
+          displayName: 'Loaded model',
+          activeModelState: 'Loaded',
+          isModelMesh: true,
+          lastFailureInfoMessage: 'Failed to pull model from storage due to error',
         }),
       ],
     });
@@ -516,16 +525,32 @@ describe('Serving Runtime List', () => {
     // Check that the legacy serving runtime has tokens disabled
     modelServingSection.getModelMeshRow('ovms').shouldHaveTokens(false);
 
+    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.collapsed);
+    modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
+    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
+
     // Check that the serving runtime is shown with the default runtime name
-    modelServingSection.getModelMeshRow('OVMS Model Serving').find();
+    modelServingSection.getModelMeshRow('OVMS Model Serving').find().should('exist');
     // Check that the serving runtime displays the correct Serving Runtime
     modelServingSection
       .getModelMeshRow('OVMS Model Serving')
       .shouldHaveServingRuntime('OpenVINO Serving Runtime (Supports GPUs)');
 
-    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.collapsed);
-    modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
-    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
+    // Check status of deployed model
+    modelServingSection
+      .getModelMeshRow('OVMS Model Serving')
+      .findDeployedModelExpansionButton()
+      .click();
+    modelServingSection.findInferenceServiceTable().should('exist');
+    modelServingSection.findStatusTooltip('OVMS ONNX').should('be.visible');
+    modelServingSection.findStatusTooltipValue(
+      'OVMS ONNX',
+      'Failed to pull model from storage due to error',
+    );
+
+    // Check status of deployed model which loaded successfully after an error
+    modelServingSection.findStatusTooltip('Loaded model').should('be.visible');
+    modelServingSection.findStatusTooltipValue('Loaded model', 'Loaded');
   });
 
   it('KServe Model list', () => {
