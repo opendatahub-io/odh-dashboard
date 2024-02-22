@@ -121,23 +121,32 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [],
   );
 
-  return (
-    <ProjectsContext.Provider
-      value={{
-        projects,
-        dataScienceProjects,
-        modelServingProjects,
-        nonActiveProjects,
-        preferredProject,
-        updatePreferredProject,
-        loaded,
-        loadError,
-        refresh,
-      }}
-    >
-      {children}
-    </ProjectsContext.Provider>
+  const contextValue = React.useMemo(
+    () => ({
+      projects,
+      dataScienceProjects,
+      modelServingProjects,
+      nonActiveProjects,
+      preferredProject,
+      updatePreferredProject,
+      loaded,
+      loadError,
+      refresh,
+    }),
+    [
+      projects,
+      dataScienceProjects,
+      modelServingProjects,
+      nonActiveProjects,
+      preferredProject,
+      updatePreferredProject,
+      loaded,
+      loadError,
+      refresh,
+    ],
   );
+
+  return <ProjectsContext.Provider value={contextValue}>{children}</ProjectsContext.Provider>;
 };
 
 export default ProjectsContextProvider;

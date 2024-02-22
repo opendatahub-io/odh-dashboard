@@ -147,11 +147,9 @@ const AppLauncher: React.FC = () => {
               {action.label}
             </ApplicationLauncherItem>
           ))}
-          <>
-            {sectionIndex < applicationSections.length - 1 && (
-              <ApplicationLauncherSeparator key={`separator-${sectionIndex}`} />
-            )}
-          </>
+          {sectionIndex < applicationSections.length - 1 && (
+            <ApplicationLauncherSeparator key={`separator-${sectionIndex}`} />
+          )}
         </ApplicationLauncherGroup>
       ))}
       position="right"

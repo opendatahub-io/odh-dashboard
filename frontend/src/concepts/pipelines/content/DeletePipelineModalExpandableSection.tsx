@@ -24,7 +24,7 @@ const DeletePipelineModalExpandableSection: React.FC<DeletePipelineModalExpandab
     <ExpandableSection
       toggleContent={
         <>
-          <span>Selected {type}</span> <Badge isRead={true}>{toDeleteResources.length}</Badge>
+          <span>Selected {type}</span> <Badge isRead>{toDeleteResources.length}</Badge>
         </>
       }
       onToggle={(e, expanded) => setIsExpanded(expanded)}

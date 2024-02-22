@@ -34,11 +34,11 @@ const FilterSidePanelCategoryItem: React.FunctionComponent<FilterSidePanelCatego
 }: FilterSidePanelCategoryItemProps) => {
   const classes = css('filter-panel-pf-category-item', className);
   const label = (
-    <React.Fragment>
+    <>
       {icon && <span className="item-icon">{icon}</span>}
       {children}
       {Number.isInteger(count) && <span className="item-count">{`(${count})`}</span>}
-    </React.Fragment>
+    </>
   );
   return (
     <div id={id} className={classes} {...props}>

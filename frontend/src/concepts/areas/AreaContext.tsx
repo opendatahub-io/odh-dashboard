@@ -23,6 +23,7 @@ type AreaContextProps = {
 const AreaContextProvider: React.FC<AreaContextProps> = ({ children }) => {
   const [dscStatus, loaded, error] = useFetchDscStatus();
 
+  const contextValue = React.useMemo(() => ({ dscStatus }), [dscStatus]);
   if (error) {
     return (
       <Alert isInline variant="danger" title="Problem loading component state">
@@ -39,7 +40,7 @@ const AreaContextProvider: React.FC<AreaContextProps> = ({ children }) => {
     );
   }
 
-  return <AreaContext.Provider value={{ dscStatus }}>{children}</AreaContext.Provider>;
+  return <AreaContext.Provider value={contextValue}>{children}</AreaContext.Provider>;
 };
 
 export default AreaContextProvider;

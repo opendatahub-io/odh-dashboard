@@ -60,76 +60,71 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   };
 
   return (
-    <>
-      <DrawerPanelContent
-        data-testid="explore-drawer-panel"
-        className="odh-get-started"
-        isResizable
-        minSize="350px"
-      >
-        <DrawerHead>
-          <TextContent>
-            <Text component="h2" style={{ marginBottom: 0 }}>
-              {selectedApp.spec.displayName}
-            </Text>
-            {selectedApp.spec.provider ? (
-              <Text component="small">by {selectedApp.spec.provider}</Text>
-            ) : null}
-          </TextContent>
-          <DrawerActions>
-            <DrawerCloseButton onClick={onClose} />
-          </DrawerActions>
-        </DrawerHead>
-        {selectedApp.spec.getStartedLink && (
-          <DrawerPanelBody>
-            <ActionList>
-              <ActionListItem>
-                <Button
-                  icon={<ExternalLinkAltIcon />}
-                  onClick={() =>
-                    fireTrackingEvent('Explore card get started clicked', {
-                      name: selectedApp.metadata.name,
-                    })
-                  }
-                  iconPosition="right"
-                  href={selectedApp.spec.getStartedLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  component="a"
-                >
-                  Get started
-                </Button>
-              </ActionListItem>
-              <ActionListItem>{renderEnableButton()}</ActionListItem>
-            </ActionList>
-          </DrawerPanelBody>
-        )}
-        <Divider />
-        <DrawerPanelBody style={{ paddingTop: 0 }}>
-          {selectedApp.spec.beta ? (
-            <Alert
-              variantLabel="error"
-              variant="info"
-              title={
-                selectedApp.spec.betaTitle ||
-                `${selectedApp.spec.displayName} is currently in beta.`
-              }
-              aria-live="polite"
-              isInline
-            >
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: markdownConverter.makeHtml(
-                    selectedApp.spec.betaText || DEFAULT_BETA_TEXT,
-                  ),
-                }}
-              />
-            </Alert>
+    <DrawerPanelContent
+      data-testid="explore-drawer-panel"
+      className="odh-get-started"
+      isResizable
+      minSize="350px"
+    >
+      <DrawerHead>
+        <TextContent>
+          <Text component="h2" style={{ marginBottom: 0 }}>
+            {selectedApp.spec.displayName}
+          </Text>
+          {selectedApp.spec.provider ? (
+            <Text component="small">by {selectedApp.spec.provider}</Text>
           ) : null}
-          <MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />
+        </TextContent>
+        <DrawerActions>
+          <DrawerCloseButton onClick={onClose} />
+        </DrawerActions>
+      </DrawerHead>
+      {selectedApp.spec.getStartedLink && (
+        <DrawerPanelBody>
+          <ActionList>
+            <ActionListItem>
+              <Button
+                icon={<ExternalLinkAltIcon />}
+                onClick={() =>
+                  fireTrackingEvent('Explore card get started clicked', {
+                    name: selectedApp.metadata.name,
+                  })
+                }
+                iconPosition="right"
+                href={selectedApp.spec.getStartedLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                component="a"
+              >
+                Get started
+              </Button>
+            </ActionListItem>
+            <ActionListItem>{renderEnableButton()}</ActionListItem>
+          </ActionList>
         </DrawerPanelBody>
-      </DrawerPanelContent>
-    </>
+      )}
+      <Divider />
+      <DrawerPanelBody style={{ paddingTop: 0 }}>
+        {selectedApp.spec.beta ? (
+          <Alert
+            variantLabel="error"
+            variant="info"
+            title={
+              selectedApp.spec.betaTitle || `${selectedApp.spec.displayName} is currently in beta.`
+            }
+            aria-live="polite"
+            isInline
+          >
+            <div
+              dangerouslySetInnerHTML={{
+                __html: markdownConverter.makeHtml(selectedApp.spec.betaText || DEFAULT_BETA_TEXT),
+              }}
+            />
+          </Alert>
+        ) : null}
+        <MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />
+      </DrawerPanelBody>
+    </DrawerPanelContent>
   );
 };
 

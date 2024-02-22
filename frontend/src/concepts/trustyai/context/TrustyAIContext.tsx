@@ -69,22 +69,32 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
 
   const data = useFetchContextData(apiState);
 
-  return (
-    <TrustyAIContext.Provider
-      value={{
-        namespace,
-        hasCR: !!explainabilityNamespaceCR,
-        crInitializing: !crLoaded,
-        serverTimedOut,
-        ignoreTimedOut,
-        serviceLoadError,
-        refreshState,
-        refreshAPIState,
-        apiState,
-        data,
-      }}
-    >
-      {children}
-    </TrustyAIContext.Provider>
+  const contextValue = React.useMemo(
+    () => ({
+      namespace,
+      hasCR: !!explainabilityNamespaceCR,
+      crInitializing: !crLoaded,
+      serverTimedOut,
+      ignoreTimedOut,
+      serviceLoadError,
+      refreshState,
+      refreshAPIState,
+      apiState,
+      data,
+    }),
+    [
+      namespace,
+      explainabilityNamespaceCR,
+      crLoaded,
+      serverTimedOut,
+      ignoreTimedOut,
+      serviceLoadError,
+      refreshState,
+      refreshAPIState,
+      apiState,
+      data,
+    ],
   );
+
+  return <TrustyAIContext.Provider value={contextValue}>{children}</TrustyAIContext.Provider>;
 };
