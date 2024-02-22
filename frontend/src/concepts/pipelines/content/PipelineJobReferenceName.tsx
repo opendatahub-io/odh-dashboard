@@ -18,7 +18,7 @@ const PipelineJobReferenceName: React.FC<PipelineJobReferenceNameProps> = ({ res
         'loading...'
       ) : data ? (
         <Text component={TextVariants.p} className="pf-u-pb-sm">
-          Run {getPipelineJobExecutionCount(resource.name)} of {data?.name}
+          Run {getPipelineJobExecutionCount(resource.name)} of {data.name}
         </Text>
       ) : (
         ''

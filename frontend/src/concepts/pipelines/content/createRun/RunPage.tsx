@@ -31,7 +31,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   const location = useLocation();
 
   const cloneRunVersionId = getPipelineVersionResourceRef(cloneRun)?.key.id;
-  const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunVersionId) || null;
+  const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunVersionId);
 
   const cloneRunPipelineId = getPipelineResourceRef(cloneRunPipelineVersion)?.key.id;
   const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);

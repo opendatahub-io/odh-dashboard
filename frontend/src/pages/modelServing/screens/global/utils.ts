@@ -29,10 +29,10 @@ export const getInferenceServiceProjectDisplayName = (
 };
 
 export const checkModelStatus = (model: PodKind): ModelStatus => {
-  const modelStatus = model.status.conditions.some(
+  const modelStatus = !!model.status?.conditions.some(
     (currentModel) => currentModel.reason === 'Unschedulable',
   );
   return {
-    failedToSchedule: model.status.phase === 'Pending' && modelStatus,
+    failedToSchedule: model.status?.phase === 'Pending' && modelStatus,
   };
 };

@@ -162,3 +162,19 @@ export const getAcceleratorProfileCount = (
   acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,
 ): number => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);
+
+export const asEnumMember = <T extends object>(
+  member: T[keyof T] | string | number | null,
+  e: T,
+): T[keyof T] | null => (isEnumMember(member, e) ? member : null);
+
+export const isEnumMember = <T extends object>(
+  member: T[keyof T] | string | number | null,
+  e: T,
+): member is T[keyof T] => {
+  if (member != null) {
+    const values = Object.values(e);
+    return values.slice(values.length / 2).includes(member);
+  }
+  return false;
+};

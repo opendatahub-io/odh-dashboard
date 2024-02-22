@@ -77,7 +77,7 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
 
 export const isPipelineRunJob = (
   runOrJob?: PipelineRunJobKF | PipelineRunKF,
-): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
+): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF | undefined)?.trigger;
 
 export const getPipelineIdByPipelineVersion = (
   version: PipelineVersionKF | null,
