@@ -559,6 +559,14 @@ describe('Serving Runtime List', () => {
 
       // test submitting form, an error should appear
       kserveModal.findSubmitButton().click();
+
+      cy.wait('@createServingRuntime').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+      cy.wait('@createInferenceService').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+
       cy.findByText('Error creating model server');
 
       // the serving runtime should NOT have been created
@@ -568,7 +576,7 @@ describe('Serving Runtime List', () => {
 
       // the inference service should NOT have been created
       cy.get('@createInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(0);
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
       });
     });
 
