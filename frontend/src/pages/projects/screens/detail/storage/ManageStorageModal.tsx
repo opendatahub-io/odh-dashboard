@@ -40,7 +40,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     createData.forNotebook.name,
   ]);
 
-  const storageClassName = usePreferredStorageClass();
+  const storageClass = usePreferredStorageClass();
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -87,7 +87,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       }
       return;
     }
-    const createdPvc = await createPvc(createData, namespace, storageClassName?.metadata.name, {
+    const createdPvc = await createPvc(createData, namespace, storageClass?.metadata.name, {
       dryRun,
     });
     if (notebookName) {

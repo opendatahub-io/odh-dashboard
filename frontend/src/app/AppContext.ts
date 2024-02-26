@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StorageClassKind, DashboardConfigKind } from '~/k8sTypes';
+import { DashboardConfigKind, StorageClassKind } from '~/k8sTypes';
 import { BuildStatus } from '~/types';
 
 type AppContextProps = {
