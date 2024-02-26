@@ -40,6 +40,9 @@ export enum SupportedArea {
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
+
+  /* Distributed Workloads areas */
+  DISTRIBUTED_WORKLOADS = 'distributed-workloads',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */
@@ -53,6 +56,7 @@ export enum StackComponent {
   RAY = 'ray',
   WORKBENCHES = 'workbenches',
   TRUSTY_AI = 'trustyai',
+  KUEUE = 'kueue',
 }
 
 // TODO: Support extra operators, like the pipelines operator -- maybe as a "external dependency need?"

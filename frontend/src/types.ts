@@ -684,12 +684,15 @@ export type ImageStreamAndVersion = {
   imageVersion?: ImageStreamSpecTagType;
 };
 
-export type ContextResourceData<T> = {
-  data: T[];
+export type FetchStateObject<T, E = Error> = {
+  data: T;
   loaded: boolean;
-  error?: Error | AxiosError;
+  error?: E;
   refresh: () => void;
 };
+
+// TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
+export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
 
 export type BreadcrumbItemType = {
   label: string;

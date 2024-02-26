@@ -86,7 +86,7 @@ export type FetchStateCallbackPromiseAdHoc<Type> = FetchStateCallbackPromiseRetu
   Promise<AdHocUpdate<Type>>
 >;
 
-type FetchOptions = {
+export type FetchOptions = {
   /** To enable auto refresh */
   refreshRate: number;
   /**

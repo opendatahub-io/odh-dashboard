@@ -15,10 +15,18 @@ export const getInferenceServiceActiveModelState = (
   <InferenceServiceModelState | undefined>is.status?.modelStatus.states.targetModelState ||
   InferenceServiceModelState.UNKNOWN;
 
-export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string =>
-  is.status?.modelStatus.states.activeModelState ||
-  is.status?.modelStatus.lastFailureInfo?.message ||
-  'Unknown';
+export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
+  const activeModelState = is.status?.modelStatus.states.activeModelState;
+  const targetModelState = is.status?.modelStatus.states.targetModelState;
+
+  const failedToLoad = InferenceServiceModelState.FAILED_TO_LOAD;
+  const isFailedToLoad = activeModelState === failedToLoad || targetModelState === failedToLoad;
+
+  const lastFailureMessage = is.status?.modelStatus.lastFailureInfo?.message;
+  const stateMessage = activeModelState ?? targetModelState ?? 'Unknown';
+
+  return isFailedToLoad ? lastFailureMessage ?? stateMessage : stateMessage;
+};
 
 export const getInferenceServiceProjectDisplayName = (
   is: InferenceServiceKind,
