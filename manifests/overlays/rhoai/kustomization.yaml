@@ -1,0 +1,87 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app: rhods-dashboard
+  app.kubernetes.io/part-of: rhods-dashboard
+resources:
+  - ../../base
+  - anaconda-ce-validator-cron.yaml
+patchesJson6902:
+  - path: service-account.yaml
+    target:
+      version: v1
+      kind: ServiceAccount
+      name: odh-dashboard
+  - path: role.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: Role
+      name: odh-dashboard
+  - path: cluster-role.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: odh-dashboard
+  - path: role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: RoleBinding
+      name: odh-dashboard
+  - path: cluster-role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard
+  - path: auth-delegator.clusterrolebinding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard-auth-delegator
+  - path: cluster-monitoring-role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard-monitoring
+  - path: oauth.secret.yaml
+    target:
+      version: v1
+      kind: Secret
+      name: dashboard-oauth-client
+  - path: service.yaml
+    target:
+      version: v1
+      kind: Service
+      name: odh-dashboard
+  - path: deployment.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: odh-dashboard
+  - path: routes.yaml
+    target:
+      group: route.openshift.io
+      version: v1
+      kind: Route
+      name: odh-dashboard
+configMapGenerator:
+- name: odh-dashboard-image-parameters
+  env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+vars:
+- name: odh-dashboard-image
+  objref:
+    kind: ConfigMap
+    name: odh-dashboard-image-parameters
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.odh-dashboard-image
+configurations:
+- params.yaml
