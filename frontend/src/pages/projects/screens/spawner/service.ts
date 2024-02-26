@@ -49,6 +49,7 @@ export const replaceRootVolumesForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   storageData: StorageData,
+  storageClassName?: string,
   dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {
@@ -69,7 +70,7 @@ export const replaceRootVolumesForNotebook = async (
     };
     replacedVolumeMount = { name: existingName, mountPath: ROOT_MOUNT_PATH };
   } else {
-    const pvc = await createPvc(storageData.creating, projectName, undefined, { dryRun });
+    const pvc = await createPvc(storageData.creating, projectName, storageClassName, { dryRun });
     const newPvcName = pvc.metadata.name;
     replacedVolume = { name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } };
     replacedVolumeMount = { mountPath: ROOT_MOUNT_PATH, name: newPvcName };

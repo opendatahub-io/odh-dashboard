@@ -138,6 +138,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           projectName,
           editNotebook,
           storageData,
+          storageClass?.metadata.name,
           dryRun,
         ).catch(handleError);
 
