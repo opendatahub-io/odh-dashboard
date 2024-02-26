@@ -147,6 +147,6 @@ export const isJobWithinDateRange = (
 
 export const getPipelineJobExecutionCount = (resourceName: string): string | null => {
   const regex = /(\w+)(?:-[^-]*)?$/;
-  const match = resourceName?.match(regex);
+  const match = resourceName.match(regex);
   return match ? match[1] : null;
 };

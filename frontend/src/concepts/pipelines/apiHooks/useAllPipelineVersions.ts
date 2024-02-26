@@ -16,7 +16,7 @@ export const useAllPipelineVersions = (
 ): FetchState<PipelineListPaged<PipelineVersionKF>> => {
   const { api } = usePipelinesAPI();
   const [{ items: pipelines }] = usePipelines();
-  const pipelineIds = useDeepCompareMemoize(pipelines?.map((pipeline) => pipeline.id) || []);
+  const pipelineIds = useDeepCompareMemoize(pipelines.map((pipeline) => pipeline.id));
 
   return usePipelineQuery<PipelineVersionKF>(
     React.useCallback(
@@ -34,7 +34,7 @@ export const useAllPipelineVersions = (
           (acc: { total_size: number; items: PipelineVersionKF[] }, result) => {
             // eslint-disable-next-line camelcase
             acc.total_size += result.total_size || 0;
-            acc.items = acc.items?.concat(result?.versions || []);
+            acc.items = acc.items.concat(result.versions || []);
 
             return acc;
           },

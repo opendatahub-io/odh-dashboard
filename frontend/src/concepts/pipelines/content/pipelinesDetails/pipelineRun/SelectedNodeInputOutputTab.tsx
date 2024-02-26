@@ -35,7 +35,7 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
       }
       const [name, path] = ref;
       const refTask = taskReferences[name];
-      const value = getValue(refTask, path) ?? p.value;
+      const value = (refTask ? getValue(refTask, path) : null) ?? p.value;
       return { ...p, value };
     }) ?? [];
 

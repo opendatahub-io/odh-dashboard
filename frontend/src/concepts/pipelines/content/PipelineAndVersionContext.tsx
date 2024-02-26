@@ -23,6 +23,8 @@ type PipelineAndVersionContextProviderProps = {
   children: React.ReactNode;
 };
 
+type SelectedVersion = { pipelineName: string; versions: PipelineVersionKF[] };
+
 export const PipelineAndVersionContext = React.createContext<PipelineAndVersionContextType>({
   pipelineDataSelector: () => ({ selectedPipelines: [], setSelectedPipelines: () => undefined }),
   versionDataSelector: () => ({ selectedVersions: [], setSelectedVersions: () => undefined }),
@@ -36,7 +38,7 @@ const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProvi
 }) => {
   const [selectedPipelines, setSelectedPipelines] = React.useState<PipelineKF[]>([]);
   const [selectedVersions, setSelectedVersions] = React.useState<{
-    [pipelineId: string]: { pipelineName: string; versions: PipelineVersionKF[] };
+    [pipelineId: string]: SelectedVersion | undefined;
   }>({});
 
   const setVersions =
@@ -72,7 +74,7 @@ const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProvi
         }),
         getResourcesForDeletion: () => ({
           pipelines: selectedPipelines,
-          versions: Object.values(selectedVersions)
+          versions: (Object.values(selectedVersions) as SelectedVersion[])
             .map((selectedVersion) =>
               selectedVersion.versions.map((version) => ({
                 pipelineName: selectedVersion.pipelineName,
