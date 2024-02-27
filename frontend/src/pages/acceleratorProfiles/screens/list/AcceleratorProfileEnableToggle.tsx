@@ -3,6 +3,7 @@ import { Switch } from '@patternfly/react-core';
 import DisableAcceleratorProfileModal from '~/pages/acceleratorProfiles/screens/list/DisableAcceleratorProfileModal';
 import { updateAcceleratorProfile } from '~/services/acceleratorProfileService';
 import useNotification from '~/utilities/useNotification';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 
 type AcceleratorProfileEnableToggleProps = {
   enabled: boolean;
@@ -25,9 +26,17 @@ const AcceleratorProfileEnableToggle: React.FC<AcceleratorProfileEnableTogglePro
       enabled: checked,
     })
       .then(() => {
+        fireTrackingEvent(`AcceleratorProfile ${checked ? 'Enabled' : 'Disabled'}`, {
+          success: true,
+        });
         setEnabled(checked);
       })
       .catch((e) => {
+        fireTrackingEvent(`AcceleratorProfile ${checked ? 'Enabled' : 'Disabled'}`, {
+          success: false,
+          error: e.message,
+        });
+
         notification.error(
           `Error ${checked ? 'enable' : 'disable'} the accelerator profile`,
           e.message,

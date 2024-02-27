@@ -20,21 +20,24 @@ import {
 } from '~/pages/modelServing/screens/projects/utils';
 import { AccessReviewResourceAttributes, ProjectKind, TemplateKind } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
-import { isModelServerEditInfoChanged, requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
-import useCustomServingRuntimesEnabled
-  from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import {
+  isModelServerEditInfoChanged,
+  requestsUnderLimits,
+  resourcesArePositive,
+} from '~/pages/modelServing/utils';
+import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
 import ServingRuntimeNameSection from './ServingRuntimeNameSection';
-import { TrackingOutcome } from '~/types';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -101,7 +104,15 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   const onBeforeClose = (submitted: boolean) => {
     if (!submitted) {
-      fireTrackingEvent('AddServingRuntime', { outcome: TrackingOutcome.cancel });
+      fireTrackingEvent('ServingRuntime Added', { outcome: TrackingOutcome.cancel });
+    } else {
+      // TODO: can we differentiate add/modify?
+      fireTrackingEvent('AddServingRuntime', {
+        outcome: TrackingOutcome.submit,
+        replicaCount: servingRuntimeSelected?.spec.replicas,
+        name: createData?.servingRuntimeTemplateName,
+        lastSelectedSize: createData?.modelSize.name,
+      });
     }
 
     onClose(submitted);
@@ -124,14 +135,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
-    // TODO: can we differentiate add/modify?
-    fireTrackingEvent('AddServingRuntime', {
-      outcome: TrackingOutcome.submit,
-      replicaCount: servingRuntimeSelected?.spec.replicas,
-      name: createData?.servingRuntimeTemplateName,
-      lastSelectedSize: createData?.modelSize.name,
-    });
-
     submitServingRuntimeResourcesWithDryRun(
       servingRuntimeSelected,
       createData,
@@ -147,6 +150,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     )
       .then(() => onSuccess())
       .catch((e) => {
+        fireTrackingEvent('AddServingRuntime', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: e.message(),
+        });
         setErrorModal(e);
       });
   };

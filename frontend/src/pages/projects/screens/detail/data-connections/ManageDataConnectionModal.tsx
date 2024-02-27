@@ -78,7 +78,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       existingData?.data.metadata.name,
     );
 
-    fireTrackingEvent('AddDataConnection', { outcome: TrackingOutcome.submit });
+    fireTrackingEvent('DataConnection Added', { outcome: TrackingOutcome.submit });
 
     const secretName = assembledSecret.metadata.name;
 
@@ -130,6 +130,11 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
         return Promise.all(promiseActions)
           .then(() => Promise.resolve())
           .catch((e) => {
+            fireTrackingEvent('DataConnection Added', {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: e.message,
+            });
             setErrorMessage(e.message || 'An unknown error occurred');
             setIsProgress(false);
             return Promise.reject();

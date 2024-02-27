@@ -1,10 +1,10 @@
 import {
-  Stack,
-  StackItem,
-  Alert,
   ActionList,
   ActionListItem,
+  Alert,
   Button,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
@@ -13,6 +13,8 @@ import {
   createAcceleratorProfile,
   updateAcceleratorProfile,
 } from '~/services/acceleratorProfileService';
+import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 
 type ManageAcceleratorProfileFooterProps = {
   state: AcceleratorProfileKind['spec'];
@@ -29,17 +31,38 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
 
   const isButtonDisabled = !state.displayName || !state.identifier;
 
+  const tr = (create: boolean, submitted: boolean, success?: boolean, properties?: any) => {
+    fireTrackingEventRaw(`AcceleratorProfile ${create ? 'Edited' : 'Created'}`, {
+      ...properties,
+      outcome: submitted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+      success,
+    });
+  };
+
   const onCreateAcceleratorProfile = async () => {
     setIsLoading(true);
     createAcceleratorProfile(state)
       .then((res) => {
         if (res.success) {
+          tr(true, true, true, {
+            toleration: state.tolerations,
+            enabled: state.enabled,
+            identifier: state.identifier,
+          });
           navigate(`/acceleratorProfiles`);
         } else {
+          tr(true, true, false, {
+            error: res.error || 'Could not create accelerator profile',
+          });
+
           setErrorMessage(res.error || 'Could not create accelerator profile');
         }
       })
       .catch((err) => {
+        tr(true, true, false, {
+          error: err.message,
+        });
+
         setErrorMessage(err.message);
       })
       .finally(() => {
@@ -53,12 +76,25 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
       updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, state)
         .then((res) => {
           if (res.success) {
+            tr(false, true, true, {
+              toleration: existingAcceleratorProfile.spec.tolerations,
+              enabled: existingAcceleratorProfile.spec.enabled,
+              identifier: existingAcceleratorProfile.spec.identifier,
+            });
+
             navigate(`/acceleratorProfiles`);
           } else {
+            tr(false, true, false, {
+              error: res.error || 'Could not create accelerator profile',
+            });
             setErrorMessage(res.error || 'Could not update accelerator profile');
           }
         })
         .catch((err) => {
+          tr(false, true, false, {
+            error: err.message,
+          });
+
           setErrorMessage(err.message);
         })
         .finally(() => {
@@ -102,7 +138,10 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
             <Button
               variant="link"
               id="cancel-button"
-              onClick={() => navigate(`/acceleratorProfiles`)}
+              onClick={() => {
+                tr(!existingAcceleratorProfile, false);
+                navigate(`/acceleratorProfiles`);
+              }}
               isDisabled={isLoading}
             >
               Cancel
