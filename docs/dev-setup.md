@@ -8,7 +8,7 @@ ODH requires the following to run:
   - Node recommended version -> `18.16.0`
   - NPM recommended version -> `9.6.7`
 - [OpenShift CLI](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html)
-- [kustomize](https://github.com/kubernetes-sigs/kustomize)
+- [kustomize](https://github.com/kubernetes-sigs/kustomize) (if you need to do deployment)
 
 ### Additional tooling
 
@@ -36,7 +36,7 @@ npm run build
 
 This is the default context for running a local UI.  Make sure you build the project using the instructions above prior to running the command below.
 
-> Note: You must be logged-in with `oc` before you can start the backend.
+> Note: You must be logged-in with `oc` before you can start the backend. Details for that are in the the [contribution guidelines](../CONTRIBUTING.md#give-your-dev-env-access).
 
 > Note: The CLI logged-in user will need to be a `cluster-admin` level user on the cluster to mimic the Dashboard Service Account level of permissions. You could also bind the [cluster role](../manifests/base/cluster-role.yaml) to your user as we do with the service account [binding](../manifests/base/cluster-role-binding.yaml).
 
@@ -44,7 +44,9 @@ This is the default context for running a local UI.  Make sure you build the pro
 npm run start
 ```
 
-For in-depth local run guidance review the [contribution guidelines](./CONTRIBUTING.md#Serving%20Content).
+> If you'd like to run "backend" and "frontend" separately for development, cd into each directory in two different terminals and run `npm run start:dev` from each.
+
+For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md#Serving%20Content).
 
 ### Testing
 
