@@ -17,6 +17,7 @@ import {
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds } from '~/utilities/time';
+import { routePipelineRunDetails } from '~/routes';
 
 const createRun = async (
   formData: SafeRunFormData,
@@ -38,8 +39,8 @@ const createRun = async (
   };
 
   /* eslint-enable camelcase */
-  return createPipelineRun({}, data).then(
-    (runResource) => `/pipelineRun/view/${runResource.run_id}`,
+  return createPipelineRun({}, data).then((runResource) =>
+    routePipelineRunDetails(runResource.run_id),
   );
 };
 

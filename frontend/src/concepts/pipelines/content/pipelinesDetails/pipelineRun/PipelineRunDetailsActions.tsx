@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { routePipelineRunCloneNamespace } from '~/routes';
 
 type PipelineRunDetailsActionsProps = {
   run?: PipelineRunKFv2 | null;
@@ -23,6 +24,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
 
   return (
     <Dropdown
+      data-testid="pipeline-run-details-actions"
       onSelect={() => setOpen(false)}
       toggle={
         <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
@@ -48,9 +50,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
               </DropdownItem>,
               <DropdownItem
                 key="clone-run"
-                onClick={() =>
-                  navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.run_id}`)
-                }
+                onClick={() => navigate(routePipelineRunCloneNamespace(namespace, run.run_id))}
               >
                 Duplicate
               </DropdownItem>,

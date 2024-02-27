@@ -12,68 +12,77 @@ import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pi
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
+import {
+  globNamespaceAll,
+  globPipelineDetails,
+  globPipelineRunClone,
+  globPipelineRunCreate,
+  globPipelineRunDetails,
+  globPipelineRunJobDetails,
+  routePipelinesNamespace,
+} from '~/routes';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
 const GlobalPipelinesRoutes: React.FC = () => (
   <ProjectsRoutes>
     <Route
-      path="/:namespace?/*"
+      path={globNamespaceAll}
       element={
         <GlobalPipelineCoreLoader
           title={pipelinesPageTitle}
           description={pipelinesPageDescription}
-          getInvalidRedirectPath={(namespace) => `/pipelines/${namespace}`}
+          getInvalidRedirectPath={routePipelinesNamespace}
         />
       }
     >
       <Route index element={<GlobalPipelines />} />
       <Route
-        path="pipeline/view/:pipelineId/:pipelineVersionId"
+        path={globPipelineDetails}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineDetails}
             pageName="Pipelines"
-            redirectPath={(namespace) => `/pipelines/${namespace}`}
+            redirectPath={routePipelinesNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/view/:pipelineRunId"
+        path={globPipelineRunDetails}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineRunDetails}
             pageName="Pipelines"
-            redirectPath={(namespace) => `/pipelines/${namespace}`}
+            redirectPath={routePipelinesNamespace}
           />
         }
       />
       <Route
-        path="pipelineRunJob/view/:pipelineRunJobId"
+        path={globPipelineRunJobDetails}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineRunJobDetails}
             pageName="Pipelines"
-            redirectPath={(namespace) => `/pipelines/${namespace}`}
+            redirectPath={routePipelinesNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/create"
+        path={globPipelineRunCreate}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CreateRunPage}
             pageName="Pipelines"
-            redirectPath={(namespace) => `/pipelines/${namespace}`}
+            redirectPath={routePipelinesNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/clone/:pipelineRunId"
+        path={globPipelineRunClone}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CloneRunPage}
             pageName="Pipelines"
-            redirectPath={(namespace) => `/pipelines/${namespace}`}
+            redirectPath={routePipelinesNamespace}
           />
         }
       />

@@ -7,6 +7,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { routePipelineRunCreateNamespacePipelinesPage, routePipelineRunsNamespace } from '~/routes';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
@@ -69,7 +70,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
             {
               title: 'Create run',
               onClick: () => {
-                navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
                   state: { lastPipeline: pipeline, lastVersion: version },
                 });
               },
@@ -79,7 +80,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               onClick: () => {
                 navigate(
                   {
-                    pathname: `/pipelineRuns/${namespace}`,
+                    pathname: routePipelineRunsNamespace(namespace),
                     search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                   },
                   {

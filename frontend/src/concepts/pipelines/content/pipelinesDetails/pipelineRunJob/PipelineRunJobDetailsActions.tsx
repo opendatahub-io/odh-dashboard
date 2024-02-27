@@ -8,6 +8,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
+import { routePipelineRunJobCloneNamespace } from '~/routes';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 type PipelineRunJobDetailsActionsProps = {
   job?: PipelineRunJobKFv2;
@@ -24,6 +27,7 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
 
   return (
     <Dropdown
+      data-testid="pipeline-run-job-details-actions"
       onSelect={() => setOpen(false)}
       toggle={
         <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
@@ -39,9 +43,10 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
               <DropdownItem
                 key="clone-run"
                 onClick={() =>
-                  navigate(
-                    `/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.recurring_run_id}`,
-                  )
+                  navigate({
+                    pathname: routePipelineRunJobCloneNamespace(namespace, job.recurring_run_id),
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  })
                 }
               >
                 Duplicate run

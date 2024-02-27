@@ -14,6 +14,7 @@ import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePi
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { routePipelineRunJobCloneNamespace, routePipelineRunJobDetailsNamespace } from '~/routes';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;
@@ -38,7 +39,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td dataLabel="Name">
         <TableRowTitleDescription
           title={
-            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.recurring_run_id}`}>
+            <Link to={routePipelineRunJobDetailsNamespace(namespace, job.recurring_run_id)}>
               <TableText wrapModifier="truncate">{job.display_name}</TableText>
             </Link>
           }
@@ -78,7 +79,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
               title: 'Duplicate',
               onClick: () => {
                 navigate({
-                  pathname: `/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.recurring_run_id}`,
+                  pathname: routePipelineRunJobCloneNamespace(namespace, job.recurring_run_id),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
                 });
               },

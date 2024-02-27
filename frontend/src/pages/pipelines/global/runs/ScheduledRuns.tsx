@@ -17,6 +17,7 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
 import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { routePipelineRunCreateNamespace } from '~/routes';
 import { PipelineRunType } from './types';
 
 const ScheduledRuns: React.FC = () => {
@@ -68,7 +69,7 @@ const ScheduledRuns: React.FC = () => {
               variant="primary"
               onClick={() =>
                 navigate({
-                  pathname: `/pipelineRuns/${namespace}/pipelineRun/create`,
+                  pathname: routePipelineRunCreateNamespace(namespace),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
                 })
               }

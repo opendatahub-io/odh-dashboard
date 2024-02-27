@@ -25,6 +25,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+import { routePipelineDetailsNamespace, routePipelinesNamespace } from '~/routes';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -118,7 +119,11 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                         selection={pipelineVersion?.display_name}
                         onSelect={(version) =>
                           navigate(
-                            `/pipelines/${namespace}/pipeline/view/${version.pipeline_id}/${version.pipeline_version_id}`,
+                            routePipelineDetailsNamespace(
+                              namespace,
+                              version.pipeline_id,
+                              version.pipeline_version_id,
+                            ),
                           )
                         }
                       />
@@ -213,7 +218,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           onClose={(deleted) => {
             setDeletionOpen(false);
             if (deleted) {
-              navigate(`/pipelines/${namespace}`);
+              navigate(routePipelinesNamespace(namespace));
             }
           }}
         />

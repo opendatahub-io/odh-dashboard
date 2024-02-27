@@ -10,6 +10,7 @@ import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/Pipe
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import { routePipelineRunCreateNamespacePipelinesPage } from '~/routes';
 
 const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';
@@ -106,7 +107,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                    navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
                       state: { lastPipeline: pipeline },
                     });
                   },

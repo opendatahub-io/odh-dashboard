@@ -17,6 +17,7 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { routePipelineRunCreateNamespace } from '~/routes';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
@@ -69,7 +70,7 @@ export const ActiveRuns: React.FC = () => {
               variant="primary"
               onClick={() =>
                 navigate({
-                  pathname: `/pipelineRuns/${namespace}/pipelineRun/create`,
+                  pathname: routePipelineRunCreateNamespace(namespace),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                 })
               }

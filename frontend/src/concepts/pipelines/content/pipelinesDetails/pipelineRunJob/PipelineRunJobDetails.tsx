@@ -32,6 +32,7 @@ import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJ
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { routePipelineRunsNamespace } from '~/routes';
 import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
 
 const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
@@ -159,7 +160,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
         toDeleteResources={deleting && job ? [job] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
-            navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+            navigate(contextPath ?? routePipelineRunsNamespace(namespace));
           } else {
             setDeleting(false);
           }

@@ -13,6 +13,11 @@ import PipelineVersionImportModal from '~/concepts/pipelines/content/import/Pipe
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import {
+  routePipelineDetailsNamespace,
+  routePipelineRunCreateNamespace,
+  routePipelineRunsNamespace,
+} from '~/routes';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
@@ -33,6 +38,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   return (
     <>
       <Dropdown
+        data-testid="pipeline-version-details-actions"
         onSelect={() => setOpen(false)}
         toggle={
           <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
@@ -49,7 +55,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           <DropdownItem
             key="create-run"
             onClick={() =>
-              navigate(`/pipelineRuns/${namespace}/pipelineRun/create`, {
+              navigate(routePipelineRunCreateNamespace(namespace), {
                 state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
               })
             }
@@ -61,7 +67,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             onClick={() =>
               navigate(
                 {
-                  pathname: `/pipelineRuns/${namespace}`,
+                  pathname: routePipelineRunsNamespace(namespace),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                 },
                 {
@@ -86,7 +92,11 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             if (resource) {
               refreshAllAPI();
               navigate(
-                `/pipelines/${namespace}/pipeline/view/${resource.pipeline_id}/${resource.pipeline_version_id}`,
+                routePipelineDetailsNamespace(
+                  namespace,
+                  resource.pipeline_id,
+                  resource.pipeline_version_id,
+                ),
               );
             }
           }}

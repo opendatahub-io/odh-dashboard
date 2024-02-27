@@ -22,6 +22,7 @@ import {
   createSchedulePage,
   cloneSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipelineV2();
@@ -103,7 +104,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      cy.url().should('include', '/pipelineRun/create');
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create`);
       createRunPage.find();
 
       // Fill out the form without a schedule and submit
@@ -121,7 +122,7 @@ describe('Pipeline create runs', () => {
       createRunPage.submit();
 
       // Should be redirected to the run details page
-      cy.url().should('include', '/pipelineRun/view/new-run-id');
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${createRunParams.run_id}`);
     });
 
     it('duplicates an active run', () => {
@@ -150,7 +151,7 @@ describe('Pipeline create runs', () => {
       // Navigate to clone run page for a given active run
       pipelineRunsGlobal.findActiveRunsTab().click();
       activeRunsTable.selectRowActionByName(mockRun.display_name, 'Duplicate');
-      cy.url().should('include', `/pipelineRun/clone/${mockRun.run_id}`);
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
       cloneRunPage.findExperimentSelect().should('have.text', mockExperiment.display_name);
@@ -166,7 +167,7 @@ describe('Pipeline create runs', () => {
       cloneRunPage.submit();
 
       // Should redirect to the details of the newly cloned active run
-      cy.url().should('include', `/pipelineRun/view/${mockDuplicateRun.run_id}`);
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${mockDuplicateRun.run_id}`);
     });
   });
 
@@ -213,7 +214,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateScheduleButton().click();
-      cy.url().should('include', '/pipelineRun/create');
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
       createSchedulePage.find();
 
       // Fill out the form with a schedule and submit
@@ -262,7 +263,9 @@ describe('Pipeline create runs', () => {
 
       // Navigate to clone run page for a given schedule
       pipelineRunJobTable.selectRowActionByName(mockRecurringRun.display_name, 'Duplicate');
-      cy.url().should('include', `/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}`);
+      verifyRelativeURL(
+        `/pipelineRuns/${projectName}/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
+      );
 
       // Verify pre-populated values & submit
       cloneSchedulePage.findExperimentSelect().should('have.text', mockExperiment.display_name);

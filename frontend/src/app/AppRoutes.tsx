@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
+import { globPipelineRunsAll, globPipelinesAll } from '~/routes';
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
@@ -76,8 +77,8 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
 
-        <Route path="/pipelines/*" element={<GlobalPipelinesRoutes />} />
-        <Route path="/pipelineRuns/*" element={<GlobalPipelineRunsRoutes />} />
+        <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
+        <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path="/pipelineExperiments/*" element={<GlobalPipelineExperimentRoutes />} />
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />

@@ -27,6 +27,7 @@ import {
   archiveRunModal,
   bulkArchiveRunModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -149,10 +150,20 @@ describe('Pipeline runs', () => {
   });
 
   describe('Active runs', () => {
-    it('shows empty state', () => {
-      activeRunsTable.mockGetActiveRuns([]);
-      pipelineRunsGlobal.visit(projectName, 'active');
-      activeRunsTable.findEmptyState().should('exist');
+    describe('empty state', () => {
+      beforeEach(() => {
+        activeRunsTable.mockGetActiveRuns([]);
+        pipelineRunsGlobal.visit(projectName, 'active');
+      });
+
+      it('shows empty state', () => {
+        activeRunsTable.findEmptyState().should('exist');
+      });
+
+      it('navigate to create run page', () => {
+        pipelineRunsGlobal.findCreateRunButton().click();
+        verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=active`);
+      });
     });
 
     describe('with data', () => {
@@ -198,6 +209,53 @@ describe('Pipeline runs', () => {
         );
       });
 
+      describe('Navigation', () => {
+        it('navigate to create run page', () => {
+          pipelineRunsGlobal.findCreateRunButton().click();
+          verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create`);
+        });
+        it('navigate to clone run page', () => {
+          activeRunsTable.selectRowActionByName(mockActiveRuns[0].display_name, 'Duplicate');
+          verifyRelativeURL(
+            `/pipelineRuns/${projectName}/pipelineRun/clone/${mockActiveRuns[0].run_id}`,
+          );
+        });
+        it('navigate between tabs', () => {
+          pipelineRunsGlobal.findArchivedRunsTab().click();
+          verifyRelativeURL(`/pipelineRuns/${projectName}?runType=archived`);
+          pipelineRunsGlobal.findActiveRunsTab().click();
+          verifyRelativeURL(`/pipelineRuns/${projectName}`);
+          pipelineRunsGlobal.findSchedulesTab().click();
+          verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
+        });
+        it('navigate to run details page', () => {
+          activeRunsTable
+            .findRowByName(mockActiveRuns[0].display_name)
+            .findByText(mockActiveRuns[0].display_name)
+            .click();
+          verifyRelativeURL(
+            `/pipelineRuns/${projectName}/pipelineRun/view/${mockActiveRuns[0].run_id}`,
+          );
+        });
+        it('navigate to pipeline version details page', () => {
+          const selectedVersion = mockVersions.find(
+            (mockVersion) =>
+              mockVersion.pipeline_version_id ===
+              mockActiveRuns[0].pipeline_version_reference.pipeline_version_id,
+          );
+          if (!selectedVersion) {
+            return;
+          }
+          activeRunsTable
+            .findRowByName(mockActiveRuns[0].display_name)
+            .findByText(selectedVersion.display_name)
+            .click();
+          verifyRelativeURL(
+            `/pipelines/${projectName}/pipeline/view/${selectedVersion.pipeline_id}/${selectedVersion.pipeline_version_id}`,
+          );
+        });
+      });
+
       describe('Table filter', () => {
         it('filter by run name', () => {
           // Verify initial run rows exist
@@ -222,7 +280,7 @@ describe('Pipeline runs', () => {
           activeRunsTable.findRowByName('Test active run 1');
         });
 
-        it.only('filter by experiment', () => {
+        it('filter by experiment', () => {
           // Mock initial list of experiments
           pipelineRunFilterBar.mockExperiments(mockExperiments);
 
@@ -435,6 +493,22 @@ describe('Pipeline runs', () => {
   });
 
   describe('Schedules', () => {
+    describe('empty state', () => {
+      beforeEach(() => {
+        pipelineRunJobTable.mockGetJobs([]);
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
+      });
+
+      it('shows empty state', () => {
+        pipelineRunJobTable.findEmptyState().should('exist');
+      });
+
+      it('navigate to create run page', () => {
+        pipelineRunsGlobal.findCreateScheduleButton().click();
+        verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
+      });
+    });
+
     it('shows empty state', () => {
       pipelineRunJobTable.mockGetJobs([]);
       pipelineRunsGlobal.visit(projectName, 'scheduled');
@@ -458,6 +532,28 @@ describe('Pipeline runs', () => {
         pipelineRunJobTable.mockDisableJob(mockJobs[0]).as('disableJob');
         pipelineRunJobTable.findStatusSwitchByRowName(mockJobs[0].display_name).click();
         cy.wait('@disableJob');
+      });
+
+      describe('Navigation', () => {
+        it('navigate to create scheduled run page', () => {
+          pipelineRunsGlobal.findCreateScheduleButton().click();
+          verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
+        });
+        it('navigate to clone scheduled run page', () => {
+          pipelineRunJobTable.selectRowActionByName(mockJobs[0].display_name, 'Duplicate');
+          verifyRelativeURL(
+            `/pipelineRuns/${projectName}/pipelineRun/cloneJob/${mockJobs[0].recurring_run_id}?runType=scheduled`,
+          );
+        });
+        it('navigate to scheduled run details page', () => {
+          pipelineRunJobTable
+            .findRowByName(mockJobs[0].display_name)
+            .findByText(mockJobs[0].display_name)
+            .click();
+          verifyRelativeURL(
+            `/pipelineRuns/${projectName}/pipelineRunJob/view/${mockJobs[0].recurring_run_id}`,
+          );
+        });
       });
 
       describe('Table filter', () => {

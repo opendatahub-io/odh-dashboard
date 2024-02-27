@@ -38,7 +38,7 @@ class PipelinesTable {
   }
 
   toggleExpandRowByIndex(index: number) {
-    cy.findByLabelText('Details').eq(index).click();
+    this.find().findByLabelText('Details').eq(index).click();
   }
 }
 

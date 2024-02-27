@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Skeleton, Tooltip } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { routePipelineDetailsNamespace } from '~/routes';
 import { NoRunContent } from './tables/renderUtils';
 
 interface PipelineVersionLinkProps {
@@ -40,7 +41,11 @@ export const PipelineVersionLink: React.FC<PipelineVersionLinkProps> = ({
 
   return (
     <Link
-      to={`/pipelines/${namespace}/pipeline/view/${version.pipeline_id}/${version.pipeline_version_id}`}
+      to={routePipelineDetailsNamespace(
+        namespace,
+        version.pipeline_id,
+        version.pipeline_version_id,
+      )}
     >
       {version.display_name}
     </Link>

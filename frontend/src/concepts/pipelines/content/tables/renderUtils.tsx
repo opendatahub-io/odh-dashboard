@@ -40,6 +40,8 @@ export const RunNameForPipeline: RunUtil = ({ run }) => {
   const { namespace } = usePipelinesAPI();
   return (
     // TODO: get link path
+    // TODO: check if this could be removed with the `expandedRowRenderUtils.tsx`
+    // Not going to refactor the link here
     <Link to={`/pipelines/${namespace}/pipelineRun/view/${run.run_id}`}>
       <Truncate content={run.display_name} />
     </Link>

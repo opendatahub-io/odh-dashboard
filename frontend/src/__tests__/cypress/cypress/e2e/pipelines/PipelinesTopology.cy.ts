@@ -19,6 +19,7 @@ import {
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '~/__mocks__/mockPipelinePodK8sResource';
 import { buildMockPipelineV2 } from '~/__mocks__';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipelineV2({
@@ -190,9 +191,77 @@ describe('Pipeline topology', () => {
       pipelinesTopology.findTaskNode('flip-coin').click();
       pipelinesTopology.findTaskDrawer().findByText('/tmp/outputs/Output/data').should('exist');
     });
+
+    describe('Navigation', () => {
+      beforeEach(() => {
+        initIntercepts();
+      });
+
+      it('Test pipeline details create run navigation', () => {
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+        pipelineDetails.findActionsDropdown().click();
+        cy.findByText('Create run').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
+      });
+
+      it('Test pipeline details view runs navigation', () => {
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+        pipelineDetails.findActionsDropdown().click();
+        cy.findByText('View runs').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}`);
+      });
+    });
   });
 
   describe('Pipeline run details', () => {
+    describe('Navigation', () => {
+      beforeEach(() => {
+        initIntercepts();
+      });
+
+      it('Test pipeline run duplicate navigation', () => {
+        pipelineRunDetails.visit(projectId, mockRun.run_id);
+        pipelineRunDetails.findActionsDropdown().click();
+        cy.findByText('Duplicate').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/clone/${mockRun.run_id}`);
+      });
+
+      it('Test pipeline job duplicate navigation', () => {
+        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+        pipelineRunJobDetails.findActionsDropdown().click();
+        cy.findByText('Duplicate run').click();
+        verifyRelativeURL(
+          `/pipelineRuns/${projectId}/pipelineRun/cloneJob/${mockJob.recurring_run_id}?runType=scheduled`,
+        );
+      });
+
+      it('Test pipeline job bottom drawer project navigation', () => {
+        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+
+        pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
+        pipelineRunJobDetails
+          .findBottomDrawer()
+          .findBottomDrawerDetailItem('Project')
+          .findValue()
+          .click();
+        verifyRelativeURL(`/projects/${projectId}`);
+      });
+
+      it('Test pipeline job bottom drawer pipeline version navigation', () => {
+        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+
+        pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
+        pipelineRunJobDetails
+          .findBottomDrawer()
+          .findBottomDrawerDetailItem('Pipeline version')
+          .findValue()
+          .click();
+        verifyRelativeURL(
+          `/pipelines/${projectId}/pipeline/view/${mockJob.pipeline_version_reference.pipeline_id}/${mockJob.pipeline_version_reference.pipeline_version_id}`,
+        );
+      });
+    });
+
     it('Test pipeline job bottom drawer details', () => {
       initIntercepts();
 
