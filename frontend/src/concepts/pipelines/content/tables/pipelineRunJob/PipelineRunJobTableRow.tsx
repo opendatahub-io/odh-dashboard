@@ -4,14 +4,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import {
+  JobCreated,
   RunJobScheduled,
   RunJobStatus,
   RunJobTrigger,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;
@@ -29,7 +31,6 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const { version, loaded, error } = usePipelineRunVersionInfo(job);
-  const [experiment] = useExperimentById(job.experiment_id);
 
   return (
     <Tr>
@@ -45,7 +46,6 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
           descriptionAsMarkdown
         />
       </Td>
-      <Td dataLabel="Experiment">{experiment?.display_name || 'Default'}</Td>
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink
           displayName={version?.display_name}
@@ -68,13 +68,19 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
           }
         />
       </Td>
+      <Td dataLabel="Created">
+        <JobCreated job={job} />
+      </Td>
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
             {
               title: 'Duplicate',
               onClick: () => {
-                navigate(`/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.recurring_run_id}`);
+                navigate({
+                  pathname: `/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.recurring_run_id}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                });
               },
             },
             {

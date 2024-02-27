@@ -10,7 +10,7 @@ import {
 import React from 'react';
 import {
   PipelineRunKFv2,
-  RunStorageStateKFv2,
+  StorageStateKF,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
@@ -18,7 +18,7 @@ import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
 const run: PipelineRunKFv2 = {
   created_at: '2023-09-05T16:23:25Z',
-  storage_state: RunStorageStateKFv2.AVAILABLE,
+  storage_state: StorageStateKF.AVAILABLE,
   pipeline_spec: {
     runtime_config: {
       parameters: {},

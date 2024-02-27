@@ -40,7 +40,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
   const [search, setSearch] = React.useState('');
   const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKFv2[]>(versions);
   const [visibleLength, setVisibleLength] = React.useState(10);
-  const placeholder = versions.length === 0 ? 'No versions available' : 'Select a pipeline version';
+  const placeholder = versions.length === 0 ? 'No versions available' : 'Select...';
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);

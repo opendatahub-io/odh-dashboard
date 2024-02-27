@@ -105,12 +105,6 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
     width: 20,
   },
   {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: false,
-    width: 10,
-  },
-  {
     label: 'Pipeline version',
     field: 'pipeline_version',
     sortable: false,
@@ -133,6 +127,11 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
     field: 'status',
     sortable: false,
     width: 10,
+  },
+  {
+    label: 'Created',
+    field: 'created_at',
+    sortable: true,
   },
   kebabTableColumn(),
 ];

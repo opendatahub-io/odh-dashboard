@@ -1,10 +1,13 @@
 import * as React from 'react';
 import { Alert, Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
+import { RunFormData, runTypeCategoryLabel } from '~/concepts/pipelines/content/createRun/types';
 import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 type RunPageFooterProps = {
   data: RunFormData;
@@ -13,6 +16,7 @@ type RunPageFooterProps = {
 
 const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
   const { api } = usePipelinesAPI();
+  const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
   const navigate = useNavigate();
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -38,20 +42,31 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                 setSubmitting(true);
                 setError(null);
                 handleSubmit(data, api)
-                  .then((path) => {
-                    navigate(`${contextPath}${path}`);
-                  })
+                  .then((path) =>
+                    navigate({
+                      pathname: `${contextPath}${path}`,
+                      search: `?${PipelineRunSearchParam.RunType}=${runType}`,
+                    }),
+                  )
                   .catch((e) => {
                     setSubmitting(false);
                     setError(e);
                   });
               }}
             >
-              Create
+              Create {runTypeCategoryLabel[(runType as PipelineRunType) || PipelineRunType.Active]}
             </Button>
           </SplitItem>
           <SplitItem>
-            <Button variant="secondary" onClick={() => navigate(contextPath)}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                navigate({
+                  pathname: contextPath,
+                  search: `?${PipelineRunSearchParam.RunType}=${runType}`,
+                })
+              }
+            >
               Cancel
             </Button>
           </SplitItem>

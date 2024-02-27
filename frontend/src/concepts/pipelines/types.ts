@@ -93,7 +93,7 @@ export type ListPipelineVersions = (
   pipelineId: string,
   params?: PipelineParams,
 ) => Promise<ListPipelineVersionsKF>;
-export type StopPipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
+export type UpdatePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type UpdatePipelineRunJob = (
   opts: K8sAPIOptions,
   jobId: string,
@@ -129,9 +129,13 @@ export type PipelineAPIs = {
   listExperiments: ListExperiments;
   listPipelines: ListPipelines;
   listPipelineRuns: ListPipelineRuns;
+  listPipelineActiveRuns: ListPipelineRuns;
+  listPipelineArchivedRuns: ListPipelineRuns;
   listPipelineRunJobs: ListPipelineRunJobs;
   listPipelineVersions: ListPipelineVersions;
-  stopPipelineRun: StopPipelineRun;
+  archivePipelineRun: UpdatePipelineRun;
+  unarchivePipelineRun: UpdatePipelineRun;
+  stopPipelineRun: UpdatePipelineRun;
   updatePipelineRunJob: UpdatePipelineRunJob;
   uploadPipeline: UploadPipeline;
   uploadPipelineVersion: UploadPipelineVersion;

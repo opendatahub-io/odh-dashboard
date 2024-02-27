@@ -35,6 +35,7 @@ import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { pipelineRunId } = useParams();
@@ -166,7 +167,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
         </DrawerContent>
       </Drawer>
       <DeletePipelineRunsModal
-        type="triggered run"
+        type={PipelineRunType.Archived}
         toDeleteResources={deleting && runResource ? [runResource] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {

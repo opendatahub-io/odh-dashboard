@@ -1,8 +1,13 @@
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelineRunsGlobal {
-  visit(projectName: string, runType?: 'scheduled' | 'triggered') {
-    cy.visitWithLogin(`/pipelineRuns/${projectName}${runType ? `?runType=${runType}` : ''}`);
+  visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
+    cy.visitWithLogin(
+      `/pipelineRuns/${projectName}${
+        runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : ''
+      }`,
+    );
     this.wait();
   }
 
@@ -15,12 +20,16 @@ class PipelineRunsGlobal {
     return cy.findByTestId('pipelines-api-not-available').should('not.exist');
   }
 
-  findScheduledTab() {
-    return cy.findByRole('tab', { name: 'Scheduled runs tab' });
+  findSchedulesTab() {
+    return cy.findByRole('tab', { name: 'Schedules tab' });
   }
 
-  findTriggeredTab() {
-    return cy.findByRole('tab', { name: 'Triggered runs tab' });
+  findActiveRunsTab() {
+    return cy.findByRole('tab', { name: 'Active runs tab' });
+  }
+
+  findArchivedRunsTab() {
+    return cy.findByRole('tab', { name: 'Archived runs tab' });
   }
 
   findProjectSelect() {
@@ -31,11 +40,20 @@ class PipelineRunsGlobal {
     return cy.findByRole('button', { name: 'Create run' });
   }
 
+  findCreateScheduleButton() {
+    return cy.findByRole('button', { name: 'Create schedule' });
+  }
+
+  findActiveRunsToolbar() {
+    return cy.findByTestId('active-runs-table-toolbar');
+  }
+
+  findArchivedRunsToolbar() {
+    return cy.findByTestId('archived-runs-table-toolbar');
+  }
+
   selectFilterByName(name: string) {
-    cy.findByTestId('pipeline-run-table-toolbar')
-      .findByTestId('pipeline-filter-dropdown')
-      .findDropdownItem(name)
-      .click();
+    cy.findByTestId('pipeline-filter-dropdown').findDropdownItem(name).click();
   }
 
   selectProjectByName(name: string) {
@@ -43,20 +61,26 @@ class PipelineRunsGlobal {
   }
 }
 
-class ScheduledRunDeleteModal extends DeleteModal {
-  constructor(multiple = false) {
-    super(`Warning alert: Delete ${multiple ? '2 ' : ''}scheduled run${multiple ? 's' : ''}?`);
+class SchedulesDeleteModal extends DeleteModal {
+  constructor() {
+    super();
+  }
+
+  find() {
+    return cy.findByTestId('delete-schedule-modal').parents('div[role="dialog"]');
   }
 }
 
-class TriggeredRunDeleteModal extends DeleteModal {
-  constructor(multiple = false) {
-    super(`Warning alert: Delete ${multiple ? '2 ' : ''}triggered run${multiple ? 's' : ''}?`);
+class RunsDeleteModal extends DeleteModal {
+  constructor() {
+    super();
+  }
+
+  find() {
+    return cy.findByTestId('delete-run-modal').parents('div[role="dialog"]');
   }
 }
 
 export const pipelineRunsGlobal = new PipelineRunsGlobal();
-export const scheduledRunDeleteModal = new ScheduledRunDeleteModal();
-export const triggeredRunDeleteModal = new TriggeredRunDeleteModal();
-export const scheduledRunDeleteMultipleModal = new ScheduledRunDeleteModal(true);
-export const triggeredRunDeleteMultipleModal = new TriggeredRunDeleteModal(true);
+export const schedulesDeleteModal = new SchedulesDeleteModal();
+export const runsDeleteModal = new RunsDeleteModal();

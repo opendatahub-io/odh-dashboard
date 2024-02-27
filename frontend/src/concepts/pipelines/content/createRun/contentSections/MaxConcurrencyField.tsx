@@ -18,7 +18,7 @@ const MaxConcurrencyField: React.FC<MaxConcurrencyFieldProps> = ({ onChange, val
     }
   >
     <NumberInputWrapper
-      data-testId="maxConcurrencyField"
+      data-testid="maxConcurrencyField"
       min={1}
       max={10}
       onChange={onChange}

@@ -4,6 +4,7 @@ import {
   PipelineVersionKFv2,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',
@@ -37,9 +38,10 @@ export type RunTypeScheduledData = {
   end?: RunDateTime;
 };
 
-export type RunType =
-  | { type: RunTypeOption.ONE_TRIGGER }
-  | { type: RunTypeOption.SCHEDULED; data: RunTypeScheduledData };
+export type OneTriggerRunType = { type: RunTypeOption.ONE_TRIGGER };
+export type ScheduledRunType = { type: RunTypeOption.SCHEDULED; data: RunTypeScheduledData };
+
+export type RunType = OneTriggerRunType | ScheduledRunType;
 
 export type RunFormData = {
   project: ProjectKind;
@@ -53,4 +55,10 @@ export type RunFormData = {
 export type SafeRunFormData = RunFormData & {
   pipeline: PipelineKFv2;
   params: RuntimeConfigParameters;
+};
+
+export const runTypeCategoryLabel: Record<PipelineRunType, 'run' | 'schedule'> = {
+  [PipelineRunType.Active]: 'run',
+  [PipelineRunType.Archived]: 'run',
+  [PipelineRunType.Scheduled]: 'schedule',
 };

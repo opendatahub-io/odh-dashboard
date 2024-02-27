@@ -83,6 +83,11 @@ export const RunCreated: RunUtil = ({ run }) => {
   return <PipelinesTableRowTime date={createdDate} />;
 };
 
+export const JobCreated: RunJobUtil = ({ job }) => {
+  const createdDate = new Date(job.created_at);
+  return <PipelinesTableRowTime date={createdDate} />;
+};
+
 export const RunJobTrigger: RunJobUtil = ({ job }) => {
   if (job.trigger.periodic_schedule) {
     return <>Every {printSeconds(parseInt(job.trigger.periodic_schedule.interval_second))}</>;

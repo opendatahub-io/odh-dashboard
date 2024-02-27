@@ -5,7 +5,8 @@ import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes'
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
@@ -79,7 +80,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                 navigate(
                   {
                     pathname: `/pipelineRuns/${namespace}`,
-                    search: `?runType=${PipelineRunType.Triggered}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                   },
                   {
                     state: { lastVersion: version },

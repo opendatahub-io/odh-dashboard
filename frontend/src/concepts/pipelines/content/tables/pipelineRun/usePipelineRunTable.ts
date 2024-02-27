@@ -1,4 +1,8 @@
-import usePipelineRuns from '~/concepts/pipelines/apiHooks/usePipelineRuns';
+import {
+  usePipelineActiveRuns,
+  usePipelineArchivedRuns,
+} from '~/concepts/pipelines/apiHooks/usePipelineRuns';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
 
-export default createUsePipelineTable(usePipelineRuns);
+export const usePipelineActiveRunsTable = createUsePipelineTable(usePipelineActiveRuns);
+export const usePipelineArchivedRunsTable = createUsePipelineTable(usePipelineArchivedRuns);

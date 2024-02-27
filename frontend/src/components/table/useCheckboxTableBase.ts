@@ -8,6 +8,7 @@ export type UseCheckboxTableBaseProps<DataType> = {
   toggleSelection: (selection: DataType) => void;
   isSelected: (selection: DataType) => boolean;
   disableCheck: (item: DataType, enabled: boolean) => void;
+  setSelections: React.Dispatch<React.SetStateAction<DataType[]>>;
 };
 
 const useCheckboxTableBase = <T>(
@@ -64,6 +65,7 @@ const useCheckboxTableBase = <T>(
 
     return {
       selections: selectedData,
+      setSelections: setSelectedData,
       tableProps: {
         selectAll: {
           disabled: allDisabled,

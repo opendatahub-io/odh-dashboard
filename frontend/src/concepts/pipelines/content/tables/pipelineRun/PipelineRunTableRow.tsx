@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
@@ -15,6 +15,11 @@ import useNotification from '~/utilities/useNotification';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
+import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
+import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -30,11 +35,73 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   onDelete,
   run,
 }) => {
+  const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
   const [experiment] = useExperimentById(run.experiment_id);
   const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+
+  const actions: IAction[] = React.useMemo(() => {
+    const cloneAction: IAction = {
+      title: 'Duplicate',
+      onClick: () => {
+        navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.run_id}`);
+      },
+    };
+
+    if (runType === PipelineRunType.Archived) {
+      return [
+        {
+          title: 'Restore',
+          onClick: () => setIsRestoreModalOpen(true),
+        },
+        cloneAction,
+        {
+          isSeparator: true,
+        },
+        {
+          title: 'Delete',
+          onClick: () => {
+            onDelete();
+          },
+        },
+      ];
+    }
+
+    return [
+      {
+        title: 'Stop',
+        isDisabled: run.state !== RuntimeStateKF.RUNNING,
+        onClick: () => {
+          api
+            .stopPipelineRun({}, run.run_id)
+            .then(refreshAllAPI)
+            .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
+        },
+      },
+      cloneAction,
+      {
+        isSeparator: true,
+      },
+      {
+        title: 'Archive',
+        onClick: () => setIsArchiveModalOpen(true),
+      },
+    ];
+  }, [
+    api,
+    namespace,
+    notification,
+    run.run_id,
+    run.state,
+    runType,
+    navigate,
+    onDelete,
+    refreshAllAPI,
+  ]);
 
   return (
     <Tr>
@@ -61,35 +128,14 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <RunStatus justIcon run={run} />
       </Td>
       <Td isActionCell dataLabel="Kebab">
-        <ActionsColumn
-          items={[
-            {
-              title: 'Stop',
-              isDisabled: run.state !== RuntimeStateKF.RUNNING,
-              onClick: () => {
-                api
-                  .stopPipelineRun({}, run.run_id)
-                  .then(refreshAllAPI)
-                  .catch((e) => notification.error('Unable to stop pipeline run', e.message));
-              },
-            },
-            {
-              title: 'Duplicate',
-              onClick: () => {
-                navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.run_id}`);
-              },
-            },
-            {
-              isSeparator: true,
-            },
-            {
-              title: 'Delete',
-              onClick: () => {
-                onDelete();
-              },
-            },
-          ]}
-        />
+        <ActionsColumn items={actions} />
+
+        {isRestoreModalOpen && (
+          <RestoreRunModal run={run} onCancel={() => setIsRestoreModalOpen(false)} />
+        )}
+        {isArchiveModalOpen && (
+          <ArchiveRunModal run={run} onCancel={() => setIsArchiveModalOpen(false)} />
+        )}
       </Td>
     </Tr>
   );

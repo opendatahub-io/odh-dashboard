@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import useNotification from '~/utilities/useNotification';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { getPipelineResourceUniqueID } from './utils';
 
 type DeleteStatusesProps = {
   onClose: (deleted?: boolean) => void;
-  type: 'triggered run' | 'scheduled run' | 'pipeline';
+  type: PipelineRunType | 'pipeline';
   toDeleteResources: PipelineCoreResourceKFv2[];
 };
 

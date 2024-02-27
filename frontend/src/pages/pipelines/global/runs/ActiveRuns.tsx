@@ -8,29 +8,29 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateHeader,
-  Button,
-  EmptyStateActions,
   EmptyStateFooter,
+  EmptyStateActions,
+  Button,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
-import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
-import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
+import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
+import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { PipelineRunType } from './types';
+import { PipelineRunTabTitle, PipelineRunType } from './types';
 
-const ScheduledRuns: React.FC = () => {
+export const ActiveRuns: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
-  const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineRunJobTable();
+  const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
+    usePipelineActiveRunsTable();
 
   if (error) {
     return (
       <Bullseye>
         <EmptyState>
           <EmptyStateHeader
-            titleText="There was an issue loading schedules"
+            titleText="There was an issue loading active runs"
             icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
             headingLevel="h2"
           />
@@ -50,16 +50,17 @@ const ScheduledRuns: React.FC = () => {
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <EmptyState data-testid="schedules-empty-state">
+      <EmptyState data-testid="active-runs-empty-state">
         <EmptyStateHeader
-          titleText="No schedules"
+          titleText="No active runs"
           icon={<EmptyStateIcon icon={PlusCircleIcon} />}
           headingLevel="h2"
         />
 
         <EmptyStateBody>
-          Schedules dictate when and how many times a run is executed. To get started, create a
-          schedule.
+          To get started, create a run. Alternatively, click the{' '}
+          <b>{PipelineRunTabTitle.Schedules}</b> tab to create, manage, and execute schedules. A
+          schedule is a job consisting of one or more recurring runs.
         </EmptyStateBody>
 
         <EmptyStateFooter>
@@ -69,11 +70,11 @@ const ScheduledRuns: React.FC = () => {
               onClick={() =>
                 navigate({
                   pathname: `/pipelineRuns/${namespace}/pipelineRun/create`,
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                 })
               }
             >
-              Create schedule
+              Create run
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>
@@ -82,8 +83,12 @@ const ScheduledRuns: React.FC = () => {
   }
 
   return (
-    <PipelineRunJobTable jobs={jobs} loading={!loaded} totalSize={totalSize} {...tableProps} />
+    <PipelineRunTable
+      runs={runs}
+      loading={!loaded}
+      totalSize={totalSize}
+      runType={PipelineRunType.Active}
+      {...tableProps}
+    />
   );
 };
-
-export default ScheduledRuns;

@@ -24,7 +24,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run
       description={run.description}
       descriptionAsMarkdown
       label={
-        <Tooltip content={<div>Run once immediately after creation</div>}>
+        <Tooltip content="Run once immediately after creation">
           <Label color="blue" isCompact>
             {PipelineRunLabels.ONEOFF}
           </Label>

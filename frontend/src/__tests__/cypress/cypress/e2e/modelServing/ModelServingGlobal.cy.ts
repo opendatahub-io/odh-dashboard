@@ -294,7 +294,7 @@ describe('Model Serving Global', () => {
     deleteModal.findSubmitButton().should('be.enabled');
 
     // add trailing space
-    deleteModal.findInput().type(' ');
+    deleteModal.findInput().type('x');
     deleteModal.findSubmitButton().should('be.disabled');
   });
 

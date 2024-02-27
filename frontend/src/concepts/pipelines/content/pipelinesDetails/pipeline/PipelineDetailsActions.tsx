@@ -11,7 +11,8 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
@@ -61,7 +62,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               navigate(
                 {
                   pathname: `/pipelineRuns/${namespace}`,
-                  search: `?runType=${PipelineRunType.Triggered}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                 },
                 {
                   state: { lastVersion: pipelineVersion },

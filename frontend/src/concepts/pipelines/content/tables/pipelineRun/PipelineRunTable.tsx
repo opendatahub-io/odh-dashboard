@@ -1,6 +1,9 @@
-import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
+
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import { PipelineRunKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
@@ -9,11 +12,16 @@ import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableVie
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import usePipelineFilter, {
   FilterOptions,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import SimpleMenuActions from '~/components/SimpleMenuActions';
+import { BulkArchiveRunModal } from '~/pages/pipelines/global/runs/BulkArchiveRunModal';
+import { BulkRestoreRunModal } from '~/pages/pipelines/global/runs/BulkRestoreRunModal';
+import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
+import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKFv2[];
@@ -28,6 +36,7 @@ type PipelineRunTableProps = {
   setSortField: (field: string) => void;
   setSortDirection: (dir: 'asc' | 'desc') => void;
   setFilter: (filter?: PipelinesFilter) => void;
+  runType: PipelineRunType.Active | PipelineRunType.Archived;
 };
 
 const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
@@ -36,22 +45,36 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   totalSize,
   page,
   pageSize,
+  runType,
   setPage,
   setPageSize,
   setFilter,
   ...tableProps
 }) => {
   const { state } = useLocation();
-  const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
+  const navigate = useNavigate();
+  const { namespace, refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const lastLocationPipelineVersion: PipelineVersionKFv2 | undefined = state?.lastVersion;
   const {
-    selections,
+    selections: selectedIds,
     tableProps: checkboxTableProps,
     toggleSelection,
     isSelected,
+    setSelections: setSelectedIds,
   } = useCheckboxTable(runs.map(({ run_id: runId }) => runId));
-  const [deleteResources, setDeleteResources] = React.useState<PipelineRunKFv2[]>([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const selectedRuns = selectedIds.reduce((acc: PipelineRunKFv2[], selectedId) => {
+    const selectedRun = runs.find((run) => run.run_id === selectedId);
+
+    if (selectedRun) {
+      acc.push(selectedRun);
+    }
+
+    return acc;
+  }, []);
 
   // Update filter on initial render with the last location-stored pipeline version.
   React.useEffect(() => {
@@ -69,6 +92,29 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const primaryToolbarAction = React.useMemo(() => {
+    if (runType === PipelineRunType.Archived) {
+      return (
+        <Button
+          variant="primary"
+          isDisabled={!selectedIds.length}
+          onClick={() => setIsRestoreModalOpen(true)}
+        >
+          Restore
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="primary"
+        onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
+      >
+        Create run
+      </Button>
+    );
+  }, [runType, selectedIds.length, navigate, namespace]);
 
   return (
     <>
@@ -92,17 +138,32 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         }
         toolbarContent={
           <PipelineRunTableToolbar
-            data-testid="pipeline-run-table-toolbar"
+            data-testid={`${runType}-runs-table-toolbar`}
             {...filterToolbarProps}
-            deleteAllEnabled={selections.length > 0}
-            onDeleteAll={() =>
-              setDeleteResources(
-                selections
-                  .map<PipelineRunKFv2 | undefined>((selection) =>
-                    runs.find(({ run_id: runId }) => runId === selection),
-                  )
-                  .filter((v): v is PipelineRunKFv2 => !!v),
-              )
+            primaryAction={primaryToolbarAction}
+            dropdownActions={
+              <SimpleMenuActions
+                data-testid="run-table-toolbar-actions"
+                dropdownItems={[
+                  ...(runType === PipelineRunType.Archived
+                    ? [
+                        {
+                          key: 'delete',
+                          label: 'Delete',
+                          onClick: () => setIsDeleteModalOpen(true),
+                          isDisabled: !selectedIds.length,
+                        },
+                      ]
+                    : [
+                        {
+                          key: 'archive',
+                          label: 'Archive',
+                          onClick: () => setIsArchiveModalOpen(true),
+                          isDisabled: !selectedIds.length,
+                        },
+                      ]),
+                ]}
+              />
             }
           />
         }
@@ -111,25 +172,47 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             key={run.run_id}
             isChecked={isSelected(run.run_id)}
             onToggleCheck={() => toggleSelection(run.run_id)}
-            onDelete={() => setDeleteResources([run])}
+            onDelete={() => {
+              setSelectedIds([run.run_id]);
+              setIsDeleteModalOpen(true);
+            }}
             run={run}
             getJobInformation={getJobInformation}
           />
         )}
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({ columns: pipelineRunColumns, ...tableProps })}
-        data-testid="pipeline-run-table"
+        data-testid={`${runType}-runs-table`}
+        id={`${runType}-runs-table`}
       />
-      <DeletePipelineRunsModal
-        toDeleteResources={deleteResources}
-        type={PipelineType.TRIGGERED_RUN}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshAllAPI();
-          }
-          setDeleteResources([]);
-        }}
-      />
+
+      {isArchiveModalOpen &&
+        (selectedRuns.length === 1 ? (
+          <ArchiveRunModal run={selectedRuns[0]} onCancel={() => setIsArchiveModalOpen(false)} />
+        ) : (
+          <BulkArchiveRunModal runs={selectedRuns} onCancel={() => setIsArchiveModalOpen(false)} />
+        ))}
+
+      {isRestoreModalOpen &&
+        (selectedRuns.length === 1 ? (
+          <RestoreRunModal run={selectedRuns[0]} onCancel={() => setIsRestoreModalOpen(false)} />
+        ) : (
+          <BulkRestoreRunModal runs={selectedRuns} onCancel={() => setIsRestoreModalOpen(false)} />
+        ))}
+
+      {isDeleteModalOpen && (
+        <DeletePipelineRunsModal
+          toDeleteResources={selectedRuns}
+          type={PipelineRunType.Archived}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshAllAPI();
+            }
+            setSelectedIds([]);
+            setIsDeleteModalOpen(false);
+          }}
+        />
+      )}
     </>
   );
 };

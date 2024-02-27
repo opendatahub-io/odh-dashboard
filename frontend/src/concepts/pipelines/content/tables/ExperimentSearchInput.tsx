@@ -72,6 +72,7 @@ const ExperimentSearchInput: React.FC<Props> = ({ selected, onChange }) => {
         setFilterText('');
         setFilter(undefined);
       }}
+      placeholderText="Search..."
       noResultsFoundText="Search for an experiment name"
       loadingVariant={filter && !loaded ? 'spinner' : undefined}
       isInputValuePersisted
