@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { TbodyProps, TrProps } from '@patternfly/react-table';
+import React from 'react';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 
 type UseDraggableTable = {
@@ -8,7 +7,7 @@ type UseDraggableTable = {
     tbodyProps: {
       onDragOver: React.DragEventHandler<HTMLTableSectionElement>;
       onDragLeave: React.DragEventHandler<HTMLTableSectionElement>;
-      ref: React.RefObject<HTMLTableSectionElement>;
+      ref: React.MutableRefObject<HTMLTableSectionElement | null>;
     };
   };
   rowProps: {
@@ -26,21 +25,24 @@ const useDraggableTable = (
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
   const [isDragging, setIsDragging] = React.useState(false);
   const [tempItemOrder, setTempItemOrder] = React.useState<string[]>(itemOrder);
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null);
+  const bodyRef = React.useRef<HTMLTableSectionElement | null>(null);
 
-  const onDragStart: TrProps['onDragStart'] = (assignableEvent) => {
-    assignableEvent.dataTransfer.effectAllowed = 'move';
-    assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
-    const currentDraggedItemId = assignableEvent.currentTarget.id;
+  const onDragStart = React.useCallback<UseDraggableTable['rowProps']['onDragStart']>(
+    (assignableEvent) => {
+      assignableEvent.dataTransfer.effectAllowed = 'move';
+      assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
+      const currentDraggedItemId = assignableEvent.currentTarget.id;
 
-    assignableEvent.currentTarget.classList.add(styles.modifiers.ghostRow);
-    assignableEvent.currentTarget.setAttribute('aria-pressed', 'true');
+      assignableEvent.currentTarget.classList.add(styles.modifiers.ghostRow);
+      assignableEvent.currentTarget.setAttribute('aria-pressed', 'true');
 
-    setDraggedItemId(currentDraggedItemId);
-    setIsDragging(true);
-  };
+      setDraggedItemId(currentDraggedItemId);
+      setIsDragging(true);
+    },
+    [],
+  );
 
-  const moveItem = (arr: string[], i1: string, toIndex: number) => {
+  const moveItem = React.useCallback((arr: string[], i1: string, toIndex: number) => {
     const fromIndex = arr.indexOf(i1);
     if (fromIndex === toIndex) {
       return arr;
@@ -49,9 +51,9 @@ const useDraggableTable = (
     arr.splice(toIndex, 0, temp[0]);
 
     return arr;
-  };
+  }, []);
 
-  const move = (currentItemOrder: string[]) => {
+  const move = React.useCallback((currentItemOrder: string[]) => {
     if (!bodyRef.current) {
       return;
     }
@@ -72,12 +74,13 @@ const useDraggableTable = (
         ulNode.appendChild(node);
       }
     });
-  };
+  }, []);
 
-  const onDragCancel = () => {
+  const onDragCancel = React.useCallback(() => {
     if (!bodyRef.current) {
       return;
     }
+
     Array.from(bodyRef.current.children).forEach((el) => {
       el.classList.remove(styles.modifiers.ghostRow);
       el.setAttribute('aria-pressed', 'false');
@@ -85,71 +88,84 @@ const useDraggableTable = (
     setDraggedItemId('');
     setDraggingToItemIndex(-1);
     setIsDragging(false);
-  };
+  }, []);
 
-  const onDragLeave: TbodyProps['onDragLeave'] = (evt) => {
-    if (!isValidDrop(evt)) {
-      move(itemOrder);
-      setDraggingToItemIndex(-1);
-    }
-  };
+  const isValidDrop = React.useCallback(
+    (evt: React.DragEvent<HTMLTableSectionElement | HTMLTableRowElement>) => {
+      if (!bodyRef.current) {
+        return;
+      }
+      const ulRect = bodyRef.current.getBoundingClientRect();
+      return (
+        evt.clientX > ulRect.x &&
+        evt.clientX < ulRect.x + ulRect.width &&
+        evt.clientY > ulRect.y &&
+        evt.clientY < ulRect.y + ulRect.height
+      );
+    },
+    [],
+  );
 
-  const isValidDrop = (evt: React.DragEvent<HTMLTableSectionElement | HTMLTableRowElement>) => {
-    if (!bodyRef.current) {
-      return;
-    }
-    const ulRect = bodyRef.current.getBoundingClientRect();
-    return (
-      evt.clientX > ulRect.x &&
-      evt.clientX < ulRect.x + ulRect.width &&
-      evt.clientY > ulRect.y &&
-      evt.clientY < ulRect.y + ulRect.height
-    );
-  };
+  const onDragLeave = React.useCallback<
+    UseDraggableTable['tableProps']['tbodyProps']['onDragLeave']
+  >(
+    (evt) => {
+      if (!isValidDrop(evt)) {
+        move(itemOrder);
+        setDraggingToItemIndex(-1);
+      }
+    },
+    [isValidDrop, move, itemOrder],
+  );
 
-  const onDrop: TrProps['onDrop'] = (evt) => {
-    if (isValidDrop(evt)) {
-      setItemOrder(tempItemOrder);
-    } else {
-      onDragCancel();
-    }
-  };
+  const onDragOver = React.useCallback<UseDraggableTable['tableProps']['tbodyProps']['onDragOver']>(
+    (evt) => {
+      evt.preventDefault();
+      if (!bodyRef.current) {
+        return;
+      }
 
-  const onDragOver: TbodyProps['onDragOver'] = (evt) => {
-    evt.preventDefault();
+      const curListItem = (evt.target as HTMLTableSectionElement).closest('tr');
+      if (
+        !curListItem ||
+        !bodyRef.current.contains(curListItem) ||
+        curListItem.id === draggedItemId
+      ) {
+        return;
+      }
+      const dragId = curListItem.id;
+      const newDraggingToItemIndex = Array.from(bodyRef.current.children).findIndex(
+        (item) => item.id === dragId,
+      );
+      if (newDraggingToItemIndex !== draggingToItemIndex) {
+        const newItemOrder = moveItem([...itemOrder], draggedItemId, newDraggingToItemIndex);
+        move(newItemOrder);
+        setDraggingToItemIndex(newDraggingToItemIndex);
+        setTempItemOrder(newItemOrder);
+      }
+    },
+    [draggedItemId, draggingToItemIndex, itemOrder, move, moveItem],
+  );
 
-    if (!bodyRef.current) {
-      return;
-    }
+  const onDrop = React.useCallback<UseDraggableTable['rowProps']['onDrop']>(
+    (evt) => {
+      if (isValidDrop(evt)) {
+        setItemOrder(tempItemOrder);
+      } else {
+        onDragCancel();
+      }
+    },
+    [isValidDrop, onDragCancel, setItemOrder, tempItemOrder],
+  );
 
-    const curListItem = (evt.target as HTMLTableSectionElement).closest('tr');
-    if (
-      !curListItem ||
-      !bodyRef.current.contains(curListItem) ||
-      curListItem.id === draggedItemId
-    ) {
-      return;
-    }
-    const dragId = curListItem.id;
-    const newDraggingToItemIndex = Array.from(bodyRef.current.children).findIndex(
-      (item) => item.id === dragId,
-    );
-    if (newDraggingToItemIndex !== draggingToItemIndex) {
-      const newItemOrder = moveItem([...itemOrder], draggedItemId, newDraggingToItemIndex);
-      move(newItemOrder);
-      setDraggingToItemIndex(newDraggingToItemIndex);
-      setTempItemOrder(newItemOrder);
-    }
-  };
-
-  const onDragEnd: TrProps['onDragEnd'] = (evt) => {
-    const target = evt.target as HTMLTableRowElement;
+  const onDragEnd = React.useCallback<UseDraggableTable['rowProps']['onDrop']>((evt) => {
+    const target = evt.currentTarget as HTMLTableRowElement;
     target.classList.remove(styles.modifiers.ghostRow);
     target.setAttribute('aria-pressed', 'false');
     setDraggedItemId('');
     setDraggingToItemIndex(-1);
     setIsDragging(false);
-  };
+  }, []);
 
   return {
     tableProps: {
