@@ -40,6 +40,7 @@ export enum SupportedArea {
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
+  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

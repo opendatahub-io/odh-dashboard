@@ -47,9 +47,27 @@ const useDSProjectsNav = (): NavDataItem[] =>
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (!isAvailable) {
     return [];
+  }
+
+  // TODO temporary solution to switch between layout options - remove with https://issues.redhat.com/browse/RHOAIENG-3826
+  if (isExperimentsAvailable) {
+    return [
+      {
+        id: 'experiments',
+        group: { id: 'experiments', title: 'Experiments' },
+        children: [
+          {
+            id: 'experiments-and-runs',
+            label: 'Experiments and runs',
+            href: '/pipelines/experiments',
+          },
+        ],
+      },
+    ];
   }
 
   return [
