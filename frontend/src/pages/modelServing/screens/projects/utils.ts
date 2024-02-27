@@ -253,7 +253,10 @@ export const getProjectModelServingPlatform = (
   };
 };
 
-export const createAWSSecret = (createData: CreatingInferenceServiceObject): Promise<SecretKind> =>
+export const createAWSSecret = (
+  createData: CreatingInferenceServiceObject,
+  dryRun: boolean,
+): Promise<SecretKind> =>
   createSecret(
     assembleSecret(
       createData.project,
@@ -263,6 +266,7 @@ export const createAWSSecret = (createData: CreatingInferenceServiceObject): Pro
       ),
       'aws',
     ),
+    { dryRun },
   );
 
 const createInferenceServiceAndDataConnection = (
@@ -274,7 +278,7 @@ const createInferenceServiceAndDataConnection = (
   dryRun = false,
 ) => {
   if (!existingStorage) {
-    return createAWSSecret(inferenceServiceData).then((secret) =>
+    return createAWSSecret(inferenceServiceData, dryRun).then((secret) =>
       editInfo
         ? updateInferenceService(
             inferenceServiceData,

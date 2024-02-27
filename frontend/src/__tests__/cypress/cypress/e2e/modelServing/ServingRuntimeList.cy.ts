@@ -48,6 +48,7 @@ type HandlersProps = {
   roleBindingAlreadyExists?: boolean;
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
+  rejectDataConnection?: boolean;
 };
 
 const initIntercepts = ({
@@ -83,6 +84,7 @@ const initIntercepts = ({
   roleBindingAlreadyExists = false,
   rejectInferenceService = false,
   rejectServingRuntime = false,
+  rejectDataConnection = false,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -334,6 +336,18 @@ const initIntercepts = ({
       mockInvalidTemplateK8sResource({}),
     ]),
   );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
+    },
+    rejectDataConnection
+      ? { statusCode: 401 }
+      : {
+          statusCode: 200,
+          body: mockSecretK8sResource({}),
+        },
+  ).as('createDataConnectionSecret');
 };
 
 describe('Serving Runtime List', () => {
@@ -1114,6 +1128,48 @@ describe('Serving Runtime List', () => {
       // check url should be dryRun
       cy.wait('@createServingRuntime').then((interceptions) => {
         expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+    });
+
+    it('Check when Data connection secret dryRun fails', () => {
+      initIntercepts({
+        disableModelMeshConfig: true,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+        rejectDataConnection: true,
+      });
+
+      projectDetails.visit('test-project');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+
+      kserveModal.findNewDataConnectionOption().click();
+      kserveModal.findLocationNameInput().type('Test Name');
+      kserveModal.findLocationAccessKeyInput().type('test-key');
+      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+      kserveModal.findLocationEndpointInput().type('test-endpoint');
+      kserveModal.findLocationBucketInput().type('test-bucket');
+      kserveModal.findLocationPathInput().type('test-model/');
+
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findSubmitButton().click();
+
+      cy.get('@createDataConnectionSecret.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
+
+      // check url should be dryRun
+      cy.wait('@createDataConnectionSecret').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+
+      // check no createInferenceService call is made as data connection creation failed
+      cy.get('@createInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
       });
     });
   });
