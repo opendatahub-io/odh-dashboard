@@ -53,6 +53,7 @@ objects:
       - '--file_system_poll_wait_seconds=0'
       - '--grpc_bind_address=127.0.0.1'
       - '--rest_bind_address=127.0.0.1'
+      - '--target_device=AUTO'
       ports:
       - containerPort: 8888
         protocol: TCP
