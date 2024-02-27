@@ -18,6 +18,7 @@ import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
+import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -41,6 +42,8 @@ const App: React.FC = () => {
     loaded: configLoaded,
     loadError: fetchConfigError,
   } = useApplicationSettings();
+
+  const [storageClasses] = useStorageClasses();
 
   useDetectUser();
 
@@ -88,6 +91,7 @@ const App: React.FC = () => {
           value={{
             buildStatuses,
             dashboardConfig,
+            storageClasses,
           }}
         >
           <Page

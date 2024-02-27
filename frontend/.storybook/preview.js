@@ -45,7 +45,9 @@ export const decorators = [
   (Story) => (
     <AppContext.Provider
       value={{
+        buildStatuses: [],
         dashboardConfig: mockDashboardConfig({}),
+        storageClasses: [],
       }}
     >
       <Provider store={sdkStore}>

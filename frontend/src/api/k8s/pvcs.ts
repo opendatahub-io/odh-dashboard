@@ -19,6 +19,7 @@ export const assemblePvc = (
   data: CreatingStorageObject,
   namespace: string,
   editName?: string,
+  storageClassName?: string,
 ): PersistentVolumeClaimKind => {
   const {
     nameDesc: { name: pvcName, description },
@@ -48,6 +49,7 @@ export const assemblePvc = (
           storage: size,
         },
       },
+      storageClassName,
       volumeMode: 'Filesystem',
     },
     status: {
@@ -84,9 +86,10 @@ export const getAvailableMultiUsePvcs = (
 export const createPvc = (
   data: CreatingStorageObject,
   namespace: string,
+  storageClassName?: string,
   opts?: K8sAPIOptions,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace);
+  const pvc = assemblePvc(data, namespace, undefined, storageClassName);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),
