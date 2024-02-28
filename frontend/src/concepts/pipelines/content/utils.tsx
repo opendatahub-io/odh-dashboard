@@ -17,12 +17,14 @@ import {
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
+import { relativeTime } from '~/utilities/time';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
   label: PipelineRunKFv2['state'] | string;
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
+  createdAt?: string;
 };
 
 const UNKNOWN_ICON = <QuestionCircleIcon />;
@@ -36,6 +38,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
   let status: React.ComponentProps<typeof Icon>['status'];
   let details: string | undefined;
   let label: string;
+  const createdAt = relativeTime(Date.now(), new Date(run.created_at).getTime());
 
   switch (run.state) {
     case RuntimeStateKF.PENDING:
@@ -82,7 +85,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
       details = run.state ?? 'No status yet';
   }
 
-  return { icon, label, status, details };
+  return { icon, label, status, details, createdAt };
 };
 
 export const getPipelineAndVersionDeleteString = (

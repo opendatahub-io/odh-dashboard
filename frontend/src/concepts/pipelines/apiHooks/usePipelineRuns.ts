@@ -38,3 +38,22 @@ export const usePipelineArchivedRuns = (
     options,
   );
 };
+
+export const usePipelineRunsByExperiment = (
+  experimentId: string,
+  options?: PipelineOptions,
+): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
+  const { api } = usePipelinesAPI();
+
+  return usePipelineQuery<PipelineRunKFv2>(
+    React.useCallback(
+      (opts, params) =>
+        api
+          // eslint-disable-next-line camelcase
+          .listPipelineRuns(opts, { ...params, experiment_id: experimentId })
+          .then((result) => ({ ...result, items: result.runs })),
+      [api, experimentId],
+    ),
+    options,
+  );
+};

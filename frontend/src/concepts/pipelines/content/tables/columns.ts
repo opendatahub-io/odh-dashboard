@@ -9,6 +9,7 @@ import {
   PipelineKFv2,
   PipelineRunJobKFv2,
   PipelineRunKFv2,
+  ExperimentKFv2,
 } from '~/concepts/pipelines/kfTypes';
 
 export const pipelineColumns: SortableData<PipelineKFv2>[] = [
@@ -54,6 +55,31 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKFv2>[] = [
     field: 'created_at',
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     width: 20,
+  },
+  kebabTableColumn(),
+];
+
+export const experimentColumns: SortableData<ExperimentKFv2>[] = [
+  checkboxTableColumn(),
+  {
+    label: 'Experiment',
+    field: 'display_name',
+    sortable: true,
+  },
+  {
+    label: 'Description',
+    field: 'description',
+    sortable: true,
+  },
+  {
+    label: 'Created',
+    field: 'created_at',
+    sortable: true,
+  },
+  {
+    label: 'Last 5 runs',
+    field: 'last_5_runs',
+    sortable: false,
   },
   kebabTableColumn(),
 ];

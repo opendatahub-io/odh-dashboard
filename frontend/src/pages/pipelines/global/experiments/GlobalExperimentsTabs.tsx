@@ -3,8 +3,9 @@ import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import ExperimentsList from './ExperimentsList';
 import { ExperimentListTabs } from './const';
+import ActiveExperimentsList from './ActiveExperimentsList';
+import ArchivedExperimentsList from './ArchivedExperimentsList';
 
 type GlobalExperimentsTabProps = {
   tab: ExperimentListTabs;
@@ -30,8 +31,8 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="experiments-active-tab"
       >
-        <PageSection isFilled variant="light">
-          <ExperimentsList tab={ExperimentListTabs.ACTIVE} />
+        <PageSection isFilled variant="light" data-testid="experiments-active-tab-content">
+          <ActiveExperimentsList />
         </PageSection>
       </Tab>
       <Tab
@@ -41,8 +42,8 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="experiments-archived-tab"
       >
-        <PageSection isFilled variant="light">
-          <ExperimentsList tab={ExperimentListTabs.ARCHIVED} />
+        <PageSection isFilled variant="light" data-testid="experiments-archived-tab-content">
+          <ArchivedExperimentsList />
         </PageSection>
       </Tab>
     </Tabs>

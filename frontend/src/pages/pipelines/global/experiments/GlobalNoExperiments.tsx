@@ -17,7 +17,7 @@ type GlobalNoExperimentsProps = {
 const GlobalNoExperiments: React.FC<GlobalNoExperimentsProps> = ({ tab }) => {
   if (tab === ExperimentListTabs.ARCHIVED) {
     return (
-      <EmptyState data-testid="global-no-archived-experiments">
+      <EmptyState data-testid="global-no-experiments">
         <EmptyStateHeader
           titleText="No archived experiments"
           icon={<EmptyStateIcon icon={CubesIcon} />}
@@ -33,7 +33,7 @@ const GlobalNoExperiments: React.FC<GlobalNoExperimentsProps> = ({ tab }) => {
   }
 
   return (
-    <EmptyState data-testid="global-no-active-experiments">
+    <EmptyState data-testid="global-no-experiments">
       <EmptyStateHeader
         titleText="No active experiments"
         icon={<EmptyStateIcon icon={PlusCircleIcon} />}

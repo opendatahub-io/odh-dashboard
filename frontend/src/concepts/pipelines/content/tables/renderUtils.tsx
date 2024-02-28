@@ -4,6 +4,8 @@ import {
   Level,
   LevelItem,
   Spinner,
+  Stack,
+  StackItem,
   Switch,
   Timestamp,
   TimestampTooltipVariant,
@@ -45,8 +47,8 @@ export const RunNameForPipeline: RunUtil = ({ run }) => {
 };
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
-  const { icon, status, label, details } = computeRunStatus(run);
-  let tooltipContent = details;
+  const { icon, status, label, details, createdAt } = computeRunStatus(run);
+  let tooltipContent: React.ReactNode = details;
 
   const content = (
     <div style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
@@ -59,7 +61,12 @@ export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) =>
 
   if (justIcon && !tooltipContent) {
     // If we are just an icon with no tooltip -- make it the status for ease of understanding
-    tooltipContent = runtimeStateLabels[run.state];
+    tooltipContent = (
+      <Stack>
+        <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
+        <StackItem>{`Started: ${createdAt}`}</StackItem>
+      </Stack>
+    );
   }
 
   if (tooltipContent) {
