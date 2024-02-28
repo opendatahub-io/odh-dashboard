@@ -4,11 +4,11 @@ import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfType
 class PipelineRunTable {
   protected testId = '';
 
-  protected toolbarTestId = '';
+  protected emptyStateTestId = '';
 
-  constructor(testId = 'pipeline-run-table', toolbarTestId = 'run-table-toolbar-item') {
-    this.testId = testId;
-    this.toolbarTestId = toolbarTestId;
+  constructor(tab?: 'active-runs' | 'archived-runs' | 'schedules') {
+    this.testId = `${tab}-table`;
+    this.emptyStateTestId = `${tab}-empty-state`;
   }
 
   find() {
@@ -28,11 +28,11 @@ class PipelineRunTable {
   }
 
   findActionsKebab() {
-    return cy.findByTestId(this.toolbarTestId).findByTestId('run-table-toolbar-actions');
+    return cy.findByRole('button', { name: 'Actions' }).parent();
   }
 
   findEmptyState() {
-    return cy.findByTestId('create-run-empty-state');
+    return cy.findByTestId(this.emptyStateTestId);
   }
 
   findEmptyResults() {
@@ -57,12 +57,16 @@ class PipelineRunTable {
 }
 
 class PipelineRunJobTable extends PipelineRunTable {
-  constructor(testId = 'pipeline-run-job-table', toolbarTestId = 'job-table-toolbar-item') {
-    super(testId, toolbarTestId);
+  constructor() {
+    super('schedules');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('schedules-empty-state');
   }
 
   selectFilterByName(name: string) {
-    cy.findByTestId('pipeline-run-job-table-toolbar')
+    cy.findByTestId('schedules-table-toolbar')
       .findByTestId('pipeline-filter-dropdown')
       .findDropdownItem(name)
       .click();
@@ -70,7 +74,7 @@ class PipelineRunJobTable extends PipelineRunTable {
 
   findFilterTextField() {
     return cy
-      .findByTestId('pipeline-run-job-table-toolbar')
+      .findByTestId('schedules-table-toolbar')
       .findByTestId('run-table-toolbar-filter-text-field');
   }
 
@@ -123,5 +127,6 @@ class PipelineRunJobTable extends PipelineRunTable {
   }
 }
 
-export const pipelineRunTable = new PipelineRunTable();
+export const activeRunsTable = new PipelineRunTable('active-runs');
+export const archivedRunsTable = new PipelineRunTable('archived-runs');
 export const pipelineRunJobTable = new PipelineRunJobTable();

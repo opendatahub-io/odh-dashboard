@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { Badge, ExpandableSection, Icon, List, ListItem, Tooltip } from '@patternfly/react-core';
+import { Icon, ListItem, Tooltip } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, PendingIcon } from '@patternfly/react-icons';
 import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineResourceDeleteResult } from '~/concepts/pipelines/content/useDeleteStatuses';
+import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 import { getPipelineResourceUniqueID } from './utils';
 
 type DeletePipelineModalExpandableSectionProps = {
@@ -19,55 +20,41 @@ const DeletePipelineModalExpandableSection: React.FC<DeletePipelineModalExpandab
   deleting,
   deleteStatuses,
   children,
-}) => {
-  const [isExpanded, setIsExpanded] = React.useState(true);
-  return (
-    <ExpandableSection
-      toggleContent={
-        <>
-          <span>Selected {type}</span> <Badge isRead={true}>{toDeleteResources.length}</Badge>
-        </>
-      }
-      onToggle={(e, expanded) => setIsExpanded(expanded)}
-      isExpanded={isExpanded}
-      isIndented
-    >
-      <List isPlain className="pf-u-pl-lg">
-        {toDeleteResources.map((resource, i) => {
-          let icon: React.ReactNode;
-          if (!deleting) {
-            icon = null;
-          } else {
-            const state = deleteStatuses[i];
-            if (state === undefined) {
-              icon = <PendingIcon />;
-            } else if (state === true) {
-              icon = (
-                <Icon status="success">
-                  <CheckCircleIcon />
-                </Icon>
-              );
-            } else {
-              icon = (
-                <Tooltip content={state.message}>
-                  <Icon status="danger">
-                    <ExclamationCircleIcon />
-                  </Icon>
-                </Tooltip>
-              );
-            }
-          }
-
-          const key = getPipelineResourceUniqueID(resource);
-          return (
-            <ListItem key={key} icon={icon}>
-              {children(resource)}
-            </ListItem>
+}) => (
+  <BulkActionExpandableSection title={`Selected ${type}`}>
+    {toDeleteResources.map((resource, i) => {
+      let icon: React.ReactNode;
+      if (!deleting) {
+        icon = null;
+      } else {
+        const state = deleteStatuses[i];
+        if (state === undefined) {
+          icon = <PendingIcon />;
+        } else if (state === true) {
+          icon = (
+            <Icon status="success">
+              <CheckCircleIcon />
+            </Icon>
           );
-        })}
-      </List>
-    </ExpandableSection>
-  );
-};
+        } else {
+          icon = (
+            <Tooltip content={state.message}>
+              <Icon status="danger">
+                <ExclamationCircleIcon />
+              </Icon>
+            </Tooltip>
+          );
+        }
+      }
+
+      const key = getPipelineResourceUniqueID(resource);
+      return (
+        <ListItem key={key} icon={icon}>
+          {children(resource)}
+        </ListItem>
+      );
+    })}
+  </BulkActionExpandableSection>
+);
 
 export default DeletePipelineModalExpandableSection;

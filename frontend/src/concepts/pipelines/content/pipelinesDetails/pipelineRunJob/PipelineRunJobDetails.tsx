@@ -31,6 +31,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
 
 const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
@@ -67,7 +68,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
       <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
         <EmptyStateIcon icon={ExclamationCircleIcon} />
         <Title headingLevel="h4" size="lg">
-          Error loading pipeline scheduled run details
+          Error loading pipeline schedule details
         </Title>
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
@@ -107,7 +108,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading scheduled run' : job?.display_name}
+                  title={error ? 'Error loading schedule' : job?.display_name}
                   description={
                     job ? <MarkdownView conciseDisplay markdown={job.description} /> : ''
                   }
@@ -117,7 +118,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                     <Breadcrumb>
                       {breadcrumbPath}
                       <BreadcrumbItem isActive>
-                        {error ? 'Scheduled run details' : job?.display_name ?? 'Loading...'}
+                        {error ? 'Schedule details' : job?.display_name ?? 'Loading...'}
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
@@ -157,7 +158,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
       </Drawer>
 
       <DeletePipelineRunsModal
-        type="scheduled run"
+        type={PipelineRunType.Scheduled}
         toDeleteResources={deleting && job ? [job] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {

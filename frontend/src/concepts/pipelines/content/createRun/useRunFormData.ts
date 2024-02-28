@@ -38,7 +38,7 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 
 const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2,
+  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
 ): void => {
   React.useEffect(() => {
     if (!initialData || !isPipelineRunJob(initialData)) {
@@ -91,11 +91,11 @@ const useUpdateRunType = (
 };
 
 const useUpdatePipelineFormData = (
-  runFormState: GenericObjectState<RunFormData>,
-  pipeline: PipelineKFv2 | undefined,
-  version: PipelineVersionKFv2 | undefined,
+  formState: GenericObjectState<RunFormData>,
+  pipeline: PipelineKFv2 | null | undefined,
+  version: PipelineVersionKFv2 | null | undefined,
 ) => {
-  const [formData, setFormValue] = runFormState;
+  const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
     if (!formData.pipeline && pipeline) {
@@ -109,13 +109,13 @@ const useUpdatePipelineFormData = (
 };
 
 const useRunFormData = (
-  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | undefined,
-  pipeline?: PipelineKFv2,
-  version?: PipelineVersionKFv2,
+  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
+  const { pipeline, version } = initialFormData || {};
 
-  const runFormDataState = useGenericObjectState<RunFormData>({
+  const formState = useGenericObjectState<RunFormData>({
     project,
     nameDesc: {
       name: run?.display_name ? `Duplicate of ${run.display_name}` : '',
@@ -125,13 +125,14 @@ const useRunFormData = (
     version: version ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: run?.runtime_config?.parameters || {},
+    ...initialFormData,
   });
-  const [, setFormValue] = runFormDataState;
+  const [, setFormValue] = formState;
 
-  useUpdatePipelineFormData(runFormDataState, pipeline, version);
+  useUpdatePipelineFormData(formState, pipeline, version);
   useUpdateRunType(setFormValue, run);
 
-  return runFormDataState;
+  return formState;
 };
 
 export default useRunFormData;

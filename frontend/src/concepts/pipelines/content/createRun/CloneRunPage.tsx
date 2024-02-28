@@ -1,17 +1,24 @@
-import * as React from 'react';
+import React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+
 import RunPage from '~/concepts/pipelines/content/createRun/RunPage';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useCloneRunData from '~/concepts/pipelines/content/createRun/useCloneRunData';
+import { PathProps, PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { runTypeCategoryLabel } from './types';
 
-const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
+const CloneRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
   const [run, loaded, error] = useCloneRunData();
+  const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
+  const title = `Duplicate ${
+    runTypeCategoryLabel[(runType as PipelineRunType) || PipelineRunType.Active]
+  }`;
 
   return (
     <ApplicationsPage
-      title={run ? `Duplicate of ${run.display_name}` : 'Loading...'}
-      description={run ? `Create a new run from ${run.display_name}.` : ''}
+      title={title}
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
@@ -24,7 +31,7 @@ const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contex
       loadError={error}
       empty={false}
     >
-      <RunPage cloneRun={run ?? undefined} contextPath={contextPath} testId="clone-run-page" />
+      <RunPage cloneRun={run} contextPath={contextPath} testId="clone-run-page" />
     </ApplicationsPage>
   );
 };

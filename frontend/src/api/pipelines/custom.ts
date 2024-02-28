@@ -1,4 +1,5 @@
 import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
+import { PipelinesFilterOp, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineParams } from '~/concepts/pipelines/types';
 import {
   GetPipelineAPI,
@@ -9,7 +10,6 @@ import {
   UploadPipelineAPI,
   UpdatePipelineRunJobAPI,
   GetPipelineRunAPI,
-  StopPipelineRunAPI,
   ListExperimentsAPI,
   CreateExperimentAPI,
   GetExperimentAPI,
@@ -22,6 +22,7 @@ import {
   DeletePipelineVersionAPI,
   GetPipelineVersionAPI,
   ListPipelineVersionsAPI,
+  UpdatePipelineRunAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -119,6 +120,44 @@ export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params
     proxyGET(hostPath, '/apis/v2beta1/runs', pipelineParamsToQuery(params), opts),
   );
 
+export const listPipelineActiveRuns: ListPipelinesRunAPI = (hostPath) => (opts, params) => {
+  const filterPredicates = params?.filter?.predicates;
+
+  return listPipelineRuns(hostPath)(opts, {
+    ...params,
+    filter: {
+      predicates: [
+        {
+          key: 'storage_state',
+          operation: PipelinesFilterOp.EQUALS,
+          // eslint-disable-next-line camelcase
+          string_value: StorageStateKF.AVAILABLE,
+        },
+        ...(filterPredicates?.length ? [...filterPredicates] : []),
+      ],
+    },
+  });
+};
+
+export const listPipelineArchivedRuns: ListPipelinesRunAPI = (hostPath) => (opts, params) => {
+  const filterPredicates = params?.filter?.predicates;
+
+  return listPipelineRuns(hostPath)(opts, {
+    ...params,
+    filter: {
+      predicates: [
+        {
+          key: 'storage_state',
+          operation: PipelinesFilterOp.EQUALS,
+          // eslint-disable-next-line camelcase
+          string_value: StorageStateKF.ARCHIVED,
+        },
+        ...(filterPredicates?.length ? [...filterPredicates] : []),
+      ],
+    },
+  });
+};
+
 export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
     proxyGET(hostPath, '/apis/v2beta1/recurringruns', pipelineParamsToQuery(params), opts),
@@ -139,7 +178,15 @@ export const listPipelineVersions: ListPipelineVersionsAPI =
       ),
     );
 
-export const stopPipelineRun: StopPipelineRunAPI = (hostPath) => (opts, runId) =>
+export const archivePipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>
+  handlePipelineFailures(proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:archive`, {}, opts));
+
+export const unarchivePipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>
+  handlePipelineFailures(
+    proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:unarchive`, {}, opts),
+  );
+
+export const stopPipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(
     proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:terminate`, {}, opts),
   );

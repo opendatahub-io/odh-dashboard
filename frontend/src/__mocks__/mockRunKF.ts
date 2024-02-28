@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
-import { PipelineRunKFv2, RunStorageStateKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2, StorageStateKF, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 
 export const buildMockRunKF = (run?: Partial<PipelineRunKFv2>): PipelineRunKFv2 => ({
   experiment_id: 'a9947051-ead5-480c-acca-fd26ae14b81b',
   run_id: 'test-run-id',
   display_name: 'Test run',
-  storage_state: RunStorageStateKFv2.AVAILABLE,
+  storage_state: StorageStateKF.AVAILABLE,
   pipeline_version_reference: {
     pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921',
     pipeline_version_id: 'version-id',

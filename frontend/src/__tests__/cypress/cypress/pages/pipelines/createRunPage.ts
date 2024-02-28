@@ -12,6 +12,12 @@ import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsPro
 export class CreateRunPage {
   protected testId = 'create-run-page';
 
+  private type;
+
+  constructor(type: 'run' | 'schedule') {
+    this.type = type;
+  }
+
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(this.testId);
   }
@@ -30,14 +36,6 @@ export class CreateRunPage {
 
   findPipelineVersionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('pipeline-version-toggle-button');
-  }
-
-  findTriggeredRunTypeRadioInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('radio', { name: 'Run once immediately after creation' });
-  }
-
-  findScheduledRunTypeRadioInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('radio', { name: 'Schedule recurring run' });
   }
 
   findScheduledRunTypeSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -117,7 +115,7 @@ export class CreateRunPage {
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: 'Create' });
+    return this.find().findByRole('button', { name: `Create ${this.type}` });
   }
 
   findParamByLabel(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -238,4 +236,5 @@ export class CreateRunPage {
   }
 }
 
-export const createRunPage = new CreateRunPage();
+export const createRunPage = new CreateRunPage('run');
+export const createSchedulePage = new CreateRunPage('schedule');

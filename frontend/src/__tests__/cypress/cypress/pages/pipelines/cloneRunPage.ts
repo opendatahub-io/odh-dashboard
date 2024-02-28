@@ -9,8 +9,8 @@ import { CreateRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/creat
 class CloneRunPage extends CreateRunPage {
   protected testId = 'clone-run-page';
 
-  constructor() {
-    super();
+  constructor(type: 'run' | 'schedule') {
+    super(type);
   }
 
   mockGetRun(run: PipelineRunKFv2) {
@@ -54,4 +54,5 @@ class CloneRunPage extends CreateRunPage {
   }
 }
 
-export const cloneRunPage = new CloneRunPage();
+export const cloneRunPage = new CloneRunPage('run');
+export const cloneSchedulePage = new CloneRunPage('schedule');

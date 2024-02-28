@@ -1,27 +1,32 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection, Text } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
+import {
+  RunFormData,
+  RunTypeOption,
+  ScheduledRunType,
+} from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
-import RunTypeSection from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSection';
 import ParamsSection from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineVersionSection from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionSection';
 import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
+import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
 type RunFormProps = {
   data: RunFormData;
+  runType: PipelineRunType;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
 };
 
-const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => {
+const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   const selectedVersion = data.version || latestVersion;
-  const params = useDeepCompareMemoize(data.params);
+  const paramsRef = React.useRef(data.params);
 
   const updateInputParams = React.useCallback(
     (version: PipelineVersionKFv2 | undefined) =>
@@ -29,13 +34,13 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => {
         'params',
         Object.keys(version?.pipeline_spec?.root?.inputDefinitions?.parameters || {}).reduce(
           (acc: RuntimeConfigParameters, parameter) => {
-            acc[parameter] = params?.[parameter] ?? '';
+            acc[parameter] = paramsRef.current?.[parameter] ?? '';
             return acc;
           },
           {},
         ),
       ),
-    [params, onValueChange],
+    [onValueChange],
   );
 
   React.useEffect(() => {
@@ -83,10 +88,14 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => {
           updateInputParams(version);
         }}
       />
-      <RunTypeSection
-        value={data.runType}
-        onChange={(runType) => onValueChange('runType', runType)}
-      />
+      {runType === PipelineRunType.Scheduled && (
+        <RunTypeSectionScheduled
+          data={(data.runType as ScheduledRunType).data}
+          onChange={(scheduleData) =>
+            onValueChange('runType', { type: RunTypeOption.SCHEDULED, data: scheduleData })
+          }
+        />
+      )}
       <ParamsSection
         runParams={data.params}
         versionId={selectedVersion?.pipeline_version_id}

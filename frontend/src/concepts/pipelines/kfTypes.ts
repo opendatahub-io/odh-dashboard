@@ -115,17 +115,7 @@ export enum RecurringRunStatus {
   DISABLED = 'DISABLE',
 }
 
-/**
- * @deprecated
- * Replace with StorageStateKFv2
- */
 export enum StorageStateKF {
-  STORAGESTATE_UNSPECIFIED = 'STORAGESTATE_UNSPECIFIED',
-  STORAGESTATE_AVAILABLE = 'STORAGESTATE_AVAILABLE',
-  STORAGESTATE_ARCHIVED = 'STORAGESTATE_ARCHIVED',
-}
-
-export enum StorageStateKFv2 {
   STORAGE_STATE_UNSPECIFIED = 'STORAGE_STATE_UNSPECIFIED',
   AVAILABLE = 'AVAILABLE',
   ARCHIVED = 'ARCHIVED',
@@ -288,12 +278,6 @@ export type PipelineVersionReferenceKF = {
   pipeline_version_id: string;
 };
 
-export enum RunStorageStateKFv2 {
-  STORAGE_STATE_UNSPECIFIED = 'STORAGE_STATE_UNSPECIFIED',
-  AVAILABLE = 'AVAILABLE',
-  ARCHIVED = 'ARCHIVED',
-}
-
 export enum RuntimeStateKF {
   RUNTIME_STATE_UNSPECIFIED = 'RUNTIME_STATE_UNSPECIFIED',
   PENDING = 'PENDING',
@@ -367,7 +351,7 @@ export type RunDetailsKF = {
 export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
   experiment_id: string;
   run_id: string;
-  storage_state: RunStorageStateKFv2;
+  storage_state: StorageStateKF;
   pipeline_version_id?: string;
   pipeline_spec?: object;
   pipeline_version_reference: PipelineVersionReferenceKF;
@@ -387,7 +371,7 @@ export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
  * Replace with PipelineRunKFv2
  */
 export type PipelineRunKF = PipelineCoreResourceKF & {
-  storage_state: RunStorageStateKF;
+  storage_state: StorageStateKF;
   pipeline_spec: PipelineSpecKF;
   service_account: string;
   created_at: DateTimeKF;
@@ -469,7 +453,7 @@ export type ExperimentKFv2 = {
   description: string;
   created_at: string;
   namespace?: string;
-  storage_state: StorageStateKFv2;
+  storage_state: StorageStateKF;
 };
 
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{

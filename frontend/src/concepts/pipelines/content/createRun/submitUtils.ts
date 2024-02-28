@@ -56,7 +56,7 @@ const createJob = async (
   createPipelineRunJob: PipelineAPIs['createPipelineRunJob'],
 ): Promise<string> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
-    return Promise.reject(new Error('Cannot create a scheduled run with incomplete data.'));
+    return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
 
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;

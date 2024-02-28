@@ -103,10 +103,7 @@ export enum PipelineRunLabels {
   RECURRING = 'Recurring',
   ONEOFF = 'One-off',
 }
-export enum PipelineType {
-  SCHEDULED_RUN = 'scheduled run',
-  TRIGGERED_RUN = 'triggered run',
-}
+
 const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
 export const getPipelineRunJobScheduledState = (
   job: PipelineRunJobKFv2,

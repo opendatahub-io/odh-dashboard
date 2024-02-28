@@ -7,7 +7,7 @@ import {
   UploadPipeline,
   UpdatePipelineRunJob,
   GetPipelineRun,
-  StopPipelineRun,
+  UpdatePipelineRun,
   ListExperiments,
   CreateExperiment,
   GetExperiment,
@@ -45,7 +45,7 @@ export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelinesRunAPI = KubeflowAPICall<ListPipelineRuns>;
 export type ListPipelinesRunJobAPI = KubeflowAPICall<ListPipelineRunJobs>;
 export type ListPipelineVersionsAPI = KubeflowAPICall<ListPipelineVersions>;
-export type StopPipelineRunAPI = KubeflowAPICall<StopPipelineRun>;
+export type UpdatePipelineRunAPI = KubeflowAPICall<UpdatePipelineRun>;
 export type UpdatePipelineRunJobAPI = KubeflowAPICall<UpdatePipelineRunJob>;
 export type UploadPipelineAPI = KubeflowAPICall<UploadPipeline>;
 export type UploadPipelineVersionAPI = KubeflowAPICall<UploadPipelineVersion>;

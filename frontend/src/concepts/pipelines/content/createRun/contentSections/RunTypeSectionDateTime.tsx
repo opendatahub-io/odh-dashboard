@@ -53,7 +53,7 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
         <Bullseye>
           <Switch
             id={id}
-            data-testId={`${id}-toggle`}
+            data-testid={`${id}-toggle`}
             aria-label={`${label} is on`}
             isChecked={value !== undefined}
             onChange={(e, checked) => {
@@ -77,14 +77,14 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
         <DashboardSplitReserveSpace hasGutter visible={value !== undefined}>
           <SplitItem>
             <DatePicker
-              data-testId={`${id}-date`}
+              data-testid={`${id}-date`}
               value={value?.date}
               onChange={(e, date) => handleChange({ date })}
             />
           </SplitItem>
           <SplitItem>
             <TimePicker
-              data-testId={`${id}-time`}
+              data-testid={`${id}-time`}
               time={value?.time ?? DEFAULT_TIME}
               onChange={(e, time) => handleChange({ time: ensureTimeFormat(time) ?? undefined })}
             />

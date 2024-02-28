@@ -61,11 +61,11 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
         ...(variant === 'kebab'
           ? [
               <DropdownItem
-                key="deleted-selected"
+                key="delete"
                 onClick={() => setDeletePipelinesOpen(true)}
                 isDisabled={pipelines.length === 0 && versions.length === 0}
               >
-                Delete selected
+                Delete
               </DropdownItem>,
             ]
           : []),

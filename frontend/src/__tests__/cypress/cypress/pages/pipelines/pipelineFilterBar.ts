@@ -8,7 +8,7 @@ class PipelineFilterBar {
 
 class PipelineRunFilterBar extends PipelineFilterBar {
   findNameInput() {
-    return cy.findByLabelText('Search for a triggered run name');
+    return cy.findByLabelText('Search for a run name');
   }
 
   findExperimentInput() {

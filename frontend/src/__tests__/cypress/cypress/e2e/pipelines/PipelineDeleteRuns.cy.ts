@@ -14,11 +14,9 @@ import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import {
   pipelineRunJobTable,
   pipelineRunsGlobal,
-  pipelineRunTable,
-  scheduledRunDeleteModal,
-  scheduledRunDeleteMultipleModal,
-  triggeredRunDeleteModal,
-  triggeredRunDeleteMultipleModal,
+  archivedRunsTable,
+  runsDeleteModal,
+  schedulesDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const initIntercepts = () => {
@@ -124,19 +122,19 @@ const initIntercepts = () => {
 
 describe('Pipeline runs', () => {
   describe('Test deleting runs', () => {
-    it('Test delete a single run from scheduled', () => {
+    it('Test delete a single schedule', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findScheduledTab().click();
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunJobTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
 
-      scheduledRunDeleteModal.shouldBeOpen();
-      scheduledRunDeleteModal.findSubmitButton().should('be.disabled');
-      scheduledRunDeleteModal.findInput().type('test-pipeline');
-      scheduledRunDeleteModal.findSubmitButton().should('be.enabled');
+      schedulesDeleteModal.shouldBeOpen();
+      schedulesDeleteModal.findSubmitButton().should('be.disabled');
+      schedulesDeleteModal.findInput().type('test-pipeline');
+      schedulesDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
@@ -158,7 +156,7 @@ describe('Pipeline runs', () => {
         },
       ).as('getRuns');
 
-      scheduledRunDeleteModal.findSubmitButton().click();
+      schedulesDeleteModal.findSubmitButton().click();
 
       cy.wait('@postJobPipeline').then((intercept) => {
         expect(intercept.request.body).to.eql({
@@ -173,22 +171,23 @@ describe('Pipeline runs', () => {
         pipelineRunJobTable.findEmptyState().should('not.exist');
       });
     });
-    it('Test delete multiple runs from scheduled', () => {
+
+    it('Test delete multiple schedules', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findScheduledTab().click();
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunJobTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
       pipelineRunJobTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
 
-      pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete selected').click();
+      pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete').click();
 
-      scheduledRunDeleteMultipleModal.shouldBeOpen();
-      scheduledRunDeleteMultipleModal.findSubmitButton().should('be.disabled');
-      scheduledRunDeleteMultipleModal.findInput().type('Delete 2 scheduled runs');
-      scheduledRunDeleteMultipleModal.findSubmitButton().should('be.enabled');
+      schedulesDeleteModal.shouldBeOpen();
+      schedulesDeleteModal.findSubmitButton().should('be.disabled');
+      schedulesDeleteModal.findInput().type('Delete 2 schedules');
+      schedulesDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
@@ -214,7 +213,7 @@ describe('Pipeline runs', () => {
         { recurringRuns: [] },
       ).as('getRuns');
 
-      scheduledRunDeleteMultipleModal.findSubmitButton().click();
+      schedulesDeleteModal.findSubmitButton().click();
 
       cy.wait('@postJobPipeline-1').then((intercept) => {
         expect(intercept.request.body).to.eql({
@@ -240,19 +239,20 @@ describe('Pipeline runs', () => {
         pipelineRunJobTable.findEmptyState().should('exist');
       });
     });
-    it('Test delete a single run from triggered', () => {
+
+    it('Test delete a single archived run', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findTriggeredTab().click();
-      pipelineRunTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
+      pipelineRunsGlobal.findArchivedRunsTab().click();
+      archivedRunsTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
 
-      triggeredRunDeleteModal.shouldBeOpen();
-      triggeredRunDeleteModal.findSubmitButton().should('be.disabled');
-      triggeredRunDeleteModal.findInput().type('test-pipeline');
-      triggeredRunDeleteModal.findSubmitButton().should('be.enabled');
+      runsDeleteModal.shouldBeOpen();
+      runsDeleteModal.findSubmitButton().should('be.disabled');
+      runsDeleteModal.findInput().type('test-pipeline');
+      runsDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
@@ -270,7 +270,7 @@ describe('Pipeline runs', () => {
         { runs: [buildMockRunKF({ run_id: 'other-pipeline', display_name: 'other-pipeline' })] },
       ).as('getRuns');
 
-      triggeredRunDeleteModal.findSubmitButton().click();
+      runsDeleteModal.findSubmitButton().click();
 
       cy.wait('@postRunPipeline').then((intercept) => {
         expect(intercept.request.body).to.eql({
@@ -282,25 +282,26 @@ describe('Pipeline runs', () => {
         });
       });
       cy.wait('@getRuns').then(() => {
-        pipelineRunTable.findEmptyState().should('not.exist');
+        archivedRunsTable.findEmptyState().should('not.exist');
       });
     });
-    it('Test delete multiple runs from triggered', () => {
+
+    it('Test delete multiple archived runs', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findTriggeredTab().click();
-      pipelineRunTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
-      pipelineRunTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
+      pipelineRunsGlobal.findArchivedRunsTab().click();
+      archivedRunsTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
+      archivedRunsTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
 
-      pipelineRunTable.findActionsKebab().findDropdownItem('Delete selected').click();
+      archivedRunsTable.findActionsKebab().findDropdownItem('Delete').click();
 
-      triggeredRunDeleteMultipleModal.shouldBeOpen();
-      triggeredRunDeleteMultipleModal.findSubmitButton().should('be.disabled');
-      triggeredRunDeleteMultipleModal.findInput().type('Delete 2 triggered runs');
-      triggeredRunDeleteMultipleModal.findSubmitButton().should('be.enabled');
+      runsDeleteModal.shouldBeOpen();
+      runsDeleteModal.findSubmitButton().should('be.disabled');
+      runsDeleteModal.findInput().type('Delete 2 runs');
+      runsDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
@@ -326,7 +327,7 @@ describe('Pipeline runs', () => {
         { runs: [] },
       ).as('getRuns');
 
-      triggeredRunDeleteMultipleModal.findSubmitButton().click();
+      runsDeleteModal.findSubmitButton().click();
 
       cy.wait('@postRunPipeline-1').then((intercept) => {
         expect(intercept.request.body).to.eql({
@@ -348,7 +349,7 @@ describe('Pipeline runs', () => {
         });
       });
       cy.wait('@getRuns').then(() => {
-        pipelineRunTable.findEmptyState().should('exist');
+        archivedRunsTable.findEmptyState().should('exist');
       });
     });
   });

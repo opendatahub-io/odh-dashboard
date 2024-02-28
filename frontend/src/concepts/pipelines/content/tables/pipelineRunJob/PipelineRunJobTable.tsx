@@ -8,9 +8,10 @@ import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipe
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import SimpleMenuActions from '~/components/SimpleMenuActions';
 
 type PipelineRunTableProps = {
   jobs: PipelineRunJobKFv2[];
@@ -72,17 +73,27 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
         toolbarContent={
           <PipelineRunJobTableToolbar
             {...filterToolbarProps}
-            data-testid="pipeline-run-job-table-toolbar"
-            deleteAllEnabled={selections.length > 0}
-            onDeleteAll={() =>
-              setDeleteResources(
-                selections
-                  .map<PipelineRunJobKFv2 | undefined>((selection) =>
-                    // eslint-disable-next-line camelcase
-                    jobs.find(({ recurring_run_id }) => recurring_run_id === selection),
-                  )
-                  .filter((v): v is PipelineRunJobKFv2 => !!v),
-              )
+            data-testid="schedules-table-toolbar"
+            dropdownActions={
+              <SimpleMenuActions
+                data-testid="run-table-toolbar-actions"
+                dropdownItems={[
+                  {
+                    key: 'delete',
+                    label: 'Delete',
+                    onClick: () =>
+                      setDeleteResources(
+                        selections
+                          .map<PipelineRunJobKFv2 | undefined>((selection) =>
+                            // eslint-disable-next-line camelcase
+                            jobs.find(({ recurring_run_id }) => recurring_run_id === selection),
+                          )
+                          .filter((v): v is PipelineRunJobKFv2 => !!v),
+                      ),
+                    isDisabled: !selections.length,
+                  },
+                ]}
+              />
             }
           />
         }
@@ -97,11 +108,12 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
         )}
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({ columns: pipelineRunJobColumns, ...tableProps })}
-        data-testid="pipeline-run-job-table"
+        data-testid="schedules-table"
       />
+
       <DeletePipelineRunsModal
         toDeleteResources={deleteResources}
-        type={PipelineType.SCHEDULED_RUN}
+        type={PipelineRunType.Scheduled}
         onClose={(deleted) => {
           if (deleted) {
             refreshAllAPI();

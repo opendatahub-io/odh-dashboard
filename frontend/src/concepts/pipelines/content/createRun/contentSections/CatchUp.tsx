@@ -40,7 +40,7 @@ const CatchUp: React.FC<CatchUpProps> = ({ enabled, onChange }) => (
     <SplitItem>
       <Switch
         id="run-catch-up"
-        data-testId="run-catch-up-toggle"
+        data-testid="run-catch-up-toggle"
         aria-label="Catch up is on"
         isChecked={enabled}
         onChange={(e, checked) => {

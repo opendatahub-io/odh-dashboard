@@ -19,7 +19,9 @@ import {
   cloneRunPage,
   pipelineRunJobTable,
   pipelineRunsGlobal,
-  pipelineRunTable,
+  activeRunsTable,
+  createSchedulePage,
+  cloneSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
@@ -53,13 +55,15 @@ describe('Pipeline create runs', () => {
     pipelineRunsGlobal.visit(projectName);
   });
 
-  it('renders the page with scheduled and triggered runs table data', () => {
+  it('renders the page with scheduled and active runs table data', () => {
+    pipelineRunsGlobal.findSchedulesTab().click();
     pipelineRunJobTable.findRowByName('Test job');
-    pipelineRunsGlobal.findTriggeredTab().click();
-    pipelineRunTable.findRowByName('Test run');
+
+    pipelineRunsGlobal.findActiveRunsTab().click();
+    activeRunsTable.findRowByName('Test run');
   });
 
-  describe('Triggered runs', () => {
+  describe('Runs', () => {
     beforeEach(() => {
       const mockExperimentIds = [
         ...new Set(initialMockRuns.map((mockRun) => mockRun.experiment_id)),
@@ -76,7 +80,7 @@ describe('Pipeline create runs', () => {
       });
     });
 
-    it('creates a triggered run', () => {
+    it('creates an active run', () => {
       const createRunParams: Partial<PipelineRunKFv2> = {
         display_name: 'New run',
         description: 'New run description',
@@ -107,7 +111,6 @@ describe('Pipeline create runs', () => {
       createRunPage.findPipelineSelect().should('not.be.disabled');
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.findPipelineVersionSelect().should('not.be.disabled');
-      createRunPage.findTriggeredRunTypeRadioInput().click();
       createRunPage.fillParamInputByLabel('min_max_scaler', 'true');
       createRunPage.fillParamInputByLabel('neighbors', '5');
       createRunPage.fillParamInputByLabel('standard_scaler', 'no');
@@ -118,7 +121,7 @@ describe('Pipeline create runs', () => {
       cy.url().should('include', '/pipelineRun/view/new-run-id');
     });
 
-    it('duplicates a triggered run', () => {
+    it('duplicates an active run', () => {
       const [mockRun] = initialMockRuns;
       const mockDuplicateRun = buildMockRunKF({
         display_name: 'Duplicate of Test run',
@@ -135,11 +138,11 @@ describe('Pipeline create runs', () => {
       cloneRunPage.mockGetPipeline(mockPipeline);
 
       // Mock runs list with newly cloned run
-      pipelineRunTable.mockGetRuns([...initialMockRuns, mockDuplicateRun]).as('refreshRuns');
+      activeRunsTable.mockGetRuns([...initialMockRuns, mockDuplicateRun]).as('refreshRuns');
 
-      // Navigate to clone run page for a given triggered run
-      pipelineRunsGlobal.findTriggeredTab().click();
-      pipelineRunTable.selectRowActionByName(mockRun.display_name, 'Duplicate');
+      // Navigate to clone run page for a given active run
+      pipelineRunsGlobal.findActiveRunsTab().click();
+      activeRunsTable.selectRowActionByName(mockRun.display_name, 'Duplicate');
       cy.url().should('include', `/pipelineRun/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
@@ -155,12 +158,12 @@ describe('Pipeline create runs', () => {
       cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('cloneRun');
       cloneRunPage.submit();
 
-      // Should redirect to the details of the newly cloned triggered run
+      // Should redirect to the details of the newly cloned active run
       cy.url().should('include', `/pipelineRun/view/${mockDuplicateRun.run_id}`);
     });
   });
 
-  describe('Scheduled runs', () => {
+  describe('Schedules', () => {
     beforeEach(() => {
       const mockExperimentIds = [
         ...new Set(initialMockRecurringRuns.map((mockRun) => mockRun.experiment_id)),
@@ -175,9 +178,11 @@ describe('Pipeline create runs', () => {
           experiment,
         );
       });
+
+      pipelineRunsGlobal.findSchedulesTab().click();
     });
 
-    it('creates a scheduled run', () => {
+    it('creates a schedule', () => {
       const createRecurringRunParams: Partial<PipelineRunJobKFv2> = {
         display_name: 'New job',
         description: 'New job description',
@@ -192,8 +197,8 @@ describe('Pipeline create runs', () => {
       };
 
       // Mock pipelines & versions for form select dropdowns
-      createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
-      createRunPage
+      createSchedulePage.mockGetPipelines([mockPipeline]).as('getPipelines');
+      createSchedulePage
         .mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id)
         .as('getPipelinesVersions');
 
@@ -203,29 +208,28 @@ describe('Pipeline create runs', () => {
         .as('refreshRecurringRuns');
 
       // Navigate to the 'Create run' page
-      pipelineRunsGlobal.findCreateRunButton().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
       cy.url().should('include', '/pipelineRun/create');
-      createRunPage.find();
+      createSchedulePage.find();
 
       // Fill out the form with a schedule and submit
-      createRunPage.fillName('New job');
-      createRunPage.fillDescription('New job description');
-      createRunPage.findPipelineSelect().should('not.be.disabled');
-      createRunPage.selectPipelineByName('Test pipeline');
-      createRunPage.findPipelineVersionSelect().should('not.be.disabled');
-      createRunPage.findScheduledRunTypeRadioInput().click();
-      createRunPage.fillParamInputByLabel('standard_scaler', 'sure');
-      createRunPage
+      createSchedulePage.fillName('New job');
+      createSchedulePage.fillDescription('New job description');
+      createSchedulePage.findPipelineSelect().should('not.be.disabled');
+      createSchedulePage.selectPipelineByName('Test pipeline');
+      createSchedulePage.findPipelineVersionSelect().should('not.be.disabled');
+      createSchedulePage.fillParamInputByLabel('standard_scaler', 'sure');
+      createSchedulePage
         .mockCreateRecurringRun(mockPipelineVersion, createRecurringRunParams)
         .as('createRecurringRun');
-      createRunPage.submit();
+      createSchedulePage.submit();
 
-      // Should show newly created scheduled run in the table
+      // Should show newly created schedule in the table
       cy.wait('@refreshRecurringRuns');
       pipelineRunJobTable.findRowByName('New job');
     });
 
-    it('duplicates a scheduled run', () => {
+    it('duplicates a schedule', () => {
       const [mockRecurringRun] = initialMockRecurringRuns;
       const mockDuplicateRecurringRun = buildMockJobKF({
         display_name: 'Duplicate of Test job',
@@ -233,113 +237,109 @@ describe('Pipeline create runs', () => {
       });
 
       // Mock pipelines & versions for form select dropdowns
-      cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
-      cloneRunPage
+      cloneSchedulePage.mockGetPipelines([mockPipeline]).as('getPipelines');
+      cloneSchedulePage
         .mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id)
         .as('getPipelinesVersions');
-      cloneRunPage.mockGetRecurringRun(mockRecurringRun);
-      cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
-      cloneRunPage.mockGetPipeline(mockPipeline);
+      cloneSchedulePage.mockGetRecurringRun(mockRecurringRun);
+      cloneSchedulePage.mockGetPipelineVersion(mockPipelineVersion);
+      cloneSchedulePage.mockGetPipeline(mockPipeline);
 
       // Mock jobs list with newly cloned job
       pipelineRunJobTable
         .mockGetJobs([...initialMockRecurringRuns, mockDuplicateRecurringRun])
         .as('refreshRecurringRuns');
 
-      // Navigate to clone run page for a given scheduled run
+      // Navigate to clone run page for a given schedule
       pipelineRunJobTable.selectRowActionByName(mockRecurringRun.display_name, 'Duplicate');
       cy.url().should('include', `/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}`);
 
       // Verify pre-populated values & submit
-      cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.display_name);
-      cloneRunPage
+      cloneSchedulePage.findPipelineSelect().should('have.text', mockPipeline.display_name);
+      cloneSchedulePage
         .findPipelineVersionSelect()
         .should('have.text', mockPipelineVersion.display_name);
       Object.entries(mockDuplicateRecurringRun.runtime_config?.parameters || {}).map(
         ([paramLabel, paramValue]) =>
-          cloneRunPage.findParamByLabel(paramLabel).should('have.value', paramValue.toString()),
+          cloneSchedulePage
+            .findParamByLabel(paramLabel)
+            .should('have.value', paramValue.toString()),
       );
-      cloneRunPage
+      cloneSchedulePage
         .mockCreateRecurringRun(mockPipelineVersion, mockDuplicateRecurringRun)
         .as('cloneRecurringRun');
-      cloneRunPage.submit();
+      cloneSchedulePage.submit();
 
-      // Should show newly cloned scheduled run in the table
+      // Should show newly cloned schedule in the table
       cy.wait('@refreshRecurringRuns');
       pipelineRunJobTable.findRowByName('Duplicate of Test job');
     });
 
     it('shows cron & periodic fields', () => {
-      pipelineRunsGlobal.findCreateRunButton().click();
-      createRunPage.findScheduledRunTypeRadioInput().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
 
-      createRunPage.findScheduledRunTypeSelector().click();
-      createRunPage.findScheduledRunTypeSelectorPeriodic().click();
-      createRunPage.findScheduledRunRunEvery().should('exist');
-      createRunPage.findScheduledRunCron().should('not.exist');
+      createSchedulePage.findScheduledRunTypeSelector().click();
+      createSchedulePage.findScheduledRunTypeSelectorPeriodic().click();
+      createSchedulePage.findScheduledRunRunEvery().should('exist');
+      createSchedulePage.findScheduledRunCron().should('not.exist');
 
-      createRunPage.findScheduledRunTypeSelector().click();
-      createRunPage.findScheduledRunTypeSelectorCron().click();
-      createRunPage.findScheduledRunCron().should('exist');
-      createRunPage.findScheduledRunRunEvery().should('not.exist');
+      createSchedulePage.findScheduledRunTypeSelector().click();
+      createSchedulePage.findScheduledRunTypeSelectorCron().click();
+      createSchedulePage.findScheduledRunCron().should('exist');
+      createSchedulePage.findScheduledRunRunEvery().should('not.exist');
     });
 
     it('should start concurrent at the max, 10', () => {
-      pipelineRunsGlobal.findCreateRunButton().click();
-      createRunPage.findScheduledRunTypeRadioInput().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
 
-      createRunPage.findMaxConcurrencyFieldMinus().should('be.enabled');
-      createRunPage.findMaxConcurrencyFieldPlus().should('be.disabled');
-      createRunPage.findMaxConcurrencyFieldValue().should('have.value', '10');
+      createSchedulePage.findMaxConcurrencyFieldMinus().should('be.enabled');
+      createSchedulePage.findMaxConcurrencyFieldPlus().should('be.disabled');
+      createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', '10');
     });
 
     it('should allow the concurrency to update via +/-', () => {
-      pipelineRunsGlobal.findCreateRunButton().click();
-      createRunPage.findScheduledRunTypeRadioInput().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
 
-      createRunPage.findMaxConcurrencyFieldMinus().click();
-      createRunPage.findMaxConcurrencyFieldMinus().click();
-      createRunPage.findMaxConcurrencyFieldValue().should('have.value', '8');
+      createSchedulePage.findMaxConcurrencyFieldMinus().click();
+      createSchedulePage.findMaxConcurrencyFieldMinus().click();
+      createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', '8');
 
-      createRunPage.findMaxConcurrencyFieldPlus().click();
-      createRunPage.findMaxConcurrencyFieldValue().should('have.value', '9');
+      createSchedulePage.findMaxConcurrencyFieldPlus().click();
+      createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', '9');
     });
 
     it('should not allow concurrency to go under or above the bounds', () => {
-      pipelineRunsGlobal.findCreateRunButton().click();
-      createRunPage.findScheduledRunTypeRadioInput().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
 
-      createRunPage.findMaxConcurrencyFieldValue().fill('0');
-      createRunPage.findMaxConcurrencyFieldValue().should('have.value', 1);
+      createSchedulePage.findMaxConcurrencyFieldValue().fill('0');
+      createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', 1);
 
-      createRunPage.findMaxConcurrencyFieldValue().fill('20');
-      createRunPage.findMaxConcurrencyFieldValue().should('have.value', 10);
+      createSchedulePage.findMaxConcurrencyFieldValue().fill('20');
+      createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', 10);
     });
 
     it('should hide and show date toggles', () => {
-      pipelineRunsGlobal.findCreateRunButton().click();
-      createRunPage.findScheduledRunTypeRadioInput().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
 
-      createRunPage.findStartDatePickerDate().should('not.be.visible');
-      createRunPage.findStartDatePickerTime().should('not.be.visible');
-      createRunPage.findStartDatePickerSwitch().click();
-      createRunPage.findStartDatePickerDate().should('be.visible');
-      createRunPage.findStartDatePickerTime().should('be.visible');
+      createSchedulePage.findStartDatePickerDate().should('not.be.visible');
+      createSchedulePage.findStartDatePickerTime().should('not.be.visible');
+      createSchedulePage.findStartDatePickerSwitch().click();
+      createSchedulePage.findStartDatePickerDate().should('be.visible');
+      createSchedulePage.findStartDatePickerTime().should('be.visible');
 
-      createRunPage.findEndDatePickerDate().should('not.be.visible');
-      createRunPage.findEndDatePickerTime().should('not.be.visible');
-      createRunPage.findEndDatePickerSwitch().click();
-      createRunPage.findEndDatePickerDate().should('be.visible');
-      createRunPage.findEndDatePickerTime().should('be.visible');
+      createSchedulePage.findEndDatePickerDate().should('not.be.visible');
+      createSchedulePage.findEndDatePickerTime().should('not.be.visible');
+      createSchedulePage.findEndDatePickerSwitch().click();
+      createSchedulePage.findEndDatePickerDate().should('be.visible');
+      createSchedulePage.findEndDatePickerTime().should('be.visible');
     });
 
     it('should see catch up is enabled by default', () => {
-      pipelineRunsGlobal.findCreateRunButton().click();
-      createRunPage.findScheduledRunTypeRadioInput().click();
+      pipelineRunsGlobal.findCreateScheduleButton().click();
 
-      createRunPage.findCatchUpSwitchValue().should('be.checked');
-      createRunPage.findCatchUpSwitch().click();
-      createRunPage.findCatchUpSwitchValue().should('not.be.checked');
+      createSchedulePage.findCatchUpSwitchValue().should('be.checked');
+      createSchedulePage.findCatchUpSwitch().click();
+      createSchedulePage.findCatchUpSwitchValue().should('not.be.checked');
     });
   });
 });
