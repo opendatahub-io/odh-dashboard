@@ -20,7 +20,7 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
       title={experimentsPageTitle}
       description={experimentsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
-      getRedirectPath={(namespace) => `/pipelines/experiments/${namespace}`}
+      getRedirectPath={(namespace) => `/pipelineExperiments/${namespace}`}
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

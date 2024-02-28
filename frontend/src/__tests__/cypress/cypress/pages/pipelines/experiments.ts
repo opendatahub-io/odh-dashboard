@@ -3,7 +3,7 @@
 class ExperimentsTabs {
   visit(namespace?: string, tab?: string) {
     cy.visitWithLogin(
-      `/pipelines/experiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`,
+      `/pipelineExperiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`,
     );
     this.wait();
   }
