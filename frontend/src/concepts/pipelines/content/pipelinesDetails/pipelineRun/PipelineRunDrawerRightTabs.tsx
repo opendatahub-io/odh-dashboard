@@ -1,18 +1,16 @@
 import * as React from 'react';
 import { DrawerPanelBody, Tab, TabContent, Tabs } from '@patternfly/react-core';
 import SelectedNodeDetailsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
-import { PipelineRunTaskDetails, TaskReferenceMap } from '~/concepts/pipelines/content/types';
 import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
-import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
-import { PipelineRunTaskParam } from '~/k8sTypes';
 import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
 import './PipelineRunDrawer.scss';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'inputoutput',
   // VISUALIZATIONS = 'Visualizations',
   DETAILS = 'details',
-  VOLUMES = 'volumes',
+  // VOLUMES = 'volumes',
   LOGS = 'logs',
   // POD = 'Pod',
   // EVENTS = 'Events',
@@ -22,34 +20,21 @@ enum PipelineRunNodeTabs {
 const PipelineRunNodeTabsTitles = {
   [PipelineRunNodeTabs.INPUT_OUTPUT]: 'Input / Output',
   [PipelineRunNodeTabs.DETAILS]: 'Details',
-  [PipelineRunNodeTabs.VOLUMES]: 'Volumes',
   [PipelineRunNodeTabs.LOGS]: 'Logs',
 };
 
 type PipelineRunDrawerRightTabsProps = {
-  task: PipelineRunTaskDetails;
-  taskReferences: TaskReferenceMap;
-  parameters?: PipelineRunTaskParam[];
+  task: PipelineTask;
 };
 
-const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
-  task,
-  taskReferences,
-  parameters,
-}) => {
+const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({ task }) => {
   const [selection, setSelection] = React.useState(PipelineRunNodeTabs.INPUT_OUTPUT);
 
   const tabContents: Record<PipelineRunNodeTabs, React.ReactNode> = {
-    [PipelineRunNodeTabs.INPUT_OUTPUT]: (
-      <SelectedNodeInputOutputTab
-        taskReferences={taskReferences}
-        task={task}
-        parameters={parameters}
-      />
-    ),
+    [PipelineRunNodeTabs.INPUT_OUTPUT]: <SelectedNodeInputOutputTab task={task} />,
     // [PipelineRunNodeTabs.VISUALIZATIONS]: <>TBD 2</>,
     [PipelineRunNodeTabs.DETAILS]: <SelectedNodeDetailsTab task={task} />,
-    [PipelineRunNodeTabs.VOLUMES]: <SelectedNodeVolumeMountsTab task={task} />,
+    // [PipelineRunNodeTabs.VOLUMES]: <SelectedNodeVolumeMountsTab task={task} />,
     [PipelineRunNodeTabs.LOGS]: <LogsTab task={task} />,
     // [PipelineRunNodeTabs.POD]: <>TBD 6</>,
     // [PipelineRunNodeTabs.EVENTS]: <>TBD 7</>,

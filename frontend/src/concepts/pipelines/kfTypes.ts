@@ -1,4 +1,4 @@
-import { ExactlyOne } from '~/typeHelpers';
+import { EitherNotBoth, ExactlyOne } from '~/typeHelpers';
 
 /* Types pulled from https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec */
 // TODO: Determine what is optional and what is not
@@ -48,6 +48,17 @@ export type PipelineKFCallCommon<UniqueProps> = {
   // Note: if Kubeflow backend determines no results, it doesn't even give you your structure, you get an empty object
 } & Partial<UniqueProps>;
 
+export enum ArtifactType {
+  ARTIFACT = 'system.Artifact',
+  DATASET = 'system.Dataset',
+  MODEL = 'system.Model',
+  METRICS = 'system.Metrics',
+  CLASSIFICATION_METRICS = 'system.ClassificationMetrics',
+  SLICED_CLASSIFICATION_METRICS = 'system.SlicedClassificationMetrics',
+  HTML = 'system.HTML',
+  MARKDOWN = 'system.Markdown',
+}
+
 /** @deprecated resource type is no longer a concept in v2 */
 export enum ResourceTypeKF {
   UNKNOWN_RESOURCE_TYPE = 'UNKNOWN_RESOURCE_TYPE',
@@ -64,15 +75,6 @@ export enum RelationshipKF {
   UNKNOWN_RELATIONSHIP = 'UNKNOWN_RELATIONSHIP',
   OWNER = 'OWNER',
   CREATOR = 'CREATOR',
-}
-
-/**
- * @deprecated
- * Replace with RunStorageStateKFv2
- */
-export enum RunStorageStateKF {
-  AVAILABLE = 'STORAGESTATE_AVAILABLE',
-  ARCHIVED = 'STORAGESTATE_ARCHIVED',
 }
 
 export enum RunMetricFormatKF {
@@ -121,6 +123,7 @@ export enum StorageStateKF {
   ARCHIVED = 'ARCHIVED',
 }
 
+/** @deprecated */
 export type ParameterKF = {
   name: string;
   value: string;
@@ -142,35 +145,181 @@ export type PipelineVersionKF = {
 };
 
 // https://github.com/kubeflow/pipelines/blob/0b1553eb05ea44fdf720efdc91ef71cc5ac557ea/api/v2alpha1/pipeline_spec.proto#L416
-export enum InputDefParamType {
-  NumberDouble = 'NUMBER_DOUBLE',
-  NumberInteger = 'NUMBER_INTEGER',
-  String = 'STRING',
-  Boolean = 'BOOLEAN',
-  List = 'LIST',
-  Struct = 'STRUCT',
+export enum InputDefinitionParameterType {
+  DOUBLE = 'NUMBER_DOUBLE',
+  INTEGER = 'NUMBER_INTEGER',
+  BOOLEAN = 'BOOLEAN',
+  STRING = 'STRING',
+  LIST = 'LIST',
+  STRUCT = 'STRUCT',
 }
 
-export type PipelineInputParameters = Record<string, { parameterType: InputDefParamType }>;
+export type InputOutputArtifactType = {
+  schemaTitle: ArtifactType;
+  schemaVersion: string;
+};
 
-// https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/#/definitions/v2beta1PipelineVersion
-export type PipelineSpec = Record<string, unknown> & {
+export type InputOutputDefinition = {
+  artifacts?: Record<
+    string,
+    {
+      artifactType: InputOutputArtifactType;
+    }
+  >;
+  parameters?: ParametersKF;
+};
+
+type GroupNodeComponent = {
+  dag: DAG;
+};
+
+type SingleNodeComponent = {
+  /** @see PipelineExecutorsKF */
+  executorLabel: string;
+};
+
+export type PipelineComponentKF = EitherNotBoth<GroupNodeComponent, SingleNodeComponent> & {
+  inputDefinitions?: InputOutputDefinition;
+  outputDefinitions?: InputOutputDefinition;
+};
+
+/**
+ * Component definitions, mapped by the name of the component.
+ * @see TaskKF.componentRef.name
+ */
+export type PipelineComponentsKF = Record<string, PipelineComponentKF | undefined>;
+
+/**
+ * High-level concept of a part of the pipeline.
+ *
+ * These are the items that will convert into nodes that at run have statuses.
+ * Artifacts nodes do not have statuses and are not tasks, but they are bi-products of what tasks do.
+ */
+export type TaskKF = {
+  cachingOptions: {
+    enableCache: boolean;
+  };
+  taskInfo: {
+    /** Node name */
+    name: string;
+  };
+  componentRef: {
+    /** @see PipelineComponentsKF */
+    name: string;
+  };
+  /**
+   * References the name of the task id to run after
+   * aka 'runAfter' from topology
+   * @see DAG.tasks
+   */
+  dependentTasks?: string[];
+  inputs?: {
+    artifacts?: Record<
+      string,
+      {
+        taskOutputArtifact?: {
+          /** Artifact node name */
+          outputArtifactKey: string;
+          /**
+           * The task string for runAfter
+           * @see DAG.tasks
+           */
+          producerTask: string;
+        };
+      }
+    >;
+    parameters?: Record<
+      string,
+      {
+        /** @see PipelineSpec.root.inputDefinitions.parameters */
+        componentInputParameter?: string;
+        runtimeValue?: {
+          constant: boolean;
+        };
+      }
+    >;
+  };
+};
+
+export type DAG = {
+  tasks: Record<string, TaskKF>;
+  // TODO: determine if there are more properties
+};
+
+export type ParameterKFV2 = {
+  parameterType: InputDefinitionParameterType;
+};
+
+export type ParametersKF = Record<string, ParameterKFV2>;
+
+export type PipelineExecutorKF = {
+  container: {
+    args?: string[];
+    command?: string[];
+    image: string;
+  };
+};
+
+export type PipelineExecutorsKF = Record<
+  /**
+   * Relationship with executorLabel under PipelineComponentKF
+   * @see SingleNodeComponent
+   */
+  string,
+  PipelineExecutorKF | undefined
+>;
+
+/**
+ * IR Templates
+ *
+ * To read the flow:
+ *  - root.dag.<task-name>; aka (task)
+ *  - (task).componentRef.name => components.<component-name>; aka (component)
+ *      - (component)s can be a looped dag, aka drilling
+ *  - (component).executorLabel => deploymentSpec.executors.<executor-name>
+ */
+export type PipelineSpec = {
+  /** Internal details about each node */
+  components: PipelineComponentsKF;
+  /** Infrastructure & execution information */
+  deploymentSpec: {
+    /** Details about the functionality of the execution; aka "steps" */
+    executors: PipelineExecutorsKF;
+  };
   pipelineInfo: {
     name: string;
   };
-  root: Record<string, unknown> & {
-    inputDefinitions: {
-      parameters: PipelineInputParameters;
+  root: {
+    dag: DAG;
+    inputDefinitions?: {
+      parameters: ParametersKF;
     };
   };
   schemaVersion: string;
   sdkVersion: string;
 };
 
+export type PlatformSpec = {
+  platforms: {
+    kubernetes?: {
+      deploymentSpec: {
+        executors: PipelineExecutorsKF;
+      };
+    };
+  };
+};
+
+export type PipelineSpecVolume = {
+  pipeline_spec: PipelineSpec;
+  platmform_spec: PlatformSpec;
+};
+
+export type PipelineSpecVariable = EitherNotBoth<PipelineSpec, PipelineSpecVolume>;
+
 export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_id: string;
   pipeline_version_id: string;
-  pipeline_spec: PipelineSpec;
+  pipeline_spec: PipelineSpecVariable;
   code_source_url?: string;
   package_url?: UrlKF;
   error?: GoogleRpcStatusKF;
@@ -312,19 +461,18 @@ export const runtimeStateLabels = {
 export type TaskDetailKF = {
   run_id: string;
   task_id: string;
-  display_name: string;
-  create_time: string;
-  start_time: string;
-  end_time: string;
-  executor_detail?: PipelineTaskExecutorDetailKF;
-  state: RuntimeStateKF;
+  create_time: DateTimeKF;
+  start_time: DateTimeKF;
+  end_time: DateTimeKF;
+  display_name?: string;
   execution_id?: string;
+  executor_detail?: PipelineTaskExecutorDetailKF;
+  state?: RuntimeStateKF;
   error?: GoogleRpcStatusKF;
   inputs?: ArtifactListKF;
   outputs?: ArtifactListKF;
   parent_task_id?: string;
-  state_history: RuntimeStatusKF[];
-  pod_name?: string;
+  state_history?: RuntimeStatusKF[];
   child_tasks?: PipelineTaskDetailChildTask[];
 };
 
@@ -345,13 +493,13 @@ type PipelineTaskExecutorDetailKF = {
 };
 
 export type RuntimeStatusKF = {
-  update_time: string;
+  update_time: DateTimeKF;
   state: RuntimeStateKF;
   error?: GoogleRpcStatusKF;
 };
 export type RunDetailsKF = {
-  pipeline_context_id: string;
-  pipeline_run_context_id: string;
+  pipeline_context_id?: string;
+  pipeline_run_context_id?: string;
   task_details: TaskDetailKF[];
 };
 
@@ -360,7 +508,6 @@ export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
   run_id: string;
   storage_state: StorageStateKF;
   pipeline_version_id?: string;
-  pipeline_spec?: object;
   pipeline_version_reference: PipelineVersionReferenceKF;
   runtime_config: PipelineSpecRuntimeConfig;
   service_account: string;

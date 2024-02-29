@@ -23,11 +23,7 @@ export type RunDetailsTabSelection = RunDetailsTabs | null;
 type PipelineRunBottomDrawerProps = {
   selection: RunDetailsTabSelection;
   onSelection: (id: RunDetailsTabs) => void;
-  pipelineRunDetails?: {
-    // TODO need to get pipeline runtime for v2. https://issues.redhat.com/browse/RHOAIENG-2297
-    kind: unknown;
-    kf: PipelineRunKFv2 | PipelineRunJobKFv2;
-  };
+  pipelineRunDetails?: PipelineRunKFv2 | PipelineRunJobKFv2;
 };
 
 export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps> = ({
@@ -35,7 +31,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
   onSelection,
   pipelineRunDetails,
 }) => {
-  const isJob = pipelineRunDetails?.kf && isPipelineRunJob(pipelineRunDetails.kf);
+  const isJob = pipelineRunDetails && isPipelineRunJob(pipelineRunDetails);
 
   return (
     <>
@@ -66,9 +62,8 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             hidden={RunDetailsTabs.DETAILS !== selection}
           >
             <PipelineRunTabDetails
-              // TODO may need to change workflow name with parse for topology https://issues.redhat.com/browse/RHOAIENG-2297
-              workflowName={pipelineRunDetails?.kf.display_name}
-              pipelineRunKF={pipelineRunDetails?.kf}
+              workflowName={pipelineRunDetails?.display_name}
+              pipelineRunKF={pipelineRunDetails}
             />
           </TabContent>
           <TabContent
@@ -77,7 +72,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             activeKey={selection}
             hidden={RunDetailsTabs.PARAMETERS !== selection}
           >
-            <PipelineRunTabParameters run={pipelineRunDetails?.kf} />
+            <PipelineRunTabParameters run={pipelineRunDetails} />
           </TabContent>
           {!isJob && ( // do not include yaml tab for jobs
             <TabContent
@@ -88,14 +83,11 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
               style={{ height: '100%' }}
             >
               <PipelineDetailsYAML
-                filename={pipelineRunDetails?.kf.display_name}
+                filename={pipelineRunDetails?.display_name}
                 content={
                   pipelineRunDetails
                     ? {
-                        // TODO need to get pipeline runtime for v2. https://issues.redhat.com/browse/RHOAIENG-2297
-                        // eslint-disable-next-line camelcase
-                        pipeline_runtime: pipelineRunDetails.kind,
-                        run: pipelineRunDetails.kf,
+                        run: pipelineRunDetails,
                       }
                     : null
                 }

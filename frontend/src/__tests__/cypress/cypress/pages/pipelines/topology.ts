@@ -7,7 +7,6 @@ class PipelinesTopology {
   }
 
   protected wait() {
-    cy.findByTestId('topology');
     cy.testA11y();
   }
 

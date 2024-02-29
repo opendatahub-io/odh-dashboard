@@ -134,7 +134,7 @@ export const RunJobScheduled: RunJobUtil = ({ job }) => {
       }
       break;
     case ScheduledState.UNBOUNDED_END:
-      return <>On-going</>;
+      return <>No end</>;
     default:
   }
 

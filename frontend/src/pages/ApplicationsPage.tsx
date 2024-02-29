@@ -31,7 +31,7 @@ type ApplicationsPageProps = {
   headerAction?: React.ReactNode;
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
-  jobReferenceName?: React.ReactNode;
+  subtext?: React.ReactNode;
   loadingContent?: React.ReactNode;
 };
 
@@ -49,7 +49,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerAction,
   headerContent,
   provideChildrenPadding,
-  jobReferenceName,
+  subtext,
   loadingContent,
 }) => {
   const renderHeader = () => (
@@ -64,8 +64,10 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
               <Text component="h1" data-testid="app-page-title">
                 {title}
               </Text>
-              {jobReferenceName}
-              {description && <Text component="p">{description}</Text>}
+              <Stack hasGutter>
+                {subtext && <StackItem>{subtext}</StackItem>}
+                {description && <StackItem>{description}</StackItem>}
+              </Stack>
             </TextContent>
             {headerAction}
           </Flex>

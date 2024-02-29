@@ -9,7 +9,7 @@ import {
   CreatePipelineRunJobKFData,
   CreatePipelineRunKFData,
   DateTimeKF,
-  InputDefParamType,
+  InputDefinitionParameterType,
   PipelineVersionKFv2,
   RecurringRunMode,
   RuntimeConfigParameters,
@@ -139,14 +139,14 @@ const normalizeInputParams = (
     const paramType = inputDefinitionParams?.[paramKey].parameterType;
 
     switch (paramType) {
-      case InputDefParamType.NumberInteger:
+      case InputDefinitionParameterType.INTEGER:
         acc[paramKey] = parseInt(String(paramValue));
         break;
-      case InputDefParamType.NumberDouble:
+      case InputDefinitionParameterType.DOUBLE:
         acc[paramKey] = parseFloat(String(paramValue));
         break;
-      case InputDefParamType.Struct:
-      case InputDefParamType.List:
+      case InputDefinitionParameterType.STRUCT:
+      case InputDefinitionParameterType.LIST:
         acc[paramKey] = JSON.parse(
           typeof paramValue !== 'string' ? JSON.stringify(paramValue) : paramValue,
         );

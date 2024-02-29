@@ -1,64 +1,38 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { PipelineRunTaskDetails, TaskReferenceMap } from '~/concepts/pipelines/content/types';
-import {
-  getNameAndPathFromTaskRef,
-  getValue,
-  getParamName,
-} from '~/concepts/pipelines/topology/pipelineUtils';
-import TaskDetailsInputParams from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputParams';
-import TaskDetailsOutputResults from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsOutputResults';
-import { PipelineRunTaskParam } from '~/k8sTypes';
+import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 
 type SelectedNodeInputOutputTabProps = {
-  task: PipelineRunTaskDetails;
-  taskReferences: TaskReferenceMap;
-  parameters?: PipelineRunTaskParam[];
+  task: PipelineTask;
 };
 
-const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
-  task,
-  taskReferences,
-  parameters,
-}) => {
-  const params =
-    task.params?.map((p) => {
-      const paramName = getParamName(p.value);
-      if (paramName && parameters) {
-        const paramFromParameter =
-          parameters.find((result) => result.name === paramName)?.value ?? p.value;
-        return { ...p, value: paramFromParameter };
-      }
-      const ref = getNameAndPathFromTaskRef(p.value);
-      if (!ref) {
-        return p;
-      }
-      const [name, path] = ref;
-      const refTask = taskReferences[name];
-      const value = (refTask ? getValue(refTask, path) : null) ?? p.value;
-      return { ...p, value };
-    }) ?? [];
-
-  const results = task.runDetails?.status?.taskResults ?? [];
-
-  if (params.length === 0 && results.length === 0) {
+const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({ task }) => {
+  if (!task.inputs && !task.outputs) {
     return <>No content</>;
   }
 
   return (
     <Stack hasGutter>
-      {params.length > 0 && (
+      {task.inputs && (
         <StackItem>
-          <TaskDetailsInputParams params={params} />
+          <TaskDetailsInputOutput
+            type="Input"
+            artifacts={task.inputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            params={task.inputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
+          />
         </StackItem>
       )}
-      {results.length > 0 && (
+      {task.outputs && (
         <StackItem>
-          <TaskDetailsOutputResults results={results} />
+          <TaskDetailsInputOutput
+            type="Output"
+            artifacts={task.outputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            params={task.outputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
+          />
         </StackItem>
       )}
     </Stack>
   );
 };
-
 export default SelectedNodeInputOutputTab;

@@ -9,21 +9,16 @@ import {
   Title,
 } from '@patternfly/react-core';
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
-import { TaskReferenceMap, PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 import './PipelineRunDrawer.scss';
-import { PipelineRunTaskParam } from '~/k8sTypes';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 
 type PipelineRunDrawerRightContentProps = {
-  task?: PipelineRunTaskDetails;
-  taskReferences: TaskReferenceMap;
-  parameters?: PipelineRunTaskParam[];
+  task?: PipelineTask;
   onClose: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
-  taskReferences,
-  parameters,
   onClose,
 }) => {
   if (!task) {
@@ -39,20 +34,15 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
-          {task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
-            task.name}
+          {task.name} {task.type === 'artifact' ? 'artifact details' : ''}
         </Title>
-        {task.runDetails && <Text component="small">{task.runDetails.status?.podName}</Text>}
+        {task.status?.podName && <Text component="small">{task.status.podName}</Text>}
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm">
-        <PipelineRunDrawerRightTabs
-          taskReferences={taskReferences}
-          task={task}
-          parameters={parameters}
-        />
+        <PipelineRunDrawerRightTabs task={task} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );
