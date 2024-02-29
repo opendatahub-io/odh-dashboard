@@ -6,13 +6,10 @@ import { PathProps, PipelineRunSearchParam } from '~/concepts/pipelines/content/
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { runTypeCategoryLabel } from './types';
 
 const CreateRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
-  const title = `Create ${
-    runTypeCategoryLabel[(runType as PipelineRunType) || PipelineRunType.Active]
-  }`;
+  const title = `${runType === PipelineRunType.Scheduled ? 'Schedule' : 'Create'} run`;
 
   return (
     <ApplicationsPage

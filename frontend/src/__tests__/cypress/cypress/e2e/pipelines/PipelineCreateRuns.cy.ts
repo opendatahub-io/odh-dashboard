@@ -138,7 +138,7 @@ describe('Pipeline create runs', () => {
       cloneRunPage.mockGetPipeline(mockPipeline);
 
       // Mock runs list with newly cloned run
-      activeRunsTable.mockGetRuns([...initialMockRuns, mockDuplicateRun]).as('refreshRuns');
+      activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun]).as('refreshRuns');
 
       // Navigate to clone run page for a given active run
       pipelineRunsGlobal.findActiveRunsTab().click();

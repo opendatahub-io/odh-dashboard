@@ -73,7 +73,7 @@ const ScheduledRuns: React.FC = () => {
                 })
               }
             >
-              Create schedule
+              Schedule run
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>

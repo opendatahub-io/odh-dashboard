@@ -188,16 +188,40 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
       {isArchiveModalOpen &&
         (selectedRuns.length === 1 ? (
-          <ArchiveRunModal run={selectedRuns[0]} onCancel={() => setIsArchiveModalOpen(false)} />
+          <ArchiveRunModal
+            run={selectedRuns[0]}
+            onCancel={() => {
+              setIsArchiveModalOpen(false);
+              setSelectedIds([]);
+            }}
+          />
         ) : (
-          <BulkArchiveRunModal runs={selectedRuns} onCancel={() => setIsArchiveModalOpen(false)} />
+          <BulkArchiveRunModal
+            runs={selectedRuns}
+            onCancel={() => {
+              setIsArchiveModalOpen(false);
+              setSelectedIds([]);
+            }}
+          />
         ))}
 
       {isRestoreModalOpen &&
         (selectedRuns.length === 1 ? (
-          <RestoreRunModal run={selectedRuns[0]} onCancel={() => setIsRestoreModalOpen(false)} />
+          <RestoreRunModal
+            run={selectedRuns[0]}
+            onCancel={() => {
+              setIsRestoreModalOpen(false);
+              setSelectedIds([]);
+            }}
+          />
         ) : (
-          <BulkRestoreRunModal runs={selectedRuns} onCancel={() => setIsRestoreModalOpen(false)} />
+          <BulkRestoreRunModal
+            runs={selectedRuns}
+            onCancel={() => {
+              setIsRestoreModalOpen(false);
+              setSelectedIds([]);
+            }}
+          />
         ))}
 
       {isDeleteModalOpen && (

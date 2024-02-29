@@ -1,3 +1,5 @@
+import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+
 class PipelinesGlobal {
   visit(projectName: string) {
     cy.visitWithLogin(`/pipelines/${projectName}`);
@@ -40,4 +42,15 @@ class PipelinesGlobal {
   }
 }
 
+class PipelineDeleteModal extends DeleteModal {
+  constructor() {
+    super();
+  }
+
+  find() {
+    return cy.findByTestId('delete-pipeline-modal').parents('div[role="dialog"]');
+  }
+}
+
+export const pipelineDeleteModal = new PipelineDeleteModal();
 export const pipelinesGlobal = new PipelinesGlobal();

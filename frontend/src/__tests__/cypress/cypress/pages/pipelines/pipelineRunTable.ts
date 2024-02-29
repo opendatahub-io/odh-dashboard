@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
-class PipelineRunTable {
+class PipelineRunsTable {
   protected testId = '';
 
   protected emptyStateTestId = '';
@@ -16,7 +16,11 @@ class PipelineRunTable {
   }
 
   findRowByName(name: string) {
-    return this.find().findAllByRole('link', { name }).parents('tr');
+    return this.find().findAllByRole('heading', { name }).parents('tr');
+  }
+
+  shouldRowNotBeVisible(name: string) {
+    return this.find().get('tr').contains(name).should('not.be.visible');
   }
 
   findRows() {
@@ -44,19 +48,72 @@ class PipelineRunTable {
     cy.findByRole('menu').get('span').contains(actionName).parents('button').click();
   }
 
-  mockGetRuns(runs: PipelineRunKFv2[], times?: number) {
+  mockRestoreRun(runId: string) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/runs/${runId}:unarchive`,
+      },
+      (req) => {
+        req.reply({ body: {} });
+      },
+    );
+  }
+
+  mockArchiveRun(runId: string) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/runs/${runId}:archive`,
+      },
+      (req) => {
+        req.reply({ body: {} });
+      },
+    );
+  }
+
+  mockGetRuns(activeRuns: PipelineRunKFv2[], archivedRuns: PipelineRunKFv2[], times?: number) {
     return cy.intercept(
       {
         method: 'POST',
         pathname: '/api/proxy/apis/v2beta1/runs',
         ...(times && { times }),
       },
-      { runs, total_size: runs.length },
+      (req) => {
+        const {
+          predicates: [{ string_value: runState }],
+        } = JSON.parse(req.body.queryParams.filter);
+
+        if (runState === 'ARCHIVED') {
+          req.reply({ runs: archivedRuns, total_size: archivedRuns.length });
+        } else {
+          req.reply({ runs: activeRuns, total_size: activeRuns.length });
+        }
+      },
     );
   }
 }
 
-class PipelineRunJobTable extends PipelineRunTable {
+class ActiveRunsTable extends PipelineRunsTable {
+  constructor() {
+    super('active-runs');
+  }
+
+  mockGetActiveRuns(runs: PipelineRunKFv2[], times?: number) {
+    return this.mockGetRuns(runs, [], times);
+  }
+}
+class ArchivedRunsTable extends PipelineRunsTable {
+  constructor() {
+    super('archived-runs');
+  }
+
+  mockGetArchivedRuns(runs: PipelineRunKFv2[], times?: number) {
+    return this.mockGetRuns([], runs, times);
+  }
+}
+
+class PipelineRunJobTable extends PipelineRunsTable {
   constructor() {
     super('schedules');
   }
@@ -127,6 +184,6 @@ class PipelineRunJobTable extends PipelineRunTable {
   }
 }
 
-export const activeRunsTable = new PipelineRunTable('active-runs');
-export const archivedRunsTable = new PipelineRunTable('archived-runs');
+export const activeRunsTable = new ActiveRunsTable();
+export const archivedRunsTable = new ArchivedRunsTable();
 export const pipelineRunJobTable = new PipelineRunJobTable();
