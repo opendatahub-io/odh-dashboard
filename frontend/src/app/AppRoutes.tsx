@@ -23,6 +23,9 @@ const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/Global
 const GlobalPipelineRunsRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
 );
+const GlobalPipelineExperimentRoutes = React.lazy(
+  () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
+);
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const CustomServingRuntimeRoutes = React.lazy(
@@ -73,6 +76,7 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/pipelines/*" element={<GlobalPipelinesRoutes />} />
         <Route path="/pipelineRuns/*" element={<GlobalPipelineRunsRoutes />} />
+        <Route path="/pipelineExperiments/*" element={<GlobalPipelineExperimentRoutes />} />
 
         <Route path="/dependency-missing/:area" element={<DependencyMissingPage />} />
 

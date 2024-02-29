@@ -53,24 +53,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
     return [];
   }
 
-  // TODO temporary solution to switch between layout options - remove with https://issues.redhat.com/browse/RHOAIENG-3826
-  if (isExperimentsAvailable) {
-    return [
-      {
-        id: 'experiments',
-        group: { id: 'experiments', title: 'Experiments' },
-        children: [
-          {
-            id: 'experiments-and-runs',
-            label: 'Experiments and runs',
-            href: '/pipelines/experiments',
-          },
-        ],
-      },
-    ];
-  }
-
-  return [
+  const pipelinesNav: NavDataItem[] = [
     {
       id: 'pipelines',
       group: { id: 'pipelines', title: 'Data Science Pipelines' },
@@ -80,6 +63,23 @@ const useDSPipelinesNav = (): NavDataItem[] => {
       ],
     },
   ];
+
+  // TODO temporary solution to switch between layout options - remove with https://issues.redhat.com/browse/RHOAIENG-3826
+  if (isExperimentsAvailable) {
+    pipelinesNav.push({
+      id: 'experiments',
+      group: { id: 'experiments', title: 'Experiments' },
+      children: [
+        {
+          id: 'experiments-and-runs',
+          label: 'Experiments and runs',
+          href: '/pipelineExperiments', // TODO: make sure this is better handled later
+        },
+      ],
+    });
+  }
+
+  return pipelinesNav;
 };
 
 const useModelServingNav = (): NavDataItem[] =>
