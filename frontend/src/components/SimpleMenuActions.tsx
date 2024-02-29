@@ -11,6 +11,7 @@ type Item = {
   label: React.ReactNode;
   onClick: (key: string) => void;
   isDisabled?: boolean;
+  tooltip?: React.ReactNode;
 };
 type Spacer = { isSpacer: true };
 const isSpacer = (v: Item | Spacer): v is Spacer => 'isSpacer' in v;
@@ -39,6 +40,7 @@ const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({ dropdownItems, ...pr
           <DropdownItem
             key={itemOrSpacer.key}
             isDisabled={itemOrSpacer.isDisabled}
+            tooltip={itemOrSpacer.tooltip}
             onClick={() => {
               itemOrSpacer.onClick(itemOrSpacer.key);
               setOpen(false);

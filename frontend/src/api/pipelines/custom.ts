@@ -117,7 +117,16 @@ export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, params) =>
 
 export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    proxyGET(hostPath, '/apis/v2beta1/runs', pipelineParamsToQuery(params), opts),
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/runs',
+      {
+        ...pipelineParamsToQuery(params),
+        // eslint-disable-next-line camelcase
+        experiment_id: params?.experiment_id,
+      },
+      opts,
+    ),
   );
 
 export const listPipelineActiveRuns: ListPipelinesRunAPI = (hostPath) => (opts, params) => {
