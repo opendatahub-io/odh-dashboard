@@ -10,11 +10,11 @@ describe('Explore Page', { testIsolation: false }, () => {
     cy.intercept('/api/status', mockStatus());
     cy.intercept('/api/config', mockDashboardConfig({}));
     cy.intercept('/api/components', mockComponents());
+    explorePage.visit();
   });
 
   it('should have selectable cards', () => {
-    explorePage.visit();
-    explorePage.findExploreCard('jupyter').click();
+    explorePage.findExploreCard('jupyter').findByRole('radio').click();
     explorePage.findDrawerPanel().should('be.visible');
   });
 

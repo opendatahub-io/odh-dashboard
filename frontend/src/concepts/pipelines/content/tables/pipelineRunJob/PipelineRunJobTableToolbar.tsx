@@ -65,7 +65,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             })
           }
         >
-          Create schedule
+          Schedule run
         </Button>
       </ToolbarItem>
       <ToolbarItem data-testid="job-table-toolbar-item">{dropdownActions}</ToolbarItem>

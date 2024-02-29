@@ -82,6 +82,7 @@ export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ run, onCancel 
 
             <TextInput
               id="confirm-archive-input"
+              data-testid="confirm-archive-input"
               aria-label="confirm archive input"
               value={confirmInputValue}
               onChange={(_e, newValue) => setConfirmInputValue(newValue)}

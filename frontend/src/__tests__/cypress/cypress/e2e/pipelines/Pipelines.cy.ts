@@ -10,12 +10,12 @@ import {
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   pipelinesGlobal,
   pipelinesTable,
   pipelineImportModal,
   pipelineVersionImportModal,
+  pipelineDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
@@ -158,8 +158,8 @@ describe('Pipelines', () => {
       .findRowByName(initialMockPipelineVersion.display_name)
       .findByText('Delete pipeline version')
       .click();
-    deleteModal.shouldBeOpen();
-    deleteModal.findInput().type(initialMockPipelineVersion.display_name);
+    pipelineDeleteModal.shouldBeOpen();
+    pipelineDeleteModal.findInput().type(initialMockPipelineVersion.display_name);
     cy.intercept(
       {
         method: 'POST',
@@ -167,7 +167,7 @@ describe('Pipelines', () => {
       },
       buildMockPipelineVersionsV2([]),
     ).as('refreshVersions');
-    deleteModal.findSubmitButton().click();
+    pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteVersion');
 

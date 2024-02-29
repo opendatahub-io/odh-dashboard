@@ -14,16 +14,8 @@ class PipelinesTable {
     return this.find().findAllByRole('heading', { name }).parents('tr');
   }
 
-  private shouldRowExist = (name: string) => this.find().get('tr').contains(name).should('exist');
-
-  private shouldRowNotExist = (name: string) =>
-    this.find().get('tr').contains(name).should('not.exist');
-
-  checkRow() {
-    return {
-      shouldExist: (name: string) => this.shouldRowExist(name),
-      shouldNotExist: (name: string) => this.shouldRowNotExist(name),
-    };
+  shouldRowNotBeVisible(name: string) {
+    return this.find().get('tr').contains(name).should('not.be.visible');
   }
 
   mockGetPipelines(pipelines: PipelineKFv2[]) {

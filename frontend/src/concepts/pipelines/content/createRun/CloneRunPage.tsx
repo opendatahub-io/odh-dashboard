@@ -7,13 +7,13 @@ import useCloneRunData from '~/concepts/pipelines/content/createRun/useCloneRunD
 import { PathProps, PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import { runTypeCategoryLabel } from './types';
+import { runTypeCategory } from './types';
 
 const CloneRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
   const [run, loaded, error] = useCloneRunData();
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
   const title = `Duplicate ${
-    runTypeCategoryLabel[(runType as PipelineRunType) || PipelineRunType.Active]
+    runTypeCategory[(runType as PipelineRunType) || PipelineRunType.Active]
   }`;
 
   return (

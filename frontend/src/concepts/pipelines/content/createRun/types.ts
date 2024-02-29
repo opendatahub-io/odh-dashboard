@@ -57,7 +57,7 @@ export type SafeRunFormData = RunFormData & {
   params: RuntimeConfigParameters;
 };
 
-export const runTypeCategoryLabel: Record<PipelineRunType, 'run' | 'schedule'> = {
+export const runTypeCategory: Record<PipelineRunType, 'run' | 'schedule'> = {
   [PipelineRunType.Active]: 'run',
   [PipelineRunType.Archived]: 'run',
   [PipelineRunType.Scheduled]: 'schedule',

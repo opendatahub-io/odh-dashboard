@@ -89,8 +89,9 @@ export const BulkArchiveRunModal: React.FC<BulkArchiveRunModalProps> = ({ runs, 
             </FlexItem>
 
             <TextInput
-              id="confirm-archive-input"
-              aria-label="confirm archive input"
+              id="confirm-bulk-archive-input"
+              data-testid="confirm-archive-input"
+              aria-label="confirm bulk archive input"
               value={confirmInputValue}
               onChange={(_e, newValue) => setConfirmInputValue(newValue)}
               onKeyDown={(event) => {

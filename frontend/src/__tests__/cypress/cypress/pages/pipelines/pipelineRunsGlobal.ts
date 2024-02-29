@@ -41,7 +41,11 @@ class PipelineRunsGlobal {
   }
 
   findCreateScheduleButton() {
-    return cy.findByRole('button', { name: 'Create schedule' });
+    return cy.findByRole('button', { name: 'Schedule run' });
+  }
+
+  findRestoreRunButton() {
+    return cy.findByRole('button', { name: 'Restore' });
   }
 
   findActiveRunsToolbar() {

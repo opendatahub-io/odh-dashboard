@@ -7,7 +7,7 @@ import { K8sAPIOptions } from '~/k8sTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import useDeleteStatuses from '~/concepts/pipelines/content/useDeleteStatuses';
-import { runTypeCategoryLabel } from './createRun/types';
+import { runTypeCategory } from './createRun/types';
 
 type DeletePipelineRunsModalProps = {
   onClose: (deleted?: boolean) => void;
@@ -31,7 +31,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
   const { deleting, setDeleting, error, setError, deleteStatuses, onBeforeClose, abortSignal } =
     useDeleteStatuses({ onClose, type, toDeleteResources });
   const resourceCount = toDeleteResources.length;
-  const typeCategory = runTypeCategoryLabel[type];
+  const typeCategory = runTypeCategory[type];
 
   return (
     <DeleteModal

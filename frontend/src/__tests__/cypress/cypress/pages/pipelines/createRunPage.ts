@@ -115,7 +115,9 @@ export class CreateRunPage {
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: `Create ${this.type}` });
+    return this.find().findByRole('button', {
+      name: `${this.type === 'schedule' ? 'Schedule' : 'Create'} run`,
+    });
   }
 
   findParamByLabel(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
