@@ -33,7 +33,7 @@ const AcceleratorProfiles: React.FC = () => {
     <PageSection isFilled>
       <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state">
         <EmptyStateIcon icon={PlusCircleIcon} />
-        <Title headingLevel="h5" size="lg">
+        <Title data-testid="no-available-accelerator-profiles" headingLevel="h5" size="lg">
           No available accelerator profiles yet
         </Title>
         <EmptyStateBody>
@@ -44,7 +44,7 @@ const AcceleratorProfiles: React.FC = () => {
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
-              data-id="display-accelerator-modal-button"
+              data-testid="display-accelerator-modal-button"
               variant={ButtonVariant.primary}
               onClick={() => navigate('/acceleratorProfiles/create')}
             >

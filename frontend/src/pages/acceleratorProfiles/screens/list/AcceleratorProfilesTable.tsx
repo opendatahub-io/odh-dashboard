@@ -44,6 +44,7 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
   return (
     <>
       <Table
+        data-testid="accelerator-profile-table"
         id="accelerator-profile-table"
         enablePagination
         data={filteredAcceleratorProfiles}
@@ -73,7 +74,7 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
             </ToolbarItem>
             <ToolbarItem>
               <Button
-                data-id="create-accelerator-profile"
+                data-testid="create-accelerator-profile"
                 onClick={() => navigate(`/acceleratorProfiles/create`)}
               >
                 Create accelerator profile
