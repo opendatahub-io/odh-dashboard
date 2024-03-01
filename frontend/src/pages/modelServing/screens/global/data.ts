@@ -51,6 +51,13 @@ const COL_SERVING_RUNTIME: SortableData<InferenceServiceKind> = {
   sortable: false,
 };
 
+const COL_API_PROTOCOL: SortableData<InferenceServiceKind> = {
+  field: 'apiProtocol',
+  label: 'API protocol',
+  width: 10,
+  sortable: false,
+};
+
 const COL_STATUS: SortableData<InferenceServiceKind> = {
   field: 'status',
   label: 'Status',
@@ -69,12 +76,14 @@ export const getGlobalInferenceServiceColumns = (
   buildProjectCol(projects),
   COL_SERVING_RUNTIME,
   COL_ENDPOINT,
+  COL_API_PROTOCOL,
   COL_STATUS,
   COL_KEBAB,
 ];
 export const getProjectInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [
   COL_NAME,
   COL_ENDPOINT,
+  COL_API_PROTOCOL,
   COL_STATUS,
   COL_KEBAB,
 ];
@@ -83,6 +92,7 @@ export const getKServeInferenceServiceColumns = (): SortableData<InferenceServic
   COL_NAME,
   COL_SERVING_RUNTIME,
   COL_ENDPOINT,
+  COL_API_PROTOCOL,
   COL_STATUS,
   COL_KEBAB,
 ];

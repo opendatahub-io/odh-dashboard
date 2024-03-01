@@ -480,6 +480,9 @@ describe('Serving Runtime List', () => {
       // Check status of deployed model which loaded successfully after an error
       modelServingSection.findStatusTooltip('Loaded model').should('be.visible');
       modelServingSection.findStatusTooltipValue('Loaded model', 'Loaded');
+
+      // Check API protocol in row
+      modelServingSection.findAPIProtocol('Loaded model').should('have.text', 'REST');
     });
   });
 

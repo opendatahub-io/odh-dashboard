@@ -3,12 +3,13 @@ import { k8sDeleteResource, k8sListResource } from '@openshift/dynamic-plugin-sd
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { TemplateModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 
 export const assembleServingRuntimeTemplate = (
   body: string,
   namespace: string,
   platforms: ServingRuntimePlatform[],
+  apiProtocol: ServingRuntimeAPIProtocol | undefined,
   templateName?: string,
 ): TemplateKind & { objects: ServingRuntimeKind[] } => {
   const servingRuntime: ServingRuntimeKind = YAML.parse(body);
@@ -30,6 +31,7 @@ export const assembleServingRuntimeTemplate = (
       },
       annotations: {
         'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+        ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
       },
     },
     objects: [servingRuntime],

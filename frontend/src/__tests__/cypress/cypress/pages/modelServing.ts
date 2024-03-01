@@ -283,6 +283,12 @@ class ModelServingSection {
         this.findStatusTooltip(name).trigger('mouseleave');
       });
   }
+
+  findAPIProtocol(name: string) {
+    return this.findInferenceServiceTable()
+      .contains('tr', name)
+      .find('td[data-label="API protocol"]');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
