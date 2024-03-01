@@ -17,7 +17,7 @@ describe('Custom serving runtimes', () => {
         mockServingRuntimeTemplateK8sResource({
           name: 'template-1',
           displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+          platforms: [ServingRuntimePlatform.SINGLE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
@@ -49,10 +49,10 @@ describe('Custom serving runtimes', () => {
   });
 
   it('should display platform labels in table rows', () => {
-    servingRuntimes.getRowById('template-1').shouldBeSingleModel(true).shouldBeMultiModel(true);
-    servingRuntimes.getRowById('template-2').shouldBeSingleModel(true).shouldBeMultiModel(false);
-    servingRuntimes.getRowById('template-3').shouldBeSingleModel(false).shouldBeMultiModel(true);
-    servingRuntimes.getRowById('template-4').shouldBeSingleModel(false).shouldBeMultiModel(true);
+    servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
+    servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);
+    servingRuntimes.getRowById('template-3').shouldBeMultiModel(true);
+    servingRuntimes.getRowById('template-4').shouldBeMultiModel(true);
   });
 
   it('should display api protocol in table row', () => {

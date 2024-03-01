@@ -27,10 +27,6 @@ const CustomServingRuntimePlatformsSelector: React.FC<
       key: ServingRuntimePlatform.MULTI,
       label: RuntimePlatformSelectOptionLabels[ServingRuntimePlatform.MULTI],
     },
-    {
-      key: 'both',
-      label: RuntimePlatformSelectOptionLabels.both,
-    },
   ];
 
   const selection =
