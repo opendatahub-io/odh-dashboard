@@ -27,7 +27,7 @@ describe('ManageInferenceServiceModal', () => {
     const currentProject = mockProjectK8sResource({});
     const wrapper = render(
       <ManageInferenceServiceModal
-        isOpen={true}
+        isOpen
         projectContext={{
           currentProject,
           dataConnections: [],
@@ -51,7 +51,7 @@ describe('ManageInferenceServiceModal', () => {
     await act(async () => {
       wrapper.rerender(
         <ManageInferenceServiceModal
-          isOpen={true}
+          isOpen
           projectContext={{
             currentProject: projectChange,
             dataConnections: [],
