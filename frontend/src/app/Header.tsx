@@ -18,6 +18,10 @@ type HeaderProps = {
   onNotificationsClick: () => void;
 };
 
+const MastheadBranchComponent: React.FC<React.ComponentProps<typeof Link>> = (props) => (
+  <Link {...props} to="/" />
+);
+
 const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
   const { isAllowed } = useUser();
   return (
@@ -30,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
         </MastheadToggle>
       )}
       <MastheadMain>
-        <MastheadBrand component={(props) => <Link {...props} to="/" />}>
+        <MastheadBrand component={MastheadBranchComponent}>
           <Brand
             className="odh-dashboard__brand"
             src={`${window.location.origin}/images/${ODH_LOGO}`}

@@ -29,7 +29,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
     ? 'FailedToLoad'
     : getInferenceServiceActiveModelState(inferenceService);
 
-  const StatusIcon = () => {
+  const statusIcon = () => {
     switch (state) {
       case InferenceServiceModelState.LOADED:
       case InferenceServiceModelState.STANDBY:
@@ -106,7 +106,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         )
       }
     >
-      {StatusIcon()}
+      {statusIcon()}
     </Tooltip>
   );
 };

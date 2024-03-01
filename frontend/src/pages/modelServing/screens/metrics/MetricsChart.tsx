@@ -177,11 +177,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
       <CardHeader
         {...(toolbar && {
           actions: {
-            actions: (
-              <>
-                <Toolbar>{toolbar}</Toolbar>
-              </>
-            ),
+            actions: <Toolbar>{toolbar}</Toolbar>,
             hasNoOffset: false,
             className: undefined,
           },

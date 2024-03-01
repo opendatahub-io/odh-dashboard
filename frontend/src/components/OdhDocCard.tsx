@@ -1,6 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import {
+  Button,
   Card,
   CardBody,
   CardFooter,
@@ -31,8 +32,6 @@ import './OdhCard.scss';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
-  isSelected?: boolean;
-  onSelect?: () => void;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
 };
@@ -80,7 +79,9 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
   const renderDocLink = () => {
     if (odhDoc.spec.type === OdhDocumentType.Documentation) {
       return (
-        <a
+        <Button
+          variant="link"
+          component="a"
           className="odh-card__footer__link"
           href={odhDoc.spec.url}
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
@@ -89,12 +90,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         >
           View documentation
           <ExternalLinkAltIcon />
-        </a>
+        </Button>
       );
     }
     if (odhDoc.spec.type === OdhDocumentType.Tutorial) {
       return (
-        <a
+        <Button
+          variant="link"
+          component="a"
           className="odh-card__footer__link"
           href={odhDoc.spec.url}
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
@@ -103,19 +106,21 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         >
           Access tutorial
           <ExternalLinkAltIcon />
-        </a>
+        </Button>
       );
     }
     if (odhDoc.spec.type === OdhDocumentType.QuickStart) {
       return (
-        <a className="odh-card__footer__link" href="#" onClick={onQuickStart}>
+        <Button variant="link" className="odh-card__footer__link" onClick={onQuickStart}>
           {getQuickStartLabel(odhDoc.metadata.name, qsContext)}
-        </a>
+        </Button>
       );
     }
     if (odhDoc.spec.type === OdhDocumentType.HowTo) {
       return (
-        <a
+        <Button
+          variant="link"
+          component="a"
           className="odh-card__footer__link"
           href={odhDoc.spec.url}
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
@@ -124,7 +129,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         >
           Read how-to article
           <ExternalLinkAltIcon />
-        </a>
+        </Button>
       );
     }
     return null;
