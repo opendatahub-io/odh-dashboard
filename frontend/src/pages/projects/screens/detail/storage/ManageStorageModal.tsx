@@ -46,7 +46,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
 
   const onBeforeClose = (submitted: boolean) => {
     if (!submitted) {
-      fireTrackingEvent('AddClusterStorage', { outcome: TrackingOutcome.cancel });
+      fireTrackingEvent('ClusterStorage Added', { outcome: TrackingOutcome.cancel });
     }
 
     onClose(submitted);
@@ -107,7 +107,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     setError(undefined);
     setActionInProgress(true);
 
-    fireTrackingEvent('AddClusterStorage', {
+    fireTrackingEvent('ClusterStorage Added', {
       outcome: TrackingOutcome.submit,
       lastSelectedSize: createData.size,
     });

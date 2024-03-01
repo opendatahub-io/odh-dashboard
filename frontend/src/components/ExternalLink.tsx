@@ -14,7 +14,7 @@ const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to }) => (
     isInline
     onClick={() => {
       window.open(to);
-      fireTrackingEvent('ExternalLinkClicked', { href: to, name: window.location.pathname });
+      fireTrackingEvent('ExternalLink Clicked', { href: to, name: window.location.pathname });
     }}
     icon={<ExternalLinkAltIcon />}
     iconPosition="right"

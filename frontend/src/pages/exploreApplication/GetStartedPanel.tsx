@@ -87,7 +87,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
                 <Button
                   icon={<ExternalLinkAltIcon />}
                   onClick={() =>
-                    fireTrackingEvent('Explore card get started clicked', {
+                    fireTrackingEvent('Explore Card Get Started Clicked', {
                       name: selectedApp.metadata.name,
                     })
                   }

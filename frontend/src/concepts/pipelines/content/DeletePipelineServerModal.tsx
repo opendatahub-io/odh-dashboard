@@ -20,7 +20,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
   const { project, namespace } = usePipelinesAPI();
 
   const onBeforeClose = (deleted: boolean) => {
-    fireTrackingEvent('PipelineServerDeleted', {
+    fireTrackingEvent('PipelineServer Deleted', {
       outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
       success: true,
     });
@@ -41,7 +41,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
         deleteServer(namespace)
           .then(() => onBeforeClose(true))
           .catch((e) => {
-            fireTrackingEvent('PipelineServerDeleted', {
+            fireTrackingEvent('PipelineServer Deleted', {
               outcome: TrackingOutcome.submit,
               success: false,
               error: e,

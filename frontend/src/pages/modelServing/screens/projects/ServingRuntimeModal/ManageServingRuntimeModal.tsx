@@ -107,7 +107,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       fireTrackingEvent('ServingRuntime Added', { outcome: TrackingOutcome.cancel });
     } else {
       // TODO: can we differentiate add/modify?
-      fireTrackingEvent('AddServingRuntime', {
+      fireTrackingEvent('ServingRuntime Added', {
         outcome: TrackingOutcome.submit,
         replicaCount: servingRuntimeSelected?.spec.replicas,
         name: createData?.servingRuntimeTemplateName,
@@ -150,7 +150,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     )
       .then(() => onSuccess())
       .catch((e) => {
-        fireTrackingEvent('AddServingRuntime', {
+        fireTrackingEvent('ServingRuntime Added', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: e.message(),

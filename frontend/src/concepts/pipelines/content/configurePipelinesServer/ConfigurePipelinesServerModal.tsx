@@ -58,7 +58,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const canSubmit = databaseIsValid && objectIsValid;
 
   const onBeforeClose = (submitted: boolean) => {
-    fireTrackingEvent('PipelineServerConfigured', {
+    fireTrackingEvent('PipelineServer Configured', {
       outcome: submitted ? TrackingOutcome.submit : TrackingOutcome.cancel,
       success: true,
     });
@@ -95,7 +95,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           });
       })
       .catch((e) => {
-        fireTrackingEvent('PipelineServerConfigured', {
+        fireTrackingEvent('PipelineServer Configured', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: e,

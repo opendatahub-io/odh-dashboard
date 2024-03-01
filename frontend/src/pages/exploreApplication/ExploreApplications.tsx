@@ -71,7 +71,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                       isSelected={selectedComponent?.metadata.name === c.metadata.name}
                       onSelect={() => {
                         updateSelection(c.metadata.name);
-                        fireTrackingEvent('Explore card clicked', {
+                        fireTrackingEvent('Explore Card Clicked', {
                           name: c.metadata.name,
                         });
                       }}

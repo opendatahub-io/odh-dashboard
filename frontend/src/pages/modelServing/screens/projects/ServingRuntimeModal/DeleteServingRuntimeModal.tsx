@@ -38,7 +38,7 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
       title="Delete model server?"
       isOpen={!!servingRuntime}
       onClose={() => {
-        fireTrackingEvent('DeleteModelServer', { outcome: TrackingOutcome.cancel });
+        fireTrackingEvent('ModelServer Deleted', { outcome: TrackingOutcome.cancel });
         onBeforeClose(false);
       }}
       submitButtonLabel="Delete model server"
@@ -46,7 +46,7 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
         if (servingRuntime) {
           setIsDeleting(true);
 
-          fireTrackingEvent('DeleteModelServer', {
+          fireTrackingEvent('ModelServer Deleted', {
             outcome: TrackingOutcome.submit,
           });
 

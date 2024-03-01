@@ -11,7 +11,7 @@ type DeleteProjectModalProps = {
   deleteData?: ProjectKind;
 };
 
-const deleteProjectEventType = 'ProjectDeleted';
+const deleteProjectEventType = 'Project Deleted';
 const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onClose }) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();

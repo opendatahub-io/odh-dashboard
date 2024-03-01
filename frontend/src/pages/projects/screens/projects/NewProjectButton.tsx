@@ -20,7 +20,7 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onPr
       <ManageProjectModal
         open={open}
         onClose={(newProjectName) => {
-          fireTrackingEvent('NewProjectCreated', {
+          fireTrackingEvent('NewProject Created', {
             outcome: newProjectName ? TrackingOutcome.submit : TrackingOutcome.cancel,
             success: onProjectCreated != null,
           });
