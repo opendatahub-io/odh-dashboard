@@ -118,6 +118,8 @@ spec:
             name: oauth-config
           - mountPath: /etc/oauth/client
             name: oauth-client
+          - mountPath: /etc/pki/tls/certs
+            name: trusted-ca-bundle
       volumes:
       - name: proxy-tls
         secret:
