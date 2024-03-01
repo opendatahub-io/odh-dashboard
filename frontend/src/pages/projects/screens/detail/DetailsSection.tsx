@@ -63,6 +63,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
 
   return (
     <Stack
+      data-testid={id}
       hasGutter
       className={classNames({
         'odh-details-section--divide': !loadError && (isLoading || isEmpty || showDivider),
