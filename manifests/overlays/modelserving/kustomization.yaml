@@ -11,10 +11,10 @@ images:
     digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4
   - name: quay.io/opendatahub/caikit-tgis-serving
     newName: quay.io/modh/caikit-tgis-serving
-    digest: sha256:0fd3584362e8780aed922fe124c8829c1c7df9d55590ba2ae76bb6aef0155c1f
+    digest: sha256:444bca43c99bfc4b961c926f5f10c556488613912f5e333011e98b3407d76d00
   - name: quay.io/opendatahub/text-generation-inference
     newName: quay.io/modh/text-generation-inference
-    digest: sha256:9f18a63cd84b084c3cbf15534f22d5ba6916d9501298abcc03271d26ebf5cdfb
-  - name: quay.io/modh/openvino_model_server
+    digest: sha256:e4d24fd401fd4eb89b49b4ab07e0c08389384d4a672b240e98a03ad7f9ef1c85
+  - name: quay.io/opendatahub/openvino_model_server
     newName: quay.io/modh/openvino_model_server
     digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4
