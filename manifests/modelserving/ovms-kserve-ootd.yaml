@@ -27,7 +27,7 @@ objects:
         prometheus.kserve.io/path: /metrics
       supportedModelFormats:
         - name: openvino_ir
-          version: opset11
+          version: opset13
           autoSelect: true
         - name: onnx
           version: '1'
@@ -38,6 +38,9 @@ objects:
           version: '2'
           autoSelect: true
         - name: paddle
+          version: '2'
+          autoSelect: true
+        - name: pytorch
           version: '2'
           autoSelect: true
       protocolVersions:
@@ -54,6 +57,8 @@ objects:
             - '--file_system_poll_wait_seconds=0'
             - '--grpc_bind_address=127.0.0.1'
             - '--rest_bind_address=127.0.0.1'
+            - '--target_device=AUTO'
+            - '--metrics_enable'
           ports:
             - containerPort: 8888
               protocol: TCP
