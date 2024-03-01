@@ -3,6 +3,7 @@ import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { getDirectCallOptions } from '../../../utils/directCallUtils';
 import { getAccessToken } from '../../../utils/directCallUtils';
 import { ClientRequest, IncomingMessage } from 'http';
+import https from 'https';
 
 const base64 = (data: string): string =>
   // This usage of toString is fine for decoding
@@ -67,7 +68,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
               req.headers.origin ||
               `http://${typeof serverAddress === 'string' ? serverAddress : serverAddress.address}`,
           },
-          ca: requestOptions.ca as WebSocket.CertMeta,
+          ca: https.globalAgent.options.ca as WebSocket.CertMeta,
         });
 
         const close = (code: number, reason: string) => {

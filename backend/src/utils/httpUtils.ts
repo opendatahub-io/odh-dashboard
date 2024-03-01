@@ -29,8 +29,7 @@ type ProxyData = {
   requestData?: string | Buffer;
   /** Option to substitute your own content type for the API call -- defaults to JSON */
   overrideContentType?: string;
-  /** Allow for unauthorized SSL connections to succeed */
-  rejectUnauthorized?: boolean;
+  isPrometheus?: boolean;
 };
 
 /** Ideally these would all be required, but https by node seems to think there are cases when it does not know the code or message */
@@ -46,7 +45,7 @@ export const proxyCall = (
   data: ProxyData,
 ): Promise<[string, ProxyCallStatus]> => {
   return new Promise((resolve, reject) => {
-    const { method, requestData, overrideContentType, url, rejectUnauthorized } = data;
+    const { method, requestData, overrideContentType, url, isPrometheus } = data;
 
     getDirectCallOptions(fastify, request, url)
       .then((requestOptions) => {
@@ -67,10 +66,6 @@ export const proxyCall = (
           };
         }
 
-        if (rejectUnauthorized !== undefined) {
-          requestOptions.rejectUnauthorized = rejectUnauthorized;
-        }
-
         fastify.log.info(`Making ${method} proxy request to ${url}`);
 
         const web = (url: string) => {
@@ -87,24 +82,28 @@ export const proxyCall = (
         };
 
         const httpsRequest = web(url)
-          .request(url, { method, ...requestOptions }, (res) => {
-            const status: ProxyCallStatus = {
-              message: res.statusMessage,
-              code: res.statusCode,
-            };
-            let data = '';
-            res
-              .setEncoding('utf8')
-              .on('data', (chunk) => {
-                data += chunk;
-              })
-              .on('end', () => {
-                resolve([data, status]);
-              })
-              .on('error', (error) => {
-                reject(new ProxyError(ProxyErrorType.CALL_FAILURE, error.message));
-              });
-          })
+          .request(
+            url,
+            { method, ...requestOptions, ...(isPrometheus && { rejectUnauthorized: false }) },
+            (res) => {
+              const status: ProxyCallStatus = {
+                message: res.statusMessage,
+                code: res.statusCode,
+              };
+              let data = '';
+              res
+                .setEncoding('utf8')
+                .on('data', (chunk) => {
+                  data += chunk;
+                })
+                .on('end', () => {
+                  resolve([data, status]);
+                })
+                .on('error', (error) => {
+                  reject(new ProxyError(ProxyErrorType.CALL_FAILURE, error.message));
+                });
+            },
+          )
           .on('error', (error) => {
             reject(new ProxyError(ProxyErrorType.HTTP_FAILURE, error.message));
           });
