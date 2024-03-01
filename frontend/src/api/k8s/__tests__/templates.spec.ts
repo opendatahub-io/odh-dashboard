@@ -6,7 +6,7 @@ import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRu
 import { assembleServingRuntimeTemplate, deleteTemplate, listTemplates } from '~/api';
 import { TemplateModel } from '~/api/models';
 import { K8sDSGResource, TemplateKind } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { genRandomChars } from '~/utilities/string';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -38,6 +38,7 @@ describe('assembleServingRuntimeTemplate', () => {
       servingRuntimeMock,
       namespace,
       [ServingRuntimePlatform.MULTI],
+      ServingRuntimeAPIProtocol.REST,
       'template-1',
     );
     expect(result).toStrictEqual(
@@ -47,9 +48,12 @@ describe('assembleServingRuntimeTemplate', () => {
   it('should assemble serving runtime template without templateName', () => {
     genRandomCharsMock.mockReturnValue('123');
     const servingRuntimeMock = JSON.stringify(createServingRuntime('template-123'));
-    const result = assembleServingRuntimeTemplate(servingRuntimeMock, namespace, [
-      ServingRuntimePlatform.MULTI,
-    ]);
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      [ServingRuntimePlatform.MULTI],
+      ServingRuntimeAPIProtocol.REST,
+    );
     expect(result).toStrictEqual(
       mockServingRuntimeTemplateK8sResource({
         name: 'template-123',
@@ -61,7 +65,12 @@ describe('assembleServingRuntimeTemplate', () => {
   it('should throw an error when servingRuntime name doesnt exist', () => {
     const servingRuntimeMock = JSON.stringify(createServingRuntime(''));
     expect(() => {
-      assembleServingRuntimeTemplate(servingRuntimeMock, namespace, [ServingRuntimePlatform.MULTI]);
+      assembleServingRuntimeTemplate(
+        servingRuntimeMock,
+        namespace,
+        [ServingRuntimePlatform.MULTI],
+        ServingRuntimeAPIProtocol.REST,
+      );
     }).toThrow('Serving runtime name is required');
   });
 });

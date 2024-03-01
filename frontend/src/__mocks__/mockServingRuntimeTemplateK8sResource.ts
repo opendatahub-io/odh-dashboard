@@ -1,5 +1,5 @@
 import { TemplateKind } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   displayName?: string;
   replicas?: number;
   platforms?: ServingRuntimePlatform[];
+  apiProtocol?: ServingRuntimeAPIProtocol;
   isModelmesh?: boolean;
 };
 
@@ -16,6 +17,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
   displayName = 'New OVMS Server',
   replicas = 1,
   isModelmesh = false,
+  apiProtocol = ServingRuntimeAPIProtocol.REST,
   platforms,
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
@@ -28,6 +30,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
     },
     annotations: {
       'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+      'opendatahub.io/apiProtocol': apiProtocol,
     },
   },
   objects: [

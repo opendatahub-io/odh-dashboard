@@ -4,7 +4,7 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 
 describe('Custom serving runtimes', () => {
   beforeEach(() => {
@@ -23,6 +23,7 @@ describe('Custom serving runtimes', () => {
           name: 'template-2',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
+          apiProtocol: ServingRuntimeAPIProtocol.GRPC,
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
@@ -54,14 +55,47 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.getRowById('template-4').shouldBeSingleModel(false).shouldBeMultiModel(true);
   });
 
+  it('should display api protocol in table row', () => {
+    servingRuntimes.getRowById('template-1').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimes.getRowById('template-2').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+    servingRuntimes.getRowById('template-3').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimes.getRowById('template-4').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
+  });
+
   it('should add a new serving runtime', () => {
     servingRuntimes.findAddButton().click();
     cy.get('h1').should('contain', 'Add serving runtime');
-    servingRuntimes.shouldDisplayValues([
+
+    // Check serving runtime dropdown list
+    servingRuntimes.shouldDisplayServingRuntimeValues([
       'Single-model serving platform',
       'Multi-model serving platform',
-      'Single-model and multi-model serving platforms',
     ]);
+    servingRuntimes.findSelectServingPlatformButton().click();
+
+    // Create with single model
+    servingRuntimes.findCreateButton().should('be.disabled');
+    servingRuntimes.shouldSelectPlatform('Single-model serving platform');
+    servingRuntimes.shouldDisplayAPIProtocolValues([
+      ServingRuntimeAPIProtocol.REST,
+      ServingRuntimeAPIProtocol.GRPC,
+    ]);
+    servingRuntimes.shouldSelectAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimes.findStartFromScratchButton().click();
+    servingRuntimes.shouldEnterData();
+    servingRuntimes.findCreateButton().should('be.enabled');
+    servingRuntimes.findCancelButton().click();
+
+    servingRuntimes.findAddButton().click();
+
+    // Create with multi model
+    servingRuntimes.findCreateButton().should('be.disabled');
+    servingRuntimes.shouldSelectPlatform('Multi-model serving platform');
+    servingRuntimes.findSelectAPIProtocolButton().should('not.be.enabled');
+    servingRuntimes.findSelectAPIProtocolButton().should('include.text', 'REST');
+    servingRuntimes.findStartFromScratchButton().click();
+    servingRuntimes.shouldEnterData();
+    servingRuntimes.findCreateButton().should('be.enabled');
   });
 
   it('should duplicate a serving runtime', () => {

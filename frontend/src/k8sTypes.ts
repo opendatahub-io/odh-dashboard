@@ -110,6 +110,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/disable-gpu': string;
   'opendatahub.io/recommended-accelerators': string;
   'opendatahub.io/accelerator-name': string;
+  'opendatahub.io/apiProtocol': string;
   'enable-route': string;
   'enable-auth': string;
   'modelmesh-enabled': 'true' | 'false';
@@ -1074,6 +1075,7 @@ export type TemplateKind = K8sResourceCommon & {
       iconClass?: string;
       'opendatahub.io/template-enabled': string;
       'opendatahub.io/modelServingSupport': string;
+      'opendatahub.io/apiProtocol': string;
     }>;
     name: string;
     namespace: string;

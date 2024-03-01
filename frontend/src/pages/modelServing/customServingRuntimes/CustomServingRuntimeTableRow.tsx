@@ -11,6 +11,7 @@ import {
   getServingRuntimeNameFromTemplate,
   isTemplateOOTB,
 } from './utils';
+import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
 type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
@@ -46,6 +47,9 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
       </Td>
       <Td dataLabel="Serving platforms supported">
         <CustomServingRuntimePlatformsLabelGroup template={template} />
+      </Td>
+      <Td dataLabel="API protocol">
+        <CustomServingRuntimeAPIProtocolLabel template={template} />
       </Td>
       <Td isActionCell>
         <ActionsColumn
