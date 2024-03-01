@@ -29,6 +29,11 @@ export const columns: SortableData<TemplateKind>[] = [
     sortable: false,
   },
   {
+    field: 'apiProtocol',
+    label: 'API protocol',
+    sortable: false,
+  },
+  {
     field: 'kebab',
     label: '',
     sortable: false,

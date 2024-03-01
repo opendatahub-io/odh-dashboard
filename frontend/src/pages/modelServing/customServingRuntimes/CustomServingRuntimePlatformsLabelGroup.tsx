@@ -25,7 +25,9 @@ const CustomServingRuntimePlatformsLabelGroup: React.FC<
   return (
     <LabelGroup>
       {platforms.map((platform, i) => (
-        <Label key={i}>{ServingRuntimePlatformLabels[platform]}</Label>
+        <Label color="purple" key={i}>
+          {ServingRuntimePlatformLabels[platform]}
+        </Label>
       ))}
     </LabelGroup>
   );

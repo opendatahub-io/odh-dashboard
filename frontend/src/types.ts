@@ -710,3 +710,8 @@ export enum ServingRuntimePlatform {
   SINGLE = 'single',
   MULTI = 'multi',
 }
+
+export enum ServingRuntimeAPIProtocol {
+  REST = 'REST',
+  GRPC = 'gRPC',
+}
