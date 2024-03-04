@@ -39,6 +39,7 @@
     "test": "run-s test:backend test:frontend",
     "test:backend": "cd ./backend && npm run test",
     "test:frontend": "cd ./frontend && npm run test",
+    "test:cypress-ci": "cd ./frontend && npm run test:cypress-ci -- ",
     "test:unit": "cd ./frontend && npm run test:unit",
     "test:fix": "run-s test:fix-backend test:fix-frontend",
     "test:fix-backend": "cd ./backend && npm run test:fix",
