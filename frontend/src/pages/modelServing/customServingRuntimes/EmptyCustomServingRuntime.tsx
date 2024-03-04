@@ -21,7 +21,10 @@ const EmptyCustomServingRuntime: React.FC = () => {
       />
       <EmptyStateBody>To get started, create a new serving runtime.</EmptyStateBody>
       <EmptyStateFooter>
-        <Button onClick={() => navigate('/servingRuntimes/addServingRuntime')}>
+        <Button
+          data-testid="add-serving-runtime-button"
+          onClick={() => navigate('/servingRuntimes/addServingRuntime')}
+        >
           Add serving runtime
         </Button>
       </EmptyStateFooter>
