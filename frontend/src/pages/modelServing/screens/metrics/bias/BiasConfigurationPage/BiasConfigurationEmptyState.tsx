@@ -24,7 +24,7 @@ const BiasConfigurationEmptyState: React.FC<BiasConfigurationEmptyStateProps> = 
 }) => (
   <EmptyState variant={variant} data-testid="bias-metrics-empty-state">
     <EmptyStateHeader
-      titleText={<>{EMPTY_BIAS_CONFIGURATION_TITLE}</>}
+      titleText={EMPTY_BIAS_CONFIGURATION_TITLE}
       icon={<EmptyStateIcon icon={WrenchIcon} />}
       headingLevel="h2"
     />

@@ -7,4 +7,8 @@ export class TableRow extends Contextual<HTMLTableRowElement> {
       .should('exist');
     return this;
   }
+
+  findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction(name);
+  }
 }

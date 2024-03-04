@@ -6,7 +6,6 @@ import {
   getDataConnectionDescription,
   getDataConnectionDisplayName,
   getDataConnectionId,
-  getDataConnectionProvider,
   getDataConnectionResourceName,
   getDataConnectionType,
   isDataConnectionAWS,
@@ -155,19 +154,6 @@ describe('getDataConnectionType', () => {
   it('should return error when data connection is not AWS', () => {
     expect(() => {
       getDataConnectionType(createDataConnection({} as DataConnectionType));
-    }).toThrow('Invalid data connection type');
-  });
-});
-
-describe('getDataConnectionProvider', () => {
-  it('should return data connection provider when data connection is AWS', () => {
-    const result = getDataConnectionProvider(createDataConnection(DataConnectionType.AWS));
-    expect(result).toBe('AWS S3');
-  });
-
-  it('should return error when data connection is not AWS', () => {
-    expect(() => {
-      getDataConnectionProvider(createDataConnection({} as DataConnectionType));
     }).toThrow('Invalid data connection type');
   });
 });

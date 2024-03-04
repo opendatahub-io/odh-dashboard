@@ -21,15 +21,17 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '~/services/templateService';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import CustomServingRuntimePlatformsSelector from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
 import {
+  getAPIProtocolFromTemplate,
   getEnabledPlatformsFromTemplate,
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
+import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
 
 type CustomServingRuntimeAddTemplateProps = {
   existingTemplate?: TemplateKind;
@@ -83,11 +85,27 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     [existingTemplate, copiedServingRuntimePlatforms],
   );
 
+  const copiedServingRuntimeAPIProtocol = React.useMemo(
+    () => (state ? getAPIProtocolFromTemplate(state.template) : undefined),
+    [state],
+  );
+
+  const apiProtocol: ServingRuntimeAPIProtocol | undefined = React.useMemo(
+    () =>
+      existingTemplate
+        ? getAPIProtocolFromTemplate(existingTemplate)
+        : copiedServingRuntimeAPIProtocol,
+    [existingTemplate, copiedServingRuntimeAPIProtocol],
+  );
+
   const [code, setCode] = React.useState(stringifiedTemplate);
   const [selectedPlatforms, setSelectedPlatforms] =
     React.useState<ServingRuntimePlatform[]>(enabledPlatforms);
   const isSinglePlatformEnabled = selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
   const isMultiPlatformEnabled = selectedPlatforms.includes(ServingRuntimePlatform.MULTI);
+  const [selectedAPIProtocol, setSelectedAPIProtocol] = React.useState<
+    ServingRuntimeAPIProtocol | undefined
+  >(apiProtocol);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const navigate = useNavigate();
@@ -96,9 +114,11 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     (!state &&
       code === stringifiedTemplate &&
       enabledPlatforms.includes(ServingRuntimePlatform.SINGLE) === isSinglePlatformEnabled &&
-      enabledPlatforms.includes(ServingRuntimePlatform.MULTI) === isMultiPlatformEnabled) ||
+      enabledPlatforms.includes(ServingRuntimePlatform.MULTI) === isMultiPlatformEnabled &&
+      apiProtocol === selectedAPIProtocol) ||
     code === '' ||
     selectedPlatforms.length === 0 ||
+    !selectedAPIProtocol ||
     loading;
 
   return (
@@ -140,6 +160,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
               isSinglePlatformEnabled={isSinglePlatformEnabled}
               isMultiPlatformEnabled={isMultiPlatformEnabled}
               setSelectedPlatforms={setSelectedPlatforms}
+            />
+          </StackItem>
+          <StackItem>
+            <CustomServingRuntimeAPIProtocolSelector
+              selectedAPIProtocol={selectedAPIProtocol}
+              setSelectedAPIProtocol={setSelectedAPIProtocol}
+              selectedPlatforms={selectedPlatforms}
             />
           </StackItem>
           <StackItem isFilled>
@@ -194,11 +221,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                         code,
                         dashboardNamespace,
                         selectedPlatforms,
+                        selectedAPIProtocol,
                       )
                     : createServingRuntimeTemplateBackend(
                         code,
                         dashboardNamespace,
                         selectedPlatforms,
+                        selectedAPIProtocol,
                       );
                   onClickFunc
                     .then(() => {

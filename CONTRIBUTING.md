@@ -61,6 +61,8 @@ or
 npm run make:login
 ```
 
+> Note: You'll need to reauthenticate using one of the above steps and restart `backend` each day.
+
 ## Debugging and Testing
 
 See [frontend testing guidelines](docs/testing.md) for more information.

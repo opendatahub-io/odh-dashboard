@@ -204,6 +204,10 @@ class ModelMeshRow extends ModelServingRow {
   findExpansion() {
     return this.find().siblings();
   }
+
+  findDeployedModelExpansionButton() {
+    return this.find().find('[data-label="Deployed models"] button');
+  }
 }
 
 class KServeRow extends ModelMeshRow {
@@ -248,6 +252,42 @@ class ModelServingSection {
 
   findDescriptionListItem(rowName: string, itemName: string) {
     return this.findRow(rowName).next('tr').find(`dt:contains("${itemName}")`);
+  }
+
+  findInferenceServiceTable() {
+    return cy.findByTestId('inference-service-table');
+  }
+
+  findInferenceServiceRowStatus(name: string) {
+    return this.findInferenceServiceTable()
+      .contains('tr', name)
+      .within(() => {
+        cy.get('td[data-label="Status"]');
+      });
+  }
+
+  findStatusTooltip(name: string) {
+    return this.findInferenceServiceRowStatus(name)
+      .findByTestId('status-tooltip')
+      .trigger('mouseenter')
+      .then(() => {
+        cy.findByTestId('model-status-tooltip');
+      });
+  }
+
+  findStatusTooltipValue(name: string, msg: string) {
+    this.findStatusTooltip(name)
+      .invoke('text')
+      .should('contain', msg)
+      .then(() => {
+        this.findStatusTooltip(name).trigger('mouseleave');
+      });
+  }
+
+  findAPIProtocol(name: string) {
+    return this.findInferenceServiceTable()
+      .contains('tr', name)
+      .find('td[data-label="API protocol"]');
   }
 }
 

@@ -36,6 +36,7 @@ export const TolerationsTable: React.FC<TolerationTableProps> = ({ tolerations, 
       <Table
         data={tolerations}
         columns={columns}
+        data-testid="toleration-table"
         rowRenderer={(toleration, rowIndex) => (
           <TolerationRow
             key={toleration.key + rowIndex}

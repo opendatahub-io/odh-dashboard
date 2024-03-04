@@ -90,6 +90,11 @@ const useDSPipelinesNav = (): NavDataItem[] => {
   ];
 };
 
+const useDistributedWorkloadsNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.DISTRIBUTED_WORKLOADS, [
+    { id: 'workloadMetrics', label: 'Workload Metrics', href: '/distributedWorkloads' },
+  ]);
+
 const useModelServingNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.MODEL_SERVING, [
     { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
@@ -103,7 +108,7 @@ const useCustomNotebooksNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.BYON, [
     {
       id: 'settings-notebook-images',
-      label: 'Notebook image settings',
+      label: 'Notebook images',
       href: '/notebookImages',
     },
   ]);
@@ -171,6 +176,7 @@ export const useBuildNavData = (): NavDataItem[] => [
   ...useApplicationsNav(),
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),
+  ...useDistributedWorkloadsNav(),
   ...useModelServingNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),

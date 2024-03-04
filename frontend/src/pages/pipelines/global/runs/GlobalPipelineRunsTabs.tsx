@@ -4,6 +4,7 @@ import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import ScheduledRuns from '~/pages/pipelines/global/runs/ScheduledRuns';
 import TriggeredRuns from '~/pages/pipelines/global/runs/TriggeredRuns';
 import './GlobalPipelineRunsTabs.scss';
+import { asEnumMember } from '~/utilities/utils';
 
 export enum PipelineRunType {
   Scheduled = 'scheduled',
@@ -12,7 +13,7 @@ export enum PipelineRunType {
 
 const GlobalPipelineRunsTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const runTypeSearchParam = searchParams.get('runType') as PipelineRunType;
+  const runTypeSearchParam = asEnumMember(searchParams.get('runType'), PipelineRunType);
   const [tab, setTab] = React.useState<PipelineRunType>(
     runTypeSearchParam || PipelineRunType.Scheduled,
   );

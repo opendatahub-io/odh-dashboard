@@ -18,6 +18,7 @@ import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
+import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -42,7 +43,21 @@ const App: React.FC = () => {
     loadError: fetchConfigError,
   } = useApplicationSettings();
 
+  const [storageClasses] = useStorageClasses();
+
   useDetectUser();
+
+  const contextValue = React.useMemo(
+    () =>
+      dashboardConfig
+        ? {
+            buildStatuses,
+            dashboardConfig,
+            storageClasses,
+          }
+        : null,
+    [buildStatuses, dashboardConfig, storageClasses],
+  );
 
   // We lack the critical data to startup the app
   if (userError || fetchConfigError) {
@@ -75,7 +90,7 @@ const App: React.FC = () => {
   }
 
   // Waiting on the API to finish
-  const loading = !username || !configLoaded || !dashboardConfig;
+  const loading = !username || !configLoaded || !dashboardConfig || !contextValue;
 
   return (
     <AreaContextProvider>
@@ -84,12 +99,7 @@ const App: React.FC = () => {
           <Spinner />
         </Bullseye>
       ) : (
-        <AppContext.Provider
-          value={{
-            buildStatuses,
-            dashboardConfig,
-          }}
-        >
+        <AppContext.Provider value={contextValue}>
           <Page
             className="odh-dashboard"
             isManagedSidebar

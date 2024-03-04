@@ -9,17 +9,13 @@ const usePodStepsStates = (
   podName: string,
 ): PodStepState[] => {
   const { namespace } = usePipelinesAPI();
-  const podContainerStatuses: PodContainerStatuses = useDeepCompareMemoize(
-    sortedpodContainerStatuses,
-  );
+  const podContainerStatuses = useDeepCompareMemoize(sortedpodContainerStatuses);
   const [allpodStepsState, setAllPodStepsState] = React.useState<PodStepState[]>([]);
 
   React.useEffect(() => {
-    if (podContainerStatuses) {
-      getPodStepsStates(podContainerStatuses, namespace, podName).then((result) => {
-        setAllPodStepsState(result);
-      });
-    }
+    getPodStepsStates(podContainerStatuses, namespace, podName).then((result) => {
+      setAllPodStepsState(result);
+    });
   }, [podContainerStatuses, namespace, podName]);
   return allpodStepsState;
 };

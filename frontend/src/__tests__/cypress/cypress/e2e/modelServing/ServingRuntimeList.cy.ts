@@ -48,6 +48,7 @@ type HandlersProps = {
   roleBindingAlreadyExists?: boolean;
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
+  rejectDataConnection?: boolean;
 };
 
 const initIntercepts = ({
@@ -83,6 +84,7 @@ const initIntercepts = ({
   roleBindingAlreadyExists = false,
   rejectInferenceService = false,
   rejectServingRuntime = false,
+  rejectDataConnection = false,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -334,531 +336,626 @@ const initIntercepts = ({
       mockInvalidTemplateK8sResource({}),
     ]),
   );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
+    },
+    rejectDataConnection
+      ? { statusCode: 401 }
+      : {
+          statusCode: 200,
+          body: mockSecretK8sResource({}),
+        },
+  ).as('createDataConnectionSecret');
 };
 
 describe('Serving Runtime List', () => {
-  it('Deploy ModelMesh model', () => {
-    initIntercepts({
-      projectEnableModelMesh: true,
-      disableKServeConfig: false,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
-        mockInferenceServiceK8sResource({
-          name: 'another-inference-service',
-          displayName: 'Another Inference Service',
-          deleted: true,
-          isModelMesh: true,
-        }),
-        mockInferenceServiceK8sResource({
-          name: 'ovms-testing',
-          displayName: 'OVMS ONNX',
-          isModelMesh: true,
-        }),
-      ],
-    });
+  describe('No server available', () => {
+    it('No model serving platform available', () => {
+      initIntercepts({
+        disableModelMeshConfig: true,
+        disableKServeConfig: true,
+        servingRuntimes: [],
+      });
 
-    projectDetails.visit('test-project');
+      projectDetails.visit('test-project');
 
-    modelServingSection.getModelMeshRow('ovms').findDeployModelButton().click();
-
-    inferenceServiceModal.shouldBeOpen();
-
-    // test that you can not submit on empty
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-
-    // test filling in minimum required fields
-    inferenceServiceModal.findModelNameInput().type('Test Name');
-    inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-    inferenceServiceModal.findNewDataConnectionOption().click();
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationNameInput().type('Test Name');
-    inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
-    inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
-    inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
-    inferenceServiceModal.findLocationBucketInput().type('test-bucket');
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-  });
-
-  it('Deploy KServe model', () => {
-    initIntercepts({
-      disableModelMeshConfig: false,
-      disableKServeConfig: false,
-      servingRuntimes: [],
-    });
-
-    projectDetails.visit('test-project');
-
-    modelServingSection.findDeployModelButton().click();
-
-    kserveModal.shouldBeOpen();
-
-    // test that you can not submit on empty
-    kserveModal.findSubmitButton().should('be.disabled');
-
-    // test filling in minimum required fields
-    kserveModal.findModelNameInput().type('Test Name');
-    kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
-    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-    kserveModal.findSubmitButton().should('be.disabled');
-    kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
-    kserveModal.findLocationPathInput().type('test-model/');
-    kserveModal.findSubmitButton().should('be.enabled');
-    kserveModal.findNewDataConnectionOption().click();
-    kserveModal.findLocationPathInput().clear();
-    kserveModal.findSubmitButton().should('be.disabled');
-    kserveModal.findLocationNameInput().type('Test Name');
-    kserveModal.findLocationAccessKeyInput().type('test-key');
-    kserveModal.findLocationSecretKeyInput().type('test-secret-key');
-    kserveModal.findLocationEndpointInput().type('test-endpoint');
-    kserveModal.findLocationBucketInput().type('test-bucket');
-    kserveModal.findLocationPathInput().type('test-model/');
-    kserveModal.findSubmitButton().should('be.enabled');
-
-    // test submitting form, the modal should close to indicate success.
-    kserveModal.findSubmitButton().click();
-    kserveModal.shouldBeOpen(false);
-
-    // the serving runtime should have been created
-    cy.get('@createServingRuntime.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      cy.findByText('No model serving platform selected').should('be.visible');
     });
   });
 
-  it('Do not deploy KServe model when user cannot edit namespace', () => {
-    initIntercepts({
-      disableModelMeshConfig: false,
-      disableKServeConfig: false,
-      servingRuntimes: [],
-      rejectAddSupportServingPlatformProject: true,
+  describe('ModelMesh', () => {
+    it('Deploy ModelMesh model', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visit('test-project');
+
+      modelServingSection.getModelMeshRow('ovms').findDeployModelButton().click();
+
+      inferenceServiceModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      inferenceServiceModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      inferenceServiceModal.findModelNameInput().type('Test Name');
+      inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      inferenceServiceModal.findSubmitButton().should('be.disabled');
+      inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      inferenceServiceModal.findLocationPathInput().type('test-model/');
+      inferenceServiceModal.findSubmitButton().should('be.enabled');
+      inferenceServiceModal.findNewDataConnectionOption().click();
+      inferenceServiceModal.findLocationPathInput().clear();
+      inferenceServiceModal.findSubmitButton().should('be.disabled');
+      inferenceServiceModal.findLocationNameInput().type('Test Name');
+      inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
+      inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
+      inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
+      inferenceServiceModal.findLocationBucketInput().type('test-bucket');
+      inferenceServiceModal.findLocationPathInput().type('test-model/');
+      inferenceServiceModal.findSubmitButton().should('be.enabled');
     });
 
-    projectDetails.visit('test-project');
+    it('ModelMesh ServingRuntime list', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            activeModelState: 'FailedToLoad',
+            isModelMesh: true,
+            lastFailureInfoMessage: 'Failed to pull model from storage due to error',
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'loaded-model',
+            displayName: 'Loaded model',
+            activeModelState: 'Loaded',
+            isModelMesh: true,
+            lastFailureInfoMessage: 'Failed to pull model from storage due to error',
+          }),
+        ],
+      });
 
-    modelServingSection.findDeployModelButton().click();
+      projectDetails.visit('test-project');
 
-    kserveModal.shouldBeOpen();
+      // Check that the legacy serving runtime is shown with the default runtime name
+      modelServingSection.getModelMeshRow('ovms').find().should('exist');
+      // Check that the legacy serving runtime displays the correct Serving Runtime
+      modelServingSection.getModelMeshRow('ovms').shouldHaveServingRuntime('OpenVINO Model Server');
+      // Check that the legacy serving runtime has tokens disabled
+      modelServingSection.getModelMeshRow('ovms').shouldHaveTokens(false);
 
-    // test filling in minimum required fields
-    kserveModal.findModelNameInput().type('Test Name');
-    kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
-    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-    kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
-    kserveModal.findNewDataConnectionOption().click();
-    kserveModal.findLocationNameInput().type('Test Name');
-    kserveModal.findLocationAccessKeyInput().type('test-key');
-    kserveModal.findLocationSecretKeyInput().type('test-secret-key');
-    kserveModal.findLocationEndpointInput().type('test-endpoint');
-    kserveModal.findLocationBucketInput().type('test-bucket');
-    kserveModal.findLocationPathInput().type('test-model/');
-    kserveModal.findSubmitButton().should('be.enabled');
+      modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.collapsed);
+      modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
+      modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
 
-    // test submitting form, an error should appear
-    kserveModal.findSubmitButton().click();
-    cy.findByText('Error creating model server');
+      // Check that the serving runtime is shown with the default runtime name
+      modelServingSection.getModelMeshRow('OVMS Model Serving').find().should('exist');
+      // Check that the serving runtime displays the correct Serving Runtime
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .shouldHaveServingRuntime('OpenVINO Serving Runtime (Supports GPUs)');
 
-    // the serving runtime should NOT have been created
-    cy.get('@createServingRuntime.all').then((interceptions) => {
-      expect(interceptions).to.have.length(1); // 1 dry-run request only
-    });
+      // Check status of deployed model
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .findDeployedModelExpansionButton()
+        .click();
+      modelServingSection.findInferenceServiceTable().should('exist');
+      modelServingSection.findStatusTooltip('OVMS ONNX').should('be.visible');
+      modelServingSection.findStatusTooltipValue(
+        'OVMS ONNX',
+        'Failed to pull model from storage due to error',
+      );
 
-    // the inference service should NOT have been created
-    cy.get('@createInferenceService.all').then((interceptions) => {
-      expect(interceptions).to.have.length(0);
-    });
-  });
+      // Check status of deployed model which loaded successfully after an error
+      modelServingSection.findStatusTooltip('Loaded model').should('be.visible');
+      modelServingSection.findStatusTooltipValue('Loaded model', 'Loaded');
 
-  it('No model serving platform available', () => {
-    initIntercepts({
-      disableModelMeshConfig: true,
-      disableKServeConfig: true,
-      servingRuntimes: [],
-    });
-
-    projectDetails.visit('test-project');
-
-    cy.findByText('No model serving platform selected').should('be.visible');
-  });
-
-  it('ModelMesh ServingRuntime list', () => {
-    initIntercepts({
-      projectEnableModelMesh: true,
-      disableKServeConfig: false,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
-        mockInferenceServiceK8sResource({
-          name: 'another-inference-service',
-          displayName: 'Another Inference Service',
-          deleted: true,
-          isModelMesh: true,
-        }),
-        mockInferenceServiceK8sResource({
-          name: 'ovms-testing',
-          displayName: 'OVMS ONNX',
-          isModelMesh: true,
-        }),
-      ],
-    });
-
-    projectDetails.visit('test-project');
-
-    // Check that the legacy serving runtime is shown with the default runtime name
-    modelServingSection.getModelMeshRow('ovms').find().should('exist');
-    // Check that the legacy serving runtime displays the correct Serving Runtime
-    modelServingSection.getModelMeshRow('ovms').shouldHaveServingRuntime('OpenVINO Model Server');
-    // Check that the legacy serving runtime has tokens disabled
-    modelServingSection.getModelMeshRow('ovms').shouldHaveTokens(false);
-
-    // Check that the serving runtime is shown with the default runtime name
-    modelServingSection.getModelMeshRow('OVMS Model Serving').find();
-    // Check that the serving runtime displays the correct Serving Runtime
-    modelServingSection
-      .getModelMeshRow('OVMS Model Serving')
-      .shouldHaveServingRuntime('OpenVINO Serving Runtime (Supports GPUs)');
-
-    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.collapsed);
-    modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
-    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
-  });
-
-  it('KServe Model list', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableKServeConfig: false,
-      disableModelMeshConfig: false,
-    });
-    projectDetails.visit('test-project');
-
-    // Check that we get the correct model name
-    modelServingSection
-      .getKServeRow('Test Inference Service')
-      .find()
-      .findByText('OpenVINO Serving Runtime (Supports GPUs)')
-      .should('exist');
-    // Check for resource marked for deletion
-    modelServingSection.getKServeRow('Another Inference Service').shouldBeMarkedForDeletion();
-  });
-
-  it('Add ModelMesh model server', () => {
-    initIntercepts({
-      projectEnableModelMesh: true,
-      disableKServeConfig: false,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
-        mockInferenceServiceK8sResource({
-          name: 'another-inference-service',
-          displayName: 'Another Inference Service',
-          deleted: true,
-          isModelMesh: true,
-        }),
-        mockInferenceServiceK8sResource({
-          name: 'ovms-testing',
-          displayName: 'OVMS ONNX',
-          isModelMesh: true,
-        }),
-      ],
-    });
-    projectDetails.visit('test-project');
-
-    modelServingSection.findAddModelServerButton().click();
-
-    createServingRuntimeModal.shouldBeOpen();
-
-    // test that you can not submit on empty
-    createServingRuntimeModal.findSubmitButton().should('be.disabled');
-
-    // test filling in minimum required fields
-    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
-    createServingRuntimeModal
-      .findServingRuntimeTemplateDropdown()
-      .findDropdownItem('New OVMS Server')
-      .click();
-    createServingRuntimeModal.findSubmitButton().should('be.enabled');
-
-    // test the if the alert is visible when route is external while token is not set
-    createServingRuntimeModal.findModelRouteCheckbox().should('not.be.checked');
-    createServingRuntimeModal.findAuthenticationCheckbox().should('not.be.checked');
-    createServingRuntimeModal.findExternalRouteError().should('not.exist');
-    // check external route, token should be checked and no alert
-    createServingRuntimeModal.findModelRouteCheckbox().check();
-    createServingRuntimeModal.findAuthenticationCheckbox().should('be.checked');
-    createServingRuntimeModal.findExternalRouteError().should('not.exist');
-    createServingRuntimeModal.findServiceAccountNameInput().should('have.value', 'default-name');
-    // check external route, uncheck token, show alert
-    createServingRuntimeModal.findAuthenticationCheckbox().uncheck();
-    createServingRuntimeModal.findExternalRouteError().should('exist');
-    // internal route, set token, no alert
-    createServingRuntimeModal.findModelRouteCheckbox().uncheck();
-    createServingRuntimeModal.findAuthenticationCheckbox().check();
-    createServingRuntimeModal.findExternalRouteError().should('not.exist');
-  });
-
-  it('Edit ModelMesh model server', () => {
-    initIntercepts({
-      projectEnableModelMesh: true,
-      disableKServeConfig: false,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
-        mockInferenceServiceK8sResource({
-          name: 'ovms-testing',
-          displayName: 'OVMS ONNX',
-          isModelMesh: true,
-        }),
-      ],
-    });
-
-    projectDetails.visit('test-project');
-
-    // click on the toggle button and open edit model server
-    modelServingSection.getModelMeshRow('ovms').find().findKebabAction('Edit model server').click();
-
-    editServingRuntimeModal.shouldBeOpen();
-
-    // test name field
-    editServingRuntimeModal.findSubmitButton().should('be.disabled');
-    editServingRuntimeModal.findModelServerNameInput().clear();
-    editServingRuntimeModal.findModelServerNameInput().type('New name');
-    editServingRuntimeModal.findSubmitButton().should('be.enabled');
-    editServingRuntimeModal.findModelServerNameInput().clear();
-    editServingRuntimeModal.findModelServerNameInput().type('test-model-legacy');
-    editServingRuntimeModal.findSubmitButton().should('be.disabled');
-    // test replicas field
-    editServingRuntimeModal.findModelServerReplicasPlusButton().click();
-    editServingRuntimeModal.findSubmitButton().should('be.enabled');
-    editServingRuntimeModal.findModelServerReplicasMinusButton().click();
-    editServingRuntimeModal.findSubmitButton().should('be.disabled');
-    // test size field
-    editServingRuntimeModal
-      .findModelServerSizeSelect()
-      .findSelectOption(/Medium/)
-      .click();
-    editServingRuntimeModal.findSubmitButton().should('be.enabled');
-    editServingRuntimeModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
-    editServingRuntimeModal.findSubmitButton().should('be.disabled');
-    // test external route field
-    editServingRuntimeModal.findModelRouteCheckbox().check();
-    editServingRuntimeModal.findSubmitButton().should('be.enabled');
-    editServingRuntimeModal.findModelRouteCheckbox().uncheck();
-    editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
-    editServingRuntimeModal.findSubmitButton().should('be.disabled');
-    // test tokens field
-    editServingRuntimeModal.findAuthenticationCheckbox().check();
-    editServingRuntimeModal.findSubmitButton().should('be.enabled');
-    editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
-    editServingRuntimeModal.findSubmitButton().should('be.disabled');
-  });
-
-  it('Successfully submit KServe Modal on edit', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableKServeConfig: true,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          modelName: 'llama-service',
-          isModelMesh: false,
-        }),
-      ],
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          namespace: 'test-project',
-        }),
-      ],
-    });
-
-    projectDetails.visit('test-project');
-
-    // click on the toggle button and open edit model server
-    modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
-
-    kserveModal.shouldBeOpen();
-
-    // Submit button should be enabled
-    kserveModal.findSubmitButton().should('be.enabled');
-
-    // Should allow editing
-    kserveModal.findSubmitButton().click();
-    kserveModal.shouldBeOpen(false);
-  });
-
-  it('Successfully add model server when user can edit namespace', () => {
-    initIntercepts({
-      projectEnableModelMesh: undefined,
-      disableKServeConfig: false,
-      disableModelMeshConfig: false,
-    });
-    projectDetails.visit('test-project');
-
-    modelServingSection.findAddModelServerButton().click();
-
-    createServingRuntimeModal.shouldBeOpen();
-
-    // fill in minimum required fields
-    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
-    createServingRuntimeModal
-      .findServingRuntimeTemplateDropdown()
-      .findDropdownItem('New OVMS Server')
-      .click();
-    createServingRuntimeModal.findSubmitButton().should('be.enabled');
-
-    // test submitting form, the modal should close to indicate success.
-    createServingRuntimeModal.findSubmitButton().click();
-    createServingRuntimeModal.shouldBeOpen(false);
-
-    // the serving runtime should have been created
-    cy.get('@createServingRuntime.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      // Check API protocol in row
+      modelServingSection.findAPIProtocol('Loaded model').should('have.text', 'REST');
     });
   });
 
-  it('Do not add model server when user cannot edit namespace', () => {
-    initIntercepts({
-      projectEnableModelMesh: undefined,
-      disableKServeConfig: false,
-      disableModelMeshConfig: false,
-      rejectAddSupportServingPlatformProject: true,
+  describe('KServe', () => {
+    it('Deploy KServe model', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+      });
+
+      projectDetails.visit('test-project');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findNewDataConnectionOption().click();
+      kserveModal.findLocationPathInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findLocationNameInput().type('Test Name');
+      kserveModal.findLocationAccessKeyInput().type('test-key');
+      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+      kserveModal.findLocationEndpointInput().type('test-endpoint');
+      kserveModal.findLocationBucketInput().type('test-bucket');
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, the modal should close to indicate success.
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
     });
-    projectDetails.visit('test-project');
 
-    modelServingSection.findAddModelServerButton().click();
+    it('Do not deploy KServe model when user cannot edit namespace', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+        rejectAddSupportServingPlatformProject: true,
+      });
 
-    createServingRuntimeModal.shouldBeOpen();
+      projectDetails.visit('test-project');
 
-    // fill in minimum required fields
-    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
-    createServingRuntimeModal
-      .findServingRuntimeTemplateDropdown()
-      .findDropdownItem('New OVMS Server')
-      .click();
-    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+      modelServingSection.findDeployModelButton().click();
 
-    // test submitting form, an error should appear
-    createServingRuntimeModal.findSubmitButton().click();
-    cy.findByText('Error creating model server');
+      kserveModal.shouldBeOpen();
 
-    // the serving runtime should NOT have been created
-    cy.get('@createServingRuntime.all').then((interceptions) => {
-      expect(interceptions).to.have.length(1); // 1 dry-run request only
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findNewDataConnectionOption().click();
+      kserveModal.findLocationNameInput().type('Test Name');
+      kserveModal.findLocationAccessKeyInput().type('test-key');
+      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+      kserveModal.findLocationEndpointInput().type('test-endpoint');
+      kserveModal.findLocationBucketInput().type('test-bucket');
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, an error should appear
+      kserveModal.findSubmitButton().click();
+
+      cy.wait('@createServingRuntime').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+      cy.wait('@createInferenceService').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+
+      cy.findByText('Error creating model server');
+
+      // the serving runtime should NOT have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
+
+      // the inference service should NOT have been created
+      cy.get('@createInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
+    });
+
+    it('Successfully submit KServe Modal on edit', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            modelName: 'llama-service',
+            isModelMesh: false,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            namespace: 'test-project',
+          }),
+        ],
+      });
+
+      projectDetails.visit('test-project');
+
+      // click on the toggle button and open edit model server
+      modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
+
+      kserveModal.shouldBeOpen();
+
+      // Submit button should be enabled
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // Should allow editing
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+    });
+
+    it('KServe Model list', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+      projectDetails.visit('test-project');
+
+      // Check that we get the correct model name
+      modelServingSection
+        .getKServeRow('Test Inference Service')
+        .find()
+        .findByText('OpenVINO Serving Runtime (Supports GPUs)')
+        .should('exist');
+      // Check for resource marked for deletion
+      modelServingSection.getKServeRow('Another Inference Service').shouldBeMarkedForDeletion();
+    });
+
+    it('Check number of replicas of model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            modelName: 'llama-service',
+            isModelMesh: false,
+            minReplicas: 3,
+            maxReplicas: 3,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            namespace: 'test-project',
+          }),
+        ],
+      });
+
+      projectDetails.visit('test-project');
+      modelServingSection.getKServeRow('Llama Service').findExpansion().should(be.collapsed);
+      modelServingSection.getKServeRow('Llama Service').findToggleButton().click();
+      modelServingSection
+        .findDescriptionListItem('Llama Service', 'Model server replicas')
+        .next('dd')
+        .should('have.text', '3');
     });
   });
 
-  it('Add model server - do not create ServiceAccount or RoleBinding if token auth is not selected', () => {
-    initIntercepts({
-      projectEnableModelMesh: undefined,
-      disableKServeConfig: false,
-      disableModelMeshConfig: false,
+  describe('ModelMesh model server', () => {
+    it('Add ModelMesh model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+      projectDetails.visit('test-project');
+
+      modelServingSection.findAddModelServerButton().click();
+
+      createServingRuntimeModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      createServingRuntimeModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal
+        .findServingRuntimeTemplateDropdown()
+        .findDropdownItem('New OVMS Server')
+        .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+      // test the if the alert is visible when route is external while token is not set
+      createServingRuntimeModal.findModelRouteCheckbox().should('not.be.checked');
+      createServingRuntimeModal.findAuthenticationCheckbox().should('not.be.checked');
+      createServingRuntimeModal.findExternalRouteError().should('not.exist');
+      // check external route, token should be checked and no alert
+      createServingRuntimeModal.findModelRouteCheckbox().check();
+      createServingRuntimeModal.findAuthenticationCheckbox().should('be.checked');
+      createServingRuntimeModal.findExternalRouteError().should('not.exist');
+      createServingRuntimeModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      // check external route, uncheck token, show alert
+      createServingRuntimeModal.findAuthenticationCheckbox().uncheck();
+      createServingRuntimeModal.findExternalRouteError().should('exist');
+      // internal route, set token, no alert
+      createServingRuntimeModal.findModelRouteCheckbox().uncheck();
+      createServingRuntimeModal.findAuthenticationCheckbox().check();
+      createServingRuntimeModal.findExternalRouteError().should('not.exist');
     });
-    projectDetails.visit('test-project');
 
-    modelServingSection.findAddModelServerButton().click();
+    it('Edit ModelMesh model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
 
-    createServingRuntimeModal.shouldBeOpen();
+      projectDetails.visit('test-project');
 
-    // fill in minimum required fields
-    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
-    createServingRuntimeModal
-      .findServingRuntimeTemplateDropdown()
-      .findDropdownItem('New OVMS Server')
-      .click();
-    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+      // click on the toggle button and open edit model server
+      modelServingSection
+        .getModelMeshRow('ovms')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
 
-    // test submitting form, the modal should close to indicate success.
-    createServingRuntimeModal.findSubmitButton().click();
-    createServingRuntimeModal.shouldBeOpen(false);
+      editServingRuntimeModal.shouldBeOpen();
 
-    // the service account and role binding should not have been created
-    cy.get('@createServiceAccount.all').then((interceptions) => {
-      expect(interceptions).to.have.length(0);
+      // test name field
+      editServingRuntimeModal.findSubmitButton().should('be.disabled');
+      editServingRuntimeModal.findModelServerNameInput().clear();
+      editServingRuntimeModal.findModelServerNameInput().type('New name');
+      editServingRuntimeModal.findSubmitButton().should('be.enabled');
+      editServingRuntimeModal.findModelServerNameInput().clear();
+      editServingRuntimeModal.findModelServerNameInput().type('test-model-legacy');
+      editServingRuntimeModal.findSubmitButton().should('be.disabled');
+      // test replicas field
+      editServingRuntimeModal.findModelServerReplicasPlusButton().click();
+      editServingRuntimeModal.findSubmitButton().should('be.enabled');
+      editServingRuntimeModal.findModelServerReplicasMinusButton().click();
+      editServingRuntimeModal.findSubmitButton().should('be.disabled');
+      // test size field
+      editServingRuntimeModal
+        .findModelServerSizeSelect()
+        .findSelectOption(/Medium/)
+        .click();
+      editServingRuntimeModal.findSubmitButton().should('be.enabled');
+      editServingRuntimeModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
+      editServingRuntimeModal.findSubmitButton().should('be.disabled');
+      // test external route field
+      editServingRuntimeModal.findModelRouteCheckbox().check();
+      editServingRuntimeModal.findSubmitButton().should('be.enabled');
+      editServingRuntimeModal.findModelRouteCheckbox().uncheck();
+      editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
+      editServingRuntimeModal.findSubmitButton().should('be.disabled');
+      // test tokens field
+      editServingRuntimeModal.findAuthenticationCheckbox().check();
+      editServingRuntimeModal.findSubmitButton().should('be.enabled');
+      editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
+      editServingRuntimeModal.findSubmitButton().should('be.disabled');
     });
-    cy.get('@createRoleBinding.all').then((interceptions) => {
-      expect(interceptions).to.have.length(0);
+
+    it('Successfully add model server when user can edit namespace', () => {
+      initIntercepts({
+        projectEnableModelMesh: undefined,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+      projectDetails.visit('test-project');
+
+      modelServingSection.findAddModelServerButton().click();
+
+      createServingRuntimeModal.shouldBeOpen();
+
+      // fill in minimum required fields
+      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal
+        .findServingRuntimeTemplateDropdown()
+        .findDropdownItem('New OVMS Server')
+        .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, the modal should close to indicate success.
+      createServingRuntimeModal.findSubmitButton().click();
+      createServingRuntimeModal.shouldBeOpen(false);
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+    });
+
+    it('Do not add model server when user cannot edit namespace', () => {
+      initIntercepts({
+        projectEnableModelMesh: undefined,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+        rejectAddSupportServingPlatformProject: true,
+      });
+      projectDetails.visit('test-project');
+
+      modelServingSection.findAddModelServerButton().click();
+
+      createServingRuntimeModal.shouldBeOpen();
+
+      // fill in minimum required fields
+      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal
+        .findServingRuntimeTemplateDropdown()
+        .findDropdownItem('New OVMS Server')
+        .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, an error should appear
+      createServingRuntimeModal.findSubmitButton().click();
+      cy.findByText('Error creating model server');
+
+      // the serving runtime should NOT have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
     });
   });
 
-  it('Add model server - create ServiceAccount and RoleBinding if token auth is selected', () => {
-    initIntercepts({
-      projectEnableModelMesh: undefined,
-      disableKServeConfig: false,
-      disableModelMeshConfig: false,
+  describe('Model server with SericeAccount and RoleBinding', () => {
+    it('Add model server - do not create ServiceAccount or RoleBinding if token auth is not selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: undefined,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+      projectDetails.visit('test-project');
+
+      modelServingSection.findAddModelServerButton().click();
+
+      createServingRuntimeModal.shouldBeOpen();
+
+      // fill in minimum required fields
+      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal
+        .findServingRuntimeTemplateDropdown()
+        .findDropdownItem('New OVMS Server')
+        .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, the modal should close to indicate success.
+      createServingRuntimeModal.findSubmitButton().click();
+      createServingRuntimeModal.shouldBeOpen(false);
+
+      // the service account and role binding should not have been created
+      cy.get('@createServiceAccount.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createRoleBinding.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
     });
-    projectDetails.visit('test-project');
 
-    modelServingSection.findAddModelServerButton().click();
+    it('Add model server - create ServiceAccount and RoleBinding if token auth is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: undefined,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+      projectDetails.visit('test-project');
 
-    createServingRuntimeModal.shouldBeOpen();
+      modelServingSection.findAddModelServerButton().click();
 
-    // fill in minimum required fields
-    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
-    createServingRuntimeModal
-      .findServingRuntimeTemplateDropdown()
-      .findDropdownItem('New OVMS Server')
-      .click();
-    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+      createServingRuntimeModal.shouldBeOpen();
 
-    // enable auth
-    createServingRuntimeModal.findAuthenticationCheckbox().check();
+      // fill in minimum required fields
+      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal
+        .findServingRuntimeTemplateDropdown()
+        .findDropdownItem('New OVMS Server')
+        .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
-    // test submitting form, the modal should close to indicate success.
-    createServingRuntimeModal.findSubmitButton().click();
-    createServingRuntimeModal.shouldBeOpen(false);
+      // enable auth
+      createServingRuntimeModal.findAuthenticationCheckbox().check();
 
-    // the service account and role binding should have been created
-    cy.get('@createServiceAccount.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      // test submitting form, the modal should close to indicate success.
+      createServingRuntimeModal.findSubmitButton().click();
+      createServingRuntimeModal.shouldBeOpen(false);
+
+      // the service account and role binding should have been created
+      cy.get('@createServiceAccount.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      cy.get('@createRoleBinding.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
     });
-    cy.get('@createRoleBinding.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
-    });
-  });
 
-  it('Add model server - do not create ServiceAccount or RoleBinding if they already exist', () => {
-    initIntercepts({
-      projectEnableModelMesh: undefined,
-      disableKServeConfig: false,
-      disableModelMeshConfig: false,
-      serviceAccountAlreadyExists: true,
-      roleBindingAlreadyExists: true,
-    });
-    projectDetails.visit('test-project');
+    it('Add model server - do not create ServiceAccount or RoleBinding if they already exist', () => {
+      initIntercepts({
+        projectEnableModelMesh: undefined,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+        serviceAccountAlreadyExists: true,
+        roleBindingAlreadyExists: true,
+      });
+      projectDetails.visit('test-project');
 
-    modelServingSection.findAddModelServerButton().click();
+      modelServingSection.findAddModelServerButton().click();
 
-    createServingRuntimeModal.shouldBeOpen();
+      createServingRuntimeModal.shouldBeOpen();
 
-    // fill in minimum required fields
-    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
-    createServingRuntimeModal
-      .findServingRuntimeTemplateDropdown()
-      .findDropdownItem('New OVMS Server')
-      .click();
-    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+      // fill in minimum required fields
+      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal
+        .findServingRuntimeTemplateDropdown()
+        .findDropdownItem('New OVMS Server')
+        .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
-    // enable auth
-    createServingRuntimeModal.findAuthenticationCheckbox().check();
+      // enable auth
+      createServingRuntimeModal.findAuthenticationCheckbox().check();
 
-    // test submitting form, the modal should close to indicate success.
-    createServingRuntimeModal.findSubmitButton().click();
-    createServingRuntimeModal.shouldBeOpen(false);
+      // test submitting form, the modal should close to indicate success.
+      createServingRuntimeModal.findSubmitButton().click();
+      createServingRuntimeModal.shouldBeOpen(false);
 
-    // the service account and role binding should have been created
-    cy.get('@createServiceAccount.all').then((interceptions) => {
-      expect(interceptions).to.have.length(0);
-    });
-    cy.get('@createRoleBinding.all').then((interceptions) => {
-      expect(interceptions).to.have.length(0);
+      // the service account and role binding should have been created
+      cy.get('@createServiceAccount.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createRoleBinding.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
     });
   });
 
@@ -978,39 +1075,6 @@ describe('Serving Runtime List', () => {
     });
   });
 
-  it('Check number of replicas of model', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableKServeConfig: true,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          modelName: 'llama-service',
-          isModelMesh: false,
-          minReplicas: 3,
-          maxReplicas: 3,
-        }),
-      ],
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          namespace: 'test-project',
-        }),
-      ],
-    });
-
-    projectDetails.visit('test-project');
-    modelServingSection.getKServeRow('Llama Service').findExpansion().should(be.collapsed);
-    modelServingSection.getKServeRow('Llama Service').findToggleButton().click();
-    modelServingSection
-      .findDescriptionListItem('Llama Service', 'Model server replicas')
-      .next('dd')
-      .should('have.text', '3');
-  });
-
   describe('Dry run check', () => {
     it('Check when inference service dryRun fails', () => {
       initIntercepts({
@@ -1075,6 +1139,48 @@ describe('Serving Runtime List', () => {
       // check url should be dryRun
       cy.wait('@createServingRuntime').then((interceptions) => {
         expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+    });
+
+    it('Check when Data connection secret dryRun fails', () => {
+      initIntercepts({
+        disableModelMeshConfig: true,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+        rejectDataConnection: true,
+      });
+
+      projectDetails.visit('test-project');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+
+      kserveModal.findNewDataConnectionOption().click();
+      kserveModal.findLocationNameInput().type('Test Name');
+      kserveModal.findLocationAccessKeyInput().type('test-key');
+      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+      kserveModal.findLocationEndpointInput().type('test-endpoint');
+      kserveModal.findLocationBucketInput().type('test-bucket');
+      kserveModal.findLocationPathInput().type('test-model/');
+
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findSubmitButton().click();
+
+      cy.get('@createDataConnectionSecret.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      });
+
+      // check url should be dryRun
+      cy.wait('@createDataConnectionSecret').then((interceptions) => {
+        expect(interceptions.request.url).to.include('?dryRun=All');
+      });
+
+      // check no createInferenceService call is made as data connection creation failed
+      cy.get('@createInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
       });
     });
   });

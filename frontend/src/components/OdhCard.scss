@@ -100,7 +100,8 @@
       justify-content: flex-end;
     }
 
-    &__link {
+    & &__link {
+      font-size: var(--pf-v5-global--FontSize--md);
       padding: 0;
       > svg {
         margin-left: var(--pf-v5-global--spacer--xs);

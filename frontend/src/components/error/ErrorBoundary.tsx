@@ -34,18 +34,20 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render(): React.ReactNode {
     const { children } = this.props;
+    const { hasError } = this.state;
 
-    if (this.state.hasError) {
+    if (hasError) {
+      const { error, errorInfo } = this.state;
       return (
         <div className="pf-v5-u-p-lg">
           <Title headingLevel="h1" className="pf-v5-u-mb-lg">
             An error occurred.
           </Title>
           <ErrorDetails
-            title={this.state.error.name}
-            errorMessage={this.state.error.message}
-            componentStack={this.state.errorInfo.componentStack}
-            stack={this.state.error.stack}
+            title={error.name}
+            errorMessage={error.message}
+            componentStack={errorInfo.componentStack}
+            stack={error.stack}
           />
         </div>
       );

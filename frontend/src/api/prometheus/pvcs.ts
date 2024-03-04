@@ -11,6 +11,7 @@ export const usePVCFreeAmount = (
     `namespace=${pvc.metadata.namespace}&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='${pvc.metadata.name}'}`,
   );
 
+  // TODO mturley we can probably get rid of this and just pass a refreshRate in fetchOptions to usePrometheusQuery
   React.useEffect(() => {
     const interval = setInterval(() => {
       refetch();

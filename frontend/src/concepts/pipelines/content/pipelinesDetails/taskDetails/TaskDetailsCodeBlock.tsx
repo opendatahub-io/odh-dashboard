@@ -26,22 +26,20 @@ const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content
   return (
     <CodeBlock
       actions={
-        <React.Fragment>
-          <CodeBlockAction>
-            <ClipboardCopyButton
-              id={`${id}-button`}
-              textId={id}
-              aria-label="Copy to clipboard"
-              onClick={() => onClick(content)}
-              exitDelay={copied ? 1500 : 600}
-              maxWidth="110px"
-              variant="plain"
-              onTooltipHidden={() => setCopied(false)}
-            >
-              {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
-            </ClipboardCopyButton>
-          </CodeBlockAction>
-        </React.Fragment>
+        <CodeBlockAction>
+          <ClipboardCopyButton
+            id={`${id}-button`}
+            textId={id}
+            aria-label="Copy to clipboard"
+            onClick={() => onClick(content)}
+            exitDelay={copied ? 1500 : 600}
+            maxWidth="110px"
+            variant="plain"
+            onTooltipHidden={() => setCopied(false)}
+          >
+            {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
+          </ClipboardCopyButton>
+        </CodeBlockAction>
       }
     >
       <CodeBlockCode id={id}>{content}</CodeBlockCode>

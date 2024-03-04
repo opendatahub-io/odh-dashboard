@@ -66,7 +66,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
               autoFocus
             />
           ) : (
-            <>{obj.name}</>
+            obj.name
           )}
         </Td>
         <Td dataLabel="Version">
@@ -78,7 +78,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
               onKeyDown={onKeyDown}
             />
           ) : (
-            <>{obj.version}</>
+            obj.version
           )}
         </Td>
         <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>

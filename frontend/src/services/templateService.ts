@@ -3,7 +3,7 @@ import axios from 'axios';
 import YAML from 'yaml';
 import { assembleServingRuntimeTemplate } from '~/api';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { addTypesToK8sListedResources } from '~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (
@@ -32,9 +32,10 @@ export const createServingRuntimeTemplateBackend = async (
   body: string,
   namespace: string,
   platforms: ServingRuntimePlatform[],
+  apiProtocol: ServingRuntimeAPIProtocol | undefined,
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(body, namespace, platforms);
+    const template = assembleServingRuntimeTemplate(body, namespace, platforms, apiProtocol);
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 
@@ -62,6 +63,7 @@ export const updateServingRuntimeTemplateBackend = (
   body: string,
   namespace: string,
   platforms: ServingRuntimePlatform[],
+  apiProtocol: ServingRuntimeAPIProtocol | undefined,
 ): Promise<TemplateKind> => {
   try {
     const { name } = existingTemplate.metadata;
@@ -83,7 +85,7 @@ export const updateServingRuntimeTemplateBackend = (
             path: '/objects/0',
             value: servingRuntime,
           },
-          existingTemplate.metadata.annotations
+          existingTemplate.metadata.annotations?.['opendatahub.io/modelServingSupport']
             ? {
                 op: 'replace',
                 path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
@@ -94,6 +96,19 @@ export const updateServingRuntimeTemplateBackend = (
                 path: '/metadata/annotations',
                 value: {
                   'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+                },
+              },
+          existingTemplate.metadata.annotations?.['opendatahub.io/apiProtocol']
+            ? {
+                op: 'replace',
+                path: '/metadata/annotations/opendatahub.io~1apiProtocol',
+                value: apiProtocol,
+              }
+            : {
+                op: 'add',
+                path: '/metadata/annotations',
+                value: {
+                  ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
                 },
               },
         ])

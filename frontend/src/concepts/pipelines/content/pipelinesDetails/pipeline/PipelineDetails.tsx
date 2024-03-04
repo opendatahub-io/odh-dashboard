@@ -105,7 +105,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   <MarkdownView
                     component="span"
                     conciseDisplay
-                    markdown={pipelineVersion?.description}
+                    markdown={pipelineVersion.description}
                   />
                 ),
               })}

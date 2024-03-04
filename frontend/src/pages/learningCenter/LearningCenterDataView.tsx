@@ -117,7 +117,7 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
     return (
       <>
         <PageSection
-          isFilled={true}
+          isFilled
           variant={viewType === LIST_VIEW ? PageSectionVariants.light : PageSectionVariants.default}
           className={
             viewType === LIST_VIEW

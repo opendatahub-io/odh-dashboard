@@ -40,6 +40,7 @@ const ServingRuntimeTable: React.FC = () => {
   return (
     <>
       <Table
+        data-testid="serving-runtime-table"
         data={modelServers}
         columns={columns}
         disableRowRenderSupport

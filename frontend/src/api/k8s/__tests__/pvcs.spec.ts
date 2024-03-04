@@ -62,6 +62,7 @@ const assemblePvcResult: PersistentVolumeClaimKind = {
     accessModes: ['ReadWriteOnce'],
     resources: { requests: { storage: '5Gi' } },
     volumeMode: 'Filesystem',
+    storageClassName: undefined,
   },
   status: { phase: 'Pending' },
 };

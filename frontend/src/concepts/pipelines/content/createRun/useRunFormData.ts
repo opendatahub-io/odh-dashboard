@@ -86,7 +86,7 @@ export const useUpdateParams = (
     if (!initialData?.pipeline_spec.parameters) {
       return;
     }
-    const params: RunParam[] = initialData?.pipeline_spec.parameters.map((p) => ({
+    const params: RunParam[] = initialData.pipeline_spec.parameters.map((p) => ({
       label: p.name,
       value: p.value,
     }));
