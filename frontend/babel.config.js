@@ -20,14 +20,10 @@ module.exports = {
       {
         '@patternfly/react-icons': {
           transform: (importName) =>
-            `@patternfly/react-icons/dist/js/icons/${
-              importName === 'PathMissingIcon'
-                ? 'pathMissing-icon'
-                : importName
-                    .split(/(?=[A-Z])/)
-                    .join('-')
-                    .toLowerCase()
-            }`,
+            `@patternfly/react-icons/dist/js/icons/${importName
+              .split(/(?=[A-Z])/)
+              .join('-')
+              .toLowerCase()}`,
           preventFullImport: true,
         },
       },
