@@ -123,10 +123,20 @@ describe('PipelinesList', () => {
         pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines([]),
-    );
+    ).as('pipelines');
     projectDetails.visit('test-project');
 
     pipelinesSection.findImportPipelineButton().should('be.enabled').click();
+
+    cy.wait('@pipelines').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines',
+        method: 'GET',
+        host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
+        queryParams: { sort_by: 'created_at desc', page_size: 5 },
+      });
+    });
+
     pipelinesSection.findUploadVersionButton().should('have.attr', 'aria-disabled', 'true');
   });
 

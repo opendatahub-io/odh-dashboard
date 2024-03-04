@@ -146,6 +146,8 @@ export const mockServingRuntimeK8sResource = ({
             memory: '4Gi',
           },
         },
+        affinity: {},
+        volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
       },
     ],
     grpcDataEndpoint: 'port:8001',
@@ -165,5 +167,6 @@ export const mockServingRuntimeK8sResource = ({
         version: '1',
       },
     ],
+    volumes: [{ name: 'shm', emptyDir: { medium: 'Memory', sizeLimit: '2Gi' } }],
   },
 });
