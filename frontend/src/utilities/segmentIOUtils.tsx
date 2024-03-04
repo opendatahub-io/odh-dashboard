@@ -75,7 +75,8 @@ export const initSegment = async (props: {
       const key = analytics.methods[e];
       analytics[key] = analytics.factory(key);
     }
-    analytics.load = (key: string, e: Event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    analytics.load = (key: string, options: any) => {
       const t = document.createElement('script');
       t.type = 'text/javascript';
       t.async = true;
@@ -84,11 +85,19 @@ export const initSegment = async (props: {
       if (n.parentNode) {
         n.parentNode.insertBefore(t, n);
       }
-      analytics._loadOptions = e;
+      analytics._loadOptions = options;
     };
     analytics.SNIPPET_VERSION = '4.13.1';
     if (segmentKey && enabled) {
-      analytics.load(segmentKey);
+      analytics.load(segmentKey, {
+        cdnURL: 'console.redhat.com/connections/cdn',
+        integrations: {
+          'Segment.io': {
+            apiHost: 'console.redhat.com/connections/api/v1',
+            protocol: 'https',
+          },
+        },
+      });
     }
     const anonymousIDBuffer = await crypto.subtle.digest(
       'SHA-1',
