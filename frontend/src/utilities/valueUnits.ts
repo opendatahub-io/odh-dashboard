@@ -31,11 +31,11 @@ export const splitValueUnit = (
   options: UnitOption[],
 ): [value: number, unit: UnitOption] => {
   const match = value.match(/^(\d*\.?\d*)(.*)$/);
-  if (!match) {
+  if (!(match && match[1])) {
     // Unable to match a legit value -- default back to base
     return [1, options[0]];
   }
-  const newValue = Number(match[1]) || 1; // avoid NaN
+  const newValue = Number(match[1]);
   const foundUnit = options.find((o) => o.unit === match[2]);
   const newUnit = foundUnit || options[0]; // escape hatch -- unsure what the unit can be
   return [newValue, newUnit];

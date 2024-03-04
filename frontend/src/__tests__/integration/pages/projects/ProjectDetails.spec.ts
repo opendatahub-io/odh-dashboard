@@ -8,7 +8,7 @@ test('Empty project', async ({ page }) => {
   await page.waitForSelector('text=Models and model servers');
 
   // all empty sections should be divided
-  const sectionsLocator = page.locator('[data-id="details-page-section"]');
+  const sectionsLocator = page.locator('[data-testid="details-page-section"]');
   const sections = await sectionsLocator.all();
   const dividers = await page.locator('.odh-details-section--divide').all();
 

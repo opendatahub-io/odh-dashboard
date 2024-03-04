@@ -133,7 +133,10 @@ export const NotebookImageDisplayName = ({
       <Flex>
         <FlexItem>
           <HelperText>
-            <HelperTextItem variant={notebookImage.imageDisplayName ? 'default' : 'indeterminate'}>
+            <HelperTextItem
+              data-testid="image-display-name"
+              variant={notebookImage.imageDisplayName ? 'default' : 'indeterminate'}
+            >
               {notebookImage.imageDisplayName || 'unknown'}
             </HelperTextItem>
           </HelperText>
@@ -144,7 +147,12 @@ export const NotebookImageDisplayName = ({
             headerContent={<Alert variant={variant} isInline isPlain title={title} />}
             bodyContent={body}
           >
-            <Label isCompact color={getNotebookImageLabelColor()} icon={getNotebookImageIcon()}>
+            <Label
+              data-testid="notebook-image-availability"
+              isCompact
+              color={getNotebookImageLabelColor()}
+              icon={getNotebookImageIcon()}
+            >
               {notebookImage.imageAvailability}
             </Label>
           </Popover>

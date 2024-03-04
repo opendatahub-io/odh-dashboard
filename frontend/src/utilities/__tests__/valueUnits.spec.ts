@@ -1,9 +1,96 @@
 import {
+  UnitOption,
+  splitValueUnit,
   isCpuLimitEqual,
   isMemoryLimitEqual,
   isCpuLimitLarger,
   isMemoryLimitLarger,
+  isLarger,
 } from '~/utilities/valueUnits';
+
+describe('splitValueUnit', () => {
+  const options: UnitOption[] = [
+    {
+      name: 'name',
+      unit: 'unit',
+      weight: 1,
+    },
+  ];
+  it('should default back to base if unable to match a legit value', () => {
+    expect(splitValueUnit('', options)).toEqual([1, options[0]]);
+  });
+  it('should return the value and unit', () => {
+    expect(splitValueUnit('1unit', options)).toEqual([1, options[0]]);
+    expect(splitValueUnit('1name', options)).toEqual([1, options[0]]);
+    expect(splitValueUnit('1', options)).toEqual([1, options[0]]);
+    expect(splitValueUnit('1.5unit', options)).toEqual([1.5, options[0]]);
+    expect(splitValueUnit('1.5name', options)).toEqual([1.5, options[0]]);
+    expect(splitValueUnit('1.5', options)).toEqual([1.5, options[0]]);
+  });
+});
+
+describe('isLarger', () => {
+  const unit: UnitOption[] = [
+    {
+      name: 'name',
+      unit: 'lg',
+      weight: 100,
+    },
+    {
+      name: 'name',
+      unit: 'sm',
+      weight: 1,
+    },
+  ];
+  it('should return true if when value1 is larger than value2', () => {
+    expect(isLarger('1000lg', '10sm', unit)).toBe(true);
+  });
+  it('should return false if when value1 is smaller than value2', () => {
+    expect(isLarger('10sm', '1000lg', unit)).toBe(false);
+  });
+  it('should return false if not equal, but of the same numeric value', () => {
+    expect(isLarger('10sm', '10lg', unit)).toBe(false);
+  });
+  it('should return false if when value1 is equal to value2', () => {
+    expect(isLarger('10sm', '10sm', unit)).toBe(false);
+  });
+  it('should return false if when value1 is undefined', () => {
+    expect(isLarger('', '10lg', unit)).toBe(false);
+  });
+  it('should return false if when value2 is undefined', () => {
+    expect(isLarger('10sm', '', unit)).toBe(false);
+  });
+  it('should return false if when value1 and value2 are undefined', () => {
+    expect(isLarger('', '', unit)).toBe(false);
+  });
+});
+
+describe('isCpuLimitLarger', () => {
+  it('should return false if both values are undefined', () => {
+    expect(isCpuLimitLarger(undefined, undefined)).toBe(false);
+  });
+  it('should return false if the first value is undefined', () => {
+    expect(isCpuLimitLarger(undefined, '1000m')).toBe(false);
+  });
+  it('should return false if the second value is undefined', () => {
+    expect(isCpuLimitLarger('1000m', undefined)).toBe(false);
+  });
+  it('should return false if the first value is not larger', () => {
+    expect(isCpuLimitLarger('1000m', '1000m')).toBe(false);
+  });
+  it('should return false if the first value is larger', () => {
+    expect(isCpuLimitLarger('1001m', '1000m')).toBe(false);
+  });
+  it('should return false if the first value is larger and the second value is a number', () => {
+    expect(isCpuLimitLarger('2', '1000m')).toBe(false);
+  });
+  it('should return false if the first value is larger and the second value is a number', () => {
+    expect(isCpuLimitLarger('2', '1000m')).toBe(false);
+  });
+  it('should return true if the first value is larger and the second value is a number', () => {
+    expect(isCpuLimitLarger('2', 1000)).toBe(true);
+  });
+});
 
 describe('isCpuLimitEqual', () => {
   test('correctly compares non-undefined values', () => {

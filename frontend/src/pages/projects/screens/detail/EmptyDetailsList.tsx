@@ -17,6 +17,7 @@ type EmptyDetailsListProps = {
 const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({ title, description, icon }) => (
   <EmptyState variant="xs">
     <EmptyStateHeader
+      data-testid="empty-state-title"
       titleText={title}
       icon={<EmptyStateIcon icon={icon ?? PlusCircleIcon} />}
       headingLevel="h3"
