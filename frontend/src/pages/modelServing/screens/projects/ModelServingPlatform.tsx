@@ -84,6 +84,7 @@ const ModelServingPlatform: React.FC = () => {
             : [
                 <ModelServingPlatformButtonAction
                   isProjectModelMesh={isProjectModelMesh}
+                  testId={`${isProjectModelMesh ? 'add-server' : 'add-deploy'}-button`}
                   emptyTemplates={emptyTemplates}
                   onClick={() => {
                     setPlatformSelected(

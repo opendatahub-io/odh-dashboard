@@ -12,13 +12,17 @@ class GlobalDistributedWorkloads {
     return appChrome.findNavItem('Workload Metrics');
   }
 
+  shouldNotFoundPage() {
+    return cy.findByTestId('not-found-page').should('exist');
+  }
+
   navigate() {
     this.findNavItem().click();
     this.wait();
   }
 
-  findHeaderText() {
-    return cy.findByText('Monitor the metrics of your active resources.');
+  shouldHavePageTitle() {
+    return cy.findByTestId('app-page-title').should('have.text', 'Workload Metrics');
   }
 
   findProjectSelect() {
@@ -30,7 +34,7 @@ class GlobalDistributedWorkloads {
   }
 
   private wait() {
-    this.findHeaderText();
+    this.shouldHavePageTitle();
     cy.testA11y();
   }
 }

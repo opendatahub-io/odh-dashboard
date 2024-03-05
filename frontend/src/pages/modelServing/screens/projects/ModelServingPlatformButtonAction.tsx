@@ -5,12 +5,14 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 type ModelServingPlatformButtonActionProps = {
   isProjectModelMesh: boolean;
   emptyTemplates: boolean;
+  testId?: string;
   onClick: () => void;
 };
 
 const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActionProps> = ({
   onClick,
   emptyTemplates,
+  testId,
   isProjectModelMesh,
 }) => {
   const {
@@ -22,7 +24,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
       isLoading={!templatesLoaded}
       isAriaDisabled={!templatesLoaded || emptyTemplates}
       onClick={onClick}
-      data-testid="model-serving-platform-button"
+      data-testid={testId}
       variant="secondary"
     >
       {isProjectModelMesh ? 'Add model server' : 'Deploy model'}

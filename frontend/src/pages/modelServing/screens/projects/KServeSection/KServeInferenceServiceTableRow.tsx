@@ -49,6 +49,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     <Tbody isExpanded={isExpanded}>
       <ResourceTr resource={obj}>
         <Td
+          data-testid="kserve-model-row-item"
           expand={{
             rowIndex,
             expandId: 'kserve-model-row-item',

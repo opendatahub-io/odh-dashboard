@@ -28,6 +28,7 @@ const InferenceServiceNameSection: React.FC<InferenceServiceNameSectionProps> = 
       <TextInput
         isRequired
         id="inference-service-name-input"
+        data-testid="inference-service-name-input"
         value={data.name}
         onChange={(e, name) => setData('name', name)}
         validated={validated}

@@ -75,7 +75,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.findNavItem().should('not.exist');
 
     globalDistributedWorkloads.visit(false);
-    cy.findByText('We can‘t find that page').should('exist');
+    globalDistributedWorkloads.shouldNotFoundPage();
   });
 
   it('Workload Metrics page does not exist if feature is disabled', () => {
@@ -88,7 +88,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.findNavItem().should('not.exist');
 
     globalDistributedWorkloads.visit(false);
-    cy.findByText('We can‘t find that page').should('exist');
+    globalDistributedWorkloads.shouldNotFoundPage();
   });
 
   it('Workload Metrics page exists if kueue is installed and feature is enabled', () => {
@@ -100,7 +100,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.findNavItem().should('exist');
 
     globalDistributedWorkloads.visit();
-    globalDistributedWorkloads.findHeaderText().should('exist');
+    globalDistributedWorkloads.shouldHavePageTitle();
   });
 
   it('Defaults to Project Metrics tab and automatically selects a project', () => {

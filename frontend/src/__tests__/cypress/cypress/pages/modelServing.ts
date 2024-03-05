@@ -2,6 +2,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
+import { Contextual } from './components/Contextual';
 
 class ModelServingGlobal {
   visit(project?: string) {
@@ -15,45 +16,43 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByText('Manage and view the health and performance of your deployed models.');
+    cy.findByTestId('app-page-title').should('have.text', 'Deployed models');
     cy.testA11y();
   }
 
   shouldBeEmpty() {
-    cy.findByText(/No deployed models/);
+    cy.findByTestId('empty-state-title').should('exist');
     return this;
   }
 
   shouldWaitAndCancel() {
-    cy.findAllByText(
-      'Retrieving model data from all projects in the cluster. This can take a few minutes.',
-    );
+    cy.findAllByTestId('loading-empty-state');
     this.findCancelButton().click();
   }
 
-  findCancelButton() {
-    return cy.findByRole('button', { name: 'Cancel' });
+  private findCancelButton() {
+    return cy.findByTestId('empty-state-cancel-button');
   }
 
   findDeployModelButton() {
-    return cy.findByRole('button', { name: 'Deploy model' });
+    return cy.findByTestId('deploy-button');
   }
 
   findNoProjectSelectedTooltip() {
-    return cy.findByRole('tooltip', { name: 'To deploy a model, select a project.' });
+    return cy.findByTestId('deploy-model-tooltip');
   }
 
   findGoToProjectButton() {
-    return cy.findByRole('button', { name: /^Go to / });
+    return cy.findByTestId('empty-state-action-button');
   }
 
-  findModelsTable() {
+  private findModelsTable() {
     // TODO be more precise
-    return cy.findByRole('grid');
+    return cy.findByTestId('inference-service-table');
   }
 
-  findModelRow(name: string) {
-    return this.findModelsTable().findByRole('cell', { name }).parents('tr');
+  getModelRow(name: string) {
+    return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
 }
 
@@ -63,27 +62,27 @@ class InferenceServiceModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: 'Deploy' });
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
   findModelNameInput() {
-    return cy.findByLabelText('Model name *');
+    return this.find().findByTestId('inference-service-name-input');
   }
 
   findServingRuntimeSelect() {
-    return this.find().get('#inference-service-model-selection');
+    return this.find().find('#inference-service-model-selection');
   }
 
   findModelFrameworkSelect() {
-    return this.find().get('#inference-service-framework-selection');
+    return this.find().find('#inference-service-framework-selection');
   }
 
   findExistingDataConnectionOption() {
-    return this.find().findByText('Existing data connection');
+    return this.find().findByTestId('existing-data-connection-radio');
   }
 
   findNewDataConnectionOption() {
-    return this.find().findByText('New data connection');
+    return this.find().findByTestId('new-data-connection-radio');
   }
 
   findExistingConnectionSelect() {
@@ -93,27 +92,27 @@ class InferenceServiceModal extends Modal {
   }
 
   findLocationNameInput() {
-    return this.find().findByRole('textbox', { name: 'Field list Name' });
+    return this.find().findByTestId('field Name');
   }
 
   findLocationAccessKeyInput() {
-    return this.find().findByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' });
+    return this.find().findByTestId('field AWS_ACCESS_KEY_ID');
   }
 
   findLocationSecretKeyInput() {
-    return this.find().findByLabelText('Field list AWS_SECRET_ACCESS_KEY');
+    return this.find().findByTestId('field AWS_SECRET_ACCESS_KEY');
   }
 
   findLocationEndpointInput() {
-    return this.find().findByLabelText('Field list AWS_S3_ENDPOINT');
+    return this.find().findByTestId('field AWS_S3_ENDPOINT');
   }
 
   findLocationBucketInput() {
-    return this.find().findByRole('textbox', { name: 'Field list AWS_S3_BUCKET' });
+    return this.find().findByTestId('field AWS_S3_BUCKET');
   }
 
   findLocationPathInput() {
-    return this.find().findByLabelText('folder-path');
+    return this.find().findByTestId('folder-path');
   }
 
   findLocationPathInputError() {
@@ -127,31 +126,31 @@ class ServingRuntimeModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: this.edit ? 'Update' : 'Add' });
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
   findModelServerNameInput() {
-    return this.find().findByLabelText('Model server name *');
+    return this.find().findByTestId('serving-runtime-name-input');
   }
 
   findServingRuntimeTemplateDropdown() {
-    return this.find().get('#serving-runtime-template-selection');
+    return this.find().find('#serving-runtime-template-selection');
   }
 
   findModelRouteCheckbox() {
-    return this.find().get('#alt-form-checkbox-route');
+    return this.find().findByTestId('alt-form-checkbox-route');
   }
 
   findAuthenticationCheckbox() {
-    return this.find().get('#alt-form-checkbox-auth');
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findExternalRouteError() {
-    return this.find().get('#external-route-no-token-alert');
+    return this.find().findByTestId('external-route-no-token-alert');
   }
 
   findServiceAccountNameInput() {
-    return this.find().get('#service-account-form-name');
+    return this.find().findByTestId('service-account-form-name');
   }
 
   findModelServerSizeSelect() {
@@ -162,14 +161,12 @@ class ServingRuntimeModal extends Modal {
 
   findModelServerReplicasMinusButton() {
     return this.find()
-      .findByRole('group', { name: 'Model server replicas' })
+      .findByTestId('model-server-replicas')
       .findByRole('button', { name: 'Minus' });
   }
 
   findModelServerReplicasPlusButton() {
-    return this.find()
-      .findByRole('group', { name: 'Model server replicas' })
-      .findByRole('button', { name: 'Plus' });
+    return this.find().findByTestId('model-server-replicas').findByRole('button', { name: 'Plus' });
   }
 }
 
@@ -182,14 +179,14 @@ mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
 class ModelServingRow extends TableRow {
   shouldHaveServingRuntime(servingRuntime: string) {
-    this.find().find('[data-label="Serving Runtime"]').findByText(servingRuntime);
+    this.find().find('[data-label="Serving Runtime"]').contains(servingRuntime);
     return this;
   }
 
   shouldHaveTokens(enabled: boolean) {
     this.find()
       .find('[data-label="Tokens"]')
-      .findByText('Tokens disabled')
+      .contains('Tokens disabled')
       .should(enabled ? 'not.exist' : 'exist');
     return this;
   }
@@ -201,7 +198,7 @@ class ModelMeshRow extends ModelServingRow {
   }
 
   findDeployModelButton() {
-    return this.find().findByRole('button', { name: 'Deploy model' });
+    return this.find().findByTestId('deploy-model-button');
   }
 
   findExpansion() {
@@ -215,62 +212,17 @@ class ModelMeshRow extends ModelServingRow {
 
 class KServeRow extends ModelMeshRow {
   findToggleButton() {
-    return this.find().find('button').first();
+    return this.find().findByTestId('kserve-model-row-item').find('button');
+  }
+
+  findDescriptionListItem(itemName: string) {
+    return this.find().next('tr').find(`dt:contains("${itemName}")`);
   }
 }
 
-class ModelServingSection {
-  find() {
-    return cy.get('#model-server');
-  }
-
-  findDeployModelButton() {
-    return this.find().findByRole('button', { name: 'Deploy model' });
-  }
-
-  findAddModelServerButton() {
-    return this.find().findByRole('button', { name: 'Add model server' });
-  }
-
-  private findTable() {
-    // TODO be more precise
-    return this.find().findByRole('grid');
-  }
-
-  getKServeRow(name: string) {
-    return new KServeRow(() =>
-      this.findTable().find('[data-label=Name]').contains(name).parents('tr'),
-    );
-  }
-
-  getModelMeshRow(name: string) {
-    return new ModelMeshRow(() =>
-      this.findTable().find('[data-label="Model Server Name"]').contains(name).parents('tr'),
-    );
-  }
-
-  private findRow(rowName: string) {
-    return this.findTable().contains('tr', rowName);
-  }
-
-  findDescriptionListItem(rowName: string, itemName: string) {
-    return this.findRow(rowName).next('tr').find(`dt:contains("${itemName}")`);
-  }
-
-  findInferenceServiceTable() {
-    return cy.findByTestId('inference-service-table');
-  }
-
-  findInferenceServiceRowStatus(name: string) {
-    return this.findInferenceServiceTable()
-      .contains('tr', name)
-      .within(() => {
-        cy.get('td[data-label="Status"]');
-      });
-  }
-
-  findStatusTooltip(name: string) {
-    return this.findInferenceServiceRowStatus(name)
+class InferenceServiceRow extends TableRow {
+  findStatusTooltip() {
+    return this.find()
       .findByTestId('status-tooltip')
       .trigger('mouseenter')
       .then(() => {
@@ -278,19 +230,80 @@ class ModelServingSection {
       });
   }
 
-  findStatusTooltipValue(name: string, msg: string) {
-    this.findStatusTooltip(name)
+  findStatusTooltipValue(msg: string) {
+    this.findStatusTooltip()
       .invoke('text')
       .should('contain', msg)
       .then(() => {
-        this.findStatusTooltip(name).trigger('mouseleave');
+        this.findStatusTooltip().trigger('mouseleave');
       });
   }
 
-  findAPIProtocol(name: string) {
-    return this.findInferenceServiceTable()
-      .contains('tr', name)
-      .find('td[data-label="API protocol"]');
+  findAPIProtocol() {
+    return this.find().find(`[data-label="API protocol"]`);
+  }
+}
+class ServingPlatformCard extends Contextual<HTMLElement> {
+  findDeployModelButton() {
+    return this.find().findByTestId('single-serving-deploy-button');
+  }
+
+  findAddModelServerButton() {
+    return this.find().findByTestId('multi-serving-add-server-button');
+  }
+}
+class ModelServingSection {
+  find() {
+    return cy.findByTestId('section-model-server');
+  }
+
+  getServingPlatformCard(name: string) {
+    return new ServingPlatformCard(() => cy.findAllByTestId(`${name}-platform-card`));
+  }
+
+  private findKServeTable() {
+    return this.find().findByTestId('kserve-inference-service-table');
+  }
+
+  private findModelMeshTable() {
+    return this.find().findByTestId('serving-runtime-table');
+  }
+
+  getKServeRow(name: string) {
+    return new KServeRow(() =>
+      this.findKServeTable().find('[data-label=Name]').contains(name).parents('tr'),
+    );
+  }
+
+  findDeployModelButton() {
+    return this.find().findByTestId('add-deploy-button');
+  }
+
+  findAddModelServerButton() {
+    return this.find().findByTestId('add-server-button');
+  }
+
+  getModelMeshRow(name: string) {
+    return new ModelMeshRow(() =>
+      this.findModelMeshTable()
+        .find('[data-label="Model Server Name"]')
+        .contains(name)
+        .parents('tr'),
+    );
+  }
+
+  findInferenceServiceTable() {
+    return cy.findByTestId('inference-service-table');
+  }
+
+  getInferenceServiceRow(name: string) {
+    return new InferenceServiceRow(() =>
+      this.findInferenceServiceTable()
+        .find('tbody')
+        .find('[data-label="Name"]')
+        .contains(name)
+        .closest('tr'),
+    );
   }
 }
 

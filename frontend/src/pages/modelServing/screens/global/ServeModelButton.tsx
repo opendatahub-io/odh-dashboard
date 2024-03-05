@@ -47,6 +47,7 @@ const ServeModelButton: React.FC = () => {
 
   const deployButton = (
     <Button
+      data-testid="deploy-button"
       variant="primary"
       onClick={() =>
         project &&
@@ -63,7 +64,9 @@ const ServeModelButton: React.FC = () => {
   return (
     <>
       {!project ? (
-        <Tooltip content="To deploy a model, select a project.">{deployButton}</Tooltip>
+        <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
+          {deployButton}
+        </Tooltip>
       ) : (
         deployButton
       )}

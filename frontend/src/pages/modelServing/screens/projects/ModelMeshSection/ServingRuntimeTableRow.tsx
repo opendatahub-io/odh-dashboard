@@ -148,6 +148,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td style={{ textAlign: 'end' }}>
           <Button
+            data-testid="deploy-model-button"
             onClick={() => onDeployModel(obj)}
             key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
             variant="secondary"

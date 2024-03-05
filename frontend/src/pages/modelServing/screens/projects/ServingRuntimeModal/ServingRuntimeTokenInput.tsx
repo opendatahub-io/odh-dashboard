@@ -58,6 +58,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             isRequired
             type="text"
             id="service-account-form-name"
+            data-testid="service-account-form-name"
             name="service-account-form-name"
             aria-describedby="service-account-form-name-helper"
             validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}

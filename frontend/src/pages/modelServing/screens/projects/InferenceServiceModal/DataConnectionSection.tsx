@@ -43,6 +43,7 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
             className="checkbox-radio-fix-body-width"
             name="existing-data-connection-radio"
             id="existing-data-connection-radio"
+            data-testid="existing-data-connection-radio"
             label="Existing data connection"
             isChecked={data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE}
             onChange={() =>
@@ -70,6 +71,7 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
             className="checkbox-radio-fix-body-width"
             name="new-data-connection-radio"
             id="new-data-connection-radio"
+            data-testid="new-data-connection-radio"
             label="New data connection"
             isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
             onChange={() =>

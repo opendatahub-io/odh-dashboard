@@ -40,6 +40,7 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
               id="single-serving-platform-card"
               action={
                 <ModelServingPlatformButtonAction
+                  testId="single-serving-deploy-button"
                   emptyTemplates={emptyTemplates}
                   onClick={() => onSelect(ServingRuntimePlatform.SINGLE)}
                   isProjectModelMesh={false}
@@ -54,6 +55,7 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
               id="multi-serving-platform-card"
               action={
                 <ModelServingPlatformButtonAction
+                  testId="multi-serving-add-server-button"
                   emptyTemplates={emptyTemplates}
                   onClick={() => onSelect(ServingRuntimePlatform.MULTI)}
                   isProjectModelMesh

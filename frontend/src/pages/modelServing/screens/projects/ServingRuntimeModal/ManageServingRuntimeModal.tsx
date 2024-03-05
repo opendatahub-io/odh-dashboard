@@ -229,6 +229,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 <Checkbox
                   label="Make deployed models available through an external route"
                   id="alt-form-checkbox-route"
+                  data-testid="alt-form-checkbox-route"
                   name="alt-form-checkbox-route"
                   isChecked={createData.externalRoute}
                   isDisabled={!allowCreate}
@@ -257,6 +258,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             <StackItem>
               <Alert
                 id="external-route-no-token-alert"
+                data-testid="external-route-no-token-alert"
                 variant="warning"
                 isInline
                 title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."

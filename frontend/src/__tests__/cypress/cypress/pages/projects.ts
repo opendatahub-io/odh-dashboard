@@ -98,11 +98,11 @@ class ProjectDetails {
   }
 
   findSingleModelDeployButton() {
-    return this.findModelServingPlatform('single').findByTestId('model-serving-platform-button');
+    return this.findModelServingPlatform('single').findByTestId('single-serving-deploy-button');
   }
 
   findMultiModelButton() {
-    return this.findModelServingPlatform('multi').findByTestId('model-serving-platform-button');
+    return this.findModelServingPlatform('multi').findByTestId('multi-serving-add-server-button');
   }
 
   findDeployModelTooltip() {
