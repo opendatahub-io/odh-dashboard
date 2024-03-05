@@ -64,7 +64,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
 
   const submit = () => {
     const objectStorage: PipelineServerConfigType['objectStorage'] = {
-      newValue: config.objectStorage.newValue,
+      newValue: config.objectStorage.newValue.map((entry) => ({
+        ...entry,
+        value: entry.value.trim(),
+      })),
     };
     setFetching(true);
     setError(null);
