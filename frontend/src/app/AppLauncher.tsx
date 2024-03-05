@@ -127,31 +127,35 @@ const AppLauncher: React.FC = () => {
     return null;
   }
 
+  const renderApplicationLauncherGroup = (section: Section, sectionIndex: number) => {
+    const appItems = section.actions.map((action) => (
+      <ApplicationLauncherItem
+        key={action.label}
+        href={action.href}
+        isExternal
+        icon={action.image}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        {action.label}
+      </ApplicationLauncherItem>
+    ));
+    if (sectionIndex < applicationSections.length - 1) {
+      appItems.push(<ApplicationLauncherSeparator key={`separator-${sectionIndex}`} />);
+    }
+    return (
+      <ApplicationLauncherGroup key={section.label} label={section.label}>
+        {appItems}
+      </ApplicationLauncherGroup>
+    );
+  };
   return (
     <ApplicationLauncher
       aria-label="Application launcher"
       onSelect={onSelect}
       onToggle={onToggle}
       isOpen={isOpen}
-      items={applicationSections.map((section, sectionIndex) => (
-        <ApplicationLauncherGroup key={section.label} label={section.label}>
-          {section.actions.map((action) => (
-            <ApplicationLauncherItem
-              key={action.label}
-              href={action.href}
-              isExternal
-              icon={action.image}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {action.label}
-            </ApplicationLauncherItem>
-          ))}
-          {sectionIndex < applicationSections.length - 1 && (
-            <ApplicationLauncherSeparator key={`separator-${sectionIndex}`} />
-          )}
-        </ApplicationLauncherGroup>
-      ))}
+      items={applicationSections.map(renderApplicationLauncherGroup)}
       position="right"
       isGrouped
     />
