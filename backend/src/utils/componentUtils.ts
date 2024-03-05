@@ -172,7 +172,7 @@ const getCSVForApp = (
   }
 
   const subsStatus = getSubscriptions();
-  const subStatus = subsStatus.find((st) => st.installedCSV.startsWith(app.spec.csvName));
+  const subStatus = subsStatus.find((st) => st.installedCSV?.startsWith(app.spec.csvName));
 
   if (!subStatus) {
     return Promise.resolve(undefined);

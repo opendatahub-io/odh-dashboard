@@ -1,7 +1,7 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 
 export const getTemplateEnabled = (
   template: TemplateKind,
@@ -89,7 +89,20 @@ export const getServingRuntimeFromTemplate = (
   } catch (e) {
     return undefined;
   }
-  return template.objects[0];
+
+  // Add apiProtocol annotation if exists in template
+  const apiProtocolAttribute = 'opendatahub.io/apiProtocol';
+  const servingRuntimeObj = { ...template.objects[0] };
+  const metadata = { ...template.objects[0].metadata };
+
+  if (metadata.annotations && template.metadata.annotations?.[apiProtocolAttribute]) {
+    metadata.annotations[apiProtocolAttribute] =
+      template.metadata.annotations[apiProtocolAttribute];
+  }
+
+  servingRuntimeObj.metadata = metadata;
+
+  return servingRuntimeObj;
 };
 
 export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string => {
@@ -121,4 +134,23 @@ export const getEnabledPlatformsFromTemplate = (
   } catch (e) {
     return [ServingRuntimePlatform.MULTI];
   }
+};
+
+export const getAPIProtocolFromTemplate = (
+  template: TemplateKind,
+): ServingRuntimeAPIProtocol | undefined => {
+  if (!template.metadata.annotations?.['opendatahub.io/apiProtocol']) {
+    return undefined;
+  }
+
+  return template.metadata.annotations['opendatahub.io/apiProtocol'] as ServingRuntimeAPIProtocol;
+};
+
+export const getAPIProtocolFromServingRuntime = (
+  resource: ServingRuntimeKind,
+): ServingRuntimeAPIProtocol | undefined => {
+  if (!resource.metadata.annotations?.['opendatahub.io/apiProtocol']) {
+    return undefined;
+  }
+  return resource.metadata.annotations['opendatahub.io/apiProtocol'] as ServingRuntimeAPIProtocol;
 };

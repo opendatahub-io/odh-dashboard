@@ -112,7 +112,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading scheduled run' : job?.name}
+                  title={job?.name}
                   description={
                     job ? <MarkdownView conciseDisplay markdown={job.description} /> : ''
                   }
@@ -121,14 +121,11 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
-                      <BreadcrumbItem isActive>
-                        {error ? 'Scheduled run details' : job?.name ?? 'Loading...'}
-                      </BreadcrumbItem>
+                      <BreadcrumbItem isActive>{job?.name ?? 'Loading...'}</BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
-                    loaded &&
-                    !error && (
+                    loaded && (
                       <PipelineRunJobDetailsActions
                         job={job ?? undefined}
                         onDelete={() => setDeleting(true)}

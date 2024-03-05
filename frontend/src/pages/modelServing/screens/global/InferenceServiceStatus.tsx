@@ -29,18 +29,32 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
     ? 'FailedToLoad'
     : getInferenceServiceActiveModelState(inferenceService);
 
-  const StatusIcon = () => {
+  const statusIcon = () => {
     switch (state) {
       case InferenceServiceModelState.LOADED:
       case InferenceServiceModelState.STANDBY:
         return (
-          <Icon role="button" aria-label="success icon" status="success" isInline tabIndex={0}>
+          <Icon
+            data-testid="status-tooltip"
+            role="button"
+            aria-label="success icon"
+            status="success"
+            isInline
+            tabIndex={0}
+          >
             <CheckCircleIcon />
           </Icon>
         );
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return (
-          <Icon role="button" aria-label="error icon" status="danger" isInline tabIndex={0}>
+          <Icon
+            data-testid="status-tooltip"
+            role="button"
+            aria-label="error icon"
+            status="danger"
+            isInline
+            tabIndex={0}
+          >
             <ExclamationCircleIcon />
           </Icon>
         );
@@ -53,13 +67,27 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         );
       case InferenceServiceModelState.UNKNOWN:
         return (
-          <Icon role="button" aria-label="warning icon" status="warning" isInline tabIndex={0}>
+          <Icon
+            data-testid="status-tooltip"
+            role="button"
+            aria-label="warning icon"
+            status="warning"
+            isInline
+            tabIndex={0}
+          >
             <OutlinedQuestionCircleIcon />
           </Icon>
         );
       default:
         return (
-          <Icon role="button" aria-label="warning icon" status="warning" isInline tabIndex={0}>
+          <Icon
+            data-testid="status-tooltip"
+            role="button"
+            aria-label="warning icon"
+            status="warning"
+            isInline
+            tabIndex={0}
+          >
             <OutlinedQuestionCircleIcon />
           </Icon>
         );
@@ -69,6 +97,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   return (
     <Tooltip
       role="none"
+      data-testid="model-status-tooltip"
       content={
         modelStatus?.failedToSchedule ? (
           <Text>Insufficient resources</Text>
@@ -77,7 +106,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         )
       }
     >
-      {StatusIcon()}
+      {statusIcon()}
     </Tooltip>
   );
 };

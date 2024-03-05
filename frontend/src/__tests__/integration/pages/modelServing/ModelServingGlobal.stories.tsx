@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 import React from 'react';
 
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
@@ -172,7 +173,7 @@ const Template: (props: TemplateProps) => StoryFn<typeof ModelServingGlobal> = (
     useDetectUser();
     const { dashboardConfig, loaded } = useApplicationSettings();
     return loaded && dashboardConfig ? (
-      <AppContext.Provider value={{ buildStatuses: [], dashboardConfig }}>
+      <AppContext.Provider value={{ buildStatuses: [], dashboardConfig, storageClasses: [] }}>
         <AreaContext.Provider
           value={{
             dscStatus: mockDscStatus({

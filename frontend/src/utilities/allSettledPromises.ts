@@ -3,6 +3,8 @@ type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { r
 export const allSettledPromises = <T, E = undefined>(
   data: Promise<T>[],
 ): Promise<[PromiseFulfilledResult<T>[], TypedPromiseRejectedResult<E>[]]> =>
+  //Use of `Promise.allSettled` is justified as this utility is a wrapper with type improvements.
+  // eslint-disable-next-line no-restricted-properties
   Promise.allSettled(data).then(
     (
       promiseStates: PromiseSettledResult<T>[],

@@ -45,13 +45,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const isInferenceServiceNameWithinLimit =
     translateDisplayNameForK8s(createData.name).length <= 253;
 
+  const currentProjectName = projectContext?.currentProject.metadata.name || '';
+  const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
+
   React.useEffect(() => {
-    if (projectContext) {
-      const { currentProject, currentServingRuntime } = projectContext;
-      setCreateData('project', currentProject.metadata.name);
-      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name || '');
-    }
-  }, [projectContext, setCreateData]);
+    setCreateData('project', currentProjectName);
+    setCreateData('servingRuntimeName', currentServingRuntimeName);
+  }, [setCreateData, currentProjectName, currentServingRuntimeName]);
 
   const storageCanCreate = (): boolean => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
@@ -65,6 +65,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.name.trim() === '' ||
     createData.project === '' ||
     createData.format.name === '' ||
+    createData.servingRuntimeName === '' ||
     removeLeadingSlashes(createData.storage.path).includes('//') ||
     containsOnlySlashes(createData.storage.path) ||
     createData.storage.path === '' ||

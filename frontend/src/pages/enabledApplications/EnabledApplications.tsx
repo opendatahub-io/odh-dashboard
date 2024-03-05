@@ -48,7 +48,9 @@ const EnabledApplications: React.FC = () => {
 
   const sortedComponents = React.useMemo(
     () =>
-      _.cloneDeep(components).sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
+      _.cloneDeep(components)
+        .filter((component) => !component.spec.hidden)
+        .sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
     [components],
   );
 

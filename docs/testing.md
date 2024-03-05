@@ -124,9 +124,11 @@ Hook specific assertions:
 
 Cypress is used to run tests against the frontend while mocking all network requests.
 
-Single command to run Cypress tests:
+Single command to run all Cypress tests or a specific test (build frontend, start HTTP server, run Cypress):
 ```bash
 npm run test:cypress-ci
+
+npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 ```
 
 Cypress tests require a frontend server to be running.
@@ -144,13 +146,15 @@ npm run cypress:server
 ```
 
 There are two commands to run Cypress mock tests (always use the `:mock` variants).
-- `open`: Opens the Cypress GUI
+- `open`: Open the Cypress GUI
   ```bash
   npm run cypress:open:mock
   ```
-- `run`: Runs Cypress tests headless
+- `run`: Run all Cypress tests or a specific test headless
   ```bash
   npm run cypress:run:mock
+
+  npm run cypress:run:mock -- --spec "**/testfile.cy.ts"
   ```
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:

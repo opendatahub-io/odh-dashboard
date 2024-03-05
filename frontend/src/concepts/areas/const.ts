@@ -58,4 +58,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.BIAS_METRICS],
   },
+  [SupportedArea.DISTRIBUTED_WORKLOADS]: {
+    featureFlags: ['disableDistributedWorkloads'],
+    requiredComponents: [StackComponent.KUEUE],
+  },
 };

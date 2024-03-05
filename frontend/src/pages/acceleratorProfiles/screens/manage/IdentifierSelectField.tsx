@@ -35,6 +35,7 @@ export const IdentifierSelectField: React.FC<IdentifierSelectFieldProps> = ({
         shouldFocusToggleOnSelect
         toggle={(toggleRef) => (
           <MenuToggle
+            data-testid="accelerator-button"
             isFullWidth
             ref={toggleRef}
             onClick={() => setIsOpen(!isOpen)}

@@ -30,13 +30,14 @@ import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnv
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
+  storageClassName?: string,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const { storageType } = storageData;
 
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
 
   if (storageType === StorageType.NEW_PVC) {
-    const pvc = await createPvc(storageData.creating, projectName);
+    const pvc = await createPvc(storageData.creating, projectName, storageClassName);
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
     volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
@@ -48,6 +49,7 @@ export const replaceRootVolumesForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   storageData: StorageData,
+  storageClassName?: string,
   dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {
@@ -68,7 +70,7 @@ export const replaceRootVolumesForNotebook = async (
     };
     replacedVolumeMount = { name: existingName, mountPath: ROOT_MOUNT_PATH };
   } else {
-    const pvc = await createPvc(storageData.creating, projectName, { dryRun });
+    const pvc = await createPvc(storageData.creating, projectName, storageClassName, { dryRun });
     const newPvcName = pvc.metadata.name;
     replacedVolume = { name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } };
     replacedVolumeMount = { mountPath: ROOT_MOUNT_PATH, name: newPvcName };

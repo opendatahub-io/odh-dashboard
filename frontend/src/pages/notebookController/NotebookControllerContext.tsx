@@ -29,7 +29,10 @@ type NotebookControllerContextProviderProps = {
 export const NotebookControllerContextProvider: React.FC<
   NotebookControllerContextProviderProps
 > = ({ children }) => {
-  const [notebookState, setNotebookState] = React.useState<NotebookContextStorage>({
+  const [
+    { current, currentIsRunning, currentPodUID, requestRefresh, currentLink },
+    setNotebookState,
+  ] = React.useState<NotebookContextStorage>({
     current: undefined,
     currentIsRunning: false,
     currentPodUID: '',
@@ -40,25 +43,34 @@ export const NotebookControllerContextProvider: React.FC<
   const [impersonatedUsername, setImpersonating] = useImpersonationForContext(setNotebookState);
   const [currentTab, setCurrentAdminTab] = useAdminTabState();
 
+  const contextValue = React.useMemo(
+    () => ({
+      impersonatedUsername,
+      setImpersonating,
+      currentTab,
+      setCurrentAdminTab,
+      requestNotebookRefresh: requestRefresh,
+      // Don't return undefined -- that's for the loading
+      currentUserNotebook: current ?? null,
+      currentUserNotebookIsRunning: currentIsRunning,
+      currentUserNotebookPodUID: currentPodUID,
+      currentUserNotebookLink: currentLink,
+    }),
+    [
+      impersonatedUsername,
+      setImpersonating,
+      currentTab,
+      setCurrentAdminTab,
+      current,
+      currentIsRunning,
+      currentPodUID,
+      requestRefresh,
+      currentLink,
+    ],
+  );
   return (
-    <NotebookControllerContext.Provider
-      value={{
-        impersonatedUsername,
-        setImpersonating,
-        currentTab,
-        setCurrentAdminTab,
-        requestNotebookRefresh: notebookState.requestRefresh,
-        // Don't return undefined -- that's for the loading
-        currentUserNotebook: notebookState.current ?? null,
-        currentUserNotebookIsRunning: notebookState.currentIsRunning,
-        currentUserNotebookPodUID: notebookState.currentPodUID,
-        currentUserNotebookLink: notebookState.currentLink,
-      }}
-    >
-      <SetupCurrentNotebook
-        currentNotebook={notebookState.current}
-        setNotebookState={setNotebookState}
-      >
+    <NotebookControllerContext.Provider value={contextValue}>
+      <SetupCurrentNotebook currentNotebook={current} setNotebookState={setNotebookState}>
         {children}
       </SetupCurrentNotebook>
     </NotebookControllerContext.Provider>

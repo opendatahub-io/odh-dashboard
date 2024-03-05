@@ -1,4 +1,5 @@
 import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
+import { ServingRuntimeAPIProtocol } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -8,6 +9,7 @@ type MockResourceConfigType = {
   auth?: boolean;
   route?: boolean;
   acceleratorName?: string;
+  apiProtocol?: ServingRuntimeAPIProtocol;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -92,6 +94,7 @@ export const mockServingRuntimeK8sResource = ({
   route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
+  apiProtocol = ServingRuntimeAPIProtocol.REST,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -108,6 +111,7 @@ export const mockServingRuntimeK8sResource = ({
       'enable-auth': auth ? 'true' : 'false',
       'enable-route': route ? 'true' : 'false',
       'openshift.io/display-name': displayName,
+      'opendatahub.io/apiProtocol': apiProtocol,
     },
     name,
     namespace,

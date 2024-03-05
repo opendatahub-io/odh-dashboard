@@ -18,7 +18,7 @@ const EmptyBiasChartSelectionCard = (): ReactElement => (
     <CardBody>
       <EmptyState>
         <EmptyStateHeader
-          titleText={<>{EMPTY_BIAS_CHART_SELECTION_TITLE}</>}
+          titleText={EMPTY_BIAS_CHART_SELECTION_TITLE}
           icon={<EmptyStateIcon icon={SearchIcon} />}
           headingLevel="h2"
         />

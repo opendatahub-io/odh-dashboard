@@ -15,34 +15,24 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ resource, i
   const jobReference = getJobResourceRef(resource);
   const pipelineVersionRef = getPipelineVersionResourceRef(resource);
 
-  return (
-    <>
-      {jobReference ? (
-        <>
-          <Tooltip content="Created by a scheduled run">
-            <Label color="blue" isCompact={isCompact}>
-              {PipelineRunLabels.RECURRING}
-            </Label>
-          </Tooltip>
-        </>
-      ) : !pipelineVersionRef ? (
-        <>
-          <Tooltip content={<div>Created by a scheduled run that was deleted</div>}>
-            <Label color="blue" isCompact={isCompact}>
-              {PipelineRunLabels.RECURRING}
-            </Label>
-          </Tooltip>
-        </>
-      ) : (
-        <>
-          <Tooltip content={<div>Run once immediately after creation</div>}>
-            <Label color="blue" isCompact={isCompact}>
-              {PipelineRunLabels.ONEOFF}
-            </Label>
-          </Tooltip>
-        </>
-      )}
-    </>
+  return jobReference ? (
+    <Tooltip content="Created by a scheduled run">
+      <Label color="blue" isCompact={isCompact}>
+        {PipelineRunLabels.RECURRING}
+      </Label>
+    </Tooltip>
+  ) : !pipelineVersionRef ? (
+    <Tooltip content={<div>Created by a scheduled run that was deleted</div>}>
+      <Label color="blue" isCompact={isCompact}>
+        {PipelineRunLabels.RECURRING}
+      </Label>
+    </Tooltip>
+  ) : (
+    <Tooltip content={<div>Run once immediately after creation</div>}>
+      <Label color="blue" isCompact={isCompact}>
+        {PipelineRunLabels.ONEOFF}
+      </Label>
+    </Tooltip>
   );
 };
 export default PipelineRunTypeLabel;

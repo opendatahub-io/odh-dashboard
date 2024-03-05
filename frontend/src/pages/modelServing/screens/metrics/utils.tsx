@@ -171,7 +171,7 @@ export const getBreadcrumbItemComponents = (
     <BreadcrumbItem
       isActive={item.isActive}
       key={item.label}
-      render={() => (item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>)}
+      render={() => (item.link ? <Link to={item.link}>{item.label}</Link> : item.label)}
     />
   ));
 
