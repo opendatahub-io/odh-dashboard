@@ -12,7 +12,7 @@ import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types'
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
+import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
@@ -66,8 +66,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.project === '' ||
     createData.format.name === '' ||
     createData.servingRuntimeName === '' ||
-    removeLeadingSlashes(createData.storage.path).includes('//') ||
     containsOnlySlashes(createData.storage.path) ||
+    !isS3PathValid(createData.storage.path) ||
     createData.storage.path === '' ||
     !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
