@@ -1,4 +1,5 @@
 import {
+  ExperimentKFv2,
   PipelineKFv2,
   PipelineRunJobKFv2,
   PipelineRunKFv2,
@@ -50,6 +51,16 @@ class CloneRunPage extends CreateRunPage {
         pathname: `/api/proxy/apis/v2beta1/pipelines/${pipeline.pipeline_id}`,
       },
       pipeline,
+    );
+  }
+
+  mockGetExperiment(experiment: ExperimentKFv2): Cypress.Chainable<null> {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/experiments/${experiment.experiment_id}`,
+      },
+      experiment,
     );
   }
 }

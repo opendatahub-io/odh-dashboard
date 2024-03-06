@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Stack, StackItem, Tooltip } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { relativeTime } from '~/utilities/time';
 
 type PipelineSelectorTableRowProps = {
-  obj: PipelineKFv2 | PipelineVersionKFv2;
+  obj: PipelineKFv2 | PipelineVersionKFv2 | ExperimentKFv2;
   onClick: () => void;
 };
 
@@ -35,13 +35,7 @@ const PipelineSelectorTableRow: React.FC<PipelineSelectorTableRowProps> = ({ obj
         }
         triggerRef={tooltipRef}
       />
-
-      <Tr
-        ref={tooltipRef}
-        onRowClick={onClick}
-        isClickable
-        data-id="pipeline-selector-table-list-row"
-      >
+      <Tr ref={tooltipRef} onRowClick={onClick} isClickable>
         <Td width={70} modifier="truncate" tooltip={null}>
           {obj.display_name}
         </Td>

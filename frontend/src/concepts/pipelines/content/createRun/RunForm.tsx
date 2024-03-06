@@ -14,6 +14,8 @@ import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLates
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import ExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ExperimentSection';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
@@ -27,6 +29,8 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   const selectedVersion = data.version || latestVersion;
   const paramsRef = React.useRef(data.params);
+
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const updateInputParams = React.useCallback(
     (version: PipelineVersionKFv2 | undefined) =>
@@ -73,6 +77,12 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
           setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
         />
       </FormSection>
+      {isExperimentsAvailable && (
+        <ExperimentSection
+          value={data.experiment}
+          onChange={(experiment) => onValueChange('experiment', experiment)}
+        />
+      )}
       <PipelineSection
         value={data.pipeline}
         onChange={async (pipeline) => {

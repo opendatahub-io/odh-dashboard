@@ -34,6 +34,7 @@ const createRun = async (
       parameters: normalizeInputParams(formData.params, formData.version),
     },
     service_account: '',
+    experiment_id: formData.experiment?.experiment_id || '',
   };
 
   /* eslint-enable camelcase */
@@ -96,6 +97,7 @@ const createJob = async (
     mode: RecurringRunMode.ENABLE,
     no_catchup: !formData.runType.data.catchUp,
     service_account: '',
+    experiment_id: formData.experiment?.experiment_id || '',
   };
 
   /* eslint-enable camelcase */

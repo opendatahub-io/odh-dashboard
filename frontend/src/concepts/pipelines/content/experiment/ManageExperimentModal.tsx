@@ -36,8 +36,8 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
 
   return (
     <Modal
-      title="Create experiment"
       isOpen={isOpen}
+      title="Create experiment"
       onClose={() => onBeforeClose()}
       actions={[
         <Button
@@ -48,7 +48,8 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
             setSubmitting(true);
             setError(undefined);
             api
-              .createExperiment({}, name, description)
+              // eslint-disable-next-line camelcase
+              .createExperiment({}, { display_name: name, description })
               .then((experiment) => onBeforeClose(experiment))
               .catch((e) => {
                 setSubmitting(false);

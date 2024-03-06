@@ -44,3 +44,6 @@ export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunF
   !!formData.params &&
   runTypeSafeData(formData.runType) &&
   runTypeSafeDates(formData.runType);
+
+export const isFilledRunFormDataExperiment = (formData: RunFormData): formData is SafeRunFormData =>
+  isFilledRunFormData(formData) && !!formData.experiment;

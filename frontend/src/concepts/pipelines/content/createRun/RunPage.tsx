@@ -24,6 +24,7 @@ import { ValueOf } from '~/typeHelpers';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
@@ -41,9 +42,11 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
 
   const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
   const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
+  const cloneRunExperimentId = cloneRun?.experiment_id || '';
 
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
   const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
+  const [cloneRunExperiment] = useExperimentById(cloneRunExperimentId);
 
   const [formData, setFormDataValue] = useRunFormData(cloneRun, {
     runType: {
@@ -59,6 +62,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     },
     pipeline: location.state?.lastPipeline || cloneRunPipeline,
     version: location.state?.lastVersion || cloneRunPipelineVersion,
+    experiment: cloneRunExperiment,
   });
 
   const onValueChange = React.useCallback(

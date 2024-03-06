@@ -3,7 +3,7 @@ import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions, PipelinesFilter } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
-type TableSortProps = {
+export type TableSortProps = {
   sortField?: string;
   setSortField: (field: string) => void;
   sortDirection?: 'asc' | 'desc';

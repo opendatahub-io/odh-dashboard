@@ -14,6 +14,7 @@ import {
   PipelineCoreResourceKFv2,
   PipelineRunKFv2,
   PipelineRunJobKFv2,
+  CreateExperimentKFData,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -42,8 +43,7 @@ export type PipelineListPaged<T extends PipelineCoreResourceKFv2> = {
 
 export type CreateExperiment = (
   opts: K8sAPIOptions,
-  name: string,
-  description: string,
+  data: CreateExperimentKFData,
 ) => Promise<ExperimentKFv2>;
 export type CreatePipelineRun = (
   opts: K8sAPIOptions,

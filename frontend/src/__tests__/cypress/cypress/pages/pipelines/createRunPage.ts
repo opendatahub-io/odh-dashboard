@@ -1,11 +1,12 @@
 /* eslint-disable camelcase */
 import {
+  ExperimentKFv2,
   PipelineKFv2,
   PipelineRunJobKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
-import { buildMockJobKF, buildMockRunKF } from '~/__mocks__';
+import { buildMockExperiments, buildMockJobKF, buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 
@@ -28,6 +29,10 @@ export class CreateRunPage {
 
   findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('textbox', { name: 'Description' });
+  }
+
+  findExperimentSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('experiment-toggle-button');
   }
 
   findPipelineSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -137,6 +142,14 @@ export class CreateRunPage {
     this.findParamByLabel(label).type(value);
   }
 
+  selectExperimentByName(name: string): void {
+    this.findExperimentSelect()
+      .click()
+      .get('[data-id="experiment-selector-table-list"]')
+      .findByText(name)
+      .click();
+  }
+
   selectPipelineByName(name: string): void {
     this.findPipelineSelect()
       .click()
@@ -151,6 +164,13 @@ export class CreateRunPage {
       .get('[data-id="pipeline-version-selector-table-list"]')
       .findByText(name)
       .click();
+  }
+
+  mockGetExperiments(experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
+    return cy.intercept(
+      { pathname: '/api/proxy/apis/v2beta1/experiments' },
+      buildMockExperiments(experiments),
+    );
   }
 
   mockGetPipelines(pipelines: PipelineKFv2[]): Cypress.Chainable<null> {

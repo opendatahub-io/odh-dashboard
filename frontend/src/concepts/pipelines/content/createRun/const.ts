@@ -21,6 +21,7 @@ export enum CreateRunPageSections {
   NAME_DESC = 'run-section-name-desc',
   PIPELINE = 'run-section-pipeline',
   PIPELINE_VERSION = 'run-section-pipeline-version',
+  EXPERIMENT = 'run-section-experiment',
   PARAMS = 'run-section-params',
 }
 
@@ -28,5 +29,6 @@ export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.NAME_DESC]: 'Name and description',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
   [CreateRunPageSections.PIPELINE_VERSION]: 'Pipeline version',
+  [CreateRunPageSections.EXPERIMENT]: 'Experiment',
   [CreateRunPageSections.PARAMS]: 'Pipeline input parameters',
 };
