@@ -1,11 +1,13 @@
 import * as React from 'react';
+import { Flex, FlexItem } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
 import { useBrowserStorage } from '~/components/browserStorage';
-import { ProjectScope } from '~/pages/projects/types';
+import { ProjectObjectType, ProjectScope } from '~/pages/projects/types';
+import { typedObjectImage } from '~/pages/projects/utils';
 import EmptyProjects from './EmptyProjects';
 import ProjectListView from './ProjectListView';
 import ProjectScopeSelect from './ProjectScopeSelect';
@@ -27,7 +29,19 @@ const ProjectView: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Data Science Projects"
+      title={
+        <Flex
+          spaceItems={{ default: 'spaceItemsSm' }}
+          alignItems={{ default: 'alignItemsFlexStart' }}
+        >
+          <img
+            style={{ height: '32px' }}
+            src={typedObjectImage(ProjectObjectType.project)}
+            alt="prioject"
+          />
+          <FlexItem>Data Science Projects</FlexItem>
+        </Flex>
+      }
       description={
         rbacLoaded
           ? `View your existing projects${allowCreate ? ' or create new projects' : ''}.`
@@ -42,6 +56,7 @@ const ProjectView: React.FC = () => {
       }
       emptyStatePage={<EmptyProjects allowCreate={allowCreate} />}
       provideChildrenPadding
+      removeChildrenTopPadding
     >
       <ProjectListView allowCreate={allowCreate} scope={scope} />
     </ApplicationsPage>

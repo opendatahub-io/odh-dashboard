@@ -170,3 +170,15 @@ export enum ProjectScope {
   DS_PROJECTS = 'Data science projects',
   ALL_PROJECTS = 'All available projects',
 }
+
+export enum ProjectObjectType {
+  project = 'project',
+  notebook = 'notebook',
+  pipeline = 'pipeline',
+  pipelineRun = 'pipeline-run',
+  clusterStorage = 'cluster-storage',
+  modelServer = 'model-server',
+  dataConnection = 'data-connection',
+  user = 'user',
+  group = 'group',
+}

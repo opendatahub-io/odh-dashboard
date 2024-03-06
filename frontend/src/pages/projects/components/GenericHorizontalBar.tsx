@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Tabs,
   Tab,
@@ -12,19 +13,24 @@ import {
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 type GenericHorizontalBarProps = {
-  activeKey: string;
+  activeKey: string | null;
   sections: {
     title: string;
     component: React.ReactNode;
     icon?: React.ReactElement<React.ComponentClass<SVGIconProps>>;
-    id?: string;
+    id: string;
   }[];
 };
 
 const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, sections }) => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number | undefined>(
-    activeKey || sections[0].title || undefined,
-  );
+  const [queryParams, setQueryParams] = useSearchParams();
+
+  React.useEffect(() => {
+    if (!sections.find((s) => s.id === activeKey) && sections[0].id) {
+      queryParams.set('section', sections[0].id);
+      setQueryParams(queryParams, { replace: true });
+    }
+  }, [sections, activeKey, queryParams, setQueryParams]);
 
   return (
     <>
@@ -32,18 +38,23 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
         variant={PageSectionVariants.light}
         type="tabs"
         isFilled
+        padding={{ default: 'noPadding' }}
         aria-label="horizontal-bar-tab-section"
       >
         <Tabs
-          activeKey={activeTabKey}
-          onSelect={(event, tabIndex) => setActiveTabKey(tabIndex)}
+          activeKey={activeKey || sections[0].id}
+          onSelect={(event, tabIndex) => {
+            queryParams.set('section', `${tabIndex}`);
+            setQueryParams(queryParams);
+          }}
           aria-label="Horizontal bar"
+          style={{ paddingInlineStart: 'var(--pf-v5-global--spacer--lg' }}
         >
           {sections.map((section) => (
             <Tab
-              key={section.title}
-              eventKey={section.title}
-              tabContentId={section.title}
+              key={section.id}
+              eventKey={section.id}
+              tabContentId={section.id}
               title={
                 <>
                   {section.icon && <TabTitleIcon>{section.icon}</TabTitleIcon>}
@@ -59,17 +70,19 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
         isFilled
         aria-label="horizontal-bar-content-section"
         padding={{ default: 'noPadding' }}
+        style={{ flex: 1, overflowY: 'auto' }}
       >
         {sections
-          .filter((section) => section.title === activeTabKey)
+          .filter((section) => section.id === activeKey)
           .map((section) => (
             <TabContent
-              id={section.title}
-              activeKey={activeTabKey}
-              eventKey={section.title}
-              key={section.title}
+              id={section.id}
+              activeKey={activeKey || ''}
+              eventKey={section.id}
+              key={section.id}
+              style={{ height: '100%' }}
             >
-              <TabContentBody>{section.component}</TabContentBody>
+              <TabContentBody style={{ height: '100%' }}>{section.component}</TabContentBody>
             </TabContent>
           ))}
       </PageSection>

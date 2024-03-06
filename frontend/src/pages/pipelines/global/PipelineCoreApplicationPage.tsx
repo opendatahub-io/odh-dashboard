@@ -26,7 +26,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       {...pageProps}
       loaded={!pipelinesAPi.pipelinesServer.initializing}
       empty={!pipelinesAPi.pipelinesServer.installed}
-      emptyStatePage={<NoPipelineServer variant="primary" />}
+      emptyStatePage={<NoPipelineServer />}
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
       provideChildrenPadding={!overrideChildPadding}
     >

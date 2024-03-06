@@ -4,25 +4,41 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   EmptyStateHeader,
+  EmptyStateActions,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
-import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 type EmptyDetailsListProps = {
-  title: string;
+  variant?: 'xs' | 'sm' | 'lg' | 'xl' | 'full';
+  title?: string;
   description?: string;
-  icon?: React.ComponentClass<SVGIconProps>;
+  icon?: React.ComponentType;
+  actions?: React.ReactNode;
+  secondaryActions?: React.ReactNode;
 };
 
-const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({ title, description, icon }) => (
-  <EmptyState variant="xs">
+const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({
+  variant,
+  title,
+  description,
+  icon,
+  actions,
+  secondaryActions,
+}) => (
+  <EmptyState isFullHeight variant={variant}>
     <EmptyStateHeader
       data-testid="empty-state-title"
-      titleText={title}
-      icon={<EmptyStateIcon icon={icon ?? PlusCircleIcon} />}
+      titleText={<>{title}</>}
+      icon={icon && <EmptyStateIcon icon={icon} />}
       headingLevel="h3"
     />
     <EmptyStateBody>{description}</EmptyStateBody>
+    {actions || secondaryActions ? (
+      <EmptyStateFooter>
+        {actions ? <EmptyStateActions>{actions}</EmptyStateActions> : null}
+        {secondaryActions ? <EmptyStateActions>{secondaryActions}</EmptyStateActions> : null}
+      </EmptyStateFooter>
+    ) : null}
   </EmptyState>
 );
 

@@ -2,12 +2,10 @@ import * as React from 'react';
 
 import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, PlayIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -25,6 +23,7 @@ type ServingRuntimeTableRowProps = {
   onDeployModel: (obj: ServingRuntimeKind) => void;
   expandedServingRuntimeName?: string;
   allowDelete: boolean;
+  rowIndex: number;
 };
 
 const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
@@ -32,8 +31,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   onDeleteServingRuntime,
   onEditServingRuntime,
   onDeployModel,
-  expandedServingRuntimeName,
   allowDelete,
+  rowIndex,
 }) => {
   const navigate = useNavigate();
 
@@ -48,13 +47,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
 
-  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
-
-  React.useEffect(() => {
-    if (expandedServingRuntimeName === obj.metadata.name) {
-      setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
-    }
-  }, [expandedServingRuntimeName, obj.metadata.name]);
+  const [isExpanded, setExpanded] = React.useState(false);
 
   const tokens = filterTokens(obj.metadata.name);
 
@@ -64,29 +57,19 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
     useIsAreaAvailable(SupportedArea.PERFORMANCE_METRICS).status &&
     currentProject.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true';
 
-  const compoundExpandParams = (
-    col: ServingRuntimeTableTabs,
-    isDisabled: boolean,
-  ): React.ComponentProps<typeof Td>['compoundExpand'] =>
-    !isDisabled
-      ? {
-          isExpanded: expandedColumn === col,
-          onToggle: (_, __, colIndex: ServingRuntimeTableTabs) => {
-            setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
-          },
-          columnIndex: col,
-          expandId: `expand-table-row-${obj.metadata.name}-${col}`,
-        }
-      : undefined;
-
   return (
-    <Tbody isExpanded={!!expandedColumn}>
-      <Tr>
-        <EmptyTableCellForAlignment />
+    <Tbody isExpanded={isExpanded}>
+      <Tr {...(rowIndex % 2 === 0 && { isStriped: true })}>
         <Td
-          dataLabel="Model Server Name"
-          compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.TYPE, false)}
-        >
+          expand={{
+            rowIndex,
+            expandId: `expand-table-row-${obj.metadata.name}-${rowIndex}`,
+            isExpanded,
+            onToggle: () => setExpanded(!isExpanded),
+          }}
+        />
+
+        <Td dataLabel="Model Server Name">
           {obj.metadata.annotations?.['openshift.io/display-name'] ||
             obj.spec.builtInAdapter?.serverType ||
             'Custom Runtime'}
@@ -94,14 +77,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         <Td dataLabel="Serving Runtime">
           <Truncate content={getDisplayNameFromServingRuntimeTemplate(obj)} />
         </Td>
-        <Td
-          dataLabel="Deployed models"
-          compoundExpand={
-            inferenceServicesLoaded
-              ? compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)
-              : undefined
-          }
-        >
+        <Td dataLabel="Deployed models">
           {inferenceServicesLoaded ? (
             <>
               {modelInferenceServices.length}{' '}
@@ -120,17 +96,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             <Skeleton />
           )}
         </Td>
-        <Td
-          dataLabel="Tokens"
-          compoundExpand={
-            secretsLoaded
-              ? compoundExpandParams(
-                  ServingRuntimeTableTabs.TOKENS,
-                  tokens.length === 0 || !isServingRuntimeTokenEnabled(obj),
-                )
-              : undefined
-          }
-        >
+        <Td dataLabel="Tokens">
           {secretsLoaded ? (
             <>
               {!isServingRuntimeTokenEnabled(obj) ? 'Tokens disabled' : tokens.length}{' '}
@@ -150,7 +116,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           <Button
             onClick={() => onDeployModel(obj)}
             key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-            variant="secondary"
+            variant="link"
+            icon={<PlayIcon />}
           >
             Deploy model
           </Button>
@@ -185,13 +152,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           />
         </Td>
       </Tr>
-      <Tr isExpanded={!!expandedColumn}>
-        <ServingRuntimeTableExpandedSection
-          activeColumn={expandedColumn}
-          obj={obj}
-          onClose={() => setExpandedColumn(undefined)}
-          onDeployModel={() => onDeployModel(obj)}
-        />
+      <Tr isExpanded={isExpanded}>
+        <ServingRuntimeTableExpandedSection obj={obj} />
       </Tr>
     </Tbody>
   );

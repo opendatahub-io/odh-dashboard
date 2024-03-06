@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Flex, FlexItem, Switch } from '@patternfly/react-core';
+import { Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '~/api';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
@@ -85,47 +85,45 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
 
   return (
     <>
-      <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-        <FlexItem>
-          <Switch
-            aria-label={label}
-            isDisabled={inProgress || isStopping || isDisabled}
-            id={`${notebookName}-${notebookNamespace}`}
-            isChecked={isChecked}
-            onClick={() => {
-              if (isRunningOrStarting) {
-                if (dontShowModalValue) {
-                  handleStop();
-                } else {
-                  setOpenConfirm(true);
-                }
+      <div
+        style={{ display: 'flex', gap: 'var(--pf-v5-global--spacer--sm)', alignItems: 'center' }}
+      >
+        <Switch
+          aria-label={label}
+          isDisabled={inProgress || isStopping || isDisabled}
+          id={`${notebookName}-${notebookNamespace}`}
+          isChecked={isChecked}
+          onClick={() => {
+            if (isRunningOrStarting) {
+              if (dontShowModalValue) {
+                handleStop();
               } else {
-                setInProgress(true);
-                const tolerationSettings = computeNotebooksTolerations(
-                  dashboardConfig,
-                  notebookState.notebook,
-                );
-                startNotebook(
-                  notebook,
-                  tolerationSettings,
-                  enablePipelines && !currentlyHasPipelines(notebook),
-                ).then(() => {
-                  fireNotebookTrackingEvent('started');
-                  refresh().then(() => setInProgress(false));
-                  listenToNotebookStart(true);
-                });
+                setOpenConfirm(true);
               }
-            }}
-          />
-        </FlexItem>
-        <FlexItem>
-          <NotebookStatusText
-            notebookState={notebookState}
-            stopNotebook={handleStop}
-            labelText={label}
-          />
-        </FlexItem>
-      </Flex>
+            } else {
+              setInProgress(true);
+              const tolerationSettings = computeNotebooksTolerations(
+                dashboardConfig,
+                notebookState.notebook,
+              );
+              startNotebook(
+                notebook,
+                tolerationSettings,
+                enablePipelines && !currentlyHasPipelines(notebook),
+              ).then(() => {
+                fireNotebookTrackingEvent('started');
+                refresh().then(() => setInProgress(false));
+                listenToNotebookStart(true);
+              });
+            }
+          }}
+        />
+        <NotebookStatusText
+          notebookState={notebookState}
+          stopNotebook={handleStop}
+          labelText={label}
+        />
+      </div>
       <StopNotebookConfirmModal
         isOpen={isOpenConfirm}
         notebookState={notebookState}
