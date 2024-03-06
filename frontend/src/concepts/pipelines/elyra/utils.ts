@@ -1,5 +1,11 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { AWSSecretKind, KnownLabels, NotebookKind, RoleBindingKind, SecretKind } from '~/k8sTypes';
+import {
+  DSPipelineExternalStorageKind,
+  KnownLabels,
+  NotebookKind,
+  RoleBindingKind,
+  SecretKind,
+} from '~/k8sTypes';
 import {
   ELYRA_ROLE_NAME,
   ELYRA_SECRET_DATA_ENDPOINT,
@@ -7,7 +13,6 @@ import {
   ELYRA_SECRET_DATA_TYPE,
   ELYRA_SECRET_NAME,
 } from '~/concepts/pipelines/elyra/const';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
@@ -63,43 +68,55 @@ export const currentlyHasPipelines = (notebook: NotebookKind): boolean =>
   !!notebook.spec.template.spec.volumes?.find((v) => v.secret?.secretName === ELYRA_SECRET_NAME);
 
 export const generateElyraSecret = (
-  dataConnectionData: AWSSecretKind['data'],
-  dataConnectionName: string,
-  namespace: string,
+  externalStorage: DSPipelineExternalStorageKind,
+  dataConnection: SecretKind,
   route: string,
-): SecretKind => ({
-  apiVersion: 'v1',
-  kind: 'Secret',
-  metadata: {
-    name: ELYRA_SECRET_NAME,
-    namespace,
-  },
-  type: 'Opaque',
-  stringData: {
-    /* eslint-disable camelcase */
-    [ELYRA_SECRET_DATA_KEY]: JSON.stringify({
-      display_name: 'Data Science Pipeline',
-      metadata: {
-        tags: [],
+): SecretKind => {
+  const { namespace } = dataConnection.metadata;
+
+  if (
+    !dataConnection.data?.[externalStorage.s3CredentialsSecret.accessKey] ||
+    !dataConnection.data[externalStorage.s3CredentialsSecret.secretKey]
+  ) {
+    throw new Error(
+      'Error generating elyra secret, please check the DataSciencePipelinesApplication CR.',
+    );
+  }
+
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name: ELYRA_SECRET_NAME,
+      namespace,
+    },
+    type: 'Opaque',
+    stringData: {
+      /* eslint-disable camelcase */
+      [ELYRA_SECRET_DATA_KEY]: JSON.stringify({
         display_name: 'Data Science Pipeline',
-        engine: 'Tekton',
-        auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
-        api_endpoint: route,
-        // Append the id on the end to navigate to the details page for that PipelineRun
-        [ELYRA_SECRET_DATA_ENDPOINT]: `${location.origin}/pipelineRuns/${namespace}/pipelineRun/view/`,
-        [ELYRA_SECRET_DATA_TYPE]: 'KUBERNETES_SECRET',
-        cos_secret: dataConnectionName,
-        cos_endpoint: atob(dataConnectionData[AwsKeys.S3_ENDPOINT]),
-        cos_bucket: atob(dataConnectionData[AwsKeys.AWS_S3_BUCKET]),
-        cos_username: atob(dataConnectionData[AwsKeys.ACCESS_KEY_ID]),
-        cos_password: atob(dataConnectionData[AwsKeys.SECRET_ACCESS_KEY]),
-        runtime_type: 'KUBEFLOW_PIPELINES',
-      },
-      schema_name: 'kfp',
-    }),
-    /* eslint-enable camelcase */
-  },
-});
+        metadata: {
+          tags: [],
+          display_name: 'Data Science Pipeline',
+          engine: 'Tekton',
+          auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
+          api_endpoint: route,
+          // Append the id on the end to navigate to the details page for that PipelineRun
+          [ELYRA_SECRET_DATA_ENDPOINT]: `${location.origin}/pipelineRuns/${namespace}/pipelineRun/view/`,
+          [ELYRA_SECRET_DATA_TYPE]: 'KUBERNETES_SECRET',
+          cos_secret: externalStorage.s3CredentialsSecret.secretName,
+          cos_endpoint: `${externalStorage.scheme}://${externalStorage.host}`,
+          cos_bucket: externalStorage.bucket,
+          cos_username: atob(dataConnection.data[externalStorage.s3CredentialsSecret.accessKey]),
+          cos_password: atob(dataConnection.data[externalStorage.s3CredentialsSecret.secretKey]),
+          runtime_type: 'KUBEFLOW_PIPELINES',
+        },
+        schema_name: 'kfp',
+      }),
+      /* eslint-enable camelcase */
+    },
+  };
+};
 
 export const generateElyraServiceAccountRoleBinding = (
   notebookName: string,
