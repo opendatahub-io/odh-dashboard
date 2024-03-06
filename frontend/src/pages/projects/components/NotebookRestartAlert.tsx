@@ -11,7 +11,13 @@ type NotebookRestartAlertProps = {
 const NotebookRestartAlert: React.FC<NotebookRestartAlertProps> = ({ notebooks, isCurrent }) => {
   const runningNotebooks = notebooks.filter((notebookState) => notebookState.isRunning);
   return (
-    <Alert component="h2" variant="info" isInline title="Unsaved work will be lost">
+    <Alert
+      data-testid="notebook-restart-alert"
+      component="h2"
+      variant="info"
+      isInline
+      title="Unsaved work will be lost"
+    >
       {isCurrent
         ? 'Updating this workbench will cause it to restart. '
         : 'Running workbenches will restart upon updating. '}

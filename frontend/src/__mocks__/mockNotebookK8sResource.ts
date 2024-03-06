@@ -11,6 +11,7 @@ type MockResourceConfigType = {
   namespace?: string;
   user?: string;
   description?: string;
+  envFromName?: string;
   resources?: ContainerResources;
   opts?: RecursivePartial<NotebookKind>;
 };
@@ -18,6 +19,7 @@ type MockResourceConfigType = {
 export const mockNotebookK8sResource = ({
   name = 'test-notebook',
   displayName = 'Test Notebook',
+  envFromName = 'aws-connection-db-1',
   namespace = 'test-project',
   user = 'test-user',
   description = '',
@@ -92,7 +94,7 @@ export const mockNotebookK8sResource = ({
                 envFrom: [
                   {
                     secretRef: {
-                      name: 'aws-connection-db-1',
+                      name: envFromName,
                     },
                   },
                 ],

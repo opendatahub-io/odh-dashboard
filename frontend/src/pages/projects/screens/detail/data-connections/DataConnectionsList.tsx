@@ -25,6 +25,7 @@ const DataConnectionsList: React.FC = () => {
         actions={[
           <Button
             key={`action-${ProjectSectionID.DATA_CONNECTIONS}`}
+            data-testid="add-data-connection-button"
             variant="secondary"
             onClick={() => setOpen(true)}
           >
