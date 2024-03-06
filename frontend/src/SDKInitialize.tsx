@@ -62,12 +62,15 @@ const SDKInitialize: React.FC<SDKInitializeProps> = ({ children }) => {
   // TODO: Figure out what's going on in the SDK
   const [ready, setReady] = React.useState(false);
   React.useEffect(() => {
-    const intervalId = setInterval(() => {
+    const handler = () => {
       if (isUtilsConfigSet()) {
         setReady(true);
         clearInterval(intervalId);
       }
-    }, 1000);
+    };
+    const intervalId = setInterval(handler, 100);
+    // Immediately check to prevent unecessary delays
+    handler();
   }, []);
 
   return (
