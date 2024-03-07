@@ -1,0 +1,6 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: odh-enabled-applications-config
+data:
+  jupyter: 'true'
