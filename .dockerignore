@@ -10,7 +10,6 @@ node_modules/
 tests/
 **/__mocks__/
 **/__tests__/
-**/.storybook/
 scripts/
 manifests/
 

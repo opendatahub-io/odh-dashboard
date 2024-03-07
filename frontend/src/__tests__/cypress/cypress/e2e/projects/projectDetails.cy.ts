@@ -8,25 +8,33 @@ import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
+import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { ServingRuntimePlatform } from '~/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
   imageStreamName?: string;
+  disableKServeConfig?: boolean;
+  disableModelConfig?: boolean;
   isEnabled?: string;
   isUnknown?: boolean;
+  templates?: boolean;
 };
 
 const initIntercepts = ({
+  disableKServeConfig,
+  disableModelConfig,
   isEmpty = false,
   imageStreamName = 'test-image',
   isEnabled = 'true',
   isUnknown = false,
+  templates = false,
 }: HandlersProps) => {
   cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
@@ -49,15 +57,32 @@ const initIntercepts = ({
       },
     }),
   );
+
+  cy.intercept(
+    { pathname: '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates' },
+    mockK8sResourceList(
+      templates
+        ? [
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-1',
+              displayName: 'Multi Platform',
+              platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+            }),
+          ]
+        : [],
+    ),
+  );
   cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
+  cy.intercept(
+    '/api/config',
+    mockDashboardConfig({
+      disableKServe: disableKServeConfig,
+      disableModelMesh: disableModelConfig,
+    }),
+  );
   cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
     mockK8sResourceList([mockPodK8sResource({})]),
-  );
-  cy.intercept(
-    '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
-    mockK8sResourceList([mockServingRuntimeTemplateK8sResource({})]),
   );
   cy.intercept(
     { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
@@ -79,6 +104,24 @@ const initIntercepts = ({
     { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
     mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]),
   );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts',
+    },
+    {
+      statusCode: 200,
+      body: mockServiceAccountK8sResource({
+        name: 'test-name-sa',
+        namespace: 'test-project',
+      }),
+    },
+  );
+  cy.intercept(
+    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
+    mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: undefined })]),
+  );
+
   cy.intercept(
     {
       pathname: '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
@@ -114,6 +157,20 @@ const initIntercepts = ({
             }),
           ],
     ),
+  );
+  cy.intercept(
+    {
+      pathname: '/api/namespaces/test-project/*',
+    },
+    { statusCode: 200, body: { applied: true } },
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname:
+        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
+    },
+    mockDashboardConfig({}),
   );
   cy.intercept(
     { pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks' },
@@ -165,44 +222,84 @@ const initIntercepts = ({
 };
 
 describe('Project Details', () => {
-  it('Empty project', () => {
-    initIntercepts({ isEmpty: true });
-    projectDetails.visit('test-project');
-    projectDetails.findEmptyState('workbenches');
-    projectDetails.findEmptyState('cluster-storages');
-    projectDetails.findEmptyState('data-connections');
-    projectDetails.findEmptyState('pipelines-projects');
-    projectDetails.shouldDivide();
+  describe('Empty project details', () => {
+    it('Empty state component in project details', () => {
+      initIntercepts({ isEmpty: true });
+      projectDetails.visit('test-project');
+      projectDetails.shouldBeEmptyState('workbenches', true);
+      projectDetails.shouldBeEmptyState('cluster-storages', true);
+      projectDetails.shouldBeEmptyState('data-connections', true);
+      projectDetails.shouldBeEmptyState('pipelines-projects', true);
+      projectDetails.shouldDivide();
+    });
+
+    it('Both model serving platforms are disabled', () => {
+      initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
+      projectDetails.visit('test-project');
+      projectDetails.shouldHaveNoPlatformSelectedText();
+    });
+
+    it('Both model serving platforms are enabled with no serving runtimes templates', () => {
+      initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
+      projectDetails.visit('test-project');
+
+      //single-model-serving platform
+      projectDetails.findSingleModelDeployButton().should('have.attr', 'aria-disabled');
+      projectDetails.findSingleModelDeployButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('be.visible');
+
+      //multi-model-serving platform
+      projectDetails.findMultiModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findMultiModelButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('be.visible');
+    });
+
+    it('Single model serving platform is enabled', () => {
+      initIntercepts({ templates: true, disableKServeConfig: false, disableModelConfig: true });
+      projectDetails.visit('test-project');
+      projectDetails.shouldBeEmptyState('model-server', true);
+      projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
+    });
+
+    it('Multi model serving platform is enabled', () => {
+      initIntercepts({ templates: true, disableKServeConfig: true, disableModelConfig: false });
+      projectDetails.visit('test-project');
+      projectDetails.shouldBeEmptyState('model-server', true);
+
+      projectDetails.findServingPlatformLabel().should('have.text', 'Multi-model serving enabled');
+    });
   });
 
-  it('No empty project', () => {
-    initIntercepts({});
-    projectDetails.visit('test-project');
-    projectDetails.findEmptyState('workbenches').should('not.exist');
-    projectDetails.findEmptyState('cluster-storages').should('not.exist');
-    projectDetails.findEmptyState('data-connections').should('not.exist');
-    projectDetails.findEmptyState('pipelines-projects').should('not.exist');
-  });
+  describe('No empty project details', () => {
+    it('No empty state components in the project details', () => {
+      initIntercepts({});
+      projectDetails.visit('test-project');
+      projectDetails.shouldBeEmptyState('workbenches', false);
+      projectDetails.shouldBeEmptyState('cluster-storages', false);
+      projectDetails.shouldBeEmptyState('data-connections', false);
+      projectDetails.shouldBeEmptyState('pipelines-projects', false);
+    });
 
-  it('Notebook with deleted image', () => {
-    initIntercepts({ imageStreamName: 'test' });
-    projectDetails.visit('test-project');
-    const notebookRow = projectDetails.getNotebookRow('test-notebook');
-    notebookRow.shouldHaveNotebookImageName('Test image');
-    notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
-  });
+    it('Notebook with deleted image', () => {
+      initIntercepts({ imageStreamName: 'test' });
+      projectDetails.visit('test-project');
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.shouldHaveNotebookImageName('Test image');
+      notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
+    });
 
-  it('Notebook with disabled image', () => {
-    initIntercepts({ isEnabled: 'false' });
-    projectDetails.visit('test-project');
-    const notebookRow = projectDetails.getNotebookRow('test-notebook');
-    notebookRow.shouldHaveNotebookImageName('Test image');
-    notebookRow.findNotebookImageAvailability().should('have.text', 'Disabled');
-  });
+    it('Notebook with disabled image', () => {
+      initIntercepts({ isEnabled: 'false' });
+      projectDetails.visit('test-project');
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.shouldHaveNotebookImageName('Test image');
+      notebookRow.findNotebookImageAvailability().should('have.text', 'Disabled');
+    });
 
-  it('Notebook with unknown image', () => {
-    initIntercepts({ isUnknown: true });
-    projectDetails.visit('test-project');
-    projectDetails.getNotebookRow('test-notebook').shouldHaveNotebookImageName('unknown');
+    it('Notebook with unknown image', () => {
+      initIntercepts({ isUnknown: true });
+      projectDetails.visit('test-project');
+      projectDetails.getNotebookRow('test-notebook').shouldHaveNotebookImageName('unknown');
+    });
   });
 });

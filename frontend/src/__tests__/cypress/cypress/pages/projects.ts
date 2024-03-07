@@ -43,6 +43,10 @@ class ProjectListPage {
     return cy.findByRole('button', { name: 'Create data science project' });
   }
 
+  shouldHaveDSLabel(projectName: string) {
+    return this.findProjectRow(projectName).findByText('DS').should('exist');
+  }
+
   findProjectsTable() {
     return cy.get('[data-id=project-view-table]');
   }
@@ -85,12 +89,40 @@ class ProjectDetails {
     cy.testA11y();
   }
 
+  private findModelServingPlatform(name: string) {
+    return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
+  }
+
+  findSingleModelDeployButton() {
+    return this.findModelServingPlatform('single').findByTestId('model-serving-platform-button');
+  }
+
+  findMultiModelButton() {
+    return this.findModelServingPlatform('multi').findByTestId('model-serving-platform-button');
+  }
+
+  findDeployModelTooltip() {
+    return cy.findByTestId('model-serving-action-tooltip');
+  }
+
+  shouldHaveNoPlatformSelectedText() {
+    cy.findByTestId('no-model-serving-platform-selected').should('exist');
+    return this;
+  }
+
+  findServingPlatformLabel() {
+    return cy.findByTestId('serving-platform-label');
+  }
+
   findComponent(componentName: string) {
     return cy.findByTestId(componentName);
   }
 
-  findEmptyState(componentName: string) {
-    return this.findComponent(componentName).findByTestId('empty-state-title');
+  shouldBeEmptyState(componentName: string, emptyState: boolean) {
+    this.findComponent(componentName)
+      .findByTestId('empty-state-title')
+      .should(emptyState ? 'exist' : 'not.exist');
+    return this;
   }
 
   shouldDivide() {
