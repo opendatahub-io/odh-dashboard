@@ -25,6 +25,7 @@ import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
@@ -47,6 +48,14 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
   const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
   const [cloneRunExperiment] = useExperimentById(cloneRunExperimentId);
+
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+
+  const sections = isExperimentsAvailable
+    ? Object.values(CreateRunPageSections)
+    : Object.values(CreateRunPageSections).filter(
+        (section) => section !== CreateRunPageSections.EXPERIMENT,
+      );
 
   const [formData, setFormDataValue] = useRunFormData(cloneRun, {
     runType: {
@@ -73,11 +82,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   return (
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
-        <GenericSidebar
-          sections={Object.values(CreateRunPageSections)}
-          titles={runPageSectionTitles}
-          maxWidth={175}
-        >
+        <GenericSidebar sections={sections} titles={runPageSectionTitles} maxWidth={175}>
           <RunForm
             data={formData}
             runType={runType as PipelineRunType}
