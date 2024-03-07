@@ -530,6 +530,18 @@ export type TrustyAIKind = K8sResourceCommon & {
   };
 };
 
+export type DSPipelineExternalStorageKind = {
+  bucket: string;
+  host: string;
+  port?: '';
+  scheme: string;
+  s3CredentialsSecret: {
+    accessKey: string;
+    secretKey: string;
+    secretName: string;
+  };
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -579,17 +591,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       image: string;
     }>;
     objectStorage: Partial<{
-      externalStorage: {
-        bucket: string;
-        host: string;
-        port?: '';
-        scheme: string;
-        s3CredentialsSecret: {
-          accessKey: string;
-          secretKey: string;
-          secretName: string;
-        };
-      };
+      externalStorage: DSPipelineExternalStorageKind;
       minio: Partial<{
         bucket: string;
         image: string;

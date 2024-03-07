@@ -5,11 +5,13 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   initializing?: boolean;
+  dspaSecretName?: string;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
   namespace = 'test-project',
   initializing = false,
+  dspaSecretName = 'aws-connection-testdb',
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
@@ -35,7 +37,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         s3CredentialsSecret: {
           accessKey: 'AWS_ACCESS_KEY_ID',
           secretKey: 'AWS_SECRET_ACCESS_KEY',
-          secretName: 'aws-connection-testdb',
+          secretName: dspaSecretName,
         },
         scheme: 'https',
       },
