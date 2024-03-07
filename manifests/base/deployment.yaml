@@ -57,8 +57,18 @@ spec:
           successThreshold: 1
           failureThreshold: 3
         volumeMounts:
-          - mountPath: /etc/pki/tls/certs
-            name: trusted-ca-bundle
+          - mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+            name: odh-trusted-ca-cert
+            subPath: odh-trusted-ca-bundle.crt
+          - mountPath: /etc/ssl/certs/odh-trusted-ca-bundle.crt
+            name: odh-trusted-ca-cert
+            subPath: odh-trusted-ca-bundle.crt
+          - mountPath: /etc/pki/tls/certs/odh-ca-bundle.crt
+            name: odh-ca-cert
+            subPath: odh-ca-bundle.crt
+          - mountPath: /etc/ssl/certs/odh-ca-bundle.crt
+            name: odh-ca-cert
+            subPath: odh-ca-bundle.crt
       - name: oauth-proxy
         env:
           - name: NAMESPACE
@@ -118,8 +128,18 @@ spec:
             name: oauth-config
           - mountPath: /etc/oauth/client
             name: oauth-client
-          - mountPath: /etc/pki/tls/certs
-            name: trusted-ca-bundle
+          - mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+            name: odh-trusted-ca-cert
+            subPath: odh-trusted-ca-bundle.crt
+          - mountPath: /etc/ssl/certs/odh-trusted-ca-bundle.crt
+            name: odh-trusted-ca-cert
+            subPath: odh-trusted-ca-bundle.crt
+          - mountPath: /etc/pki/tls/certs/odh-ca-bundle.crt
+            name: odh-ca-cert
+            subPath: odh-ca-bundle.crt
+          - mountPath: /etc/ssl/certs/odh-ca-bundle.crt
+            name: odh-ca-cert
+            subPath: odh-ca-bundle.crt
       volumes:
       - name: proxy-tls
         secret:
@@ -130,7 +150,17 @@ spec:
       - name: oauth-client
         secret:
           secretName: dashboard-oauth-client-generated
-      - name: trusted-ca-bundle
+      - name: odh-trusted-ca-cert
         configMap:
           name: odh-trusted-ca-bundle
+          items:
+          - key: ca-bundle.crt
+            path: odh-trusted-ca-bundle.crt
+          optional: true
+      - name: odh-ca-cert
+        configMap:
+          name: odh-trusted-ca-bundle
+          items:
+          - key: odh-ca-bundle.crt
+            path: odh-ca-bundle.crt
           optional: true
