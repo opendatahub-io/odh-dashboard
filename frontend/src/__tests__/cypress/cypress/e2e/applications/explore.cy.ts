@@ -14,7 +14,7 @@ describe('Explore Page', { testIsolation: false }, () => {
   });
 
   it('should have selectable cards', () => {
-    explorePage.findExploreCard('jupyter').findByRole('radio').click();
+    explorePage.findExploreCard('jupyter').click();
     explorePage.findDrawerPanel().should('be.visible');
   });
 

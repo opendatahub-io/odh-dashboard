@@ -115,7 +115,7 @@ class ProjectDetails {
   }
 
   findComponent(componentName: string) {
-    return cy.findByTestId(componentName);
+    return cy.findByTestId(`section-${componentName}`);
   }
 
   shouldBeEmptyState(componentName: string, emptyState: boolean) {

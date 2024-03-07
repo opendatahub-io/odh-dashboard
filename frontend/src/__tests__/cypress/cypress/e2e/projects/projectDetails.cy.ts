@@ -42,7 +42,14 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition`,
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications`,
+    },
+    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa`,
     },
     mockDataSciencePipelineApplicationK8sResource({}),
   );
@@ -94,10 +101,10 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-pipelines-definition`,
+      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa`,
     },
     mockRouteK8sResource({
-      notebookName: 'ds-pipeline-pipelines-definition',
+      notebookName: 'ds-pipeline-dspa',
     }),
   );
   cy.intercept(
@@ -215,7 +222,7 @@ const initIntercepts = ({
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      pathname: '/api/proxy/apis/v2beta1/pipelines',
     },
     buildMockPipelines(isEmpty ? [] : [mockPipelineKFv2({})]),
   );
