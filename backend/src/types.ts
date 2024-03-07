@@ -410,7 +410,6 @@ export type Notebook = K8sResourceCommon & {
     annotations: Partial<{
       'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
-      'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
 
       // TODO: Can we get this from the data in the Notebook??

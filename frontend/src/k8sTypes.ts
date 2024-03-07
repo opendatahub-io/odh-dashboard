@@ -78,7 +78,6 @@ type ImageStreamSpecTagAnnotations = Partial<{
 export type NotebookAnnotations = Partial<{
   'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running),  `odh-notebook-controller-lock` is set when first creating the notebook to avoid race conditions, it's a fake stop
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
-  'opendatahub.io/link': string; // redirect notebook url
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected

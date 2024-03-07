@@ -150,6 +150,9 @@ spec:
     disablePerformanceMetrics: false
   notebookController:
     enabled: true
+    gpuSetting: autodetect
+    pvcSize: 20Gi
+    notebookNamespace: odh-notebooks
   notebookSizes:
     - name: Small
       resources:

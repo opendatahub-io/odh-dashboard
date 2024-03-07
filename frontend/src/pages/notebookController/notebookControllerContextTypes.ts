@@ -15,6 +15,8 @@ export type NotebookControllerContextProps = {
   currentUserNotebookIsRunning: boolean;
   /** The current pod associated with the running Notebook - empty string if not running -- assumes 1 pod */
   currentUserNotebookPodUID: string;
+  /** The current link of the Notebook */
+  currentUserNotebookLink: string;
 
   /**
    * Setup impersonating against a user's notebook & username (need both, see below)
@@ -40,6 +42,7 @@ export type NotebookContextStorage = {
   current: Notebook | null | undefined;
   currentIsRunning: boolean;
   currentPodUID: string;
+  currentLink: string;
   requestRefresh: NotebookControllerContextProps['requestNotebookRefresh'];
   former: Omit<NotebookContextStorage, 'former'> | null;
 };
