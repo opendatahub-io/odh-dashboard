@@ -98,6 +98,53 @@ describe('Pipelines', () => {
     pipelinesTable.findRowByName('New pipeline');
   });
 
+  it('imports a new pipeline by url', () => {
+    const createPipelineAndVersionParams = {
+      pipeline: {
+        display_name: 'New pipeline',
+      },
+      pipeline_version: {
+        display_name: 'New pipeline',
+        package_url: {
+          pipeline_url: 'https://example.com/pipeline.yaml',
+        },
+      },
+    };
+    const createdMockPipeline = buildMockPipelineV2(createPipelineAndVersionParams.pipeline);
+
+    // Intercept upload/re-fetch of pipelines
+    pipelineImportModal
+      .mockCreatePipelineAndVersion(createPipelineAndVersionParams)
+      .as('createPipelineAndVersion');
+    pipelinesTable
+      .mockGetPipelines([initialMockPipeline, createdMockPipeline])
+      .as('refreshPipelines');
+    pipelinesTable.mockGetPipelineVersions(
+      [buildMockPipelineVersionV2(createPipelineAndVersionParams.pipeline_version)],
+      'new-pipeline',
+    );
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Import pipeline" modal
+    pipelinesGlobal.findImportPipelineButton().click();
+
+    // Fill out the "Import pipeline" modal and submit
+    pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.findImportPipelineRadio().check();
+    pipelineImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+    pipelineImportModal.submit();
+
+    // Wait for upload/fetch requests
+    cy.wait('@createPipelineAndVersion');
+    cy.wait('@refreshPipelines');
+
+    // Verify the uploaded pipeline is in the table
+    pipelinesTable.findRowByName('New pipeline');
+  });
+
   it('uploads a new pipeline version', () => {
     const uploadVersionParams = {
       display_name: 'New pipeline version',
@@ -130,6 +177,50 @@ describe('Pipelines', () => {
 
     // Wait for upload/fetch requests
     cy.wait('@uploadVersion');
+    cy.wait('@refreshVersions');
+
+    // Verify the uploaded pipeline version is in the table
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.findRowByName('New pipeline version');
+  });
+
+  it('imports a new pipeline version by url', () => {
+    const createPipelineVersionParams = {
+      pipeline_id: 'test-pipeline',
+      display_name: 'New pipeline version',
+      description: 'New pipeline description',
+      package_url: {
+        pipeline_url: 'https://example.com/pipeline.yaml',
+      },
+    };
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Upload new version" modal
+    pipelinesGlobal.findUploadVersionButton().click();
+
+    // Intercept upload/re-fetch of pipeline versions
+    pipelinesTable
+      .mockGetPipelineVersions(
+        [initialMockPipelineVersion, buildMockPipelineVersionV2(createPipelineVersionParams)],
+        initialMockPipeline.pipeline_id,
+      )
+      .as('refreshVersions');
+
+    pipelineVersionImportModal
+      .mockCreatePipelineVersion(createPipelineVersionParams)
+      .as('createVersion');
+
+    // Fill out the "Upload new version" modal and submit
+    pipelineVersionImportModal.shouldBeOpen();
+    pipelineVersionImportModal.selectPipelineByName('Test pipeline');
+    pipelineVersionImportModal.fillVersionName('New pipeline version');
+    pipelineVersionImportModal.findImportPipelineRadio().check();
+    pipelineVersionImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+    pipelineVersionImportModal.submit();
+
+    // Wait for upload/fetch requests
+    cy.wait('@createVersion');
     cy.wait('@refreshVersions');
 
     // Verify the uploaded pipeline version is in the table
