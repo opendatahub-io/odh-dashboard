@@ -29,7 +29,6 @@
     "node_modules",
     "public",
     "public-cypress",
-    "storybook-static",
     "src/__tests__/cypress"
   ]
 }

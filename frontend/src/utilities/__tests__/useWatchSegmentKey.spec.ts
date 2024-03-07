@@ -6,7 +6,7 @@ jest.mock('~/services/segmentKeyService', () => ({
   fetchSegmentKey: jest.fn(),
 }));
 
-const fetchSegmentKeyMock = fetchSegmentKey as jest.Mock;
+const fetchSegmentKeyMock = jest.mocked(fetchSegmentKey);
 
 describe('useWatchSegmentKey', () => {
   it('should fetch segment key successfully', async () => {

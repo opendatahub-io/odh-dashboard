@@ -67,7 +67,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
                   setCurrentFilterType(filterKey);
                 }}
               >
-                <>{filterOptions[filterKey]}</>
+                {filterOptions[filterKey]}
               </DropdownItem>
             ))}
             data-testid="pipeline-filter-dropdown"

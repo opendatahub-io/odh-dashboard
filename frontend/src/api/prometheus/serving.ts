@@ -13,12 +13,15 @@ import {
   RefreshIntervalTitle,
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
-import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PROMETHEUS_BIAS_PATH } from '~/api/prometheus/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
+import {
+  defaultResponsePredicate,
+  prometheusQueryRangeResponsePredicate,
+} from './usePrometheusQueryRange';
 
 export const useModelServingMetrics = (
   type: PerformanceMetricType,
@@ -40,15 +43,6 @@ export const useModelServingMetrics = (
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
-
-  const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
-    (data) => data.result?.[0]?.values || [],
-    [],
-  );
-
-  const prometheusQueryRangeResponsePredicate = React.useCallback<
-    ResponsePredicate<PrometheusQueryRangeResponseDataResult>
-  >((data) => data.result || [], []);
 
   const serverRequestCount = useQueryRangeResourceData(
     performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,

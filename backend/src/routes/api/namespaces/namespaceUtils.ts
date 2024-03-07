@@ -60,6 +60,7 @@ export const applyNamespaceChange = async (
   request: OauthFastifyRequest,
   name: string,
   context: NamespaceApplicationCase,
+  dryRun?: string,
 ): Promise<{ applied: boolean }> => {
   if (name.startsWith('openshift') || name.startsWith('kube')) {
     // Kubernetes and OpenShift namespaces are off limits to this flow
@@ -120,7 +121,7 @@ export const applyNamespaceChange = async (
   }
 
   return fastify.kube.coreV1Api
-    .patchNamespace(name, { metadata: { labels } }, undefined, undefined, undefined, undefined, {
+    .patchNamespace(name, { metadata: { labels } }, undefined, dryRun, undefined, undefined, {
       headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
     })
     .then(() => ({ applied: true }))

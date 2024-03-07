@@ -158,9 +158,8 @@ describe('Pipeline create runs', () => {
       cloneRunPage
         .findPipelineVersionSelect()
         .should('have.text', mockPipelineVersion.display_name);
-      Object.entries(mockDuplicateRun.runtime_config?.parameters || {}).map(
-        ([paramLabel, paramValue]) =>
-          cloneRunPage.findParamByLabel(paramLabel).should('have.value', paramValue.toString()),
+      Object.entries(mockDuplicateRun.runtime_config.parameters).map(([paramLabel, paramValue]) =>
+        cloneRunPage.findParamByLabel(paramLabel).should('have.value', paramValue.toString()),
       );
 
       cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('cloneRun');

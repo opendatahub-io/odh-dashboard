@@ -33,7 +33,7 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
             <Truncate content={acceleratorProfile.spec.displayName} />
           </Text>
           {acceleratorProfile.spec.description && (
-            <Text component={TextVariants.small}>
+            <Text data-testid="description" component={TextVariants.small}>
               <Truncate content={acceleratorProfile.spec.description} />
             </Text>
           )}

@@ -62,4 +62,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelineExperiments'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
+  [SupportedArea.DISTRIBUTED_WORKLOADS]: {
+    featureFlags: ['disableDistributedWorkloads'],
+    requiredComponents: [StackComponent.KUEUE],
+  },
 };

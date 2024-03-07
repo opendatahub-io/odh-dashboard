@@ -24,6 +24,7 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
       <CanEnableElyraPipelinesCheck namespace={currentProject.metadata.name}>
         {(canEnablePipelines) => (
           <Table
+            data-testid="notebook-table"
             variant="compact"
             data={notebookStates}
             columns={columns}

@@ -11,7 +11,7 @@ class NotebookImageSettings {
   }
 
   navigate() {
-    appChrome.findNavItem('Notebook image settings', 'Settings').click();
+    appChrome.findNavItem('Notebook images', 'Settings').click();
     this.wait();
   }
 

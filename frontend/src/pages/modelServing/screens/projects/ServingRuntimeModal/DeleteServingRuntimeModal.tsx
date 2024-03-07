@@ -9,6 +9,7 @@ import {
   deleteServingRuntime,
 } from '~/api';
 import { getTokenNames } from '~/pages/modelServing/utils';
+import { allSettledPromises } from '~/utilities/allSettledPromises';
 
 type DeleteServingRuntimeModalProps = {
   servingRuntime?: ServingRuntimeKind;
@@ -45,7 +46,7 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
             servingRuntime.metadata.namespace,
           );
 
-          Promise.allSettled<ServingRuntimeKind | K8sStatus>([
+          allSettledPromises<ServingRuntimeKind | K8sStatus>([
             deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
             ...inferenceServices
               .filter(

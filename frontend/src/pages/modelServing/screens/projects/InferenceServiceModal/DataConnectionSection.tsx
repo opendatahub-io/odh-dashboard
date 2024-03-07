@@ -52,19 +52,16 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
               })
             }
             body={
-              data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE && (
-                <>
-                  {!dataConnectionContext && !loaded && data.project !== '' ? (
-                    <Skeleton />
-                  ) : (
-                    <DataConnectionExistingField
-                      data={data}
-                      setData={setData}
-                      dataConnections={dataConnections}
-                    />
-                  )}
-                </>
-              )
+              data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE &&
+              (!dataConnectionContext && !loaded && data.project !== '' ? (
+                <Skeleton />
+              ) : (
+                <DataConnectionExistingField
+                  data={data}
+                  setData={setData}
+                  dataConnections={dataConnections}
+                />
+              ))
             }
           />
         </StackItem>

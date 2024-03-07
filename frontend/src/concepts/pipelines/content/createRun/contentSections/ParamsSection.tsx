@@ -34,7 +34,7 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ runParams = {}, versionId
         <TextInput
           id={`${label}-param-field`}
           name={`${label}-param-field`}
-          value={value?.toString() ?? ''}
+          value={value.toString()}
           onChange={(_e, newParamValue) => onChange({ ...runParams, [label]: newParamValue })}
         />
       </FormGroup>

@@ -48,7 +48,6 @@ import './LearningCenterToolbar.scss';
 type LearningCenterToolbarProps = {
   count: number;
   totalCount: number;
-  onSearchInputChange?: (value: string) => void;
   viewType: string;
   updateViewType: (updatedType: string) => void;
   filtersCollapsible: boolean;

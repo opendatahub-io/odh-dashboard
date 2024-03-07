@@ -26,11 +26,15 @@ const EditAcceleratorProfile: React.FC = () => {
       <Bullseye>
         <EmptyState>
           <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
+          <Title headingLevel="h4" size="lg" data-testid="problem-loading-accelerator-profile">
             Problem loading accelerator profile
           </Title>
           <EmptyStateBody>{error.message}</EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/acceleratorProfiles')}>
+          <Button
+            data-testid="view-all-accelerator-profiles"
+            variant="primary"
+            onClick={() => navigate('/acceleratorProfiles')}
+          >
             View all accelerator profiles
           </Button>
         </EmptyState>

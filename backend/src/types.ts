@@ -287,6 +287,7 @@ export type OdhApplication = {
     description: string;
     displayName: string;
     docsLink: string;
+    hidden?: boolean | null;
     enable?: {
       actionLabel: string;
       description?: string;

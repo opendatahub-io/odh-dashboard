@@ -19,16 +19,16 @@ export const RUN_OPTION_LABEL_SIZE = 100;
 
 export enum CreateRunPageSections {
   NAME_DESC = 'run-section-name-desc',
+  EXPERIMENT = 'run-section-experiment',
   PIPELINE = 'run-section-pipeline',
   PIPELINE_VERSION = 'run-section-pipeline-version',
-  EXPERIMENT = 'run-section-experiment',
   PARAMS = 'run-section-params',
 }
 
 export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.NAME_DESC]: 'Name and description',
+  [CreateRunPageSections.EXPERIMENT]: 'Experiment',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
   [CreateRunPageSections.PIPELINE_VERSION]: 'Pipeline version',
-  [CreateRunPageSections.EXPERIMENT]: 'Experiment',
   [CreateRunPageSections.PARAMS]: 'Pipeline input parameters',
 };

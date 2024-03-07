@@ -79,7 +79,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     LOG_TAIL_LINES,
   );
   const sortedContainerStatuses = podContainers.map((podContainer) =>
-    podContainerStatuses?.find(
+    podContainerStatuses.find(
       (podContainerStatus) => podContainerStatus?.name === podContainer.name,
     ),
   );
@@ -112,7 +112,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
 
   React.useEffect(() => {
     if (!isPaused && logs) {
-      if (logViewerRef && logViewerRef.current) {
+      if (logViewerRef.current) {
         logViewerRef.current.scrollToBottom();
       }
     }
@@ -131,7 +131,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     }
   };
 
-  const canDownloadAll = !!podContainers && !!pod && !downloading;
+  const canDownloadAll = !!pod && !downloading;
   const onDownloadAll = () => {
     if (!canDownloadAll) {
       return;
@@ -183,7 +183,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
       }
       setIsFullScreen(true);
     } else {
-      if (document.exitFullscreen) {
+      if (document.fullscreenElement) {
         document.exitFullscreen();
       }
       setIsFullScreen(false);
@@ -292,20 +292,19 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                             onClick={() => setIsPaused(!isPaused)}
                             isDisabled={!!error}
                           >
-                            {!error &&
-                              (!logsLoaded || podStatus?.podInitializing ? (
-                                <Tooltip content="Loading log">
-                                  <Spinner size="sm" />
-                                </Tooltip>
-                              ) : isPaused ? (
-                                <Tooltip content="Resume refreshing">
-                                  <PlayIcon />
-                                </Tooltip>
-                              ) : (
-                                <Tooltip content="Pause refreshing">
-                                  <PauseIcon />
-                                </Tooltip>
-                              ))}
+                            {!logsLoaded || podStatus?.podInitializing ? (
+                              <Tooltip content="Loading log">
+                                <Spinner size="sm" />
+                              </Tooltip>
+                            ) : isPaused ? (
+                              <Tooltip content="Resume refreshing">
+                                <PlayIcon />
+                              </Tooltip>
+                            ) : (
+                              <Tooltip content="Pause refreshing">
+                                <PauseIcon />
+                              </Tooltip>
+                            )}
                           </Button>
                         </ToolbarItem>
                       )}

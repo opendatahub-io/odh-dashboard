@@ -53,7 +53,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 }) => {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { namespace, refreshAllAPI, getJobInformation } = usePipelinesAPI();
+  const { namespace, refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const lastLocationPipelineVersion: PipelineVersionKFv2 | undefined = state?.lastVersion;
   const {
@@ -177,7 +177,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               setIsDeleteModalOpen(true);
             }}
             run={run}
-            getJobInformation={getJobInformation}
           />
         )}
         variant={TableVariant.compact}

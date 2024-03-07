@@ -135,6 +135,7 @@ export type OdhApplication = {
     link?: string | null;
     img: string;
     docsLink: string;
+    hidden?: boolean | null;
     getStartedLink: string;
     getStartedMarkDown: string;
     category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
@@ -684,12 +685,15 @@ export type ImageStreamAndVersion = {
   imageVersion?: ImageStreamSpecTagType;
 };
 
-export type ContextResourceData<T> = {
-  data: T[];
+export type FetchStateObject<T, E = Error> = {
+  data: T;
   loaded: boolean;
-  error?: Error | AxiosError;
+  error?: E;
   refresh: () => void;
 };
+
+// TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
+export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
 
 export type BreadcrumbItemType = {
   label: string;
@@ -705,4 +709,9 @@ export type DetectedAccelerators = {
 export enum ServingRuntimePlatform {
   SINGLE = 'single',
   MULTI = 'multi',
+}
+
+export enum ServingRuntimeAPIProtocol {
+  REST = 'REST',
+  GRPC = 'gRPC',
 }

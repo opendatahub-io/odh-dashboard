@@ -9,6 +9,7 @@ metadata:
     tags: 'ovms,servingruntime'
     description: 'OpenVino Model Serving Definition'
     opendatahub.io/modelServingSupport: '["multi"]'
+    opendatahub.io/apiProtocol: 'REST'
 objects:
   - apiVersion: serving.kserve.io/v1alpha1
     kind: ServingRuntime
@@ -60,5 +61,5 @@ objects:
           version: '1'
         - autoSelect: true
           name: tensorflow
-          version: "2" 
+          version: '2'
 parameters: []

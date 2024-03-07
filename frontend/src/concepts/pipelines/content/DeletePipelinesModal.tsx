@@ -111,6 +111,8 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
               setDeleting(false);
             });
         } else {
+          //TODO: prefer a refactor for the use case to not depend on the index in the delete modal.
+          // eslint-disable-next-line no-restricted-properties
           Promise.allSettled(allPromises).then((results) =>
             onBeforeClose(
               true,

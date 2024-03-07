@@ -8,7 +8,6 @@ import { TableRowTitleDescription } from '~/components/table';
 import {
   getDataConnectionDescription,
   getDataConnectionDisplayName,
-  getDataConnectionProvider,
   getDataConnectionResourceName,
   getDataConnectionType,
 } from './utils';
@@ -40,7 +39,6 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
         relatedResourceName={getDataConnectionResourceName(obj)}
       />
     </Td>
-    <Td dataLabel="Provider">{getDataConnectionProvider(obj)}</Td>
     <Td isActionCell>
       <ActionsColumn
         items={[

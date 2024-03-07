@@ -25,6 +25,8 @@ import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import { asEnumMember } from '~/utilities/utils';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
@@ -35,18 +37,27 @@ type RunPageProps = {
 const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   const { namespace } = useParams();
   const location = useLocation();
-  const { runType, triggerType } = useGetSearchParamValues([
+  const { runType, triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.RunType,
     PipelineRunSearchParam.TriggerType,
   ]);
+  const triggerType = asEnumMember(triggerTypeString, ScheduledType);
 
-  const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
-  const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
+  const cloneRunPipelineId = cloneRun?.pipeline_version_reference.pipeline_id || '';
+  const cloneRunVersionId = cloneRun?.pipeline_version_reference.pipeline_version_id || '';
   const cloneRunExperimentId = cloneRun?.experiment_id || '';
 
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
   const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
   const [cloneRunExperiment] = useExperimentById(cloneRunExperimentId);
+
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+
+  const sections = isExperimentsAvailable
+    ? Object.values(CreateRunPageSections)
+    : Object.values(CreateRunPageSections).filter(
+        (section) => section !== CreateRunPageSections.EXPERIMENT,
+      );
 
   const [formData, setFormDataValue] = useRunFormData(cloneRun, {
     runType: {
@@ -55,7 +66,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
             type: RunTypeOption.SCHEDULED,
             data: {
               ...DEFAULT_PERIODIC_DATA,
-              triggerType: (triggerType as ScheduledType) || ScheduledType.PERIODIC,
+              triggerType: triggerType || ScheduledType.PERIODIC,
             },
           }
         : { type: RunTypeOption.ONE_TRIGGER }),
@@ -73,11 +84,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   return (
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
-        <GenericSidebar
-          sections={Object.values(CreateRunPageSections)}
-          titles={runPageSectionTitles}
-          maxWidth={175}
-        >
+        <GenericSidebar sections={sections} titles={runPageSectionTitles} maxWidth={175}>
           <RunForm
             data={formData}
             runType={runType as PipelineRunType}

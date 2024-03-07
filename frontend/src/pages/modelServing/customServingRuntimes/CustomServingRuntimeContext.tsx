@@ -66,6 +66,21 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     servingRuntimeTemplateDisablementRefresh,
   ]);
 
+  const contextValue = React.useMemo(
+    () => ({
+      servingRuntimeTemplates,
+      servingRuntimeTemplateOrder,
+      servingRuntimeTemplateDisablement,
+      refreshData,
+    }),
+    [
+      servingRuntimeTemplates,
+      servingRuntimeTemplateOrder,
+      servingRuntimeTemplateDisablement,
+      refreshData,
+    ],
+  );
+
   if (
     servingRuntimeTemplates.error ||
     servingRuntimeTemplateOrder.error ||
@@ -100,14 +115,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   }
 
   return (
-    <CustomServingRuntimeContext.Provider
-      value={{
-        servingRuntimeTemplates,
-        servingRuntimeTemplateOrder,
-        servingRuntimeTemplateDisablement,
-        refreshData,
-      }}
-    >
+    <CustomServingRuntimeContext.Provider value={contextValue}>
       <Outlet />
     </CustomServingRuntimeContext.Provider>
   );

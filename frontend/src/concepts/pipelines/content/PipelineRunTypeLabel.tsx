@@ -17,14 +17,6 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ run, isComp
           </Label>
         </Tooltip>
       </>
-    ) : !run.pipeline_version_reference ? (
-      <>
-        <Tooltip content={<div>Created by a schedule that was deleted</div>}>
-          <Label color="blue" isCompact={isCompact}>
-            {PipelineRunLabels.RECURRING}
-          </Label>
-        </Tooltip>
-      </>
     ) : (
       <>
         <Tooltip content={<div>Run once immediately after creation</div>}>

@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import './ConfigurePipelinesServerModal.scss';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -33,7 +34,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const { project, namespace } = usePipelinesAPI();
   const [dataConnections, loaded, , refresh] = useDataConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
+  const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
 
   React.useEffect(() => {
@@ -58,16 +59,19 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const onBeforeClose = () => {
     onClose();
     setFetching(false);
-    setError(null);
+    setError(undefined);
     setConfig(FORM_DEFAULTS);
   };
 
   const submit = () => {
     const objectStorage: PipelineServerConfigType['objectStorage'] = {
-      newValue: config.objectStorage.newValue,
+      newValue: config.objectStorage.newValue.map((entry) => ({
+        ...entry,
+        value: entry.value.trim(),
+      })),
     };
     setFetching(true);
-    setError(null);
+    setError(undefined);
 
     const configureConfig: PipelineServerConfigType = {
       ...config,
@@ -101,20 +105,17 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       description="Configuring a pipeline server enables you to create and manage pipelines."
       isOpen={open}
       onClose={onBeforeClose}
-      actions={[
-        <Button
-          key="configure"
-          variant="primary"
-          isDisabled={!canSubmit || fetching}
-          isLoading={fetching}
-          onClick={submit}
-        >
-          Configure pipeline server
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onBeforeClose}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <DashboardModalFooter
+          submitLabel="Configure pipeline server"
+          onSubmit={submit}
+          isSubmitLoading={fetching}
+          isSubmitDisabled={!canSubmit || fetching}
+          onCancel={onBeforeClose}
+          alertTitle="Error configuring pipeline server"
+          error={error}
+        />
+      }
     >
       <Stack hasGutter>
         <StackItem>
@@ -140,13 +141,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
           </Form>
         </StackItem>
-        {error && (
-          <StackItem>
-            <Alert variant="danger" isInline title="Error configuring pipeline server">
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
       </Stack>
     </Modal>
   );

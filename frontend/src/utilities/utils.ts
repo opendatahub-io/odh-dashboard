@@ -1,3 +1,4 @@
+import { LabelProps } from '@patternfly/react-core';
 import { ContainerResources, OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
@@ -49,12 +50,7 @@ export const calculateRelativeTime = (startTime: Date, endTime: Date): string =>
 };
 
 // Returns the possible colors allowed for a patternfly-react Label component
-// There is no type defined for this so it must be exactly one of the possible strings
-// required :/
-// FixMe: Fix when https://github.com/patternfly/patternfly-react/issues/5895 is resolved
-export const getLabelColorForDocType = (
-  docType: string,
-): 'blue' | 'cyan' | 'green' | 'orange' | 'purple' | 'red' | 'grey' => {
+export const getLabelColorForDocType = (docType: string): LabelProps['color'] => {
   switch (docType) {
     case OdhDocumentType.Documentation:
       return 'orange';
@@ -162,3 +158,19 @@ export const getAcceleratorProfileCount = (
   acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,
 ): number => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);
+
+export const asEnumMember = <T extends object>(
+  member: T[keyof T] | string | number | null,
+  e: T,
+): T[keyof T] | null => (isEnumMember(member, e) ? member : null);
+
+export const isEnumMember = <T extends object>(
+  member: T[keyof T] | string | number | null,
+  e: T,
+): member is T[keyof T] => {
+  if (member != null) {
+    const values = Object.values(e);
+    return values.slice(values.length / 2).includes(member);
+  }
+  return false;
+};

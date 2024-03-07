@@ -59,7 +59,7 @@ export const checkPodContainersStatus = (
 ): PodStatus | null => {
   const containerStatuses = pod?.status?.containerStatuses || [];
 
-  const container = containerStatuses.find((c) => c?.name === selectedContainer?.name);
+  const container = containerStatuses.find((c) => c.name === selectedContainer?.name);
 
   if (!container) {
     return null;

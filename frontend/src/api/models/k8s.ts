@@ -31,6 +31,13 @@ export const PVCModel: K8sModelCommon = {
   plural: 'persistentvolumeclaims',
 };
 
+export const StorageClassModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'storage.k8s.io',
+  kind: 'StorageClass',
+  plural: 'storageclasses',
+};
+
 export const NamespaceModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Namespace',

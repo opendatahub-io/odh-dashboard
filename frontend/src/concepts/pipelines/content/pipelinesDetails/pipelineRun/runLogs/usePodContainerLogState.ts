@@ -32,7 +32,7 @@ const usePodContainerLogState = (
     setSelectedContainer(null);
   }, [podName]);
 
-  const firstPodContainer = podContainers[0];
+  const firstPodContainer = podContainers.length > 0 ? podContainers[0] : undefined;
   React.useEffect(() => {
     if (!selectedContainer && firstPodContainer) {
       setSelectedContainer(firstPodContainer);

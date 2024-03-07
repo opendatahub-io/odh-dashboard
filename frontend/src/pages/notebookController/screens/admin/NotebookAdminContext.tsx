@@ -24,14 +24,15 @@ export const NotebookAdminContextProvider: React.FC<NotebookAdminContextProvider
     [],
   );
 
+  const contextValue = React.useMemo(
+    () => ({
+      serverStatuses,
+      setServerStatuses,
+    }),
+    [serverStatuses],
+  );
+
   return (
-    <NotebookAdminContext.Provider
-      value={{
-        serverStatuses,
-        setServerStatuses,
-      }}
-    >
-      {children}
-    </NotebookAdminContext.Provider>
+    <NotebookAdminContext.Provider value={contextValue}>{children}</NotebookAdminContext.Provider>
   );
 };

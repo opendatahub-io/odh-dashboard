@@ -151,7 +151,45 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const projectsEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
 
-  if (!project) {
+  const contextValue = React.useMemo(
+    () =>
+      project
+        ? {
+            currentProject: project,
+            notebooks,
+            pvcs,
+            dataConnections,
+            servingRuntimes,
+            servingRuntimeTemplates,
+            servingRuntimeTemplateOrder,
+            servingRuntimeTemplateDisablement,
+            inferenceServices,
+            refreshAllProjectData,
+            filterTokens,
+            serverSecrets,
+            projectSharingRB,
+            groups,
+          }
+        : null,
+    [
+      project,
+      notebooks,
+      pvcs,
+      dataConnections,
+      servingRuntimes,
+      servingRuntimeTemplates,
+      servingRuntimeTemplateOrder,
+      servingRuntimeTemplateDisablement,
+      inferenceServices,
+      refreshAllProjectData,
+      filterTokens,
+      serverSecrets,
+      projectSharingRB,
+      groups,
+    ],
+  );
+
+  if (!project || !contextValue) {
     if (projectsEnabled && projects.length === 0) {
       // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
@@ -167,24 +205,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   }
 
   return (
-    <ProjectDetailsContext.Provider
-      value={{
-        currentProject: project,
-        notebooks,
-        pvcs,
-        dataConnections,
-        servingRuntimes,
-        servingRuntimeTemplates,
-        servingRuntimeTemplateOrder,
-        servingRuntimeTemplateDisablement,
-        inferenceServices,
-        refreshAllProjectData,
-        filterTokens,
-        serverSecrets,
-        projectSharingRB,
-        groups,
-      }}
-    >
+    <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (
         <PipelineContextProvider namespace={project.metadata.name}>
           <Outlet />

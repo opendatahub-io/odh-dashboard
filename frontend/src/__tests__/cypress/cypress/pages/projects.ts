@@ -1,6 +1,17 @@
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { TableRow } from './components/table';
+
+class NotebookRow extends TableRow {
+  findNotebookImageAvailability() {
+    return cy.findByTestId('notebook-image-availability');
+  }
+
+  shouldHaveNotebookImageName(name: string) {
+    return cy.findByTestId('image-display-name').should('have.text', name);
+  }
+}
 
 class ProjectListPage {
   visit() {
@@ -30,6 +41,10 @@ class ProjectListPage {
 
   findCreateProjectButton() {
     return cy.findByRole('button', { name: 'Create data science project' });
+  }
+
+  shouldHaveDSLabel(projectName: string) {
+    return this.findProjectRow(projectName).findByText('DS').should('exist');
   }
 
   findProjectsTable() {
@@ -72,6 +87,61 @@ class ProjectDetails {
   private wait() {
     cy.findByRole('tab', { name: 'Components' });
     cy.testA11y();
+  }
+
+  private findModelServingPlatform(name: string) {
+    return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
+  }
+
+  findSingleModelDeployButton() {
+    return this.findModelServingPlatform('single').findByTestId('model-serving-platform-button');
+  }
+
+  findMultiModelButton() {
+    return this.findModelServingPlatform('multi').findByTestId('model-serving-platform-button');
+  }
+
+  findDeployModelTooltip() {
+    return cy.findByTestId('model-serving-action-tooltip');
+  }
+
+  shouldHaveNoPlatformSelectedText() {
+    cy.findByTestId('no-model-serving-platform-selected').should('exist');
+    return this;
+  }
+
+  findServingPlatformLabel() {
+    return cy.findByTestId('serving-platform-label');
+  }
+
+  findComponent(componentName: string) {
+    return cy.findByTestId(componentName);
+  }
+
+  shouldBeEmptyState(componentName: string, emptyState: boolean) {
+    this.findComponent(componentName)
+      .findByTestId('empty-state-title')
+      .should(emptyState ? 'exist' : 'not.exist');
+    return this;
+  }
+
+  shouldDivide() {
+    cy.findAllByTestId('details-page-section').then((sections) => {
+      cy.wrap(sections)
+        .find('.odh-details-section--divide')
+        .should('have.length', sections.length - 1);
+    });
+    return this;
+  }
+
+  private findTable() {
+    return cy.findByTestId('notebook-image');
+  }
+
+  getNotebookRow(name: string) {
+    return new NotebookRow(() =>
+      this.findTable().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
   }
 
   findTab(name: string) {

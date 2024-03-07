@@ -76,7 +76,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
           />
         )}
         toolbarContent={
-          <React.Fragment>
+          <>
             <ToolbarItem>
               <DashboardSearchField
                 types={[SearchType.NAME, SearchType.USER]}
@@ -102,7 +102,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
                 <LaunchJupyterButton variant={ButtonVariant.link} />
               </ToolbarItem>
             )}
-          </React.Fragment>
+          </>
         }
       />
       <ManageProjectModal

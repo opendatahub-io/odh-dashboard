@@ -9,7 +9,6 @@ import {
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
 import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
@@ -26,7 +25,6 @@ type PipelineRunTableRowProps = {
   onToggleCheck: () => void;
   onDelete: () => void;
   run: PipelineRunKFv2;
-  getJobInformation: GetJobInformation;
 };
 
 const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
