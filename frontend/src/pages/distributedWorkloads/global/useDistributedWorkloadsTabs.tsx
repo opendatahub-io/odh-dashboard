@@ -15,7 +15,7 @@ export type DistributedWorkloadsTabConfig = {
   isAvailable: boolean;
   // TODO mturley remove this now that all our tabs here are single project only, or leave in case we add future tabs?
   projectSelectorMode: 'singleProjectOnly' | 'projectOrAll' | null;
-  ContentComponent: React.FC<{ tabConfig: DistributedWorkloadsTabConfig }>;
+  ContentComponent: React.FC;
 };
 
 export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] => {
