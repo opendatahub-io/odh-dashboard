@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -22,7 +21,6 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   filterLabel,
 }) => {
   const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
-  useMountProjectRefresh();
   const selection = projects.find(byName(namespace));
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
 

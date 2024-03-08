@@ -1,5 +1,8 @@
 import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+// TODO copying from the dynamic-plugin-sdk-utils
+// this is a work around for cypress webpack failing when import code that imports patternfly
+
 const getK8sAPIPath = ({ apiGroup = 'core', apiVersion }: K8sModelCommon) => {
   const isLegacy = apiGroup === 'core' && apiVersion === 'v1';
   return isLegacy ? `/api/${apiVersion}` : `/apis/${apiGroup}/${apiVersion}`;

@@ -3,7 +3,6 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ProjectScope } from '~/pages/projects/types';
 import EmptyProjects from './EmptyProjects';
@@ -22,7 +21,6 @@ const ProjectView: React.FC = () => {
     ProjectScope.DS_PROJECTS,
   );
   const { projects, dataScienceProjects } = React.useContext(ProjectsContext);
-  useMountProjectRefresh();
   const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
 
   return (

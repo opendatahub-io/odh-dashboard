@@ -3,6 +3,7 @@ import { AppInitSDK, isUtilsConfigSet, K8sStatus } from '@openshift/dynamic-plug
 import { PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { isK8sStatus, K8sStatusError } from './api';
+import { WS_HOSTNAME } from './utilities/const';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   appFetch: (url, options) =>
@@ -40,7 +41,7 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
    */
   wsAppSettings: () =>
     Promise.resolve({
-      host: `${location.protocol.replace(/^http/i, 'ws')}//${location.host}/wss/k8s`,
+      host: `${location.protocol.replace(/^http/i, 'ws')}//${WS_HOSTNAME}/wss/k8s`,
       urlAugment: (url) => {
         const [origUrl, query] = url.split('?');
         const queryParams = new URLSearchParams(query);
