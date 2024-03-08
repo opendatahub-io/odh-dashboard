@@ -105,9 +105,6 @@ export const createDSPipelineResourceSpec = (
 
   return {
     dspVersion: 'v2',
-    mlpipelineUI: {
-      image: 'quay.io/opendatahub/ds-pipelines-frontend:latest', // TODO: remove this before release
-    },
     objectStorage: {
       externalStorage: {
         host: externalStorageHost.replace(/\/$/, '') || '',
