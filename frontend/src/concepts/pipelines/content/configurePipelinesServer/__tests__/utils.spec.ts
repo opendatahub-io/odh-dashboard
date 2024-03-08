@@ -43,9 +43,6 @@ describe('configure pipeline server utils', () => {
       );
       expect(spec).toEqual({
         dspVersion: 'v2',
-        mlpipelineUI: {
-          image: 'quay.io/opendatahub/ds-pipelines-frontend:latest',
-        },
         database: undefined,
         objectStorage: {
           externalStorage: {
@@ -123,9 +120,6 @@ describe('configure pipeline server utils', () => {
       );
       expect(spec).toEqual({
         dspVersion: 'v2',
-        mlpipelineUI: {
-          image: 'quay.io/opendatahub/ds-pipelines-frontend:latest',
-        },
         objectStorage: {
           externalStorage: {
             bucket: '',
