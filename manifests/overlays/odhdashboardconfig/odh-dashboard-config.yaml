@@ -24,6 +24,7 @@ spec:
     disableAcceleratorProfiles: true
     disableKServe: false
     disableModelMesh: false
+    disableDistributedWorkloads: true
   notebookController:
     enabled: true
   notebookSizes:

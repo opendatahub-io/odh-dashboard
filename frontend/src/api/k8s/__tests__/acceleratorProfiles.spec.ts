@@ -3,14 +3,15 @@ import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { AcceleratorProfileModel } from '~/api/models';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { getAcceleratorProfile, listAcceleratorProfiles } from '~/api/k8s/acceleratorProfiles';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sGetResource: jest.fn(),
 }));
 
-const mockListResource = k8sListResource as jest.Mock;
-const mockGetResource = k8sGetResource as jest.Mock;
+const mockListResource = jest.mocked(k8sListResource<AcceleratorProfileKind>);
+const mockGetResource = jest.mocked(k8sGetResource<AcceleratorProfileKind>);
 
 describe('listAcceleratorProfile', () => {
   it('should fetch and return list of accelerator profile', async () => {

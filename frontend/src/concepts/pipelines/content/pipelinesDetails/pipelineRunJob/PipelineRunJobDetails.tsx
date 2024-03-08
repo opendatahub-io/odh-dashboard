@@ -101,14 +101,14 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                     }}
                     pipelineRunDetails={
                       job && version?.pipeline_spec
-                        ? { kf: job, kind: version?.pipeline_spec }
+                        ? { kf: job, kind: version.pipeline_spec }
                         : undefined
                     }
                   />
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading schedule' : job?.display_name}
+                  title={job?.display_name}
                   description={
                     job ? <MarkdownView conciseDisplay markdown={job.description} /> : ''
                   }
@@ -117,14 +117,11 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
-                      <BreadcrumbItem isActive>
-                        {error ? 'Schedule details' : job?.display_name ?? 'Loading...'}
-                      </BreadcrumbItem>
+                      <BreadcrumbItem isActive>{job?.display_name ?? 'Loading...'}</BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
-                    loaded &&
-                    !error && (
+                    loaded && (
                       <PipelineRunJobDetailsActions
                         job={job ?? undefined}
                         onDelete={() => setDeleting(true)}

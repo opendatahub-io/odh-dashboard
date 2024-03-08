@@ -156,12 +156,19 @@ export const standardUseFetchState = <D>(
   refresh: () => Promise<D | undefined>,
 ] => [data, loaded, error, expect.any(Function)];
 
+// create a new asymmetric matcher that matches everything
+const everything = () => {
+  const r = expect.anything();
+  r.asymmetricMatch = () => true;
+  return r;
+};
+
 /**
  * Extracts a subset of values from the source that can be used to compare equality.
  *
  * Recursively traverses the `booleanTarget`. For every property or array index equal to `true`,
  * adds the value of the source to the result wrapped in custom matcher `expect.isIdentityEqual`.
- * If the entry is `false` or `undefined`, adds matcher `expect.anything()` to the result.
+ * If the entry is `false` or `undefined`, add an everything matcher to the result.
  */
 export const createComparativeValue = <T>(source: T, booleanTarget: BooleanValues<T>): unknown =>
   createComparativeValueRecursive(source, booleanTarget);
@@ -172,16 +179,17 @@ const createComparativeValueRecursive = <T>(
   booleanTarget: boolean | string | number | Function | BooleanValues<T>,
 ) => {
   if (typeof booleanTarget === 'boolean') {
-    return booleanTarget ? expect.isIdentityEqual(source) : expect.anything();
+    return booleanTarget ? expect.isIdentityEqual(source) : everything();
   }
   if (Array.isArray(booleanTarget)) {
     if (Array.isArray(source)) {
-      return expect.arrayContaining(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        booleanTarget.map((b, i): any =>
-          b == null ? expect.anything() : createComparativeValueRecursive(source[i], b),
-        ),
-      );
+      const r = new Array(source.length).fill(everything());
+      booleanTarget.forEach((b, i) => {
+        if (b != null) {
+          r[i] = createComparativeValueRecursive(source[i], b);
+        }
+      });
+      return r;
     }
     return undefined;
   }

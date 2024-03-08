@@ -3,17 +3,18 @@ import { act } from '@testing-library/react';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
 }));
 
-const k8sListResourceItemsMock = k8sListResourceItems as jest.Mock;
+const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<PersistentVolumeClaimKind>);
 
 describe('useProjectPVCs', () => {
   it('should return dashboard PVCs', async () => {
-    const mockedPVC = { data: mockPVCK8sResource({}) };
+    const mockedPVC = [mockPVCK8sResource({})];
     const options = {
       model: {
         apiVersion: 'v1',
@@ -26,7 +27,7 @@ describe('useProjectPVCs', () => {
       },
     };
 
-    k8sListResourceItemsMock.mockReturnValue(Promise.resolve(mockedPVC));
+    k8sListResourceItemsMock.mockResolvedValue(mockedPVC);
 
     const renderResult = testHook(useProjectPvcs)('namespace');
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
@@ -42,7 +43,7 @@ describe('useProjectPVCs', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceItemsMock.mockReturnValue(Promise.resolve({ data: mockedPVC.data }));
+    k8sListResourceItemsMock.mockResolvedValue([]);
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
@@ -57,7 +58,7 @@ describe('useProjectPVCs', () => {
   });
 
   it('should handle errors and rethrow', async () => {
-    k8sListResourceItemsMock.mockReturnValue(Promise.reject(new Error('error1')));
+    k8sListResourceItemsMock.mockRejectedValue(new Error('error1'));
 
     const renderResult = testHook(useProjectPvcs)('namespace');
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
@@ -72,7 +73,7 @@ describe('useProjectPVCs', () => {
     expect(renderResult).hookToBeStable([true, true, false, true]);
 
     // refresh
-    k8sListResourceItemsMock.mockReturnValue(Promise.reject(new Error('error2')));
+    k8sListResourceItemsMock.mockRejectedValue(new Error('error2'));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([], false, new Error('error2')));

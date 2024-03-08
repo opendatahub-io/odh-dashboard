@@ -36,24 +36,18 @@ export const downloadAllStepLogs = async (
   pod: PodKind,
 ): Promise<void> => {
   const logPromises = podContainers.reduce<Promise<string>[]>((accumulator, podContainer) => {
-    if (podContainer !== null) {
-      const logpromise = getPodContainerLogText(
-        namespace,
-        pod.metadata.name,
-        podContainer.name,
-      ).then(
-        (logsIndividualStep) => `=============
+    const logpromise = getPodContainerLogText(namespace, pod.metadata.name, podContainer.name).then(
+      (logsIndividualStep) => `=============
 ${podContainer.name}
 =============
 ${logsIndividualStep}`,
-      );
+    );
 
-      accumulator.push(logpromise);
-    }
+    accumulator.push(logpromise);
     return accumulator;
   }, []);
   const completed = (pod.status?.containerStatuses || []).every(
-    (containerStatus) => containerStatus?.state?.terminated,
+    (containerStatus) => containerStatus.state?.terminated,
   );
   const allStepLogs = await Promise.all(logPromises);
 
@@ -72,21 +66,21 @@ export const getPodStepsStates = async (
         const stepsStatePromise = getPodContainerLogText(
           namespace,
           podName,
-          podContainerStatus?.name,
+          podContainerStatus.name,
         )
           .then((logsIndividualStep) => ({
-            stepName: podContainerStatus?.name || '',
+            stepName: podContainerStatus.name || '',
             state:
-              podContainerStatus?.state?.running || podContainerStatus?.state?.waiting
+              podContainerStatus.state?.running || podContainerStatus.state?.waiting
                 ? PodStepStateType.loading
                 : logsIndividualStep.toLowerCase().includes('error')
                 ? PodStepStateType.error
-                : podContainerStatus?.state?.terminated
+                : podContainerStatus.state?.terminated
                 ? PodStepStateType.success
                 : PodStepStateType.loading,
           }))
           .catch(() => ({
-            stepName: podContainerStatus?.name || '',
+            stepName: podContainerStatus.name || '',
             state: PodStepStateType.error,
           }));
         accumulator.push(stepsStatePromise);

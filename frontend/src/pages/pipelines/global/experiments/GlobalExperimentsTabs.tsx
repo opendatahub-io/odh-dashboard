@@ -17,7 +17,7 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
 
   return (
     <Tabs
-      activeKey={tab || ExperimentListTabs.ACTIVE}
+      activeKey={tab}
       onSelect={(_event, tabId) => navigate(`/pipelineExperiments/${namespace}/${tabId}`)}
       aria-label="Experiments page tabs"
       role="region"

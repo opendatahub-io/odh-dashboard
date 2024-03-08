@@ -39,9 +39,9 @@ const usePipelineQuery = <T extends PipelineCoreResourceKFv2>(
       });
 
       return {
-        items: result?.items || [],
-        totalSize: result?.total_size || result?.items?.length || 0,
-        nextPageToken: result?.next_page_token,
+        items: result.items || [],
+        totalSize: result.total_size || result.items?.length || 0,
+        nextPageToken: result.next_page_token,
       };
     },
     [apiFetch, page, pageSize, sortField, sortDirection, filter],

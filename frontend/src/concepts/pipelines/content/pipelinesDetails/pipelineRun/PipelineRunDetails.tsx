@@ -101,7 +101,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     }}
                     pipelineRunDetails={
                       runResource && version?.pipeline_spec
-                        ? { kf: runResource, kind: version?.pipeline_spec }
+                        ? { kf: runResource, kind: version.pipeline_spec }
                         : undefined
                     }
                   />

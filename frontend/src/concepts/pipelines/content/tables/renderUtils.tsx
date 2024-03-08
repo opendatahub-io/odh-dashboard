@@ -146,7 +146,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
 
-  const isEnabled = job.mode === RecurringRunMode.ENABLE ?? false;
+  const isEnabled = job.mode === RecurringRunMode.ENABLE;
   React.useEffect(() => {
     // When the network updates, if we are currently locked fetching, disable it so we can accept the change
     setIsChangingFlag((v) => (v ? false : v));

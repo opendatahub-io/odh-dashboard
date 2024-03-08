@@ -1,17 +1,17 @@
 import { act } from '@testing-library/react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceKind } from '~/k8sTypes';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { useAccessReview } from '~/api';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
+import { InferenceServiceKind } from '~/k8sTypes';
 
-const mockInferenceServices = {
-  items: [
-    { metadata: { name: 'item 1' } },
-    { metadata: { name: 'item 2' } },
-  ] as InferenceServiceKind[],
-};
+const mockInferenceServices = mockK8sResourceList([
+  mockInferenceServiceK8sResource({ name: 'item-1' }),
+  mockInferenceServiceK8sResource({ name: 'item-2' }),
+]);
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -28,9 +28,9 @@ jest.mock('~/pages/modelServing/useModelServingEnabled', () => ({
   default: jest.fn(),
 }));
 
-const k8sListResourceMock = k8sListResource as jest.Mock;
-const useModelServingEnabledMock = useModelServingEnabled as jest.Mock;
-const useAccessReviewMock = useAccessReview as jest.Mock;
+const k8sListResourceMock = jest.mocked(k8sListResource<InferenceServiceKind>);
+const useModelServingEnabledMock = jest.mocked(useModelServingEnabled);
+const useAccessReviewMock = jest.mocked(useAccessReview);
 
 describe('useInferenceServices', () => {
   it('should return successful list of InferenceService when model serving is enabled and access review allows', async () => {
@@ -39,7 +39,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockReturnValue(Promise.resolve(mockInferenceServices));
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
@@ -55,9 +55,7 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(
-      Promise.resolve({ items: [...mockInferenceServices.items] }),
-    );
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
@@ -73,7 +71,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockReturnValue(Promise.resolve(mockInferenceServices));
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
@@ -89,9 +87,7 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(
-      Promise.resolve({ items: [...mockInferenceServices.items] }),
-    );
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
@@ -131,7 +127,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([false, true]);
 
-    k8sListResourceMock.mockReturnValue(Promise.resolve(mockInferenceServices));
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
@@ -147,9 +143,7 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(
-      Promise.resolve({ items: [...mockInferenceServices.items] }),
-    );
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
@@ -165,7 +159,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockReturnValue(Promise.resolve(mockInferenceServices));
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
@@ -181,9 +175,7 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sListResourceMock.mockReturnValue(
-      Promise.resolve({ items: [...mockInferenceServices.items] }),
-    );
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
@@ -194,7 +186,7 @@ describe('useInferenceServices', () => {
   });
   it('should fail to fetch InferenceService', async () => {
     useModelServingEnabledMock.mockReturnValue(true);
-    k8sListResourceMock.mockReturnValue(Promise.reject(new Error('error')));
+    k8sListResourceMock.mockRejectedValue(new Error('error'));
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([], false));

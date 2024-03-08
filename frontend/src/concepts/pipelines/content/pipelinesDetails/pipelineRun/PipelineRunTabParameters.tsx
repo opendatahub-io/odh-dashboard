@@ -26,8 +26,8 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ run
     );
   }
 
-  const parameters = run?.runtime_config?.parameters
-    ? Object.entries(run?.runtime_config?.parameters)
+  const parameters = run.runtime_config?.parameters
+    ? Object.entries(run.runtime_config.parameters)
     : [];
 
   if (parameters.length === 0) {
@@ -41,7 +41,7 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ run
 
   const details: DetailItem[] = parameters.map(([key, value]) => ({
     key,
-    value: value?.toString() ?? '',
+    value: value.toString(),
   }));
 
   return <>{renderDetailItems(details, true)}</>;

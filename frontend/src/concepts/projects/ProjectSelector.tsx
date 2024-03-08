@@ -34,6 +34,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     ? projects.filter((project) => project.metadata.labels?.[filterLabel] !== undefined)
     : projects;
 
+  const toggleLabel = projects.length === 0 ? 'No projects' : selectionDisplayName;
+
   return (
     <Dropdown
       toggle={
@@ -41,8 +43,9 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           isDisabled={projects.length === 0}
           onToggle={() => setDropdownOpen(!dropdownOpen)}
           toggleVariant={primary ? 'primary' : undefined}
+          aria-label={`Project: ${toggleLabel}`}
         >
-          {projects.length === 0 ? 'No projects' : selectionDisplayName}
+          {toggleLabel}
         </DropdownToggle>
       }
       isOpen={dropdownOpen}

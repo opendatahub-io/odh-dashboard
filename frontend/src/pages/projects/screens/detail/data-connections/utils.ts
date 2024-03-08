@@ -60,15 +60,6 @@ export const getDataConnectionType = (dataConnection: DataConnection): React.Rea
   throw new Error('Invalid data connection type');
 };
 
-export const getDataConnectionProvider = (dataConnection: DataConnection): string => {
-  switch (dataConnection.type) {
-    case DataConnectionType.AWS:
-      return 'AWS S3';
-    default:
-      throw new Error('Invalid data connection type');
-  }
-};
-
 export const deleteDataConnection = (dataConnection: DataConnection): Promise<K8sStatus> => {
   switch (dataConnection.type) {
     case DataConnectionType.AWS:

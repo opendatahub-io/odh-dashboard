@@ -3,7 +3,7 @@ import { DSPipelineKind } from '~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
-import { DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
+import { DSPA_SECRET_NAME, DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
 import { PipelineServerConfigType } from './types';
 
 type SecretsResponse = [
@@ -61,10 +61,15 @@ const createObjectStorageSecret = (
 ): Promise<{
   secretName: string;
 }> => {
+  const awsRecord = dataEntryToRecord(objectStorageConfig.newValue);
   const assembledSecret = assembleSecret(
     projectName,
-    objectStorageConfig.newValue.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {}),
+    {
+      [AwsKeys.ACCESS_KEY_ID]: awsRecord[AwsKeys.ACCESS_KEY_ID] ?? '',
+      [AwsKeys.SECRET_ACCESS_KEY]: awsRecord[AwsKeys.SECRET_ACCESS_KEY] ?? '',
+    },
     'generic',
+    DSPA_SECRET_NAME,
   );
 
   return createSecret(assembledSecret, { dryRun }).then((secret) => ({
@@ -105,7 +110,7 @@ export const createDSPipelineResourceSpec = (
     },
     objectStorage: {
       externalStorage: {
-        host: externalStorageHost?.replace(/\/$/, '') || '',
+        host: externalStorageHost.replace(/\/$/, '') || '',
         scheme: externalStorageScheme || 'https',
         bucket: awsRecord.AWS_S3_BUCKET || '',
         region: 'us-east-2', // TODO hardcode for now
@@ -146,7 +151,7 @@ export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boo
     PIPELINE_AWS_FIELDS.filter((field) => field.isRequired)
       .map((field) => field.key)
       .includes(key)
-      ? !!value
+      ? !!value.trim()
       : true,
   );
 

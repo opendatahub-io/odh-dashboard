@@ -15,7 +15,7 @@ import {
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { HelpIcon } from '@patternfly/react-icons';
 import {
-  submitServingRuntimeResources,
+  submitServingRuntimeResourcesWithDryRun,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '~/k8sTypes';
@@ -121,7 +121,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
-    submitServingRuntimeResources(
+    submitServingRuntimeResourcesWithDryRun(
       servingRuntimeSelected,
       createData,
       customServingRuntimesEnabled,

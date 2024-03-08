@@ -51,6 +51,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
           options={effectDropdownOptions}
           value={toleration.effect || ''}
           onChange={(key) => handleFieldUpdate('effect', key)}
+          data-testid="toleration-effect-select"
         />
       </FormGroup>
 

@@ -3,18 +3,17 @@ import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import useElyraSecret from '~/concepts/pipelines/elyra/useElyraSecret';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { SecretKind } from '~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
 }));
 
-const k8sGetResourceMock = k8sGetResource as jest.Mock;
+const k8sGetResourceMock = jest.mocked(k8sGetResource<SecretKind>);
 
 describe('useElyraSecret', () => {
   it('should return elyra secret when there is a DSPA', async () => {
-    k8sGetResourceMock.mockReturnValue(
-      Promise.resolve(mockSecretK8sResource({ uid: 'test-project-12m' })),
-    );
+    k8sGetResourceMock.mockResolvedValue(mockSecretK8sResource({ uid: 'test-project-12m' }));
 
     const renderResult = testHook(useElyraSecret)('test-project', true);
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
@@ -31,7 +30,7 @@ describe('useElyraSecret', () => {
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
-    k8sGetResourceMock.mockReturnValue(Promise.resolve(mockSecretK8sResource({})));
+    k8sGetResourceMock.mockResolvedValue(mockSecretK8sResource({}));
     await act(() => renderResult.result.current[3]());
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
@@ -49,7 +48,7 @@ describe('useElyraSecret', () => {
         code: 404,
       },
     };
-    k8sGetResourceMock.mockReturnValue(Promise.reject(error));
+    k8sGetResourceMock.mockRejectedValue(error);
 
     const renderResult = testHook(useElyraSecret)('test-project', true);
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
@@ -72,7 +71,7 @@ describe('useElyraSecret', () => {
   });
 
   it('should handle other errors and rethrow', async () => {
-    k8sGetResourceMock.mockReturnValue(Promise.reject(new Error('error1')));
+    k8sGetResourceMock.mockRejectedValue(new Error('error1'));
 
     const renderResult = testHook(useElyraSecret)('test-project', true);
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
@@ -87,7 +86,7 @@ describe('useElyraSecret', () => {
     expect(renderResult).hookToBeStable([true, true, false, true]);
 
     // refresh
-    k8sGetResourceMock.mockReturnValue(Promise.reject(new Error('error2')));
+    k8sGetResourceMock.mockRejectedValue(new Error('error2'));
     await act(() => renderResult.result.current[3]());
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(standardUseFetchState(null, false, new Error('error2')));

@@ -42,9 +42,6 @@ jobs:
       - name: Install Node.js packages
         if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
         run: npm install
-      - name: Install Playwright Browsers
-        working-directory: ./frontend
-        run: npx playwright install --with-deps
       - name: Check for uncomitted changes
         run: |
           git diff --exit-code

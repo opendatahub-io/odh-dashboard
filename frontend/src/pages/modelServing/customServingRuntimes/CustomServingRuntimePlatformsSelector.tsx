@@ -27,10 +27,6 @@ const CustomServingRuntimePlatformsSelector: React.FC<
       key: ServingRuntimePlatform.MULTI,
       label: RuntimePlatformSelectOptionLabels[ServingRuntimePlatform.MULTI],
     },
-    {
-      key: 'both',
-      label: RuntimePlatformSelectOptionLabels.both,
-    },
   ];
 
   const selection =
@@ -48,7 +44,7 @@ const CustomServingRuntimePlatformsSelector: React.FC<
       isRequired
     >
       <SimpleDropdownSelect
-        id="custom-serving-runtime-selection"
+        data-testid="custom-serving-runtime-selection"
         aria-label="Select a model serving runtime platform"
         placeholder="Select a value"
         options={options}

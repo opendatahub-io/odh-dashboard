@@ -135,9 +135,14 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
     [],
   );
 
+  const contextValue = React.useMemo(
+    () => ({ getValue, setJSONValue, setStringValue }),
+    // Also trigger a context update if `values` changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getValue, setJSONValue, setStringValue, values],
+  );
+
   return (
-    <BrowserStorageContext.Provider value={{ getValue, setJSONValue, setStringValue }}>
-      {children}
-    </BrowserStorageContext.Provider>
+    <BrowserStorageContext.Provider value={contextValue}>{children}</BrowserStorageContext.Provider>
   );
 };

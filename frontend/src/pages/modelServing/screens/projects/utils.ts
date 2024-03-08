@@ -253,7 +253,10 @@ export const getProjectModelServingPlatform = (
   };
 };
 
-export const createAWSSecret = (createData: CreatingInferenceServiceObject): Promise<SecretKind> =>
+export const createAWSSecret = (
+  createData: CreatingInferenceServiceObject,
+  dryRun: boolean,
+): Promise<SecretKind> =>
   createSecret(
     assembleSecret(
       createData.project,
@@ -263,6 +266,7 @@ export const createAWSSecret = (createData: CreatingInferenceServiceObject): Pro
       ),
       'aws',
     ),
+    { dryRun },
   );
 
 const createInferenceServiceAndDataConnection = (
@@ -271,9 +275,10 @@ const createInferenceServiceAndDataConnection = (
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
+  dryRun = false,
 ) => {
   if (!existingStorage) {
-    return createAWSSecret(inferenceServiceData).then((secret) =>
+    return createAWSSecret(inferenceServiceData, dryRun).then((secret) =>
       editInfo
         ? updateInferenceService(
             inferenceServiceData,
@@ -281,12 +286,14 @@ const createInferenceServiceAndDataConnection = (
             secret.metadata.name,
             isModelMesh,
             acceleratorProfileState,
+            dryRun,
           )
         : createInferenceService(
             inferenceServiceData,
             secret.metadata.name,
             isModelMesh,
             acceleratorProfileState,
+            dryRun,
           ),
     );
   }
@@ -297,17 +304,24 @@ const createInferenceServiceAndDataConnection = (
         undefined,
         isModelMesh,
         acceleratorProfileState,
+        dryRun,
       )
-    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorProfileState);
+    : createInferenceService(
+        inferenceServiceData,
+        undefined,
+        isModelMesh,
+        acceleratorProfileState,
+        dryRun,
+      );
 };
 
-export const submitInferenceServiceResource = (
+export const getSubmitInferenceServiceResourceFn = (
   createData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
   servingRuntimeName?: string,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
-): Promise<InferenceServiceKind> => {
+): ((opts: { dryRun?: boolean }) => Promise<InferenceServiceKind>) => {
   const inferenceServiceData = {
     ...createData,
     ...(servingRuntimeName !== undefined && {
@@ -324,16 +338,26 @@ export const submitInferenceServiceResource = (
   const existingStorage =
     inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE;
 
-  return createInferenceServiceAndDataConnection(
-    inferenceServiceData,
-    existingStorage,
-    editInfo,
-    isModelMesh,
-    acceleratorProfileState,
-  );
+  return ({ dryRun = false }) =>
+    createInferenceServiceAndDataConnection(
+      inferenceServiceData,
+      existingStorage,
+      editInfo,
+      isModelMesh,
+      acceleratorProfileState,
+      dryRun,
+    );
 };
 
-export const submitServingRuntimeResources = async (
+export const submitInferenceServiceResourceWithDryRun = async (
+  ...params: Parameters<typeof getSubmitInferenceServiceResourceFn>
+): Promise<InferenceServiceKind> => {
+  const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(...params);
+  await submitInferenceServiceResource({ dryRun: true });
+  return submitInferenceServiceResource({ dryRun: false });
+};
+
+export const getSubmitServingRuntimeResourcesFn = (
   servingRuntimeSelected: ServingRuntimeKind | undefined,
   createData: CreatingServingRuntimeObject,
   customServingRuntimesEnabled: boolean,
@@ -345,13 +369,14 @@ export const submitServingRuntimeResources = async (
   currentProject?: ProjectKind,
   name?: string,
   isModelMesh?: boolean,
-): Promise<void | (string | void | ServingRuntimeKind)[]> => {
+): ((opts: { dryRun?: boolean }) => Promise<void | (string | void | ServingRuntimeKind)[]>) => {
   if (!servingRuntimeSelected) {
-    return Promise.reject(
-      new Error(
-        'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
-      ),
-    );
+    return () =>
+      Promise.reject(
+        new Error(
+          'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
+        ),
+      );
   }
   const servingRuntimeData = {
     ...createData,
@@ -365,73 +390,80 @@ export const submitServingRuntimeResources = async (
     ? { count: 0, acceleratorProfiles: [], useExisting: false }
     : acceleratorProfileState;
 
-  const getUpdatePromises = (dryRun = false) =>
-    editInfo?.servingRuntime
-      ? [
-          updateServingRuntime({
-            data: servingRuntimeData,
-            existingData: editInfo.servingRuntime,
-            isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-            opts: {
+  if (!editInfo && !currentProject) {
+    // This should be impossible to hit on resource creation, current project is undefined only on edit
+    return () => Promise.reject(new Error('Cannot update project with no project selected'));
+  }
+
+  return ({ dryRun = false }) =>
+    Promise.all([
+      ...(currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined
+        ? [
+            addSupportServingPlatformProject(
+              currentProject.metadata.name,
+              servingPlatformEnablement,
               dryRun,
-            },
-            acceleratorProfileState: controlledState,
-            isModelMesh,
-          }),
-          setUpTokenAuth(
-            servingRuntimeData,
-            servingRuntimeName,
-            namespace,
-            createTokenAuth,
-            editInfo.servingRuntime,
-            editInfo.secrets,
-            {
-              dryRun,
-            },
-          ),
-        ]
-      : [
-          createServingRuntime({
-            data: servingRuntimeData,
-            namespace,
-            servingRuntime: servingRuntimeSelected,
-            isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-            opts: {
-              dryRun,
-            },
-            acceleratorProfileState: controlledState,
-            isModelMesh,
-          }).then((servingRuntime) =>
+            ),
+          ]
+        : []),
+      ...(editInfo?.servingRuntime
+        ? [
+            updateServingRuntime({
+              data: servingRuntimeData,
+              existingData: editInfo.servingRuntime,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              opts: {
+                dryRun,
+              },
+              acceleratorProfileState: controlledState,
+              isModelMesh,
+            }),
             setUpTokenAuth(
               servingRuntimeData,
               servingRuntimeName,
               namespace,
               createTokenAuth,
-              servingRuntime,
-              editInfo?.secrets,
+              editInfo.servingRuntime,
+              editInfo.secrets,
               {
                 dryRun,
               },
             ),
-          ),
-        ];
+          ]
+        : [
+            createServingRuntime({
+              data: servingRuntimeData,
+              namespace,
+              servingRuntime: servingRuntimeSelected,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              opts: {
+                dryRun,
+              },
+              acceleratorProfileState: controlledState,
+              isModelMesh,
+            }).then((servingRuntime) =>
+              setUpTokenAuth(
+                servingRuntimeData,
+                servingRuntimeName,
+                namespace,
+                createTokenAuth,
+                servingRuntime,
+                editInfo?.secrets,
+                {
+                  dryRun,
+                },
+              ),
+            ),
+          ]),
+    ]);
+};
 
-  try {
-    await Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises(true));
-    if (!editInfo && !currentProject) {
-      // This should be impossible to hit, currentProject just comes from React context that could be undefined
-      return await Promise.reject(new Error('Cannot update project with no project selected'));
-    }
-    if (currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined) {
-      await addSupportServingPlatformProject(
-        currentProject?.metadata.name,
-        servingPlatformEnablement,
-      );
-    }
-    return await Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises());
-  } catch (e) {
-    return Promise.reject(e);
-  }
+export const submitServingRuntimeResourcesWithDryRun = async (
+  ...params: Parameters<typeof getSubmitServingRuntimeResourcesFn>
+): Promise<void | (string | void | ServingRuntimeKind)[]> => {
+  const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(...params);
+  await submitServingRuntimeResources({ dryRun: true });
+  return submitServingRuntimeResources({ dryRun: false });
 };
 
 export const getUrlFromKserveInferenceService = (

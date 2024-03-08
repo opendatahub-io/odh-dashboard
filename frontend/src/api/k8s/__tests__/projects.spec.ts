@@ -40,7 +40,7 @@ jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
 
 jest.mock('axios');
 
-const mockedAxios = axios as jest.MockedFunction<typeof axios>;
+const mockedAxios = jest.mocked(axios);
 const listServingRuntimesMock = jest.mocked(listServingRuntimes);
 const k8sGetResourceMock = jest.mocked(k8sGetResource<ProjectKind>);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);
@@ -324,7 +324,7 @@ describe('addSupportServingPlatformProject', () => {
     );
     expect(result).toStrictEqual(name);
     expect(mockedAxios).toHaveBeenCalledTimes(1);
-    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1');
+    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });
   });
 
   it('should handle error when failed to enable model serving platform', async () => {
@@ -335,7 +335,7 @@ describe('addSupportServingPlatformProject', () => {
       `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
     expect(mockedAxios).toHaveBeenCalledTimes(1);
-    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1');
+    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });
   });
 
   it('should handle error when axios response data is undefined', async () => {
@@ -346,7 +346,7 @@ describe('addSupportServingPlatformProject', () => {
       `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
     expect(mockedAxios).toHaveBeenCalledTimes(1);
-    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1');
+    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });
   });
 
   it('should handle other axios errors', async () => {
@@ -356,7 +356,7 @@ describe('addSupportServingPlatformProject', () => {
       addSupportServingPlatformProject(name, NamespaceApplicationCase.MODEL_MESH_PROMOTION),
     ).rejects.toThrow(`error-message`);
     expect(mockedAxios).toHaveBeenCalledTimes(1);
-    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1');
+    expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });
   });
 });
 

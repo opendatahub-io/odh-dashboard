@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Provider } from 'react-redux';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
+import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import { ReduxContext } from '~/redux/context';
 import { store } from '~/redux/store/store';
 import { fetchGroupsSettings } from '~/services/groupSettingsService';
@@ -10,7 +11,7 @@ jest.mock('~/services/groupSettingsService', () => ({
   fetchGroupsSettings: jest.fn(),
 }));
 
-const fetchGroupSettingsMock = fetchGroupsSettings as jest.Mock;
+const fetchGroupSettingsMock = jest.mocked(fetchGroupsSettings);
 
 describe('useWatchGroups', () => {
   it('should fetch groups successfully', async () => {
@@ -18,11 +19,11 @@ describe('useWatchGroups', () => {
       adminGroups: [],
       allowedGroups: [],
     };
-    const mockGroupSettings = {
-      adminGroups: ['odh-admins'],
+    const mockGroupSettings: GroupsConfig = {
+      adminGroups: [{ id: 1, name: 'odh-admins', enabled: true }],
       allowedGroups: [],
     };
-    fetchGroupSettingsMock.mockReturnValue(Promise.resolve(mockGroupSettings));
+    fetchGroupSettingsMock.mockResolvedValue(mockGroupSettings);
 
     const renderResult = renderHook(() => useWatchGroups(), {
       wrapper: ({ children }) => (

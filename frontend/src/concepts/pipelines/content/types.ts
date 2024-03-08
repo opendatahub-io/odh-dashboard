@@ -20,7 +20,7 @@ export type PipelineRunTaskDetails = {
 } & PipelineRunTask;
 
 /** [Task.name]: Task */
-export type TaskReferenceMap = Record<string, PipelineRunTaskDetails>;
+export type TaskReferenceMap = Record<string, PipelineRunTaskDetails | undefined>;
 
 export type KubeFlowTaskTopology = {
   taskMap: TaskReferenceMap;

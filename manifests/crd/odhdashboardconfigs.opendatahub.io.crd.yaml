@@ -63,6 +63,8 @@ spec:
                       type: boolean
                     disablePipelineExperiments:
                       type: boolean
+                    disableDistributedWorkloads:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

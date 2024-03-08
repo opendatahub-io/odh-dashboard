@@ -7,7 +7,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
 }));
 
-const k8sListResourceItemsMock = k8sListResourceItems as jest.Mock;
+const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<ImageStreamKind>);
 
 describe('getNotebookImageStreams', () => {
   it('should return notebook image streams', async () => {

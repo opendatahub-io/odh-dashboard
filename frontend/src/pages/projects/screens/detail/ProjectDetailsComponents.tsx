@@ -70,7 +70,7 @@ const ProjectDetailsComponents: React.FC = () => {
               <StackItem
                 id={id}
                 aria-label={ProjectSectionTitles[id]}
-                data-id="details-page-section"
+                data-testid="details-page-section"
                 className="odh-project-details-components__item"
               >
                 {component}

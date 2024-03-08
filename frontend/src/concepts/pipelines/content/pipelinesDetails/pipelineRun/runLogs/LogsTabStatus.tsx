@@ -28,14 +28,14 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
   onDownload,
 }) => {
   if (error) {
-    const isNetworkError = error?.message.includes('Failed to fetch');
+    const isNetworkError = error.message.includes('Failed to fetch');
     const podCondition = podStatus === null || (podError && podStatus?.completed);
 
     let errorAlertTitle;
     let errorAlertMessage;
 
     if (isNetworkError) {
-      errorAlertTitle = `${error?.message} logs`;
+      errorAlertTitle = `${error.message} logs`;
       errorAlertMessage =
         'Check your network connection. The system will recover the connection when the network is restored.';
     } else if (isFailedPod) {
@@ -46,7 +46,7 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
       errorAlertMessage = `${podName} may have been pruned to prevent over-utilization of resources.`;
     } else {
       errorAlertTitle = 'An error occurred while retrieving the requested logs';
-      errorAlertMessage = error?.message;
+      errorAlertMessage = error.message;
     }
     return (
       <Alert component="h2" isInline variant="danger" title={errorAlertTitle}>
@@ -73,12 +73,7 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
         The log refreshes every {Math.floor(LOG_REFRESH_RATE / 1000)} seconds and displays the
         latest {LOG_TAIL_LINES} lines. Exceptionally long lines are abridged. To view the full log
         for this task, you can{' '}
-        <Button
-          isDisabled={!onDownload || !isLogsAvailable}
-          variant="link"
-          isInline
-          onClick={onDownload}
-        >
+        <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownload}>
           download all step logs
         </Button>{' '}
         associated with it.

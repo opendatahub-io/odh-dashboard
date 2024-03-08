@@ -23,8 +23,13 @@ const PipelineRunVersionsContextProvider: React.FC<PipelineRunVersionsContextPro
 }) => {
   const [{ items: versions }, loaded, error] = useAllPipelineVersions();
 
+  const contextValue = React.useMemo(
+    () => ({ versions, loaded, error }),
+    [versions, loaded, error],
+  );
+
   return (
-    <PipelineRunVersionsContext.Provider value={{ versions, loaded, error }}>
+    <PipelineRunVersionsContext.Provider value={contextValue}>
       {children}
     </PipelineRunVersionsContext.Provider>
   );

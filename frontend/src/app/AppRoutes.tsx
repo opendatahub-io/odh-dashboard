@@ -27,6 +27,10 @@ const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
 
+const GlobalDistributedWorkloadsRoutes = React.lazy(
+  () => import('../pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
+);
+
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const CustomServingRuntimeRoutes = React.lazy(
   () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
@@ -56,9 +60,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <React.Suspense
-      fallback={<ApplicationsPage title="" description="" loaded={false} empty={true} />}
-    >
+    <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <Routes>
         <Route path="/" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
@@ -77,6 +79,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/pipelines/*" element={<GlobalPipelinesRoutes />} />
         <Route path="/pipelineRuns/*" element={<GlobalPipelineRunsRoutes />} />
         <Route path="/pipelineExperiments/*" element={<GlobalPipelineExperimentRoutes />} />
+
+        <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 
         <Route path="/dependency-missing/:area" element={<DependencyMissingPage />} />
 

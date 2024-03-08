@@ -1,8 +1,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-
+import { asEnumMember } from '~/utilities/utils';
 import {
   ScheduledRuns,
   ActiveRuns,
@@ -10,16 +9,19 @@ import {
   PipelineRunType,
   PipelineRunTabTitle,
 } from '~/pages/pipelines/global/runs';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 
 import './GlobalPipelineRunsTabs.scss';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 
 const GlobalPipelineRunsTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const runType = searchParams.get(PipelineRunSearchParam.RunType) as PipelineRunType;
+  const runType = asEnumMember<typeof PipelineRunType>(
+    searchParams.get(PipelineRunSearchParam.RunType),
+    PipelineRunType,
+  );
 
   React.useEffect(() => {
-    if (!Object.values(PipelineRunType).includes(runType)) {
+    if (!runType || !Object.values(PipelineRunType).includes(runType)) {
       searchParams.delete(PipelineRunSearchParam.RunType);
       setSearchParams(searchParams);
     }

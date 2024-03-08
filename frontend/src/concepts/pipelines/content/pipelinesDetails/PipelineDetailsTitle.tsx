@@ -7,7 +7,6 @@ import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLa
 type RunJobTitleProps = {
   run: PipelineRunKFv2;
   statusIcon?: boolean;
-  hasJobReference?: boolean;
   pipelineRunLabel?: boolean;
 };
 

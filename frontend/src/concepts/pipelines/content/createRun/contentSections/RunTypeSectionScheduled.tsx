@@ -49,10 +49,7 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
       <EndDateBeforeStartDateError start={data.start} end={data.end} />
     </StackItem>
     <StackItem>
-      <CatchUp
-        enabled={data.catchUp ?? false}
-        onChange={(catchUp) => onChange({ ...data, catchUp })}
-      />
+      <CatchUp enabled={data.catchUp} onChange={(catchUp) => onChange({ ...data, catchUp })} />
     </StackItem>
   </Stack>
 );

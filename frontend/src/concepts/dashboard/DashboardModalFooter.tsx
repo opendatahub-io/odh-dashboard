@@ -13,6 +13,7 @@ type DashboardModalFooterProps = {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitDisabled: boolean;
+  isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
   alertTitle: string;
   error?: Error;
@@ -23,6 +24,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   onSubmit,
   onCancel,
   isSubmitDisabled,
+  isSubmitLoading,
   isCancelDisabled,
   error,
   alertTitle,
@@ -44,6 +46,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
             variant="primary"
             isDisabled={isSubmitDisabled}
             onClick={onSubmit}
+            isLoading={isSubmitLoading}
             data-testid="modal-submit-button"
           >
             {submitLabel}

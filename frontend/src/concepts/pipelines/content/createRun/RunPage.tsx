@@ -25,6 +25,7 @@ import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import { asEnumMember } from '~/utilities/utils';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type RunPageProps = {
@@ -36,13 +37,14 @@ type RunPageProps = {
 const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   const { namespace } = useParams();
   const location = useLocation();
-  const { runType, triggerType } = useGetSearchParamValues([
+  const { runType, triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.RunType,
     PipelineRunSearchParam.TriggerType,
   ]);
+  const triggerType = asEnumMember(triggerTypeString, ScheduledType);
 
-  const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
-  const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
+  const cloneRunPipelineId = cloneRun?.pipeline_version_reference.pipeline_id || '';
+  const cloneRunVersionId = cloneRun?.pipeline_version_reference.pipeline_version_id || '';
   const cloneRunExperimentId = cloneRun?.experiment_id || '';
 
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
@@ -64,7 +66,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
             type: RunTypeOption.SCHEDULED,
             data: {
               ...DEFAULT_PERIODIC_DATA,
-              triggerType: (triggerType as ScheduledType) || ScheduledType.PERIODIC,
+              triggerType: triggerType || ScheduledType.PERIODIC,
             },
           }
         : { type: RunTypeOption.ONE_TRIGGER }),

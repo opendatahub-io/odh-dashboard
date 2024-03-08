@@ -13,6 +13,7 @@ import {
   updateDashboardConfig,
 } from '~/api/k8s/dashboardConfig';
 import { ODHDashboardConfigModel } from '~/api/models';
+import { DashboardConfigKind } from '~/k8sTypes';
 import { DASHBOARD_CONFIG } from '~/utilities/const';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -21,9 +22,9 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sPatchResource: jest.fn(),
 }));
 
-const k8sGetResourceMock = k8sGetResource as jest.Mock;
-const k8sUpdateResourceMock = k8sUpdateResource as jest.Mock;
-const k8sPatchResourceMock = k8sPatchResource as jest.Mock;
+const k8sGetResourceMock = jest.mocked(k8sGetResource<DashboardConfigKind>);
+const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<DashboardConfigKind>);
+const k8sPatchResourceMock = jest.mocked(k8sPatchResource<DashboardConfigKind>);
 const projectName = 'project-test';
 
 describe('getDashboardConfig', () => {

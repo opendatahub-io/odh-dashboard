@@ -94,20 +94,31 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
     namespace,
   );
 
+  const contextValue = React.useMemo(
+    () => ({
+      data,
+      currentTimeframe,
+      setCurrentTimeframe,
+      currentRefreshInterval,
+      setCurrentRefreshInterval,
+      refresh,
+      lastUpdateTime,
+      setLastUpdateTime,
+      namespace,
+    }),
+    [
+      data,
+      currentTimeframe,
+      setCurrentTimeframe,
+      currentRefreshInterval,
+      refresh,
+      lastUpdateTime,
+      namespace,
+    ],
+  );
+
   return (
-    <ModelServingMetricsContext.Provider
-      value={{
-        data,
-        currentTimeframe,
-        setCurrentTimeframe,
-        currentRefreshInterval,
-        setCurrentRefreshInterval,
-        refresh,
-        lastUpdateTime,
-        setLastUpdateTime,
-        namespace,
-      }}
-    >
+    <ModelServingMetricsContext.Provider value={contextValue}>
       {children}
     </ModelServingMetricsContext.Provider>
   );

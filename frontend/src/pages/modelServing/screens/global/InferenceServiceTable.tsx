@@ -37,6 +37,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   return (
     <>
       <Table
+        data-testid="inference-service-table"
         data={inferenceServices}
         columns={mappedColumns}
         variant={isGlobal ? undefined : 'compact'}

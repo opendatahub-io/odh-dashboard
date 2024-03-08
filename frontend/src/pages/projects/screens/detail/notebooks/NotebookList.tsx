@@ -28,27 +28,25 @@ const NotebookList: React.FC = () => {
   }, [notebookStates, refreshNotebooks]);
 
   return (
-    <>
-      <DetailsSection
-        id={ProjectSectionID.WORKBENCHES}
-        title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES] || ''}
-        actions={[
-          <Button
-            key={`action-${ProjectSectionID.WORKBENCHES}`}
-            onClick={() => navigate(`/projects/${projectName}/spawner`)}
-            variant="secondary"
-          >
-            Create workbench
-          </Button>,
-        ]}
-        isLoading={!loaded}
-        loadError={loadError}
-        isEmpty={isNotebooksEmpty}
-        emptyState={<EmptyDetailsList title="No workbenches" />}
-      >
-        <NotebookTable notebookStates={notebookStates} refresh={refresh} />
-      </DetailsSection>
-    </>
+    <DetailsSection
+      id={ProjectSectionID.WORKBENCHES}
+      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES] || ''}
+      actions={[
+        <Button
+          key={`action-${ProjectSectionID.WORKBENCHES}`}
+          onClick={() => navigate(`/projects/${projectName}/spawner`)}
+          variant="secondary"
+        >
+          Create workbench
+        </Button>,
+      ]}
+      isLoading={!loaded}
+      loadError={loadError}
+      isEmpty={isNotebooksEmpty}
+      emptyState={<EmptyDetailsList title="No workbenches" />}
+    >
+      <NotebookTable notebookStates={notebookStates} refresh={refresh} />
+    </DetailsSection>
   );
 };
 

@@ -27,7 +27,7 @@ const createRun = async (
     display_name: formData.nameDesc.name,
     description: formData.nameDesc.description,
     pipeline_version_reference: {
-      pipeline_id: formData.pipeline?.pipeline_id || '',
+      pipeline_id: formData.pipeline.pipeline_id || '',
       pipeline_version_id: formData.version?.pipeline_version_id || '',
     },
     runtime_config: {
@@ -69,7 +69,7 @@ const createJob = async (
     display_name: formData.nameDesc.name,
     description: formData.nameDesc.description,
     pipeline_version_reference: {
-      pipeline_id: formData.pipeline?.pipeline_id || '',
+      pipeline_id: formData.pipeline.pipeline_id || '',
       pipeline_version_id: formData.version?.pipeline_version_id || '',
     },
     runtime_config: {
@@ -130,7 +130,7 @@ const normalizeInputParams = (
   params: RuntimeConfigParameters,
   version: PipelineVersionKFv2 | null,
 ): RuntimeConfigParameters => {
-  const inputDefinitionParams = version?.pipeline_spec?.root?.inputDefinitions?.parameters;
+  const inputDefinitionParams = version?.pipeline_spec.root.inputDefinitions.parameters;
 
   return Object.entries(params).reduce((acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
     const paramType = inputDefinitionParams?.[paramKey].parameterType;

@@ -2,22 +2,21 @@ import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { BuildConfigModel, BuildModel } from '~/api/models';
 import { getBuildsForBuildConfig, getNotebookBuildConfigs } from '~/api/k8s/builds';
 import { BuildConfigKind, BuildKind } from '~/k8sTypes';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
-const mockListResource = k8sListResource as jest.Mock;
+const mockListResource = jest.mocked(k8sListResource<BuildConfigKind | BuildKind>);
 
 describe('getNotebookBuildConfigs', () => {
   it('should fetch and return list of notebook build config', async () => {
     const namespace = 'test-project';
-    const notebookBuildConfigMock = {
-      items: [
-        { metadata: { name: 'item 1' } },
-        { metadata: { name: 'item 2' } },
-      ] as BuildConfigKind[],
-    };
+    const notebookBuildConfigMock = mockK8sResourceList([
+      { metadata: { name: 'item 1' } } as BuildConfigKind,
+      { metadata: { name: 'item 2' } } as BuildConfigKind,
+    ]);
     mockListResource.mockResolvedValue(notebookBuildConfigMock);
 
     const result = await getNotebookBuildConfigs(namespace);
@@ -52,9 +51,11 @@ describe('getBuildsForBuildConfig', () => {
   it('should fetch and return list of builds for build config', async () => {
     const namespace = 'test-project';
     const buildName = 'test';
-    const buildConfigMock = {
-      items: [{ metadata: { name: 'item 1' } }, { metadata: { name: 'item 2' } }] as BuildKind[],
-    };
+
+    const buildConfigMock = mockK8sResourceList([
+      { metadata: { name: 'item 1' } } as BuildKind,
+      { metadata: { name: 'item 2' } } as BuildKind,
+    ]);
     mockListResource.mockResolvedValue(buildConfigMock);
 
     const result = await getBuildsForBuildConfig(namespace, buildName);

@@ -15,16 +15,14 @@ export const useAllPipelineVersions = (
   refreshRate = 0,
 ): FetchState<PipelineListPaged<PipelineVersionKFv2>> => {
   const { api } = usePipelinesAPI();
-  const [{ items: pipelines }] = usePipelines();
-  const pipelineIds = useDeepCompareMemoize(
-    pipelines?.map((pipeline) => pipeline.pipeline_id) || [],
-  );
+  const [{ items: pipelines }, pipelinesLoaded] = usePipelines();
+  const pipelineIds = useDeepCompareMemoize(pipelines.map((pipeline) => pipeline.pipeline_id));
 
   return usePipelineQuery<PipelineVersionKFv2>(
     React.useCallback(
       async (opts, params) => {
-        if (pipelineIds.length === 0) {
-          return Promise.reject(new NotReadyError('No pipeline id'));
+        if (!pipelinesLoaded) {
+          return Promise.reject(new NotReadyError('Pipelines not loaded'));
         }
 
         const pipelineVersionRequests = pipelineIds.map((pipelineId) =>
@@ -36,7 +34,7 @@ export const useAllPipelineVersions = (
           (acc: { total_size: number; items: PipelineVersionKFv2[] }, result) => {
             // eslint-disable-next-line camelcase
             acc.total_size += result.total_size || 0;
-            acc.items = acc.items?.concat(result?.pipeline_versions || []);
+            acc.items = acc.items.concat(result.pipeline_versions || []);
 
             return acc;
           },
@@ -44,7 +42,7 @@ export const useAllPipelineVersions = (
           { total_size: 0, items: [] },
         );
       },
-      [api, pipelineIds],
+      [api, pipelineIds, pipelinesLoaded],
     ),
     options,
     refreshRate,

@@ -12,6 +12,7 @@ import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceM
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
   assembleInferenceService,
   createInferenceService,
@@ -413,20 +414,30 @@ describe('createInferenceService', () => {
     k8sCreateResourceMock.mockResolvedValue(inferenceServiceMock);
     const result = await createInferenceService(data);
     expect(result).toStrictEqual(inferenceServiceMock);
-    expect(k8sCreateResourceMock).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      resource: inferenceServiceMock,
-    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledWith(
+      applyK8sAPIOptions(
+        {
+          model: InferenceServiceModel,
+          resource: inferenceServiceMock,
+        },
+        {},
+      ),
+    );
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
   });
 
   it('should handle errors and rethrows', async () => {
     k8sCreateResourceMock.mockRejectedValueOnce(new Error('error'));
     await expect(createInferenceService(data)).rejects.toThrow('error');
-    expect(k8sCreateResourceMock).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      resource: inferenceServiceMock,
-    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledWith(
+      applyK8sAPIOptions(
+        {
+          model: InferenceServiceModel,
+          resource: inferenceServiceMock,
+        },
+        {},
+      ),
+    );
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
   });
 });
@@ -438,20 +449,30 @@ describe('updateInferenceService', () => {
     k8sUpdateResourceMock.mockResolvedValue(inferenceServiceMock);
     const result = await updateInferenceService(data, inferenceServiceMock);
     expect(result).toStrictEqual(inferenceServiceMock);
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      resource: inferenceServiceMock,
-    });
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith(
+      applyK8sAPIOptions(
+        {
+          model: InferenceServiceModel,
+          resource: inferenceServiceMock,
+        },
+        {},
+      ),
+    );
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
   });
 
   it('should handle errors and rethrows', async () => {
     k8sUpdateResourceMock.mockRejectedValue(new Error('error'));
     await expect(updateInferenceService(data, inferenceServiceMock)).rejects.toThrow('error');
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      resource: inferenceServiceMock,
-    });
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith(
+      applyK8sAPIOptions(
+        {
+          model: InferenceServiceModel,
+          resource: inferenceServiceMock,
+        },
+        {},
+      ),
+    );
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
   });
 });
