@@ -44,7 +44,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   return (
     <Card
       component="div"
-      data-testid={odhApp.metadata.name}
+      data-testid={`explore-card ${odhApp.metadata.name}`}
       id={odhApp.metadata.name}
       role="listitem"
       isSelectable={!disabled}

@@ -216,7 +216,19 @@ The primary method for selecting elements on a page is through the use of test I
 
 Test IDs must be unique within a specific context but are not required to be globally unique. For example the same test ID may appear per table row.
 
-When querying the DOM within a modal, all queries must be scoped to the model to avoid assertions that may match the DOM underneath the modal.
+`data-testid` must contain at least one static string identifier. Do not solely assign dynamic identifiers (a value which is only known at runtime) to `data-testid`. It may be useful to assign multiple values to the `data-testid` attribute using whitespace separated values. eg `data-testid="card <dynamic-identifier>"`
+
+For example, if we had a gallery of cards where each card is populated from a k8s resource. We can select all cards, or select individual cards.
+
+```ts
+<Card data-testid={`card ${resource.metdata.name}`} ...>
+
+// Use array matchers to invoke the equivalent of the `~=` CSS selector operator.
+cy.findByTestId(['card', resource.metadata.name]);
+cy.findAllByTestId(['card']).should('have.length', 5)
+```
+
+When querying the DOM within a modal, all queries must be scoped to the modal to avoid assertions that may match the DOM underneath the modal.
 
 ### Test Considerations
 

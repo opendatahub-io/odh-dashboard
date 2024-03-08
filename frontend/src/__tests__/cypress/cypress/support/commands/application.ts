@@ -1,5 +1,5 @@
-// export or import required otherwise error
-export {};
+import { MatcherOptions } from '@testing-library/cypress';
+import { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -69,6 +69,30 @@ declare global {
        * @param dataId
        */
       pfSwitchValue(dataId: string): Cypress.Chainable<JQuery>;
+
+      /**
+       * Overwrite `findByTestId` to support an array of Matchers.
+       * When an array of Matches is supplied, parses the data-testid attribute value as a
+       * whitespace-separated list of words allowing the query to mimic the CSS selector `[data-testid~=value]`.
+       *
+       * data-testid="card my-id"
+       *
+       * cy.findByTestId(['card', 'my-id']);
+       * cy.findByTestId('card my-id');
+       */
+      findByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
+
+      /**
+       * Overwrite `findAllByTestId` to support an array of Matchers.
+       * When an array of Matches is supplied, parses the data-testid attribute value as a
+       * whitespace-separated list of words allowing the query to mimic the CSS selector `[data-testid~=value]`.
+       *
+       * data-testid="card my-id"
+       *
+       * cy.findAllByTestId(['card']);
+       * cy.findAllByTestId('card my-id');
+       */
+      findAllByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
     }
   }
 }
@@ -166,3 +190,41 @@ Cypress.Commands.add('pfSwitchValue', (dataId) => {
   Cypress.log({ displayName: 'pfSwitchValue', message: dataId });
   return cy.pfSwitch(dataId).find('[type=checkbox]');
 });
+
+Cypress.Commands.overwriteQuery('findByTestId', function findByTestId(...args) {
+  return enhancedFindByTestId(this, ...args);
+});
+Cypress.Commands.overwriteQuery('findAllByTestId', function findAllByTestId(...args) {
+  return enhancedFindByTestId(this, ...args);
+});
+
+const enhancedFindByTestId = (
+  command: Cypress.Command,
+  originalFn: Cypress.QueryFn<'findAllByTestId' | 'findByTestId'>,
+  matcher: Matcher | Matcher[],
+  options?: MatcherOptions,
+) => {
+  if (Array.isArray(matcher)) {
+    return originalFn.call(
+      command,
+      (content, node) => {
+        const values = content.trim().split(/\s+/);
+        return matcher.every((m) =>
+          values.some((v) => {
+            if (typeof m === 'string' || typeof m === 'number') {
+              return options && (options as DTLMatcherOptions).exact
+                ? v.toLowerCase().includes(matcher.toString().toLowerCase())
+                : v === String(m);
+            }
+            if (typeof m === 'function') {
+              return m(v, node);
+            }
+            return m.test(v);
+          }),
+        );
+      },
+      options,
+    );
+  }
+  return originalFn.call(command, matcher, options);
+};
