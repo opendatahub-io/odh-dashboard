@@ -14,7 +14,13 @@ import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/p
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import PipelinesDeprecatedBanner from '~/concepts/pipelines/PipelinesDeprecatedBanner';
+import {
+  globPipelineDetails,
+  globPipelineRunClone,
+  globPipelineRunCreate,
+  globPipelineRunDetails,
+  globPipelineRunJobDetails,
+} from '~/routes';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -31,15 +37,7 @@ const ProjectViewRoutes: React.FC = () => {
   return (
     <ProjectsRoutes>
       <Route path="/" element={<ProjectView />} />
-      <Route
-        path="/:namespace/*"
-        element={
-          <>
-            <PipelinesDeprecatedBanner />
-            <ProjectDetailsContextProvider />
-          </>
-        }
-      >
+      <Route path="/:namespace/*" element={<ProjectDetailsContextProvider />}>
         <Route index element={<ProjectDetails />} />
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
@@ -64,27 +62,27 @@ const ProjectViewRoutes: React.FC = () => {
           </>
         )}
         <Route
-          path="pipeline/view/:pipelineVersionId"
+          path={globPipelineDetails}
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineDetails} />}
         />
         <Route
-          path="pipelineRun/view/:pipelineRunId"
+          path={globPipelineRunDetails}
           element={
             <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunDetails} />
           }
         />
         <Route
-          path="pipelineRunJob/view/:pipelineRunJobId"
+          path={globPipelineRunJobDetails}
           element={
             <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunJobDetails} />
           }
         />
         <Route
-          path="pipelineRun/create"
+          path={globPipelineRunCreate}
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={CreateRunPage} />}
         />
         <Route
-          path="pipelineRun/clone/:pipelineRunId"
+          path={globPipelineRunClone}
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={CloneRunPage} />}
         />
 

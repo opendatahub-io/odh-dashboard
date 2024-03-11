@@ -15,7 +15,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
 }) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const { project, namespace } = usePipelinesAPI();
+  const { project, namespace, pipelinesServer } = usePipelinesAPI();
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -32,7 +32,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
       error={error}
       onDelete={() => {
         setDeleting(true);
-        deleteServer(namespace)
+        deleteServer(namespace, pipelinesServer.name)
           .then(() => onBeforeClose(true))
           .catch((e) => {
             onBeforeClose(false);

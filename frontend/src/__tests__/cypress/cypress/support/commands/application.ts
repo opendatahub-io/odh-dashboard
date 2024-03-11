@@ -19,15 +19,18 @@ declare global {
 
       /**
        * Find a patternfly kebab toggle button.
+       *
+       * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
        */
-      findKebab(): Cypress.Chainable<JQuery>;
+      findKebab(isDropdownToggle?: boolean): Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly kebab toggle button, opens the menu, and finds the action.
        *
        * @param name the name of the action in the kebeb menu
+       * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
        */
-      findKebabAction(name: string | RegExp): Cypress.Chainable<JQuery>;
+      findKebabAction(name: string | RegExp, isDropdownToggle?: boolean): Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
@@ -52,6 +55,20 @@ declare global {
         text: string,
         options?: Partial<Cypress.TypeOptions> | undefined,
       ): Cypress.Chainable<unknown>;
+
+      /**
+       * Returns a PF Switch label for clickable actions.
+       *
+       * @param dataId - the data test id you provided to the PF Switch
+       */
+      pfSwitch(dataId: string): Cypress.Chainable<JQuery>;
+
+      /**
+       * Returns a PF Switch input behind the checkbox to compare .should('be.checked') like ops
+       *
+       * @param dataId
+       */
+      pfSwitchValue(dataId: string): Cypress.Chainable<JQuery>;
     }
   }
 }
@@ -90,23 +107,29 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject) => {
+Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject, isDropdownToggle) => {
   Cypress.log({ displayName: 'findKebab' });
-  return cy.wrap(subject).findByRole('button', { name: 'Kebab toggle' });
-});
-
-Cypress.Commands.add('findKebabAction', { prevSubject: 'element' }, (subject, name) => {
-  Cypress.log({ displayName: 'findKebab', message: name });
   return cy
     .wrap(subject)
-    .findKebab()
-    .then(($el) => {
-      if ($el.attr('aria-expanded') === 'false') {
-        cy.wrap($el).click();
-      }
-      return cy.wrap($el.parent()).findByRole('menuitem', { name });
-    });
+    .findByRole('button', { name: isDropdownToggle ? 'Actions' : 'Kebab toggle' });
 });
+
+Cypress.Commands.add(
+  'findKebabAction',
+  { prevSubject: 'element' },
+  (subject, name, isDropdownToggle) => {
+    Cypress.log({ displayName: 'findKebab', message: name });
+    return cy
+      .wrap(subject)
+      .findKebab(isDropdownToggle)
+      .then(($el) => {
+        if ($el.attr('aria-expanded') === 'false') {
+          cy.wrap($el).click();
+        }
+        return cy.wrap($el.parent()).findByRole('menuitem', { name });
+      });
+  },
+);
 
 Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findDropdownItem', message: name });
@@ -132,4 +155,14 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
 Cypress.Commands.add('fill', { prevSubject: 'optional' }, (subject, text, options) => {
   cy.wrap(subject).clear();
   return cy.wrap(subject).type(text, options);
+});
+
+Cypress.Commands.add('pfSwitch', (dataId) => {
+  Cypress.log({ displayName: 'pfSwitch', message: dataId });
+  return cy.findByTestId(dataId).parent();
+});
+
+Cypress.Commands.add('pfSwitchValue', (dataId) => {
+  Cypress.log({ displayName: 'pfSwitchValue', message: dataId });
+  return cy.pfSwitch(dataId).find('[type=checkbox]');
 });

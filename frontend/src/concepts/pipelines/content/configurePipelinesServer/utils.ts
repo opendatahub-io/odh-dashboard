@@ -100,16 +100,17 @@ export const createDSPipelineResourceSpec = (
 ): DSPipelineKind['spec'] => {
   const databaseRecord = dataEntryToRecord(config.database.value);
   const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
-  const [, externalStorageScheme, externalStorageHost] = awsRecord.AWS_S3_ENDPOINT?.match(
-    /^(?:(\w+):\/\/)?(.*)/,
-  ) ?? [undefined];
+  const [, externalStorageScheme, externalStorageHost] =
+    awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
 
   return {
+    dspVersion: 'v2',
     objectStorage: {
       externalStorage: {
-        host: externalStorageHost?.replace(/\/$/, '') || '',
+        host: externalStorageHost.replace(/\/$/, '') || '',
         scheme: externalStorageScheme || 'https',
         bucket: awsRecord.AWS_S3_BUCKET || '',
+        region: 'us-east-2', // TODO hardcode for now
         s3CredentialsSecret: {
           accessKey: AwsKeys.ACCESS_KEY_ID,
           secretKey: AwsKeys.SECRET_ACCESS_KEY,

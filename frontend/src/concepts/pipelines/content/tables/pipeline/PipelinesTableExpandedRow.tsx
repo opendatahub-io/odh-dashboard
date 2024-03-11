@@ -9,15 +9,15 @@ import {
   EmptyStateFooter,
   Bullseye,
 } from '@patternfly/react-core';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
+import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelinesTableExpandedRowProps = {
-  pipeline: PipelineKF;
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipeline: PipelineKFv2;
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
 };
 
 const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
@@ -27,7 +27,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
   const [
     [{ items: initialVersions, totalSize, nextPageToken }, loaded],
     { initialLoaded, ...tableProps },
-  ] = usePipelineVersionsTable(pipeline.id)();
+  ] = usePipelineVersionsTable(pipeline.pipeline_id)();
 
   const sortProps = getTableSortProps(tableProps);
 

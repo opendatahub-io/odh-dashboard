@@ -1,17 +1,23 @@
 /* eslint-disable camelcase */
 import {
-  PipelineKF,
-  PipelineRunJobKF,
-  PipelineRunKF,
-  PipelineVersionKF,
-  RelationshipKF,
-  ResourceTypeKF,
+  ExperimentKFv2,
+  PipelineKFv2,
+  PipelineRunJobKFv2,
+  PipelineRunKFv2,
+  PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
+import { buildMockExperiments, buildMockJobKF, buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
+import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 
 export class CreateRunPage {
   protected testId = 'create-run-page';
+
+  private type;
+
+  constructor(type: 'run' | 'schedule') {
+    this.type = type;
+  }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(this.testId);
@@ -25,6 +31,10 @@ export class CreateRunPage {
     return cy.findByRole('textbox', { name: 'Description' });
   }
 
+  findExperimentSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('experiment-toggle-button');
+  }
+
   findPipelineSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('pipeline-toggle-button');
   }
@@ -33,16 +43,90 @@ export class CreateRunPage {
     return this.find().findByTestId('pipeline-version-toggle-button');
   }
 
-  findTriggeredRunTypeRadioInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('radio', { name: 'Run once immediately after creation' });
+  findScheduledRunTypeSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('triggerTypeSelector');
   }
 
-  findScheduledRunTypeRadioInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('radio', { name: 'Schedule recurring run' });
+  findScheduledRunTypeSelectorPeriodic(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('menuitem', { name: 'Periodic' });
+  }
+
+  findScheduledRunTypeSelectorCron(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('menuitem', { name: 'Cron' });
+  }
+
+  findScheduledRunRunEvery(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Run every');
+  }
+
+  findScheduledRunCron(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Cron string');
+  }
+
+  findMaxConcurrencyField(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('maxConcurrencyField');
+  }
+
+  findMaxConcurrencyFieldValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMaxConcurrencyField().findByLabelText('Input');
+  }
+
+  findMaxConcurrencyFieldMinus(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMaxConcurrencyField().findByLabelText('Minus');
+  }
+
+  findMaxConcurrencyFieldPlus(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMaxConcurrencyField().findByLabelText('Plus');
+  }
+
+  findStartDatePickerSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitch('start-date-toggle');
+  }
+
+  findEndDatePickerSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitch('end-date-toggle');
+  }
+
+  findCatchUpSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitch('run-catch-up-toggle');
+  }
+
+  findCatchUpSwitchValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().pfSwitchValue('run-catch-up-toggle');
+  }
+
+  private findDatePickerDate(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`${id}-date`);
+  }
+
+  findStartDatePickerDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerDate('start-date');
+  }
+
+  findEndDatePickerDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerDate('end-date');
+  }
+
+  private findDatePickerTime(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`${id}-time`);
+  }
+
+  findStartDatePickerTime(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerTime('start-date');
+  }
+
+  findEndDatePickerTime(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDatePickerTime('end-date');
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: 'Create' });
+    return this.find().findByRole('button', {
+      name: `${this.type === 'schedule' ? 'Schedule' : 'Create'} run`,
+    });
+  }
+
+  findParamByLabel(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText(label);
   }
 
   fillName(value: string): void {
@@ -51,6 +135,19 @@ export class CreateRunPage {
 
   fillDescription(value: string): void {
     this.findDescriptionInput().type(value);
+  }
+
+  fillParamInputByLabel(label: string, value: string): void {
+    this.findParamByLabel(label).clear();
+    this.findParamByLabel(label).type(value);
+  }
+
+  selectExperimentByName(name: string): void {
+    this.findExperimentSelect()
+      .click()
+      .get('[data-id="experiment-selector-table-list"]')
+      .findByText(name)
+      .click();
   }
 
   selectPipelineByName(name: string): void {
@@ -69,105 +166,89 @@ export class CreateRunPage {
       .click();
   }
 
-  mockGetPipelines(pipelines: PipelineKF[]): Cypress.Chainable<null> {
+  mockGetExperiments(experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
+    return cy.intercept(
+      { pathname: '/api/proxy/apis/v2beta1/experiments' },
+      buildMockExperiments(experiments),
+    );
+  }
+
+  mockGetPipelines(pipelines: PipelineKFv2[]): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines(pipelines),
     );
   }
 
-  mockGetPipelineVersions(versions: PipelineVersionKF[]): Cypress.Chainable<null> {
+  mockGetPipelineVersions(
+    versions: PipelineVersionKFv2[],
+    pipelineId: string,
+  ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
       },
-      buildMockPipelineVersions(versions),
+      buildMockPipelineVersionsV2(versions),
     );
   }
 
   mockCreateRun(
-    pipelineVersion: PipelineVersionKF,
-    { id, name, description }: Partial<PipelineRunKF>,
+    pipelineVersion: PipelineVersionKFv2,
+    { run_id, ...run }: Partial<PipelineRunKFv2>,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/runs',
+        pathname: '/api/proxy/apis/v2beta1/runs',
         times: 1,
       },
-      {
-        run: {
-          id,
-          name,
-          description,
-          pipeline_spec: {
-            workflow_manifest: '',
-            parameters: [],
+      (req) => {
+        const data = {
+          pipeline_version_reference: {
+            pipeline_id: pipelineVersion.pipeline_id,
+            pipeline_version_id: pipelineVersion.pipeline_version_id,
           },
-          resource_references: [
-            {
-              key: { id: pipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
-              name: pipelineVersion.name,
-              relationship: RelationshipKF.CREATOR,
-            },
-            {
-              key: { type: ResourceTypeKF.EXPERIMENT, id: 'default-experiment-id' },
-              name: 'Default',
-              relationship: RelationshipKF.OWNER,
-            },
-          ],
-          service_account: 'pipeline-runner-pipelines-definition',
-          created_at: '2024-01-26T17:12:19Z',
-          scheduled_at: '1970-01-01T00:00:00Z',
-          finished_at: '1970-01-01T00:00:00Z',
-        },
-        pipeline_runtime: {
-          workflow_manifest: '',
-        },
+          ...run,
+        };
+
+        expect(req.body.data.display_name).to.equal(run.display_name);
+        expect(JSON.stringify(req.body.data.runtime_config)).to.equal(
+          JSON.stringify(run.runtime_config),
+        );
+        req.reply(buildMockRunKF({ ...data, run_id }));
       },
     );
   }
 
-  mockCreateJob(
-    pipelineVersion: PipelineVersionKF,
-    { id, name, description }: Partial<PipelineRunJobKF>,
+  mockCreateRecurringRun(
+    pipelineVersion: PipelineVersionKFv2,
+    { recurring_run_id, ...recurringRun }: Partial<PipelineRunJobKFv2>,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/jobs',
+        pathname: '/api/proxy/apis/v2beta1/recurringruns',
         times: 1,
       },
-      {
-        id,
-        name,
-        description,
-        pipeline_spec: {
-          workflow_manifest: '',
-          parameters: [],
-        },
-        resource_references: [
-          {
-            key: { id: pipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
-            name: pipelineVersion.name,
-            relationship: RelationshipKF.CREATOR,
+      (req) => {
+        const data = {
+          display_name: recurringRun.display_name,
+          description: recurringRun.description,
+          pipeline_version_reference: {
+            pipeline_id: pipelineVersion.pipeline_id,
+            pipeline_version_id: pipelineVersion.pipeline_version_id,
           },
-          {
-            key: { type: ResourceTypeKF.EXPERIMENT, id: 'default-experiment-id' },
-            name: 'Default',
-            relationship: RelationshipKF.OWNER,
-          },
-        ],
-        service_account: 'pipeline-runner-pipelines-definition',
-        max_concurrency: '10',
-        trigger: { periodic_schedule: { interval_second: '604800' } },
-        created_at: '2024-01-26T17:49:13Z',
-        updated_at: '2024-01-26T17:49:13Z',
-        status: 'NO_STATUS',
-        enabled: true,
+          ...recurringRun,
+        };
+
+        expect(req.body.data.display_name).to.equal(recurringRun.display_name);
+        expect(JSON.stringify(req.body.data.runtime_config)).to.equal(
+          JSON.stringify(recurringRun.runtime_config),
+        );
+        req.reply(buildMockJobKF({ ...data, recurring_run_id }));
       },
     );
   }
@@ -177,4 +258,5 @@ export class CreateRunPage {
   }
 }
 
-export const createRunPage = new CreateRunPage();
+export const createRunPage = new CreateRunPage('run');
+export const createSchedulePage = new CreateRunPage('schedule');

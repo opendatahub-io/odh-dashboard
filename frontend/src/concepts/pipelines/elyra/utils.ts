@@ -16,6 +16,7 @@ import {
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
+import { routePipelineRunDetailsNamespace } from '~/routes';
 
 type ElyraRoleBindingOwnerRef = {
   apiVersion: string;
@@ -102,7 +103,10 @@ export const generateElyraSecret = (
           auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
           api_endpoint: route,
           // Append the id on the end to navigate to the details page for that PipelineRun
-          [ELYRA_SECRET_DATA_ENDPOINT]: `${location.origin}/pipelineRuns/${namespace}/pipelineRun/view/`,
+          [ELYRA_SECRET_DATA_ENDPOINT]: `${location.origin}${routePipelineRunDetailsNamespace(
+            namespace,
+            '',
+          )}`,
           [ELYRA_SECRET_DATA_TYPE]: 'KUBERNETES_SECRET',
           cos_secret: externalStorage.s3CredentialsSecret.secretName,
           cos_endpoint: `${externalStorage.scheme}://${externalStorage.host}`,

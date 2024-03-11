@@ -12,14 +12,25 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onChange,
   value,
   validated,
+  min,
+  max,
   ...otherProps
 }) => (
   <NumberInput
     {...otherProps}
+    min={min}
+    max={max}
     validated={validated}
     value={value}
     onChange={(e) => {
-      onChange(parseInt(e.currentTarget.value));
+      let v = parseInt(e.currentTarget.value);
+      if (min) {
+        v = Math.max(v, min);
+      }
+      if (max) {
+        v = Math.min(v, max);
+      }
+      onChange(v);
     }}
     onBlur={
       onBlur &&

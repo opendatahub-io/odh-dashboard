@@ -5,14 +5,14 @@ import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 
 type PipelineVersionSectionProps = {
-  selectedPipeline: PipelineKF | null;
-  value: PipelineVersionKF | null;
-  onChange: (version: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  selectedPipeline: PipelineKFv2 | null;
+  value: PipelineVersionKFv2 | null;
+  onChange: (version: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => void;
 };
 
 const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
@@ -31,8 +31,8 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
       <Stack hasGutter>
         <StackItem>
           <PipelineVersionSelector
-            selection={value?.name}
-            pipelineId={selectedPipeline?.id}
+            selection={value?.display_name}
+            pipelineId={selectedPipeline?.pipeline_id}
             onSelect={(version) => {
               onChange(version);
             }}

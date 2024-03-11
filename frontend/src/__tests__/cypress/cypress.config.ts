@@ -16,6 +16,7 @@ export default defineConfig({
   chromeWebSecurity: false,
   viewportWidth: 1440,
   viewportHeight: 900,
+  numTestsKeptInMemory: 1,
   env: {
     MOCK: !!process.env.MOCK,
     USERNAME: process.env.USERNAME,

@@ -12,11 +12,11 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type ManageExperimentModalProps = {
   isOpen: boolean;
-  onClose: (experiment?: ExperimentKF) => void;
+  onClose: (experiment?: ExperimentKFv2) => void;
 };
 
 const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, onClose }) => {
@@ -27,7 +27,7 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
 
   const haveEnoughData = !!name;
 
-  const onBeforeClose = (experiment?: ExperimentKF) => {
+  const onBeforeClose = (experiment?: ExperimentKFv2) => {
     onClose(experiment);
     setSubmitting(false);
     setError(undefined);
@@ -36,8 +36,8 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
 
   return (
     <Modal
-      title="Create experiment"
       isOpen={isOpen}
+      title="Create experiment"
       onClose={() => onBeforeClose()}
       actions={[
         <Button
@@ -48,7 +48,8 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
             setSubmitting(true);
             setError(undefined);
             api
-              .createExperiment({}, name, description)
+              // eslint-disable-next-line camelcase
+              .createExperiment({}, { display_name: name, description })
               .then((experiment) => onBeforeClose(experiment))
               .catch((e) => {
                 setSubmitting(false);
