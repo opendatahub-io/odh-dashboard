@@ -1,7 +1,7 @@
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: jupyterhub-install-python-packages
+  name: jupyter-install-python-packages
   annotations:
     opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:
@@ -16,7 +16,7 @@ spec:
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: jupyterhub-update-server-settings
+  name: jupyter-update-server-settings
   annotations:
     opendatahub.io/categories: 'Notebook environments,Getting started'
 spec:
@@ -31,7 +31,7 @@ spec:
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: jupyterhub-use-s3-bucket-data
+  name: jupyter-use-s3-bucket-data
   annotations:
     opendatahub.io/categories: 'Data management,Notebook environments'
 spec:
@@ -46,7 +46,7 @@ spec:
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: jupyterhub-view-installed-packages
+  name: jupyter-view-installed-packages
   annotations:
     opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:

@@ -30,12 +30,7 @@ import {
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
 import { blankDashboardCR } from './constants';
-import {
-  checkJupyterEnabled,
-  getIsAppEnabled,
-  getRouteForApplication,
-  getRouteForClusterId,
-} from './componentUtils';
+import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from './componentUtils';
 import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 
@@ -235,14 +230,7 @@ const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStar
         remainingItemCount = res.body?.metadata?.remainingItemCount;
         _continue = res.body?.metadata?._continue;
 
-        const isJupyterEnabled = checkJupyterEnabled();
-
         qStarts.forEach((qStart) => {
-          if (qStart.spec.appName === 'jupyterhub' && isJupyterEnabled) {
-            qStart.spec.appName = 'jupyter';
-          } else if (qStart.spec.appName === 'jupyter' && !isJupyterEnabled) {
-            qStart.spec.appName = 'jupyterhub';
-          }
           if (qStart.spec.featureFlag) {
             if (
               featureFlags[qStart.spec.featureFlag] &&
@@ -401,9 +389,6 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
         _continue = res.body?.metadata?._continue;
 
         odhDocuments.forEach((doc) => {
-          if (doc.spec.appName === 'jupyterhub' && checkJupyterEnabled()) {
-            doc.spec.appName = 'jupyter';
-          }
           if (doc.spec.featureFlag) {
             if (
               featureFlags[doc.spec.featureFlag] &&

@@ -4,6 +4,7 @@ import { getNotebook } from '~/services/notebookService';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useNotification from '~/utilities/useNotification';
 import useRouteForNotebook from '~/pages/projects/notebook/useRouteForNotebook';
+import { getRoute } from '~/services/routeService';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -17,20 +18,21 @@ const NotebookLogoutRedirect: React.FC = () => {
     let cancelled = false;
     if (namespace && notebookName && namespace === notebookNamespace) {
       getNotebook(namespace, notebookName)
-        .then((notebook) => {
+        .then(() => {
           if (cancelled) {
             return;
           }
-          if (notebook.metadata.annotations?.['opendatahub.io/link']) {
-            const location = new URL(notebook.metadata.annotations['opendatahub.io/link']);
-            window.location.href = `${location.origin}/oauth/sign_out`;
-          } else {
-            notification.error(
-              'Error fetching notebook URL.',
-              'Please check the status of your notebook.',
-            );
-            navigate('not-found');
-          }
+          getRoute(notebookNamespace, notebookName)
+            .then((route) => {
+              const location = new URL(
+                `https://${route.spec.host}/notebook/${notebookNamespace}/${notebookName}`,
+              );
+              window.location.href = `${location.origin}/oauth/sign_out`;
+            })
+            .catch((e) => {
+              notification.error('Error fetching notebook URL.', e.message);
+              navigate('not-found');
+            });
         })
         .catch((e) => {
           if (cancelled) {

@@ -5,7 +5,6 @@ import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
-import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectScope } from '~/pages/projects/types';
@@ -21,7 +20,6 @@ type ProjectListViewProps = {
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope }) => {
-  const { dashboardConfig } = useAppContext();
   const { projects, dataScienceProjects, refresh } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
@@ -97,11 +95,9 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
                 />
               </ToolbarItem>
             )}
-            {dashboardConfig.spec.notebookController?.enabled && (
-              <ToolbarItem>
-                <LaunchJupyterButton variant={ButtonVariant.link} />
-              </ToolbarItem>
-            )}
+            <ToolbarItem>
+              <LaunchJupyterButton variant={ButtonVariant.link} />
+            </ToolbarItem>
           </>
         }
       />
