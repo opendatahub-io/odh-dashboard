@@ -30,5 +30,5 @@ export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.EXPERIMENT]: 'Experiment',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
   [CreateRunPageSections.PIPELINE_VERSION]: 'Pipeline version',
-  [CreateRunPageSections.PARAMS]: 'Pipeline input parameters',
+  [CreateRunPageSections.PARAMS]: 'Parameters',
 };

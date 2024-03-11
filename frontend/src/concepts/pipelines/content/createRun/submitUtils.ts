@@ -9,13 +9,16 @@ import {
   CreatePipelineRunJobKFData,
   CreatePipelineRunKFData,
   DateTimeKF,
-  InputDefinitionParameterType,
+  InputDefParamType,
   PipelineVersionKFv2,
   RecurringRunMode,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
-import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
+import {
+  getInputDefinitionParams,
+  isFilledRunFormData,
+} from '~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds } from '~/utilities/time';
 import { routePipelineRunDetails } from '~/routes';
 
@@ -130,20 +133,27 @@ export const handleSubmit = (formData: RunFormData, api: PipelineAPIs): Promise<
 const normalizeInputParams = (
   params: RuntimeConfigParameters,
   version: PipelineVersionKFv2 | null,
-): RuntimeConfigParameters => {
-  const inputDefinitionParams = version?.pipeline_spec.root.inputDefinitions.parameters;
-
-  return Object.entries(params).reduce((acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
+): RuntimeConfigParameters =>
+  Object.entries(params).reduce((acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
+    const inputDefinitionParams = getInputDefinitionParams(version);
     const paramType = inputDefinitionParams?.[paramKey].parameterType;
 
-    if (paramType === InputDefinitionParameterType.Boolean) {
-      acc[paramKey] = paramValue === 'true';
-    } else if (paramType === InputDefinitionParameterType.NumberInteger) {
-      acc[paramKey] = paramValue ? parseInt(paramValue.toString()) : 0;
-    } else {
-      acc[paramKey] = paramValue;
+    switch (paramType) {
+      case InputDefParamType.NumberInteger:
+        acc[paramKey] = parseInt(String(paramValue));
+        break;
+      case InputDefParamType.NumberDouble:
+        acc[paramKey] = parseFloat(String(paramValue));
+        break;
+      case InputDefParamType.Struct:
+      case InputDefParamType.List:
+        acc[paramKey] = JSON.parse(
+          typeof paramValue !== 'string' ? JSON.stringify(paramValue) : paramValue,
+        );
+        break;
+      default:
+        acc[paramKey] = paramValue;
     }
 
     return acc;
   }, {});
-};

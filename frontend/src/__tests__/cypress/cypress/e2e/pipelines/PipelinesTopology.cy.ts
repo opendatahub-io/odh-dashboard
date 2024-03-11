@@ -243,6 +243,7 @@ describe('Pipeline topology', () => {
           .findBottomDrawer()
           .findBottomDrawerDetailItem('Project')
           .findValue()
+          .find('a')
           .click();
         verifyRelativeURL(`/projects/${projectId}`);
       });
@@ -255,6 +256,7 @@ describe('Pipeline topology', () => {
           .findBottomDrawer()
           .findBottomDrawerDetailItem('Pipeline version')
           .findValue()
+          .find('a')
           .click();
         verifyRelativeURL(
           `/pipelines/${projectId}/pipeline/view/${mockJob.pipeline_version_reference.pipeline_id}/${mockJob.pipeline_version_reference.pipeline_version_id}`,
@@ -300,7 +302,7 @@ describe('Pipeline topology', () => {
         .findBottomDrawer()
         .findBottomDrawerDetailItem('min_max_scaler')
         .findValue()
-        .contains('false');
+        .contains('False');
       pipelineRunJobDetails
         .findBottomDrawer()
         .findBottomDrawerDetailItem('neighbors')
@@ -352,7 +354,7 @@ describe('Pipeline topology', () => {
         .findBottomDrawer()
         .findBottomDrawerDetailItem('min_max_scaler')
         .findValue()
-        .contains('false');
+        .contains('False');
       pipelineRunDetails
         .findBottomDrawer()
         .findBottomDrawerDetailItem('neighbors')
