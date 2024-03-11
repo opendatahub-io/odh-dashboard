@@ -14,6 +14,7 @@ export const PIPELINE_AWS_KEY = [
   AwsKeys.SECRET_ACCESS_KEY,
   AwsKeys.S3_ENDPOINT,
   AwsKeys.AWS_S3_BUCKET,
+  AwsKeys.DEFAULT_REGION,
 ];
 export const AWS_FIELDS: FieldOptions[] = [
   {
@@ -61,6 +62,11 @@ export const PIPELINE_AWS_FIELDS: FieldOptions[] = [
   {
     key: AwsKeys.S3_ENDPOINT,
     label: 'Endpoint',
+    isRequired: true,
+  },
+  {
+    key: AwsKeys.DEFAULT_REGION,
+    label: 'Region',
     isRequired: true,
   },
   {
@@ -112,5 +118,9 @@ export const EMPTY_AWS_PIPELINE_DATA: AWSDataEntry = [
   {
     key: AwsKeys.S3_ENDPOINT,
     value: '',
+  },
+  {
+    key: AwsKeys.DEFAULT_REGION,
+    value: 'us-east-1',
   },
 ];
