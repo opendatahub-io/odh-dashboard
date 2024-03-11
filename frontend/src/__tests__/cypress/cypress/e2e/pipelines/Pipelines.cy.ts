@@ -17,6 +17,7 @@ import {
   pipelineVersionImportModal,
   pipelineDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -58,10 +59,10 @@ describe('Pipelines', () => {
   });
 
   it('selects a different project', () => {
-    cy.url().should('include', 'test-project-name');
+    verifyRelativeURL('/pipelines/test-project-name');
 
     pipelinesGlobal.selectProjectByName('Test Project 2');
-    cy.url().should('include', 'test-project-name-2');
+    verifyRelativeURL('/pipelines/test-project-name-2');
   });
 
   it('imports a new pipeline', () => {
@@ -179,6 +180,66 @@ describe('Pipelines', () => {
         .findByTestId('no-pipeline-versions')
         .should('exist'),
     );
+  });
+
+  it('navigate to pipeline version details page', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText(initialMockPipelineVersion.display_name)
+      .click();
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+    );
+  });
+
+  it('navigate to create run page from pipeline row', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable
+      .findRowByName(initialMockPipeline.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    // Delete the selected version
+    pipelinesTable.findRowByName(initialMockPipeline.display_name).findByText('Create run').click();
+    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+  });
+
+  it('navigate to create run page from pipeline version row', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    // Delete the selected version
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('Create run')
+      .click();
+    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+  });
+
+  it('navigate to view runs page', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    // Delete the selected version
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('View runs')
+      .click();
+    verifyRelativeURL(`/pipelineRuns/${projectName}`);
   });
 });
 

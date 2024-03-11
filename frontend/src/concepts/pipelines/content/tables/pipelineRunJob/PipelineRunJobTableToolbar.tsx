@@ -10,6 +10,7 @@ import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { routePipelineRunCreateNamespace } from '~/routes';
 
 const options = {
   [FilterOptions.NAME]: 'Name',
@@ -60,7 +61,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
           variant="primary"
           onClick={() =>
             navigate({
-              pathname: `/pipelineRuns/${namespace}/pipelineRun/create`,
+              pathname: routePipelineRunCreateNamespace(namespace),
               search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
             })
           }

@@ -10,6 +10,7 @@ import PipelinesView from '~/pages/pipelines/global/pipelines/PipelinesView';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { routePipelinesNamespace } from '~/routes';
 
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPi = usePipelinesAPI();
@@ -19,7 +20,7 @@ const GlobalPipelines: React.FC = () => {
       title={pipelinesPageTitle}
       description={pipelinesPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />}
-      getRedirectPath={(namespace) => `/pipelines/${namespace}`}
+      getRedirectPath={routePipelinesNamespace}
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

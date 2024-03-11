@@ -6,6 +6,7 @@ import { TableRowTitleDescription } from '~/components/table';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunLabels } from '~/concepts/pipelines/content/tables/utils';
+import { routePipelineRunDetailsNamespace } from '~/routes';
 
 type PipelineRunTableRowTitleProps = {
   run: PipelineRunKFv2;
@@ -17,7 +18,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run
   return (
     <TableRowTitleDescription
       title={
-        <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${run.run_id}`}>
+        <Link to={routePipelineRunDetailsNamespace(namespace, run.run_id)}>
           <TableText wrapModifier="truncate">{run.display_name}</TableText>
         </Link>
       }

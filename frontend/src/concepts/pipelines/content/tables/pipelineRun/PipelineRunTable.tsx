@@ -22,6 +22,7 @@ import { BulkArchiveRunModal } from '~/pages/pipelines/global/runs/BulkArchiveRu
 import { BulkRestoreRunModal } from '~/pages/pipelines/global/runs/BulkRestoreRunModal';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
+import { routePipelineRunCreateNamespace } from '~/routes';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKFv2[];
@@ -109,7 +110,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     return (
       <Button
         variant="primary"
-        onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
+        onClick={() => navigate(routePipelineRunCreateNamespace(namespace))}
       >
         Create run
       </Button>

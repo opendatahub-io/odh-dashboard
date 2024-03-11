@@ -19,6 +19,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
+import { routePipelineRunCloneNamespace } from '~/routes';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -46,7 +47,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     const cloneAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
-        navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.run_id}`);
+        navigate(routePipelineRunCloneNamespace(namespace, run.run_id));
       },
     };
 

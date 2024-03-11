@@ -72,6 +72,10 @@ class PipelineDetails extends PipelinesTopology {
     this.wait();
   }
 
+  findActionsDropdown() {
+    return cy.findByTestId('pipeline-version-details-actions');
+  }
+
   findRunTaskRightDrawer() {
     return cy.findByTestId('pipeline-run-drawer-right-content');
   }
@@ -114,12 +118,20 @@ class PipelineRunJobDetails extends RunDetails {
     cy.visitWithLogin(`/pipelineRuns/${namespace}/pipelineRunJob/view/${pipelineId}`);
     this.wait();
   }
+
+  findActionsDropdown() {
+    return cy.findByTestId('pipeline-run-job-details-actions');
+  }
 }
 
 class PipelineRunDetails extends RunDetails {
   visit(namespace: string, pipelineId: string) {
     cy.visitWithLogin(`/pipelineRuns/${namespace}/pipelineRun/view/${pipelineId}`);
     this.wait();
+  }
+
+  findActionsDropdown() {
+    return cy.findByTestId('pipeline-run-details-actions');
   }
 
   findRunTaskRightDrawer() {

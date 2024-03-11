@@ -36,6 +36,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
+import { routePipelineRunsNamespace } from '~/routes';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { pipelineRunId } = useParams();
@@ -171,7 +172,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
         toDeleteResources={deleting && runResource ? [runResource] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
-            navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+            navigate(contextPath ?? routePipelineRunsNamespace(namespace));
           } else {
             setDeleting(false);
           }

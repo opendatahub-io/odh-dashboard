@@ -27,6 +27,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { asEnumMember } from '~/utilities/utils';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { routePipelineRunsNamespace } from '~/routes';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
@@ -93,7 +94,10 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <RunPageFooter data={formData} contextPath={contextPath ?? `/pipelineRuns/${namespace}`} />
+        <RunPageFooter
+          data={formData}
+          contextPath={contextPath ?? routePipelineRunsNamespace(namespace)}
+        />
       </PageSection>
     </div>
   );

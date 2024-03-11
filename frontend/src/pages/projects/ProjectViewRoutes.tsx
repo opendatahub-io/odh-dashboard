@@ -14,6 +14,13 @@ import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/p
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import {
+  globPipelineDetails,
+  globPipelineRunClone,
+  globPipelineRunCreate,
+  globPipelineRunDetails,
+  globPipelineRunJobDetails,
+} from '~/routes';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -55,27 +62,27 @@ const ProjectViewRoutes: React.FC = () => {
           </>
         )}
         <Route
-          path="pipeline/view/:pipelineId/:pipelineVersionId"
+          path={globPipelineDetails}
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineDetails} />}
         />
         <Route
-          path="pipelineRun/view/:pipelineRunId"
+          path={globPipelineRunDetails}
           element={
             <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunDetails} />
           }
         />
         <Route
-          path="pipelineRunJob/view/:pipelineRunJobId"
+          path={globPipelineRunJobDetails}
           element={
             <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunJobDetails} />
           }
         />
         <Route
-          path="pipelineRun/create"
+          path={globPipelineRunCreate}
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={CreateRunPage} />}
         />
         <Route
-          path="pipelineRun/clone/:pipelineRunId"
+          path={globPipelineRunClone}
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={CloneRunPage} />}
         />
 

@@ -49,12 +49,12 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                 setSubmitting(true);
                 setError(null);
                 handleSubmit(data, api)
-                  .then((path) =>
+                  .then((path) => {
                     navigate({
-                      pathname: `${contextPath}${path}`,
-                      search: `?${PipelineRunSearchParam.RunType}=${runType}`,
-                    }),
-                  )
+                      pathname: `${contextPath}/${path}`,
+                      search: runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : '',
+                    });
+                  })
                   .catch((e) => {
                     setSubmitting(false);
                     setError(e);
