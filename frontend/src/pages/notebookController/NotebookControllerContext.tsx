@@ -13,6 +13,7 @@ const defaultNotebookControllerContext: NotebookControllerContextProps = {
   requestNotebookRefresh: () => undefined,
   currentUserNotebookIsRunning: false,
   currentUserNotebookPodUID: '',
+  currentUserNotebookLink: '',
   setImpersonating: () => undefined,
   impersonatedUsername: null,
   setCurrentAdminTab: () => undefined,
@@ -28,14 +29,17 @@ type NotebookControllerContextProviderProps = {
 export const NotebookControllerContextProvider: React.FC<
   NotebookControllerContextProviderProps
 > = ({ children }) => {
-  const [{ current, currentIsRunning, currentPodUID, requestRefresh }, setNotebookState] =
-    React.useState<NotebookContextStorage>({
-      current: undefined,
-      currentIsRunning: false,
-      currentPodUID: '',
-      former: null,
-      requestRefresh: () => undefined,
-    });
+  const [
+    { current, currentIsRunning, currentPodUID, requestRefresh, currentLink },
+    setNotebookState,
+  ] = React.useState<NotebookContextStorage>({
+    current: undefined,
+    currentIsRunning: false,
+    currentPodUID: '',
+    currentLink: '',
+    former: null,
+    requestRefresh: () => undefined,
+  });
   const [impersonatedUsername, setImpersonating] = useImpersonationForContext(setNotebookState);
   const [currentTab, setCurrentAdminTab] = useAdminTabState();
 
@@ -50,6 +54,7 @@ export const NotebookControllerContextProvider: React.FC<
       currentUserNotebook: current ?? null,
       currentUserNotebookIsRunning: currentIsRunning,
       currentUserNotebookPodUID: currentPodUID,
+      currentUserNotebookLink: currentLink,
     }),
     [
       impersonatedUsername,
@@ -60,6 +65,7 @@ export const NotebookControllerContextProvider: React.FC<
       currentIsRunning,
       currentPodUID,
       requestRefresh,
+      currentLink,
     ],
   );
   return (

@@ -44,7 +44,7 @@ import {
   updateServingRuntime,
 } from '~/api';
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
-import { removeLeadingSlashes } from '~/utilities/string';
+import { removeLeadingSlash } from '~/utilities/string';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -330,7 +330,7 @@ export const getSubmitInferenceServiceResourceFn = (
     ...{
       storage: {
         ...createData.storage,
-        path: removeLeadingSlashes(createData.storage.path),
+        path: removeLeadingSlash(createData.storage.path),
       },
     },
   };

@@ -4,6 +4,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
 import { globPipelineRunsAll, globPipelinesAll } from '~/routes';
+import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
@@ -51,6 +52,7 @@ const AcceleratorProfileRoutes = React.lazy(
 
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
+  const isJupyterEnabled = useCheckJupyterEnabled();
 
   if (!isAllowed) {
     return (
@@ -69,7 +71,10 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/projects/*" element={<ProjectViewRoutes />} />
 
-        <Route path="/notebookController/*" element={<NotebookController />} />
+        {isJupyterEnabled && (
+          <Route path="/notebookController/*" element={<NotebookController />} />
+        )}
+
         <Route
           path="/notebook/:namespace/:notebookName/logout"
           element={<NotebookLogoutRedirectPage />}

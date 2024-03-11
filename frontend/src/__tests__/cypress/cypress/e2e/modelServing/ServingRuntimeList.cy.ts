@@ -670,6 +670,56 @@ describe('Serving Runtime List', () => {
         .next('dd')
         .should('have.text', '3');
     });
+
+    it('Check path error in KServe Modal', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+      });
+      projectDetails.visit('test-project');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findLocationPathInput().clear();
+
+      // Check with root path
+      kserveModal.findLocationPathInput().type('/');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal
+        .findLocationPathInputError()
+        .should('be.visible')
+        .contains('The path must not point to a root folder');
+      kserveModal.findLocationPathInput().clear();
+
+      // Check path with special characters
+      kserveModal.findLocationPathInput().type('invalid/path/@#%#@%');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findLocationPathInputError().should('be.visible').contains('Invalid path format');
+      kserveModal.findLocationPathInput().clear();
+
+      // Check path with extra slashes in between
+      kserveModal.findLocationPathInput().type('invalid/path///test');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findLocationPathInputError().should('be.visible').contains('Invalid path format');
+      kserveModal.findLocationPathInput().clear();
+
+      kserveModal.findLocationPathInput().type('correct-path');
+      kserveModal.findSubmitButton().should('be.enabled');
+    });
   });
 
   describe('ModelMesh model server', () => {
