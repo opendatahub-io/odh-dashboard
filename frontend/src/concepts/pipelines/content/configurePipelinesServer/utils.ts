@@ -102,15 +102,16 @@ export const createDSPipelineResourceSpec = (
   const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
   const [, externalStorageScheme, externalStorageHost] =
     awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
+  const externalStorageRegion = awsRecord.AWS_DEFAULT_REGION || 'us-east-1';
 
   return {
     dspVersion: 'v2',
     objectStorage: {
       externalStorage: {
-        host: externalStorageHost.replace(/\/$/, '') || '',
+        host: convertAWSHostForRegion(externalStorageHost, externalStorageRegion),
         scheme: externalStorageScheme || 'https',
         bucket: awsRecord.AWS_S3_BUCKET || '',
-        region: 'us-east-2', // TODO hardcode for now
+        region: externalStorageRegion,
         s3CredentialsSecret: {
           accessKey: AwsKeys.ACCESS_KEY_ID,
           secretKey: AwsKeys.SECRET_ACCESS_KEY,
@@ -155,4 +156,9 @@ export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boo
 export const getLabelName = (index: string): string => {
   const field = PIPELINE_AWS_FIELDS.find((currentField) => currentField.key === index);
   return field ? field.label : '';
+};
+
+const convertAWSHostForRegion = (endpoint: string, region: string): string => {
+  const host = endpoint.replace(/\/$/, '') || '';
+  return host === 's3.amazonaws.com' && region !== '' ? `s3.${region}.amazonaws.com` : host;
 };
