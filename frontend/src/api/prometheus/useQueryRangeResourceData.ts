@@ -1,9 +1,8 @@
-// TODO mturley these imports from ~/pages/modelServing/* should be moved somewhere page-agnostic
-import { TimeframeStep, TimeframeTimeRange } from '~/pages/modelServing/screens/const';
+import { TimeframeTitle } from '~/concepts/metrics/types';
+import { TimeframeStep, TimeframeTimeRange } from '~/concepts/metrics/const';
 import { PrometheusQueryRangeResultValue } from '~/types';
 import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
 import { FetchOptions } from '~/utilities/useFetchState';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
