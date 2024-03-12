@@ -118,8 +118,7 @@ describe('Workload Metrics', () => {
 
     cy.findByLabelText('Workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project');
-    // TODO mturley replace this with real identifiable text on the loaded tab when it is completed
-    cy.findByText('TODO tab content for workload status -- these are placeholders').should('exist');
+    cy.findByText('Status overview').should('exist');
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project');

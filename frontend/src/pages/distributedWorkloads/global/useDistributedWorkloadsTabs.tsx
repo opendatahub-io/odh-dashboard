@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import GlobalDistributedWorkloadsProjectMetricsTab from './GlobalDistributedWorkloadsProjectMetricsTab';
-import GlobalDistributedWorkloadsWorkloadStatusTab from './GlobalDistributedWorkloadsWorkloadStatusTab';
+import GlobalDistributedWorkloadsProjectMetricsTab from './projectMetrics/GlobalDistributedWorkloadsProjectMetricsTab';
+import GlobalDistributedWorkloadsWorkloadStatusTab from './workloadStatus/GlobalDistributedWorkloadsWorkloadStatusTab';
 
 export enum DistributedWorkloadsTabId {
   PROJECT_METRICS = 'project-metrics',
