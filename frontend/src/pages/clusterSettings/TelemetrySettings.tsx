@@ -44,7 +44,7 @@ const TelemetrySettings: React.FC<TelemetrySettingsProps> = ({
         }}
         aria-label="usageData"
         id="usage-data-checkbox"
-        data-id="usage-data-checkbox"
+        data-testid="usage-data-checkbox"
         name="usageDataCheckbox"
       />
     </SettingSection>

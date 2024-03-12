@@ -17,77 +17,77 @@ class ClusterSettings {
   }
 
   findSubmitButton() {
-    return cy.get('[data-id="submit-cluster-settings"]');
+    return cy.findByTestId('submit-cluster-settings');
   }
 }
 
 class ModelSergingSettings extends ClusterSettings {
   findSinglePlatformCheckbox() {
-    return cy.get('[data-id="single-model-serving-platform-enabled-checkbox"]');
+    return cy.findByTestId('single-model-serving-platform-enabled-checkbox');
   }
 
   findMultiPlatformCheckbox() {
-    return cy.get('[data-id="multi-model-serving-platform-enabled-checkbox"]');
+    return cy.findByTestId('multi-model-serving-platform-enabled-checkbox');
   }
 
   findAlert() {
-    return cy.get('[data-id="serving-platform-warning-alert"]');
+    return cy.findByTestId('serving-platform-warning-alert');
   }
 }
 
 class PVCSizeSettings extends ClusterSettings {
   findInput() {
-    return cy.get('[data-id="pvc-size-input"]');
+    return cy.findByTestId('pvc-size-input');
   }
 
   findHint() {
-    return cy.get('[data-id="pvc-size-helper-text"]');
+    return cy.findByTestId('pvc-size-helper-text');
   }
 
   findRestoreDefaultsButton() {
-    return cy.get('[data-id="restore-default-button"]');
+    return cy.findByTestId('restore-default-button');
   }
 }
 
 class CullterSettings extends ClusterSettings {
   findHint() {
-    return cy.get('[data-id="culler-timeout-helper-text"]');
+    return cy.findByTestId('culler-timeout-helper-text');
   }
 
   findHoursInput() {
-    return cy.get('[data-id="hour-input"]');
+    return cy.findByTestId('hour-input');
   }
 
   findMinutesInput() {
-    return cy.get('[data-id="minute-input"]');
+    return cy.findByTestId('minute-input');
   }
 
   findUnlimitedOption() {
-    return cy.get('[data-id="culler-timeout-unlimited"]');
+    return cy.findByTestId('culler-timeout-unlimited');
   }
 
   findLimitedOption() {
-    return cy.get('[data-id="culler-timeout-limited"]');
+    return cy.findByTestId('culler-timeout-limited');
   }
 }
 
 class TelemetrySettings extends ClusterSettings {
   findEnabledCheckbox() {
-    return cy.get('[data-id="usage-data-checkbox"]');
+    return cy.findByTestId('usage-data-checkbox');
   }
 }
 
 class NotebookTolerationSettings extends ClusterSettings {
   findEnabledCheckbox() {
-    return cy.get('[data-id=tolerations-enabled-checkbox]');
+    return cy.findByTestId('tolerations-enabled-checkbox');
   }
 
   findKeyInput() {
-    return cy.get('[data-id="toleration-key-input"]');
+    return cy.findByTestId('toleration-key-input');
   }
 
   findKeyError() {
-    return cy.get('[data-id="toleration-helper-text-error"]');
+    return cy.findByTestId('toleration-helper-text-error');
   }
 }
 

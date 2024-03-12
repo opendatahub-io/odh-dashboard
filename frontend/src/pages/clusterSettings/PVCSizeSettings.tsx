@@ -39,7 +39,7 @@ all users."
                 id="pvc-size-input"
                 style={{ maxWidth: '200px' }}
                 name="pvc"
-                data-id="pvc-size-input"
+                data-testid="pvc-size-input"
                 type="text"
                 aria-label="PVC Size Input"
                 value={pvcSize}
@@ -68,7 +68,7 @@ all users."
         </StackItem>
         <StackItem>
           <Button
-            data-id="restore-default-button"
+            data-testid="restore-default-button"
             variant={ButtonVariant.secondary}
             onClick={() => {
               setPvcSize(DEFAULT_PVC_SIZE);
@@ -80,7 +80,7 @@ all users."
         <StackItem>
           <HelperText>
             <HelperTextItem
-              data-id="pvc-size-helper-text"
+              data-testid="pvc-size-helper-text"
               variant={!pvcSize ? 'error' : 'indeterminate'}
               hasIcon={!pvcSize}
             >
