@@ -26,7 +26,7 @@ const ServeModelButton: React.FC = () => {
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },
   } = React.useContext(ModelServingContext);
-  const { projects, refresh: refreshProjects } = React.useContext(ProjectsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const { namespace } = useParams<{ namespace: string }>();
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -39,7 +39,6 @@ const ServeModelButton: React.FC = () => {
 
   const onSubmit = (submit: boolean) => {
     if (submit) {
-      refreshProjects();
       refreshInferenceServices();
       refreshServingRuntimes();
     }

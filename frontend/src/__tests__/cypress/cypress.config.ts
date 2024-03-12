@@ -28,7 +28,7 @@ export default defineConfig({
   e2e: {
     baseUrl: process.env.BASE_URL,
     specPattern: process.env.MOCK
-      ? `cypress/e2e/**/*.(s)?cy.ts`
+      ? `cypress/e2e/**/*.cy.ts`
       : process.env.RECORD
       ? `cypress/e2e/**/*.scy.ts`
       : `cypress/e2e/**/*.(s)?cy.ts`,

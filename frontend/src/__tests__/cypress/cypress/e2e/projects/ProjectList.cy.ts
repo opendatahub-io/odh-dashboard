@@ -1,9 +1,12 @@
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource, mockProjectsK8sList } from '~/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { ProjectKind } from '~/k8sTypes';
+import { incrementResourceVersion } from '~/__mocks__/mockUtils';
+import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
 
 describe('Data science projects details', () => {
   it('should start with an empty project list', () => {
@@ -38,28 +41,10 @@ describe('Data science projects details', () => {
     createProjectModal.findSubmitButton().should('be.disabled');
     createProjectModal.findResourceNameInput().type('test-project');
 
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-      },
-      mockK8sResourceList([mockProjectK8sResource({})]),
-    ).as('refreshProjectList');
-
     createProjectModal.findSubmitButton().click();
 
-    cy.wait('@createProjectRequest').then((interception) => {
-      expect(interception.request.body).to.eql({
-        apiVersion: 'project.openshift.io/v1',
-        kind: 'ProjectRequest',
-        metadata: {
-          name: 'test-project',
-        },
-        description: 'Test project description.',
-        displayName: 'My Test Project',
-      });
-    });
-    cy.wait('@refreshProjectList');
+    cy.wsK8sAdded(ProjectModel, mockProjectK8sResource({}));
+
     cy.url().should('include', '/projects/test-project');
   });
 
@@ -80,12 +65,13 @@ describe('Data science projects details', () => {
 
   it('should delete project', () => {
     initIntercepts();
+    const mockProject = mockProjectK8sResource({});
     cy.intercept(
       {
         method: 'GET',
         pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
       },
-      mockK8sResourceList([mockProjectK8sResource({})]),
+      mockK8sResourceList([mockProject]),
     );
 
     projectListPage.visit();
@@ -95,13 +81,7 @@ describe('Data science projects details', () => {
     deleteModal.findCancelButton().should('be.enabled').click();
     projectListPage.findProjectRow('Test Project').findKebabAction('Delete project').click();
     deleteModal.findInput().type('Test Project');
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-      },
-      mockK8sResourceList([deletedMockProjectResource()]),
-    ).as('refreshproject');
+
     cy.intercept(
       {
         method: 'DELETE',
@@ -112,22 +92,54 @@ describe('Data science projects details', () => {
 
     deleteModal.findSubmitButton().should('be.enabled').click();
     cy.wait('@deleteProject');
-    cy.wait('@refreshproject');
 
+    cy.wsK8sModified(ProjectModel, deletedMockProjectResource(mockProject));
     projectListPage.shouldBeEmpty();
+  });
+
+  it('should react to updates through web sockets', () => {
+    initIntercepts();
+
+    const projectsMock = mockProjectsK8sList();
+    const projects = projectsMock.items;
+    projectsMock.items = [projects[0]];
+    const renamed = incrementResourceVersion(projects[1]);
+    renamed.metadata.annotations = {
+      ...projects[1].metadata.annotations,
+      'openshift.io/display-name': 'renamed',
+    };
+
+    cy.intercept({ pathname: '/api/k8s/apis/project.openshift.io/v1/projects' }, projectsMock);
+    cy.visitWithLogin('/projects');
+
+    projectListPage.shouldHaveProjects();
+    projectListPage.findProjectLink('DS Project 1').should('exist');
+
+    cy.wsK8sAdded(ProjectModel, projects[1]);
+    projectListPage.findProjectLink('DS Project 2').should('exist');
+
+    cy.wsK8sModified(ProjectModel, renamed);
+    projectListPage.findProjectLink('renamed').should('exist');
+    projectListPage.findProjectLink('DS Project 2').should('not.exist');
+
+    cy.wsK8sDeleted(ProjectModel, renamed);
+    projectListPage.findProjectLink('DS Project 1').should('exist');
+    projectListPage.findProjectLink('DS Project 2').should('not.exist');
+    projectListPage.findProjectLink('renamed').should('not.exist');
   });
 });
 
-const deletedMockProjectResource = () => {
-  const deletedResource = mockProjectK8sResource({});
-  //updating deleted time stamp
-  deletedResource.metadata.deletionTimestamp = '2023-02-15T21:43:59Z';
-  //updating status
-  deletedResource.status = {
-    phase: 'Terminating',
-  };
-  return deletedResource;
-};
+const deletedMockProjectResource = (resource: ProjectKind): ProjectKind =>
+  incrementResourceVersion({
+    ...resource,
+    metadata: {
+      ...resource.metadata,
+      deletionTimestamp: '2023-02-15T21:43:59Z',
+    },
+    status: {
+      phase: 'Terminating',
+    },
+  });
 
 const initIntercepts = () => {
   cy.intercept('/api/config', mockDashboardConfig({}));
