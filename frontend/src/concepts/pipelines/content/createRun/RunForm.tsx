@@ -7,7 +7,7 @@ import {
   ScheduledRunType,
 } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
-import ParamsSection from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
+import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineVersionSection from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionSection';
 import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
@@ -18,6 +18,7 @@ import ExperimentSection from '~/concepts/pipelines/content/createRun/contentSec
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
+import { getInputDefinitionParams } from './utils';
 
 type RunFormProps = {
   data: RunFormData;
@@ -36,7 +37,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
     (version: PipelineVersionKFv2 | undefined) =>
       onValueChange(
         'params',
-        Object.keys(version?.pipeline_spec.root.inputDefinitions.parameters || {}).reduce(
+        Object.keys(getInputDefinitionParams(version) || {}).reduce(
           (acc: RuntimeConfigParameters, parameter) => {
             acc[parameter] = paramsRef.current?.[parameter] ?? '';
             return acc;
@@ -108,7 +109,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
       )}
       <ParamsSection
         runParams={data.params}
-        versionId={selectedVersion?.pipeline_version_id}
+        version={selectedVersion}
         onChange={(p) => onValueChange('params', p)}
       />
     </Form>

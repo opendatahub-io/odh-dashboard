@@ -141,11 +141,17 @@ export type PipelineVersionKF = {
   description?: string;
 };
 
-export enum InputDefinitionParameterType {
+// https://github.com/kubeflow/pipelines/blob/0b1553eb05ea44fdf720efdc91ef71cc5ac557ea/api/v2alpha1/pipeline_spec.proto#L416
+export enum InputDefParamType {
+  NumberDouble = 'NUMBER_DOUBLE',
   NumberInteger = 'NUMBER_INTEGER',
-  Boolean = 'BOOLEAN',
   String = 'STRING',
+  Boolean = 'BOOLEAN',
+  List = 'LIST',
+  Struct = 'STRUCT',
 }
+
+export type PipelineInputParameters = Record<string, { parameterType: InputDefParamType }>;
 
 // https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/#/definitions/v2beta1PipelineVersion
 export type PipelineSpec = Record<string, unknown> & {
@@ -154,7 +160,7 @@ export type PipelineSpec = Record<string, unknown> & {
   };
   root: Record<string, unknown> & {
     inputDefinitions: {
-      parameters: Record<string, { parameterType: InputDefinitionParameterType }>;
+      parameters: PipelineInputParameters;
     };
   };
   schemaVersion: string;
@@ -189,7 +195,8 @@ export type UrlKF = {
   pipeline_url: string;
 };
 
-export type RuntimeConfigParameters = Record<string, string | number | boolean>;
+export type RuntimeConfigParamValue = string | number | boolean | object | Array<object>;
+export type RuntimeConfigParameters = Record<string, RuntimeConfigParamValue>;
 
 export type PipelineSpecRuntimeConfig = {
   parameters: RuntimeConfigParameters;

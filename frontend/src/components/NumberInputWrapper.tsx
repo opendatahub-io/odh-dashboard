@@ -4,8 +4,7 @@ import { NumberInput } from '@patternfly/react-core';
 type NumberInputWrapperProps = {
   onBlur?: (blurValue: number) => void;
   onChange: (newValue: number) => void;
-  value: number;
-} & Omit<React.ComponentProps<typeof NumberInput>, 'onChange' | 'value' | 'onPlus' | 'onMinus'>;
+} & Omit<React.ComponentProps<typeof NumberInput>, 'onChange' | 'onPlus' | 'onMinus'>;
 
 const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onBlur,
@@ -38,8 +37,8 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
         onBlur(parseInt(e.currentTarget.value));
       })
     }
-    onPlus={() => onChange(value + 1)}
-    onMinus={() => onChange(value - 1)}
+    onPlus={() => onChange((value || 0) + 1)}
+    onMinus={() => onChange((value || 0) - 1)}
   />
 );
 

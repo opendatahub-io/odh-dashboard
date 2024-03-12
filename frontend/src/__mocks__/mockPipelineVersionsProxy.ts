@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import {
-  InputDefinitionParameterType,
+  InputDefParamType,
   PipelineVersionKF,
   PipelineVersionKFv2,
   RelationshipKF,
@@ -409,13 +409,13 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
         inputDefinitions: {
           parameters: {
             min_max_scaler: {
-              parameterType: InputDefinitionParameterType.Boolean,
+              parameterType: InputDefParamType.Boolean,
             },
             neighbors: {
-              parameterType: InputDefinitionParameterType.NumberInteger,
+              parameterType: InputDefParamType.NumberInteger,
             },
             standard_scaler: {
-              parameterType: InputDefinitionParameterType.Boolean,
+              parameterType: InputDefParamType.Boolean,
             },
           },
         },
@@ -657,13 +657,13 @@ export const buildMockPipelineVersionV2 = (
       inputDefinitions: {
         parameters: {
           min_max_scaler: {
-            parameterType: InputDefinitionParameterType.Boolean,
+            parameterType: InputDefParamType.Boolean,
           },
           neighbors: {
-            parameterType: InputDefinitionParameterType.NumberInteger,
+            parameterType: InputDefParamType.NumberInteger,
           },
           standard_scaler: {
-            parameterType: InputDefinitionParameterType.String,
+            parameterType: InputDefParamType.String,
           },
         },
       },

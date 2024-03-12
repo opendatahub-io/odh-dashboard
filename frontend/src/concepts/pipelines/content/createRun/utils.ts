@@ -5,6 +5,7 @@ import {
   SafeRunFormData,
   ScheduledType,
 } from '~/concepts/pipelines/content/createRun/types';
+import { PipelineInputParameters, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 
 const runTypeSafeData = (runType: RunFormData['runType']): boolean =>
   runType.type !== RunTypeOption.SCHEDULED ||
@@ -41,9 +42,13 @@ export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunF
   !!formData.nameDesc.name &&
   !!formData.pipeline &&
   !!formData.version &&
-  !!formData.params &&
+  Object.values(formData.params || {}).every((param) => param !== '') &&
   runTypeSafeData(formData.runType) &&
   runTypeSafeDates(formData.runType);
 
 export const isFilledRunFormDataExperiment = (formData: RunFormData): formData is SafeRunFormData =>
   isFilledRunFormData(formData) && !!formData.experiment;
+
+export const getInputDefinitionParams = (
+  version: PipelineVersionKFv2 | null | undefined,
+): PipelineInputParameters | undefined => version?.pipeline_spec.root.inputDefinitions.parameters;

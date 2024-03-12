@@ -60,7 +60,7 @@ class RunDetails extends PipelinesTopology {
   }
 }
 
-class DetailsItem extends Contextual<HTMLDivElement> {
+class DetailsItem extends Contextual<HTMLElement> {
   findValue() {
     return this.find().findByTestId('detail-item-value');
   }
@@ -185,7 +185,7 @@ class PipelineRunBottomDrawer extends Contextual<HTMLDivElement> {
   }
 
   findBottomDrawerDetailItem(key: string) {
-    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`).parent());
+    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`));
   }
 }
 

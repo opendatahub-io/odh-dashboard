@@ -129,6 +129,10 @@ export class CreateRunPage {
     return this.find().findByLabelText(label);
   }
 
+  findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().get(`#${id}`);
+  }
+
   fillName(value: string): void {
     this.findNameInput().type(value);
   }
@@ -137,9 +141,9 @@ export class CreateRunPage {
     this.findDescriptionInput().type(value);
   }
 
-  fillParamInputByLabel(label: string, value: string): void {
-    this.findParamByLabel(label).clear();
-    this.findParamByLabel(label).type(value);
+  fillParamInputById(id: string, value: string): void {
+    this.findParamById(id).clear();
+    this.findParamById(id).type(value, { parseSpecialCharSequences: false });
   }
 
   selectExperimentByName(name: string): void {
