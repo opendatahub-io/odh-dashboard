@@ -5,6 +5,9 @@ export type GetColumnSort = (columnIndex: number) => ThProps['sort'];
 export type SortableData<T> = {
   label: string;
   field: string;
+  colSpan?: number;
+  rowSpan?: number;
+  hasRightBorder?: boolean;
   width?: ThProps['width'];
   /**
    * Set to false to disable sort.

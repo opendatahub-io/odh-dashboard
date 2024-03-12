@@ -7,6 +7,7 @@ import useRouteForNotebook from './useRouteForNotebook';
 import { hasStopAnnotation } from './utils';
 
 type NotebookRouteLinkProps = {
+  className?: string;
   label?: React.ReactNode;
   notebook: NotebookKind;
   isRunning: boolean;
@@ -15,6 +16,7 @@ type NotebookRouteLinkProps = {
 };
 
 const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
+  className,
   label,
   notebook,
   isRunning,
@@ -30,7 +32,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   const canLink = loaded && !!routeLink && !error && !isStopped && isRunning;
 
   return (
-    <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+    <Flex className={className} spaceItems={{ default: 'spaceItemsXs' }}>
       <FlexItem>
         <Button
           component="a"

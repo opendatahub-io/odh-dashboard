@@ -3,7 +3,15 @@ class PipelinesSection {
     return cy.findByTestId('section-pipelines-projects');
   }
 
+  findCreatePipelineButton() {
+    return cy.findByTestId('create-pipeline-button');
+  }
+
   findImportPipelineButton() {
+    return cy.findByTestId('import-pipeline-button');
+  }
+
+  findImportPipelineSplitButton() {
     return cy.findByTestId('import-pipeline-split-button');
   }
 

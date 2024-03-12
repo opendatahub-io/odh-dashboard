@@ -13,8 +13,9 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { GroupKind } from '~/k8sTypes';
-import { ProjectSharingRBType } from './types';
+import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import ProjectSharingTableSection from './ProjectSharingTableSection';
+import { ProjectSharingRBType } from './types';
 import { filterRoleBindingSubjects } from './utils';
 
 const ProjectSharing: React.FC = () => {
@@ -25,7 +26,11 @@ const ProjectSharing: React.FC = () => {
 
   if (loadError) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
+      <EmptyState
+        variant={EmptyStateVariant.lg}
+        data-id="error-empty-state"
+        id={ProjectSectionID.PERMISSIONS}
+      >
         <EmptyStateHeader
           titleText="There was an issue loading permissions."
           icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
@@ -38,7 +43,11 @@ const ProjectSharing: React.FC = () => {
 
   if (!loaded) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+      <EmptyState
+        variant={EmptyStateVariant.lg}
+        data-id="loading-empty-state"
+        id={ProjectSectionID.PERMISSIONS}
+      >
         <Spinner size="xl" />
         <EmptyStateHeader titleText="Loading" headingLevel="h2" />
       </EmptyState>
@@ -46,7 +55,12 @@ const ProjectSharing: React.FC = () => {
   }
 
   return (
-    <PageSection isFilled aria-label="project-sharing-page-section" variant="light">
+    <PageSection
+      isFilled
+      aria-label="project-sharing-page-section"
+      variant="light"
+      id={ProjectSectionID.PERMISSIONS}
+    >
       <Stack hasGutter>
         <StackItem>Add users and groups that can access the project.</StackItem>
         <StackItem>
@@ -54,6 +68,7 @@ const ProjectSharing: React.FC = () => {
             roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
             projectSharingTableType={ProjectSharingRBType.USER}
             refresh={refreshRB}
+            typeModifier="user"
           />
         </StackItem>
         <StackItem>
@@ -64,6 +79,7 @@ const ProjectSharing: React.FC = () => {
             typeAhead={
               groups.length > 0 ? groups.map((group: GroupKind) => group.metadata.name) : undefined
             }
+            typeModifier="group"
           />
         </StackItem>
       </Stack>

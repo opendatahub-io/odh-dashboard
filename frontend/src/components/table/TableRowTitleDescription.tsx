@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Title } from '@patternfly/react-core';
+import { Text } from '@patternfly/react-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import MarkdownView from '~/components/MarkdownView';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
@@ -11,6 +11,7 @@ type TableRowTitleDescriptionProps = {
   description?: string;
   descriptionAsMarkdown?: boolean;
   label?: React.ReactNode;
+  testId?: string;
 };
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
@@ -20,21 +21,22 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   subtitle,
   descriptionAsMarkdown,
   label,
+  testId,
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
     descriptionNode = descriptionAsMarkdown ? (
       <MarkdownView conciseDisplay markdown={description} />
     ) : (
-      <Text>{description}</Text>
+      <Text style={{ color: '--pf-v5-global--Color--200' }}>{description}</Text>
     );
   }
 
   return (
     <>
-      <Title headingLevel="h2" size="md">
+      <b data-testid={testId || `table-row-title-${title}`}>
         {resource ? <ResourceNameTooltip resource={resource}>{title}</ResourceNameTooltip> : title}
-      </Title>
+      </b>
       {subtitle}
       {descriptionNode}
       {label}

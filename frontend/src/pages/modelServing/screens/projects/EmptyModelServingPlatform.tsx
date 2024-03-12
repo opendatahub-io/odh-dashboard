@@ -1,18 +1,14 @@
 import * as React from 'react';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
-import { WrenchIcon } from '@patternfly/react-icons';
+import { EmptyState, EmptyStateBody, EmptyStateHeader } from '@patternfly/react-core';
+import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const EmptyModelServingPlatform: React.FC = () => (
   <EmptyState variant="xs">
     <EmptyStateHeader
       data-testid="no-model-serving-platform-selected"
       titleText="No model serving platform selected"
-      icon={<EmptyStateIcon icon={WrenchIcon} />}
+      icon={<HeaderIcon type={ProjectObjectType.modelServer} size={54} />}
       headingLevel="h3"
     />
     <EmptyStateBody>

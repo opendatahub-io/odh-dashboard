@@ -71,7 +71,7 @@ const initIntercepts = () => {
 };
 
 describe('PipelinesList', () => {
-  it('should import button be disabled when the server is not configured', () => {
+  it('should show the configure pipeline server button when the server is not configured', () => {
     initIntercepts();
     cy.intercept(
       {
@@ -82,25 +82,13 @@ describe('PipelinesList', () => {
         body: mock404Error({}),
       },
     );
-    projectDetails.visit('test-project');
 
-    pipelinesSection.findImportPipelineButton().should('be.disabled');
+    projectDetails.visitSection('test-project', 'pipelines-projects');
+
+    pipelinesSection.findCreatePipelineButton().should('be.enabled');
   });
 
-  it('should import button be disabled when the server is initializing', () => {
-    initIntercepts();
-    cy.intercept(
-      {
-        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition`,
-      },
-      mockDataSciencePipelineApplicationK8sResource({ initializing: true }),
-    );
-    projectDetails.visit('test-project');
-
-    pipelinesSection.findImportPipelineButton().should('be.disabled');
-  });
-
-  it('should upload version button be disabled when the list is empty', () => {
+  it('should disable the upload version button when the list is empty', () => {
     initIntercepts();
     cy.intercept(
       {
@@ -124,9 +112,9 @@ describe('PipelinesList', () => {
       },
       buildMockPipelines([]),
     ).as('pipelines');
-    projectDetails.visit('test-project');
+    projectDetails.visitSection('test-project', 'pipelines-projects');
 
-    pipelinesSection.findImportPipelineButton().should('be.enabled').click();
+    pipelinesSection.findImportPipelineSplitButton().should('be.enabled').click();
 
     cy.wait('@pipelines').then((interception) => {
       expect(interception.request.body).to.eql({
@@ -157,10 +145,10 @@ describe('PipelinesList', () => {
       },
       mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' }),
     );
-    projectDetails.visit('test-project');
+    projectDetails.visitSection('test-project', 'pipelines-projects');
 
     pipelinesSection.findAllActions().should('have.length', 1);
-    pipelinesSection.findImportPipelineButton().should('not.exist');
+    pipelinesSection.findImportPipelineSplitButton().should('not.exist');
     pipelinesSection.findKebabActions().should('be.visible').should('be.enabled');
     pipelinesSection.findKebabActionItem('Delete pipeline server').should('be.visible');
   });
@@ -196,7 +184,7 @@ describe('PipelinesList', () => {
       },
       buildMockPipelineVersionsV2([initialMockPipelineVersion]),
     );
-    projectDetails.visit('test-project');
+    projectDetails.visitSection('test-project', 'pipelines-projects');
 
     pipelinesTable.find();
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);

@@ -368,7 +368,7 @@ describe('Serving Runtime List', () => {
         servingRuntimes: [],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       cy.findByText('No model serving platform selected').should('be.visible');
     });
@@ -396,7 +396,7 @@ describe('Serving Runtime List', () => {
         ],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection.getModelMeshRow('ovms').findDeployModelButton().click();
 
@@ -492,7 +492,7 @@ describe('Serving Runtime List', () => {
         ],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       // Check that the legacy serving runtime is shown with the default runtime name
       modelServingSection.getModelMeshRow('ovms').find().should('exist');
@@ -540,7 +540,7 @@ describe('Serving Runtime List', () => {
         servingRuntimes: [],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
 
@@ -613,7 +613,7 @@ describe('Serving Runtime List', () => {
         rejectAddSupportServingPlatformProject: true,
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
 
@@ -681,7 +681,7 @@ describe('Serving Runtime List', () => {
         ],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       // click on the toggle button and open edit model server
       modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
@@ -728,7 +728,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         disableModelMeshConfig: false,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       // Check that we get the correct model name
       modelServingSection
@@ -764,7 +764,7 @@ describe('Serving Runtime List', () => {
         ],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       const kserveRow = modelServingSection.getKServeRow('Llama Service');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
@@ -811,7 +811,7 @@ describe('Serving Runtime List', () => {
         },
         {},
       ).as('deleteRoleBindings');
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.getModelMeshRow('ovms').findKebabAction('Delete model server').click();
       deleteModal.shouldBeOpen();
       deleteModal.findSubmitButton().should('be.disabled');
@@ -830,7 +830,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         servingRuntimes: [],
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
 
@@ -896,7 +896,7 @@ describe('Serving Runtime List', () => {
           }),
         ],
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection.findAddModelServerButton().click();
 
@@ -994,7 +994,7 @@ describe('Serving Runtime List', () => {
         ],
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       // click on the toggle button and open edit model server
       modelServingSection
@@ -1060,7 +1060,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         disableModelMeshConfig: false,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection
         .getServingPlatformCard('multi-serving')
@@ -1116,7 +1116,7 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: false,
         rejectAddSupportServingPlatformProject: true,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection
         .getServingPlatformCard('multi-serving')
@@ -1168,7 +1168,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         disableModelMeshConfig: false,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection
         .getServingPlatformCard('multi-serving')
@@ -1230,7 +1230,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         disableModelMeshConfig: false,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection
         .getServingPlatformCard('multi-serving')
@@ -1309,7 +1309,7 @@ describe('Serving Runtime List', () => {
         serviceAccountAlreadyExists: true,
         roleBindingAlreadyExists: true,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection
         .getServingPlatformCard('multi-serving')
@@ -1378,7 +1378,7 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: true,
         disableAccelerator: true,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
@@ -1415,7 +1415,7 @@ describe('Serving Runtime List', () => {
           }),
         ],
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
@@ -1434,7 +1434,7 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: true,
         disableAccelerator: false,
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
@@ -1471,7 +1471,7 @@ describe('Serving Runtime List', () => {
           }),
         ],
       });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
@@ -1489,7 +1489,7 @@ describe('Serving Runtime List', () => {
         rejectInferenceService: true,
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.findDeployModelButton().click();
       kserveModal.shouldBeOpen();
 
@@ -1522,7 +1522,7 @@ describe('Serving Runtime List', () => {
         rejectServingRuntime: true,
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.findDeployModelButton().click();
       kserveModal.shouldBeOpen();
 
@@ -1557,7 +1557,7 @@ describe('Serving Runtime List', () => {
         rejectDataConnection: true,
       });
 
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.findDeployModelButton().click();
       kserveModal.shouldBeOpen();
 

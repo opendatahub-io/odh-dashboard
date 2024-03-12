@@ -243,7 +243,7 @@ describe('Pipeline topology', () => {
           .findValue()
           .find('a')
           .click();
-        verifyRelativeURL(`/projects/${projectId}`);
+        verifyRelativeURL(`/projects/${projectId}?section=overview`);
       });
 
       it('Test pipeline job bottom drawer pipeline version navigation', () => {

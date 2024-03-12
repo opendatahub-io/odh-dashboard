@@ -103,14 +103,14 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
 describe('Data connections', () => {
   it('Empty state when no data connections are available', () => {
     initIntercepts({ isEmpty: true });
-    projectDetails.visit('test-project');
-    projectDetails.shouldBeEmptyState('data-connections', true);
+    projectDetails.visitSection('test-project', 'data-connections');
+    projectDetails.shouldBeEmptyState('Data connections', 'data-connections', true);
     projectDetails.findAddDataConnectionButton().should('be.enabled');
   });
 
   it('Add data connections', () => {
     initIntercepts({ isEmpty: true });
-    projectDetails.visit('test-project');
+    projectDetails.visitSection('test-project', 'data-connections');
     projectDetails.findAddDataConnectionButton().should('be.enabled');
     projectDetails.findAddDataConnectionButton().click();
 
@@ -166,14 +166,14 @@ describe('Data connections', () => {
     });
 
     cy.wait('@refreshSecrets').then(() => {
-      projectDetails.shouldBeEmptyState('data-connections', false);
+      projectDetails.shouldBeEmptyState('Data connections', 'data-connections', false);
     });
   });
 
   it('Edit data connection', () => {
     initIntercepts({});
-    projectDetails.visit('test-project');
-    projectDetails.shouldBeEmptyState('data-connections', false);
+    projectDetails.visitSection('test-project', 'data-connections');
+    projectDetails.shouldBeEmptyState('Data connections', 'data-connections', false);
     const dataConnectionRow = projectDetails.getDataConnectionRow('Test Secret');
     dataConnectionRow.findWorkbenchConnection().contains('No connections');
     dataConnectionRow.findKebabAction('Edit data connection').click();
@@ -247,7 +247,7 @@ describe('Data connections', () => {
   });
   it('Delete connection', () => {
     initIntercepts({});
-    projectDetails.visit('test-project');
+    projectDetails.visitSection('test-project', 'data-connections');
     const dataConnectionRow = projectDetails.getDataConnectionRow('Test Secret');
     dataConnectionRow.findKebabAction('Delete data connection').click();
     deleteModal.findInput().type('Test Secret');
@@ -265,7 +265,7 @@ describe('Data connections', () => {
 
   it('Sort by Name', () => {
     initIntercepts({});
-    projectDetails.visit('test-project');
+    projectDetails.visitSection('test-project', 'data-connections');
     projectDetails.findSortButton('Name').click();
     projectDetails.findSortButton('Name').should(be.sortAscending);
     projectDetails.findSortButton('Name').click();

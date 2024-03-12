@@ -14,8 +14,8 @@ class NotebookRow extends TableRow {
 }
 
 class ProjectRow extends TableRow {
-  shouldHaveDSLabel() {
-    return this.find().findByTestId('ds-project-label').should('exist');
+  shouldHaveProjectIcon() {
+    return this.find().findByTestId('ds-project-image').should('exist');
   }
 }
 
@@ -96,8 +96,13 @@ class ProjectDetails {
     this.wait();
   }
 
-  private wait() {
-    cy.findByRole('tab', { name: 'Components' });
+  visitSection(project: string, section: string) {
+    cy.visit(`/projects/${project}?section=${section}`);
+    this.wait(section);
+  }
+
+  private wait(section = 'overview') {
+    cy.findByTestId(`section-${section}`);
     cy.testA11y();
   }
 
@@ -144,7 +149,8 @@ class ProjectDetails {
     return cy.findByTestId(`section-${componentName}`);
   }
 
-  shouldBeEmptyState(componentName: string, emptyState: boolean) {
+  shouldBeEmptyState(tabName: string, componentName: string, emptyState: boolean) {
+    this.findTab(tabName).click();
     this.findComponent(componentName)
       .findByTestId('empty-state-title')
       .should(emptyState ? 'exist' : 'not.exist');
@@ -153,15 +159,6 @@ class ProjectDetails {
 
   findAddDataConnectionButton() {
     return cy.findByTestId('add-data-connection-button');
-  }
-
-  shouldDivide() {
-    cy.findAllByTestId('details-page-section').then((sections) => {
-      cy.wrap(sections)
-        .find('.odh-details-section--divide')
-        .should('have.length', sections.length - 1);
-    });
-    return this;
   }
 
   private findTable() {

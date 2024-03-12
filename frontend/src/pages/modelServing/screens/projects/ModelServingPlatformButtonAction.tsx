@@ -1,19 +1,19 @@
 import * as React from 'react';
-import { Button, Tooltip, Text } from '@patternfly/react-core';
+import { Button, Tooltip, Text, ButtonProps } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
-type ModelServingPlatformButtonActionProps = {
+type ModelServingPlatformButtonActionProps = ButtonProps & {
   isProjectModelMesh: boolean;
   emptyTemplates: boolean;
   testId?: string;
-  onClick: () => void;
 };
 
 const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActionProps> = ({
-  onClick,
   emptyTemplates,
   testId,
   isProjectModelMesh,
+  variant = 'secondary',
+  ...buttonProps
 }) => {
   const {
     servingRuntimeTemplates: { loaded: templatesLoaded },
@@ -21,11 +21,11 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
 
   const actionButton = () => (
     <Button
+      {...buttonProps}
       isLoading={!templatesLoaded}
       isAriaDisabled={!templatesLoaded || emptyTemplates}
-      onClick={onClick}
       data-testid={testId}
-      variant="secondary"
+      variant={variant}
     >
       {isProjectModelMesh ? 'Add model server' : 'Deploy model'}
     </Button>

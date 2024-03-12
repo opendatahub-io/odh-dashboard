@@ -21,9 +21,25 @@ body,
     font-size: 13px;
   }
 
-
   &__brand {
     height: 36px;
+  }
+
+  // Decrease the height of toggles when in table rows so they align better with text
+  // This requires decreasing the width and the size of the toggle as well
+  td, li {
+    .pf-v5-c-switch__toggle {
+      height: 18px;
+      margin-top: -1px;
+      &:before {
+        height: 10px;
+        width: 10px;
+        inset-block-start: 4px;
+      }
+    }
+    .pf-v5-c-switch__input:checked ~ .pf-v5-c-switch__toggle::before {
+      inset-inline-start: 12px;
+    }
   }
 }
 

@@ -60,7 +60,7 @@ describe('Data science projects details', () => {
     projectListPage.visit();
     projectListPage.shouldHaveProjects();
     const projectRow = projectListPage.getProjectRow('Test Project');
-    projectRow.shouldHaveDSLabel();
+    projectRow.shouldHaveProjectIcon();
   });
 
   it('should delete project', () => {

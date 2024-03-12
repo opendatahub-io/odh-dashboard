@@ -1,0 +1,80 @@
+.odh-type-bordered-card {
+  position: relative;
+  border-radius: 10px;
+  border: var(--pf-v5-global--BorderWidth--sm) solid var(--pf-v5-global--BorderColor--100);
+  &:after {
+    position: absolute;
+    width: 48px;
+    height: 4px;
+    background: transparent;
+    top: 0;
+    left: calc(50% - 24px);
+    border-radius: 0 0 4px 4px;
+    content: ' ';
+  }
+  &.project {
+    &:after {
+      background: var(--ai-project--BorderColor);
+    }
+  }
+  &.notebook {
+    &:after {
+      background: var(--ai-notebook--BorderColor);
+    }
+  }
+  &.pipeline {
+    &:after {
+      background: var(--ai-pipeline--BorderColor);
+    }
+  }
+  &.pipeline-run {
+    &:after {
+      background: var(--ai-pipeline--BorderColor);
+    }
+  }
+  &.cluster-storage {
+    &:after {
+      background: var(--ai-cluster-storage--BorderColor);
+    }
+  }
+  &.model-server {
+    &:after {
+      background: var(--ai-model-server--BorderColor);
+    }
+  }
+  &.data-connection {
+    &:after {
+      background: var(--ai-data-connection--BorderColor);
+    }
+  }
+  &.user {
+    &:after {
+      background: var(--ai-user--BorderColor);
+    }
+  }
+  &.group {
+    &:after {
+      background: var(--ai-group--BorderColor);
+    }
+  }
+  &.set-up {
+    &:after {
+      background: var(--ai-set-up--BorderColor);
+    }
+  }
+  &.organize {
+    &:after {
+      background: var(--ai-organize--BorderColor);
+    }
+  }
+  &.training {
+    &:after {
+      background: var(--ai-training--BorderColor);
+    }
+  }
+  &.serving {
+    &:after {
+      background: var(--ai-serving--BorderColor);
+    }
+  }
+}

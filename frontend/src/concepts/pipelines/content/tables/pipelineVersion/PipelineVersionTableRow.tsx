@@ -59,6 +59,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
           }
           description={version.description}
           descriptionAsMarkdown
+          testId={`table-row-title-${version.display_name}`}
         />
       </Td>
       <Td>

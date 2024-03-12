@@ -28,8 +28,9 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
         data={connections}
         data-testid="data-connection-table"
         columns={columns}
-        rowRenderer={(dataConnection) => (
+        rowRenderer={(dataConnection, index) => (
           <DataConnectionsTableRow
+            rowIndex={index}
             key={getDataConnectionId(dataConnection)}
             obj={dataConnection}
             onEditDataConnection={setEditDataConnection}

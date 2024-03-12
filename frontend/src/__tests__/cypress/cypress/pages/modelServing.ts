@@ -34,6 +34,10 @@ class ModelServingGlobal {
     return cy.findByTestId('empty-state-cancel-button');
   }
 
+  findSelectAProjectButton() {
+    return cy.findByRole('button', { name: 'Select a project' });
+  }
+
   findDeployModelButton() {
     return cy.findByTestId('deploy-button');
   }
@@ -276,7 +280,7 @@ class ModelServingSection {
   }
 
   findDeployModelButton() {
-    return this.find().findByTestId('add-deploy-button');
+    return this.find().findByTestId('deploy-button');
   }
 
   findAddModelServerButton() {

@@ -43,6 +43,7 @@ type ModelServingContextType = {
 type ModelServingContextProviderProps = {
   children: React.ReactNode;
   namespace?: string;
+  getErrorComponent?: (errorMessage?: string) => React.ReactElement;
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
@@ -61,7 +62,7 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
 const ModelServingContextProvider = conditionalArea<ModelServingContextProviderProps>(
   SupportedArea.MODEL_SERVING,
   true,
-)(({ children, namespace }) => {
+)(({ children, namespace, getErrorComponent }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
@@ -110,7 +111,17 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     servingRuntimeTemplateDisablement.error ||
     dataConnections.error
   ) {
-    return (
+    return getErrorComponent ? (
+      getErrorComponent(
+        notInstalledError?.message ||
+          servingRuntimes.error?.message ||
+          inferenceServices.error?.message ||
+          servingRuntimeTemplates.error?.message ||
+          servingRuntimeTemplateOrder.error?.message ||
+          servingRuntimeTemplateDisablement.error?.message ||
+          dataConnections.error?.message,
+      )
+    ) : (
       <Bullseye>
         <EmptyState>
           <EmptyStateHeader
