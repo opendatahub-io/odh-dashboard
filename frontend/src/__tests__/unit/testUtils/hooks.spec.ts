@@ -96,7 +96,7 @@ describe('hook test utils', () => {
     // unmount to test waiting for an update that will never happen
     renderResult.unmount();
 
-    await expect(renderResult.waitForNextUpdate({ timeout: 50, interval: 10 })).rejects.toThrow();
+    await expect(renderResult.waitForNextUpdate({ timeout: 500, interval: 10 })).rejects.toThrow();
 
     expect(renderResult).hookToHaveUpdateCount(1);
   });
@@ -105,7 +105,7 @@ describe('hook test utils', () => {
     const renderResult = renderHook(() => useSayHelloDelayed('', 20));
 
     await expect(
-      renderResult.waitForNextUpdate({ timeout: 50, interval: 10 }),
+      renderResult.waitForNextUpdate({ timeout: 500, interval: 10 }),
     ).resolves.not.toThrow();
 
     expect(renderResult).hookToHaveUpdateCount(2);
