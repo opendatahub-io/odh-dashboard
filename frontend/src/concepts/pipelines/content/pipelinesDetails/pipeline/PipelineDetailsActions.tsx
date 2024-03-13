@@ -10,13 +10,19 @@ import {
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import {
+  routePipelineDetailsNamespace,
+  routePipelineRunCreateNamespace,
+  routePipelineRunsNamespace,
+} from '~/routes';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
-  pipeline: PipelineKF | null;
-  pipelineVersion: PipelineVersionKF | null;
+  pipeline: PipelineKFv2 | null;
+  pipelineVersion: PipelineVersionKFv2 | null;
 };
 
 const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
@@ -32,6 +38,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   return (
     <>
       <Dropdown
+        data-testid="pipeline-version-details-actions"
         onSelect={() => setOpen(false)}
         toggle={
           <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
@@ -48,7 +55,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           <DropdownItem
             key="create-run"
             onClick={() =>
-              navigate(`/pipelineRuns/${namespace}/pipelineRun/create`, {
+              navigate(routePipelineRunCreateNamespace(namespace), {
                 state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
               })
             }
@@ -60,8 +67,8 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             onClick={() =>
               navigate(
                 {
-                  pathname: `/pipelineRuns/${namespace}`,
-                  search: `?runType=${PipelineRunType.Triggered}`,
+                  pathname: routePipelineRunsNamespace(namespace),
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                 },
                 {
                   state: { lastVersion: pipelineVersion },
@@ -80,11 +87,17 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
       {isVersionImportModalOpen && (
         <PipelineVersionImportModal
           existingPipeline={pipeline}
-          onClose={(currentPipelineVersion) => {
+          onClose={(resource) => {
             setIsVersionImportModalOpen(false);
-            if (currentPipelineVersion) {
+            if (resource) {
               refreshAllAPI();
-              navigate(`/pipelines/${namespace}/pipeline/view/${currentPipelineVersion.id}`);
+              navigate(
+                routePipelineDetailsNamespace(
+                  namespace,
+                  resource.pipeline_id,
+                  resource.pipeline_version_id,
+                ),
+              );
             }
           }}
         />

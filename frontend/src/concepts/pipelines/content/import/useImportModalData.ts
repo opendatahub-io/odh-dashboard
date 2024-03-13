@@ -1,6 +1,6 @@
 import React from 'react';
 import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 type PipelineModalData = {
@@ -19,12 +19,12 @@ export const usePipelineImportModalData = (): GenericObjectState<PipelineModalDa
 type PipelineVersionModalData = {
   name: string;
   description: string;
-  pipeline: PipelineKF | null;
+  pipeline: PipelineKFv2 | null;
   fileContents: string;
 };
 
 export const usePipelineVersionImportModalData = (
-  existingPipeline?: PipelineKF | null,
+  existingPipeline?: PipelineKFv2 | null,
 ): GenericObjectState<PipelineVersionModalData> => {
   const createDataState = useGenericObjectState<PipelineVersionModalData>({
     name: React.useMemo(() => generatePipelineVersionName(existingPipeline), [existingPipeline]),

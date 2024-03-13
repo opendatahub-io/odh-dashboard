@@ -11,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { routePipelinesNamespace } from '~/routes';
 
 const PipelineNotFound: React.FC = () => {
   const { namespace } = usePipelinesAPI();
@@ -25,7 +26,7 @@ const PipelineNotFound: React.FC = () => {
       <EmptyStateBody>To see more pipelines navigate to the pipelines page</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Button variant="primary" onClick={() => navigate(`/pipelines/${namespace}`)}>
+          <Button variant="primary" onClick={() => navigate(routePipelinesNamespace(namespace))}>
             See all pipelines
           </Button>
         </EmptyStateActions>

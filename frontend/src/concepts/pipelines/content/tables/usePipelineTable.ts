@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions, PipelinesFilter } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
-type TableSortProps = {
+export type TableSortProps = {
   sortField?: string;
   setSortField: (field: string) => void;
   sortDirection?: 'asc' | 'desc';
@@ -48,7 +48,7 @@ export const getTablePagingProps = (
   }))(tableProps);
 
 const createUsePipelineTable =
-  <T extends PipelineCoreResourceKF>(
+  <T extends PipelineCoreResourceKFv2>(
     useState: (options: PipelineOptions) => FetchState<PipelineListPaged<T>>,
   ) =>
   // providing a limit overrides pageSize and prevents paging

@@ -37,7 +37,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
       footer={
         <HelperText>
           {tolerationSettings.error && (
-            <HelperTextItem data-id="toleration-helper-text-error" hasIcon variant="error">
+            <HelperTextItem data-testid="toleration-helper-text-error" hasIcon variant="error">
               {tolerationSettings.error}
             </HelperTextItem>
           )}
@@ -63,7 +63,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
             }}
             aria-label="tolerationsEnabled"
             id="tolerations-enabled-checkbox"
-            data-id="tolerations-enabled-checkbox"
+            data-testid="tolerations-enabled-checkbox"
             name="tolerationsEnabledCheckbox"
             body={
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
@@ -74,7 +74,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
                     isDisabled={!tolerationSettings.enabled}
                     style={{ maxWidth: '200px' }}
                     name="tolerationKey"
-                    data-id="toleration-key-input"
+                    data-testid="toleration-key-input"
                     type="text"
                     aria-label="Toleration key"
                     value={tolerationSettings.key}

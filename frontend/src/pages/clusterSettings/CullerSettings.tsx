@@ -84,7 +84,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
             <FlexItem>
               <Radio
                 id="culler-timeout-unlimited"
-                data-id="culler-timeout-unlimited"
+                data-testid="culler-timeout-unlimited"
                 label="Do not stop idle notebooks"
                 isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
                 name={CULLER_TIMEOUT_UNLIMITED}
@@ -95,7 +95,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
             <FlexItem>
               <Radio
                 id="culler-timeout-limited"
-                data-id="culler-timeout-limited"
+                data-testid="culler-timeout-limited"
                 label="Stop idle notebooks after"
                 isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED}
                 name={CULLER_TIMEOUT_LIMITED}
@@ -108,7 +108,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                         id="hour-input"
                         style={{ maxWidth: '60px' }}
                         name="hour"
-                        data-id="hour-input"
+                        data-testid="hour-input"
                         type="text"
                         aria-label="Culler Timeout Hour Input"
                         value={hour}
@@ -138,7 +138,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                         id="minute-input"
                         style={{ maxWidth: '40px' }}
                         name="minute"
-                        data-id="minute-input"
+                        data-testid="minute-input"
                         type="text"
                         aria-label="Culler Timeout Minute Input"
                         value={minute}
@@ -172,7 +172,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
         <StackItem>
           <HelperText>
             <HelperTextItem
-              data-id="culler-timeout-helper-text"
+              data-testid="culler-timeout-helper-text"
               variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'indeterminate'}
               hasIcon={cullerTimeout < MIN_CULLER_TIMEOUT}
             >

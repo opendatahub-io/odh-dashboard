@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {
-  Checkbox,
+  Bullseye,
   DatePicker,
-  Level,
-  LevelItem,
   Split,
   SplitItem,
+  Switch,
+  Text,
   TimePicker,
 } from '@patternfly/react-core';
 import {
@@ -14,7 +14,13 @@ import {
   ensureTimeFormat,
 } from '~/utilities/time';
 import { RunDateTime } from '~/concepts/pipelines/content/createRun/types';
-import { DATE_FORMAT, DEFAULT_TIME } from '~/concepts/pipelines/content/createRun/const';
+import {
+  DATE_FORMAT,
+  DEFAULT_TIME,
+  RUN_OPTION_LABEL_SIZE,
+} from '~/concepts/pipelines/content/createRun/const';
+import DashboardSplitItemLabel from '~/concepts/dashboard/split/DashboardSplitItemLabel';
+import DashboardSplitReserveSpace from '~/concepts/dashboard/split/DashboardSplitReserveSpace';
 
 type RunTypeSectionDateTimeProps = {
   id: string;
@@ -39,42 +45,53 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
   };
 
   return (
-    <Level hasGutter>
-      <LevelItem style={{ width: 100 }}>
-        <Checkbox
-          id={id}
-          label={label}
-          isChecked={value !== undefined}
-          onChange={(e, checked) => {
-            if (checked) {
-              let now = new Date();
-              if (adjustNow) {
-                now = adjustNow(now);
+    <Split hasGutter>
+      <DashboardSplitItemLabel width={RUN_OPTION_LABEL_SIZE}>
+        <Text>{label}</Text>
+      </DashboardSplitItemLabel>
+      <SplitItem>
+        <Bullseye>
+          <Switch
+            id={id}
+            data-testid={`${id}-toggle`}
+            aria-label={`${label} is on`}
+            isChecked={value !== undefined}
+            onChange={(e, checked) => {
+              if (checked) {
+                let now = new Date();
+                if (adjustNow) {
+                  now = adjustNow(now);
+                }
+                handleChange({
+                  date: convertDateToSimpleDateString(now) ?? undefined,
+                  time: convertDateToTimeString(now) ?? undefined,
+                });
+              } else {
+                onChange(undefined);
               }
-              handleChange({
-                date: convertDateToSimpleDateString(now) ?? undefined,
-                time: convertDateToTimeString(now) ?? undefined,
-              });
-            } else {
-              onChange(undefined);
-            }
-          }}
-        />
-      </LevelItem>
-      <LevelItem>
-        <Split hasGutter>
+            }}
+          />
+        </Bullseye>
+      </SplitItem>
+      <SplitItem isFilled>
+        <DashboardSplitReserveSpace hasGutter visible={value !== undefined}>
           <SplitItem>
-            <DatePicker value={value?.date} onChange={(e, date) => handleChange({ date })} />
+            <DatePicker
+              data-testid={`${id}-date`}
+              value={value?.date}
+              onChange={(e, date) => handleChange({ date })}
+            />
           </SplitItem>
           <SplitItem>
             <TimePicker
+              data-testid={`${id}-time`}
               time={value?.time ?? DEFAULT_TIME}
               onChange={(e, time) => handleChange({ time: ensureTimeFormat(time) ?? undefined })}
             />
           </SplitItem>
-        </Split>
-      </LevelItem>
-    </Level>
+        </DashboardSplitReserveSpace>
+      </SplitItem>
+    </Split>
   );
 };
 

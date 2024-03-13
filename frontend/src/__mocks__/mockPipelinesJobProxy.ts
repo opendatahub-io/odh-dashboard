@@ -11,6 +11,10 @@ type MockResourceConfigType = {
   id?: string;
 };
 
+/**
+ * @deprecated
+ * uses v1 pipeline run job
+ */
 export const mockPipelinesJobProxy = ({
   name = 'test-pipeline-run-job',
   id = 'test-pipeline-run-job',

@@ -1,5 +1,11 @@
 import { ProjectKind } from '~/k8sTypes';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import {
+  ExperimentKFv2,
+  PipelineKFv2,
+  PipelineVersionKFv2,
+  RuntimeConfigParameters,
+} from '~/concepts/pipelines/kfTypes';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',
@@ -25,33 +31,36 @@ export const periodicOptionAsSeconds: Record<PeriodicOptions, number> = {
 
 export type RunDateTime = { date: string; time: string };
 export type RunTypeScheduledData = {
+  catchUp: boolean;
+  maxConcurrency: number;
   triggerType: ScheduledType;
   value: string;
   start?: RunDateTime;
   end?: RunDateTime;
 };
 
-export type RunType =
-  | { type: RunTypeOption.ONE_TRIGGER }
-  | { type: RunTypeOption.SCHEDULED; data: RunTypeScheduledData };
+export type OneTriggerRunType = { type: RunTypeOption.ONE_TRIGGER };
+export type ScheduledRunType = { type: RunTypeOption.SCHEDULED; data: RunTypeScheduledData };
 
-export type RunParam = {
-  label: string;
-  value: string;
-};
+export type RunType = OneTriggerRunType | ScheduledRunType;
 
 export type RunFormData = {
   project: ProjectKind;
   nameDesc: { name: string; description: string };
-  pipeline: PipelineKF | null;
-  version: PipelineVersionKF | null;
-  // experiment: ExperimentKF | null;
+  pipeline: PipelineKFv2 | null;
+  version: PipelineVersionKFv2 | null;
+  experiment: ExperimentKFv2 | null;
   runType: RunType;
-  params?: RunParam[];
+  params?: RuntimeConfigParameters;
 };
 
 export type SafeRunFormData = RunFormData & {
-  pipeline: PipelineKF | null;
-  // experiment: ExperimentKF;
-  params?: RunParam[];
+  pipeline: PipelineKFv2;
+  params: RuntimeConfigParameters;
+};
+
+export const runTypeCategory: Record<PipelineRunType, 'run' | 'schedule'> = {
+  [PipelineRunType.Active]: 'run',
+  [PipelineRunType.Archived]: 'run',
+  [PipelineRunType.Scheduled]: 'schedule',
 };

@@ -3,10 +3,12 @@ import { BreadcrumbItem } from '@patternfly/react-core';
 import { PipelineRunTask, PipelineRunTaskRunStatus } from '~/k8sTypes';
 import { createNode } from '~/concepts/topology';
 
-export type PipelineCoreDetailsPageComponent = React.FC<{
+export type PathProps = {
   breadcrumbPath: React.ReactElement<typeof BreadcrumbItem>[];
   contextPath?: string;
-}>;
+};
+
+export type PipelineCoreDetailsPageComponent = React.FC<PathProps>;
 
 export type PipelineRunTaskRunDetails = {
   runID: string;
@@ -24,3 +26,8 @@ export type KubeFlowTaskTopology = {
   taskMap: TaskReferenceMap;
   nodes: ReturnType<typeof createNode>[];
 };
+
+export enum PipelineRunSearchParam {
+  RunType = 'runType',
+  TriggerType = 'triggerType',
+}

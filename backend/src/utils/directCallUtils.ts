@@ -12,12 +12,12 @@ export const getDirectCallOptions = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   url: string,
-): Promise<RequestOptions> => {
+): Promise<Pick<RequestOptions, 'headers'>> => {
   // Use our kube setup to boostrap our request
   const kc = fastify.kube.config;
   const kubeOptions: Parameters<typeof kc.applyToRequest>[0] = { url };
   await kc.applyToRequest(kubeOptions);
-  const { headers: kubeHeaders, ca } = kubeOptions;
+  const { headers: kubeHeaders } = kubeOptions;
 
   // Adjust the header auth token
   let headers;
@@ -49,7 +49,6 @@ export const getDirectCallOptions = async (
   }
 
   return {
-    ca,
     headers,
   };
 };

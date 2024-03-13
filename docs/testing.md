@@ -124,9 +124,11 @@ Hook specific assertions:
 
 Cypress is used to run tests against the frontend while mocking all network requests.
 
-Single command to run Cypress tests:
+Single command to run all Cypress tests or a specific test (build frontend, start HTTP server, run Cypress):
 ```bash
 npm run test:cypress-ci
+
+npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 ```
 
 Cypress tests require a frontend server to be running.
@@ -144,13 +146,15 @@ npm run cypress:server
 ```
 
 There are two commands to run Cypress mock tests (always use the `:mock` variants).
-- `open`: Opens the Cypress GUI
+- `open`: Open the Cypress GUI
   ```bash
   npm run cypress:open:mock
   ```
-- `run`: Runs Cypress tests headless
+- `run`: Run all Cypress tests or a specific test headless
   ```bash
   npm run cypress:run:mock
+
+  npm run cypress:run:mock -- --spec "**/testfile.cy.ts"
   ```
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
@@ -212,7 +216,19 @@ The primary method for selecting elements on a page is through the use of test I
 
 Test IDs must be unique within a specific context but are not required to be globally unique. For example the same test ID may appear per table row.
 
-When querying the DOM within a modal, all queries must be scoped to the model to avoid assertions that may match the DOM underneath the modal.
+`data-testid` must contain at least one static string identifier. Do not solely assign dynamic identifiers (a value which is only known at runtime) to `data-testid`. It may be useful to assign multiple values to the `data-testid` attribute using whitespace separated values. eg `data-testid="card <dynamic-identifier>"`
+
+For example, if we had a gallery of cards where each card is populated from a k8s resource. We can select all cards, or select individual cards.
+
+```ts
+<Card data-testid={`card ${resource.metdata.name}`} ...>
+
+// Use array matchers to invoke the equivalent of the `~=` CSS selector operator.
+cy.findByTestId(['card', resource.metadata.name]);
+cy.findAllByTestId(['card']).should('have.length', 5)
+```
+
+When querying the DOM within a modal, all queries must be scoped to the modal to avoid assertions that may match the DOM underneath the modal.
 
 ### Test Considerations
 

@@ -1,17 +1,19 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineVersionTableRow from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';
 import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import usePipelineVersionsCheckboxTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsCheckboxTable';
+import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type PipelineVersionTableProps = {
-  pipeline: PipelineKF;
-  initialVersions: PipelineVersionKF[];
+  pipeline: PipelineKFv2;
+  initialVersions: PipelineVersionKFv2[];
   nextPageToken?: string;
   loading?: boolean;
   totalSize: number;
@@ -19,7 +21,7 @@ type PipelineVersionTableProps = {
   sortDirection?: 'asc' | 'desc';
   setSortField: (field: string) => void;
   setSortDirection: (dir: 'asc' | 'desc') => void;
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
 };
 
 const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
@@ -33,15 +35,15 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
   pipelineDetailsPath,
   ...tableProps
 }) => {
-  const pipelineId = pipeline.id;
-  const { data: versions, onLoadMore } = usePipelineVersionLoadMore({
+  const pipelineId = pipeline.pipeline_id;
+  const [versions, onLoadMore] = usePipelineVersionLoadMore(
+    {
+      initialData: initialVersions,
+      initialPageToken: nextPageToken,
+      loaded: !loading,
+    },
     pipelineId,
-    initialData: initialVersions,
-    initialPageToken: nextPageToken,
-    sortDirection,
-    sortField,
-    loaded: !loading,
-  });
+  )({ sortDirection, sortField });
   const { isPipelineChecked } = React.useContext(PipelineAndVersionContext);
   const pipelineChecked = isPipelineChecked(pipelineId);
   const {
@@ -49,45 +51,66 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
     isSelected,
     toggleSelection,
   } = usePipelineVersionsCheckboxTable(pipeline, versions);
+  const { refreshAllAPI } = usePipelinesAPI();
+
+  const [deleteVersions, setDeleteVersions] = React.useState<
+    { pipelineName: string; version: PipelineVersionKFv2 }[]
+  >([]);
 
   return (
-    <TableBase
-      {...checkboxTableProps}
-      loading={loading}
-      itemCount={totalSize}
-      data={versions}
-      columns={pipelineVersionColumns}
-      rowRenderer={(version) => (
-        <PipelineVersionTableRow
-          key={version.id}
-          isChecked={pipelineChecked || isSelected(version)}
-          onToggleCheck={() => toggleSelection(version)}
-          version={version}
-          pipelineVersionDetailsPath={pipelineDetailsPath}
-          isDisabled={pipelineChecked}
-        />
-      )}
-      variant={TableVariant.compact}
-      borders={false}
-      getColumnSort={getTableColumnSort({
-        columns: pipelineVersionColumns,
-        sortField,
-        sortDirection,
-        ...tableProps,
-      })}
-      footerRow={() =>
-        !loading ? (
-          <PipelineViewMoreFooterRow
-            visibleLength={versions.length}
-            totalSize={totalSize}
-            errorTitle="Error loading more pipeline versions"
-            onClick={onLoadMore}
-            isIndented
-            colSpan={5}
+    <>
+      <TableBase
+        {...checkboxTableProps}
+        loading={loading}
+        itemCount={totalSize}
+        data={versions}
+        columns={pipelineVersionColumns}
+        rowRenderer={(version) => (
+          <PipelineVersionTableRow
+            key={version.pipeline_version_id}
+            isChecked={pipelineChecked || isSelected(version)}
+            onToggleCheck={() => toggleSelection(version)}
+            version={version}
+            pipelineVersionDetailsPath={pipelineDetailsPath}
+            isDisabled={pipelineChecked}
+            pipeline={pipeline}
+            onDeleteVersion={() =>
+              setDeleteVersions([{ pipelineName: pipeline.display_name, version }])
+            }
           />
-        ) : null
-      }
-    />
+        )}
+        variant={TableVariant.compact}
+        borders={false}
+        getColumnSort={getTableColumnSort({
+          columns: pipelineVersionColumns,
+          sortField,
+          sortDirection,
+          ...tableProps,
+        })}
+        footerRow={() =>
+          !loading ? (
+            <PipelineViewMoreFooterRow
+              visibleLength={versions.length}
+              totalSize={totalSize}
+              errorTitle="Error loading more pipeline versions"
+              onClick={onLoadMore}
+              isIndented
+              colSpan={5}
+            />
+          ) : null
+        }
+      />
+      <DeletePipelinesModal
+        isOpen={deleteVersions.length !== 0}
+        toDeletePipelineVersions={deleteVersions}
+        onClose={(deleted) => {
+          if (deleted) {
+            refreshAllAPI();
+          }
+          setDeleteVersions([]);
+        }}
+      />
+    </>
   );
 };
 

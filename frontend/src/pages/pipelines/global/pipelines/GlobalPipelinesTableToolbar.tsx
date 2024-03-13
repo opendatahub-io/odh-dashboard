@@ -68,8 +68,8 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
             data-testid="global-pipelines-kebab-actions"
             dropdownItems={[
               {
-                key: 'delete-selected',
-                label: 'Delete selected',
+                key: 'delete',
+                label: 'Delete',
                 onClick: () => setDeletionOpen(true),
                 isDisabled: pipelines.length === 0 && versions.length === 0,
               },

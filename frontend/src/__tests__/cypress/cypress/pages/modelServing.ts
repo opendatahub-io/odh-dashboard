@@ -173,7 +173,10 @@ class ServingRuntimeModal extends Modal {
   }
 }
 
+// Expect KServeModal to inherit both modal classes.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 interface KServeModal extends ServingRuntimeModal, InferenceServiceModal {}
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class KServeModal extends InferenceServiceModal {}
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 

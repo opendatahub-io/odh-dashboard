@@ -1,23 +1,27 @@
 import { DSPipelineKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
-  name?: string;
   namespace?: string;
+  dspVersion?: string;
   displayName?: string;
   initializing?: boolean;
+  dspaSecretName?: string;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
   namespace = 'test-project',
+  dspVersion = 'v2',
   initializing = false,
+  dspaSecretName = 'aws-connection-testdb',
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
   metadata: {
-    name: 'pipelines-definition',
+    name: 'dspa',
     namespace,
   },
   spec: {
+    dspVersion,
     apiServer: {
       enableSamplePipeline: false,
     },
@@ -29,13 +33,14 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
     },
     objectStorage: {
       externalStorage: {
+        region: 'us-east-2',
         bucket: 'test-pipelines-bucket',
         host: 's3.amazonaws.com',
         port: '',
         s3CredentialsSecret: {
           accessKey: 'AWS_ACCESS_KEY_ID',
           secretKey: 'AWS_SECRET_ACCESS_KEY',
-          secretName: 'aws-connection-testdb',
+          secretName: dspaSecretName,
         },
         scheme: 'https',
       },

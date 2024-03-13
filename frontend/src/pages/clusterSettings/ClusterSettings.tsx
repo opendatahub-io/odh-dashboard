@@ -185,7 +185,7 @@ const ClusterSettings: React.FC = () => {
         )}
         <StackItem>
           <Button
-            data-id="submit-cluster-settings"
+            data-testid="submit-cluster-settings"
             isDisabled={
               saving ||
               !pvcSize ||

@@ -39,6 +39,7 @@ const useImpersonationForContext = (
             current: prevState.current,
             currentIsRunning: prevState.currentIsRunning,
             currentPodUID: prevState.currentPodUID,
+            currentLink: prevState.currentLink,
             requestRefresh: prevState.requestRefresh,
           };
           return {

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
-import { getProjects } from '~/api';
+import { useProjects } from '~/api';
+import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { isAvailableProject } from '~/concepts/projects/utils';
@@ -20,7 +20,7 @@ type ProjectsContextType = {
    * @see useSyncPreferredProject
    */
   updatePreferredProject: (project: ProjectKind | null) => void;
-  refresh: (waitForName?: string) => Promise<void>;
+  waitForProject: (projectName: string) => Promise<void>;
 
   // ...the rest of the state variables
   loaded: ProjectFetchState[1];
@@ -36,7 +36,7 @@ export const ProjectsContext = React.createContext<ProjectsContextType>({
   updatePreferredProject: () => undefined,
   loaded: false,
   loadError: new Error('Not in project provider'),
-  refresh: () => Promise.resolve(),
+  waitForProject: () => Promise.resolve(),
 });
 
 /** Allow for name to be not passed; won't match, but ease of use. */
@@ -48,13 +48,10 @@ type ProjectsProviderProps = {
 };
 
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
-  const fetchProjects = React.useCallback(() => getProjects(), []);
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
-  const [projectData, loaded, loadError, refreshProjects] = useFetchState<ProjectKind[]>(
-    fetchProjects,
-    [],
-  );
+  const [projectData, loaded, error] = useProjects();
+  const loadError = error as Error | undefined;
   const { dashboardNamespace } = useDashboardNamespace();
 
   const { projects, dataScienceProjects, modelServingProjects, nonActiveProjects } = React.useMemo(
@@ -90,28 +87,36 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [projectData, dashboardNamespace],
   );
 
-  const refresh = React.useCallback<ProjectsContextType['refresh']>(
-    (waitForName?: string) =>
+  const isMounted = React.useRef(true);
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  const projectsRef = React.useRef(projects);
+  projectsRef.current = projects;
+
+  // The ability to wait for a project to be present is still necessary even with web sockets
+  // so long as we continue to rely on a single context to own all  project data.
+  const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
+    (projectName) =>
       new Promise((resolve) => {
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
-        // TODO: When we have webhooks -- remove this
-        const doRefreshAgain = () => {
-          setTimeout(
-            () =>
-              // refresh until we find the name we are expecting
-              refreshProjects().then((fetchedProjects) => {
-                if (!waitForName || fetchedProjects?.find(byName(waitForName))) {
-                  resolve();
-                  return;
-                }
-                doRefreshAgain();
-              }),
-            500,
-          );
+        const doCheckAgain = () => {
+          setTimeout(() => {
+            if (projectsRef.current.find(byName(projectName))) {
+              resolve();
+              return;
+            }
+            if (isMounted.current) {
+              doCheckAgain();
+            }
+          }, 200);
         };
-        doRefreshAgain();
+        doCheckAgain();
       }),
-    [refreshProjects],
+    [],
   );
 
   const updatePreferredProject = React.useCallback<ProjectsContextType['updatePreferredProject']>(
@@ -131,7 +136,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       updatePreferredProject,
       loaded,
       loadError,
-      refresh,
+      waitForProject,
     }),
     [
       projects,
@@ -142,7 +147,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       updatePreferredProject,
       loaded,
       loadError,
-      refresh,
+      waitForProject,
     ],
   );
 

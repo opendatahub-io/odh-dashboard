@@ -10,7 +10,7 @@ class ExplorePage {
   }
 
   findExploreCard(metadataName: string) {
-    return cy.findByTestId(metadataName);
+    return cy.findByTestId(['explore-card', metadataName]);
   }
 
   findDrawerPanel() {

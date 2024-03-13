@@ -317,6 +317,9 @@ export type PodContainer = {
   livenessProbe?: Record<string, unknown>;
   readinessProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
+  terminationMessagePath?: string;
+  terminationMessagePolicy?: string;
+  securityContext?: unknown;
 };
 
 export type PodStepState = { stepName: string; state: PodStepStateType };
@@ -348,7 +351,6 @@ export type Notebook = K8sResourceCommon & {
     annotations?: Partial<{
       'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
-      'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
@@ -378,6 +380,7 @@ export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
   podUID: string;
+  notebookLink: string;
 };
 
 export type NotebookList = {

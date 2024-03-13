@@ -3,13 +3,11 @@ import {
   DeletePipeline,
   ListPipelineRuns,
   ListPipelineRunJobs,
-  ListPipelineRunsByPipeline,
   ListPipelines,
-  ListPipelineVersionTemplates,
   UploadPipeline,
   UpdatePipelineRunJob,
   GetPipelineRun,
-  StopPipelineRun,
+  UpdatePipelineRun,
   ListExperiments,
   CreateExperiment,
   GetExperiment,
@@ -21,7 +19,7 @@ import {
   UploadPipelineVersion,
   GetPipelineVersion,
   DeletePipelineVersion,
-  ListPipelineVersionsByPipeline,
+  ListPipelineVersions,
 } from '~/concepts/pipelines/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -46,10 +44,8 @@ export type ListExperimentsAPI = KubeflowAPICall<ListExperiments>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelinesRunAPI = KubeflowAPICall<ListPipelineRuns>;
 export type ListPipelinesRunJobAPI = KubeflowAPICall<ListPipelineRunJobs>;
-export type ListPipelineRunsByPipelineAPI = KubeflowAPICall<ListPipelineRunsByPipeline>;
-export type ListPipelineVersionTemplatesAPI = KubeflowAPICall<ListPipelineVersionTemplates>;
-export type ListPipelineVersionsByPipelineAPI = KubeflowAPICall<ListPipelineVersionsByPipeline>;
-export type StopPipelineRunAPI = KubeflowAPICall<StopPipelineRun>;
+export type ListPipelineVersionsAPI = KubeflowAPICall<ListPipelineVersions>;
+export type UpdatePipelineRunAPI = KubeflowAPICall<UpdatePipelineRun>;
 export type UpdatePipelineRunJobAPI = KubeflowAPICall<UpdatePipelineRunJob>;
 export type UploadPipelineAPI = KubeflowAPICall<UploadPipeline>;
 export type UploadPipelineVersionAPI = KubeflowAPICall<UploadPipelineVersion>;

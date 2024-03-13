@@ -1,10 +1,12 @@
 import * as React from 'react';
 import {
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   Flex,
   FlexItem,
   Icon,
-  Stack,
-  StackItem,
   Timestamp,
   TimestampFormat,
 } from '@patternfly/react-core';
@@ -24,20 +26,22 @@ export type PodStatus = {
   completed: boolean;
 };
 
-export const renderDetailItems = (details: DetailItem[], flexKey?: boolean): React.ReactNode => (
-  <Stack hasGutter>
+export const renderDetailItems = (details: DetailItem[]): React.ReactNode => (
+  <DescriptionList
+    isHorizontal
+    horizontalTermWidthModifier={{
+      default: '15ch',
+    }}
+  >
     {details.map((detail) => (
-      <StackItem key={detail.key}>
-        <Flex flexWrap={{ default: 'wrap' }} data-testid={`detail-item-${detail.key}`}>
-          <FlexItem style={{ width: flexKey ? undefined : 150 }}>
-            <b>{detail.key}</b>
-          </FlexItem>
-          <FlexItem data-testid="detail-item-value">{detail.value}</FlexItem>
-        </Flex>
-      </StackItem>
+      <DescriptionListGroup key={detail.key} data-testid={`detail-item-${detail.key}`}>
+        <DescriptionListTerm>{detail.key}</DescriptionListTerm>
+        <DescriptionListDescription data-testid="detail-item-value">
+          {detail.value}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
     ))}
-    <StackItem>&nbsp;</StackItem>
-  </Stack>
+  </DescriptionList>
 );
 
 export const asTimestamp = (date: Date): React.ReactNode => (

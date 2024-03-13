@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '~/components/GenericSidebar';
-import { useAppContext } from '~/app/AppContext';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -20,13 +19,9 @@ type SectionType = {
 };
 
 const ProjectDetailsComponents: React.FC = () => {
-  const { dashboardConfig } = useAppContext();
   const workbenchesEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const modelServingEnabled = useModelServingEnabled();
-  const pipelinesEnabled =
-    useIsAreaAvailable(SupportedArea.DS_PIPELINES).status &&
-    dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
-
+  const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const sections: SectionType[] = [
     ...(workbenchesEnabled
       ? [

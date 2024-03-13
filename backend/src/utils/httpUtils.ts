@@ -29,8 +29,6 @@ type ProxyData = {
   requestData?: string | Buffer;
   /** Option to substitute your own content type for the API call -- defaults to JSON */
   overrideContentType?: string;
-  /** Allow for unauthorized SSL connections to succeed */
-  rejectUnauthorized?: boolean;
 };
 
 /** Ideally these would all be required, but https by node seems to think there are cases when it does not know the code or message */
@@ -46,7 +44,7 @@ export const proxyCall = (
   data: ProxyData,
 ): Promise<[string, ProxyCallStatus]> => {
   return new Promise((resolve, reject) => {
-    const { method, requestData, overrideContentType, url, rejectUnauthorized } = data;
+    const { method, requestData, overrideContentType, url } = data;
 
     getDirectCallOptions(fastify, request, url)
       .then((requestOptions) => {
@@ -65,10 +63,6 @@ export const proxyCall = (
             'Content-Type': contentType,
             'Content-Length': Buffer.byteLength(requestData, 'utf8'),
           };
-        }
-
-        if (rejectUnauthorized !== undefined) {
-          requestOptions.rejectUnauthorized = rejectUnauthorized;
         }
 
         fastify.log.info(`Making ${method} proxy request to ${url}`);

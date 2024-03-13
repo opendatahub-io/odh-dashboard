@@ -28,7 +28,6 @@ const SelectedNodeVolumeMountsTab: React.FC<SelectedNodeVolumeMountsTabProps> = 
     <>
       {renderDetailItems(
         Object.values(items).map(({ name, mountPath }) => ({ key: mountPath, value: name })),
-        true,
       )}
     </>
   );

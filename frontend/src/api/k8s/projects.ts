@@ -2,11 +2,12 @@ import axios from 'axios';
 import {
   k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sListResource,
   K8sModelCommon,
   K8sResourceCommon,
   k8sUpdateResource,
+  useK8sWatchResource,
+  WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, ProjectKind } from '~/k8sTypes';
 import { ProjectModel } from '~/api/models';
@@ -16,13 +17,17 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '~/const';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { groupVersionKind } from '~/api/k8sUtils';
 import { listServingRuntimes } from './servingRuntimes';
 
-export const getProject = (projectName: string): Promise<ProjectKind> =>
-  k8sGetResource<ProjectKind>({
-    model: ProjectModel,
-    queryOptions: { name: projectName },
-  });
+export const useProjects = (): WatchK8sResult<ProjectKind[]> =>
+  useK8sWatchResource<ProjectKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(ProjectModel),
+    },
+    ProjectModel,
+  );
 
 export const getProjects = (withLabel?: string, opts?: K8sAPIOptions): Promise<ProjectKind[]> =>
   k8sListResource<ProjectKind>(

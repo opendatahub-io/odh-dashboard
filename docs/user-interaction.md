@@ -76,7 +76,7 @@ The built-in library includes several segment tracking methods to help in the us
   "originalTimestamp": "2022-03-01T16:57:02.690Z",
   "properties": {
     "clusterID": "3a2f1f4a-ca48-44f4-854d-5c01de6493bd",
-    "name": "jupyterhub"
+    "name": "jupyter"
   },
   "receivedAt": "2022-03-01T16:57:03.302Z",
   "sentAt": "2022-03-01T16:57:02.690Z",

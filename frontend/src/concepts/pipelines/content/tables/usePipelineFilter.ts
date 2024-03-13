@@ -1,12 +1,7 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { FilterProps } from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import {
-  PipelineRunStatusesKF,
-  PipelinesFilterOp,
-  PipelinesFilterPredicate,
-  ResourceKeyKF,
-  ResourceTypeKF,
-} from '~/concepts/pipelines/kfTypes';
+import { PipelinesFilterOp, PipelinesFilterPredicate } from '~/concepts/pipelines/kfTypes';
 
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
@@ -18,24 +13,6 @@ export enum FilterOptions {
   EXPERIMENT = 'experiment',
   PIPELINE_VERSION = 'pipeline_version',
 }
-
-const statusMap: {
-  Failed?: string[];
-  Started?: PipelineRunStatusesKF;
-  Running?: PipelineRunStatusesKF;
-  Completed?: string[];
-  Cancelled?: PipelineRunStatusesKF;
-} = {
-  [PipelineRunStatusesKF.FAILED]: [
-    PipelineRunStatusesKF.FAILED,
-    'PipelineRunTimeout',
-    'CreateRunFailed',
-  ],
-  [PipelineRunStatusesKF.STARTED]: PipelineRunStatusesKF.STARTED,
-  [PipelineRunStatusesKF.RUNNING]: PipelineRunStatusesKF.RUNNING,
-  [PipelineRunStatusesKF.COMPLETED]: [PipelineRunStatusesKF.COMPLETED, 'Succeeded'],
-  [PipelineRunStatusesKF.CANCELLED]: PipelineRunStatusesKF.CANCELLED,
-};
 
 export const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]>(
   data: R,
@@ -69,61 +46,55 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
       const predicates: PipelinesFilterPredicate[] = [];
-      let resourceReference: ResourceKeyKF | undefined;
+      const runName = getDataValue(data[FilterOptions.NAME]);
+      const startedDateTime = getDataValue(data[FilterOptions.CREATED_AT]);
+      const state = getDataValue(data[FilterOptions.STATUS]);
+      const experimentId = getDataValue(data[FilterOptions.EXPERIMENT]);
+      const pipelineVersionId = getDataValue(data[FilterOptions.PIPELINE_VERSION]);
 
-      const runValue = getDataValue(data[FilterOptions.NAME]);
-      const startedValue = getDataValue(data[FilterOptions.CREATED_AT]);
-      const statusValue = getDataValue(data[FilterOptions.STATUS]);
-      const experimentValue = getDataValue(data[FilterOptions.EXPERIMENT]);
-      const pipelineVersionValue = getDataValue(data[FilterOptions.PIPELINE_VERSION]);
-
-      if (runValue) {
+      if (runName) {
         predicates.push({
           key: 'name',
-          op: PipelinesFilterOp.IS_SUBSTRING,
-          // eslint-disable-next-line camelcase
-          string_value: runValue,
+          operation: PipelinesFilterOp.IS_SUBSTRING,
+          string_value: runName,
         });
       }
-      if (startedValue) {
+
+      if (startedDateTime) {
         predicates.push({
           key: 'created_at',
-          op: PipelinesFilterOp.GREATER_THAN_EQUALS,
-          // eslint-disable-next-line camelcase
-          timestamp_value: new Date(startedValue).toISOString(),
+          operation: PipelinesFilterOp.GREATER_THAN_EQUALS,
+          timestamp_value: new Date(startedDateTime).toISOString(),
         });
       }
-      if (statusValue) {
-        const predicateValue = statusMap[statusValue as PipelineRunStatusesKF] ?? statusValue;
-        if (Array.isArray(predicateValue)) {
-          predicates.push({
-            key: 'status',
-            op: PipelinesFilterOp.IN,
-            // eslint-disable-next-line camelcase
-            string_values: { values: predicateValue },
-          });
-        } else {
-          predicates.push({
-            key: 'status',
-            op: PipelinesFilterOp.EQUALS,
-            // eslint-disable-next-line camelcase
-            string_value: predicateValue,
-          });
-        }
+
+      if (state) {
+        predicates.push({
+          key: 'state',
+          operation: PipelinesFilterOp.EQUALS,
+          string_value: state,
+        });
       }
 
-      if (experimentValue) {
-        resourceReference = { type: ResourceTypeKF.EXPERIMENT, id: experimentValue };
+      if (experimentId) {
+        predicates.push({
+          key: 'experiment_id',
+          operation: PipelinesFilterOp.EQUALS,
+          string_value: experimentId,
+        });
       }
 
-      if (pipelineVersionValue) {
-        resourceReference = { type: ResourceTypeKF.PIPELINE_VERSION, id: pipelineVersionValue };
+      if (pipelineVersionId) {
+        predicates.push({
+          key: 'pipeline_version_id',
+          operation: PipelinesFilterOp.EQUALS,
+          string_value: pipelineVersionId,
+        });
       }
 
       setFilter(
-        predicates.length > 0 || !!resourceReference
+        predicates.length > 0
           ? {
-              resourceReference,
               predicates,
             }
           : undefined,
@@ -134,23 +105,25 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);
   const {
-    [FilterOptions.CREATED_AT]: createdAtFilter,
-    [FilterOptions.STATUS]: statusFilter,
-    [FilterOptions.PIPELINE_VERSION]: pipelineVersionFilter,
+    [FilterOptions.NAME]: name,
+    [FilterOptions.CREATED_AT]: createdAt,
+    [FilterOptions.STATUS]: state,
+    [FilterOptions.PIPELINE_VERSION]: pipelineVersionId,
+    [FilterOptions.EXPERIMENT]: experimentId,
   } = filterData;
 
   React.useEffect(() => {
     doSetFilterDebounced(filterData);
     // debounce filter change for name changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterData[FilterOptions.NAME], doSetFilterDebounced]);
+  }, [name, doSetFilterDebounced]);
 
   React.useEffect(() => {
     doSetFilterDebounced.cancel();
     doSetFilter(filterData);
     // perform filter change immediately
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createdAtFilter, statusFilter, pipelineVersionFilter, doSetFilter]);
+  }, [createdAt, state, pipelineVersionId, experimentId, doSetFilter]);
 
   return toolbarProps;
 };

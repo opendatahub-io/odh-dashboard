@@ -9,6 +9,7 @@ import {
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
 import NewProjectButton from '~/pages/projects/screens/projects/NewProjectButton';
+import { routePipelinesNamespace } from '~/routes';
 
 const PipelineCoreNoProjects: React.FC = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const PipelineCoreNoProjects: React.FC = () => {
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
-          onProjectCreated={(projectName) => navigate(`/pipelines/${projectName}`)}
+          onProjectCreated={(projectName) => navigate(routePipelinesNamespace(projectName))}
         />
       </EmptyStateFooter>
     </EmptyState>

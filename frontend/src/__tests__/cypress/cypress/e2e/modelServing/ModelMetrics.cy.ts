@@ -74,7 +74,10 @@ const initIntercepts = ({
   );
 
   cy.intercept(
-    '/api/k8s/apis/project.openshift.io/v1/projects',
+    {
+      method: 'GET',
+      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
+    },
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh })]),
   );
   cy.intercept(

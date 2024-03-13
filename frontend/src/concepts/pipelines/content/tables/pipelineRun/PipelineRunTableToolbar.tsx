@@ -1,13 +1,10 @@
 import * as React from 'react';
-import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { TextInput, ToolbarItem } from '@patternfly/react-core';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
-import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
@@ -25,17 +22,20 @@ export type FilterProps = Pick<
   'filterData' | 'onFilterUpdate' | 'onClearFilters'
 >;
 
-type PipelineRunJobTableToolbarProps = React.ComponentProps<typeof RunTableToolbarActions> &
-  FilterProps;
+interface PipelineRunTableToolbarProps extends FilterProps {
+  primaryAction: React.ReactNode;
+  dropdownActions: React.ReactNode;
+}
 
-const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
-  deleteAllEnabled,
-  onDeleteAll,
+const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
+  primaryAction,
+  dropdownActions,
   ...toolbarProps
 }) => {
-  const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState, ...statusRuntimeStates } =
+    runtimeStateLabels;
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -45,8 +45,8 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
         [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
-            aria-label="Search for a triggered run name"
-            placeholder="Triggered run name"
+            aria-label="Search for a run name"
+            placeholder="Search..."
             onChange={(_event, value) => onChange(value)}
           />
         ),
@@ -60,7 +60,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
           <PipelineVersionSelect
             versions={versions}
             selection={label}
-            onSelect={(version) => onChange(version.id, version.name)}
+            onSelect={(version) => onChange(version.pipeline_version_id, version.display_name)}
           />
         ),
         [FilterOptions.CREATED_AT]: ({ onChange, ...props }) => (
@@ -80,28 +80,18 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             {...props}
             value={value ?? ''}
             aria-label="Select a status"
-            options={Object.values(PipelineRunStatusesKF).map((status) => ({
-              key: status,
-              label: status,
+            options={Object.values(statusRuntimeStates).map((v) => ({
+              key: v,
+              label: v,
             }))}
-            onChange={(newValue) => {
-              onChange(newValue);
-            }}
+            onChange={(v) => onChange(v)}
+            data-testid="runtime-status-dropdown"
           />
         ),
       }}
     >
-      <ToolbarItem>
-        <Button
-          variant="secondary"
-          onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
-        >
-          Create run
-        </Button>
-      </ToolbarItem>
-      <ToolbarItem data-testid="run-table-toolbar-item">
-        <RunTableToolbarActions deleteAllEnabled={deleteAllEnabled} onDeleteAll={onDeleteAll} />
-      </ToolbarItem>
+      <ToolbarItem>{primaryAction}</ToolbarItem>
+      <ToolbarItem>{dropdownActions}</ToolbarItem>
     </PipelineFilterBar>
   );
 };

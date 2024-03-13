@@ -3,7 +3,7 @@ import { DSPipelineKind } from '~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
-import { DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
+import { DSPA_SECRET_NAME, DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
 import { PipelineServerConfigType } from './types';
 
 type SecretsResponse = [
@@ -61,10 +61,15 @@ const createObjectStorageSecret = (
 ): Promise<{
   secretName: string;
 }> => {
+  const awsRecord = dataEntryToRecord(objectStorageConfig.newValue);
   const assembledSecret = assembleSecret(
     projectName,
-    objectStorageConfig.newValue.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {}),
+    {
+      [AwsKeys.ACCESS_KEY_ID]: awsRecord[AwsKeys.ACCESS_KEY_ID] ?? '',
+      [AwsKeys.SECRET_ACCESS_KEY]: awsRecord[AwsKeys.SECRET_ACCESS_KEY] ?? '',
+    },
     'generic',
+    DSPA_SECRET_NAME,
   );
 
   return createSecret(assembledSecret, { dryRun }).then((secret) => ({
@@ -95,16 +100,18 @@ export const createDSPipelineResourceSpec = (
 ): DSPipelineKind['spec'] => {
   const databaseRecord = dataEntryToRecord(config.database.value);
   const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
-  const [, externalStorageScheme, externalStorageHost] = awsRecord.AWS_S3_ENDPOINT?.match(
-    /^(?:(\w+):\/\/)?(.*)/,
-  ) ?? [undefined];
+  const [, externalStorageScheme, externalStorageHost] =
+    awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
+  const externalStorageRegion = awsRecord.AWS_DEFAULT_REGION || 'us-east-1';
 
   return {
+    dspVersion: 'v2',
     objectStorage: {
       externalStorage: {
-        host: externalStorageHost?.replace(/\/$/, '') || '',
+        host: convertAWSHostForRegion(externalStorageHost, externalStorageRegion),
         scheme: externalStorageScheme || 'https',
         bucket: awsRecord.AWS_S3_BUCKET || '',
+        region: externalStorageRegion,
         s3CredentialsSecret: {
           accessKey: AwsKeys.ACCESS_KEY_ID,
           secretKey: AwsKeys.SECRET_ACCESS_KEY,
@@ -142,11 +149,16 @@ export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boo
     PIPELINE_AWS_FIELDS.filter((field) => field.isRequired)
       .map((field) => field.key)
       .includes(key)
-      ? !!value
+      ? !!value.trim()
       : true,
   );
 
 export const getLabelName = (index: string): string => {
   const field = PIPELINE_AWS_FIELDS.find((currentField) => currentField.key === index);
   return field ? field.label : '';
+};
+
+const convertAWSHostForRegion = (endpoint: string, region: string): string => {
+  const host = endpoint.replace(/\/$/, '') || '';
+  return host === 's3.amazonaws.com' && region !== '' ? `s3.${region}.amazonaws.com` : host;
 };

@@ -7,7 +7,8 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { containsOnlySlashes, removeLeadingSlashes } from '~/utilities/string';
+import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
 
 type DataConnectionFolderPathFieldProps = {
   folderPath: string;
@@ -22,20 +23,26 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
 
   const [validated, setValidated] = React.useState<Validate>('default');
 
-  const handlePathChange = (currentFolderPath: string) => {
-    setFolderPath(currentFolderPath);
-    setValidated('default');
-  };
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      if (containsOnlySlashes(folderPath) || removeLeadingSlashes(folderPath).includes('//')) {
+  const debouncedValidateFolderPath = useDebounceCallback(
+    React.useCallback((path: string) => {
+      if (path !== '' && (containsOnlySlashes(path) || !isS3PathValid(path))) {
         setValidated('error');
       } else {
         setValidated('default');
       }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [folderPath]);
+    }, []),
+    500,
+  );
+
+  React.useEffect(() => {
+    debouncedValidateFolderPath(folderPath);
+  }, [debouncedValidateFolderPath, folderPath]);
+
+  const handlePathChange = (currentFolderPath: string) => {
+    setFolderPath(currentFolderPath);
+    setValidated('default');
+  };
+
   return (
     <FormGroup fieldId="folder-path" label="Path" isRequired>
       <TextInput
@@ -56,7 +63,7 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
             {validated === 'error'
               ? containsOnlySlashes(folderPath)
                 ? 'The path must not point to a root folder.'
-                : 'Invalid path format'
+                : 'Invalid path format.'
               : 'Enter a path to a model or folder. This path cannot point to a root folder.'}
           </HelperTextItem>
         </HelperText>

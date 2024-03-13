@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { Table, TableBase, getTableColumnSort } from '~/components/table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
@@ -8,8 +8,8 @@ import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesMo
 import usePipelinesCheckboxTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesCheckboxTable';
 
 type PipelinesTableProps = {
-  pipelines: PipelineKF[];
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipelines: PipelineKFv2[];
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
   refreshPipelines: () => Promise<unknown>;
   loading?: boolean;
   totalSize?: number;
@@ -47,9 +47,10 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
     tableProps: checkboxTableProps,
     isSelected,
     toggleSelection,
+    disableCheck,
   } = usePipelinesCheckboxTable(pipelines);
 
-  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKF[]>([]);
+  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKFv2[]>([]);
 
   return (
     <>
@@ -77,7 +78,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         columns={pipelineColumns}
         rowRenderer={(pipeline, rowIndex) => (
           <PipelinesTableRow
-            key={pipeline.id}
+            key={pipeline.pipeline_id}
             pipeline={pipeline}
             rowIndex={rowIndex}
             isChecked={isSelected(pipeline)}
@@ -85,6 +86,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
             onDeletePipeline={() => setDeletePipelines([pipeline])}
             refreshPipelines={refreshPipelines}
             pipelineDetailsPath={pipelineDetailsPath}
+            disableCheck={disableCheck}
           />
         )}
         disableRowRenderSupport

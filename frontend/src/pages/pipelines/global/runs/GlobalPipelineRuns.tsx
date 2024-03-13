@@ -6,19 +6,23 @@ import {
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { routePipelineRunsNamespace } from '~/routes';
 import GlobalPipelineRunsTabs from './GlobalPipelineRunsTabs';
 
 const GlobalPipelineRuns: React.FC = () => (
   <PipelineCoreApplicationPage
     title={pipelineRunsPageTitle}
     description={pipelineRunsPageDescription}
-    getRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+    getRedirectPath={routePipelineRunsNamespace}
     overrideChildPadding
   >
     <EnsureAPIAvailability>
-      <PipelineRunVersionsContextProvider>
-        <GlobalPipelineRunsTabs />
-      </PipelineRunVersionsContextProvider>
+      <EnsureCompatiblePipelineServer>
+        <PipelineRunVersionsContextProvider>
+          <GlobalPipelineRunsTabs />
+        </PipelineRunVersionsContextProvider>
+      </EnsureCompatiblePipelineServer>
     </EnsureAPIAvailability>
   </PipelineCoreApplicationPage>
 );

@@ -1,6 +1,8 @@
 import { FieldOptions } from '~/components/FieldList';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 
+export const DSPA_SECRET_NAME = 'dashboard-dspa-secret';
+
 export enum ExternalDatabaseSecret {
   KEY = 'db-password',
   NAME = 'pipelines-db-password',

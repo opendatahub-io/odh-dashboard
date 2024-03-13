@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
+import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 
 class PipelinesTable {
   private testId = 'pipelines-table';
@@ -14,43 +14,31 @@ class PipelinesTable {
     return this.find().findAllByRole('heading', { name }).parents('tr');
   }
 
-  private shouldRowExist = (name: string) => this.find().get('tr').contains(name).should('exist');
-
-  private shouldRowNotExist = (name: string) =>
-    this.find().get('tr').contains(name).should('not.exist');
-
-  checkRow() {
-    return {
-      shouldExist: (name: string) => this.shouldRowExist(name),
-      shouldNotExist: (name: string) => this.shouldRowNotExist(name),
-    };
+  shouldRowNotBeVisible(name: string) {
+    return this.find().get('tr').contains(name).should('not.be.visible');
   }
 
-  mockGetPipelines(pipelines: PipelineKF[]) {
+  mockGetPipelines(pipelines: PipelineKFv2[]) {
     return cy.intercept(
       {
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines(pipelines),
     );
   }
 
-  mockGetPipelineVersions(versions: PipelineVersionKF[]) {
+  mockGetPipelineVersions(versions: PipelineVersionKFv2[], pipelineId: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
       },
-      buildMockPipelineVersions(versions),
+      buildMockPipelineVersionsV2(versions),
     );
   }
 
-  toggleExpandRowByName(name: string) {
-    this.findRowByName(name).findByLabelText('Details').click();
-  }
-
-  toggleCheckboxByRowName(name: string) {
-    this.findRowByName(name).findByRole('checkbox').click();
+  toggleExpandRowByIndex(index: number) {
+    this.find().findByLabelText('Details').eq(index).click();
   }
 }
 

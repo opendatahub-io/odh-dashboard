@@ -17,14 +17,14 @@ import {
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { Table } from '~/components/table';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 
 type CustomPipelineVersionSelectProps = {
-  versions: PipelineVersionKF[];
+  versions: PipelineVersionKFv2[];
   selection: string | undefined;
-  onSelect: (version: PipelineVersionKF) => void;
+  onSelect: (version: PipelineVersionKFv2) => void;
 };
 
 /**
@@ -38,9 +38,9 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
 }) => {
   const [isOpen, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
-  const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKF[]>(versions);
+  const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKFv2[]>(versions);
   const [visibleLength, setVisibleLength] = React.useState(10);
-  const placeholder = versions.length === 0 ? 'No versions available' : 'Select a pipeline version';
+  const placeholder = versions.length === 0 ? 'No versions available' : 'Select...';
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
@@ -50,7 +50,9 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
   React.useEffect(() => {
     if (search) {
       setFilteredVersions(
-        versions.filter((option) => option.name.toLowerCase().includes(search.toLowerCase())),
+        versions.filter((option) =>
+          option.display_name.toLowerCase().includes(search.toLowerCase()),
+        ),
       );
     } else {
       setFilteredVersions(versions);
@@ -76,7 +78,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
         <MenuList>
           <div role="menuitem">
             <Table
-              data-id="pipeline-selector-table-list"
+              data-id="pipeline-version-selector-table-list"
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}

@@ -132,6 +132,7 @@ export const mockServingRuntimeK8sResource = ({
           '--file_system_poll_wait_seconds=0',
           '--grpc_bind_address=127.0.0.1',
           '--rest_bind_address=127.0.0.1',
+          '--target_device=NVIDIA',
         ],
         image:
           'registry.redhat.io/openshift-ai/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
@@ -146,6 +147,8 @@ export const mockServingRuntimeK8sResource = ({
             memory: '4Gi',
           },
         },
+        affinity: {},
+        volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
       },
     ],
     grpcDataEndpoint: 'port:8001',
@@ -165,5 +168,6 @@ export const mockServingRuntimeK8sResource = ({
         version: '1',
       },
     ],
+    volumes: [{ name: 'shm', emptyDir: { medium: 'Memory', sizeLimit: '2Gi' } }],
   },
 });

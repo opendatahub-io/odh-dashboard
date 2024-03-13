@@ -39,6 +39,7 @@ export const mockProjectK8sResource = ({
       'openshift.io/display-name': displayName,
       'openshift.io/requester': username,
     },
+    resourceVersion: '1',
   },
   status: {
     phase,

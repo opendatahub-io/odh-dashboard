@@ -1,17 +1,17 @@
 import {
-  PipelineRunJobKF,
-  PipelineRunKF,
-  PipelineCoreResourceKF,
+  PipelineRunJobKFv2,
+  PipelineRunKFv2,
   PipelineRunStatusesKF,
-  ResourceReferenceKF,
+  PipelineCoreResourceKF,
   ResourceTypeKF,
-  PipelineVersionKF,
+  ResourceReferenceKF,
+  PipelineRunKF,
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF | undefined => runs[0];
+export const getLastRun = (runs: PipelineRunKFv2[]): PipelineRunKFv2 | undefined => runs[0];
 
-export const getRunDuration = (run: PipelineRunKF): number => {
+export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
   if (finishedDate.getFullYear() <= 1970) {
     // Kubeflow initial timestamp -- epoch, not an actual value
@@ -22,6 +22,10 @@ export const getRunDuration = (run: PipelineRunKF): number => {
   return finishedDate.getTime() - createdDate.getTime();
 };
 
+/**
+ * @deprecated
+ *  v2 api now uses RuntimeStateKF
+ */
 export const getStatusWeight = (run: PipelineRunKF): number => {
   const weights: Record<PipelineRunStatusesKF | string, number | undefined> = {
     [PipelineRunStatusesKF.CANCELLED]: 0,
@@ -34,36 +38,56 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
   return weights[run.status] ?? Infinity;
 };
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getResourceRef = (
   resource: PipelineCoreResourceKF | null | undefined,
   type: ResourceTypeKF,
 ): ResourceReferenceKF | undefined =>
   resource?.resource_references?.find((ref) => ref.key.type === type);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getJobResourceRef = (
   resource: Parameters<typeof getResourceRef>[0],
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.JOB);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getPipelineVersionResourceRef = (
-  resource: PipelineCoreResourceKF | PipelineRunKF | PipelineRunJobKF | null | undefined,
+  resource: PipelineCoreResourceKF | null | undefined,
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE_VERSION);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getPipelineResourceRef = (
-  resource: PipelineCoreResourceKF | PipelineVersionKF | null,
+  resource: PipelineCoreResourceKF | null,
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE);
 
+/**
+ * @deprecated
+ * Uses v1 api where resource references existed
+ */
 export const getExperimentResourceRef = (
   resource: Parameters<typeof getResourceRef>[0],
 ): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.EXPERIMENT);
 
-export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
+export const getPipelineRunJobStartTime = (job: PipelineRunJobKFv2): Date | null => {
   const startTime =
     job.trigger.cron_schedule?.start_time || job.trigger.periodic_schedule?.start_time;
 
   return startTime ? new Date(startTime) : null;
 };
 
-export const getPipelineRunJobEndTime = (job: PipelineRunJobKF): Date | null => {
+export const getPipelineRunJobEndTime = (job: PipelineRunJobKFv2): Date | null => {
   const endTime = job.trigger.cron_schedule?.end_time || job.trigger.periodic_schedule?.end_time;
 
   return endTime ? new Date(endTime) : null;
@@ -79,13 +103,10 @@ export enum PipelineRunLabels {
   RECURRING = 'Recurring',
   ONEOFF = 'One-off',
 }
-export enum PipelineType {
-  SCHEDULED_RUN = 'scheduled run',
-  TRIGGERED_RUN = 'triggered run',
-}
+
 const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
 export const getPipelineRunJobScheduledState = (
-  job: PipelineRunJobKF,
+  job: PipelineRunJobKFv2,
 ): [state: ScheduledState, started: Date | null, ended: Date | null] => {
   const startDate = getPipelineRunJobStartTime(job);
   const endDate = getPipelineRunJobEndTime(job);
@@ -108,7 +129,7 @@ export const getPipelineRunJobScheduledState = (
   return [state, startDate, endDate];
 };
 
-export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
+export const getScheduledStateWeight = (job: PipelineRunJobKFv2): number => {
   const [state] = getPipelineRunJobScheduledState(job);
 
   const weights: Record<ScheduledState, number> = {
@@ -122,7 +143,7 @@ export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
 };
 
 export const isJobWithinDateRange = (
-  job: PipelineRunJobKF,
+  job: PipelineRunJobKFv2,
   dateRange: DateRangeString,
 ): boolean => {
   const jobStart = getPipelineRunJobStartTime(job);

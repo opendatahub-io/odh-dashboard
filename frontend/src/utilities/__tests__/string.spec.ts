@@ -1,9 +1,11 @@
 import {
+  isS3PathValid,
   containsOnlySlashes,
   downloadString,
-  removeLeadingSlashes,
+  removeLeadingSlash,
   replaceNonNumericPartWithString,
   replaceNumericPartWithString,
+  containsMultipleSlashesPattern,
 } from '~/utilities/string';
 
 global.URL.createObjectURL = jest.fn(() => 'test-url');
@@ -101,20 +103,20 @@ describe('replaceNonNumericPartWithString', () => {
   });
 });
 
-describe('removeLeadingSlashes', () => {
+describe('removeLeadingSlash', () => {
   it('removes leading slashes from a string if present', () => {
-    expect(removeLeadingSlashes('/example')).toBe('example');
-    expect(removeLeadingSlashes('//example')).toBe('example');
-    expect(removeLeadingSlashes('//example/')).toBe('example/');
-    expect(removeLeadingSlashes('///example')).toBe('example');
+    expect(removeLeadingSlash('/example')).toBe('example');
+    expect(removeLeadingSlash('//example')).toBe('/example');
+    expect(removeLeadingSlash('//example/')).toBe('/example/');
+    expect(removeLeadingSlash('///example')).toBe('//example');
   });
 
   it('does not modify string if it does not start with a slash', () => {
-    expect(removeLeadingSlashes('example')).toBe('example');
+    expect(removeLeadingSlash('example')).toBe('example');
   });
 
   it('returns an empty string if input is an empty string', () => {
-    expect(removeLeadingSlashes('')).toBe('');
+    expect(removeLeadingSlash('')).toBe('');
   });
 });
 
@@ -131,5 +133,67 @@ describe('containsOnlySlashes', () => {
 
   it('returns false if input string is an empty string', () => {
     expect(containsOnlySlashes('')).toBe(false);
+  });
+});
+
+describe('containsMultipleSlashesPattern', () => {
+  it('should return false if does not contain multiple slashes consecutively', () =>
+    expect(containsMultipleSlashesPattern('/path')).toBe(false));
+
+  it('should return true if contains multiple slashes consecutively', () =>
+    expect(containsMultipleSlashesPattern('example//path')).toBe(true));
+
+  it('should return true if contains more than two consecutive slashes', () =>
+    expect(containsMultipleSlashesPattern('///path')).toBe(true));
+
+  it('should return true if contains multiple slashes in different positions', () =>
+    expect(containsMultipleSlashesPattern('/path//to//file')).toBe(true));
+
+  it('should return false if is an empty string', () =>
+    expect(containsMultipleSlashesPattern('')).toBe(false));
+
+  it('should return false if contains no slashes', () =>
+    expect(containsMultipleSlashesPattern('path')).toBe(false));
+});
+
+describe('isS3PathValid', () => {
+  it('should return true for valid S3 path', () => {
+    expect(isS3PathValid('folder/file.txt')).toBe(true);
+  });
+
+  it('should return true for valid S3 path with allowed special characters', () => {
+    expect(isS3PathValid('my-folder/my_file-123.txt')).toBe(true);
+  });
+
+  it('should return false for invalid S3 path with unsupported characters', () => {
+    expect(isS3PathValid('folder/*file.txt')).toBe(false);
+  });
+
+  it('should return false for invalid S3 path with spaces', () => {
+    expect(isS3PathValid('folder/ file.txt')).toBe(false);
+  });
+
+  it('should return false for invalid S3 path with non-alphanumeric characters', () => {
+    expect(isS3PathValid('folder/@file.txt')).toBe(false);
+  });
+
+  it('should return true for valid S3 path with uppercase letters', () => {
+    expect(isS3PathValid('Folder/File.TXT')).toBe(true);
+  });
+
+  it('should return true for valid S3 path with trailing slash', () => {
+    expect(isS3PathValid('folder/')).toBe(true);
+  });
+
+  it('should return true for valid S3 path with leading slash', () => {
+    expect(isS3PathValid('/folder/file.txt')).toBe(true);
+  });
+
+  it('should return true for valid S3 path with hyphen', () => {
+    expect(isS3PathValid('my-folder/my-file.txt')).toBe(true);
+  });
+
+  it('should return false when contains multiple slashes', () => {
+    expect(isS3PathValid('folder//file.txt')).toBe(false);
   });
 });

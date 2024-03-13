@@ -171,6 +171,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
           </StackItem>
           <StackItem isFilled>
             <DashboardCodeEditor
+              testId="dashboard-code-editor"
               code={code}
               isUploadEnabled
               isLanguageLabelVisible
@@ -203,6 +204,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                 isDisabled={isDisabled}
                 variant="primary"
                 id="create-button"
+                data-testid="create-button"
                 isLoading={loading}
                 onClick={() => {
                   try {

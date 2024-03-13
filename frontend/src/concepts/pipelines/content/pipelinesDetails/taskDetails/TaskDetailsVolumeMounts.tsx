@@ -11,7 +11,6 @@ const TaskDetailsVolumeMounts: React.FC<TaskDetailsVolumeMountsProps> = ({ volum
   <TaskDetailsSection title="Volume mounts">
     {renderDetailItems(
       volumeMounts.map(({ name, mountPath }) => ({ key: mountPath, value: name })),
-      true,
     )}
   </TaskDetailsSection>
 );

@@ -61,7 +61,10 @@ const CustomServingRuntimeListView: React.FC = () => {
         )}
         toolbarContent={
           <ToolbarItem>
-            <Button onClick={() => navigate('/servingRuntimes/addServingRuntime')}>
+            <Button
+              data-testid="add-serving-runtime-button"
+              onClick={() => navigate('/servingRuntimes/addServingRuntime')}
+            >
               Add serving runtime
             </Button>
           </ToolbarItem>

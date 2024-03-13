@@ -298,6 +298,14 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
+      method: 'PUT',
+      pathname:
+        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model-legacy',
+    },
+    mockServingRuntimeK8sResource({ name: 'test-model-legacy' }),
+  ).as('editModelServer');
+  cy.intercept(
+    {
       pathname:
         '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
     },
@@ -413,6 +421,44 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findLocationBucketInput().type('test-bucket');
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
+
+      inferenceServiceModal.findSubmitButton().click();
+
+      // dry run request
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            labels: { 'opendatahub.io/dashboard': 'true' },
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.kserve.io/deploymentMode': 'ModelMesh',
+            },
+          },
+          spec: {
+            predictor: {
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-model-legacy',
+                storage: { key: 'test-secret', path: 'test-model/' },
+              },
+            },
+          },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
     });
 
     it('ModelMesh ServingRuntime list', () => {
@@ -526,6 +572,33 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().click();
       kserveModal.shouldBeOpen(false);
 
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata).to.eql({
+          name: 'test-name',
+          annotations: {
+            'openshift.io/display-name': 'test-name',
+            'opendatahub.io/template-name': 'template-2',
+            'opendatahub.io/apiProtocol': 'REST',
+            'opendatahub.io/template-display-name': 'Caikit',
+            'opendatahub.io/accelerator-name': '',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        });
+        expect(interception.request.body.spec.protocolVersions).to.eql(['grpc-v1']);
+        expect(interception.request.body.spec.supportedModelFormats).to.eql([
+          { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+          { autoSelect: true, name: 'onnx', version: '1' },
+        ]);
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
       // the serving runtime should have been created
       cy.get('@createServingRuntime.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
@@ -563,11 +636,14 @@ describe('Serving Runtime List', () => {
       // test submitting form, an error should appear
       kserveModal.findSubmitButton().click();
 
-      cy.wait('@createServingRuntime').then((interceptions) => {
-        expect(interceptions.request.url).to.include('?dryRun=All');
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
       });
-      cy.wait('@createInferenceService').then((interceptions) => {
-        expect(interceptions.request.url).to.include('?dryRun=All');
+
+      // dry run request
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
       });
 
       cy.findByText('Error creating model server');
@@ -614,10 +690,36 @@ describe('Serving Runtime List', () => {
 
       // Submit button should be enabled
       kserveModal.findSubmitButton().should('be.enabled');
-
       // Should allow editing
       kserveModal.findSubmitButton().click();
       kserveModal.shouldBeOpen(false);
+
+      //dry run request
+      cy.wait('@updateServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata).to.eql({
+          creationTimestamp: '2023-06-22T16:05:55Z',
+          labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
+            'opendatahub.io/accelerator-name': '',
+            'opendatahub.io/template-name': 'ovms',
+            'openshift.io/display-name': 'llama-service',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+          name: 'llama-service',
+          namespace: 'test-project',
+        });
+      });
+
+      // Actual request
+      cy.wait('@updateServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@updateServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
+      });
     });
 
     it('KServe Model list', () => {
@@ -669,6 +771,56 @@ describe('Serving Runtime List', () => {
         .findDescriptionListItem('Llama Service', 'Model server replicas')
         .next('dd')
         .should('have.text', '3');
+    });
+
+    it('Check path error in KServe Modal', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+      });
+      projectDetails.visit('test-project');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findLocationPathInput().clear();
+
+      // Check with root path
+      kserveModal.findLocationPathInput().type('/');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal
+        .findLocationPathInputError()
+        .should('be.visible')
+        .contains('The path must not point to a root folder');
+      kserveModal.findLocationPathInput().clear();
+
+      // Check path with special characters
+      kserveModal.findLocationPathInput().type('invalid/path/@#%#@%');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findLocationPathInputError().should('be.visible').contains('Invalid path format');
+      kserveModal.findLocationPathInput().clear();
+
+      // Check path with extra slashes in between
+      kserveModal.findLocationPathInput().type('invalid/path///test');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findLocationPathInputError().should('be.visible').contains('Invalid path format');
+      kserveModal.findLocationPathInput().clear();
+
+      kserveModal.findLocationPathInput().type('correct-path');
+      kserveModal.findSubmitButton().should('be.enabled');
     });
   });
 
@@ -726,6 +878,54 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findModelRouteCheckbox().uncheck();
       createServingRuntimeModal.findAuthenticationCheckbox().check();
       createServingRuntimeModal.findExternalRouteError().should('not.exist');
+
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
+      createServingRuntimeModal.findSubmitButton().click();
+
+      //dry run request
+      cy.wait('@createServiceAccount').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'v1',
+          kind: 'ServiceAccount',
+          metadata: { name: 'test-name-sa', namespace: 'test-project', ownerReferences: [] },
+        });
+      });
+
+      //Actual request
+      cy.wait('@createServiceAccount').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createServiceAccount.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+      });
+
+      //dry run request
+      cy.wait('@createRoleBinding').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'rbac.authorization.k8s.io/v1',
+          kind: 'RoleBinding',
+          metadata: {
+            name: 'test-name-view',
+            namespace: 'test-project',
+            labels: { 'opendatahub.io/dashboard': 'true' },
+            ownerReferences: [],
+          },
+          roleRef: { apiGroup: 'rbac.authorization.k8s.io', kind: 'ClusterRole', name: 'view' },
+          subjects: [{ kind: 'ServiceAccount', name: 'test-name-sa' }],
+        });
+      });
+
+      //Actual request
+      cy.wait('@createRoleBinding').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createRoleBinding.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+      });
     });
 
     it('Edit ModelMesh model server', () => {
@@ -784,8 +984,23 @@ describe('Serving Runtime List', () => {
       // test tokens field
       editServingRuntimeModal.findAuthenticationCheckbox().check();
       editServingRuntimeModal.findSubmitButton().should('be.enabled');
-      editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
-      editServingRuntimeModal.findSubmitButton().should('be.disabled');
+
+      editServingRuntimeModal.findSubmitButton().click();
+
+      cy.wait('@editModelServer').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All'); //dry run request
+        expect(interception.request.body.metadata).to.eql({
+          creationTimestamp: '2023-03-17T16:05:55Z',
+          labels: { name: 'test-model-legacy', 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'enable-auth': 'true',
+            'opendatahub.io/accelerator-name': '',
+            'openshift.io/display-name': 'test-model-legacy',
+          },
+          name: 'test-model-legacy',
+          namespace: 'test-project',
+        });
+      });
     });
 
     it('Successfully add model server when user can edit namespace', () => {
@@ -811,6 +1026,28 @@ describe('Serving Runtime List', () => {
       // test submitting form, the modal should close to indicate success.
       createServingRuntimeModal.findSubmitButton().click();
       createServingRuntimeModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata).to.eql({
+          name: 'test-name',
+          annotations: {
+            'openshift.io/display-name': 'Test Name',
+            'opendatahub.io/template-name': 'template-3',
+            'opendatahub.io/template-display-name': 'New OVMS Server',
+            'opendatahub.io/accelerator-name': '',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
 
       // the serving runtime should have been created
       cy.get('@createServingRuntime.all').then((interceptions) => {
@@ -843,6 +1080,23 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findSubmitButton().click();
       cy.findByText('Error creating model server');
 
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata).to.eql({
+          name: 'test-name',
+          annotations: {
+            'openshift.io/display-name': 'Test Name',
+            'opendatahub.io/template-name': 'template-3',
+            'opendatahub.io/template-display-name': 'New OVMS Server',
+            'opendatahub.io/accelerator-name': '',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        });
+      });
+
       // the serving runtime should NOT have been created
       cy.get('@createServingRuntime.all').then((interceptions) => {
         expect(interceptions).to.have.length(1); // 1 dry-run request only
@@ -874,6 +1128,32 @@ describe('Serving Runtime List', () => {
       // test submitting form, the modal should close to indicate success.
       createServingRuntimeModal.findSubmitButton().click();
       createServingRuntimeModal.shouldBeOpen(false);
+
+      // dry run request only
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata).to.eql({
+          name: 'test-name',
+          annotations: {
+            'openshift.io/display-name': 'Test Name',
+            'opendatahub.io/template-name': 'template-3',
+            'opendatahub.io/template-display-name': 'New OVMS Server',
+            'opendatahub.io/accelerator-name': '',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        });
+      });
+
+      //Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
+      });
 
       // the service account and role binding should not have been created
       cy.get('@createServiceAccount.all').then((interceptions) => {
@@ -911,10 +1191,48 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findSubmitButton().click();
       createServingRuntimeModal.shouldBeOpen(false);
 
+      //dry run request
+      cy.wait('@createServiceAccount').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'v1',
+          kind: 'ServiceAccount',
+          metadata: { name: 'test-name-sa', namespace: 'test-project', ownerReferences: [] },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServiceAccount').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
       // the service account and role binding should have been created
       cy.get('@createServiceAccount.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+
+      // dry run request
+      cy.wait('@createRoleBinding').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'rbac.authorization.k8s.io/v1',
+          kind: 'RoleBinding',
+          metadata: {
+            name: 'test-name-view',
+            namespace: 'test-project',
+            labels: { 'opendatahub.io/dashboard': 'true' },
+            ownerReferences: [],
+          },
+          roleRef: { apiGroup: 'rbac.authorization.k8s.io', kind: 'ClusterRole', name: 'view' },
+          subjects: [{ kind: 'ServiceAccount', name: 'test-name-sa' }],
+        });
+      });
+
+      // Actual request
+      cy.wait('@createRoleBinding').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
       cy.get('@createRoleBinding.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
@@ -949,10 +1267,37 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findSubmitButton().click();
       createServingRuntimeModal.shouldBeOpen(false);
 
+      //dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All'); //dry run request
+        expect(interception.request.body.metadata).to.eql({
+          name: 'test-name',
+          annotations: {
+            'enable-auth': 'true',
+            'openshift.io/display-name': 'Test Name',
+            'opendatahub.io/template-name': 'template-3',
+            'opendatahub.io/template-display-name': 'New OVMS Server',
+            'opendatahub.io/accelerator-name': '',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          namespace: 'test-project',
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2);
+      });
       // the service account and role binding should have been created
       cy.get('@createServiceAccount.all').then((interceptions) => {
         expect(interceptions).to.have.length(0);
       });
+
       cy.get('@createRoleBinding.all').then((interceptions) => {
         expect(interceptions).to.have.length(0);
       });
@@ -1098,14 +1443,14 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
 
+      // check url should be dryRun
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+      });
+
       // check only dryRun should execute
       cy.get('@createInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-
-      // check url should be dryRun
-      cy.wait('@createInferenceService').then((interceptions) => {
-        expect(interceptions.request.url).to.include('?dryRun=All');
       });
     });
 
@@ -1131,15 +1476,17 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
 
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+      });
+
       // check only dryRun should execute
       cy.get('@createServingRuntime.all').then((interceptions) => {
         expect(interceptions).to.have.length(1); // 1 dry-run request only
       });
 
       // check url should be dryRun
-      cy.wait('@createServingRuntime').then((interceptions) => {
-        expect(interceptions.request.url).to.include('?dryRun=All');
-      });
     });
 
     it('Check when Data connection secret dryRun fails', () => {
@@ -1169,13 +1516,33 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
 
-      cy.get('@createDataConnectionSecret.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
+      // check url should be dryRun
+      cy.wait('@createDataConnectionSecret').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: {
+            name: 'aws-connection-test-name',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'opendatahub.io/connection-type': 's3',
+            },
+            labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
+          },
+          stringData: {
+            AWS_ACCESS_KEY_ID: 'test-key',
+            AWS_SECRET_ACCESS_KEY: 'test-secret-key',
+            AWS_S3_BUCKET: 'test-bucket',
+            AWS_S3_ENDPOINT: 'test-endpoint',
+            AWS_DEFAULT_REGION: '',
+          },
+        });
       });
 
-      // check url should be dryRun
-      cy.wait('@createDataConnectionSecret').then((interceptions) => {
-        expect(interceptions.request.url).to.include('?dryRun=All');
+      cy.get('@createDataConnectionSecret.all').then((interceptions) => {
+        expect(interceptions).to.have.length(1); // 1 dry-run request only
       });
 
       // check no createInferenceService call is made as data connection creation failed

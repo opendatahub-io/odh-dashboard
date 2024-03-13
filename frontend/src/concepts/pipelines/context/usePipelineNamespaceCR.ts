@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DSPipelineKind } from '~/k8sTypes';
-import { getPipelinesCR } from '~/api';
+import { getPipelinesCR, listPipelinesCR } from '~/api';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '~/utilities/const';
 
@@ -29,16 +29,30 @@ export const hasServerTimedOut = (
 };
 
 const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
+  const [name, setName] = React.useState<string>();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
-    (opts) =>
-      getPipelinesCR(namespace, opts).catch((e) => {
-        if (e.statusObject?.code === 404) {
-          // Not finding is okay, not an error
-          return null;
+    (opts) => {
+      if (name) {
+        return getPipelinesCR(namespace, name, opts).catch((e) => {
+          if (e.statusObject?.code === 404) {
+            setName(undefined);
+            return null;
+          }
+
+          throw e;
+        });
+      }
+
+      return listPipelinesCR(namespace, opts).then((r) => {
+        if (r.length > 0) {
+          setName(r[0].metadata.name);
+          return r[0];
         }
-        throw e;
-      }),
-    [namespace],
+
+        return null;
+      });
+    },
+    [name, namespace],
   );
 
   const [isStarting, setIsStarting] = React.useState(false);

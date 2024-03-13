@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, ButtonVariant } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
 type LaunchJupyterButtonProps = {
   variant: ButtonVariant;
@@ -8,6 +9,12 @@ type LaunchJupyterButtonProps = {
 
 const LaunchJupyterButton: React.FC<LaunchJupyterButtonProps> = ({ variant }) => {
   const navigate = useNavigate();
+  const isJupyterEnabled = useCheckJupyterEnabled();
+
+  if (!isJupyterEnabled) {
+    return null;
+  }
+
   return (
     <Button
       href="/notebookController"

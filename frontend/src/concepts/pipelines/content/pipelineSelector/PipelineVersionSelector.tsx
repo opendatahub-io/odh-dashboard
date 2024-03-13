@@ -17,19 +17,16 @@ import {
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
-import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
+import usePipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/usePipelineVersionSelector';
 
 type PipelineVersionSelectorProps = {
   pipelineId?: string;
   selection?: string;
-  onSelect: (version: PipelineVersionKF) => void;
+  onSelect: (version: PipelineVersionKFv2) => void;
 };
 
 const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
@@ -39,34 +36,31 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
 }) => {
   const [isOpen, setOpen] = React.useState(false);
 
-  const [
-    [{ items: initialData, totalSize: fetchedSize, nextPageToken: initialPageToken }, loaded],
-    { initialLoaded, ...tableProps },
-  ] = usePipelineVersionsTable(pipelineId)();
-
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
-  const sortProps = getTableSortProps(tableProps);
-  const { sortDirection, sortField, setFilter, filter } = tableProps;
-  const { data: versions, onLoadMore } = usePipelineVersionLoadMore({
-    pipelineId,
-    initialData,
-    initialPageToken,
-    sortDirection,
-    sortField,
-    filter,
-    loaded,
-  });
 
-  const { totalSize, ...searchProps } = useSelectorSearch({ setFilter, fetchedSize, loaded });
-  const { onClear } = searchProps;
+  const {
+    fetchedSize,
+    totalSize,
+    searchProps,
+    onSearchClear,
+    onLoadMore,
+    sortProps,
+    loaded,
+    initialLoaded,
+    data: versions,
+  } = usePipelineVersionSelector(pipelineId);
 
   const menu = (
     <Menu data-id="pipeline-version-selector-menu" ref={menuRef} isScrollable>
       <MenuContent>
         <MenuSearch>
           <MenuSearchInput>
-            <SearchInput {...searchProps} aria-label="Filter pipeline versions" />
+            <SearchInput
+              {...searchProps}
+              onClear={onSearchClear}
+              aria-label="Filter pipeline versions"
+            />
           </MenuSearchInput>
           <HelperText>
             <HelperTextItem variant="indeterminate">{`Type a name to search your ${totalSize} versions.`}</HelperTextItem>
@@ -81,7 +75,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}
-                  onClearFilters={onClear}
+                  onClearFilters={onSearchClear}
                   variant={EmptyStateVariant.xs}
                 />
               }
@@ -91,7 +85,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
               data={versions}
               rowRenderer={(row) => (
                 <PipelineSelectorTableRow
-                  key={row.id}
+                  key={row.pipeline_version_id}
                   obj={row}
                   onClick={() => {
                     onSelect(row);

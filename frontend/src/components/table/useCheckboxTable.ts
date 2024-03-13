@@ -7,12 +7,18 @@ type UseCheckboxTable = {
   tableProps: Required<Pick<React.ComponentProps<typeof Table>, 'selectAll'>>;
   toggleSelection: (id: string) => void;
   isSelected: (id: string) => boolean;
+  setSelections: (selections: string[]) => void;
 };
 
 const useCheckboxTable = (dataIds: string[]): UseCheckboxTable => {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  return useCheckboxTableBase<string>(dataIds, selectedIds, setSelectedIds, (d) => d);
+  return useCheckboxTableBase<string>(
+    dataIds,
+    selectedIds,
+    setSelectedIds,
+    React.useCallback((d) => d, []),
+  );
 };
 
 export default useCheckboxTable;

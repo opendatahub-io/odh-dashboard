@@ -65,11 +65,11 @@ describe('getPipelineAPIRoute', () => {
   it('should fetch pipeline API route', async () => {
     const routeMock = mockRouteK8sResource({});
     k8sGetResourceRouteKindMock.mockResolvedValue(routeMock);
-    const result = await getPipelineAPIRoute('namespace');
+    const result = await getPipelineAPIRoute('namespace', 'ds-pipeline-dspa');
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: { apiGroup: 'route.openshift.io', apiVersion: 'v1', kind: 'Route', plural: 'routes' },
-      queryOptions: { name: 'ds-pipeline-pipelines-definition', ns: 'namespace', queryParams: {} },
+      queryOptions: { name: 'ds-pipeline-dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(routeMock);
@@ -77,7 +77,7 @@ describe('getPipelineAPIRoute', () => {
 
   it('should handle errors and rethrow', async () => {
     k8sGetResourceRouteKindMock.mockRejectedValue(new Error('error1'));
-    await expect(getPipelineAPIRoute('namespace')).rejects.toThrow('error1');
+    await expect(getPipelineAPIRoute('namespace', 'ds-pipeline-dspa')).rejects.toThrow('error1');
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
@@ -88,7 +88,7 @@ describe('getPipelineAPIRoute', () => {
         plural: 'routes',
       },
       queryOptions: {
-        name: 'ds-pipeline-pipelines-definition',
+        name: 'ds-pipeline-dspa',
         ns: 'namespace',
         queryParams: {},
       },
@@ -139,7 +139,7 @@ describe('getPipelinesCR', () => {
   const DSPipelinemock = mockDataSciencePipelineApplicationK8sResource({});
   it('should fetch pipelines CR', async () => {
     k8sGetResourceDSPipelineKindMock.mockResolvedValue(DSPipelinemock);
-    const result = await getPipelinesCR('namespace');
+    const result = await getPipelinesCR('namespace', 'dspa');
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: {
@@ -148,7 +148,7 @@ describe('getPipelinesCR', () => {
         kind: 'DataSciencePipelinesApplication',
         plural: 'datasciencepipelinesapplications',
       },
-      queryOptions: { name: 'pipelines-definition', ns: 'namespace', queryParams: {} },
+      queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(DSPipelinemock);
@@ -156,7 +156,7 @@ describe('getPipelinesCR', () => {
 
   it('should handle errors and rethrow', async () => {
     k8sGetResourceDSPipelineKindMock.mockRejectedValue(new Error('error1'));
-    await expect(getPipelinesCR('namespace')).rejects.toThrow('error1');
+    await expect(getPipelinesCR('namespace', 'dspa')).rejects.toThrow('error1');
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
@@ -166,7 +166,7 @@ describe('getPipelinesCR', () => {
         kind: 'DataSciencePipelinesApplication',
         plural: 'datasciencepipelinesapplications',
       },
-      queryOptions: { name: 'pipelines-definition', ns: 'namespace', queryParams: {} },
+      queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
   });
 });
@@ -175,7 +175,7 @@ describe('deletePipelineCR', () => {
   it('should delete pipeline CR Successfully', async () => {
     const mockK8sStatus = mock200Status({});
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
-    const result = await deletePipelineCR('namespace');
+    const result = await deletePipelineCR('namespace', 'dspa');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: {
@@ -184,7 +184,7 @@ describe('deletePipelineCR', () => {
         kind: 'DataSciencePipelinesApplication',
         plural: 'datasciencepipelinesapplications',
       },
-      queryOptions: { name: 'pipelines-definition', ns: 'namespace', queryParams: {} },
+      queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -193,7 +193,7 @@ describe('deletePipelineCR', () => {
   it('should fail to delete pipeline ', async () => {
     const mockK8sStatus = mock404Error({});
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
-    const result = await deletePipelineCR('namespace');
+    const result = await deletePipelineCR('namespace', 'dspa');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: {
@@ -202,7 +202,7 @@ describe('deletePipelineCR', () => {
         kind: 'DataSciencePipelinesApplication',
         plural: 'datasciencepipelinesapplications',
       },
-      queryOptions: { name: 'pipelines-definition', ns: 'namespace', queryParams: {} },
+      queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -210,7 +210,7 @@ describe('deletePipelineCR', () => {
 
   it('should handle errors and rethrow', async () => {
     k8sDeleteResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(deletePipelineCR('namespace')).rejects.toThrow('error1');
+    await expect(deletePipelineCR('namespace', 'dspa')).rejects.toThrow('error1');
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
@@ -220,7 +220,7 @@ describe('deletePipelineCR', () => {
         kind: 'DataSciencePipelinesApplication',
         plural: 'datasciencepipelinesapplications',
       },
-      queryOptions: { name: 'pipelines-definition', ns: 'namespace', queryParams: {} },
+      queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
   });
 });

@@ -23,6 +23,17 @@ it('Cluster Settings', () => {
   cy.intercept('/api/status', mockStatus());
   cy.intercept('/api/config', mockDashboardConfig({}));
   cy.intercept('/api/cluster-settings', mockClusterSettings({}));
+  cy.intercept(
+    {
+      method: 'PUT',
+      path: '/api/cluster-settings',
+    },
+    mockClusterSettings({
+      pvcSize: 20,
+      cullerTimeout: 31536000,
+      notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
+    }),
+  ).as('clusterSettings');
 
   clusterSettings.visit();
 
@@ -78,4 +89,16 @@ it('Cluster Settings', () => {
   notebookTolerationSettings.findKeyError().should('not.exist');
   notebookTolerationSettings.findEnabledCheckbox().click();
   notebookTolerationSettings.findSubmitButton().should('be.enabled');
+
+  notebookTolerationSettings.findSubmitButton().click();
+
+  cy.wait('@clusterSettings').then((interception) => {
+    expect(interception.request.body).to.eql(
+      mockClusterSettings({
+        pvcSize: 20,
+        cullerTimeout: 31536000,
+        notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
+      }),
+    );
+  });
 });

@@ -1,27 +1,31 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
   RunCreated,
   RunDuration,
-  CoreResourceExperiment,
-  CoreResourcePipelineVersion,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
 import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
+import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
+import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
+import { routePipelineRunCloneNamespace } from '~/routes';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
   onDelete: () => void;
-  run: PipelineRunKF;
-  getJobInformation: GetJobInformation;
+  run: PipelineRunKFv2;
 };
 
 const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
@@ -29,29 +33,88 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   onToggleCheck,
   onDelete,
   run,
-  getJobInformation,
 }) => {
+  const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const { loading: isJobInfoLoading, data } = getJobInformation(run);
   const notification = useNotification();
   const navigate = useNavigate();
-  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(data || run);
+  const [experiment] = useExperimentById(run.experiment_id);
+  const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+
+  const actions: IAction[] = React.useMemo(() => {
+    const cloneAction: IAction = {
+      title: 'Duplicate',
+      onClick: () => {
+        navigate(routePipelineRunCloneNamespace(namespace, run.run_id));
+      },
+    };
+
+    if (runType === PipelineRunType.Archived) {
+      return [
+        {
+          title: 'Restore',
+          onClick: () => setIsRestoreModalOpen(true),
+        },
+        cloneAction,
+        {
+          isSeparator: true,
+        },
+        {
+          title: 'Delete',
+          onClick: () => {
+            onDelete();
+          },
+        },
+      ];
+    }
+
+    return [
+      {
+        title: 'Stop',
+        isDisabled: run.state !== RuntimeStateKF.RUNNING,
+        onClick: () => {
+          api
+            .stopPipelineRun({}, run.run_id)
+            .then(refreshAllAPI)
+            .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
+        },
+      },
+      cloneAction,
+      {
+        isSeparator: true,
+      },
+      {
+        title: 'Archive',
+        onClick: () => setIsArchiveModalOpen(true),
+      },
+    ];
+  }, [
+    api,
+    namespace,
+    notification,
+    run.run_id,
+    run.state,
+    runType,
+    navigate,
+    onDelete,
+    refreshAllAPI,
+  ]);
 
   return (
     <Tr>
-      <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
+      <CheckboxTd id={run.run_id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td dataLabel="Name">
-        <PipelineRunTableRowTitle resource={run} />
+        <PipelineRunTableRowTitle run={run} />
       </Td>
-      <Td dataLabel="Experiment">
-        <CoreResourceExperiment resource={run} />
-      </Td>
+      <Td dataLabel="Experiment">{experiment?.display_name || 'Default'}</Td>
       <Td modifier="truncate" dataLabel="Pipeline">
-        <CoreResourcePipelineVersion
-          resource={data || run}
-          loaded={!isJobInfoLoading && isVersionLoaded}
+        <PipelineVersionLink
+          displayName={version?.display_name}
           version={version}
-          error={error}
+          error={versionError}
+          loaded={isVersionLoaded}
         />
       </Td>
       <Td dataLabel="Created">
@@ -64,35 +127,14 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <RunStatus justIcon run={run} />
       </Td>
       <Td isActionCell dataLabel="Kebab">
-        <ActionsColumn
-          items={[
-            {
-              title: 'Stop',
-              isDisabled: run.status !== PipelineRunStatusesKF.RUNNING,
-              onClick: () => {
-                api
-                  .stopPipelineRun({}, run.id)
-                  .then(refreshAllAPI)
-                  .catch((e) => notification.error('Unable to stop pipeline run', e.message));
-              },
-            },
-            {
-              title: 'Duplicate',
-              onClick: () => {
-                navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`);
-              },
-            },
-            {
-              isSeparator: true,
-            },
-            {
-              title: 'Delete',
-              onClick: () => {
-                onDelete();
-              },
-            },
-          ]}
-        />
+        <ActionsColumn items={actions} />
+
+        {isRestoreModalOpen && (
+          <RestoreRunModal run={run} onCancel={() => setIsRestoreModalOpen(false)} />
+        )}
+        {isArchiveModalOpen && (
+          <ArchiveRunModal run={run} onCancel={() => setIsArchiveModalOpen(false)} />
+        )}
       </Td>
     </Tr>
   );

@@ -7,5 +7,4 @@ resources:
 - create-jupyter-notebook-quickstart.yaml
 - deploy-python-model-quickstart.yaml
 - jupyter-app.yaml
-- jupyterhub-app.yaml
 - jupyter-docs.yaml

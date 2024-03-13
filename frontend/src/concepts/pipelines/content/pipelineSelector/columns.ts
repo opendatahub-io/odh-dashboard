@@ -1,11 +1,11 @@
 import { SortableData } from '~/components/table';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 
-export const pipelineSelectorColumns: SortableData<PipelineKF>[] = [
+export const pipelineSelectorColumns: SortableData<PipelineKFv2>[] = [
   {
     label: 'Pipeline name',
     field: 'name',
-    sortable: (a, b) => a.name.localeCompare(b.name),
+    sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 70,
   },
   {
@@ -16,11 +16,11 @@ export const pipelineSelectorColumns: SortableData<PipelineKF>[] = [
   },
 ];
 
-export const pipelineVersionSelectorColumns: SortableData<PipelineVersionKF>[] = [
+export const pipelineVersionSelectorColumns: SortableData<PipelineVersionKFv2>[] = [
   {
     label: 'Pipeline version',
     field: 'name',
-    sortable: (a, b) => a.name.localeCompare(b.name),
+    sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 70,
   },
   {

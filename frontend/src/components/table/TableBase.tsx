@@ -36,7 +36,12 @@ type Props<DataType> = {
   emptyTableView?: React.ReactNode;
   caption?: string;
   footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
-  selectAll?: { onSelect: (value: boolean) => void; selected: boolean; disabled?: boolean };
+  selectAll?: {
+    onSelect: (value: boolean) => void;
+    selected: boolean;
+    disabled?: boolean;
+    tooltip?: string;
+  };
   getColumnSort?: GetColumnSort;
 } & EitherNotBoth<
   { disableRowRenderSupport?: boolean },
@@ -190,7 +195,7 @@ const TableBase = <T,>({
                   <React.Fragment key={`checkbox-${i}`}>
                     <Tooltip
                       key="select-all-checkbox"
-                      content="Select all page items"
+                      content={selectAll.tooltip ?? 'Select all page items'}
                       triggerRef={selectAllRef}
                     />
                     <Th

@@ -1,9 +1,14 @@
-import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelinesGlobal {
   visit(projectName: string) {
     cy.visitWithLogin(`/pipelines/${projectName}`);
-    pipelinesTable.find();
+    this.wait();
+  }
+
+  private wait() {
+    cy.findByTestId('app-page-title').contains('Pipelines');
+    cy.testA11y();
   }
 
   findImportPipelineButton() {
@@ -19,6 +24,14 @@ class PipelinesGlobal {
     return cy.findByTestId('project-selector-dropdown');
   }
 
+  isApiAvailable() {
+    return cy.findByTestId('pipelines-api-not-available').should('not.exist');
+  }
+
+  findIsServerIncompatible() {
+    return cy.findByTestId('incompatible-pipelines-server');
+  }
+
   selectProjectByName(name: string) {
     this.findProjectSelect().findDropdownItem(name).click();
   }
@@ -29,4 +42,15 @@ class PipelinesGlobal {
   }
 }
 
+class PipelineDeleteModal extends DeleteModal {
+  constructor() {
+    super();
+  }
+
+  find() {
+    return cy.findByTestId('delete-pipeline-modal').parents('div[role="dialog"]');
+  }
+}
+
+export const pipelineDeleteModal = new PipelineDeleteModal();
 export const pipelinesGlobal = new PipelinesGlobal();

@@ -63,7 +63,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
 
   return (
     <Stack
-      data-testid={id}
+      data-testid={`section-${id}`}
       hasGutter
       className={classNames({
         'odh-details-section--divide': !loadError && (isLoading || isEmpty || showDivider),
@@ -79,7 +79,9 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
           {actions && (
             <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
               {actions.map((action, index) => (
-                <FlexItem key={index}>{action}</FlexItem>
+                <FlexItem data-testid="details-section-action" key={index}>
+                  {action}
+                </FlexItem>
               ))}
             </Flex>
           )}

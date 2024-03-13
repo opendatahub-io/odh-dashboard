@@ -1,4 +1,8 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  K8sGroupVersionKind,
+  K8sModelCommon,
+  K8sResourceCommon,
+} from '@openshift/dynamic-plugin-sdk-utils';
 
 export const addOwnerReference = <R extends K8sResourceCommon>(
   resource: R,
@@ -30,3 +34,9 @@ export const addOwnerReference = <R extends K8sResourceCommon>(
     },
   };
 };
+
+export const groupVersionKind = (model: K8sModelCommon): K8sGroupVersionKind => ({
+  group: model.apiGroup,
+  version: model.apiVersion,
+  kind: model.kind,
+});

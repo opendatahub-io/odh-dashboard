@@ -1,4 +1,6 @@
-import * as React from 'react';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   Bullseye,
   EmptyState,
@@ -6,13 +8,21 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateHeader,
+  Button,
+  EmptyStateActions,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
+import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
 import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { routePipelineRunCreateNamespace } from '~/routes';
+import { PipelineRunType } from './types';
 
 const ScheduledRuns: React.FC = () => {
+  const navigate = useNavigate();
+  const { namespace } = useParams();
   const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineRunJobTable();
 
@@ -21,7 +31,7 @@ const ScheduledRuns: React.FC = () => {
       <Bullseye>
         <EmptyState>
           <EmptyStateHeader
-            titleText="There was an issue loading runs"
+            titleText="There was an issue loading schedules"
             icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
             headingLevel="h2"
           />
@@ -41,10 +51,34 @@ const ScheduledRuns: React.FC = () => {
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <CreateRunEmptyState
-        title="No scheduled runs yet"
-        description="To get started, create and schedule a recurring run."
-      />
+      <EmptyState data-testid="schedules-empty-state">
+        <EmptyStateHeader
+          titleText="No schedules"
+          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
+          headingLevel="h2"
+        />
+
+        <EmptyStateBody>
+          Schedules dictate when and how many times a run is executed. To get started, create a
+          schedule.
+        </EmptyStateBody>
+
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button
+              variant="primary"
+              onClick={() =>
+                navigate({
+                  pathname: routePipelineRunCreateNamespace(namespace),
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                })
+              }
+            >
+              Schedule run
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
     );
   }
 

@@ -3,7 +3,9 @@ import { CodeEditor, CodeEditorProps } from '@patternfly/react-code-editor';
 
 import './DashboardCodeEditor.scss';
 
-type DashboardCodeEditorProps = Omit<CodeEditorProps, 'ref'>;
+type DashboardCodeEditorProps = Omit<CodeEditorProps, 'ref'> & {
+  testId?: string;
+};
 
 const DashboardCodeEditor: React.FC<Partial<DashboardCodeEditorProps>> = ({
   // 38px is the code editor toolbar height+border
@@ -11,7 +13,7 @@ const DashboardCodeEditor: React.FC<Partial<DashboardCodeEditorProps>> = ({
   height = 'calc(100% - 38px)',
   ...props
 }) => (
-  <div style={{ height }}>
+  <div data-testid={props.testId} style={{ height }}>
     <CodeEditor height="100%" className="odh-dashboard__code-editor" {...props} />
   </div>
 );

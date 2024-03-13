@@ -5,12 +5,26 @@
 
 # Releases
 
-There are two types of releases in the Dashboard, and they usually happen together one after another.
+Releases are done up to two times every three weeks. First Friday is an ODH release, third Friday is a OpenShift AI release. Both are based off the same stream of code and will effectively be an "early" release (for ODH) and the release itself.
 
-1. `main` (stable branch) Release - good for adoption of downstream components
-2. `incubation` (bleeding edge) Release - good for ODH & community involvement
+Details on how we will do a release are being worked on and will likely update the steps at that time. Until then, we will continue with the same steps we have had before when `incubation` was a concept we pushed.
 
-## `main` Release
+## ODH Release
+
+> Note: the version number should be the last release number with an increment on the patch version (see [release version](#version-numbers))
+
+* Catch up `incubation` branch with the `main` branch
+* Go to our [quay repo] & "Add New Tag" off of the latest `main` build
+  * `vX.YY.Z-incubation` naming convention (eg. `v1.23.4-incubation`)
+  * Get the latest sha digest value for this release
+* Create a branch on the latest of `incubation`
+  * `vX.YY.Z-incubation-release` naming convention
+  * Add a comment to this branch, modify the [base/kustomization.yaml] value for `images.odh-dashboard` to specify the latest sha digest value
+* Start [drafting a new release], this release will not make use of the generate release notes feature as we want a high level breakdown.
+  * Versioning will match the quay image name you generated in the first step
+  * Be sure to disable the `Set as the latest release` setting as we use the stable releases as our latest release
+
+## OpenShift AI Release
 
 * Start by [drafting a new release]
 * Pick a new [release version](#version-numbers)
@@ -26,52 +40,6 @@ There are two types of releases in the Dashboard, and they usually happen togeth
   * See previous releases for examples
 * Mark the release as the `latest` and submit the release
 
-## `incubation` Release
-
-> Note: This is a two-day process until we can get the CI working for `incubation`.
-
-### Day 1
-
-> Note: The day of a `main` release is ideal, but it can use the tag if more commits occur in between. Ideally follow the exact release to maintain purity of the release.
-
-* First make sure [main is released](#main-release)
-* Merge the `main` release content into `incubation`
-* Wait for the `nightly` build to re-trigger
-
-### Day 2
-
-> Note: Technically can be any day after the first day. Ideally avoid subsequent `main` merges for purity of following up the release.
-
-1. Go to our [quay repo] & "Add New Tag" off of the latest `nightly` build
-    * `vX.YY.Z-incubation` naming convention (eg. `v1.23.4-incubation`)
-    * Get the latest sha digest value for this release
-2. Create a branch on the latest of `incubation`
-    * `vX.YY.Z-incubation-release` naming convention
-    * Add a comment to this branch, modify the [base/kustomization.yaml] value for `images.odh-dashboard` to specify the latest sha digest value
-3. Start [drafting a new release], this release will not make use of the generate release notes feature as we want a high level breakdown.
-     * Versioning will match the quay image name you generated in the first step
-     * Be sure to disable the `Set as the latest release` setting as we use the stable releases as our latest release
-     * Template for the release (review the `TODOs` within):
-       ```markdown
-       [incubation]: https://github.com/opendatahub-io/odh-dashboard/tree/main/docs/process-definition/incubation.md
-       [question-based issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new?assignees=&labels=kind%2Fquestion
-       <!-- TODO: Setup link tag url to release notes -->
-       [Release Notes]: https://github.com/opendatahub-io/odh-dashboard/releases/tag/vX.YY.Z
-
-       ## Features Incubating
-
-       These are based on the latest release to `main` ([Release Notes])
-
-       <!-- TODO: Setup the list of features in incubation - get list from https://github.com/orgs/opendatahub-io/projects/24/views/31 -->
-       * Feature A - #12345
-       * Feature B - #12346
-
-       ## What's Incubation?
-
-       Read more about [incubation] in our docs.
-
-       If you have any questions regarding `incubation`, please log a [question-based issue]. We look forward to improving the flow and adding more clarity.
-       ```
 
 ## Version Numbers
 

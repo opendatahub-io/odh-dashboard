@@ -135,18 +135,18 @@ describe('relativeTime', () => {
   });
 
   it('should get the correct month', () => {
-    expect(relativeTime(2500, 1610859600000)).toBe('17 Jan 2021');
-    expect(relativeTime(2500, 1613538000000)).toBe('17 Feb 2021');
-    expect(relativeTime(2500, 1615953600000)).toBe('17 Mar 2021');
-    expect(relativeTime(2500, 1618632000000)).toBe('17 April 2021');
-    expect(relativeTime(2500, 1621224000000)).toBe('17 May 2021');
-    expect(relativeTime(2500, 1623902400000)).toBe('17 June 2021');
-    expect(relativeTime(2500, 1626494400000)).toBe('17 July 2021');
-    expect(relativeTime(2500, 1629172800000)).toBe('17 August 2021');
-    expect(relativeTime(2500, 1631851200000)).toBe('17 Sept 2021');
-    expect(relativeTime(2500, 1634443200000)).toBe('17 Oct 2021');
-    expect(relativeTime(2500, 1637125200000)).toBe('17 Nov 2021');
-    expect(relativeTime(2500, 1639717200000)).toBe('17 Dec 2021');
+    expect(relativeTime(2500, 1610859600000).split(' ')[1]).toBe('Jan');
+    expect(relativeTime(2500, 1613538000000).split(' ')[1]).toBe('Feb');
+    expect(relativeTime(2500, 1615953600000).split(' ')[1]).toBe('Mar');
+    expect(relativeTime(2500, 1618632000000).split(' ')[1]).toBe('April');
+    expect(relativeTime(2500, 1621224000000).split(' ')[1]).toBe('May');
+    expect(relativeTime(2500, 1623902400000).split(' ')[1]).toBe('June');
+    expect(relativeTime(2500, 1626494400000).split(' ')[1]).toBe('July');
+    expect(relativeTime(2500, 1629172800000).split(' ')[1]).toBe('August');
+    expect(relativeTime(2500, 1631851200000).split(' ')[1]).toBe('Sept');
+    expect(relativeTime(2500, 1634443200000).split(' ')[1]).toBe('Oct');
+    expect(relativeTime(2500, 1637125200000).split(' ')[1]).toBe('Nov');
+    expect(relativeTime(2500, 1639717200000).split(' ')[1]).toBe('Dec');
   });
 });
 

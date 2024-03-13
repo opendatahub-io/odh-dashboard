@@ -23,9 +23,9 @@ const CustomServingRuntimePlatformsLabelGroup: React.FC<
   }
 
   return (
-    <LabelGroup>
+    <LabelGroup data-testid="serving-runtime-platform-label">
       {platforms.map((platform, i) => (
-        <Label color="purple" key={i}>
+        <Label color="purple" data-testid={`${platform}-model`} key={i}>
           {ServingRuntimePlatformLabels[platform]}
         </Label>
       ))}

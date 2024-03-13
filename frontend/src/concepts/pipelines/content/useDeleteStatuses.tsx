@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import useNotification from '~/utilities/useNotification';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { getPipelineResourceUniqueID } from './utils';
 
 type DeleteStatusesProps = {
   onClose: (deleted?: boolean) => void;
-  type: 'triggered run' | 'scheduled run' | 'pipeline';
-  toDeleteResources: PipelineCoreResourceKF[];
+  type: PipelineRunType | 'pipeline';
+  toDeleteResources: PipelineCoreResourceKFv2[];
 };
 
 export type PipelineResourceDeleteResult = true | Error | undefined;
@@ -39,9 +41,10 @@ const useDeleteStatuses = ({
     const deleteErrors = deleteResults.reduce<React.ReactNode[]>((acc, state, i) => {
       if (state instanceof Error) {
         const resource = toDeleteResources[i];
+
         acc.push(
-          <p key={resource.name}>
-            <b>{resource.name}</b>: {state.message}
+          <p key={getPipelineResourceUniqueID(resource)}>
+            <b>{resource.display_name}</b>: {state.message}
           </p>,
         );
       }

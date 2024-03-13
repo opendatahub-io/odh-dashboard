@@ -15,7 +15,6 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import usePipelineVersionTemplate from '~/concepts/pipelines/apiHooks/usePipelineVersionTemplates';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import MarkdownView from '~/components/MarkdownView';
@@ -26,7 +25,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { getPipelineIdByPipelineVersion } from '~/concepts/pipelines/content/utils';
+import { routePipelineDetailsNamespace, routePipelinesNamespace } from '~/routes';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -37,7 +36,6 @@ enum PipelineDetailsTab {
 }
 
 const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
-  const { pipelineVersionId } = useParams();
   const navigate = useNavigate();
 
   const [isDeletionOpen, setDeletionOpen] = React.useState(false);
@@ -45,17 +43,15 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const { namespace } = usePipelinesAPI();
+
+  // get pipeline and version from url
+  const { pipelineId, pipelineVersionId } = useParams();
   const [pipelineVersion, isPipelineVersionLoaded, pipelineVersionLoadError] =
-    usePipelineVersionById(pipelineVersionId);
-
-  const pipelineId = getPipelineIdByPipelineVersion(pipelineVersion);
-
+    usePipelineVersionById(pipelineId, pipelineVersionId);
   const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
-  const pipelineName = pipeline?.name;
-  const [pipelineVersionRun, isPipelineVersionTemplateLoaded, templateLoadError] =
-    usePipelineVersionTemplate(pipelineVersionId);
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersionRun);
-  const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && isPipelineVersionTemplateLoaded;
+
+  const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersion?.pipeline_spec);
+  const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && !!pipelineVersion?.pipeline_spec;
 
   if (pipelineVersionLoadError || pipelineLoadError) {
     const title = 'Pipeline version not found';
@@ -93,13 +89,13 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               breadcrumb={
                 <Breadcrumb>
                   {breadcrumbPath}
-                  <BreadcrumbItem>{pipelineName || 'Loading...'}</BreadcrumbItem>
+                  <BreadcrumbItem>{pipeline?.display_name || 'Loading...'}</BreadcrumbItem>
                   <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                    <Truncate content={pipelineVersion?.name || 'Loading...'} />
+                    <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
                   </BreadcrumbItem>
                 </Breadcrumb>
               }
-              title={<Truncate content={pipelineVersion?.name || 'Loading...'} />}
+              title={<Truncate content={pipelineVersion?.display_name || 'Loading...'} />}
               {...(pipelineVersion && {
                 description: (
                   <MarkdownView
@@ -111,7 +107,6 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               })}
               empty={false}
               loaded={isLoaded}
-              loadError={templateLoadError}
               headerAction={
                 isPipelineVersionLoaded && (
                   <Flex
@@ -120,10 +115,16 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   >
                     <FlexItem style={{ width: '300px' }}>
                       <PipelineVersionSelector
-                        pipelineId={pipeline?.id}
-                        selection={pipelineVersion?.name}
+                        pipelineId={pipeline?.pipeline_id}
+                        selection={pipelineVersion?.display_name}
                         onSelect={(version) =>
-                          navigate(`/pipelines/${namespace}/pipeline/view/${version.id}`)
+                          navigate(
+                            routePipelineDetailsNamespace(
+                              namespace,
+                              version.pipeline_id,
+                              version.pipeline_version_id,
+                            ),
+                          )
                         }
                       />
                     </FlexItem>
@@ -197,8 +198,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   style={{ height: '100%' }}
                 >
                   <PipelineDetailsYAML
-                    filename={`Pipeline ${pipelineVersionRun?.metadata.name}`}
-                    content={pipelineVersionRun}
+                    filename={`Pipeline ${pipelineVersion?.pipeline_spec.pipelineInfo.name}`}
+                    content={pipelineVersion?.pipeline_spec}
                   />
                 </TabContent>
               </div>
@@ -206,17 +207,18 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-
-      {pipelineName && (
+      {pipeline && (
         <DeletePipelinesModal
           isOpen={isDeletionOpen}
           toDeletePipelineVersions={
-            pipelineVersion ? [{ pipelineName, version: pipelineVersion }] : []
+            pipelineVersion
+              ? [{ pipelineName: pipeline.display_name, version: pipelineVersion }]
+              : []
           }
           onClose={(deleted) => {
             setDeletionOpen(false);
             if (deleted) {
-              navigate(`/pipelines/${namespace}`);
+              navigate(routePipelinesNamespace(namespace));
             }
           }}
         />

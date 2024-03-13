@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import { TaskReferenceMap, PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
-import { PipelineRunTaskParam } from '~/k8sTypes';
 import './PipelineRunDrawer.scss';
+import { PipelineRunTaskParam } from '~/k8sTypes';
 
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineRunTaskDetails;

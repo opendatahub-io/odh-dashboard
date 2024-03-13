@@ -64,7 +64,7 @@ describe('Custom serving runtimes', () => {
 
   it('should add a new serving runtime', () => {
     servingRuntimes.findAddButton().click();
-    cy.get('h1').should('contain', 'Add serving runtime');
+    servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
 
     // Check serving runtime dropdown list
     servingRuntimes.shouldDisplayServingRuntimeValues([
@@ -82,7 +82,7 @@ describe('Custom serving runtimes', () => {
     ]);
     servingRuntimes.shouldSelectAPIProtocol(ServingRuntimeAPIProtocol.REST);
     servingRuntimes.findStartFromScratchButton().click();
-    servingRuntimes.shouldEnterData();
+    servingRuntimes.getDashboardCodeEditor().findInput().type('test');
     servingRuntimes.findCreateButton().should('be.enabled');
     servingRuntimes.findCancelButton().click();
 
@@ -94,19 +94,17 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.findSelectAPIProtocolButton().should('not.be.enabled');
     servingRuntimes.findSelectAPIProtocolButton().should('include.text', 'REST');
     servingRuntimes.findStartFromScratchButton().click();
-    servingRuntimes.shouldEnterData();
+    servingRuntimes.getDashboardCodeEditor().findInput().type('test');
     servingRuntimes.findCreateButton().should('be.enabled');
   });
 
   it('should duplicate a serving runtime', () => {
-    cy.get('[aria-label="Kebab toggle"]').first().click();
-    cy.get('[role="menuitem"]').contains('Duplicate').click();
-    cy.get('h1').should('contain', 'Duplicate serving runtime');
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();
+    servingRuntimes.findAppTitle().should('have.text', 'Duplicate serving runtime');
   });
 
   it('should edit a serving runtime', () => {
-    cy.get('[aria-label="Kebab toggle"]').first().click();
-    cy.get('[role="menuitem"]').contains('Edit').click();
-    cy.get('h1').should('contain', 'Edit Multi Platform');
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').click();
+    servingRuntimes.findAppTitle().should('have.text', 'Edit Multi Platform');
   });
 });

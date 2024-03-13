@@ -8,6 +8,7 @@
     "sourceMap": true,
     "jsx": "react",
     "moduleResolution": "node",
+    "downlevelIteration": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
@@ -28,7 +29,6 @@
     "node_modules",
     "public",
     "public-cypress",
-    "storybook-static",
     "src/__tests__/cypress"
   ]
 }

@@ -11,13 +11,12 @@ type Props = {
   selected?: { label: string; value: string };
 };
 
-const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
+const ExperimentSearchInput: React.FC<Props> = ({ selected, onChange }) => {
   const [open, setOpen] = React.useState(false);
   const [filterText, setFilterText] = React.useState('');
   const [filter, setFilter] = React.useState<PipelinesFilter>();
   const [{ items }, loaded] = useExperiments({ pageSize: filter ? 10 : 0, filter });
-
-  const pipelines = React.useMemo(() => (filter && loaded ? items : []), [filter, loaded, items]);
+  const experiments = React.useMemo(() => (filter && loaded ? items : []), [filter, loaded, items]);
 
   const setDebouncedFilter = useDebounceCallback(setFilter);
   React.useEffect(() => {
@@ -26,7 +25,7 @@ const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
         ? {
             predicates: [
               // eslint-disable-next-line camelcase
-              { key: 'name', op: PipelinesFilterOp.IS_SUBSTRING, string_value: filterText },
+              { key: 'name', operation: PipelinesFilterOp.IS_SUBSTRING, string_value: filterText },
             ],
           }
         : undefined,
@@ -34,22 +33,26 @@ const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
   }, [setDebouncedFilter, filterText]);
 
   const children = loaded
-    ? pipelines.map((option) => (
-        <SelectOption key={option.id} value={option.id}>
-          {option.name}
+    ? experiments.map((experiment) => (
+        <SelectOption key={experiment.experiment_id} value={experiment.experiment_id}>
+          {experiment.display_name}
         </SelectOption>
       ))
     : [];
 
   const hasSelection = React.useMemo(
-    () => (selected?.value ? pipelines.find((p) => p.id === selected.value) : undefined),
-    [pipelines, selected],
+    () =>
+      selected?.value
+        ? experiments.find((experiment) => experiment.experiment_id === selected.value)
+        : undefined,
+    [experiments, selected?.value],
   );
+
   return (
     <Select
       toggleIcon={<SearchIcon />}
       autoComplete="off"
-      isOpen={filter && open && pipelines.length > 0}
+      isOpen={open}
       variant={SelectVariant.typeahead}
       onFilter={() => children}
       onTypeaheadInputChanged={setFilterText}
@@ -57,10 +60,11 @@ const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
       selections={hasSelection ? selected?.value : undefined}
       onSelect={(_, value) => {
         if (typeof value === 'string') {
-          const pipeline = pipelines.find((p) => p.id === value);
-          if (pipeline) {
-            setFilterText(pipeline.name);
-            onChange({ value, label: pipeline.name });
+          const experiment = experiments.find((p) => p.experiment_id === value);
+          if (experiment) {
+            setFilterText(experiment.display_name);
+            onChange({ value, label: experiment.display_name });
+            setOpen(false);
           }
         }
       }}
@@ -68,13 +72,16 @@ const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
         setFilterText('');
         setFilter(undefined);
       }}
+      placeholderText="Search..."
       noResultsFoundText="Search for an experiment name"
       loadingVariant={filter && !loaded ? 'spinner' : undefined}
       isInputValuePersisted
+      toggleId="experiment-search-input"
+      data-testid="experiment-search-select"
     >
       {children}
     </Select>
   );
 };
 
-export default PipelineSearchInput;
+export default ExperimentSearchInput;

@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { UseCheckboxTableBaseProps, useCheckboxTableBase } from '~/components/table';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 
 const usePipelinesCheckboxTable = (
-  pipelines: PipelineKF[],
-): UseCheckboxTableBaseProps<PipelineKF> => {
+  pipelines: PipelineKFv2[],
+): UseCheckboxTableBaseProps<PipelineKFv2> => {
   const { pipelineDataSelector } = React.useContext(PipelineAndVersionContext);
   const { selectedPipelines, setSelectedPipelines } = pipelineDataSelector();
-  return useCheckboxTableBase<PipelineKF>(
+  return useCheckboxTableBase<PipelineKFv2>(
     pipelines,
     selectedPipelines,
     setSelectedPipelines,
-    React.useCallback((pipeline) => pipeline.id, []),
+    React.useCallback((pipeline) => pipeline.pipeline_id, []),
   );
 };
 

@@ -15,14 +15,12 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import * as jsYaml from 'js-yaml';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
-import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
+
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import {
   RunDetailsTabs,
@@ -32,19 +30,10 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { routePipelineRunsNamespace } from '~/routes';
 import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
-
-const getPipelineRunKind = (job?: PipelineRunJobKF['pipeline_spec']): PipelineRunKind | null => {
-  if (!job?.workflow_manifest) {
-    return null;
-  }
-  try {
-    return jsYaml.load(job.workflow_manifest) as PipelineRunKind;
-    // return JSON.parse(job.workflow_manifest);
-  } catch (e) {
-    return null;
-  }
-};
 
 const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   breadcrumbPath,
@@ -54,13 +43,18 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [job, loaded, error] = usePipelineRunJobById(pipelineRunJobId);
+  const [version] = usePipelineVersionById(
+    job?.pipeline_version_reference.pipeline_id,
+    job?.pipeline_version_reference.pipeline_version_id,
+  );
   const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const pipelineRuntime = getPipelineRunKind(job?.pipeline_spec);
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineRuntime);
+
+  // TODO need to get pipeline runtime for v2. but should jobs really have a graph view? https://issues.redhat.com/browse/RHOAIENG-2297
+  const { taskMap, nodes } = usePipelineTaskTopology(version?.pipeline_spec);
 
   if (!loaded && !error) {
     return (
@@ -75,7 +69,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
       <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
         <EmptyStateIcon icon={ExclamationCircleIcon} />
         <Title headingLevel="h4" size="lg">
-          Error loading pipeline scheduled run details
+          Error loading pipeline schedule details
         </Title>
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
@@ -89,7 +83,8 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
-              parameters={pipelineRuntime?.spec.params}
+              // TODO need to get pipeline runtime for v2. https://issues.redhat.com/browse/RHOAIENG-2297
+              // parameters={job?.runtime_config.parameters}
               taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
@@ -106,13 +101,15 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                       setSelectedId(null);
                     }}
                     pipelineRunDetails={
-                      job && pipelineRuntime ? { kf: job, kind: pipelineRuntime } : undefined
+                      job && version?.pipeline_spec
+                        ? { kf: job, kind: version.pipeline_spec }
+                        : undefined
                     }
                   />
                 }
               >
                 <ApplicationsPage
-                  title={job?.name}
+                  title={job?.display_name}
                   description={
                     job ? <MarkdownView conciseDisplay markdown={job.description} /> : ''
                   }
@@ -121,7 +118,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
-                      <BreadcrumbItem isActive>{job?.name ?? 'Loading...'}</BreadcrumbItem>
+                      <BreadcrumbItem isActive>{job?.display_name ?? 'Loading...'}</BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
@@ -159,11 +156,11 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
       </Drawer>
 
       <DeletePipelineRunsModal
-        type="scheduled run"
+        type={PipelineRunType.Scheduled}
         toDeleteResources={deleting && job ? [job] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
-            navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+            navigate(contextPath ?? routePipelineRunsNamespace(namespace));
           } else {
             setDeleting(false);
           }

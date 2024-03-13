@@ -1,6 +1,6 @@
 class PipelinesSection {
   find() {
-    return cy.get('#pipelines-projects');
+    return cy.findByTestId('section-pipelines-projects');
   }
 
   findImportPipelineButton() {
@@ -9,6 +9,18 @@ class PipelinesSection {
 
   findUploadVersionButton() {
     return cy.get('#import-pipeline-version-button');
+  }
+
+  findAllActions() {
+    return this.find().findAllByTestId('details-section-action');
+  }
+
+  findKebabActions() {
+    return this.find().findKebab(true);
+  }
+
+  findKebabActionItem(name: string) {
+    return this.find().findKebabAction(name, true);
   }
 }
 

@@ -123,7 +123,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             }}
             aria-label="Single-model serving platform enabled checkbox"
             id="single-model-serving-platform-enabled-checkbox"
-            data-id="single-model-serving-platform-enabled-checkbox"
+            data-testid="single-model-serving-platform-enabled-checkbox"
             name="singleModelServingPlatformEnabledCheckbox"
           />
         </StackItem>
@@ -141,14 +141,14 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             }}
             aria-label="Multi-model serving platform enabled checkbox"
             id="multi-model-serving-platform-enabled-checkbox"
-            data-id="multi-model-serving-platform-enabled-checkbox"
+            data-testid="multi-model-serving-platform-enabled-checkbox"
             name="multiModelServingPlatformEnabledCheckbox"
           />
         </StackItem>
         {alert && (
           <StackItem>
             <Alert
-              data-id="serving-platform-warning-alert"
+              data-testid="serving-platform-warning-alert"
               variant={alert.variant}
               title={alert.message}
               isInline

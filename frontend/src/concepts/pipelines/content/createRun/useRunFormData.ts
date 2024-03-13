@@ -7,19 +7,20 @@ import {
   RunType,
   RunTypeOption,
   ScheduledType,
-  RunParam,
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
-  PipelineKF,
-  PipelineRunJobKF,
-  PipelineRunKF,
-  PipelineVersionKF,
+  ExperimentKFv2,
+  PipelineKFv2,
+  PipelineRunJobKFv2,
+  PipelineRunKFv2,
+  PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   DEFAULT_CRON_STRING,
+  DEFAULT_MAX_CONCURRENCY,
   DEFAULT_PERIODIC_OPTION,
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
@@ -38,14 +39,19 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 
 const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKF | PipelineRunJobKF,
+  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
 ): void => {
   React.useEffect(() => {
-    if (!isPipelineRunJob(initialData)) {
+    if (!initialData || !isPipelineRunJob(initialData)) {
       return;
     }
 
-    const { trigger } = initialData;
+    const {
+      trigger,
+      no_catchup: noCatchUp = false,
+      max_concurrency: maxConcurrencyString,
+    } = initialData;
+
     let triggerType: ScheduledType;
     let start: RunDateTime | undefined;
     let end: RunDateTime | undefined;
@@ -65,9 +71,16 @@ const useUpdateRunType = (
       value = DEFAULT_PERIODIC_OPTION;
     }
 
+    let maxConcurrency = parseInt(maxConcurrencyString);
+    if (Number.isNaN(maxConcurrency)) {
+      maxConcurrency = DEFAULT_MAX_CONCURRENCY;
+    }
+
     const runType: RunType = {
       type: RunTypeOption.SCHEDULED,
       data: {
+        catchUp: !noCatchUp,
+        maxConcurrency,
         triggerType,
         value,
         start,
@@ -78,41 +91,25 @@ const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-export const useUpdateParams = (
-  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKF | PipelineRunJobKF,
-): void => {
-  React.useEffect(() => {
-    if (!initialData?.pipeline_spec.parameters) {
-      return;
-    }
-    const params: RunParam[] = initialData.pipeline_spec.parameters.map((p) => ({
-      label: p.name,
-      value: p.value,
-    }));
-    setFunction('params', params);
-  }, [setFunction, initialData]);
-};
-
-const getPipelineInputParams = (
-  version: PipelineVersionKF | undefined,
-  pipeline?: PipelineKF | undefined,
-): RunParam[] | undefined => {
-  let parameters = version?.parameters;
-
-  if (!version) {
-    parameters = pipeline?.default_version?.parameters || pipeline?.parameters;
-  }
-
-  return (parameters || []).map((p) => ({ label: p.name, value: p.value }));
-};
-
-const useUpdatePipelineRunFormData = (
-  runFormState: GenericObjectState<RunFormData>,
-  pipeline: PipelineKF | undefined,
-  version: PipelineVersionKF | undefined,
+const useUpdateExperimentFormData = (
+  formState: GenericObjectState<RunFormData>,
+  experiment: ExperimentKFv2 | null | undefined,
 ) => {
-  const [formData, setFormValue] = runFormState;
+  const [formData, setFormValue] = formState;
+
+  React.useEffect(() => {
+    if (!formData.experiment && experiment) {
+      setFormValue('experiment', experiment);
+    }
+  }, [formData.experiment, setFormValue, experiment]);
+};
+
+const useUpdatePipelineFormData = (
+  formState: GenericObjectState<RunFormData>,
+  pipeline: PipelineKFv2 | null | undefined,
+  version: PipelineVersionKFv2 | null | undefined,
+) => {
+  const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
     if (!formData.pipeline && pipeline) {
@@ -122,34 +119,36 @@ const useUpdatePipelineRunFormData = (
     if (!formData.version && version) {
       setFormValue('version', version);
     }
-  }, [pipeline, version, formData.pipeline, formData.version, setFormValue]);
+  }, [formData.pipeline, formData.version, pipeline, setFormValue, version]);
 };
 
 const useRunFormData = (
-  initialData?: PipelineRunKF | PipelineRunJobKF | undefined,
-  pipeline?: PipelineKF,
-  version?: PipelineVersionKF,
+  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
+  const { pipeline, version, experiment } = initialFormData || {};
 
-  const runFormDataState = useGenericObjectState<RunFormData>({
+  const formState = useGenericObjectState<RunFormData>({
     project,
     nameDesc: {
-      name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
-      description: initialData?.description ?? '',
+      name: run?.display_name ? `Duplicate of ${run.display_name}` : '',
+      description: run?.description ?? '',
     },
     pipeline: pipeline ?? null,
-    version: version ?? pipeline?.default_version ?? null,
+    version: version ?? null,
+    experiment: experiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: getPipelineInputParams(version, pipeline),
+    params: run?.runtime_config?.parameters || {},
+    ...initialFormData,
   });
-  const [, setFormValue] = runFormDataState;
+  const [, setFormValue] = formState;
 
-  useUpdatePipelineRunFormData(runFormDataState, pipeline, version);
-  useUpdateRunType(setFormValue, initialData);
-  useUpdateParams(setFormValue, initialData);
+  useUpdateExperimentFormData(formState, experiment);
+  useUpdatePipelineFormData(formState, pipeline, version);
+  useUpdateRunType(setFormValue, run);
 
-  return runFormDataState;
+  return formState;
 };
 
 export default useRunFormData;

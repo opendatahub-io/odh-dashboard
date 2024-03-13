@@ -78,7 +78,6 @@ type ImageStreamSpecTagAnnotations = Partial<{
 export type NotebookAnnotations = Partial<{
   'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running),  `odh-notebook-controller-lock` is set when first creating the notebook to avoid race conditions, it's a fake stop
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
-  'opendatahub.io/link': string; // redirect notebook url
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
@@ -531,12 +530,26 @@ export type TrustyAIKind = K8sResourceCommon & {
   };
 };
 
+export type DSPipelineExternalStorageKind = {
+  bucket: string;
+  host: string;
+  port?: '';
+  scheme: string;
+  region: string;
+  s3CredentialsSecret: {
+    accessKey: string;
+    secretKey: string;
+    secretName: string;
+  };
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
   };
   spec: {
+    dspVersion: string;
     apiServer?: Partial<{
       apiServerImage: string;
       artifactImage: string;
@@ -580,17 +593,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       image: string;
     }>;
     objectStorage: Partial<{
-      externalStorage: {
-        bucket: string;
-        host: string;
-        port?: '';
-        scheme: string;
-        s3CredentialsSecret: {
-          accessKey: string;
-          secretKey: string;
-          secretName: string;
-        };
-      };
+      externalStorage: DSPipelineExternalStorageKind;
       minio: Partial<{
         bucket: string;
         image: string;
@@ -1112,6 +1115,8 @@ export type DashboardCommonConfig = {
   disableKServe: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
+  // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
+  disablePipelineExperiments: boolean;
   disableDistributedWorkloads: boolean;
 };
 
@@ -1140,15 +1145,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
-  };
-  /**
-   * TODO: Make this its own API; it's not part of the CRD
-   * Faux status object -- computed by the service account
-   */
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: OperatorStatus;
-    };
   };
 };
 

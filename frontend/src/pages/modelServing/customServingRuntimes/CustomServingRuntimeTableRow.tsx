@@ -30,7 +30,13 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
   const templateOOTB = isTemplateOOTB(template);
 
   return (
-    <Tr key={rowIndex} id={servingRuntimeName} draggable {...props}>
+    <Tr
+      key={rowIndex}
+      id={servingRuntimeName}
+      data-testid={`serving-runtime ${servingRuntimeName}`}
+      draggable
+      {...props}
+    >
       <Td
         draggableRow={{
           id: `draggable-row-${servingRuntimeName}`,

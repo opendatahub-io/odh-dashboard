@@ -22,6 +22,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
       isLoading={!templatesLoaded}
       isAriaDisabled={!templatesLoaded || emptyTemplates}
       onClick={onClick}
+      data-testid="model-serving-platform-button"
       variant="secondary"
     >
       {isProjectModelMesh ? 'Add model server' : 'Deploy model'}
@@ -34,6 +35,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
 
   return (
     <Tooltip
+      data-testid="model-serving-action-tooltip"
       aria-label="Model Serving Action Info"
       content={
         <Text>{`At least one serving runtime must be enabled to ${

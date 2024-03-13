@@ -1,31 +1,33 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { ServingRuntimeAPIProtocol } from '~/types';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 
 class ServingRuntimeRow {
   constructor(public readonly id: string) {}
 
   find() {
-    return cy.get(`#${this.id}`);
+    return cy.findByTestId(`serving-runtime ${this.id}`);
   }
 
   shouldBeMultiModel(enabled = true) {
     this.find()
-      .findByRole('list', { name: 'Label group category' })
-      .findByText('Multi-model')
+      .findByTestId('serving-runtime-platform-label')
+      .findByTestId('multi-model')
       .should(enabled ? 'exist' : 'not.exist');
     return this;
   }
 
   shouldBeSingleModel(enabled = true) {
     this.find()
-      .findByRole('list', { name: 'Label group category' })
-      .findByText('Single-model')
+      .findByTestId('serving-runtime-platform-label')
+      .findByTestId('single-model')
       .should(enabled ? 'exist' : 'not.exist');
     return this;
   }
 
   shouldHaveAPIProtocol(apiProtocol: ServingRuntimeAPIProtocol) {
-    this.find().get('[data-label="API protocol"]').should('include.text', apiProtocol);
+    this.find().find('[data-label="API protocol"]').should('include.text', apiProtocol);
+    return this;
   }
 }
 
@@ -40,23 +42,27 @@ class ServingRuntimes {
     this.wait();
   }
 
+  findAppTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
   private wait() {
     this.findAddButton();
     cy.testA11y();
   }
 
   shouldBeMultiModel(enabled = true) {
-    cy.findByText('Multi-model serving enabled').should(enabled ? 'exist' : 'not.exist');
+    cy.findByTestId('multi-model-serving-enabled').should(enabled ? 'exist' : 'not.exist');
     return this;
   }
 
   shouldBeSingleModel(enabled = true) {
-    cy.findByText('Single-model serving enabled').should(enabled ? 'exist' : 'not.exist');
+    cy.findByTestId('single-model-serving-enabled').should(enabled ? 'exist' : 'not.exist');
     return this;
   }
 
   findAddButton() {
-    return cy.findByRole('button', { name: 'Add serving runtime' });
+    return cy.findByTestId('add-serving-runtime-button');
   }
 
   findStartFromScratchButton() {
@@ -64,7 +70,7 @@ class ServingRuntimes {
   }
 
   findCreateButton() {
-    return cy.findByRole('button', { name: 'Create' });
+    return cy.findByTestId('create-button');
   }
 
   findCancelButton() {
@@ -100,8 +106,8 @@ class ServingRuntimes {
     cy.findByRole('menuitem', { name: value }).click();
   }
 
-  shouldEnterData() {
-    cy.get('.view-lines.monaco-mouse-cursor-text').type('test');
+  getDashboardCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('dashboard-code-editor'));
   }
 
   getRowById(id: string) {

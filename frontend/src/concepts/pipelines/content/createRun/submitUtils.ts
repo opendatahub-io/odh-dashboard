@@ -9,38 +9,18 @@ import {
   CreatePipelineRunJobKFData,
   CreatePipelineRunKFData,
   DateTimeKF,
-  RelationshipKF,
-  ResourceReferenceKF,
-  ResourceTypeKF,
+  InputDefParamType,
+  PipelineVersionKFv2,
+  RecurringRunMode,
+  RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
-import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
+import {
+  getInputDefinitionParams,
+  isFilledRunFormData,
+} from '~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds } from '~/utilities/time';
-
-const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[] => {
-  const refs: ResourceReferenceKF[] = [];
-
-  if (formData.version) {
-    refs.push({
-      key: {
-        id: formData.version.id,
-        type: ResourceTypeKF.PIPELINE_VERSION,
-      },
-      relationship: RelationshipKF.CREATOR,
-    });
-  }
-  // if (formData.experiment) {
-  //   refs.push({
-  //     key: {
-  //       id: formData.experiment.id,
-  //       type: ResourceTypeKF.EXPERIMENT,
-  //     },
-  //     relationship: RelationshipKF.OWNER,
-  //   });
-  // }
-
-  return refs;
-};
+import { routePipelineRunDetails } from '~/routes';
 
 const createRun = async (
   formData: SafeRunFormData,
@@ -48,17 +28,22 @@ const createRun = async (
 ): Promise<string> => {
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
-    name: formData.nameDesc.name,
+    display_name: formData.nameDesc.name,
     description: formData.nameDesc.description,
-    resource_references: getResourceReferences(formData),
-    pipeline_spec: {
-      parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
+    pipeline_version_reference: {
+      pipeline_id: formData.pipeline.pipeline_id || '',
+      pipeline_version_id: formData.version?.pipeline_version_id || '',
+    },
+    runtime_config: {
+      parameters: normalizeInputParams(formData.params, formData.version),
     },
     service_account: '',
+    experiment_id: formData.experiment?.experiment_id || '',
   };
+
   /* eslint-enable camelcase */
-  return createPipelineRun({}, data).then(
-    (runResource) => `/pipelineRun/view/${runResource.run.id}`,
+  return createPipelineRun({}, data).then((runResource) =>
+    routePipelineRunDetails(runResource.run_id),
   );
 };
 
@@ -76,22 +61,24 @@ const createJob = async (
   createPipelineRunJob: PipelineAPIs['createPipelineRunJob'],
 ): Promise<string> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
-    return Promise.reject(new Error('Cannot create a scheduled run with incomplete data.'));
+    return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
 
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;
   const endDate = convertDateDataToKFDateTime(formData.runType.data.end) ?? undefined;
   const periodicScheduleIntervalTime = convertPeriodicTimeToSeconds(formData.runType.data.value);
+
   /* eslint-disable camelcase */
   const data: CreatePipelineRunJobKFData = {
-    name: formData.nameDesc.name,
+    display_name: formData.nameDesc.name,
     description: formData.nameDesc.description,
-    resource_references: getResourceReferences(formData),
-    pipeline_spec: {
-      parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
+    pipeline_version_reference: {
+      pipeline_id: formData.pipeline.pipeline_id || '',
+      pipeline_version_id: formData.version?.pipeline_version_id || '',
     },
-    max_concurrency: '10',
-    enabled: true,
+    runtime_config: {
+      parameters: normalizeInputParams(formData.params, formData.version),
+    },
     trigger: {
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
@@ -110,7 +97,13 @@ const createJob = async (
             }
           : undefined,
     },
+    max_concurrency: String(formData.runType.data.maxConcurrency),
+    mode: RecurringRunMode.ENABLE,
+    no_catchup: !formData.runType.data.catchUp,
+    service_account: '',
+    experiment_id: formData.experiment?.experiment_id || '',
   };
+
   /* eslint-enable camelcase */
   return createPipelineRunJob({}, data).then(() => '');
 };
@@ -132,3 +125,35 @@ export const handleSubmit = (formData: RunFormData, api: PipelineAPIs): Promise<
       throw new Error('Unknown run type, unable to create run.');
   }
 };
+
+/**
+ * Converts string parameters with input definitions that conflict with
+ * type string to those respective types (boolean, number).
+ */
+const normalizeInputParams = (
+  params: RuntimeConfigParameters,
+  version: PipelineVersionKFv2 | null,
+): RuntimeConfigParameters =>
+  Object.entries(params).reduce((acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
+    const inputDefinitionParams = getInputDefinitionParams(version);
+    const paramType = inputDefinitionParams?.[paramKey].parameterType;
+
+    switch (paramType) {
+      case InputDefParamType.NumberInteger:
+        acc[paramKey] = parseInt(String(paramValue));
+        break;
+      case InputDefParamType.NumberDouble:
+        acc[paramKey] = parseFloat(String(paramValue));
+        break;
+      case InputDefParamType.Struct:
+      case InputDefParamType.List:
+        acc[paramKey] = JSON.parse(
+          typeof paramValue !== 'string' ? JSON.stringify(paramValue) : paramValue,
+        );
+        break;
+      default:
+        acc[paramKey] = paramValue;
+    }
+
+    return acc;
+  }, {});

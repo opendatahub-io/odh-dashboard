@@ -4,10 +4,5 @@
   &__drawer-body-content {
     display: flex;
     flex-direction: column;
-
-    // Work around for PF issue https://github.com/patternfly/patternfly-react/issues/10104
-    & .pf-v5-c-card__selectable-actions .pf-v5-c-radio__label {
-      justify-self: auto;
-    }
   }
 }

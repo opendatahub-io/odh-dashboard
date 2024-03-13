@@ -15,7 +15,7 @@ const ModelServingPlatformCard: React.FC<ModelServingPlatformCardProps> = ({
   description,
   action,
 }) => (
-  <Card id={id} isFullHeight isFlat>
+  <Card id={id} data-testid={id} isFullHeight isFlat>
     <CardHeader>
       <Icon size="xl">
         <CogsIcon />

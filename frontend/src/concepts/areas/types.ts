@@ -40,6 +40,7 @@ export enum SupportedArea {
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
+  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

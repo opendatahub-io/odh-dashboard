@@ -1,13 +1,11 @@
 /* eslint-disable camelcase */
-import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { buildMockPipeline, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
+import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import {
-  buildMockDefaultPipelineVersion,
-  buildMockPipelineVersion,
-  buildMockPipelineVersions,
+  buildMockPipelineVersionV2,
+  buildMockPipelineVersionsV2,
 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
@@ -17,38 +15,62 @@ import {
   pipelinesTable,
   pipelineImportModal,
   pipelineVersionImportModal,
+  pipelineDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipeline({ name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockDefaultPipelineVersion(initialMockPipeline);
+const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersionV2({
+  pipeline_id: initialMockPipeline.pipeline_id,
+});
 const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
 
 describe('Pipelines', () => {
-  it('renders the page with pipelines table data', () => {
+  beforeEach(() => {
     initIntercepts();
-    initPipelineIntercepts();
     pipelinesGlobal.visit(projectName);
+  });
+
+  it('renders the page with pipelines table data', () => {
+    pipelinesTable.find();
     pipelinesTable.findRowByName('Test pipeline');
   });
 
-  it('selects a different project', () => {
-    initIntercepts();
-    initPipelineIntercepts();
+  it('incompatible dpsa version shows error', () => {
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' })]),
+    );
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
+      },
+      mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' }),
+    );
+
     pipelinesGlobal.visit(projectName);
-    cy.url().should('include', 'test-project-name');
+    pipelinesGlobal.isApiAvailable();
+    pipelinesGlobal.findIsServerIncompatible().should('exist');
+  });
+
+  it('selects a different project', () => {
+    verifyRelativeURL('/pipelines/test-project-name');
 
     pipelinesGlobal.selectProjectByName('Test Project 2');
-    cy.url().should('include', 'test-project-name-2');
+    verifyRelativeURL('/pipelines/test-project-name-2');
   });
 
   it('imports a new pipeline', () => {
-    initIntercepts();
-    initPipelineIntercepts();
-    pipelinesGlobal.visit(projectName);
-    const uploadPipelineParams = { name: 'New pipeline', description: 'New pipeline description' };
-    const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
+    const uploadPipelineParams = {
+      display_name: 'New pipeline',
+      description: 'New pipeline description',
+    };
+    const uploadedMockPipeline = buildMockPipelineV2(uploadPipelineParams);
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams).as('uploadPipeline');
@@ -78,14 +100,14 @@ describe('Pipelines', () => {
   });
 
   it('uploads a new pipeline version', () => {
-    initIntercepts();
-    initPipelineIntercepts();
-    pipelinesGlobal.visit(projectName);
     const uploadVersionParams = {
-      name: 'New pipeline version',
+      display_name: 'New pipeline version',
       description: 'New pipeline version description',
-      pipelineid: 'test-pipeline',
+      pipeline_id: 'test-pipeline',
     };
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
 
     // Open the "Upload new version" modal
     pipelinesGlobal.findUploadVersionButton().click();
@@ -93,10 +115,10 @@ describe('Pipelines', () => {
     // Intercept upload/re-fetch of pipeline versions
     pipelineVersionImportModal.mockUploadVersion(uploadVersionParams).as('uploadVersion');
     pipelinesTable
-      .mockGetPipelineVersions([
-        initialMockPipelineVersion,
-        buildMockPipelineVersion(uploadVersionParams),
-      ])
+      .mockGetPipelineVersions(
+        [initialMockPipelineVersion, buildMockPipelineVersionV2(uploadVersionParams)],
+        initialMockPipeline.pipeline_id,
+      )
       .as('refreshVersions');
 
     // Fill out the "Upload new version" modal and submit
@@ -112,187 +134,112 @@ describe('Pipelines', () => {
     cy.wait('@refreshVersions');
 
     // Verify the uploaded pipeline version is in the table
-    pipelinesTable.toggleExpandRowByName(initialMockPipeline.name);
+    pipelinesTable.toggleExpandRowByIndex(0);
     pipelinesTable.findRowByName('New pipeline version');
   });
 
-  it('delete a single pipeline', () => {
-    initIntercepts();
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
-      },
-      buildMockPipelines([initialMockPipeline]),
-    );
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
-      },
-      buildMockPipelineVersions([initialMockPipelineVersion]),
-    );
-    createDeletePipelineIntercept(initialMockPipeline.id).as('deletePipeline');
-
-    pipelinesGlobal.visit(projectName);
-
-    // Check pipeline
-    pipelinesTable.toggleCheckboxByRowName(initialMockPipeline.name);
-
-    // Delete the selected pipeline
-    pipelinesGlobal.findDeleteButton().click();
-    deleteModal.shouldBeOpen();
-    deleteModal.findInput().type(initialMockPipeline.name);
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
-      },
-      buildMockPipelines([]),
-    ).as('refreshPipelines');
-    deleteModal.findSubmitButton().click();
-
-    cy.wait('@deletePipeline');
-    cy.wait('@refreshPipelines').then(() => cy.findByTestId('global-no-pipelines').should('exist'));
-  });
-
   it('delete a single pipeline version', () => {
-    initIntercepts();
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
-      },
-      buildMockPipelines([initialMockPipeline]),
-    );
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
-      },
-      buildMockPipelineVersions([initialMockPipelineVersion]),
-    );
-    createDeleteVersionIntercept(initialMockPipelineVersion.id).as('deleteVersion');
+    createDeleteVersionIntercept(
+      initialMockPipelineVersion.pipeline_id,
+      initialMockPipelineVersion.pipeline_version_id,
+    ).as('deleteVersion');
 
-    pipelinesGlobal.visit(projectName);
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
 
     // Check pipeline version
-    pipelinesTable.toggleExpandRowByName(initialMockPipeline.name);
-    pipelinesTable.toggleCheckboxByRowName(initialMockPipelineVersion.name);
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
 
     // Delete the selected version
-    pipelinesGlobal.findDeleteButton().click();
-    deleteModal.shouldBeOpen();
-    deleteModal.findInput().type(initialMockPipelineVersion.name);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('Delete pipeline version')
+      .click();
+    pipelineDeleteModal.shouldBeOpen();
+    pipelineDeleteModal.findInput().type(initialMockPipelineVersion.display_name);
     cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
       },
-      buildMockPipelineVersions([]),
+      buildMockPipelineVersionsV2([]),
     ).as('refreshVersions');
-    deleteModal.findSubmitButton().click();
+    pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteVersion');
 
-    pipelinesTable.toggleExpandRowByName(initialMockPipeline.name);
+    pipelinesTable.toggleExpandRowByIndex(0);
     cy.wait('@refreshVersions').then(() =>
       pipelinesTable
-        .findRowByName(initialMockPipeline.name)
+        .findRowByName(initialMockPipeline.display_name)
         .parents('tbody')
         .findByTestId('no-pipeline-versions')
         .should('exist'),
     );
   });
 
-  it('delete pipeline and versions', () => {
-    const mockPipeline1 = buildMockPipeline({ name: 'Test pipeline 1' });
-    const mockPipeline1Version1 = buildMockDefaultPipelineVersion(mockPipeline1);
-    const mockPipeline2 = buildMockPipeline({ name: 'Test pipeline 2' });
-    const mockPipeline2Version1 = buildMockDefaultPipelineVersion(mockPipeline2);
-    const mockPipeline2Version2 = buildMockPipelineVersion({
-      id: 'test-pipeline-2-new-version',
-      name: 'Test pipeline 2 new version',
-      resource_references: [
-        {
-          key: { type: ResourceTypeKF.PIPELINE, id: mockPipeline2.id },
-          relationship: RelationshipKF.OWNER,
-        },
-      ],
-    });
-
-    initIntercepts();
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
-      },
-      buildMockPipelines([mockPipeline1, mockPipeline2]),
+  it('navigate to pipeline version details page', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText(initialMockPipelineVersion.display_name)
+      .click();
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
     );
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
-      },
-      (req) => {
-        const response = {
-          [mockPipeline1.id]: buildMockPipelineVersions([mockPipeline1Version1]),
-          [mockPipeline2.id]: buildMockPipelineVersions([
-            mockPipeline2Version1,
-            mockPipeline2Version2,
-          ]),
-        };
-        req.reply(response[req.body.queryParams['resource_key.id']]);
-      },
-    );
-    createDeletePipelineIntercept(mockPipeline1.id).as('deletePipeline');
-    createDeleteVersionIntercept(mockPipeline2Version1.id).as('deleteVersion');
+  });
 
-    pipelinesGlobal.visit(projectName);
+  it('navigate to create run page from pipeline row', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable
+      .findRowByName(initialMockPipeline.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
 
-    // Check pipeline1 and one version in pipeline 2
-    pipelinesTable.toggleExpandRowByName(mockPipeline1.name);
-    pipelinesTable.toggleExpandRowByName(mockPipeline2.name);
+    // Delete the selected version
+    pipelinesTable.findRowByName(initialMockPipeline.display_name).findByText('Create run').click();
+    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+  });
 
-    pipelinesTable.toggleCheckboxByRowName(mockPipeline1.name);
-    pipelinesTable.toggleCheckboxByRowName(mockPipeline2Version1.name);
+  it('navigate to create run page from pipeline version row', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
 
-    // Delete the selected pipeline and versions
-    pipelinesGlobal.findDeleteButton().click();
-    deleteModal.shouldBeOpen();
-    deleteModal.findInput().type('Delete 1 pipeline and 1 version');
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
-      },
-      buildMockPipelines([mockPipeline2]),
-    ).as('refreshPipelines');
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
-      },
-      (req) => {
-        const response = { [mockPipeline2.id]: buildMockPipelineVersions([mockPipeline2Version2]) };
-        req.reply(response[req.body.queryParams['resource_key.id']]);
-      },
-    ).as('refreshVersions');
-    deleteModal.findSubmitButton().click();
+    // Delete the selected version
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('Create run')
+      .click();
+    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+  });
 
-    // Wait for deletion
-    cy.wait('@deletePipeline');
-    cy.wait('@deleteVersion');
+  it('navigate to view runs page', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
 
-    cy.wait('@refreshPipelines');
-    cy.wait('@refreshVersions').then(() => {
-      // Test deleted
-      pipelinesTable.checkRow().shouldNotExist(mockPipeline1.name);
-      pipelinesTable.checkRow().shouldExist(mockPipeline2.name);
-      pipelinesTable.toggleExpandRowByName(mockPipeline2.name);
-      pipelinesTable.checkRow().shouldNotExist(mockPipeline2Version1.name);
-      pipelinesTable.checkRow().shouldExist(mockPipeline2Version2.name);
-    });
+    // Delete the selected version
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('View runs')
+      .click();
+    verifyRelativeURL(`/pipelineRuns/${projectName}`);
   });
 });
 
@@ -301,13 +248,20 @@ const initIntercepts = () => {
   cy.intercept('/api/config', mockDashboardConfig({}));
   cy.intercept(
     {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/pipelines-definition`,
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
     },
-    mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
   );
   cy.intercept(
     {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-pipelines-definition`,
+      method: 'GET',
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
+    },
+    mockDataSciencePipelineApplicationK8sResource({}),
+  );
+  cy.intercept(
+    {
+      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-dspa`,
     },
     mockRouteK8sResource({
       notebookName: 'ds-pipeline-pipelines-definition',
@@ -323,13 +277,10 @@ const initIntercepts = () => {
       mockProjectK8sResource({ k8sName: `${projectName}-2`, displayName: 'Test Project 2' }),
     ]),
   );
-};
 
-const initPipelineIntercepts = () => {
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      pathname: '/api/proxy/apis/v2beta1/pipelines',
     },
     buildMockPipelines([initialMockPipeline]),
   );
@@ -337,29 +288,16 @@ const initPipelineIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
     },
-    buildMockPipelineVersions([initialMockPipelineVersion]),
+    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
 };
 
-const createDeletePipelineIntercept = (id: string) =>
+const createDeleteVersionIntercept = (pipelineId: string, pipelineVersionId: string) =>
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v1beta1/pipelines/${id}`,
-      method: 'POST',
-      times: 1,
-    },
-    (req) => {
-      expect(req.body.method).eq('DELETE');
-      req.reply({ body: {} });
-    },
-  );
-
-const createDeleteVersionIntercept = (id: string) =>
-  cy.intercept(
-    {
-      pathname: `/api/proxy/apis/v1beta1/pipeline_versions/${id}`,
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions/${pipelineVersionId}`,
       method: 'POST',
       times: 1,
     },
