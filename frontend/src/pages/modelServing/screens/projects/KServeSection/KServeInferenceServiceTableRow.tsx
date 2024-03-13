@@ -13,6 +13,9 @@ import InferenceServiceTableRow from '~/pages/modelServing/screens/global/Infere
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
 import ResourceTr from '~/components/ResourceTr';
+import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import { isInferenceServiceTokenEnabled } from '~/pages/modelServing/screens/projects/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type KServeInferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -33,6 +36,8 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
   onEditKServe,
   onDeleteKServe,
 }) => {
+  const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
+
   const [isExpanded, setExpanded] = React.useState(false);
   const {
     servingRuntimes: { data: servingRuntimes },
@@ -98,6 +103,21 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               {servingRuntime && (
                 <StackItem>
                   <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
+                </StackItem>
+              )}
+              {isAuthorinoEnabled && (
+                <StackItem>
+                  <DescriptionList>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Token authorization</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <ServingRuntimeTokensTable
+                          obj={obj}
+                          isTokenEnabled={isInferenceServiceTokenEnabled(obj)}
+                        />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
                 </StackItem>
               )}
             </Stack>

@@ -68,6 +68,9 @@ export type CreatingInferenceServiceObject = {
   format: InferenceServiceFormat;
   maxReplicas: number;
   minReplicas: number;
+  externalRoute: boolean;
+  tokenAuth: boolean;
+  tokens: ServingRuntimeToken[];
 };
 
 export enum InferenceServiceStorageType {

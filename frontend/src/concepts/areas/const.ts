@@ -1,4 +1,4 @@
-import { StackComponent, SupportedArea, SupportedAreasState } from './types';
+import { StackCapability, StackComponent, SupportedArea, SupportedAreasState } from './types';
 
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
@@ -28,6 +28,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.K_SERVE]: {
     featureFlags: ['disableKServe'],
     requiredComponents: [StackComponent.K_SERVE],
+  },
+  [SupportedArea.K_SERVE_AUTH]: {
+    featureFlags: ['disableKServeAuth'],
+    reliantAreas: [SupportedArea.K_SERVE],
+    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
   [SupportedArea.MODEL_MESH]: {
     featureFlags: ['disableModelMesh'],

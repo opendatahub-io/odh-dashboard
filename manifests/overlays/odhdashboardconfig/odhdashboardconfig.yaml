@@ -22,6 +22,7 @@ spec:
     disablePerformanceMetrics: false
     disableAcceleratorProfiles: false
     disableKServe: false
+    disableKServeAuth: false
     disableModelMesh: false
     disableDistributedWorkloads: true
     disableModelRegistry: true

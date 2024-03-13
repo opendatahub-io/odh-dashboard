@@ -11,6 +11,7 @@ export type IsAreaAvailableStatus = {
   featureFlags: { [key in FeatureFlag]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
   reliantAreas: { [key in SupportedArea]?: boolean } | null; // only needs 1 to be true
   requiredComponents: { [key in StackComponent]?: boolean } | null;
+  requiredCapabilities: { [key in StackCapability]?: boolean } | null;
 };
 
 /** All areas that we need to support in some fashion or another */
@@ -36,6 +37,7 @@ export enum SupportedArea {
   MODEL_SERVING = 'model-serving-shell',
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
+  K_SERVE_AUTH = 'kserve-auth',
   MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
@@ -64,6 +66,12 @@ export enum StackComponent {
   MODEL_REGISTRY = 'model-registry-operator',
 }
 
+/** Capabilities of the Operator. Part of the DSCI Status. */
+export enum StackCapability {
+  SERVICE_MESH = 'CapabilityServiceMesh',
+  SERVICE_MESH_AUTHZ = 'CapabilityServiceMeshAuthorization',
+}
+
 // TODO: Support extra operators, like the pipelines operator -- maybe as a "external dependency need?"
 type SupportedComponentFlagValue = {
   /**
@@ -75,6 +83,12 @@ type SupportedComponentFlagValue = {
    * TODO: support AND -- maybe double array?
    */
   reliantAreas?: SupportedArea[];
+  /**
+   * Required capabilities supported by the Operator. The list is "AND"-ed together.
+   * If the Operator does not support the capability, the area is not available.
+   * The capabilities are retrieved from the DSCI status.
+   */
+  requiredCapabilities?: StackCapability[];
 } & EitherOrBoth<
   {
     /**

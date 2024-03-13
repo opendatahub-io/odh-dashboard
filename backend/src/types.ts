@@ -31,6 +31,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableBiasMetrics: boolean;
       disablePerformanceMetrics: boolean;
       disableKServe: boolean;
+      disableKServeAuth: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disablePipelineExperiments: boolean;
@@ -945,7 +946,7 @@ type ComponentNames =
   | 'workbenches';
 
 export type DataScienceClusterKindStatus = {
-  conditions: [];
+  conditions: K8sCondition[];
   installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
 };
@@ -958,6 +959,21 @@ export type DataScienceClusterKind = K8sResourceCommon & {
 export type DataScienceClusterList = {
   kind: 'DataScienceClusterList';
   items: DataScienceClusterKind[];
+};
+
+export type DataScienceClusterInitializationKindStatus = {
+  conditions: K8sCondition[];
+  phase?: string;
+};
+
+export type DataScienceClusterInitializationKind = K8sResourceCommon & {
+  spec: unknown; // we should never need to look into this
+  status: DataScienceClusterInitializationKindStatus;
+};
+
+export type DataScienceClusterInitializationList = {
+  kind: 'DataScienceClusterInitializationList';
+  items: DataScienceClusterInitializationKind[];
 };
 
 export type SubscriptionStatusData = {
