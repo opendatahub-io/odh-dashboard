@@ -10,8 +10,8 @@ export class DeleteModal extends Modal {
     return this.find().findByLabelText('Delete modal input');
   }
 
-  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findFooter().findByRole('button', { name: /Delete/ });
+  findSubmitButton(options?: ByRoleOptions | undefined): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findFooter().findByRole('button', { name: /Delete/, hidden: true, ...options });
   }
 }
 

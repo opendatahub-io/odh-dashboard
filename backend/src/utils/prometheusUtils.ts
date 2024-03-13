@@ -27,7 +27,6 @@ const callPrometheus = async <T>(
   return proxyCall(fastify, request, {
     method: 'GET',
     url,
-    rejectUnauthorized: false,
   })
     .then(([rawData, status]) => {
       if (rejectOnHttpErrorCode && status.code >= 400) {

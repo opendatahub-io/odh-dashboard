@@ -56,6 +56,7 @@ spec:
     modelMetricsNamespace: ''
     disableBiasMetrics: false
     disablePerformanceMetrics: false
+    disablePipelineExperiments: false
 ```
 
 ## Additional fields
@@ -148,6 +149,7 @@ spec:
     modelMetricsNamespace: ''
     disableBiasMetrics: false
     disablePerformanceMetrics: false
+    disablePipelineExperiments: true
   notebookController:
     enabled: true
     gpuSetting: autodetect

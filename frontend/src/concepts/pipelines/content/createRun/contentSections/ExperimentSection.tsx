@@ -1,56 +1,44 @@
 import * as React from 'react';
-import { Button, FormSection, Stack, StackItem } from '@patternfly/react-core';
+import { Button, FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import useExperiments from '~/concepts/pipelines/apiHooks/useExperiments';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import ManageExperimentModal from '~/concepts/pipelines/content/experiment/ManageExperimentModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import {
+  CreateRunPageSections,
+  runPageSectionTitles,
+} from '~/concepts/pipelines/content/createRun/const';
+import ExperimentSelector from '~/concepts/pipelines/content/experiment/ExperimentSelector';
 
 type ExperimentSectionProps = {
-  value: ExperimentKF | null;
-  onChange: (experiment: ExperimentKF) => void;
+  value: ExperimentKFv2 | null;
+  onChange: (experiment: ExperimentKFv2) => void;
 };
 
 const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const [{ items: experiments }] = useExperiments();
   const [openCreate, setOpenCreate] = React.useState(false);
-
-  const changeRef = React.useRef<ExperimentSectionProps['onChange']>(onChange);
-  changeRef.current = onChange;
-  React.useEffect(() => {
-    if (!value && experiments.length === 1) {
-      changeRef.current(experiments[0]);
-    }
-  }, [value, experiments]);
-
   return (
     <>
       <FormSection
-      // id={CreateRunPageSections.EXPERIMENT}
-      // title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
+        id={CreateRunPageSections.EXPERIMENT}
+        title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
       >
-        <Stack hasGutter>
-          <StackItem>
-            <SimpleDropdownSelect
-              placeholder="Select an experiment"
-              options={experiments.map((e) => ({ key: e.id, label: e.name }))}
-              value={value?.id ?? ''}
-              onChange={(id) => {
-                const experiment = experiments.find((p) => p.id === id);
-                if (experiment) {
-                  onChange(experiment);
-                }
-              }}
-            />
-          </StackItem>
-          <StackItem>
-            <Button variant="link" icon={<PlusCircleIcon />} onClick={() => setOpenCreate(true)}>
-              Create new experiment
-            </Button>
-          </StackItem>
-        </Stack>
+        {/* `minWidth` a temp fix for PF issue https://github.com/patternfly/patternfly/issues/6062
+      We can remove this after bumping to PF v5.2.0
+    */}
+        <FormGroup style={{ minWidth: 0 }}>
+          <Stack hasGutter>
+            <StackItem>
+              <ExperimentSelector selection={value?.display_name} onSelect={onChange} />
+            </StackItem>
+            <StackItem>
+              <Button variant="link" icon={<PlusCircleIcon />} onClick={() => setOpenCreate(true)}>
+                Create new experiment
+              </Button>
+            </StackItem>
+          </Stack>
+        </FormGroup>
       </FormSection>
       <ManageExperimentModal
         isOpen={openCreate}

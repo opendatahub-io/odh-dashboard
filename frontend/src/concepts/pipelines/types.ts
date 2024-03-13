@@ -3,23 +3,21 @@ import {
   ListPipelineRunsResourceKF,
   ListPipelineRunJobsResourceKF,
   ListPipelinesResponseKF,
-  ListPipelineVersionTemplateResourceKF,
-  PipelineKF,
-  PipelineRunResourceKF,
   ListExperimentsResponseKF,
-  ExperimentKF,
-  PipelineRunJobKF,
+  ExperimentKFv2,
   CreatePipelineRunKFData,
   CreatePipelineRunJobKFData,
-  PipelineCoreResourceKF,
   PipelinesFilterPredicate,
-  ResourceKeyKF,
-  PipelineVersionKF,
-  ListPipelineVersionsResourceKF,
+  ListPipelineVersionsKF,
+  PipelineKFv2,
+  PipelineVersionKFv2,
+  PipelineCoreResourceKFv2,
+  PipelineRunKFv2,
+  PipelineRunJobKFv2,
+  CreateExperimentKFData,
 } from './kfTypes';
 
 export type PipelinesFilter = {
-  resourceReference?: ResourceKeyKF;
   predicates?: PipelinesFilterPredicate[];
 };
 
@@ -30,10 +28,14 @@ export type PipelineParams = {
   sortDirection?: 'asc' | 'desc';
   filter?: PipelinesFilter;
 };
+export type PipelineParamsWithExperiments = PipelineParams & { experiment_id?: string };
 
 export type PipelineOptions = Omit<PipelineParams, 'pageToken'> & { page?: number };
+export type PipelineOptionsWithExperiments = PipelineOptions & {
+  experiment_id?: string;
+};
 
-export type PipelineListPaged<T extends PipelineCoreResourceKF> = {
+export type PipelineListPaged<T extends PipelineCoreResourceKFv2> = {
   totalSize: number;
   nextPageToken?: string;
   items: T[];
@@ -41,36 +43,37 @@ export type PipelineListPaged<T extends PipelineCoreResourceKF> = {
 
 export type CreateExperiment = (
   opts: K8sAPIOptions,
-  name: string,
-  description: string,
-) => Promise<ExperimentKF>;
+  data: CreateExperimentKFData,
+) => Promise<ExperimentKFv2>;
 export type CreatePipelineRun = (
   opts: K8sAPIOptions,
   data: CreatePipelineRunKFData,
-) => Promise<PipelineRunResourceKF>;
+) => Promise<PipelineRunKFv2>;
 export type CreatePipelineRunJob = (
   opts: K8sAPIOptions,
   data: CreatePipelineRunJobKFData,
-) => Promise<PipelineRunJobKF>;
-export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKF>;
-export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
+) => Promise<PipelineRunJobKFv2>;
+export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKFv2>;
+export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKFv2>;
 export type GetPipelineRun = (
   opts: K8sAPIOptions,
   pipelineRunId: string,
-) => Promise<PipelineRunResourceKF>;
+) => Promise<PipelineRunKFv2>;
 export type GetPipelineRunJob = (
   opts: K8sAPIOptions,
   pipelineRunJobId: string,
-) => Promise<PipelineRunJobKF>;
+) => Promise<PipelineRunJobKFv2>;
 export type GetPipelineVersion = (
   opts: K8sAPIOptions,
-  pipelineVersionId: string,
-) => Promise<PipelineVersionKF>;
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
+) => Promise<PipelineVersionKFv2>;
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type DeletePipelineRunJob = (opts: K8sAPIOptions, jobId: string) => Promise<void>;
 export type DeletePipelineVersion = (
   opts: K8sAPIOptions,
+  pipelineId: string,
   pipelineVersionId: string,
 ) => Promise<void>;
 export type ListExperiments = (
@@ -83,27 +86,18 @@ export type ListPipelines = (
 ) => Promise<ListPipelinesResponseKF>;
 export type ListPipelineRuns = (
   opts: K8sAPIOptions,
-  params?: PipelineParams,
+  params?: PipelineParamsWithExperiments,
 ) => Promise<ListPipelineRunsResourceKF>;
 export type ListPipelineRunJobs = (
   opts: K8sAPIOptions,
   params?: PipelineParams,
 ) => Promise<ListPipelineRunJobsResourceKF>;
-export type ListPipelineRunsByPipeline = (
-  opts: K8sAPIOptions,
-  pipelineId: string,
-  limit?: number,
-) => Promise<ListPipelineRunsResourceKF>;
-export type ListPipelineVersionTemplates = (
-  opts: K8sAPIOptions,
-  pipelineVersionId: string,
-) => Promise<ListPipelineVersionTemplateResourceKF>;
-export type ListPipelineVersionsByPipeline = (
+export type ListPipelineVersions = (
   opts: K8sAPIOptions,
   pipelineId: string,
   params?: PipelineParams,
-) => Promise<ListPipelineVersionsResourceKF>;
-export type StopPipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
+) => Promise<ListPipelineVersionsKF>;
+export type UpdatePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type UpdatePipelineRunJob = (
   opts: K8sAPIOptions,
   jobId: string,
@@ -114,14 +108,14 @@ export type UploadPipeline = (
   name: string,
   description: string,
   fileContents: string,
-) => Promise<PipelineKF>;
+) => Promise<PipelineKFv2>;
 export type UploadPipelineVersion = (
   opts: K8sAPIOptions,
   name: string,
   description: string,
   fileContents: string,
   pipelineId: string,
-) => Promise<PipelineVersionKF>;
+) => Promise<PipelineVersionKFv2>;
 
 export type PipelineAPIs = {
   createExperiment: CreateExperiment;
@@ -139,11 +133,13 @@ export type PipelineAPIs = {
   listExperiments: ListExperiments;
   listPipelines: ListPipelines;
   listPipelineRuns: ListPipelineRuns;
+  listPipelineActiveRuns: ListPipelineRuns;
+  listPipelineArchivedRuns: ListPipelineRuns;
   listPipelineRunJobs: ListPipelineRunJobs;
-  listPipelineRunsByPipeline: ListPipelineRunsByPipeline;
-  listPipelineVersionTemplates: ListPipelineVersionTemplates;
-  listPipelineVersionsByPipeline: ListPipelineVersionsByPipeline;
-  stopPipelineRun: StopPipelineRun;
+  listPipelineVersions: ListPipelineVersions;
+  archivePipelineRun: UpdatePipelineRun;
+  unarchivePipelineRun: UpdatePipelineRun;
+  stopPipelineRun: UpdatePipelineRun;
   updatePipelineRunJob: UpdatePipelineRunJob;
   uploadPipeline: UploadPipeline;
   uploadPipelineVersion: UploadPipelineVersion;

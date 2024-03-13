@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Icon, Split, SplitItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useAppContext } from '~/app/AppContext';
 import { useUser } from '~/redux/selectors';
+import { routePipelineRuns, routePipelines } from '~/routes';
 
 type NavDataCommon = {
   id: string;
@@ -49,45 +47,40 @@ const useDSProjectsNav = (): NavDataItem[] =>
   ]);
 
 const useDSPipelinesNav = (): NavDataItem[] => {
-  const { dashboardConfig } = useAppContext();
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (!isAvailable) {
     return [];
   }
 
-  const operatorAvailable =
-    dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
-
-  if (operatorAvailable) {
-    return [
-      {
-        id: 'pipelines',
-        group: { id: 'pipelines', title: 'Data Science Pipelines' },
-        children: [
-          { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
-          { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
-        ],
-      },
-    ];
-  }
-
-  return [
+  const pipelinesNav: NavDataItem[] = [
     {
       id: 'pipelines',
-      label: (
-        <Split hasGutter>
-          <SplitItem>Data Science Pipelines</SplitItem>
-          <SplitItem>
-            <Icon status="danger" isInline>
-              <ExclamationCircleIcon />
-            </Icon>
-          </SplitItem>
-        </Split>
-      ),
-      href: `/dependency-missing/pipelines`,
+      group: { id: 'pipelines', title: 'Data Science Pipelines' },
+      children: [
+        { id: 'global-pipelines', label: 'Pipelines', href: routePipelines() },
+        { id: 'global-pipeline-runs', label: 'Runs', href: routePipelineRuns() },
+      ],
     },
   ];
+
+  // TODO temporary solution to switch between layout options - remove with https://issues.redhat.com/browse/RHOAIENG-3826
+  if (isExperimentsAvailable) {
+    pipelinesNav.push({
+      id: 'experiments',
+      group: { id: 'experiments', title: 'Experiments' },
+      children: [
+        {
+          id: 'experiments-and-runs',
+          label: 'Experiments and runs',
+          href: '/pipelineExperiments', // TODO: make sure this is better handled later
+        },
+      ],
+    });
+  }
+
+  return pipelinesNav;
 };
 
 const useDistributedWorkloadsNav = (): NavDataItem[] =>

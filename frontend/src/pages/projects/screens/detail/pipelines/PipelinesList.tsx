@@ -9,6 +9,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
+import { routePipelinesNamespace, routeProjectPipelineDetailsNamespace } from '~/routes';
 
 type PipelinesListProps = {
   setIsPipelinesEmpty: (isEmpty: boolean) => void;
@@ -55,7 +56,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
           loading={!loaded}
           pipelines={pipelines}
           aria-label="pipelines table"
-          pipelineDetailsPath={(ns, id) => `/projects/${ns}/pipeline/view/${id}`}
+          pipelineDetailsPath={routeProjectPipelineDetailsNamespace}
           refreshPipelines={refresh}
           variant={TableVariant.compact}
         />
@@ -63,7 +64,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
       {totalSize > TABLE_CONTENT_LIMIT && (
         <StackItem>
           <IndentSection>
-            <Button variant="link" onClick={() => navigate(`/pipelines/${namespace}`)}>
+            <Button variant="link" onClick={() => navigate(routePipelinesNamespace(namespace))}>
               View all pipelines
             </Button>
           </IndentSection>

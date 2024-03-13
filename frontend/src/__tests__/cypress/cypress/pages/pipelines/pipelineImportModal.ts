@@ -1,5 +1,5 @@
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { buildMockPipeline } from '~/__mocks__/mockPipelinesProxy';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { buildMockPipelineV2 } from '~/__mocks__/mockPipelinesProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 class PipelineImportModal extends Modal {
@@ -39,14 +39,14 @@ class PipelineImportModal extends Modal {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
-  mockUploadPipeline(params: Partial<PipelineKF>) {
+  mockUploadPipeline(params: Partial<PipelineKFv2>) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines/upload',
+        pathname: '/api/proxy/apis/v2beta1/pipelines/upload',
         times: 1,
       },
-      buildMockPipeline(params),
+      buildMockPipelineV2(params),
     );
   }
 

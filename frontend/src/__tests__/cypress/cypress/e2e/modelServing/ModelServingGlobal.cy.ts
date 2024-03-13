@@ -61,7 +61,7 @@ const initIntercepts = ({
       pathname: '/api/k8s/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
     },
     mockSelfSubjectAccessReview({ allowed: true }),
-  );
+  ).as('selfSubjectAccessReviewsCall');
   cy.intercept(
     {
       method: 'GET',
@@ -123,7 +123,7 @@ const initIntercepts = ({
       pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     },
     { statusCode: 500 },
-  );
+  ).as('inferenceServicesError');
   cy.intercept(
     {
       method: 'GET',
@@ -154,7 +154,6 @@ const initIntercepts = ({
     },
     mockInferenceServiceK8sResource({}),
   );
-
   cy.intercept(
     {
       method: 'POST',
@@ -260,6 +259,7 @@ describe('Model Serving Global', () => {
       expect(response.error?.message).to.eq('Socket closed before finished writing response');
     });
   });
+
   it('Empty State No Project Selected', () => {
     initIntercepts({ inferenceServices: [] });
 
@@ -278,6 +278,16 @@ describe('Model Serving Global', () => {
 
   it('Delete model', () => {
     initIntercepts({});
+
+    cy.intercept(
+      {
+        method: 'DELETE',
+        pathname:
+          '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-inference-service',
+      },
+      {},
+    ).as('deleteModel');
+
     modelServingGlobal.visit('test-project');
 
     // user flow for deleting a project
@@ -294,12 +304,29 @@ describe('Model Serving Global', () => {
     deleteModal.findSubmitButton().should('be.enabled');
 
     // add trailing space
-    deleteModal.findInput().type(' ');
+    deleteModal.findInput().type('x');
     deleteModal.findSubmitButton().should('be.disabled');
+
+    deleteModal.findInput().clear().type('Test Inference Service');
+    deleteModal.findSubmitButton().should('be.enabled');
+
+    deleteModal.findSubmitButton().click();
+
+    cy.wait('@deleteModel');
   });
 
   it('Edit model', () => {
     initIntercepts({});
+
+    cy.intercept(
+      {
+        method: 'PUT',
+        pathname:
+          '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
+      },
+      mockServingRuntimeK8sResource({ name: 'Updated Model Name' }),
+    ).as('editModel');
+
     modelServingGlobal.visit('test-project');
 
     // user flow for editing a project
@@ -348,12 +375,46 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
+
+    inferenceServiceModal.findSubmitButton().click();
+
+    cy.wait('@editModel').then((interception) => {
+      const servingRuntimeMock = mockServingRuntimeK8sResource({ displayName: 'test-model' });
+      delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
+      delete servingRuntimeMock.metadata.annotations?.['enable-route'];
+      delete servingRuntimeMock.spec.replicas;
+      expect(interception.request.url).to.include('?dryRun=All'); //dry run request
+      expect(interception.request.method).to.eql('PUT');
+      expect(interception.request.body).to.eql(servingRuntimeMock);
+    });
   });
 
   it('Create model', () => {
     initIntercepts({
       projectEnableModelMesh: true,
     });
+
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
+      },
+      mockSecretK8sResource({}),
+    );
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname:
+          '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
+      },
+      mockInferenceServiceK8sResource({
+        name: 'test-name',
+        path: 'test-model/',
+        displayName: 'Test Name',
+        isModelMesh: true,
+      }),
+    ).as('createInferenceService');
+
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.findDeployModelButton().click();
@@ -394,12 +455,51 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findLocationBucketInput().type('test-bucket');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
+
+    inferenceServiceModal.findSubmitButton().click();
+
+    //dry run request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.eql({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'test-name',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'Test Name',
+            'serving.kserve.io/deploymentMode': 'ModelMesh',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: { name: 'onnx', version: '1' },
+              runtime: 'test-model',
+              storage: { key: 'test-secret', path: 'test-model/' },
+            },
+          },
+        },
+      });
+    });
+
+    // Actaul request
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
+    });
   });
 
   it('Create model error', () => {
     initIntercepts({
       projectEnableModelMesh: true,
     });
+
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.findDeployModelButton().click();
@@ -421,6 +521,49 @@ describe('Model Serving Global', () => {
 
     // Submit and check the invalid error message
     inferenceServiceModal.findSubmitButton().click();
+
+    cy.wait('@inferenceServicesError').then((interception) => {
+      expect(interception.request.body).to.eql({
+        apiVersion: 'serving.kserve.io/v1beta1',
+        kind: 'InferenceService',
+        metadata: {
+          name: 'trigger-error',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'trigger-error',
+            'serving.kserve.io/deploymentMode': 'ModelMesh',
+          },
+        },
+        spec: {
+          predictor: {
+            model: {
+              modelFormat: { name: 'onnx', version: '1' },
+              runtime: 'test-model',
+              storage: { key: 'test-secret', path: 'test-model/test-model/' },
+            },
+          },
+        },
+      });
+    });
+
+    cy.wait('@selfSubjectAccessReviewsCall').then((interception) => {
+      expect(interception.request.body).to.eql({
+        apiVersion: 'authorization.k8s.io/v1',
+        kind: 'SelfSubjectAccessReview',
+        spec: {
+          resourceAttributes: {
+            group: 'serving.kserve.io',
+            resource: 'servingruntimes',
+            subresource: '',
+            verb: 'list',
+            name: '',
+            namespace: '',
+          },
+        },
+      });
+    });
+
     cy.findByText('Error creating model server');
 
     // Close the modal

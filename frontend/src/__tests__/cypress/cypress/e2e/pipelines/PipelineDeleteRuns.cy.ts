@@ -1,11 +1,11 @@
+/* eslint-disable camelcase */
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
+import { mockPipelineKFv2 } from '~/__mocks__/mockPipelineKF';
 import { buildMockJobKF } from '~/__mocks__/mockJobKF';
-import { mockPipelinesVersionTemplateResourceKF } from '~/__mocks__/mockPipelinesTemplateResourceKF';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
@@ -14,11 +14,9 @@ import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import {
   pipelineRunJobTable,
   pipelineRunsGlobal,
-  pipelineRunTable,
-  scheduledRunDeleteModal,
-  scheduledRunDeleteMultipleModal,
-  triggeredRunDeleteModal,
-  triggeredRunDeleteMultipleModal,
+  archivedRunsTable,
+  runsDeleteModal,
+  schedulesDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const initIntercepts = () => {
@@ -33,52 +31,45 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline',
+      pathname: '/api/proxy/apis/v2beta1/pipelines/test-pipeline',
     },
-    mockPipelineKF({}),
+    mockPipelineKFv2({}),
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/jobs',
+      pathname: '/api/proxy/apis/v2beta1/recurringruns',
     },
     {
-      jobs: [
-        buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
-        buildMockJobKF({ name: 'other-pipeline', id: 'other-pipeline' }),
+      recurringRuns: [
+        buildMockJobKF({ display_name: 'test-pipeline', recurring_run_id: 'test-pipeline' }),
+        buildMockJobKF({ display_name: 'other-pipeline', recurring_run_id: 'other-pipeline' }),
       ],
     },
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/runs',
+      pathname: '/api/proxy/apis/v2beta1/runs',
     },
     {
       runs: [
-        buildMockRunKF({ name: 'test-pipeline', id: 'test-pipeline' }),
-        buildMockRunKF({ name: 'other-pipeline', id: 'other-pipeline' }),
+        buildMockRunKF({ display_name: 'test-pipeline', run_id: 'test-pipeline' }),
+        buildMockRunKF({ display_name: 'other-pipeline', run_id: 'other-pipeline' }),
       ],
     },
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      pathname: '/api/proxy/apis/v2beta1/pipelines',
     },
-    mockPipelineKF({}),
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline/templates',
-    },
-    mockPipelinesVersionTemplateResourceKF(),
+    mockPipelineKFv2({}),
   );
   cy.intercept(
     {
       pathname:
-        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-pipelines-definition',
+        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa',
     },
     mockRouteK8sResource({ notebookName: 'ds-pipeline-pipelines-definition' }),
   );
@@ -103,7 +94,15 @@ const initIntercepts = () => {
   cy.intercept(
     {
       pathname:
-        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
+    },
+    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname:
+        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa',
     },
     mockDataSciencePipelineApplicationK8sResource({}),
   );
@@ -123,24 +122,24 @@ const initIntercepts = () => {
 
 describe('Pipeline runs', () => {
   describe('Test deleting runs', () => {
-    it('Test delete a single run from scheduled', () => {
+    it('Test delete a single schedule', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findScheduledTab().click();
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunJobTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
 
-      scheduledRunDeleteModal.shouldBeOpen();
-      scheduledRunDeleteModal.findSubmitButton().should('be.disabled');
-      scheduledRunDeleteModal.findInput().type('test-pipeline');
-      scheduledRunDeleteModal.findSubmitButton().should('be.enabled');
+      schedulesDeleteModal.shouldBeOpen();
+      schedulesDeleteModal.findSubmitButton().should('be.disabled');
+      schedulesDeleteModal.findInput().type('test-pipeline');
+      schedulesDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/recurringruns/test-pipeline',
         },
         mockStatus(),
       ).as('postJobPipeline');
@@ -148,47 +147,58 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs',
+          pathname: '/api/proxy/apis/v2beta1/recurringruns',
         },
-        { jobs: [buildMockJobKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
+        {
+          recurringRuns: [
+            buildMockJobKF({ recurring_run_id: 'other-pipeline', display_name: 'other-pipeline' }),
+          ],
+        },
       ).as('getRuns');
 
-      scheduledRunDeleteModal.findSubmitButton().click();
+      schedulesDeleteModal.findSubmitButton().click();
 
       cy.wait('@postJobPipeline').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/jobs/test-pipeline',
+          path: '/apis/v2beta1/recurringruns/test-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
       });
-      cy.wait('@getRuns').then(() => {
+      cy.wait('@getRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: { sort_by: 'created_at desc', page_size: 10 },
+        });
         pipelineRunJobTable.findEmptyState().should('not.exist');
       });
     });
-    it('Test delete multiple runs from scheduled', () => {
+
+    it('Test delete multiple schedules', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findScheduledTab().click();
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunJobTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
       pipelineRunJobTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
 
-      pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete selected').click();
+      pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete').click();
 
-      scheduledRunDeleteMultipleModal.shouldBeOpen();
-      scheduledRunDeleteMultipleModal.findSubmitButton().should('be.disabled');
-      scheduledRunDeleteMultipleModal.findInput().type('Delete 2 scheduled runs');
-      scheduledRunDeleteMultipleModal.findSubmitButton().should('be.enabled');
+      schedulesDeleteModal.shouldBeOpen();
+      schedulesDeleteModal.findSubmitButton().should('be.disabled');
+      schedulesDeleteModal.findInput().type('Delete 2 schedules');
+      schedulesDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/recurringruns/test-pipeline',
         },
         mockStatus(),
       ).as('postJobPipeline-1');
@@ -196,7 +206,7 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs/other-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/recurringruns/other-pipeline',
         },
         mockStatus(),
       ).as('postJobPipeline-2');
@@ -204,16 +214,16 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs',
+          pathname: '/api/proxy/apis/v2beta1/recurringruns',
         },
-        { jobs: [] },
+        { recurringRuns: [] },
       ).as('getRuns');
 
-      scheduledRunDeleteMultipleModal.findSubmitButton().click();
+      schedulesDeleteModal.findSubmitButton().click();
 
       cy.wait('@postJobPipeline-1').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/jobs/test-pipeline',
+          path: '/apis/v2beta1/recurringruns/test-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
@@ -223,7 +233,7 @@ describe('Pipeline runs', () => {
 
       cy.wait('@postJobPipeline-2').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/jobs/other-pipeline',
+          path: '/apis/v2beta1/recurringruns/other-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
@@ -231,28 +241,36 @@ describe('Pipeline runs', () => {
         });
       });
 
-      cy.wait('@getRuns').then(() => {
+      cy.wait('@getRuns').then((interception) => {
+        expect(interception.request.body).of.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: { sort_by: 'created_at desc', page_size: 10 },
+        });
+
         pipelineRunJobTable.findEmptyState().should('exist');
       });
     });
-    it('Test delete a single run from triggered', () => {
+
+    it('Test delete a single archived run', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findTriggeredTab().click();
-      pipelineRunTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
+      pipelineRunsGlobal.findArchivedRunsTab().click();
+      archivedRunsTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
 
-      triggeredRunDeleteModal.shouldBeOpen();
-      triggeredRunDeleteModal.findSubmitButton().should('be.disabled');
-      triggeredRunDeleteModal.findInput().type('test-pipeline');
-      triggeredRunDeleteModal.findSubmitButton().should('be.enabled');
+      runsDeleteModal.shouldBeOpen();
+      runsDeleteModal.findSubmitButton().should('be.disabled');
+      runsDeleteModal.findInput().type('test-pipeline');
+      runsDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/runs/test-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline');
@@ -260,47 +278,59 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs',
+          pathname: '/api/proxy/apis/v2beta1/runs',
         },
-        { runs: [buildMockRunKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
+        { runs: [buildMockRunKF({ run_id: 'other-pipeline', display_name: 'other-pipeline' })] },
       ).as('getRuns');
 
-      triggeredRunDeleteModal.findSubmitButton().click();
+      runsDeleteModal.findSubmitButton().click();
 
       cy.wait('@postRunPipeline').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/test-pipeline',
+          path: '/apis/v2beta1/runs/test-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
       });
-      cy.wait('@getRuns').then(() => {
-        pipelineRunTable.findEmptyState().should('not.exist');
+      cy.wait('@getRuns').then((interception) => {
+        archivedRunsTable.findEmptyState().should('not.exist');
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: {
+            sort_by: 'created_at desc',
+            page_size: 10,
+            filter:
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+          },
+        });
       });
     });
-    it('Test delete multiple runs from triggered', () => {
+
+    it('Test delete multiple archived runs', () => {
       initIntercepts();
 
       pipelineRunsGlobal.visit('test-project');
       pipelineRunsGlobal.isApiAvailable();
 
-      pipelineRunsGlobal.findTriggeredTab().click();
-      pipelineRunTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
-      pipelineRunTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
+      pipelineRunsGlobal.findArchivedRunsTab().click();
+      archivedRunsTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
+      archivedRunsTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
 
-      pipelineRunTable.findActionsKebab().findDropdownItem('Delete selected').click();
+      archivedRunsTable.findActionsKebab().findDropdownItem('Delete').click();
 
-      triggeredRunDeleteMultipleModal.shouldBeOpen();
-      triggeredRunDeleteMultipleModal.findSubmitButton().should('be.disabled');
-      triggeredRunDeleteMultipleModal.findInput().type('Delete 2 triggered runs');
-      triggeredRunDeleteMultipleModal.findSubmitButton().should('be.enabled');
+      runsDeleteModal.shouldBeOpen();
+      runsDeleteModal.findSubmitButton().should('be.disabled');
+      runsDeleteModal.findInput().type('Delete 2 runs');
+      runsDeleteModal.findSubmitButton().should('be.enabled');
 
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/runs/test-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline-1');
@@ -308,7 +338,7 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/other-pipeline',
+          pathname: '/api/proxy/apis/v2beta1/runs/other-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline-2');
@@ -316,16 +346,16 @@ describe('Pipeline runs', () => {
       cy.intercept(
         {
           method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs',
+          pathname: '/api/proxy/apis/v2beta1/runs',
         },
         { runs: [] },
       ).as('getRuns');
 
-      triggeredRunDeleteMultipleModal.findSubmitButton().click();
+      runsDeleteModal.findSubmitButton().click();
 
       cy.wait('@postRunPipeline-1').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/test-pipeline',
+          path: '/apis/v2beta1/runs/test-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
@@ -335,15 +365,26 @@ describe('Pipeline runs', () => {
 
       cy.wait('@postRunPipeline-2').then((intercept) => {
         expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/other-pipeline',
+          path: '/apis/v2beta1/runs/other-pipeline',
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
       });
-      cy.wait('@getRuns').then(() => {
-        pipelineRunTable.findEmptyState().should('exist');
+      cy.wait('@getRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: {
+            sort_by: 'created_at desc',
+            page_size: 10,
+            filter:
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+          },
+        });
+        archivedRunsTable.findEmptyState().should('exist');
       });
     });
   });

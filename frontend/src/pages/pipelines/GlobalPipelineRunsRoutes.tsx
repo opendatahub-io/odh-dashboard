@@ -12,82 +12,88 @@ import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pi
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
-import PipelinesDeprecatedBanner from '~/concepts/pipelines/PipelinesDeprecatedBanner';
+import {
+  globNamespaceAll,
+  globPipelineDetails,
+  globPipelineRunClone,
+  globPipelineRunCreate,
+  globPipelineRunDetails,
+  globPipelineRunJobClone,
+  globPipelineRunJobDetails,
+  routePipelineRunsNamespace,
+} from '~/routes';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 
-const GlobalPipelineRunRoutes: React.FC = () => (
+const GlobalPipelineRunsRoutes: React.FC = () => (
   <ProjectsRoutes>
     <Route
-      path="/:namespace?/*"
+      path={globNamespaceAll}
       element={
-        <>
-          <PipelinesDeprecatedBanner />
-          <GlobalPipelineCoreLoader
-            title={pipelineRunsPageTitle}
-            description={pipelineRunsPageDescription}
-            getInvalidRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
-          />
-        </>
+        <GlobalPipelineCoreLoader
+          title={pipelineRunsPageTitle}
+          description={pipelineRunsPageDescription}
+          getInvalidRedirectPath={routePipelineRunsNamespace}
+        />
       }
     >
       <Route index element={<GlobalPipelineRuns />} />
       <Route
-        path="pipeline/view/:pipelineVersionId"
+        path={globPipelineDetails}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineDetails}
             pageName="Runs"
-            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+            redirectPath={routePipelineRunsNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/view/:pipelineRunId"
+        path={globPipelineRunDetails}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineRunDetails}
             pageName="Runs"
-            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+            redirectPath={routePipelineRunsNamespace}
           />
         }
       />
       <Route
-        path="pipelineRunJob/view/:pipelineRunJobId"
+        path={globPipelineRunJobDetails}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineRunJobDetails}
             pageName="Runs"
-            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+            redirectPath={routePipelineRunsNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/create"
+        path={globPipelineRunCreate}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CreateRunPage}
             pageName="Runs"
-            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+            redirectPath={routePipelineRunsNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/clone/:pipelineRunId"
+        path={globPipelineRunClone}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CloneRunPage}
             pageName="Runs"
-            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+            redirectPath={routePipelineRunsNamespace}
           />
         }
       />
       <Route
-        path="pipelineRun/cloneJob/:pipelineRunJobId"
+        path={globPipelineRunJobClone}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CloneRunPage}
             pageName="Runs"
-            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+            redirectPath={routePipelineRunsNamespace}
           />
         }
       />
@@ -99,4 +105,4 @@ const GlobalPipelineRunRoutes: React.FC = () => (
   </ProjectsRoutes>
 );
 
-export default GlobalPipelineRunRoutes;
+export default GlobalPipelineRunsRoutes;

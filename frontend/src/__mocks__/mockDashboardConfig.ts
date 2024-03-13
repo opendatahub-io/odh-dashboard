@@ -18,6 +18,7 @@ type MockDashboardConfigType = {
   disableAcceleratorProfiles?: boolean;
   disablePerformanceMetrics?: boolean;
   disableBiasMetrics?: boolean;
+  disablePipelineExperiments?: boolean;
   disableDistributedWorkloads?: boolean;
 };
 
@@ -39,6 +40,7 @@ export const mockDashboardConfig = ({
   disableAcceleratorProfiles = false,
   disablePerformanceMetrics = false,
   disableBiasMetrics = false,
+  disablePipelineExperiments = true,
   disableDistributedWorkloads = false,
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
@@ -71,6 +73,7 @@ export const mockDashboardConfig = ({
       disableKServe,
       disableModelMesh,
       disableAcceleratorProfiles,
+      disablePipelineExperiments,
       disableDistributedWorkloads,
     },
     notebookController: {
@@ -196,13 +199,5 @@ export const mockDashboardConfig = ({
     ],
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
-  },
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: {
-        available: !disablePipelines,
-        queriedForStatus: false,
-      },
-    },
   },
 });

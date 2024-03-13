@@ -23,7 +23,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   onClose,
   open,
 }) => {
-  const { refresh } = React.useContext(ProjectsContext);
+  const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
@@ -63,12 +63,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     const { name, description, k8sName } = nameDesc;
     if (editProjectData) {
       updateProject(editProjectData, name, description)
-        .then(() => refresh())
         .then(() => onBeforeClose())
         .catch(handleError);
     } else {
       createProject(username, name, description, k8sName)
-        .then((projectName) => refresh(projectName).then(() => onBeforeClose(projectName)))
+        .then((projectName) => waitForProject(projectName).then(() => onBeforeClose(projectName)))
         .catch(handleError);
     }
   };

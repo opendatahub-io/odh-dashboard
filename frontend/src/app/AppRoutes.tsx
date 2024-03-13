@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
+import { globPipelineRunsAll, globPipelinesAll } from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
 const InstalledApplications = React.lazy(
@@ -23,6 +24,9 @@ const NotebookController = React.lazy(
 const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
 const GlobalPipelineRunsRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
+);
+const GlobalPipelineExperimentRoutes = React.lazy(
+  () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
 
 const GlobalDistributedWorkloadsRoutes = React.lazy(
@@ -78,8 +82,9 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
 
-        <Route path="/pipelines/*" element={<GlobalPipelinesRoutes />} />
-        <Route path="/pipelineRuns/*" element={<GlobalPipelineRunsRoutes />} />
+        <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
+        <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
+        <Route path="/pipelineExperiments/*" element={<GlobalPipelineExperimentRoutes />} />
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 

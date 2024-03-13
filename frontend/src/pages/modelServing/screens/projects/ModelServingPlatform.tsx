@@ -14,7 +14,6 @@ import {
 import { ServingRuntimePlatform } from '~/types';
 import ModelServingPlatformSelect from '~/pages/modelServing/screens/projects/ModelServingPlatformSelect';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
@@ -48,8 +47,6 @@ const ModelServingPlatform: React.FC = () => {
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
-  const { refresh: refreshAllProjects } = React.useContext(ProjectsContext);
-
   const templatesSorted = getSortedTemplates(templates, templateOrder);
   const templatesEnabled = templatesSorted.filter((template) =>
     getTemplateEnabled(template, templateDisablement),
@@ -70,7 +67,6 @@ const ModelServingPlatform: React.FC = () => {
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
     if (submit) {
-      refreshAllProjects();
       refreshServingRuntime();
       refreshInferenceServices();
       setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation

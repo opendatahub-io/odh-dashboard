@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Alert, Button, Modal, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  Flex,
+  FlexItem,
+  Modal,
+  Stack,
+  StackItem,
+  TextInput,
+} from '@patternfly/react-core';
 
 type DeleteModalProps = {
   title: string;
@@ -58,7 +67,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           key="delete-button"
           variant="danger"
           isLoading={deleting}
-          isDisabled={deleting || value !== deleteNameSanitized}
+          isDisabled={deleting || value.trim() !== deleteNameSanitized}
           onClick={() => onBeforeClose(true)}
         >
           {submitButtonLabel}
@@ -68,26 +77,32 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         </Button>,
       ]}
       variant="small"
-      data-testid={testId}
+      data-testid={testId || 'delete-modal'}
     >
       <Stack hasGutter>
         <StackItem>{children}</StackItem>
+
         <StackItem>
-          Type <strong>{deleteNameSanitized}</strong> to confirm deletion.
+          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+            <FlexItem>
+              Type <strong>{deleteNameSanitized}</strong> to confirm deletion:
+            </FlexItem>
+
+            <TextInput
+              id="delete-modal-input"
+              data-testid="delete-modal-input"
+              aria-label="Delete modal input"
+              value={value}
+              onChange={(_e, newValue) => setValue(newValue)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && value.trim() === deleteNameSanitized && !deleting) {
+                  onDelete();
+                }
+              }}
+            />
+          </Flex>
         </StackItem>
-        <StackItem>
-          <TextInput
-            id="delete-modal-input"
-            aria-label="Delete modal input"
-            value={value}
-            onChange={(e, newValue) => setValue(newValue)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && value === deleteNameSanitized && !deleting) {
-                onDelete();
-              }
-            }}
-          />
-        </StackItem>
+
         {error && (
           <StackItem>
             <Alert title={`Error deleting ${deleteNameSanitized}`} isInline variant="danger">

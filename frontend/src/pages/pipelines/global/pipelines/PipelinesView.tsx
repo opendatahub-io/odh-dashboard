@@ -11,6 +11,7 @@ import {
   getTablePagingProps,
   getTableSortProps,
 } from '~/concepts/pipelines/content/tables/usePipelineTable';
+import { routePipelineDetailsNamespace } from '~/routes';
 
 const PipelinesView: React.FC = () => {
   const [
@@ -48,7 +49,7 @@ const PipelinesView: React.FC = () => {
       pipelines={pipelines}
       enablePagination="compact"
       refreshPipelines={refresh}
-      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
+      pipelineDetailsPath={routePipelineDetailsNamespace}
       toolbarContent={<GlobalPipelinesTableToolbar {...filterToolbarProps} />}
       emptyTableView={
         <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />

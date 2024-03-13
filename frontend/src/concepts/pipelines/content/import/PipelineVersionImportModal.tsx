@@ -13,13 +13,13 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
+import { generatePipelineVersionName } from './utils';
 
 type PipelineVersionImportModalProps = {
-  existingPipeline?: PipelineKF | null;
-  onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  existingPipeline?: PipelineKFv2 | null;
+  onClose: (pipelineVersion?: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => void;
 };
 
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
@@ -32,14 +32,14 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   const [{ name, description, pipeline, fileContents }, setData, resetData] =
     usePipelineVersionImportModalData(existingPipeline);
 
-  const pipelineId = pipeline?.id || '';
-  const pipelineName = pipeline?.name || '';
+  const pipelineId = pipeline?.pipeline_id || '';
+  const pipelineName = pipeline?.display_name || '';
 
   const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents || !pipeline;
 
   const onBeforeClose = (
-    pipelineVersion?: PipelineVersionKF,
-    currentPipeline?: PipelineKF | null,
+    pipelineVersion?: PipelineVersionKFv2,
+    currentPipeline?: PipelineKFv2 | null,
   ) => {
     onClose(pipelineVersion, currentPipeline);
     setImporting(false);

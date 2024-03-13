@@ -4,6 +4,8 @@ import {
   Level,
   LevelItem,
   Spinner,
+  Stack,
+  StackItem,
   Switch,
   Timestamp,
   TimestampTooltipVariant,
@@ -14,43 +16,41 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
-  PipelineRunJobKF,
-  PipelineRunKF,
-  PipelineCoreResourceKF,
-  PipelineVersionKF,
+  PipelineRunKFv2,
+  runtimeStateLabels,
+  PipelineRunJobKFv2,
+  RecurringRunMode,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
-  getExperimentResourceRef,
   getPipelineRunJobScheduledState,
   ScheduledState,
-  getPipelineVersionResourceRef,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
-type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
-type CoreResourceUtil<P = ExtraProps> = React.FC<{ resource: PipelineCoreResourceKF } & P>;
-type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKF } & P>;
+type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
+type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKFv2 } & P>;
 
 export const RunNameForPipeline: RunUtil = ({ run }) => {
   const { namespace } = usePipelinesAPI();
   return (
     // TODO: get link path
-    <Link to={`/pipelines/${namespace}/pipelineRun/view/${run.id}`}>
-      <Truncate content={run.name} />
+    // TODO: check if this could be removed with the `expandedRowRenderUtils.tsx`
+    // Not going to refactor the link here
+    <Link to={`/pipelines/${namespace}/pipelineRun/view/${run.run_id}`}>
+      <Truncate content={run.display_name} />
     </Link>
   );
 };
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
-  const { icon, status, label, details } = computeRunStatus(run);
-  let tooltipContent = details;
+  const { icon, status, label, details, createdAt } = computeRunStatus(run);
+  let tooltipContent: React.ReactNode = details;
 
   const content = (
     <div style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
@@ -63,7 +63,12 @@ export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) =>
 
   if (justIcon && !tooltipContent) {
     // If we are just an icon with no tooltip -- make it the status for ease of understanding
-    tooltipContent = run.status;
+    tooltipContent = (
+      <Stack>
+        <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
+        <StackItem>{`Started: ${createdAt}`}</StackItem>
+      </Stack>
+    );
   }
 
   if (tooltipContent) {
@@ -87,28 +92,9 @@ export const RunCreated: RunUtil = ({ run }) => {
   return <PipelinesTableRowTime date={createdDate} />;
 };
 
-export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
-  <>{getExperimentResourceRef(resource)?.name || 'Default'}</>
-);
-
-export const CoreResourcePipelineVersion: CoreResourceUtil<{
-  loaded: boolean;
-  version?: PipelineVersionKF;
-  error?: Error;
-}> = ({ resource, loaded, version, error }) => {
-  const resourceRef = getPipelineVersionResourceRef(resource);
-  if (!resourceRef) {
-    return <NoRunContent />;
-  }
-
-  return (
-    <PipelineVersionLink
-      displayName={resourceRef.name}
-      version={version}
-      error={error}
-      loaded={loaded}
-    />
-  );
+export const JobCreated: RunJobUtil = ({ job }) => {
+  const createdDate = new Date(job.created_at);
+  return <PipelinesTableRowTime date={createdDate} />;
 };
 
 export const RunJobTrigger: RunJobUtil = ({ job }) => {
@@ -162,7 +148,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
 
-  const isEnabled = job.enabled ?? false;
+  const isEnabled = job.mode === RecurringRunMode.ENABLE;
   React.useEffect(() => {
     // When the network updates, if we are currently locked fetching, disable it so we can accept the change
     setIsChangingFlag((v) => (v ? false : v));
@@ -170,9 +156,9 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
 
   return (
     <Level hasGutter>
-      <LevelItem>
+      <LevelItem data-testid="job-status-switch">
         <Switch
-          id={`${job.id}-toggle`}
+          id={`${job.recurring_run_id}-toggle`}
           aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
           isDisabled={isChangingFlag}
           onChange={(e, checked) => {

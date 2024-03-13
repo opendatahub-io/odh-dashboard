@@ -1,9 +1,9 @@
 import {
-  k8sGetResource,
   k8sListResource,
   k8sCreateResource,
   k8sUpdateResource,
   k8sDeleteResource,
+  useK8sWatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import axios from 'axios';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
@@ -16,22 +16,23 @@ import {
   deleteProject,
   getModelServingProjects,
   getModelServingProjectsAvailable,
-  getProject,
   getProjects,
   updateProject,
+  useProjects,
 } from '~/api/k8s/projects';
 import { ProjectModel } from '~/api/models';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { listServingRuntimes } from '~/api/k8s/servingRuntimes';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ProjectKind } from '~/k8sTypes';
+import { groupVersionKind } from '~/api/k8sUtils';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  k8sGetResource: jest.fn(),
   k8sListResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sUpdateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
+  useK8sWatchResource: jest.fn(),
 }));
 
 jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
@@ -42,36 +43,24 @@ jest.mock('axios');
 
 const mockedAxios = jest.mocked(axios);
 const listServingRuntimesMock = jest.mocked(listServingRuntimes);
-const k8sGetResourceMock = jest.mocked(k8sGetResource<ProjectKind>);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<ProjectKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<ProjectKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<ProjectKind>);
+const useK8sWatchResourceMock = jest.mocked(useK8sWatchResource<ProjectKind[]>);
 
-describe('getProject', () => {
-  const projectName = 'test-project';
-  it('should successfully fetch and  return specific project', async () => {
-    const projectMock = mockProjectK8sResource({});
-    k8sGetResourceMock.mockResolvedValue(projectMock);
-
-    const result = await getProject(projectName);
-    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      model: ProjectModel,
-      queryOptions: { name: projectName },
-    });
-    expect(result).toStrictEqual(projectMock);
-  });
-
-  it('should handle errors and rethrow', async () => {
-    k8sGetResourceMock.mockRejectedValue(new Error('error'));
-
-    await expect(getProject(projectName)).rejects.toThrow('error');
-    expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      model: ProjectModel,
-      queryOptions: { name: projectName },
-    });
-    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
+describe('useProjects', () => {
+  it('should wrap useK8sWatchResource to watch projects', async () => {
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceMock> = [[], false, false];
+    useK8sWatchResourceMock.mockReturnValue(mockReturnValue);
+    expect(useProjects()).toBe(mockReturnValue);
+    expect(useK8sWatchResourceMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(ProjectModel),
+      },
+      ProjectModel,
+    );
   });
 });
 

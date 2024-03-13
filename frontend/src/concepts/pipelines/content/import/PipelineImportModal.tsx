@@ -13,11 +13,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type PipelineImportModalProps = {
   isOpen: boolean;
-  onClose: (pipeline?: PipelineKF) => void;
+  onClose: (pipeline?: PipelineKFv2) => void;
 };
 
 const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClose }) => {
@@ -28,7 +28,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
 
   const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents;
 
-  const onBeforeClose = (pipeline?: PipelineKF) => {
+  const onBeforeClose = (pipeline?: PipelineKFv2) => {
     onClose(pipeline);
     setImporting(false);
     setError(undefined);

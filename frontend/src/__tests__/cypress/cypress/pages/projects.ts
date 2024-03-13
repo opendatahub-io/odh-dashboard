@@ -52,7 +52,11 @@ class ProjectListPage {
   }
 
   findProjectRow(projectName: string) {
-    return this.findProjectsTable().findByRole('link', { name: projectName }).parents('tr');
+    return this.findProjectLink(projectName).parents('tr');
+  }
+
+  findProjectLink(projectName: string) {
+    return this.findProjectsTable().findByRole('link', { name: projectName });
   }
 }
 
@@ -115,7 +119,7 @@ class ProjectDetails {
   }
 
   findComponent(componentName: string) {
-    return cy.findByTestId(componentName);
+    return cy.findByTestId(`section-${componentName}`);
   }
 
   shouldBeEmptyState(componentName: string, emptyState: boolean) {

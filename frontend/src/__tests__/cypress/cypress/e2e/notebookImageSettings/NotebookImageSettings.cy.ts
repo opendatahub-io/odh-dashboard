@@ -96,8 +96,14 @@ describe('Notebook images', () => {
   it('Import form fields', () => {
     cy.intercept('/api/status', mockStatus());
     cy.intercept('/api/config', mockDashboardConfig({}));
-
     cy.intercept('/api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/api/images',
+      },
+      {},
+    ).as('importNotebookImage');
 
     notebookImageSettings.visit();
 
@@ -182,13 +188,46 @@ describe('Notebook images', () => {
     importNotebookImageModal.findAddPackagesButton().click();
     importNotebookImageModal.findCancelButton().should('be.disabled');
     importNotebookImageModal.findSubmitButton().should('be.disabled');
+
+    //succesfully import notebook image
+    importNotebookImageModal.findPackageseNameInput().type('packages-3');
+    importNotebookImageModal.findPackagesVersionInput().type('version');
+    importNotebookImageModal.findSaveResourceButton().click();
+    importNotebookImageModal.findSubmitButton().should('be.enabled');
+
+    importNotebookImageModal.findSubmitButton().click();
+
+    cy.wait('@importNotebookImage').then((interception) => {
+      expect(interception.request.body).to.eql({
+        /* eslint-disable-next-line camelcase */
+        display_name: 'image',
+        url: 'image:latest',
+        description: '',
+        recommendedAcceleratorIdentifiers: [],
+        provider: 'admin-user',
+        packages: [
+          { name: 'packages', version: 'version', visible: true },
+          { name: 'packages-1', version: 'version-1', visible: true },
+          { name: 'packages-3', version: 'version', visible: true },
+        ],
+        software: [{ name: 'software', version: 'version', visible: true }],
+      });
+    });
   });
 
   it('Edit form fields match', () => {
     cy.intercept('/api/status', mockStatus());
     cy.intercept('/api/config', mockDashboardConfig({}));
-
     cy.intercept('/api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.intercept(
+      {
+        method: 'PUT',
+        pathname: '/api/images/byon-123',
+      },
+      /* eslint-disable-next-line camelcase */
+      mockByon([{ url: 'test-image:latest', display_name: 'Updated custom image' }]),
+    ).as('editNotebookImage');
+
     notebookImageSettings.visit();
 
     // open edit form
@@ -206,6 +245,25 @@ describe('Notebook images', () => {
     updateNotebookImageModal.findPackagesTab().click();
     updateNotebookImageModal.find().findByRole('cell', { name: 'test-package' }).should('exist');
     updateNotebookImageModal.find().findByRole('cell', { name: '1.0' }).should('exist');
+
+    // test edit notebook image
+    updateNotebookImageModal.findNameInput().clear();
+    updateNotebookImageModal.findNameInput().type('Updated custom image');
+    updateNotebookImageModal.findSubmitButton().should('be.enabled');
+
+    updateNotebookImageModal.findSubmitButton().click();
+
+    cy.wait('@editNotebookImage').then((interception) => {
+      expect(interception.request.body).to.eql({
+        name: 'byon-123',
+        /* eslint-disable-next-line camelcase */
+        display_name: 'Updated custom image',
+        description: 'A custom notebook image',
+        recommendedAcceleratorIdentifiers: [],
+        packages: [{ name: 'test-package', version: '1.0', visible: true }],
+        software: [{ name: 'test-software', version: '2.0', visible: true }],
+      });
+    });
   });
 
   it('Delete form', () => {
@@ -236,14 +294,17 @@ describe('Notebook images', () => {
     cy.intercept('/api/images', {
       success: false,
       error: 'Testing create error message',
-    });
+    }).as('createError');
+
     cy.intercept('/api/images/byon-1', {
       success: false,
       error: 'Testing edit error message',
-    });
+    }).as('editError');
+
     cy.intercept('DELETE', '/api/images/byon-1', {
       statusCode: 404,
-    });
+    }).as('deleteError');
+
     cy.intercept(
       '/api/images/byon',
       mockByon([
@@ -261,12 +322,22 @@ describe('Notebook images', () => {
     importNotebookImageModal.findImageLocationInput().type('image:location');
     importNotebookImageModal.findNameInput().type('test name');
     importNotebookImageModal.findSubmitButton().click();
+
+    cy.wait('@createError').then((interception) => {
+      expect(interception.request.method).to.eql('POST');
+    });
+
     cy.findByText('Testing create error message');
     importNotebookImageModal.findCloseButton().click();
 
     // edit error
     notebookImageSettings.getRow('Testing Custom Image').find().findKebabAction('Edit').click();
     updateNotebookImageModal.findSubmitButton().click();
+
+    cy.wait('@editError').then((interception) => {
+      expect(interception.request.method).to.eql('PUT');
+    });
+
     cy.findByText('Testing edit error message');
     updateNotebookImageModal.findCloseButton().click();
 
@@ -274,6 +345,9 @@ describe('Notebook images', () => {
     notebookImageSettings.getRow('Testing Custom Image').find().findKebabAction('Delete').click();
     deleteModal.findInput().type('Testing Custom Image');
     deleteModal.findSubmitButton().click();
+
+    cy.wait('@deleteError');
+
     cy.findByRole('heading', { name: 'Danger alert: Error deleting Testing Custom Image' });
     deleteModal.findCloseButton().click();
 

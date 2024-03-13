@@ -317,6 +317,9 @@ export type PodContainer = {
   livenessProbe?: Record<string, unknown>;
   readinessProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
+  terminationMessagePath?: string;
+  terminationMessagePolicy?: string;
+  securityContext?: unknown;
 };
 
 export type PodStepState = { stepName: string; state: PodStepStateType };

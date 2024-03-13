@@ -3,7 +3,7 @@ import { Tooltip } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 type DashboardHelpTooltipProps = {
-  content: string;
+  content: React.ReactNode;
 };
 
 const DashboardHelpTooltip: React.FC<DashboardHelpTooltipProps> = ({ content }) => (

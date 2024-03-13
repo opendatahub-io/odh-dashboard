@@ -25,7 +25,7 @@ describe('configure pipeline server utils', () => {
           value: [],
         },
         objectStorage: {
-          newValue: [],
+          newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
         },
       } as PipelineServerConfigType);
 
@@ -42,11 +42,13 @@ describe('configure pipeline server utils', () => {
         createSecretsResponse(),
       );
       expect(spec).toEqual({
+        dspVersion: 'v2',
         database: undefined,
         objectStorage: {
           externalStorage: {
             bucket: '',
             host: '',
+            region: 'us-east-1',
             s3CredentialsSecret: {
               accessKey: 'AWS_ACCESS_KEY_ID',
               secretKey: 'AWS_SECRET_ACCESS_KEY',
@@ -66,7 +68,7 @@ describe('configure pipeline server utils', () => {
       ];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
-      expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.us-east-1.amazonaws.com');
     });
 
     it('should parse S3 endpoint without scheme', () => {
@@ -75,13 +77,39 @@ describe('configure pipeline server utils', () => {
       config.objectStorage.newValue = [{ key: AwsKeys.S3_ENDPOINT, value: 's3.amazonaws.com' }];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('https');
-      expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.us-east-1.amazonaws.com');
+    });
+
+    it('should convert S3 endpoint with region', () => {
+      const config = createPipelineServerConfig();
+      const secretsResponse = createSecretsResponse();
+      config.objectStorage.newValue = [
+        { key: AwsKeys.S3_ENDPOINT, value: 'http://s3.amazonaws.com' },
+        { key: AwsKeys.DEFAULT_REGION, value: 'us-east-2' },
+      ];
+      const spec = createDSPipelineResourceSpec(config, secretsResponse);
+      expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.us-east-2.amazonaws.com');
+    });
+
+    it('should not convert endpoint when it is not S3', () => {
+      const config = createPipelineServerConfig();
+      const secretsResponse = createSecretsResponse();
+      config.objectStorage.newValue = [
+        { key: AwsKeys.S3_ENDPOINT, value: 'http://s3.not-amazonaws.com' },
+      ];
+      const spec = createDSPipelineResourceSpec(config, secretsResponse);
+      expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.not-amazonaws.com');
     });
 
     it('should include bucket', () => {
       const secretsResponse = createSecretsResponse();
       const config = createPipelineServerConfig();
-      config.objectStorage.newValue = [{ key: AwsKeys.AWS_S3_BUCKET, value: 'my-bucket' }];
+      config.objectStorage.newValue = [
+        ...config.objectStorage.newValue,
+        { key: AwsKeys.AWS_S3_BUCKET, value: 'my-bucket' },
+      ];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.bucket).toBe('my-bucket');
     });
@@ -114,10 +142,12 @@ describe('configure pipeline server utils', () => {
         }),
       );
       expect(spec).toEqual({
+        dspVersion: 'v2',
         objectStorage: {
           externalStorage: {
             bucket: '',
             host: '',
+            region: 'us-east-1',
             s3CredentialsSecret: {
               accessKey: 'AWS_ACCESS_KEY_ID',
               secretKey: 'AWS_SECRET_ACCESS_KEY',
@@ -154,14 +184,14 @@ describe('configure pipeline server utils', () => {
         dspaSecretName: DSPA_SECRET_NAME,
       });
       getPipelinesCRMock.mockResolvedValue(mockDSPA);
-      await deleteServer('namespace');
+      await deleteServer('namespace', 'dpsa');
       expect(deleteSecretMock).toHaveBeenCalledTimes(3);
       expect(deleteSecretMock).toHaveBeenNthCalledWith(3, 'namespace', DSPA_SECRET_NAME);
     });
     it('should deleteSecret have been called 3 times if name is not generated', async () => {
       const mockDSPA = mockDataSciencePipelineApplicationK8sResource({});
       getPipelinesCRMock.mockResolvedValue(mockDSPA);
-      await deleteServer('namespace');
+      await deleteServer('namespace', 'dpsa');
       expect(deleteSecretMock).toHaveBeenCalledTimes(3);
     });
     it('should deleteSecret have been called 4 times if name generated', async () => {
@@ -169,7 +199,7 @@ describe('configure pipeline server utils', () => {
         dspaSecretName: `secret-${genRandomChars()}`,
       });
       getPipelinesCRMock.mockResolvedValue(mockDSPA);
-      await deleteServer('namespace');
+      await deleteServer('namespace', 'dpsa');
       expect(deleteSecretMock).toHaveBeenCalledTimes(4);
     });
   });

@@ -1,32 +1,21 @@
 import * as React from 'react';
 import {
   Bullseye,
-  Button,
   EmptyState,
   EmptyStateBody,
   Spinner,
   EmptyStateHeader,
-  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { Route, Routes } from 'react-router-dom';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 
 type ProjectsRoutesProps = {
   children: React.ReactNode;
-  disableMountRefresh?: boolean;
 };
 
 /** For replacing the react-router <Routes> object in a safe "always render with projects". */
-const ProjectsRoutes: React.FC<ProjectsRoutesProps> = ({ children, disableMountRefresh }) => {
-  const { loaded, loadError, refresh } = React.useContext(ProjectsContext);
-  const [enabledRefresh, setEnabledRefresh] = React.useState(true);
-
-  React.useEffect(() => {
-    if (!disableMountRefresh) {
-      setEnabledRefresh(false);
-      refresh().then(() => setEnabledRefresh(true));
-    }
-  }, [disableMountRefresh, refresh]);
+const ProjectsRoutes: React.FC<ProjectsRoutesProps> = ({ children }) => {
+  const { loaded, loadError } = React.useContext(ProjectsContext);
 
   let render: React.ReactNode;
 
@@ -36,18 +25,6 @@ const ProjectsRoutes: React.FC<ProjectsRoutesProps> = ({ children, disableMountR
       <EmptyState>
         <EmptyStateHeader titleText="There was an issue fetching projects." headingLevel="h2" />
         <EmptyStateBody>{loadError.message}</EmptyStateBody>
-        <EmptyStateFooter>
-          <Button
-            variant="primary"
-            isDisabled={!enabledRefresh}
-            onClick={() => {
-              setEnabledRefresh(false);
-              refresh().then(() => setEnabledRefresh(true));
-            }}
-          >
-            Attempt to refresh
-          </Button>
-        </EmptyStateFooter>
       </EmptyState>
     );
   } else if (!loaded) {

@@ -20,7 +20,7 @@ type ProjectListViewProps = {
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope }) => {
-  const { projects, dataScienceProjects, refresh } = React.useContext(ProjectsContext);
+  const { projects, dataScienceProjects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -122,10 +122,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
       />
       <DeleteProjectModal
         deleteData={deleteData}
-        onClose={(deleted) => {
-          if (deleted) {
-            refresh();
-          }
+        onClose={() => {
           setDeleteData(undefined);
         }}
       />

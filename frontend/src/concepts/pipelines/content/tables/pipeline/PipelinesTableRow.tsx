@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Td, Tbody, Tr, ActionsColumn } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
@@ -10,15 +10,20 @@ import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/Pipe
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import { routePipelineRunCreateNamespacePipelinesPage } from '~/routes';
+
+const DISABLE_TOOLTIP =
+  'All child pipeline versions must be deleted before deleting the parent pipeline';
 
 type PipelinesTableRowProps = {
-  pipeline: PipelineKF;
+  pipeline: PipelineKFv2;
   isChecked: boolean;
   onToggleCheck: () => void;
   rowIndex: number;
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
+  disableCheck: (id: PipelineKFv2, disabled: boolean) => void;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
@@ -29,11 +34,12 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   onDeletePipeline,
   refreshPipelines,
   pipelineDetailsPath,
+  disableCheck,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [isExpanded, setExpanded] = React.useState(false);
-  const [importTarget, setImportTarget] = React.useState<PipelineKF | null>(null);
+  const [importTarget, setImportTarget] = React.useState<PipelineKFv2 | null>(null);
   const {
     totalSize,
     updatedDate,
@@ -45,6 +51,15 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   const selectedVersionLength = selectedVersions.length;
 
   const createdDate = new Date(pipeline.created_at);
+
+  const pipelineRef = React.useRef(pipeline);
+  pipelineRef.current = pipeline;
+
+  // disable the checkbox if the pipeline has pipeline versions
+  const disableDelete = totalSize > 0;
+  React.useEffect(() => {
+    disableCheck(pipelineRef.current, disableDelete || loading);
+  }, [disableDelete, loading, disableCheck]);
 
   return (
     <>
@@ -59,13 +74,15 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             }}
           />
           <CheckboxTd
-            id={pipeline.id}
+            id={pipeline.pipeline_id}
             isChecked={isChecked ? true : selectedVersionLength !== 0 ? null : false}
             onToggle={onToggleCheck}
+            isDisabled={disableDelete}
+            tooltip={disableDelete ? DISABLE_TOOLTIP : undefined}
           />
           <Td>
             <TableRowTitleDescription
-              title={pipeline.name}
+              title={pipeline.display_name}
               description={pipeline.description}
               descriptionAsMarkdown
             />
@@ -90,7 +107,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                    navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
                       state: { lastPipeline: pipeline },
                     });
                   },
@@ -100,6 +117,12 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 },
                 {
                   title: 'Delete pipeline',
+                  isAriaDisabled: disableDelete,
+                  tooltipProps: disableDelete
+                    ? {
+                        content: DISABLE_TOOLTIP,
+                      }
+                    : undefined,
                   onClick: () => {
                     onDeletePipeline();
                   },
@@ -110,9 +133,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
         </Tr>
         {isExpanded && (
           <PipelinesTableExpandedRow
-            // Upload a new version will update the pipeline default version
-            // Which could trigger a re-render of the versions table
-            key={pipeline.default_version?.id}
+            // Upload a new version will update the totalSize (version length)
+            // Which will trigger a re-render of the versions table
+            key={`${pipeline.pipeline_id}-expanded-${totalSize}`}
             pipeline={pipeline}
             pipelineDetailsPath={pipelineDetailsPath}
           />

@@ -33,6 +33,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServe: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
+      disablePipelineExperiments: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -52,12 +53,6 @@ export type DashboardConfig = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
-  };
-  /** Faux status object -- will be replaced in the long run by a Dashboard Controller */
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: OperatorStatus;
-    };
   };
 };
 

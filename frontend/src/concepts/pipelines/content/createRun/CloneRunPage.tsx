@@ -1,22 +1,29 @@
-import * as React from 'react';
+import React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+
 import RunPage from '~/concepts/pipelines/content/createRun/RunPage';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useCloneRunData from '~/concepts/pipelines/content/createRun/useCloneRunData';
+import { PathProps, PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { asEnumMember } from '~/utilities/utils';
+import { runTypeCategory } from './types';
 
-const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
-  const [resource, loaded, error] = useCloneRunData();
+const CloneRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
+  const [run, loaded, error] = useCloneRunData();
+  const { runTypeString } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
+  const runType = asEnumMember(runTypeString, PipelineRunType);
+  const title = `Duplicate ${runTypeCategory[runType || PipelineRunType.Active]}`;
 
   return (
     <ApplicationsPage
-      title={resource ? `Duplicate of ${resource.name}` : 'Loading...'}
-      description={resource ? `Create a new run from ${resource.name}.` : ''}
+      title={title}
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive>
-            {resource ? `Duplicate of ${resource.name}` : 'Duplicate'}
+            {run ? `Duplicate of ${run.display_name}` : 'Duplicate'}
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -24,7 +31,7 @@ const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contex
       loadError={error}
       empty={false}
     >
-      <RunPage cloneRun={resource ?? undefined} contextPath={contextPath} testId="clone-run-page" />
+      <RunPage cloneRun={run} contextPath={contextPath} testId="clone-run-page" />
     </ApplicationsPage>
   );
 };

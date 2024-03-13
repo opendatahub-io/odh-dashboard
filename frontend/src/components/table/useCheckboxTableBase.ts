@@ -7,6 +7,8 @@ export type UseCheckboxTableBaseProps<DataType> = {
   tableProps: Required<Pick<React.ComponentProps<typeof Table>, 'selectAll'>>;
   toggleSelection: (selection: DataType) => void;
   isSelected: (selection: DataType) => boolean;
+  disableCheck: (item: DataType, enabled: boolean) => void;
+  setSelections: React.Dispatch<React.SetStateAction<DataType[]>>;
 };
 
 const useCheckboxTableBase = <T>(
@@ -17,6 +19,9 @@ const useCheckboxTableBase = <T>(
   selectAll?: { selected?: boolean; disabled?: boolean },
 ): UseCheckboxTableBaseProps<T> => {
   const dataIds = React.useMemo(() => data.map(dataMappingHelper), [data, dataMappingHelper]);
+
+  const [disabledData, setDisabledData] = React.useState<T[]>([]);
+
   const selectedDataIds = React.useMemo(
     () => selectedData.map(dataMappingHelper),
     [selectedData, dataMappingHelper],
@@ -33,22 +38,46 @@ const useCheckboxTableBase = <T>(
     }
   }, [data, dataIds, dataMappingHelper, selectedData, selectedDataIds, setSelectedData]);
 
+  const disableCheck = React.useCallback<UseCheckboxTableBaseProps<T>['disableCheck']>(
+    (item, disabled) =>
+      setDisabledData((prevData) =>
+        disabled
+          ? prevData.some((d) => dataMappingHelper(d) === dataMappingHelper(item))
+            ? prevData
+            : [...prevData, item]
+          : prevData.filter((d) => dataMappingHelper(d) !== dataMappingHelper(item)),
+      ),
+    [dataMappingHelper],
+  );
+
   return React.useMemo(() => {
     // Header is selected if all selections and all ids are equal
     // This will allow for checking of the header to "reset" to provided ids during a trim/filter
-    const headerSelected = selectedDataIds.length > 0 && xor(selectedDataIds, dataIds).length === 0;
+    const checkable = data.filter(
+      (d) => !disabledData.some((item) => dataMappingHelper(item) === dataMappingHelper(d)),
+    );
+
+    const headerSelected =
+      selectedDataIds.length > 0 &&
+      xor(selectedDataIds, checkable.map(dataMappingHelper)).length === 0;
+
+    const allDisabled = selectedData.length === 0 && disabledData.length === data.length;
 
     return {
       selections: selectedData,
+      setSelections: setSelectedData,
       tableProps: {
         selectAll: {
+          disabled: allDisabled,
+          tooltip: allDisabled ? 'No selectable rows' : undefined,
           onSelect: (value) => {
-            setSelectedData(value ? data : []);
+            setSelectedData(value ? checkable : []);
           },
           selected: headerSelected,
           ...selectAll,
         },
       },
+      disableCheck,
       isSelected: (selection) => selectedDataIds.includes(dataMappingHelper(selection)),
       toggleSelection: (selection) => {
         const id = dataMappingHelper(selection);
@@ -61,7 +90,16 @@ const useCheckboxTableBase = <T>(
         );
       },
     };
-  }, [selectedDataIds, dataIds, selectedData, selectAll, setSelectedData, data, dataMappingHelper]);
+  }, [
+    data,
+    selectedDataIds,
+    dataMappingHelper,
+    selectedData,
+    selectAll,
+    disableCheck,
+    disabledData,
+    setSelectedData,
+  ]);
 };
 
 export default useCheckboxTableBase;

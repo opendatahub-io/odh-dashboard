@@ -61,6 +61,8 @@ spec:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
+                    disablePipelineExperiments:
+                      type: boolean
                     disableDistributedWorkloads:
                       type: boolean
                 groupsConfig:

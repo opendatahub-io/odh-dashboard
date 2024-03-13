@@ -6,8 +6,8 @@ import {
 import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 
-export const deleteServer = async (namespace: string): Promise<void> => {
-  const dspa = await getPipelinesCR(namespace);
+export const deleteServer = async (namespace: string, crName: string): Promise<void> => {
+  const dspa = await getPipelinesCR(namespace, crName);
   const dspaSecretName =
     dspa.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '';
   return allSettledPromises([
@@ -17,7 +17,7 @@ export const deleteServer = async (namespace: string): Promise<void> => {
     ...(isGeneratedDSPAExternalStorageSecret(dspaSecretName)
       ? [deleteSecret(namespace, dspaSecretName)]
       : []),
-    deletePipelineCR(namespace),
+    deletePipelineCR(namespace, crName),
   ]).then(() => undefined);
 };
 

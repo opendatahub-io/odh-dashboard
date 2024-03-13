@@ -74,7 +74,10 @@ const initIntercepts = ({
   );
 
   cy.intercept(
-    '/api/k8s/apis/project.openshift.io/v1/projects',
+    {
+      method: 'GET',
+      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
+    },
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh })]),
   );
   cy.intercept(
@@ -224,6 +227,7 @@ describe('Model Metrics', () => {
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
     modelMetricsPerformance.getMetricsChart('HTTP requests per 5 minutes').shouldHaveNoData();
   });
+
   it('Serving Chart Shows Data', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -235,6 +239,7 @@ describe('Model Metrics', () => {
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
     modelMetricsPerformance.getMetricsChart('HTTP requests per 5 minutes').shouldHaveData();
   });
+
   it('Empty State No Bias Data Available', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -274,6 +279,7 @@ describe('Model Metrics', () => {
       .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2 STRICT')
       .shouldHaveNoData();
   });
+
   it('Bias Charts Show Data', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -313,6 +319,7 @@ describe('Model Metrics', () => {
       .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2 STRICT')
       .shouldHaveData();
   });
+
   it('Server metrics show no data available ', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -327,6 +334,7 @@ describe('Model Metrics', () => {
     serverMetrics.getMetricsChart('CPU utilization %').shouldHaveNoData();
     serverMetrics.getMetricsChart('Memory utilization %').shouldHaveNoData();
   });
+
   it('Server metrics show data', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -341,6 +349,7 @@ describe('Model Metrics', () => {
     serverMetrics.getMetricsChart('CPU utilization %').shouldHaveData();
     serverMetrics.getMetricsChart('Memory utilization %').shouldHaveData();
   });
+
   it('Bias metrics is not configured', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -355,6 +364,7 @@ describe('Model Metrics', () => {
     modelMetricsBias.visit('test-project', 'empty-model', true);
     modelMetricsBias.shouldNotBeConfigured();
   });
+
   it('Performance Metrics Tab Hidden', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -366,6 +376,7 @@ describe('Model Metrics', () => {
     modelMetricsBias.visit('test-project', 'test-inference-service');
     modelMetricsPerformance.findTab().should('not.exist');
   });
+
   it('Bias Metrics Tab Hidden', () => {
     initIntercepts({
       disableBiasMetrics: true,
@@ -377,6 +388,7 @@ describe('Model Metrics', () => {
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
     modelMetricsBias.findTab().should('not.exist');
   });
+
   it('Disable Trusty AI', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -413,11 +425,9 @@ describe('Model Metrics', () => {
       .should('be.enabled')
       .click();
 
-    cy.wait('@uninstallTrustyAI').then((interception) => {
-      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(interception.request).to.exist;
-    });
+    cy.wait('@uninstallTrustyAI');
   });
+
   it('Enable Trusty AI', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -481,6 +491,7 @@ describe('Model Metrics', () => {
       });
     });
   });
+
   it('Trusty AI enable service error', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -516,15 +527,14 @@ describe('Model Metrics', () => {
 
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
-    cy.wait('@installTrustyAI').then((interception) => {
-      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(interception.request).to.exist;
-    });
+    cy.wait('@installTrustyAI');
 
     // test service error
     cy.wait('@getTrustyAIError');
+
     projectDetailsSettingsTab.findTrustyAIServiceError().should('exist');
   });
+
   it('Trusty AI enable timeout error', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -563,15 +573,14 @@ describe('Model Metrics', () => {
 
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
-    cy.wait('@installTrustyAI').then((interception) => {
-      //eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(interception.request).to.exist;
-    });
+    cy.wait('@installTrustyAI');
 
     // test timeout - timeout is a timestamp after 5 min
     cy.wait('@getTrustyAITimeout');
+
     projectDetailsSettingsTab.findTrustyAITimeoutError().should('exist');
   });
+
   it('Trusty AI not supported', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -586,6 +595,7 @@ describe('Model Metrics', () => {
     projectDetailsSettingsTab.visit('test-project');
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().should('not.be.enabled');
   });
+
   it('Bias Metrics Show In Table', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -612,6 +622,7 @@ describe('Model Metrics', () => {
     row.findExpandButton().click();
     row.findExpansion().should('be.visible').should('contain.text', '0.4');
   });
+
   it('Configure Bias Metric', () => {
     initIntercepts({
       disableBiasMetrics: false,
@@ -664,16 +675,22 @@ describe('Model Metrics', () => {
     configureBiasMetricModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@configureBiasMetric').then((interception) => {
-      expect(interception.request.body.data).to.eql({
-        modelId: 'test-inference-service',
-        requestName: 'Test Metric',
-        protectedAttribute: 'customer_data_input-3',
-        privilegedAttribute: 1,
-        unprivilegedAttribute: 0,
-        outcomeName: 'predict',
-        favorableOutcome: 1,
-        thresholdDelta: 0.1,
-        batchSize: 20,
+      expect(interception.request.body).to.eql({
+        path: '/metrics/dir/request',
+        method: 'POST',
+        host: 'https://test-notebook-test-project.apps.user.com',
+        queryParams: {},
+        data: {
+          modelId: 'test-inference-service',
+          requestName: 'Test Metric',
+          protectedAttribute: 'customer_data_input-3',
+          privilegedAttribute: 1,
+          unprivilegedAttribute: 0,
+          outcomeName: 'predict',
+          favorableOutcome: 1,
+          thresholdDelta: 0.1,
+          batchSize: 20,
+        },
       });
     });
   });
