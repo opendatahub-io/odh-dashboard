@@ -122,8 +122,30 @@ describe('Pipeline create runs', () => {
       createRunPage.findParamById('radio-min_max_scaler-false').click();
       createRunPage.fillParamInputById('neighbors', String(parameters.neighbors));
       createRunPage.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
-      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams);
+      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRun');
       createRunPage.submit();
+
+      cy.wait('@createRun').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'POST',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: {},
+          data: {
+            display_name: 'New run',
+            description: 'New run description',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            },
+            runtime_config: {
+              parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'yes' },
+            },
+            service_account: '',
+            experiment_id: 'experiment-1',
+          },
+        });
+      });
 
       // Should be redirected to the run details page
       verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${createRunParams.run_id}`);
@@ -165,8 +187,30 @@ describe('Pipeline create runs', () => {
       cloneRunPage.findParamById('neighbors').find('input').should('have.value', '0');
       cloneRunPage.findParamById('standard_scaler').should('have.value', 'yes');
 
-      cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun);
+      cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('duplicateRun');
       cloneRunPage.submit();
+
+      cy.wait('@duplicateRun').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'POST',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: {},
+          data: {
+            display_name: 'Duplicate of Test run',
+            description: '',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            },
+            runtime_config: {
+              parameters: { min_max_scaler: false, neighbors: 0, standard_scaler: 'yes' },
+            },
+            service_account: '',
+            experiment_id: 'experiment-1',
+          },
+        });
+      });
 
       // Should redirect to the details of the newly cloned active run
       verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${mockDuplicateRun.run_id}`);
@@ -253,9 +297,37 @@ describe('Pipeline create runs', () => {
       createRunPage.fillParamInputById('list_param', JSON.stringify(parameters.list_param));
       createRunPage.findParamById('radio-bool_param-false').click();
 
-      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams);
+      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRuns');
       createRunPage.submit();
 
+      cy.wait('@createRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'POST',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: {},
+          data: {
+            display_name: 'New run',
+            description: '',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            },
+            runtime_config: {
+              parameters: {
+                string_param: 'some string wrong',
+                double_param: 1.2,
+                int_param: 1,
+                struct_param: { patrick: 'star' },
+                list_param: [{ mr: 'krabs', sponge: 'bob' }],
+                bool_param: false,
+              },
+            },
+            service_account: '',
+            experiment_id: 'experiment-1',
+          },
+        });
+      });
       // Should be redirected to the run details page
       cy.url().should('include', '/pipelineRun/view/new-run-id');
     });
@@ -321,11 +393,46 @@ describe('Pipeline create runs', () => {
       createRunPage.findParamById('radio-min_max_scaler-false').click();
       createRunPage.fillParamInputById('neighbors', String(parameters.neighbors));
       createRunPage.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
-      createSchedulePage.mockCreateRecurringRun(mockPipelineVersion, createRecurringRunParams);
+      createSchedulePage
+        .mockCreateRecurringRun(mockPipelineVersion, createRecurringRunParams)
+        .as('createSchedule');
       createSchedulePage.submit();
 
+      cy.wait('@createSchedule').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'POST',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: {},
+          data: {
+            display_name: 'New job',
+            description: 'New job description',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            },
+            runtime_config: {
+              parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'no' },
+            },
+            trigger: { periodic_schedule: { interval_second: '604800' } },
+            max_concurrency: '10',
+            mode: 'ENABLE',
+            no_catchup: false,
+            service_account: '',
+            experiment_id: 'experiment-1',
+          },
+        });
+      });
+
       // Should show newly created schedule in the table
-      cy.wait('@refreshRecurringRuns');
+      cy.wait('@refreshRecurringRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: { sort_by: 'created_at desc', page_size: 10 },
+        });
+      });
       pipelineRunJobTable.findRowByName('New job');
     });
 
@@ -370,11 +477,53 @@ describe('Pipeline create runs', () => {
       cloneSchedulePage.findParamById('radio-min_max_scaler-false').should('be.checked');
       cloneSchedulePage.findParamById('neighbors').find('input').should('have.value', '0');
       cloneSchedulePage.findParamById('standard_scaler').should('have.value', 'yes');
-      cloneSchedulePage.mockCreateRecurringRun(mockPipelineVersion, mockDuplicateRecurringRun);
+      cloneSchedulePage
+        .mockCreateRecurringRun(mockPipelineVersion, mockDuplicateRecurringRun)
+        .as('duplicateSchedule');
       cloneSchedulePage.submit();
 
+      cy.wait('@duplicateSchedule').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'POST',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: {},
+          data: {
+            display_name: 'Duplicate of Test job',
+            description: '',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            },
+            runtime_config: {
+              parameters: { min_max_scaler: false, neighbors: 0, standard_scaler: 'yes' },
+            },
+            trigger: {
+              periodic_schedule: {
+                interval_second: '60',
+                start_time: '2024-02-08T14:56:00.000Z',
+                end_time: '2024-02-08T15:00:00.000Z',
+              },
+            },
+            max_concurrency: '10',
+            mode: 'ENABLE',
+            no_catchup: false,
+            service_account: '',
+            experiment_id: 'experiment-1',
+          },
+        });
+      });
+
       // Should show newly cloned schedule in the table
-      cy.wait('@refreshRecurringRuns');
+      cy.wait('@refreshRecurringRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: { sort_by: 'created_at desc', page_size: 10 },
+        });
+      });
+
       pipelineRunJobTable.findRowByName('Duplicate of Test job');
     });
 

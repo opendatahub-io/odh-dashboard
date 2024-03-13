@@ -167,7 +167,13 @@ describe('Pipeline runs', () => {
           data: {},
         });
       });
-      cy.wait('@getRuns').then(() => {
+      cy.wait('@getRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: { sort_by: 'created_at desc', page_size: 10 },
+        });
         pipelineRunJobTable.findEmptyState().should('not.exist');
       });
     });
@@ -235,7 +241,14 @@ describe('Pipeline runs', () => {
         });
       });
 
-      cy.wait('@getRuns').then(() => {
+      cy.wait('@getRuns').then((interception) => {
+        expect(interception.request.body).of.eql({
+          path: '/apis/v2beta1/recurringruns',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: { sort_by: 'created_at desc', page_size: 10 },
+        });
+
         pipelineRunJobTable.findEmptyState().should('exist');
       });
     });
@@ -281,8 +294,19 @@ describe('Pipeline runs', () => {
           data: {},
         });
       });
-      cy.wait('@getRuns').then(() => {
+      cy.wait('@getRuns').then((interception) => {
         archivedRunsTable.findEmptyState().should('not.exist');
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: {
+            sort_by: 'created_at desc',
+            page_size: 10,
+            filter:
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+          },
+        });
       });
     });
 
@@ -348,7 +372,18 @@ describe('Pipeline runs', () => {
           data: {},
         });
       });
-      cy.wait('@getRuns').then(() => {
+      cy.wait('@getRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'GET',
+          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          queryParams: {
+            sort_by: 'created_at desc',
+            page_size: 10,
+            filter:
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+          },
+        });
         archivedRunsTable.findEmptyState().should('exist');
       });
     });

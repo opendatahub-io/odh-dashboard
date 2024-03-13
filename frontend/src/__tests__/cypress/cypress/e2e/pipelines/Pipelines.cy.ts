@@ -92,8 +92,24 @@ describe('Pipelines', () => {
     pipelineImportModal.submit();
 
     // Wait for upload/fetch requests
-    cy.wait('@uploadPipeline');
-    cy.wait('@refreshPipelines');
+    cy.wait('@uploadPipeline').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines/upload',
+        method: 'POST',
+        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        queryParams: { name: 'New pipeline', description: 'New pipeline description' },
+        fileContents: 'test-yaml-pipeline-content\n',
+      });
+    });
+
+    cy.wait('@refreshPipelines').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines',
+        method: 'GET',
+        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        queryParams: { sort_by: 'created_at desc', page_size: 10 },
+      });
+    });
 
     // Verify the uploaded pipeline is in the table
     pipelinesTable.findRowByName('New pipeline');
@@ -130,8 +146,28 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.submit();
 
     // Wait for upload/fetch requests
-    cy.wait('@uploadVersion');
-    cy.wait('@refreshVersions');
+    cy.wait('@uploadVersion').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines/upload_version',
+        method: 'POST',
+        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        queryParams: {
+          name: 'New pipeline version',
+          description: 'New pipeline version description',
+          pipelineid: 'test-pipeline',
+        },
+        fileContents: 'test-yaml-pipeline-content\n',
+      });
+    });
+
+    cy.wait('@refreshVersions').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines/test-pipeline/versions',
+        method: 'GET',
+        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
+      });
+    });
 
     // Verify the uploaded pipeline version is in the table
     pipelinesTable.toggleExpandRowByIndex(0);
@@ -170,15 +206,42 @@ describe('Pipelines', () => {
     ).as('refreshVersions');
     pipelineDeleteModal.findSubmitButton().click();
 
-    cy.wait('@deleteVersion');
+    cy.wait('@deleteVersion').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines/test-pipeline/versions/8ce2d04a0-828c-45209fdf1c20',
+        method: 'DELETE',
+        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        queryParams: {},
+        data: {},
+      });
+    });
 
     pipelinesTable.toggleExpandRowByIndex(0);
-    cy.wait('@refreshVersions').then(() =>
+    cy.wait('@refreshVersions').then((interception) => {
+      expect(interception.request.body).to.eql({
+        path: '/apis/v2beta1/pipelines/test-pipeline/versions',
+        method: 'GET',
+        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
+      });
       pipelinesTable
         .findRowByName(initialMockPipeline.display_name)
         .parents('tbody')
         .findByTestId('no-pipeline-versions')
-        .should('exist'),
+        .should('exist');
+    });
+  });
+
+  it('navigate to pipeline version details page', () => {
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText(initialMockPipelineVersion.display_name)
+      .click();
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 
