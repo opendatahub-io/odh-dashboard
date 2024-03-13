@@ -384,11 +384,16 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
+export type InferenceServiceAnnotations = Partial<{
+  'security.opendatahub.io/enable-auth': string;
+}>;
+
 export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: DisplayNameAnnotations &
+    annotations?: InferenceServiceAnnotations &
+      DisplayNameAnnotations &
       EitherOrNone<
         {
           'serving.kserve.io/deploymentMode': 'ModelMesh';

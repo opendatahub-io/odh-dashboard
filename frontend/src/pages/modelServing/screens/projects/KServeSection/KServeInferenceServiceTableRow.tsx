@@ -13,6 +13,8 @@ import InferenceServiceTableRow from '~/pages/modelServing/screens/global/Infere
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
 import ResourceTr from '~/components/ResourceTr';
+import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import { isInferenceServiceTokenEnabled } from '~/pages/modelServing/screens/projects/utils';
 
 type KServeInferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -100,6 +102,20 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                   <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
                 </StackItem>
               )}
+              <StackItem>
+                {/* // TODO: Add check to disable it when no authorino operator is installed */}
+                <DescriptionList>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Token authorization</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ServingRuntimeTokensTable
+                        obj={obj}
+                        isTokenEnabled={isInferenceServiceTokenEnabled(obj)}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </StackItem>
             </Stack>
           </ExpandableRowContent>
         </Td>

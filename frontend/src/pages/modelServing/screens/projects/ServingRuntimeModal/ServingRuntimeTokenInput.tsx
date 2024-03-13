@@ -13,14 +13,17 @@ import {
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
+  CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 
 type ServingRuntimeTokenInputProps = {
-  data: CreatingServingRuntimeObject;
-  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
+  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
+  setData:
+    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
+    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   token: ServingRuntimeToken;
   disabled?: boolean;
 };

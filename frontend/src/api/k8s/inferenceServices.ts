@@ -24,7 +24,8 @@ export const assembleInferenceService = (
   inferenceService?: InferenceServiceKind,
   acceleratorState?: AcceleratorProfileState,
 ): InferenceServiceKind => {
-  const { storage, format, servingRuntimeName, project, maxReplicas, minReplicas } = data;
+  const { storage, format, servingRuntimeName, project, maxReplicas, minReplicas, tokenAuth } =
+    data;
   const name = editName || translateDisplayNameForK8s(data.name);
   const { path, dataConnection } = storage;
   const dataConnectionKey = secretKey || dataConnection;
@@ -44,6 +45,7 @@ export const assembleInferenceService = (
                   'serving.knative.openshift.io/enablePassthrough': 'true',
                   'sidecar.istio.io/inject': 'true',
                   'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+                  ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
                 }),
           },
         },
@@ -82,6 +84,7 @@ export const assembleInferenceService = (
                   'serving.knative.openshift.io/enablePassthrough': 'true',
                   'sidecar.istio.io/inject': 'true',
                   'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+                  ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
                 }),
           },
         },
@@ -103,6 +106,10 @@ export const assembleInferenceService = (
           },
         },
       };
+
+  if (!tokenAuth && updateInferenceService.metadata.annotations) {
+    delete updateInferenceService.metadata.annotations['serving.knative.openshift.io/token-auth'];
+  }
 
   if (!isModelMesh && tolerations.length !== 0) {
     updateInferenceService.spec.predictor.tolerations = tolerations;
