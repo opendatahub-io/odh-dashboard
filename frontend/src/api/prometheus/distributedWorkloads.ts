@@ -160,6 +160,7 @@ export const useDWWorkloadTrendMetrics = (
       defaultResponsePredicate,
       namespace || '',
       '/api/prometheus/queryRange',
+      { initialPromisePurity: true },
     ),
     jobsInadmissibleTrend: useQueryRangeResourceData(
       !!queries,
@@ -169,6 +170,7 @@ export const useDWWorkloadTrendMetrics = (
       defaultResponsePredicate,
       namespace || '',
       '/api/prometheus/queryRange',
+      { initialPromisePurity: true },
     ),
     jobsPendingTrend: useQueryRangeResourceData(
       !!queries,
@@ -178,6 +180,7 @@ export const useDWWorkloadTrendMetrics = (
       defaultResponsePredicate,
       namespace || '',
       '/api/prometheus/queryRange',
+      { initialPromisePurity: true },
     ),
   };
 

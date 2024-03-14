@@ -14,7 +14,7 @@ const useWorkloads = (namespace?: string, refreshRate = 0): FetchState<WorkloadK
       return listWorkloads(namespace);
     }, [dwEnabled, namespace]),
     [],
-    { refreshRate },
+    { refreshRate, initialPromisePurity: true },
   );
 };
 
