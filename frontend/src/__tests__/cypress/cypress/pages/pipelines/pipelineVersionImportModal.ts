@@ -1,4 +1,4 @@
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { CreatePipelineVersionKFData, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelineVersionV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -38,6 +38,22 @@ class PipelineImportModal extends Modal {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
+  findUploadPipelineRadio() {
+    return this.find().findByTestId('upload-file-radio');
+  }
+
+  findImportPipelineRadio() {
+    return this.find().findByTestId('import-url-radio');
+  }
+
+  findPipelineUrlInput() {
+    return this.find().findByTestId('pipeline-url-input');
+  }
+
+  findCodeSourceInput() {
+    return this.find().findByTestId('code-source-input');
+  }
+
   selectPipelineByName(name: string) {
     this.findPipelineSelect()
       .click()
@@ -56,6 +72,17 @@ class PipelineImportModal extends Modal {
 
   submit(): void {
     this.findSubmitButton().click();
+  }
+
+  mockCreatePipelineVersion(params: CreatePipelineVersionKFData) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${params.pipeline_id}/versions`,
+        times: 1,
+      },
+      buildMockPipelineVersionV2(params),
+    );
   }
 
   mockUploadVersion(params: Partial<PipelineVersionKFv2>) {

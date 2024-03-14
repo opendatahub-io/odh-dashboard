@@ -23,6 +23,8 @@ import {
   GetPipelineVersionAPI,
   ListPipelineVersionsAPI,
   UpdatePipelineRunAPI,
+  CreatePipelineAndVersionAPI,
+  CreatePipelineVersionAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -46,6 +48,15 @@ const pipelineParamsToQuery = (params?: PipelineParams) => ({
 
 export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, data) =>
   handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/experiments`, data, {}, opts));
+
+export const createPipelineAndVersion: CreatePipelineAndVersionAPI = (hostPath) => (opts, data) =>
+  handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/pipelines/create`, data, {}, opts));
+
+export const createPipelineVersion: CreatePipelineVersionAPI =
+  (hostPath) => (opts, pipelineId, data) =>
+    handlePipelineFailures(
+      proxyCREATE(hostPath, `/apis/v2beta1/pipelines/${pipelineId}/versions`, data, {}, opts),
+    );
 
 export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data) =>
   handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/runs`, data, {}, opts));

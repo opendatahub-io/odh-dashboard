@@ -7,13 +7,15 @@ import {
   Modal,
   Stack,
   StackItem,
+  TextArea,
   TextInput,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import PipelineUploadRadio from './PipelineUploadRadio';
+import { PipelineUploadOption } from './utils';
 
 type PipelineImportModalProps = {
   isOpen: boolean;
@@ -24,15 +26,60 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [{ name, description, fileContents }, setData, resetData] = usePipelineImportModalData();
+  const [{ name, description, fileContents, pipelineUrl, uploadOption }, setData, resetData] =
+    usePipelineImportModalData();
 
-  const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents;
+  const isImportButtonDisabled =
+    !apiAvailable ||
+    importing ||
+    !name ||
+    (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
 
   const onBeforeClose = (pipeline?: PipelineKFv2) => {
     onClose(pipeline);
     setImporting(false);
     setError(undefined);
     resetData();
+  };
+
+  const onSubmit = () => {
+    setImporting(true);
+    setError(undefined);
+
+    if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
+      api
+        .uploadPipeline({}, name, description, fileContents)
+        .then((pipeline) => onBeforeClose(pipeline))
+        .catch((e) => {
+          setImporting(false);
+          setError(e);
+        });
+    } else {
+      api
+        .createPipelineAndVersion(
+          {},
+          {
+            pipeline: {
+              /* eslint-disable camelcase */
+              display_name: name,
+              description,
+            },
+            pipeline_version: {
+              display_name: name,
+              description,
+              package_url: {
+                pipeline_url: pipelineUrl,
+              },
+              /* eslint-enable camelcase */
+            },
+          },
+        )
+        .then((pipeline) => onBeforeClose(pipeline))
+        .catch((e) => {
+          setImporting(false);
+          setError(e);
+        });
+    }
   };
 
   return (
@@ -46,17 +93,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
           variant="primary"
           isDisabled={isImportButtonDisabled}
           isLoading={importing}
-          onClick={() => {
-            setImporting(true);
-            setError(undefined);
-            api
-              .uploadPipeline({}, name, description, fileContents)
-              .then((pipeline) => onBeforeClose(pipeline))
-              .catch((e) => {
-                setImporting(false);
-                setError(e);
-              });
-          }}
+          onClick={onSubmit}
         >
           Import pipeline
         </Button>,
@@ -88,7 +125,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
           </StackItem>
           <StackItem>
             <FormGroup label="Pipeline description" fieldId="pipeline-description">
-              <TextInput
+              <TextArea
                 isRequired
                 type="text"
                 id="pipeline-description"
@@ -99,9 +136,15 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
             </FormGroup>
           </StackItem>
           <StackItem>
-            <PipelineFileUpload
+            <PipelineUploadRadio
               fileContents={fileContents}
-              onUpload={(data) => setData('fileContents', data)}
+              setFileContents={(data) => setData('fileContents', data)}
+              pipelineUrl={pipelineUrl}
+              setPipelineUrl={(url) => setData('pipelineUrl', url)}
+              uploadOption={uploadOption}
+              setUploadOption={(option) => {
+                setData('uploadOption', option);
+              }}
             />
           </StackItem>
           {error && (

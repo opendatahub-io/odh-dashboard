@@ -479,6 +479,19 @@ export type ListPipelineVersionsKF = PipelineKFCallCommon<{
   pipeline_versions: PipelineVersionKFv2[];
 }>;
 
+export type CreatePipelineAndVersionKFData = {
+  pipeline: Omit<PipelineKFv2, 'pipeline_id' | 'error' | 'created_at'>;
+  pipeline_version: Omit<
+    PipelineVersionKFv2,
+    'pipeline_id' | 'pipeline_version_id' | 'error' | 'created_at' | 'pipeline_spec'
+  >;
+};
+
+export type CreatePipelineVersionKFData = Omit<
+  PipelineVersionKFv2,
+  'pipeline_version_id' | 'error' | 'created_at' | 'pipeline_spec'
+>;
+
 export type CreateExperimentKFData = Omit<
   ExperimentKFv2,
   'experiment_id' | 'created_at' | 'namespace' | 'storage_state'
