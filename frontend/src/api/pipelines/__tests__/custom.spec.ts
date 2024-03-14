@@ -1,12 +1,4 @@
-// TODO: Adjust tests to v2
-describe('disabled tests', () => {
-  it('should do nothing', () => {
-    expect(true).toBe(true);
-  });
-});
-
-/*
-/!* eslint-disable camelcase*!/
+/* eslint-disable camelcase */
 import {
   createExperiment,
   createPipelineRun,
@@ -23,6 +15,7 @@ import {
   listExperiments,
   listPipelineRunJobs,
   listPipelineRuns,
+  listPipelineVersions,
   listPipelines,
   stopPipelineRun,
   updatePipelineRunJob,
@@ -34,7 +27,7 @@ import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/
 import {
   CreatePipelineRunJobKFData,
   CreatePipelineRunKFData,
-  ResourceTypeKF,
+  RecurringRunMode,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineParams } from '~/concepts/pipelines/types';
 
@@ -62,7 +55,7 @@ const proxyENDPOINTMock = jest.mocked(proxyENDPOINT);
 const proxyFILEMock = jest.mocked(proxyFILE);
 
 const mockOptions = {};
-const createParam = (data: Record<string, string>): PipelineParams => ({
+const createParam = (data: Record<string, string> = {}): PipelineParams => ({
   pageSize: 2,
   pageToken: 'token',
   sortDirection: undefined,
@@ -73,12 +66,10 @@ const createParam = (data: Record<string, string>): PipelineParams => ({
   },
 });
 
-const createQuery = (type: string) => ({
+const createQuery = () => ({
   filter: '{"predicates":[]}',
   page_size: 2,
   page_token: 'token',
-  'resource_reference_key.id': 'id',
-  'resource_reference_key.type': type,
   sort_by: 'created_at asc',
 });
 
@@ -93,8 +84,8 @@ describe('createExperiment', () => {
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/experiments',
-      { name: 'name', description: 'description' },
+      '/apis/v2beta1/experiments',
+      { display_name: 'name', description: 'description' },
       {},
       mockOptions,
     );
@@ -108,11 +99,18 @@ describe('createPipelineRun', () => {
     display_name: 'name',
     service_account: 'serviceAccount',
     experiment_id: '123',
+    pipeline_version_reference: {
+      pipeline_id: 'pipelineId',
+      pipeline_version_id: 'pipelineVersionId',
+    },
+    runtime_config: {
+      parameters: {},
+    },
   };
   it('should call proxyCREATE and handlePipelineFailures to create pipeline run', () => {
     expect(createPipelineRun('hostPath')({}, data)).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
-    expect(proxyCREATEMock).toHaveBeenCalledWith('hostPath', '/apis/v1beta1/runs', data, {}, {});
+    expect(proxyCREATEMock).toHaveBeenCalledWith('hostPath', '/apis/v2beta1/runs', data, {}, {});
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
@@ -126,12 +124,23 @@ describe('createPipelineRunJob', () => {
       cron_schedule: undefined,
       periodic_schedule: undefined,
     },
-    pipeline_spec: {},
+    experiment_id: 'experimentId',
+    pipeline_version_reference: {
+      pipeline_id: 'pipelineId',
+      pipeline_version_id: 'pipelineVersionId',
+    },
+    mode: RecurringRunMode.ENABLE,
   };
   it('should call proxyCREATE and handlePipelineFailures to create pipeline run job', () => {
     expect(createPipelineRunJob('hostPath')({}, data)).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
-    expect(proxyCREATEMock).toHaveBeenCalledWith('hostPath', '/apis/v1beta1/jobs', data, {}, {});
+    expect(proxyCREATEMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/recurringruns',
+      data,
+      {},
+      {},
+    );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
@@ -143,7 +152,7 @@ describe('getExperiment', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/experiments/experimentId',
+      '/apis/v2beta1/experiments/experimentId',
       {},
       {},
     );
@@ -158,7 +167,7 @@ describe('getPipeline', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenLastCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipelines/pipelineId',
+      '/apis/v2beta1/pipelines/pipelineId',
       {},
       {},
     );
@@ -173,7 +182,7 @@ describe('getPipelineRun', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/runs/pipelineRunId',
+      '/apis/v2beta1/runs/pipelineRunId',
       {},
       {},
     );
@@ -188,7 +197,7 @@ describe('getPipelineRunJob', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/jobs/pipelineRunJobId',
+      '/apis/v2beta1/recurringruns/pipelineRunJobId',
       {},
       {},
     );
@@ -199,11 +208,13 @@ describe('getPipelineRunJob', () => {
 
 describe('getPipelineVersion', () => {
   it('should call proxyGET and handlePipelineFailures to fetch pipeline version', () => {
-    expect(getPipelineVersion('hostPath')({}, 'pipelineVersionId')).toBe(mockResultPromise);
+    expect(getPipelineVersion('hostPath')({}, 'pipelineId', 'pipelineVersionId')).toBe(
+      mockResultPromise,
+    );
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipeline_versions/pipelineVersionId',
+      '/apis/v2beta1/pipelines/pipelineId/versions/pipelineVersionId',
       {},
       {},
     );
@@ -218,7 +229,7 @@ describe('deletePipeline', () => {
     expect(proxyDELETEMock).toHaveBeenCalledTimes(1);
     expect(proxyDELETEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipelines/pipelineId',
+      '/apis/v2beta1/pipelines/pipelineId',
       {},
       {},
       {},
@@ -234,7 +245,7 @@ describe('deletePipelineRun', () => {
     expect(proxyDELETEMock).toHaveBeenCalledTimes(1);
     expect(proxyDELETEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/runs/runId',
+      '/apis/v2beta1/runs/runId',
       {},
       {},
       {},
@@ -250,7 +261,7 @@ describe('deletePipelineRunJob', () => {
     expect(proxyDELETEMock).toHaveBeenCalledTimes(1);
     expect(proxyDELETEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/jobs/jobId',
+      '/apis/v2beta1/recurringruns/jobId',
       {},
       {},
       {},
@@ -262,11 +273,14 @@ describe('deletePipelineRunJob', () => {
 
 describe('deletePipelineVersion', () => {
   it('should call proxyDELETE and handlePipelineFailures to delete pipeline version', () => {
-    expect(deletePipelineVersion('hostPath')({}, 'pipelineVersionId')).toBe(mockResultPromise);
+    expect(deletePipelineVersion('hostPath')({}, 'pipelineId', 'pipelineVersionId')).toBe(
+      mockResultPromise,
+    );
     expect(proxyDELETEMock).toHaveBeenCalledTimes(1);
     expect(proxyDELETEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipeline_versions/pipelineVersionId',
+      '/apis/v2beta1/pipelines/pipelineId/versions/pipelineVersionId',
+      {},
       {},
       {},
     );
@@ -277,14 +291,12 @@ describe('deletePipelineVersion', () => {
 
 describe('listExperiments', () => {
   it('should call proxyGET and handlePipelineFailures to list experiments', () => {
-    expect(listExperiments('hostPath')({}, createParam(ResourceTypeKF.EXPERIMENT))).toBe(
-      mockResultPromise,
-    );
+    expect(listExperiments('hostPath')({}, createParam())).toBe(mockResultPromise);
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/experiments',
-      createQuery('EXPERIMENT'),
+      '/apis/v2beta1/experiments',
+      createQuery(),
       {},
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
@@ -294,14 +306,12 @@ describe('listExperiments', () => {
 
 describe('listPipelines', () => {
   it('should call proxyGET and handlePipelineFailures to list pipelines', () => {
-    expect(listPipelines('hostPath')({}, createParam(ResourceTypeKF.PIPELINE))).toBe(
-      mockResultPromise,
-    );
+    expect(listPipelines('hostPath')({}, createParam())).toBe(mockResultPromise);
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipelines',
-      createQuery('PIPELINE'),
+      '/apis/v2beta1/pipelines',
+      createQuery(),
       {},
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
@@ -311,16 +321,9 @@ describe('listPipelines', () => {
 
 describe('listPipelineRuns', () => {
   it('should call proxyGET and handlePipelineFailures to list pipeline runs', () => {
-    expect(listPipelineRuns('hostPath')({}, createParam(ResourceTypeKF.PIPELINE))).toBe(
-      mockResultPromise,
-    );
+    expect(listPipelineRuns('hostPath')({}, createParam())).toBe(mockResultPromise);
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
-    expect(proxyGETMock).toHaveBeenCalledWith(
-      'hostPath',
-      '/apis/v1beta1/runs',
-      createQuery('PIPELINE'),
-      {},
-    );
+    expect(proxyGETMock).toHaveBeenCalledWith('hostPath', '/apis/v2beta1/runs', createQuery(), {});
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
@@ -328,51 +331,12 @@ describe('listPipelineRuns', () => {
 
 describe('listPipelineRunJobs', () => {
   it('should call proxyGET and handlePipelineFailures to list pipeline run jobs', () => {
-    expect(listPipelineRunJobs('hostPath')({}, createParam(ResourceTypeKF.JOB))).toBe(
-      mockResultPromise,
-    );
+    expect(listPipelineRunJobs('hostPath')({}, createParam())).toBe(mockResultPromise);
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/jobs',
-      createQuery('JOB'),
-      {},
-    );
-    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
-    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-  });
-});
-
-describe('listPipelineRunsByPipeline', () => {
-  it('should call proxyGET and handlePipelineFailures to list pipeline runs by pipeline', () => {
-    expect(listPipelineRunsByPipeline('hostPath')({}, 'pipelineId', 1)).toBe(mockResultPromise);
-    expect(proxyGETMock).toHaveBeenCalledTimes(1);
-    expect(proxyGETMock).toHaveBeenCalledWith(
-      'hostPath',
-      '/apis/v1beta1/runs',
-      {
-        page_size: 1,
-        'resource_reference_key.id': 'pipelineId',
-        'resource_reference_key.type': 'PIPELINE_VERSION',
-        sort_by: 'created_at desc',
-      },
-      {},
-    );
-    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
-    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-  });
-});
-
-describe('listPipelineVersionTemplates', () => {
-  it('should call proxyGET and handlePipelineFailures to list pipeline version templates', () => {
-    expect(listPipelineVersionTemplates('hostPath')({}, 'pipelineVersionId')).toBe(
-      mockResultPromise,
-    );
-    expect(proxyGETMock).toHaveBeenCalledTimes(1);
-    expect(proxyGETMock).toHaveBeenCalledWith(
-      'hostPath',
-      '/apis/v1beta1/pipeline_versions/pipelineVersionId/templates',
-      {},
+      '/apis/v2beta1/recurringruns',
+      createQuery(),
       {},
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
@@ -382,19 +346,16 @@ describe('listPipelineVersionTemplates', () => {
 
 describe('listPipelineVersionsByPipeline', () => {
   it('should call proxyGET and handlePipelineFailures to list pipeline version by pipeline', () => {
-    expect(listPipelineVersionsByPipeline('hostPath')({}, ' pipelineId', {})).toBe(
-      mockResultPromise,
-    );
+    expect(listPipelineVersions('hostPath')({}, 'pipelineId', {})).toBe(mockResultPromise);
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipeline_versions',
+      '/apis/v2beta1/pipelines/pipelineId/versions',
       {
         filter: undefined,
         page_size: undefined,
         page_token: undefined,
-        'resource_key.id': ' pipelineId',
-        'resource_key.type': 'PIPELINE',
+        pipeline_id: 'pipelineId',
         sort_by: 'created_at desc',
       },
       {},
@@ -406,11 +367,11 @@ describe('listPipelineVersionsByPipeline', () => {
 
 describe('stopPipelineRun', () => {
   it('should call proxyENDPOINT and handlePipelineFailures to stop pipeline run', () => {
-    expect(stopPipelineRun('hostPath')({}, ' runId')).toBe(mockResultPromise);
+    expect(stopPipelineRun('hostPath')({}, 'runId')).toBe(mockResultPromise);
     expect(proxyENDPOINTMock).toHaveBeenCalledTimes(1);
     expect(proxyENDPOINTMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/runs/ runId/terminate',
+      '/apis/v2beta1/runs/runId:terminate',
       {},
       {},
     );
@@ -425,7 +386,7 @@ describe('updatePipelineRunJob', () => {
     expect(proxyENDPOINTMock).toHaveBeenCalledTimes(1);
     expect(proxyENDPOINTMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/jobs/jobId/enable',
+      '/apis/v2beta1/recurringruns/jobId:enable',
       {},
       {},
     );
@@ -437,7 +398,7 @@ describe('updatePipelineRunJob', () => {
     expect(proxyENDPOINTMock).toHaveBeenCalledTimes(1);
     expect(proxyENDPOINTMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/jobs/jobId/disable',
+      '/apis/v2beta1/recurringruns/jobId:disable',
       {},
       {},
     );
@@ -454,7 +415,7 @@ describe('uploadPipeline', () => {
     expect(proxyFILEMock).toHaveBeenCalledTimes(1);
     expect(proxyFILEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipelines/upload',
+      '/apis/v2beta1/pipelines/upload',
       'fileContents',
       { description: 'description', name: 'name' },
     );
@@ -471,7 +432,7 @@ describe('uploadPipelineVersion', () => {
     expect(proxyFILEMock).toHaveBeenCalledTimes(1);
     expect(proxyFILEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v1beta1/pipelines/upload_version',
+      '/apis/v2beta1/pipelines/upload_version',
       'fileContents',
       { description: 'description', name: 'name', pipelineid: 'pipelineId' },
     );
@@ -479,4 +440,3 @@ describe('uploadPipelineVersion', () => {
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
 });
-*/

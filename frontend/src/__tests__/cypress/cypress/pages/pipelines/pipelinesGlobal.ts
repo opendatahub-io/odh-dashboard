@@ -38,7 +38,7 @@ class PipelinesGlobal {
 
   findDeleteButton() {
     cy.findByTestId('global-pipelines-kebab-actions').click();
-    return cy.findAllByRole('menuitem').get('a').contains('Delete selected');
+    return cy.findAllByRole('menuitem').get('a').contains('Delete');
   }
 }
 
