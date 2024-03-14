@@ -12,6 +12,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
+import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 
 type PipelineRunTableProps = {
   jobs: PipelineRunJobKFv2[];
@@ -49,6 +50,8 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
     // eslint-disable-next-line camelcase
   } = useCheckboxTable(jobs.map(({ recurring_run_id }) => recurring_run_id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineRunJobKFv2[]>([]);
+
+  useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
   return (
     <>

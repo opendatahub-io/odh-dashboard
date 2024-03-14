@@ -51,7 +51,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           <DropdownItem key="upload-version" onClick={() => setIsVersionImportModalOpen(true)}>
             Upload new version
           </DropdownItem>,
-          <DropdownSeparator key="separator-1" />,
+          <DropdownSeparator key="separator-create" />,
           <DropdownItem
             key="create-run"
             onClick={() =>
@@ -62,6 +62,23 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           >
             Create run
           </DropdownItem>,
+          <DropdownItem
+            key="schedule-run"
+            onClick={() =>
+              navigate(
+                {
+                  pathname: routePipelineRunCreateNamespace(namespace),
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                },
+                {
+                  state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
+                },
+              )
+            }
+          >
+            Schedule run
+          </DropdownItem>,
+          <DropdownSeparator key="separator-view" />,
           <DropdownItem
             key="view-runs"
             onClick={() =>
@@ -78,7 +95,23 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           >
             View runs
           </DropdownItem>,
-          <DropdownSeparator key="separator-2" />,
+          <DropdownItem
+            key="view-schedules"
+            onClick={() =>
+              navigate(
+                {
+                  pathname: routePipelineRunsNamespace(namespace),
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                },
+                {
+                  state: { lastVersion: pipelineVersion },
+                },
+              )
+            }
+          >
+            View schedules
+          </DropdownItem>,
+          <DropdownSeparator key="separator-delete" />,
           <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
             Delete pipeline version
           </DropdownItem>,

@@ -224,7 +224,7 @@ describe('Pipeline runs', () => {
           pipelineRunsGlobal.findArchivedRunsTab().click();
           verifyRelativeURL(`/pipelineRuns/${projectName}?runType=archived`);
           pipelineRunsGlobal.findActiveRunsTab().click();
-          verifyRelativeURL(`/pipelineRuns/${projectName}`);
+          verifyRelativeURL(`/pipelineRuns/${projectName}?runType=active`);
           pipelineRunsGlobal.findSchedulesTab().click();
           verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
         });

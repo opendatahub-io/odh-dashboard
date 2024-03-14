@@ -1,11 +1,11 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
-import { PipelineRunKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -14,15 +14,14 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter, {
-  FilterOptions,
-} from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { BulkArchiveRunModal } from '~/pages/pipelines/global/runs/BulkArchiveRunModal';
 import { BulkRestoreRunModal } from '~/pages/pipelines/global/runs/BulkRestoreRunModal';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { routePipelineRunCreateNamespace } from '~/routes';
+import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKFv2[];
@@ -52,11 +51,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   setFilter,
   ...tableProps
 }) => {
-  const { state } = useLocation();
   const navigate = useNavigate();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
-  const lastLocationPipelineVersion: PipelineVersionKFv2 | undefined = state?.lastVersion;
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -75,23 +72,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     }
 
     return acc;
-  }, []);
-
-  // Update filter on initial render with the last location-stored pipeline version.
-  React.useEffect(() => {
-    if (lastLocationPipelineVersion) {
-      filterToolbarProps.onFilterUpdate(FilterOptions.PIPELINE_VERSION, {
-        label: lastLocationPipelineVersion.display_name,
-        value: lastLocationPipelineVersion.pipeline_version_id,
-      });
-    }
-
-    return () => {
-      // Reset the location-stored pipeline version to avoid re-creating
-      // a filter that might otherwise have been removed/changed by the user.
-      window.history.replaceState({ ...state, lastVersion: undefined }, '');
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const primaryToolbarAction = React.useMemo(() => {
@@ -116,6 +96,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       </Button>
     );
   }, [runType, selectedIds.length, navigate, namespace]);
+
+  useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
   return (
     <>

@@ -11,6 +11,8 @@ import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/Pipelines
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import { routePipelineRunCreateNamespacePipelinesPage } from '~/routes';
+import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';
@@ -110,6 +112,20 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                     navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
                       state: { lastPipeline: pipeline },
                     });
+                  },
+                },
+                {
+                  title: 'Schedule run',
+                  onClick: () => {
+                    navigate(
+                      {
+                        pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
+                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                      },
+                      {
+                        state: { lastPipeline: pipeline },
+                      },
+                    );
                   },
                 },
                 {

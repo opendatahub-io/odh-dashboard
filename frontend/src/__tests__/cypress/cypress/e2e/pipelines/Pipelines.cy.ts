@@ -208,6 +208,20 @@ describe('Pipelines', () => {
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
   });
 
+  it('navigates to "Schedule run" page from pipeline row', () => {
+    pipelinesTable.find();
+    pipelinesTable
+      .findRowByName(initialMockPipeline.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    pipelinesTable
+      .findRowByName(initialMockPipeline.display_name)
+      .findByText('Schedule run')
+      .click();
+    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+  });
+
   it('navigate to create run page from pipeline version row', () => {
     // Wait for the pipelines table to load
     pipelinesTable.find();
@@ -225,7 +239,22 @@ describe('Pipelines', () => {
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
   });
 
-  it('navigate to view runs page', () => {
+  it('navigates to "Schedule run" page from pipeline version row', () => {
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('Schedule run')
+      .click();
+    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+  });
+
+  it('navigate to view runs page from pipeline version row', () => {
     // Wait for the pipelines table to load
     pipelinesTable.find();
     pipelinesTable.toggleExpandRowByIndex(0);
@@ -239,7 +268,22 @@ describe('Pipelines', () => {
       .findRowByName(initialMockPipelineVersion.display_name)
       .findByText('View runs')
       .click();
-    verifyRelativeURL(`/pipelineRuns/${projectName}`);
+    verifyRelativeURL(`/pipelineRuns/${projectName}?runType=active`);
+  });
+
+  it('navigates to "Schedules" page from pipeline version row', () => {
+    pipelinesTable.find();
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByLabelText('Kebab toggle')
+      .click();
+
+    pipelinesTable
+      .findRowByName(initialMockPipelineVersion.display_name)
+      .findByText('View schedules')
+      .click();
+    verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
   });
 });
 
