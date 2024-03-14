@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import GlobalDistributedWorkloadsProjectMetricsTab from './GlobalDistributedWorkloadsProjectMetricsTab';
-import GlobalDistributedWorkloadsWorkloadStatusTab from './GlobalDistributedWorkloadsWorkloadStatusTab';
+import GlobalDistributedWorkloadsProjectMetricsTab from './projectMetrics/GlobalDistributedWorkloadsProjectMetricsTab';
+import GlobalDistributedWorkloadsWorkloadStatusTab from './workloadStatus/GlobalDistributedWorkloadsWorkloadStatusTab';
 
 export enum DistributedWorkloadsTabId {
   PROJECT_METRICS = 'project-metrics',
@@ -15,7 +15,7 @@ export type DistributedWorkloadsTabConfig = {
   isAvailable: boolean;
   // TODO mturley remove this now that all our tabs here are single project only, or leave in case we add future tabs?
   projectSelectorMode: 'singleProjectOnly' | 'projectOrAll' | null;
-  ContentComponent: React.FC<{ tabConfig: DistributedWorkloadsTabConfig }>;
+  ContentComponent: React.FC;
 };
 
 export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] => {

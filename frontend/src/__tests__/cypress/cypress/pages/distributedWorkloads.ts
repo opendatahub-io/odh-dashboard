@@ -21,6 +21,14 @@ class GlobalDistributedWorkloads {
     return cy.findByText('Monitor the metrics of your active resources.');
   }
 
+  findProjectSelect() {
+    return cy.findByTestId('project-selector-dropdown');
+  }
+
+  selectProjectByName(name: string) {
+    this.findProjectSelect().findDropdownItem(name).click();
+  }
+
   private wait() {
     this.findHeaderText();
     cy.testA11y();

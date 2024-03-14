@@ -1,10 +1,18 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Tabs, Tab, TabTitleText, PageSection } from '@patternfly/react-core';
+import {
+  Tabs,
+  Tab,
+  TabTitleText,
+  PageSection,
+  TabContent,
+  TabContentBody,
+} from '@patternfly/react-core';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
 } from './useDistributedWorkloadsTabs';
+import DistributedWorkloadsToolbar from './DistributedWorkloadsToolbar';
 
 type GlobalDistributedWorkloadsTabsProps = {
   activeTabId: DistributedWorkloadsTabId;
@@ -45,7 +53,25 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
             ))}
         </Tabs>
       </PageSection>
-      {activeTab && <activeTab.ContentComponent tabConfig={activeTab} />}
+      {activeTab ? <DistributedWorkloadsToolbar tabConfig={activeTab} /> : null}
+      <PageSection isFilled>
+        {tabs
+          .filter((tab) => tab.isAvailable)
+          .map((tab) => {
+            const isActiveTab = tab.id === activeTab?.id;
+            return (
+              <TabContent
+                id={`${tab.id}-tab-content`}
+                activeKey={tab.id}
+                eventKey={tab.id}
+                key={tab.id}
+                hidden={!isActiveTab}
+              >
+                <TabContentBody>{isActiveTab ? <tab.ContentComponent /> : null}</TabContentBody>
+              </TabContent>
+            );
+          })}
+      </PageSection>
     </>
   );
 };

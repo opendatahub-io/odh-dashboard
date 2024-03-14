@@ -8,6 +8,8 @@ import {
   POLL_INTERVAL,
 } from '~/utilities/const';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
+import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
+import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import {
   DWProjectMetrics,
@@ -81,6 +83,10 @@ export const DistributedWorkloadsContextProvider =
     SupportedArea.DISTRIBUTED_WORKLOADS,
     true,
   )(({ children, namespace }) => {
+    const { projects } = React.useContext(ProjectsContext);
+    const project = projects.find(byName(namespace)) ?? null;
+    useSyncPreferredProject(project);
+
     const [refreshRate, setRefreshRate] = React.useState(POLL_INTERVAL);
     const [lastUpdateTime, setLastUpdateTime] = React.useState<number>(Date.now());
 
