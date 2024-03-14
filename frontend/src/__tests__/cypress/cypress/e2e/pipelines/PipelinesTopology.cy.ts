@@ -204,11 +204,25 @@ describe('Pipeline topology', () => {
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
       });
 
+      it('navigates to "Schedule run" page on "Schedule run" click', () => {
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+        pipelineDetails.findActionsDropdown().click();
+        cy.findByText('Schedule run').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create?runType=scheduled`);
+      });
+
       it('Test pipeline details view runs navigation', () => {
         pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
         pipelineDetails.findActionsDropdown().click();
         cy.findByText('View runs').click();
-        verifyRelativeURL(`/pipelineRuns/${projectId}`);
+        verifyRelativeURL(`/pipelineRuns/${projectId}?runType=active`);
+      });
+
+      it('navigates to "Schedules" on "View schedules" click', () => {
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+        pipelineDetails.findActionsDropdown().click();
+        cy.findByText('View schedules').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}?runType=scheduled`);
       });
     });
   });

@@ -21,7 +21,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
   );
 
   React.useEffect(() => {
-    if (!runType || !Object.values(PipelineRunType).includes(runType)) {
+    if (runType && !Object.values(PipelineRunType).includes(runType)) {
       searchParams.delete(PipelineRunSearchParam.RunType);
       setSearchParams(searchParams);
     }
