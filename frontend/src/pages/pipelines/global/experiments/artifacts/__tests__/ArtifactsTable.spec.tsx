@@ -5,9 +5,8 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { Artifact } from '~/third_party/mlmd';
-import * as useGetArtifactsList from '~/pages/pipelines/global/experiments/artifacts/useGetArtifactsList';
+import * as useGetArtifactsList from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
 import * as MlmdListContext from '~/concepts/pipelines/context/MlmdListContext';
-import * as usePipelinesUiRoute from '~/concepts/pipelines/context/usePipelinesUiRoute';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { ArtifactsList } from '~/pages/pipelines/global/experiments/artifacts/ArtifactsList';
@@ -40,7 +39,6 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
 describe('ArtifactsTable', () => {
   const useGetArtifactsListSpy = jest.spyOn(useGetArtifactsList, 'useGetArtifactsList');
   const useMlmdListContextSpy = jest.spyOn(MlmdListContext, 'useMlmdListContext');
-  const usePipelinesUiRouteSpy = jest.spyOn(usePipelinesUiRoute, 'usePipelinesUiRoute');
 
   beforeEach(() => {
     useMlmdListContextSpy.mockReturnValue({
@@ -113,8 +111,6 @@ describe('ArtifactsTable', () => {
       undefined,
       jest.fn(),
     ]);
-
-    usePipelinesUiRouteSpy.mockReturnValue(['dspa-pipeline-ui-route', true]);
   });
 
   it('renders artifacts table with data', () => {

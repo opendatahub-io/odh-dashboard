@@ -15,7 +15,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { useGetArtifactTypeMap } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
+import { useGetArtifactTypes } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
 import { useGetEventsByExecutionId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { useGetExecutionById } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
@@ -41,8 +41,13 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
   const { namespace } = usePipelinesAPI();
   const [execution, executionLoaded, executionError] = useGetExecutionById(executionId);
   const [eventsResponse, eventsLoaded, eventsError] = useGetEventsByExecutionId(executionId);
-  const [artifactTypeMap, artifactTypeMapLoaded] = useGetArtifactTypeMap();
+  const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
   const allEvents = parseEventsByType(eventsResponse);
+
+  const artifactTypeMap = artifactTypes.reduce((acc, artifactType) => {
+    acc[artifactType.getId()] = artifactType.getName();
+    return acc;
+  }, {} as Record<number, string>);
 
   const error = executionError || eventsError;
 
@@ -115,7 +120,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
           <ExecutionDetailsInputOutputSection
             title={inputOutputSectionTitle[Event.Type.DECLARED_INPUT]}
             events={allEvents[Event.Type.DECLARED_INPUT]}
-            isLoaded={artifactTypeMapLoaded}
+            isLoaded={artifactTypesLoaded}
             artifactTypeMap={artifactTypeMap}
           />
         </StackItem>
@@ -123,7 +128,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
           <ExecutionDetailsInputOutputSection
             title={inputOutputSectionTitle[Event.Type.INPUT]}
             events={allEvents[Event.Type.INPUT]}
-            isLoaded={artifactTypeMapLoaded}
+            isLoaded={artifactTypesLoaded}
             artifactTypeMap={artifactTypeMap}
           />
         </StackItem>
@@ -131,7 +136,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
           <ExecutionDetailsInputOutputSection
             title={inputOutputSectionTitle[Event.Type.DECLARED_OUTPUT]}
             events={allEvents[Event.Type.DECLARED_OUTPUT]}
-            isLoaded={artifactTypeMapLoaded}
+            isLoaded={artifactTypesLoaded}
             artifactTypeMap={artifactTypeMap}
           />
         </StackItem>
@@ -139,7 +144,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
           <ExecutionDetailsInputOutputSection
             title={inputOutputSectionTitle[Event.Type.OUTPUT]}
             events={allEvents[Event.Type.OUTPUT]}
-            isLoaded={artifactTypeMapLoaded}
+            isLoaded={artifactTypesLoaded}
             artifactTypeMap={artifactTypeMap}
           />
         </StackItem>

@@ -13,10 +13,8 @@ import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '~/routes';
-import { usePipelinesUiRoute } from '~/concepts/pipelines/context/usePipelinesUiRoute';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import { getArtifactName } from './utils';
-import { ArtifactUriLink } from './ArtifactUriLink';
 
 interface ArtifactsTableProps {
   artifacts: Artifact[] | null | undefined;
@@ -36,7 +34,6 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
     setMaxResultSize,
   } = useMlmdListContext(nextPageToken);
   const { namespace } = usePipelinesAPI();
-  const [pipelinesUiRoute, isPipelinesUiRouteLoaded] = usePipelinesUiRoute();
   const [page, setPage] = React.useState(1);
   const [filterData, setFilterData] = React.useState(initialFilterData);
   const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), []);
@@ -152,19 +149,13 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
         </Td>
         <Td>{artifact.id}</Td>
         <Td>{artifact.type}</Td>
-        <Td>
-          <ArtifactUriLink
-            uri={artifact.uri}
-            downloadHost={pipelinesUiRoute}
-            isLoaded={isPipelinesUiRouteLoaded}
-          />
-        </Td>
+        <Td>{artifact.uri}</Td>
         <Td>
           <PipelinesTableRowTime date={new Date(artifact.createTimeSinceEpoch)} />
         </Td>
       </Tr>
     ),
-    [isPipelinesUiRouteLoaded, namespace, pipelinesUiRoute],
+    [namespace],
   );
 
   return (

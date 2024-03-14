@@ -12,7 +12,7 @@ import {
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import { useMlmdListContext } from '~/concepts/pipelines/context';
-import { useGetArtifactsList } from './useGetArtifactsList';
+import { useGetArtifactsList } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
 import { ArtifactsTable } from './ArtifactsTable';
 
 export const ArtifactsList: React.FC = () => {
