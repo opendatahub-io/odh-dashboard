@@ -12,7 +12,7 @@ spec:
   description: Install GPU add-on
   prerequisites: [Your cluster has at least one GPU node provisioned.]
   introduction: |-
-    This quick start shows you how to install the GPU add-on and verify that the Jupyter spawner detects the available GPUs.
+    This quick start shows you how to install the GPU add-on and verify that the Jupyter Spawner detects the available GPUs.
   tasks:
     - title: Launch Red Hat Hybrid Cloud Console
       description: |-
