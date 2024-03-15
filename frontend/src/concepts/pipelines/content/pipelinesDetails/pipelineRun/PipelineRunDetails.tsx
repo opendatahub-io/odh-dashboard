@@ -30,21 +30,19 @@ import {
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
-import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { routePipelineRunsNamespace } from '~/routes';
+import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { pipelineRunId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [runResource, loaded, error] = usePipelineRunById(pipelineRunId, true);
-  const [job] = usePipelineRunJobById(runResource?.recurring_run_id);
-  const [version] = usePipelineVersionById(
+  const [runResource, runLoaded, runError] = usePipelineRunById(pipelineRunId, true);
+  const [version, versionLoaded, versionError] = usePipelineVersionById(
     runResource?.pipeline_version_reference.pipeline_id,
     runResource?.pipeline_version_reference.pipeline_version_id,
   );
@@ -53,8 +51,13 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const { taskMap, nodes } = usePipelineTaskTopology(version?.pipeline_spec);
+  const { taskMap, nodes } = usePipelineTaskTopology(
+    version?.pipeline_spec,
+    runResource ?? undefined,
+  );
 
+  const loaded = versionLoaded && runLoaded;
+  const error = versionError || runError;
   if (!loaded && !error) {
     return (
       <Bullseye>
@@ -83,9 +86,6 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
-              // TODO need to get pipeline runtime for v2. https://issues.redhat.com/browse/RHOAIENG-2297
-              // parameters={pipelineRuntime?.spec?.params}
-              taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
           }
@@ -101,9 +101,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                       setSelectedId(null);
                     }}
                     pipelineRunDetails={
-                      runResource && version?.pipeline_spec
-                        ? { kf: runResource, kind: version.pipeline_spec }
-                        : undefined
+                      runResource && version?.pipeline_spec ? runResource : undefined
                     }
                   />
                 }
@@ -116,9 +114,16 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                       'Error loading run'
                     )
                   }
-                  jobReferenceName={job && <PipelineJobReferenceName resource={job} />}
+                  subtext={
+                    runResource && (
+                      <PipelineJobReferenceName
+                        runName={runResource.display_name}
+                        recurringRunId={runResource.recurring_run_id}
+                      />
+                    )
+                  }
                   description={
-                    runResource ? (
+                    runResource?.description ? (
                       <MarkdownView conciseDisplay markdown={runResource.description} />
                     ) : (
                       ''

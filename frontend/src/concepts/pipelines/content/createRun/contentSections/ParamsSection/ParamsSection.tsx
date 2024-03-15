@@ -5,7 +5,7 @@ import {
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import {
-  InputDefParamType,
+  InputDefinitionParameterType,
   PipelineVersionKFv2,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
@@ -56,20 +56,20 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
       let input: React.ReactNode;
 
       switch (parameterType) {
-        case InputDefParamType.NumberInteger:
+        case InputDefinitionParameterType.INTEGER:
           input = <NumberInputParam {...inputProps} />;
           break;
-        case InputDefParamType.Boolean:
+        case InputDefinitionParameterType.BOOLEAN:
           input = <RadioInputParam {...inputProps} />;
           break;
-        case InputDefParamType.List:
-        case InputDefParamType.Struct:
+        case InputDefinitionParameterType.LIST:
+        case InputDefinitionParameterType.STRUCT:
           input = <JsonInputParam {...inputProps} />;
           break;
-        case InputDefParamType.NumberDouble:
+        case InputDefinitionParameterType.DOUBLE:
           input = <NumberInputParam isFloat {...inputProps} />;
           break;
-        case InputDefParamType.String:
+        case InputDefinitionParameterType.STRING:
           input = <TextInput {...inputProps} value={String(value)} />;
       }
 

@@ -1,72 +1,75 @@
 import * as React from 'react';
-import { Stack, StackItem, Title } from '@patternfly/react-core';
-import { Divider } from '@patternfly/react-core/components';
-import { PipelineRunTask } from '~/k8sTypes';
+import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import TaskDetailsCodeBlock from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
-import TaskDetailsInputParams from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputParams';
-import TaskDetailsOutputResults from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsOutputResults';
-import TaskDetailsVolumeMounts from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsVolumeMounts';
+import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 
 type TaskDetailsProps = {
-  task: PipelineRunTask;
+  task: PipelineTask;
 };
 
-const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => (
-  <Stack hasGutter>
-    {task.params && (
-      <StackItem>
-        <TaskDetailsInputParams params={task.params} />
-      </StackItem>
-    )}
-    {task.taskSpec.results && (
-      <StackItem>
-        <TaskDetailsOutputResults
-          results={task.taskSpec.results.map(({ name, description }) => ({
-            name,
-            value: description ?? '',
-          }))}
-        />
-      </StackItem>
-    )}
-    {task.taskSpec.steps.map((step) => (
-      <React.Fragment key={step.name}>
-        {task.taskSpec.steps.length > 1 && (
-          <StackItem>
-            <Title headingLevel="h3" size="lg">
-              Step {step.name}
-            </Title>
-            <Divider />
-          </StackItem>
-        )}
-        {step.args && (
-          <StackItem>
-            <TaskDetailsSection title="Arguments">
-              <TaskDetailsCodeBlock id="args" content={step.args.join('\n')} />
-            </TaskDetailsSection>
-          </StackItem>
-        )}
-        {step.command && (
-          <StackItem>
-            <TaskDetailsSection title="Command">
-              <TaskDetailsCodeBlock id="command" content={step.command.join('\n')} />
-            </TaskDetailsSection>
-          </StackItem>
-        )}
-        {step.image && (
+const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
+  let groupAlert: React.ReactNode | null = null;
+  if (task.type === 'groupTask') {
+    // TODO: remove when we support group details
+    groupAlert = <Alert isInline variant="info" title="Content may be missing" />;
+  }
+
+  if (!task.inputs && !task.outputs && !task.steps) {
+    return (
+      <Stack hasGutter>
+        {groupAlert && <StackItem>{groupAlert}</StackItem>}
+        <StackItem>No content</StackItem>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack hasGutter>
+      {groupAlert && <StackItem>{groupAlert}</StackItem>}
+      {task.inputs && (
+        <StackItem>
+          <TaskDetailsInputOutput
+            type="Input"
+            artifacts={task.inputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            params={task.inputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
+          />
+        </StackItem>
+      )}
+      {task.outputs && (
+        <StackItem>
+          <TaskDetailsInputOutput
+            type="Output"
+            artifacts={task.outputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            params={task.outputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
+          />
+        </StackItem>
+      )}
+      {task.steps?.map((step, i) => (
+        <React.Fragment key={i}>
           <StackItem>
             <TaskDetailsSection title="Image">{step.image}</TaskDetailsSection>
           </StackItem>
-        )}
-      </React.Fragment>
-    ))}
-    {task.taskSpec.stepTemplate?.volumeMounts && (
-      <StackItem>
-        <TaskDetailsVolumeMounts volumeMounts={task.taskSpec.stepTemplate.volumeMounts} />
-      </StackItem>
-    )}
-    <StackItem>&nbsp;</StackItem>
-  </Stack>
-);
+          {step.command && (
+            <StackItem>
+              <TaskDetailsSection title="Command">
+                <TaskDetailsCodeBlock id="command" content={step.command.join('\n')} />
+              </TaskDetailsSection>
+            </StackItem>
+          )}
+          {step.args && (
+            <StackItem>
+              <TaskDetailsSection title="Arguments">
+                <TaskDetailsCodeBlock id="args" content={step.args.join('\n')} />
+              </TaskDetailsSection>
+            </StackItem>
+          )}
+        </React.Fragment>
+      ))}
+      <StackItem>&nbsp;</StackItem>
+    </Stack>
+  );
+};
 
 export default PipelineTaskDetails;

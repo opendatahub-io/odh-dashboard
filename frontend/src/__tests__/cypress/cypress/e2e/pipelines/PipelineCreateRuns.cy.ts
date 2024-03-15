@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import {
-  InputDefParamType,
+  InputDefinitionParameterType,
   PipelineRunJobKFv2,
   PipelineRunKFv2,
 } from '~/concepts/pipelines/kfTypes';
@@ -27,6 +27,8 @@ import {
   cloneSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
+
+import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipelineV2();
@@ -184,8 +186,8 @@ describe('Pipeline create runs', () => {
         .findPipelineVersionSelect()
         .should('have.text', mockPipelineVersion.display_name);
       cloneRunPage.findParamById('radio-min_max_scaler-false').should('be.checked');
-      cloneRunPage.findParamById('neighbors').find('input').should('have.value', '0');
-      cloneRunPage.findParamById('standard_scaler').should('have.value', 'yes');
+      cloneRunPage.findParamById('neighbors').find('input').should('have.value', '1');
+      cloneRunPage.findParamById('standard_scaler').should('have.value', 'false');
 
       cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('duplicateRun');
       cloneRunPage.submit();
@@ -204,7 +206,7 @@ describe('Pipeline create runs', () => {
               pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
             },
             runtime_config: {
-              parameters: { min_max_scaler: false, neighbors: 0, standard_scaler: 'yes' },
+              parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: false },
             },
             service_account: '',
             experiment_id: 'experiment-1',
@@ -241,27 +243,34 @@ describe('Pipeline create runs', () => {
           {
             ...mockPipelineVersion,
             pipeline_spec: {
-              ...mockPipelineVersion.pipeline_spec,
+              // Volume PipelineSpecs cause weird type issues
+              components: {},
+              deploymentSpec: { executors: {} },
+              pipelineInfo: { name: '' },
+              schemaVersion: '',
+              sdkVersion: '',
+              ...getCorePipelineSpec(mockPipelineVersion.pipeline_spec),
               root: {
+                dag: { tasks: {} },
                 inputDefinitions: {
                   parameters: {
                     string_param: {
-                      parameterType: InputDefParamType.String,
+                      parameterType: InputDefinitionParameterType.STRING,
                     },
                     double_param: {
-                      parameterType: InputDefParamType.NumberDouble,
+                      parameterType: InputDefinitionParameterType.DOUBLE,
                     },
                     int_param: {
-                      parameterType: InputDefParamType.NumberInteger,
+                      parameterType: InputDefinitionParameterType.INTEGER,
                     },
                     struct_param: {
-                      parameterType: InputDefParamType.Struct,
+                      parameterType: InputDefinitionParameterType.STRUCT,
                     },
                     list_param: {
-                      parameterType: InputDefParamType.List,
+                      parameterType: InputDefinitionParameterType.LIST,
                     },
                     bool_param: {
-                      parameterType: InputDefParamType.Boolean,
+                      parameterType: InputDefinitionParameterType.BOOLEAN,
                     },
                   },
                 },

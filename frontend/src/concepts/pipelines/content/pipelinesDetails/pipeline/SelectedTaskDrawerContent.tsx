@@ -7,11 +7,11 @@ import {
   DrawerPanelContent,
   Title,
 } from '@patternfly/react-core';
-import { PipelineRunTask } from '~/k8sTypes';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 import PipelineTaskDetails from './PipelineTaskDetails';
 
 type SelectedTaskDrawerContentProps = {
-  task?: PipelineRunTask;
+  task?: PipelineTask;
   onClose: () => void;
 };
 
@@ -29,8 +29,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
-          {task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
-            task.name}
+          {task.name} {task.type === 'artifact' ? 'artifact details' : ''}
         </Title>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />

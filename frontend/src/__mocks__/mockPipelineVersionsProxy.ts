@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import {
-  InputDefParamType,
+  ArtifactType,
+  InputDefinitionParameterType,
   PipelineVersionKF,
   PipelineVersionKFv2,
   RelationshipKF,
@@ -210,7 +211,7 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
             artifacts: {
               iris_dataset: {
                 artifactType: {
-                  schemaTitle: 'system.Dataset',
+                  schemaTitle: ArtifactType.DATASET,
                   schemaVersion: '0.0.1',
                 },
               },
@@ -223,17 +224,17 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
             artifacts: {
               input_iris_dataset: {
                 artifactType: {
-                  schemaTitle: 'system.Dataset',
+                  schemaTitle: ArtifactType.DATASET,
                   schemaVersion: '0.0.1',
                 },
               },
             },
             parameters: {
               min_max_scaler: {
-                parameterType: 'BOOLEAN',
+                parameterType: InputDefinitionParameterType.BOOLEAN,
               },
               standard_scaler: {
-                parameterType: 'BOOLEAN',
+                parameterType: InputDefinitionParameterType.BOOLEAN,
               },
             },
           },
@@ -241,7 +242,7 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
             artifacts: {
               normalized_iris_dataset: {
                 artifactType: {
-                  schemaTitle: 'system.Dataset',
+                  schemaTitle: ArtifactType.DATASET,
                   schemaVersion: '0.0.1',
                 },
               },
@@ -254,14 +255,14 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
             artifacts: {
               normalized_iris_dataset: {
                 artifactType: {
-                  schemaTitle: 'system.Dataset',
+                  schemaTitle: ArtifactType.DATASET,
                   schemaVersion: '0.0.1',
                 },
               },
             },
             parameters: {
               n_neighbors: {
-                parameterType: 'NUMBER_INTEGER',
+                parameterType: InputDefinitionParameterType.INTEGER,
               },
             },
           },
@@ -269,7 +270,7 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
             artifacts: {
               model: {
                 artifactType: {
-                  schemaTitle: 'system.Model',
+                  schemaTitle: ArtifactType.MODEL,
                   schemaVersion: '0.0.1',
                 },
               },
@@ -409,13 +410,13 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
         inputDefinitions: {
           parameters: {
             min_max_scaler: {
-              parameterType: InputDefParamType.Boolean,
+              parameterType: InputDefinitionParameterType.BOOLEAN,
             },
             neighbors: {
-              parameterType: InputDefParamType.NumberInteger,
+              parameterType: InputDefinitionParameterType.INTEGER,
             },
             standard_scaler: {
-              parameterType: InputDefParamType.Boolean,
+              parameterType: InputDefinitionParameterType.BOOLEAN,
             },
           },
         },
@@ -458,7 +459,7 @@ export const buildMockPipelineVersionV2 = (
           artifacts: {
             iris_dataset: {
               artifactType: {
-                schemaTitle: 'system.Dataset',
+                schemaTitle: ArtifactType.DATASET,
                 schemaVersion: '0.0.1',
               },
             },
@@ -471,17 +472,17 @@ export const buildMockPipelineVersionV2 = (
           artifacts: {
             input_iris_dataset: {
               artifactType: {
-                schemaTitle: 'system.Dataset',
+                schemaTitle: ArtifactType.DATASET,
                 schemaVersion: '0.0.1',
               },
             },
           },
           parameters: {
             min_max_scaler: {
-              parameterType: 'BOOLEAN',
+              parameterType: InputDefinitionParameterType.BOOLEAN,
             },
             standard_scaler: {
-              parameterType: 'STRING',
+              parameterType: InputDefinitionParameterType.STRING,
             },
           },
         },
@@ -489,7 +490,7 @@ export const buildMockPipelineVersionV2 = (
           artifacts: {
             normalized_iris_dataset: {
               artifactType: {
-                schemaTitle: 'system.Dataset',
+                schemaTitle: ArtifactType.DATASET,
                 schemaVersion: '0.0.1',
               },
             },
@@ -502,14 +503,14 @@ export const buildMockPipelineVersionV2 = (
           artifacts: {
             normalized_iris_dataset: {
               artifactType: {
-                schemaTitle: 'system.Dataset',
+                schemaTitle: ArtifactType.DATASET,
                 schemaVersion: '0.0.1',
               },
             },
           },
           parameters: {
             n_neighbors: {
-              parameterType: 'NUMBER_INTEGER',
+              parameterType: InputDefinitionParameterType.INTEGER,
             },
           },
         },
@@ -517,7 +518,7 @@ export const buildMockPipelineVersionV2 = (
           artifacts: {
             model: {
               artifactType: {
-                schemaTitle: 'system.Model',
+                schemaTitle: ArtifactType.MODEL,
                 schemaVersion: '0.0.1',
               },
             },
@@ -657,13 +658,13 @@ export const buildMockPipelineVersionV2 = (
       inputDefinitions: {
         parameters: {
           min_max_scaler: {
-            parameterType: InputDefParamType.Boolean,
+            parameterType: InputDefinitionParameterType.BOOLEAN,
           },
           neighbors: {
-            parameterType: InputDefParamType.NumberInteger,
+            parameterType: InputDefinitionParameterType.INTEGER,
           },
           standard_scaler: {
-            parameterType: InputDefParamType.String,
+            parameterType: InputDefinitionParameterType.STRING,
           },
         },
       },

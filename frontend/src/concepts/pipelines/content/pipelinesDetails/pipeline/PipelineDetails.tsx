@@ -26,6 +26,7 @@ import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 import { routePipelineDetailsNamespace, routePipelinesNamespace } from '~/routes';
+import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -198,7 +199,10 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   style={{ height: '100%' }}
                 >
                   <PipelineDetailsYAML
-                    filename={`Pipeline ${pipelineVersion?.pipeline_spec.pipelineInfo.name}`}
+                    filename={`Pipeline ${
+                      getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??
+                      'details'
+                    }`}
                     content={pipelineVersion?.pipeline_spec}
                   />
                 </TabContent>

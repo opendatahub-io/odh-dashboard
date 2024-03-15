@@ -929,12 +929,14 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   };
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskSpecDigest = {
   name: string;
   outputs: unknown[]; // TODO: detail outputs
   version: string;
 };
 
+/** @deprecated - Tekton is no longer used */
 type PipelineRunTaskSpecStep = {
   name: string;
   args?: string[];
@@ -942,17 +944,20 @@ type PipelineRunTaskSpecStep = {
   image: string;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskSpecResult = {
   name: string;
   type: string;
   description?: string;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskVolumeMount = {
   name: string;
   mountPath: string;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskSpec = {
   steps: PipelineRunTaskSpecStep[];
   stepTemplate?: {
@@ -970,17 +975,21 @@ export type PipelineRunTaskSpec = {
     };
   };
 };
+
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskParam = {
   name: string;
   value: string;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskWhen = {
   input: string;
   operator: string;
   values: string[];
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTask = {
   name: string;
   taskSpec: PipelineRunTaskSpec;
@@ -990,26 +999,31 @@ export type PipelineRunTask = {
   runAfter?: string[];
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunPipelineSpec = {
   tasks: PipelineRunTask[];
 };
 
+/** @deprecated - Tekton is no longer used */
 export type SkippedTask = {
   name: string;
   reason: string;
   whenExpressions: PipelineRunTaskWhen;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type TaskRunResults = {
   name: string;
   type: string;
   value: string;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskStatusStep = {
   volumeMounts?: PipelineRunTaskVolumeMount[];
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskRunStatusProperties = {
   conditions?: K8sCondition[];
   podName: string;
@@ -1024,12 +1038,14 @@ export type PipelineRunTaskRunStatusProperties = {
   };
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskRunStatus = {
   /** The task name; pipelineSpec.tasks[].name */
   pipelineTaskName: string;
   status?: PipelineRunTaskRunStatusProperties;
 };
 
+/** @deprecated - Tekton is no longer used */
 export type PipelineRunKind = K8sResourceCommon & {
   metadata: {
     name: string;
