@@ -12,10 +12,10 @@ Once you have completed both steps you will see a section called `Notebook Image
 
 ## Minimum requirements for BYON
 
-For image to be spawneable via JupyterHub Spawner, it is required to meet the following criteria:
+For image to be spawneable via Jupyter Spawner, it is required to meet the following criteria:
 
 * It needs to include Python runtime,  >= 3.8.
-* Python packages `jupyterhub` and `jupyterlab` need to be installed.
+* Python packages `jupyter` and `jupyterlab` need to be installed.
 * Environment variable `HOME` is set and points to a writable directory for every user.
 * A script `start-singleuser.sh` is present in `PATH`.
 * The `start-singleuser.sh` calls jupyter executable with `labhub` argument. Additionally it either passes extra command line arguments to the jupyter call or manually sets `--ip=0.0.0.0 --port=8080`.
