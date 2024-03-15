@@ -98,7 +98,7 @@ spec:
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You have run the example notebook in the correct AI Kit Jupyter Kernel environment.
+        success: You have run the example notebook in the correct AI Kit Jupyter Kernel Environment.
         failed: Try the steps again.
     - title: Load Intel® oneAPI AI Analytics Toolkit optimizations with a new notebook
       description: |-
