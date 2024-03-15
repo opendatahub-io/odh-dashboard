@@ -99,7 +99,7 @@ export const generateElyraSecret = (
         metadata: {
           tags: [],
           display_name: 'Data Science Pipeline',
-          engine: 'Tekton',
+          engine: 'Argo',
           auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
           api_endpoint: route,
           // Append the id on the end to navigate to the details page for that PipelineRun
