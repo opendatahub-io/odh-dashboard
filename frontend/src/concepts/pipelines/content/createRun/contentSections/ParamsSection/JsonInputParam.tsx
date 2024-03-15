@@ -8,6 +8,7 @@ export const JsonInputParam: React.FC<InputParamProps> = ({ id, value, onChange 
   return (
     <TextArea
       id={id}
+      data-testid={id}
       autoResize
       resizeOrientation="vertical"
       value={jsonValue}

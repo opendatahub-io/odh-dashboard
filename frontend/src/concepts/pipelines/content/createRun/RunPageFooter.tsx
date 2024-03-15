@@ -47,6 +47,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
           <SplitItem>
             <Button
               variant="primary"
+              data-testid="run-page-submit-button"
               isDisabled={!canSubmit || isSubmitting}
               onClick={() => {
                 setSubmitting(true);

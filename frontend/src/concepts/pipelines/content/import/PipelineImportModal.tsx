@@ -90,6 +90,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
       actions={[
         <Button
           key="import-button"
+          data-testid="import-button"
           variant="primary"
           isDisabled={isImportButtonDisabled}
           isLoading={importing}
@@ -117,6 +118,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
                 isRequired
                 type="text"
                 id="pipeline-name"
+                data-testid="pipeline-name"
                 name="pipeline-name"
                 value={name}
                 onChange={(e, value) => setData('name', value)}
@@ -129,6 +131,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
                 isRequired
                 type="text"
                 id="pipeline-description"
+                data-testid="pipeline-description"
                 name="pipeline-description"
                 value={description}
                 onChange={(e, value) => setData('description', value)}

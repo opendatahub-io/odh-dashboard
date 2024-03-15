@@ -119,11 +119,13 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
           <ExpandableRowContent>
             <DescriptionList columnModifier={{ default: columnModifier }}>
               <BYONImageDependenciesList
+                data-testid="displayed-software"
                 term="Displayed software"
                 dependencies={obj.software.map((s) => `${s.name} ${s.version}`)}
               />
               <BYONImageDependenciesList
                 term="Displayed packages"
+                data-testid="displayed-packages"
                 dependencies={obj.packages.map((p) => `${p.name} ${p.version}`)}
               />
               <BYONImageDependenciesList term="Image location" dependencies={[obj.url]} />

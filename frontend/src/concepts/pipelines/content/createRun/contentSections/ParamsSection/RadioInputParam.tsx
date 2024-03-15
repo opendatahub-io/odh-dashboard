@@ -11,6 +11,7 @@ export const RadioInputParam: React.FC<InputParamProps> = ({ id, value: radioVal
   <Flex>
     {Object.entries(RadioValue).map(([label, value]) => (
       <Radio
+        data-testid={`radio-${id}-${value}`}
         key={label}
         label={label}
         id={`radio-${id}-${value}`}

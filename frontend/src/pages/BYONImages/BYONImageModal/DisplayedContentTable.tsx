@@ -39,6 +39,7 @@ const DisplayedContentTable: React.FC<DisplayedContentTableProps> = ({
       </PanelHeader>
       <PanelMainBody>
         <Table
+          data-testid={`displayed-content-table-${content}`}
           variant="compact"
           data={resources}
           columns={columns}
@@ -67,7 +68,7 @@ const DisplayedContentTable: React.FC<DisplayedContentTableProps> = ({
       </PanelMainBody>
       <PanelFooter>
         <Button
-          data-id="add-resource-button"
+          data-testid={`add-${content}-resource-button`}
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={onAdd}

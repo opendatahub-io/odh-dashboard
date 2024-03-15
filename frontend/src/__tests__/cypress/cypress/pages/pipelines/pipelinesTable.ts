@@ -2,7 +2,30 @@
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
+import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
+class PipelinesTableRow extends TableRow {
+  findPipelineName(name: string) {
+    return this.find().findByRole('heading', { name }).find('a');
+  }
+
+  findPipelineVersionName(name: string) {
+    return this.find().parents().findByRole('heading', { name }).find('a');
+  }
+
+  toggleExpandByIndex(index: number) {
+    this.find().find('button').should('have.attr', 'aria-label', 'Details').eq(index).click();
+  }
+
+  toggleCheckboxByRowName() {
+    this.find().find(`[data-label=Checkbox]`).find('input').check();
+  }
+
+  shouldNotHavePipelineVersion() {
+    this.find().parents('tbody').findByTestId('no-pipeline-versions').should('exist');
+    return this;
+  }
+}
 class PipelinesTable {
   private testId = 'pipelines-table';
 
@@ -10,12 +33,13 @@ class PipelinesTable {
     return cy.findByTestId(this.testId);
   }
 
-  findRowByName(name: string) {
-    return this.find().findAllByRole('heading', { name }).parents('tr');
+  getRowByName(name: string) {
+    return new PipelinesTableRow(() => this.find().findByRole('heading', { name }).parents('tr'));
   }
 
   shouldRowNotBeVisible(name: string) {
-    return this.find().get('tr').contains(name).should('not.exist');
+    this.find().find('tr').contains(name).should('not.exist');
+    return this;
   }
 
   shouldBeEmpty() {
@@ -60,18 +84,6 @@ class PipelinesTable {
       },
       buildMockPipelineVersionsV2(versions),
     );
-  }
-
-  toggleExpandRowByName(name: string) {
-    this.findRowByName(name).findByLabelText('Details').click();
-  }
-
-  toggleCheckboxByRowName(name: string) {
-    this.findRowByName(name).findByRole('checkbox').click();
-  }
-
-  toggleExpandRowByIndex(index: number) {
-    this.find().findByLabelText('Details').eq(index).click();
   }
 }
 

@@ -25,6 +25,7 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
   return (
     <EmptyState>
       <EmptyStateHeader
+        data-testid="no-data-science-project"
         titleText="No data science projects yet."
         icon={<EmptyStateIcon icon={CubesIcon} />}
         headingLevel="h2"

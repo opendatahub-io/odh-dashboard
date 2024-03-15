@@ -60,6 +60,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
           {isActive ? (
             <TextInput
               aria-label={`${dataLabel} name input`}
+              data-testid={`${dataLabel}-name-input`}
               value={name}
               onChange={(e, value) => setName(value)}
               onKeyDown={onKeyDown}
@@ -73,6 +74,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
           {isActive ? (
             <TextInput
               aria-label={`${dataLabel} version input`}
+              data-testid={`${dataLabel}-version-input`}
               value={version}
               onChange={(e, value) => setVersion(value)}
               onKeyDown={onKeyDown}
@@ -87,6 +89,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
               <>
                 <ActionListItem>
                   <Button
+                    data-testid={`save-displayed-button-${dataLabel} `}
                     aria-label="Save displayed content"
                     variant="link"
                     onClick={() => onConfirm(name, version)}
@@ -95,7 +98,12 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
                   </Button>
                 </ActionListItem>
                 <ActionListItem>
-                  <Button aria-label="Discard displayed content" variant="plain" onClick={resetAll}>
+                  <Button
+                    data-testid={`discard-display-button-${dataLabel} `}
+                    aria-label="Discard displayed content"
+                    variant="plain"
+                    onClick={resetAll}
+                  >
                     <TimesIcon />
                   </Button>
                 </ActionListItem>
@@ -114,6 +122,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
                 </ActionListItem>
                 <ActionListItem>
                   <Button
+                    data-testid="remove-displayed-content-button"
                     aria-label="Remove displayed content"
                     isDisabled={isEditing}
                     variant="plain"

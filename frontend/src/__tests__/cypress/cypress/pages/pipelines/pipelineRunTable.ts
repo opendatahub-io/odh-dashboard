@@ -1,6 +1,24 @@
 /* eslint-disable camelcase */
 import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
+class PipelineRunsRow extends TableRow {
+  findCheckbox() {
+    return this.find().find(`[data-label=Checkbox]`).find('input');
+  }
+
+  findColumnName(name: string) {
+    return this.find().find(`[data-label=Name]`).contains(name);
+  }
+
+  findColumnVersion(name: string) {
+    return this.find().find(`[data-label="Pipeline"]`).contains(name);
+  }
+
+  findStatusSwitchByRowName() {
+    return this.find().findByTestId('job-status-switch');
+  }
+}
 class PipelineRunsTable {
   protected testId = '';
 
@@ -15,20 +33,24 @@ class PipelineRunsTable {
     return cy.findByTestId(this.testId);
   }
 
-  findRowByName(name: string) {
-    return this.find().findAllByRole('heading', { name }).parents('tr');
+  getRowByName(name: string) {
+    return new PipelineRunsRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
   }
 
   shouldRowNotBeVisible(name: string) {
-    return this.find().get('tr').contains(name).should('not.be.visible');
+    this.find()
+      .parents()
+      .find('tr')
+      .find(`[data-label=Name]`)
+      .contains(name)
+      .should('not.be.visible');
+    return this;
   }
 
   findRows() {
     return this.find().find('[data-label=Name]').parents('tr');
-  }
-
-  findRowKebabByName(name: string) {
-    return this.findRowByName(name).findByRole('button', { name: 'Kebab toggle' });
   }
 
   findActionsKebab() {
@@ -40,12 +62,7 @@ class PipelineRunsTable {
   }
 
   findEmptyResults() {
-    return cy.findByRole('heading', { name: 'No results found' });
-  }
-
-  selectRowActionByName(rowName: string, actionName: string) {
-    this.findRowKebabByName(rowName).click();
-    cy.findByRole('menu').get('span').contains(actionName).parents('button').click();
+    return cy.findByTestId('no-result-found-title');
   }
 
   mockRestoreRun(runId: string) {
@@ -137,10 +154,6 @@ class PipelineRunJobTable extends PipelineRunsTable {
 
   findExperimentFilterSelect() {
     return cy.findByTestId('experiment-search-select');
-  }
-
-  findStatusSwitchByRowName(name: string) {
-    return this.findRowByName(name).findByTestId('job-status-switch');
   }
 
   mockGetJobs(jobs: PipelineRunJobKFv2[]) {

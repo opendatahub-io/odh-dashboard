@@ -62,7 +62,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
             <TableBase
               itemCount={fetchedSize}
               loading={!loaded}
-              data-id="pipeline-selector-table-list"
+              data-testid="pipeline-selector-table-list"
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}

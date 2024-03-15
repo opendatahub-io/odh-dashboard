@@ -13,6 +13,12 @@ class NotebookRow extends TableRow {
   }
 }
 
+class ProjectRow extends TableRow {
+  shouldHaveDSLabel() {
+    return this.find().findByTestId('ds-project-label').should('exist');
+  }
+}
+
 class ProjectListPage {
   visit() {
     cy.visitWithLogin('/projects');
@@ -25,7 +31,7 @@ class ProjectListPage {
   }
 
   private wait() {
-    cy.findByText('View your existing projects or create new projects.');
+    cy.findByTestId('app-page-title');
     cy.testA11y();
   }
 
@@ -35,24 +41,20 @@ class ProjectListPage {
   }
 
   shouldBeEmpty() {
-    cy.findByText('No data science projects yet.').should('exist');
+    cy.findByTestId('no-data-science-project').should('exist');
     return this;
   }
 
   findCreateProjectButton() {
-    return cy.findByRole('button', { name: 'Create data science project' });
-  }
-
-  shouldHaveDSLabel(projectName: string) {
-    return this.findProjectRow(projectName).findByText('DS').should('exist');
+    return cy.findByTestId('create-data-science-project');
   }
 
   findProjectsTable() {
-    return cy.get('[data-id=project-view-table]');
+    return cy.findByTestId('project-view-table');
   }
 
-  findProjectRow(projectName: string) {
-    return this.findProjectLink(projectName).parents('tr');
+  getProjectRow(projectName: string) {
+    return new ProjectRow(() => this.findProjectLink(projectName).parents('tr'));
   }
 
   findProjectLink(projectName: string) {
@@ -66,15 +68,15 @@ class CreateEditProjectModal extends Modal {
   }
 
   findNameInput() {
-    return this.find().findByLabelText('Name *');
+    return this.find().findByTestId('manage-project-modal-name');
   }
 
   findResourceNameInput() {
-    return this.find().findByLabelText('Resource name *');
+    return this.find().findByTestId('resource-manage-project-modal-name');
   }
 
   findDescriptionInput() {
-    return this.find().findByLabelText('Description');
+    return this.find().findByTestId('manage-project-modal-description');
   }
 
   findSubmitButton() {

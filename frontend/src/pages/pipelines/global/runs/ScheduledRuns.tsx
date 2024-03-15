@@ -68,6 +68,7 @@ const ScheduledRuns: React.FC = () => {
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
+              data-testid="schedule-run-button"
               variant="primary"
               onClick={() =>
                 navigate({

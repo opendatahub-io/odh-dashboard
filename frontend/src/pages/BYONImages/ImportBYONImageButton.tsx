@@ -11,7 +11,7 @@ const ImportBYONImageButton: React.FC<ImportBYONImageButtonProps> = ({ refresh }
   return (
     <>
       <Button
-        data-id="import-new-image"
+        data-testid="import-new-image"
         onClick={() => {
           setOpen(true);
         }}

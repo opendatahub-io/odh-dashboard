@@ -129,7 +129,7 @@ describe('Pipeline runs', () => {
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findSchedulesTab().click();
-      pipelineRunJobTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
+      pipelineRunJobTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
 
       schedulesDeleteModal.shouldBeOpen();
       schedulesDeleteModal.findSubmitButton().should('be.disabled');
@@ -185,8 +185,8 @@ describe('Pipeline runs', () => {
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findSchedulesTab().click();
-      pipelineRunJobTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
-      pipelineRunJobTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
+      pipelineRunJobTable.getRowByName('test-pipeline').findCheckbox().click();
+      pipelineRunJobTable.getRowByName('other-pipeline').findCheckbox().click();
 
       pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete').click();
 
@@ -260,7 +260,7 @@ describe('Pipeline runs', () => {
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findArchivedRunsTab().click();
-      archivedRunsTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
+      archivedRunsTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
 
       runsDeleteModal.shouldBeOpen();
       runsDeleteModal.findSubmitButton().should('be.disabled');
@@ -317,8 +317,8 @@ describe('Pipeline runs', () => {
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findArchivedRunsTab().click();
-      archivedRunsTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
-      archivedRunsTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
+      archivedRunsTable.getRowByName('test-pipeline').findCheckbox().click();
+      archivedRunsTable.getRowByName('other-pipeline').findCheckbox().click();
 
       archivedRunsTable.findActionsKebab().findDropdownItem('Delete').click();
 

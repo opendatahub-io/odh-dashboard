@@ -35,7 +35,7 @@ describe('Pipelines', () => {
 
   it('renders the page with pipelines table data', () => {
     pipelinesTable.find();
-    pipelinesTable.findRowByName('Test pipeline');
+    pipelinesTable.getRowByName('Test pipeline');
   });
 
   it('incompatible dpsa version shows error', () => {
@@ -113,7 +113,7 @@ describe('Pipelines', () => {
     });
 
     // Verify the uploaded pipeline is in the table
-    pipelinesTable.findRowByName('New pipeline');
+    pipelinesTable.getRowByName('New pipeline');
   });
 
   it('imports a new pipeline by url', () => {
@@ -160,7 +160,7 @@ describe('Pipelines', () => {
     cy.wait('@refreshPipelines');
 
     // Verify the uploaded pipeline is in the table
-    pipelinesTable.findRowByName('New pipeline');
+    pipelinesTable.getRowByName('New pipeline');
   });
 
   it('uploads a new pipeline version', () => {
@@ -218,8 +218,8 @@ describe('Pipelines', () => {
     });
 
     // Verify the uploaded pipeline version is in the table
-    pipelinesTable.toggleExpandRowByIndex(0);
-    pipelinesTable.findRowByName('New pipeline version');
+    pipelinesTable.getRowByName('Test pipeline').toggleExpandByIndex(0);
+    pipelinesTable.getRowByName('New pipeline version');
   });
 
   it('imports a new pipeline version by url', () => {
@@ -262,8 +262,8 @@ describe('Pipelines', () => {
     cy.wait('@refreshVersions');
 
     // Verify the uploaded pipeline version is in the table
-    pipelinesTable.toggleExpandRowByIndex(0);
-    pipelinesTable.findRowByName('New pipeline version');
+    pipelinesTable.getRowByName('Test pipeline').toggleExpandByIndex(0);
+    pipelinesTable.getRowByName('New pipeline version');
   });
 
   it('delete a single pipeline', () => {
@@ -273,14 +273,8 @@ describe('Pipelines', () => {
 
     // Check pipeline
     pipelinesTable
-      .findRowByName(initialMockPipeline.display_name)
-      .findByLabelText('Kebab toggle')
-      .click();
-
-    // Delete the selected pipeline
-    pipelinesTable
-      .findRowByName(initialMockPipeline.display_name)
-      .findByText('Delete pipeline')
+      .getRowByName(initialMockPipeline.display_name)
+      .findKebabAction('Delete pipeline')
       .click();
     pipelineDeleteModal.shouldBeOpen();
     pipelineDeleteModal.findInput().type(initialMockPipeline.display_name);
@@ -308,16 +302,10 @@ describe('Pipelines', () => {
     pipelinesTable.find();
 
     // Check pipeline version
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByLabelText('Kebab toggle')
-      .click();
-
-    // Delete the selected version
-    pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText('Delete pipeline version')
+      .getRowByName(initialMockPipelineVersion.display_name)
+      .findKebabAction('Delete pipeline version')
       .click();
     pipelineDeleteModal.shouldBeOpen();
     pipelineDeleteModal.findInput().type(initialMockPipelineVersion.display_name);
@@ -340,7 +328,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     cy.wait('@refreshVersions').then((interception) => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines/test-pipeline/versions',
@@ -348,21 +336,17 @@ describe('Pipelines', () => {
         host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
         queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
       });
-      pipelinesTable
-        .findRowByName(initialMockPipeline.display_name)
-        .parents('tbody')
-        .findByTestId('no-pipeline-versions')
-        .should('exist');
+      pipelinesTable.getRowByName(initialMockPipeline.display_name).shouldNotHavePipelineVersion();
     });
   });
 
   it('navigate to pipeline version details page', () => {
     // Wait for the pipelines table to load
     pipelinesTable.find();
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText(initialMockPipelineVersion.display_name)
+      .getRowByName(initialMockPipelineVersion.display_name)
+      .findPipelineName(initialMockPipelineVersion.display_name)
       .click();
     verifyRelativeURL(
       `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
@@ -395,13 +379,13 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
 
     // Check pipeline1 and one version in pipeline 2
-    pipelinesTable.toggleExpandRowByName(mockPipeline1.display_name);
-    pipelinesTable.toggleExpandRowByName(mockPipeline2.display_name);
+    pipelinesTable.getRowByName(mockPipeline1.display_name).toggleExpandByIndex(0);
+    pipelinesTable.getRowByName(mockPipeline2.display_name).toggleExpandByIndex(1);
 
-    pipelinesTable.toggleCheckboxByRowName(mockPipeline2.display_name);
-    pipelinesTable.toggleCheckboxByRowName(mockPipeline1Version1.display_name);
+    pipelinesTable.getRowByName(mockPipeline2.display_name).toggleCheckboxByRowName();
+    pipelinesTable.getRowByName(mockPipeline1Version1.display_name).toggleCheckboxByRowName();
 
-    // Delete the selected pipeline and versions
+    //Delete the selected pipeline and versions
     pipelinesGlobal.findDeleteButton().click();
     deleteModal.shouldBeOpen();
     deleteModal.findInput().type('Delete 1 pipeline and 1 version');
@@ -418,112 +402,71 @@ describe('Pipelines', () => {
     cy.wait('@refreshVersions').then(() => {
       // Test deleted
       pipelinesTable.shouldRowNotBeVisible(mockPipeline2.display_name);
-      pipelinesTable.findRowByName(mockPipeline1.display_name).should('exist');
-      pipelinesTable.toggleExpandRowByName(mockPipeline1.display_name);
+      const pipelineTableRow = pipelinesTable.getRowByName(mockPipeline1.display_name);
+      pipelineTableRow.toggleExpandByIndex(0);
       pipelinesTable.shouldRowNotBeVisible(mockPipeline1Version1.display_name);
     });
-  });
-
-  it('navigate to pipeline version details page', () => {
-    // Wait for the pipelines table to load
-    pipelinesTable.find();
-    pipelinesTable.toggleExpandRowByIndex(0);
-    pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText(initialMockPipelineVersion.display_name)
-      .click();
-    verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
-    );
   });
 
   it('navigate to create run page from pipeline row', () => {
     // Wait for the pipelines table to load
     pipelinesTable.find();
     pipelinesTable
-      .findRowByName(initialMockPipeline.display_name)
-      .findByLabelText('Kebab toggle')
+      .getRowByName(initialMockPipeline.display_name)
+      .findKebabAction('Create run')
       .click();
-
-    // Delete the selected version
-    pipelinesTable.findRowByName(initialMockPipeline.display_name).findByText('Create run').click();
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
     pipelinesTable.find();
     pipelinesTable
-      .findRowByName(initialMockPipeline.display_name)
-      .findByLabelText('Kebab toggle')
+      .getRowByName(initialMockPipeline.display_name)
+      .findKebabAction('Schedule run')
       .click();
 
-    pipelinesTable
-      .findRowByName(initialMockPipeline.display_name)
-      .findByText('Schedule run')
-      .click();
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
   });
 
   it('navigate to create run page from pipeline version row', () => {
     // Wait for the pipelines table to load
     pipelinesTable.find();
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByLabelText('Kebab toggle')
-      .click();
-
-    // Delete the selected version
-    pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText('Create run')
+      .getRowByName(initialMockPipelineVersion.display_name)
+      .findKebabAction('Create run')
       .click();
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
     pipelinesTable.find();
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByLabelText('Kebab toggle')
+      .getRowByName(initialMockPipelineVersion.display_name)
+      .findKebabAction('Schedule run')
       .click();
 
-    pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText('Schedule run')
-      .click();
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
   });
 
   it('navigate to view runs page from pipeline version row', () => {
     // Wait for the pipelines table to load
     pipelinesTable.find();
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByLabelText('Kebab toggle')
-      .click();
-
-    // Delete the selected version
-    pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText('View runs')
+      .getRowByName(initialMockPipelineVersion.display_name)
+      .findKebabAction('View runs')
       .click();
     verifyRelativeURL(`/pipelineRuns/${projectName}?runType=active`);
   });
 
   it('navigates to "Schedules" page from pipeline version row', () => {
     pipelinesTable.find();
-    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByLabelText('Kebab toggle')
-      .click();
-
-    pipelinesTable
-      .findRowByName(initialMockPipelineVersion.display_name)
-      .findByText('View schedules')
+      .getRowByName(initialMockPipelineVersion.display_name)
+      .findKebabAction('View schedules')
       .click();
     verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
   });

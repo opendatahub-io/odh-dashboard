@@ -69,6 +69,7 @@ export const ActiveRuns: React.FC = () => {
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
+              data-testid="create-run-button"
               variant="primary"
               onClick={() =>
                 navigate({

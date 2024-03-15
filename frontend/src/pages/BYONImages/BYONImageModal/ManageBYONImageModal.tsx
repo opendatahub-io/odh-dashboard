@@ -197,6 +197,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         <FormGroup label="Displayed contents" fieldId="byon-image-software-packages">
           <Tabs
             id="byon-image-software-packages"
+            data-testid="byon-image-software-packages-tabs"
             activeKey={activeTabKey}
             onSelect={(e, indexKey) => {
               setActiveTabKey(indexKey);
@@ -206,6 +207,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
               eventKey={DisplayedContentTab.SOFTWARE}
               title={<TabTitleText>Software</TabTitleText>}
               aria-label="Displayed content software tab"
+              data-testid="displayed-content-software-tab"
               tabContentId={`tabContent-${DisplayedContentTab.SOFTWARE}`}
               isDisabled={activeTabKey !== DisplayedContentTab.SOFTWARE && isEditing}
             />
@@ -213,6 +215,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
               eventKey={DisplayedContentTab.PACKAGES}
               title={<TabTitleText>Packages</TabTitleText>}
               aria-label="Displayed content packages tab"
+              data-testid="displayed-content-packages-tab"
               tabContentId={`tabContent-${DisplayedContentTab.PACKAGES}`}
               isDisabled={activeTabKey !== DisplayedContentTab.PACKAGES && isEditing}
             />

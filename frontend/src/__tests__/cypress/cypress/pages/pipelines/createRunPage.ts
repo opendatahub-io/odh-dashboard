@@ -9,7 +9,18 @@ import {
 import { buildMockExperiments, buildMockJobKF, buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
+import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 
+class ParamsSection extends Contextual<HTMLElement> {
+  findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(id);
+  }
+
+  fillParamInputById(id: string, value: string): void {
+    this.findParamById(id).clear();
+    this.findParamById(id).type(value, { parseSpecialCharSequences: false });
+  }
+}
 export class CreateRunPage {
   protected testId = 'create-run-page';
 
@@ -23,12 +34,12 @@ export class CreateRunPage {
     return cy.findByTestId(this.testId);
   }
 
-  findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('textbox', { name: 'Name' });
+  private findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('run-name');
   }
 
-  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('textbox', { name: 'Description' });
+  private findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-description');
   }
 
   findExperimentSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -56,27 +67,27 @@ export class CreateRunPage {
   }
 
   findScheduledRunRunEvery(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByText('Run every');
+    return this.find().findByTestId('run-every-group');
   }
 
   findScheduledRunCron(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByText('Cron string');
+    return this.find().findByTestId('cron-string-group');
   }
 
   findMaxConcurrencyField(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('maxConcurrencyField');
   }
 
-  findMaxConcurrencyFieldValue(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMaxConcurrencyField().findByLabelText('Input');
+  findMaxConcurrencyFieldValue(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findMaxConcurrencyField().find('input');
   }
 
   findMaxConcurrencyFieldMinus(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMaxConcurrencyField().findByLabelText('Minus');
+    return this.findMaxConcurrencyField().findByRole('button', { name: 'Minus' });
   }
 
   findMaxConcurrencyFieldPlus(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMaxConcurrencyField().findByLabelText('Plus');
+    return this.findMaxConcurrencyField().findByRole('button', { name: 'Plus' });
   }
 
   findStartDatePickerSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -120,17 +131,11 @@ export class CreateRunPage {
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', {
-      name: `${this.type === 'schedule' ? 'Schedule' : 'Create'} run`,
-    });
+    return this.find().findByTestId('run-page-submit-button');
   }
 
-  findParamByLabel(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByLabelText(label);
-  }
-
-  findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().get(`#${id}`);
+  getParamsSection(): ParamsSection {
+    return new ParamsSection(() => cy.findByTestId('run-section-params'));
   }
 
   fillName(value: string): void {
@@ -141,33 +146,12 @@ export class CreateRunPage {
     this.findDescriptionInput().type(value);
   }
 
-  fillParamInputById(id: string, value: string): void {
-    this.findParamById(id).clear();
-    this.findParamById(id).type(value, { parseSpecialCharSequences: false });
-  }
-
   selectExperimentByName(name: string): void {
-    this.findExperimentSelect()
-      .click()
-      .get('[data-id="experiment-selector-table-list"]')
-      .findByText(name)
-      .click();
+    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
   }
 
   selectPipelineByName(name: string): void {
-    this.findPipelineSelect()
-      .click()
-      .get('[data-id="pipeline-selector-table-list"]')
-      .findByText(name)
-      .click();
-  }
-
-  selectPipelineVersionByName(name: string): void {
-    this.findPipelineVersionSelect()
-      .click()
-      .get('[data-id="pipeline-version-selector-table-list"]')
-      .findByText(name)
-      .click();
+    cy.findByTestId('pipeline-selector-table-list').find('td').contains(name).click();
   }
 
   mockGetExperiments(experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {

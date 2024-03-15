@@ -54,6 +54,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
         [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
+            data-testid="search-for-run-name"
             aria-label="Search for a run name"
             placeholder="Search..."
             onChange={(_event, value) => onChange(value)}

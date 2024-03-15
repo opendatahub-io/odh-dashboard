@@ -78,7 +78,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
         <MenuList>
           <div role="menuitem">
             <Table
-              data-id="pipeline-version-selector-table-list"
+              data-testid="pipeline-version-selector-table-list"
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}
