@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ArchiveExperimentModal } from '~/pages/pipelines/global/experiments/ArchiveExperimentModal';
 import ExperimentTableBase from './ExperimentTableBase';
 import { ActiveExperimentTableToolbar } from './ExperimentTableToolbar';
 
@@ -11,9 +12,8 @@ type ActiveExperimentTableProps = Omit<
 const ActiveExperimentTable: React.FC<ActiveExperimentTableProps> = ({ ...baseTable }) => {
   const { experiments } = baseTable;
 
-  const [, setArchiveResources] = React.useState<ExperimentKFv2[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onArchive = (experiment: ExperimentKFv2) => null;
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+  const [archiveExperiments, setArchiveExperiments] = React.useState<ExperimentKFv2[]>([]);
 
   return (
     <>
@@ -23,15 +23,16 @@ const ActiveExperimentTable: React.FC<ActiveExperimentTableProps> = ({ ...baseTa
           {
             title: 'Archive',
             onClick: () => {
-              onArchive(experiment);
+              setArchiveExperiments([experiment]);
+              setIsArchiveModalOpen(true);
             },
           },
         ]}
         toolbarContentRenderer={(selections) => (
           <ActiveExperimentTableToolbar
             archiveAllEnabled={selections.length > 0}
-            onArchiveAll={() =>
-              setArchiveResources(
+            onArchiveAll={() => {
+              setArchiveExperiments(
                 selections
                   .map<ExperimentKFv2 | undefined>((selection) =>
                     experiments.find(
@@ -39,10 +40,16 @@ const ActiveExperimentTable: React.FC<ActiveExperimentTableProps> = ({ ...baseTa
                     ),
                   )
                   .filter((v): v is ExperimentKFv2 => !!v),
-              )
-            }
+              );
+              setIsArchiveModalOpen(true);
+            }}
           />
         )}
+      />
+      <ArchiveExperimentModal
+        isOpen={isArchiveModalOpen}
+        experiments={archiveExperiments}
+        onCancel={() => setIsArchiveModalOpen(false)}
       />
     </>
   );

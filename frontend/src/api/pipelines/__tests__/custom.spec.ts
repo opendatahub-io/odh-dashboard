@@ -25,6 +25,7 @@ import {
 import { handlePipelineFailures } from '~/api/pipelines/errorUtils';
 import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
 import {
+  CreateExperimentKFData,
   CreatePipelineRunJobKFData,
   CreatePipelineRunKFData,
   RecurringRunMode,
@@ -137,6 +138,26 @@ describe('createPipelineRunJob', () => {
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',
       '/apis/v2beta1/recurringruns',
+      data,
+      {},
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('createExperiment', () => {
+  const data: CreateExperimentKFData = {
+    display_name: 'name',
+    description: '',
+  };
+  it('should call proxyCREATE and handlePipelineFailures to create experiment', () => {
+    expect(createExperiment('hostPath')({}, data)).toBe(mockResultPromise);
+    expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
+    expect(proxyCREATEMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/experiments',
       data,
       {},
       {},

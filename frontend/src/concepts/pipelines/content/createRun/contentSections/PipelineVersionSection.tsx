@@ -24,10 +24,7 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
     id={CreateRunPageSections.PIPELINE_VERSION}
     title={runPageSectionTitles[CreateRunPageSections.PIPELINE_VERSION]}
   >
-    {/* `minWidth` a temp fix for PF issue https://github.com/patternfly/patternfly/issues/6062
-      We can remove this after bumping to PF v5.2.0
-    */}
-    <FormGroup style={{ minWidth: 0 }}>
+    <FormGroup>
       <Stack hasGutter>
         <StackItem>
           <PipelineVersionSelector

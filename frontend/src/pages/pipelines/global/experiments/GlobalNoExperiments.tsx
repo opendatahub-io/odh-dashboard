@@ -5,9 +5,9 @@ import {
   EmptyStateIcon,
   EmptyStateHeader,
   EmptyStateFooter,
-  Button,
 } from '@patternfly/react-core';
 import { CubesIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
 import { ExperimentListTabs } from './const';
 
 type GlobalNoExperimentsProps = {
@@ -41,7 +41,7 @@ const GlobalNoExperiments: React.FC<GlobalNoExperimentsProps> = ({ tab }) => {
       />
       <EmptyStateBody>Click the button below to create a new active experiment.</EmptyStateBody>
       <EmptyStateFooter>
-        <Button>Create experiment</Button>
+        <CreateExperimentButton />
       </EmptyStateFooter>
     </EmptyState>
   );

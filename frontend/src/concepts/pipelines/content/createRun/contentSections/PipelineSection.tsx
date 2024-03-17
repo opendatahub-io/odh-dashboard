@@ -19,10 +19,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) =>
     id={CreateRunPageSections.PIPELINE}
     title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
   >
-    {/* `minWidth` a temp fix for PF issue https://github.com/patternfly/patternfly/issues/6062
-      We can remove this after bumping to PF v5.2.0
-    */}
-    <FormGroup style={{ minWidth: 0 }}>
+    <FormGroup>
       <Stack hasGutter>
         <StackItem>
           <PipelineSelector
