@@ -883,14 +883,7 @@ export type WorkloadKind = K8sResourceCommon & {
         tolerations?: Toleration[];
       }[];
     }[];
-    conditions?: {
-      lastTransitionTime: string;
-      message: string;
-      observedGeneration?: number;
-      reason: string;
-      status: 'True' | 'False' | 'Unknown';
-      type: string;
-    }[];
+    conditions?: WorkloadCondition[];
     reclaimablePods?: {
       count: number;
       name: string;
@@ -900,6 +893,15 @@ export type WorkloadKind = K8sResourceCommon & {
       requeueAt?: string;
     };
   };
+};
+
+export type WorkloadCondition = {
+  lastTransitionTime: string;
+  message: string;
+  observedGeneration?: number;
+  reason: string;
+  status: 'True' | 'False' | 'Unknown';
+  type: string;
 };
 
 export type AccessReviewResourceAttributes = {
