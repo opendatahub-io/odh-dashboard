@@ -7,7 +7,7 @@ type JobStatus = {
   data: PipelineRunJobKFv2 | null;
 };
 
-export type GetJobInformation = (resource?: PipelineRunJobKFv2) => JobStatus;
+export type GetJobInformation = (recurringRunId?: string) => JobStatus;
 
 const useJobRelatedInformation = (
   apiState: PipelineAPIState,
@@ -19,14 +19,14 @@ const useJobRelatedInformation = (
 
   return {
     getJobInformation: React.useCallback<GetJobInformation>(
-      (resource) => {
+      (recurringRunId) => {
         if (!apiState.apiAvailable) {
           return { loading: false, data: null };
         }
-        if (!resource) {
+        if (!recurringRunId) {
           return { loading: false, data: null };
         }
-        const jobId = resource.recurring_run_id;
+        const jobId = recurringRunId;
         if (jobStorage?.[jobId]) {
           return jobStorage[jobId];
         }

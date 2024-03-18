@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Title } from '@patternfly/react-core';
+import { Button, Split, SplitItem, Title } from '@patternfly/react-core';
+import { TimesIcon } from '@patternfly/react-icons';
 import ErrorDetails from './ErrorDetails';
 
 type ErrorBoundaryProps = {
@@ -40,9 +41,24 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       const { error, errorInfo } = this.state;
       return (
         <div className="pf-v5-u-p-lg">
-          <Title headingLevel="h1" className="pf-v5-u-mb-lg">
-            An error occurred.
-          </Title>
+          <Split>
+            <SplitItem isFilled>
+              <Title headingLevel="h1" className="pf-v5-u-mb-lg">
+                An error occurred.
+              </Title>
+            </SplitItem>
+            <SplitItem>
+              <Button
+                variant="plain"
+                aria-label="Close"
+                onClick={() => {
+                  this.setState({ hasError: false });
+                }}
+              >
+                <TimesIcon />
+              </Button>
+            </SplitItem>
+          </Split>
           <ErrorDetails
             title={error.name}
             errorMessage={error.message}

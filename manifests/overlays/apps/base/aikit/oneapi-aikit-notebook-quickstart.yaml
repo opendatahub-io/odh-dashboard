@@ -6,7 +6,7 @@ metadata:
     opendatahub.io/categories: 'Model development,Model training,Data preprocessing,Notebook environments,Getting started'
 
 spec:
-  displayName: Using the Intel® oneAPI AI Analytics Toolkit (AI Kit) notebook 
+  displayName: Using the Intel® oneAPI AI Analytics Toolkit (AI Kit) notebook
   appName: aikit
   durationMinutes: 15
   icon: >-
@@ -44,15 +44,15 @@ spec:
           Has the ImageStream created?
           Inspect under Builds > ImageStreams (the submenu item) > oneapi-aikit
         failedTaskHelp: This task is not verified yet. Try the task again.
-    - title: Launch JupyterHub Notebook Server
+    - title: Launch Jupyter Notebook Server
       description: |-
         ### Important considerations
         Use the **Intel oneAPI AI Analytics Toolkit** notebook with the **Large** container size.
 
-        This triggers pulling the Intel® oneAPI AI Analytics Toolkit container. Once the pulling is complete, you are presented with a JupyterHub notebook environment.
+        This triggers pulling the Intel® oneAPI AI Analytics Toolkit container. Once the pulling is complete, you are presented with a Jupyter notebook environment.
       review:
         instructions: |-
-          #### Launched JupyterHub notebook server
+          #### Launched Jupyter notebook server
           Do you have a notebook browser tab?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
@@ -76,21 +76,21 @@ spec:
         ### Loading a Intel® oneAPI AI Analytics Toolkit sample notebook
         1. Click on the `oneAPI-samples.git` directory. As part of the Intel® oneAPI AI Analytics Toolkit on Red Hat OpenShift AI, we have provided you three examples to help you get started with different AI Kit optimizations.
         2. Click on the `E2E_use_case_with_Intel_optimized_XGBoost_daal4py` directory, then click on the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook.
-        3. Choose the `Intel SKLearn, XGBoost, & Modin`  JupyterHub Kernel Environment to launch the notebook in.
+        3. Choose the `Intel SKLearn, XGBoost, & Modin`  Jupyter Kernel Environment to launch the notebook in.
       review:
         instructions: |-
           #### Verify that the notebook launched successfully
-          Do you have a notebook tab for the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook in your browser in the `Intel SKLearn, XGBoost, & Modin`  JupyterHub Kernel Environment?
+          Do you have a notebook tab for the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook in your browser in the `Intel SKLearn, XGBoost, & Modin`  Jupyter Kernel Environment?
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You loaded the example notebook in the correct AI Kit JupyterHub Kernel environment.
+        success: You loaded the example notebook in the correct AI Kit Jupyter Kernel environment.
         failed: Try the steps again.
     - title: Run an Intel® oneAPI AI Analytics Toolkit sample notebook
       description: |-
         ### Running an Intel® oneAPI AI Analytics Toolkit sample
         1. Run the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook cell by cell, taking care not to skip any steps. Once you have completed the entire notebook, you will have learned about some AI Kit optimizations and fundamentals.
-        2. (Optional) You can proceed with this step and the previous step with any of the either samples in the correct AI Kit JupyterHub Kernel environment to learn more about other AI Kit optimizations. Use the `Intel SKLearn, XGBoost, & Modin` JupyterHub Kernel Environment for the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook example, and the `Intel TensorFlow & Quantization` JupyterHub Kernel Environment for the `lpot_sample_tensorflow.ipynb` notebook example.
+        2. (Optional) You can proceed with this step and the previous step with any of the either samples in the correct AI Kit Jupyter Kernel environment to learn more about other AI Kit optimizations. Use the `Intel SKLearn, XGBoost, & Modin` Jupyter Kernel Environment for the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook example, and the `Intel TensorFlow & Quantization` Jupyter Kernel Environment for the `lpot_sample_tensorflow.ipynb` notebook example.
       review:
         instructions: |-
           #### Verify that the sample notebook ran successfully
@@ -98,22 +98,22 @@ spec:
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You have run the example notebook in the correct AI Kit JupyterHub Kernel environment.
+        success: You have run the example notebook in the correct AI Kit Jupyter Kernel Environment.
         failed: Try the steps again.
     - title: Load Intel® oneAPI AI Analytics Toolkit optimizations with a new notebook
       description: |-
         ### Load Intel® oneAPI AI Analytics Toolkit optimizations with a new notebook
-        1. Enter the JupyterHub launcher page.
-        2. Select the appropriate JupyterHub Kernel Environment notebook for the workload or task you would like to complete and launch it in a new tab. Refer to the `AI_Kit_Welcome.ipynb` notebook for more information on what optimizations are included in each of the AI Kit JupyterHub Environment Kernels.
+        1. Enter the Jupyter launcher page.
+        2. Select the appropriate Jupyter Kernel Environment notebook for the workload or task you would like to complete and launch it in a new tab. Refer to the `AI_Kit_Welcome.ipynb` notebook for more information on what optimizations are included in each of the AI Kit Jupyter Environment Kernels.
         3. Proceed with your workload or task in your new notebook.
       review:
         instructions: |-
           #### Verify that the notebook launched successfully
-          Do you have a new notebook tab in your browser with your selected AI Kit JupyterHub Environment Kernel?
+          Do you have a new notebook tab in your browser with your selected AI Kit Jupyter Environment Kernel?
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You have loaded a new notebook in your selected AI Kit JupyterHub Environment Kernel.
+        success: You have loaded a new notebook in your selected AI Kit Jupyter Environment Kernel.
         failed: Try the steps again.
   conclusion: You are now able to run samples and create and run original notebooks and workloads using Intel® oneAPI AI Analytics Toolkit. Refer to the `AI_Kit_Welcome.ipynb` for more resources and information on Intel® oneAPI AI Analytics Toolkit.
   nextQuickStart: []

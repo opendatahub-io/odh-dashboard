@@ -29,10 +29,10 @@ import {
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
-import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { routePipelineRunsNamespace } from '~/routes';
+import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
 import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
 
 const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
@@ -42,8 +42,8 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   const { pipelineRunJobId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [job, loaded, error] = usePipelineRunJobById(pipelineRunJobId);
-  const [version] = usePipelineVersionById(
+  const [job, jobLoaded, jobError] = usePipelineRunJobById(pipelineRunJobId);
+  const [version, versionLoaded, versionError] = usePipelineVersionById(
     job?.pipeline_version_reference.pipeline_id,
     job?.pipeline_version_reference.pipeline_version_id,
   );
@@ -53,8 +53,10 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
-  // TODO need to get pipeline runtime for v2. but should jobs really have a graph view? https://issues.redhat.com/browse/RHOAIENG-2297
   const { taskMap, nodes } = usePipelineTaskTopology(version?.pipeline_spec);
+
+  const loaded = versionLoaded && jobLoaded;
+  const error = versionError || jobError;
 
   if (!loaded && !error) {
     return (
@@ -81,11 +83,8 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
       <Drawer isExpanded={!!selectedId}>
         <DrawerContent
           panelContent={
-            <PipelineRunDrawerRightContent
+            <SelectedTaskDrawerContent
               task={selectedId ? taskMap[selectedId] : undefined}
-              // TODO need to get pipeline runtime for v2. https://issues.redhat.com/browse/RHOAIENG-2297
-              // parameters={job?.runtime_config.parameters}
-              taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
           }
@@ -100,11 +99,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                       setDetailsTab(selection);
                       setSelectedId(null);
                     }}
-                    pipelineRunDetails={
-                      job && version?.pipeline_spec
-                        ? { kf: job, kind: version.pipeline_spec }
-                        : undefined
-                    }
+                    pipelineRunDetails={job && version?.pipeline_spec ? job : undefined}
                   />
                 }
               >

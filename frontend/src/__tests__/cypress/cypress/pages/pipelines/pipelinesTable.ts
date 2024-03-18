@@ -15,12 +15,37 @@ class PipelinesTable {
   }
 
   shouldRowNotBeVisible(name: string) {
-    return this.find().get('tr').contains(name).should('not.be.visible');
+    return this.find().get('tr').contains(name).should('not.exist');
+  }
+
+  shouldBeEmpty() {
+    return cy.findByTestId('global-no-pipelines').should('exist');
+  }
+
+  mockDeletePipeline(pipeline: PipelineKFv2) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipeline.pipeline_id}`,
+      },
+      {},
+    );
+  }
+
+  mockDeletePipelineVersion(version: PipelineVersionKFv2) {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${version.pipeline_id}/versions/${version.pipeline_version_id}`,
+      },
+      {},
+    );
   }
 
   mockGetPipelines(pipelines: PipelineKFv2[]) {
     return cy.intercept(
       {
+        method: 'POST',
         pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines(pipelines),
@@ -35,6 +60,14 @@ class PipelinesTable {
       },
       buildMockPipelineVersionsV2(versions),
     );
+  }
+
+  toggleExpandRowByName(name: string) {
+    this.findRowByName(name).findByLabelText('Details').click();
+  }
+
+  toggleCheckboxByRowName(name: string) {
+    this.findRowByName(name).findByRole('checkbox').click();
   }
 
   toggleExpandRowByIndex(index: number) {

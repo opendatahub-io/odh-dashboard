@@ -5,7 +5,7 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
-import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineServerActions';
+import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerActions';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';

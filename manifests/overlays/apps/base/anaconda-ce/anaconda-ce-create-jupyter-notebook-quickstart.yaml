@@ -18,21 +18,21 @@ spec:
 
     This quick start will get you working in a notebook in just a few minutes.
   tasks:
-    - title: Launch JupyterHub
+    - title: Launch Jupyter
       description: |-
-        ### To find the JupyterHub Launch action:
+        ### To find the Jupyter Launch action:
         1. Click **Applications** &#x2192; **Enabled**.
-        2. Find the JupyterHub card.
-        3. Click **Launch** on the JupyterHub card to access the JupyterHub **Start a notebook server** page.
+        2. Find the Jupyter card.
+        3. Click **Launch** on the Jupyter card to access the Jupyter **Start a notebook server** page.
 
         A new browser tab will open displaying the **Start a notebook server** page.
       review:
         instructions: |-
-          #### To verify you have launched JupyterHub:
-          Is a new **JupyterHub** browser tab visible with the **Start a notebook server** page open?
+          #### To verify you have launched Jupyter:
+          Is a new **Jupyter** browser tab visible with the **Start a notebook server** page open?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
-        success: You have launched JupyterHub.
+        success: You have launched Jupyter.
         failed: Try the steps again.
     - title: Configure and start an environment
       description: |-

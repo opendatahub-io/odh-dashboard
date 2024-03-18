@@ -54,11 +54,14 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
 
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
-  const sections = isExperimentsAvailable
-    ? Object.values(CreateRunPageSections)
-    : Object.values(CreateRunPageSections).filter(
-        (section) => section !== CreateRunPageSections.EXPERIMENT,
-      );
+  const jumpToSections = Object.values(CreateRunPageSections).filter(
+    (section) =>
+      !(
+        (section === CreateRunPageSections.EXPERIMENT && !isExperimentsAvailable) ||
+        (section === CreateRunPageSections.SCHEDULE_SETTINGS &&
+          runType !== PipelineRunType.Scheduled)
+      ),
+  );
 
   const [formData, setFormDataValue] = useRunFormData(cloneRun, {
     runType: {
@@ -85,7 +88,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   return (
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
-        <GenericSidebar sections={sections} titles={runPageSectionTitles} maxWidth={175}>
+        <GenericSidebar sections={jumpToSections} titles={runPageSectionTitles} maxWidth={175}>
           <RunForm
             data={formData}
             runType={runType as PipelineRunType}

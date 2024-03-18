@@ -1,16 +1,16 @@
 import React, { useEffect } from 'react';
 import {
   Button,
-  Tooltip,
+  DropdownList,
+  Icon,
   Spinner,
   Stack,
   StackItem,
-  ToolbarContent,
   Toolbar,
-  ToolbarItem,
+  ToolbarContent,
   ToolbarGroup,
-  DropdownList,
-  Icon,
+  ToolbarItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, KebabToggle } from '@patternfly/react-core/deprecated';
 import { OutlinedPlayCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
@@ -27,25 +27,24 @@ import {
   OutlinedWindowRestoreIcon,
 } from '@patternfly/react-icons';
 import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
-import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import useFetchLogs from '~/concepts/k8s/pods/useFetchLogs';
 import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodContainerLogState';
 import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
 import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
-import { downloadCurrentStepLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
+import { downloadAllStepLogs, downloadCurrentStepLog } from '~/concepts/k8s/pods/utils';
 import usePodStepsStates from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodStepsStates';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
 import { PodStepStateType } from '~/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
+import { PipelineTask } from '~/concepts/pipelines/topology';
+import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 
 // TODO: If this gets large enough we should look to make this its own component file
-const LogsTab: React.FC<{ task: PipelineRunTaskDetails }> = ({ task }) => {
-  const podName = task.runDetails?.status?.podName;
-  const isFailedPod = !!task.runDetails?.status?.conditions?.find((c) =>
-    c.reason?.includes('Failed'),
-  );
+const LogsTab: React.FC<{ task: PipelineTask }> = ({ task }) => {
+  const podName = task.status?.podName;
+  const isFailedPod = task.status?.state === RuntimeStateKF.FAILED;
 
   if (!podName) {
     return <>No content</>;

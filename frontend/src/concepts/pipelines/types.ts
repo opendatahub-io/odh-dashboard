@@ -14,6 +14,8 @@ import {
   PipelineCoreResourceKFv2,
   PipelineRunKFv2,
   PipelineRunJobKFv2,
+  CreatePipelineAndVersionKFData,
+  CreatePipelineVersionKFData,
   CreateExperimentKFData,
 } from './kfTypes';
 
@@ -41,6 +43,15 @@ export type PipelineListPaged<T extends PipelineCoreResourceKFv2> = {
   items: T[];
 };
 
+export type CreatePipelineVersion = (
+  opts: K8sAPIOptions,
+  pipelineId: string,
+  data: CreatePipelineVersionKFData,
+) => Promise<PipelineVersionKFv2>;
+export type CreatePipelineAndVersion = (
+  opts: K8sAPIOptions,
+  data: CreatePipelineAndVersionKFData,
+) => Promise<PipelineKFv2>;
 export type CreateExperiment = (
   opts: K8sAPIOptions,
   data: CreateExperimentKFData,
@@ -118,6 +129,8 @@ export type UploadPipelineVersion = (
 ) => Promise<PipelineVersionKFv2>;
 
 export type PipelineAPIs = {
+  createPipelineVersion: CreatePipelineVersion;
+  createPipelineAndVersion: CreatePipelineAndVersion;
   createExperiment: CreateExperiment;
   createPipelineRun: CreatePipelineRun;
   createPipelineRunJob: CreatePipelineRunJob;

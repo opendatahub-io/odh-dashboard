@@ -25,6 +25,8 @@ import {
   uploadPipelineVersion,
   archivePipelineRun,
   unarchivePipelineRun,
+  createPipelineAndVersion,
+  createPipelineVersion,
 } from '~/api';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { APIState } from '~/concepts/proxy/types';
@@ -37,6 +39,8 @@ const usePipelineAPIState = (
 ): [apiState: PipelineAPIState, refreshAPIState: () => void] => {
   const createAPI = React.useCallback(
     (path: string) => ({
+      createPipelineVersion: createPipelineVersion(path),
+      createPipelineAndVersion: createPipelineAndVersion(path),
       createExperiment: createExperiment(path),
       createPipelineRun: createPipelineRun(path),
       createPipelineRunJob: createPipelineRunJob(path),

@@ -16,14 +16,14 @@ spec:
     Pachyderm provides industry leading data versioning, pipelines, and lineage that allow data science teams
     to automate and optimize their machine learning operations (MLOps).
   tasks:
-    - title: Launching JupyterHub notebook server
+    - title: Launching Jupyter notebook server
       description: |-
         ### Important considerations
         Use the **Standard Data Science** notebook with a **Medium** container size.
 
       review:
         instructions: |-
-          #### Launched JupyterHub notebook server
+          #### Launched Jupyter notebook server
           Do you have a notebook browser tab?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
@@ -51,9 +51,9 @@ spec:
         ### Before experimenting, you will need to "connect" your notebook to Pachyderm
         To connect your notebook to a cluster, follow those steps:
         ALL COMMANDS AND STEPS REFERENCED BELOW ARE DETAILED IN THE GETTING STARTED SECTION:
-        *OpenShift AI Dashboard* > *Explore* > *Pachyderm* 
-        1. Install Pachyderm’s CLI (`pachchtl`) from a top new cell in your notebook. 
-        2. In another cell, create a new context for your CLI to connect to your cluster. 
+        *OpenShift AI Dashboard* > *Explore* > *Pachyderm*
+        1. Install Pachyderm’s CLI (`pachchtl`) from a top new cell in your notebook.
+        2. In another cell, create a new context for your CLI to connect to your cluster.
         3. Set the pachctl context to your newly created context.
         4. Verify that your active context is the new context.
 

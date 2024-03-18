@@ -1,15 +1,15 @@
 import * as React from 'react';
-import { Tooltip } from '@patternfly/react-core';
 import {
   asTimestamp,
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 import { relativeDuration } from '~/utilities/time';
+import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 
 type SelectedNodeDetailsTabProps = {
-  task: PipelineRunTaskDetails;
+  task: PipelineTask;
 };
 
 const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task }) => {
@@ -17,47 +17,41 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
 
   const taskName = {
     key: 'Task name',
-    value:
-      task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
-      task.name,
+    value: task.name,
   };
 
-  if (task.skipped) {
-    details = [taskName, { key: 'Status', value: 'Skipped' }];
-  } else if (task.runDetails) {
-    const startDate =
-      task.runDetails.status?.startTime && new Date(task.runDetails.status.startTime);
-    const endDate =
-      task.runDetails.status?.completionTime && new Date(task.runDetails.status.completionTime);
-    const statusCondition = task.runDetails.status?.conditions?.find((c) => c.type === 'Succeeded');
+  if (task.status) {
+    const { startTime, completeTime, state } = task.status;
+    const skipped = state === RuntimeStateKF.SKIPPED;
 
-    details = [
-      { key: 'Task ID', value: task.runDetails.runID || '-' },
-      taskName,
-      {
-        key: 'Status',
-        value: statusCondition ? (
-          <Tooltip content={statusCondition.message}>
-            <div>{statusCondition.reason}</div>
-          </Tooltip>
-        ) : (
-          '-'
-        ),
-      },
-      {
-        key: 'Started at',
-        value: startDate ? asTimestamp(startDate) : '-',
-      },
-      {
-        key: 'Finished at',
-        value: endDate ? asTimestamp(endDate) : '-',
-      },
-      {
-        key: 'Duration',
-        value:
-          startDate && endDate ? relativeDuration(endDate.getTime() - startDate.getTime()) : '-',
-      },
-    ];
+    if (skipped) {
+      details = [taskName, { key: 'Status', value: 'Skipped' }];
+    } else {
+      const startDate = startTime && new Date(startTime);
+      const endDate = completeTime && new Date(completeTime);
+
+      details = [
+        { key: 'Task ID', value: task.status.taskId || '-' },
+        taskName,
+        {
+          key: 'Status',
+          value: state ?? '-',
+        },
+        {
+          key: 'Started at',
+          value: startDate ? asTimestamp(startDate) : '-',
+        },
+        {
+          key: 'Finished at',
+          value: endDate ? asTimestamp(endDate) : '-',
+        },
+        {
+          key: 'Duration',
+          value:
+            startDate && endDate ? relativeDuration(endDate.getTime() - startDate.getTime()) : '-',
+        },
+      ];
+    }
   } else {
     details = [taskName];
   }

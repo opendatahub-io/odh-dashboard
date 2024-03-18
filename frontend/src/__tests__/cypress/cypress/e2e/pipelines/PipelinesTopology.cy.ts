@@ -13,7 +13,6 @@ import { mockPodLogs } from '~/__mocks__/mockPodLogs';
 import {
   pipelineDetails,
   pipelineRunJobDetails,
-  pipelinesTopology,
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
@@ -151,6 +150,13 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
+      pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
+    },
+    [mockVersion],
+  );
+  cy.intercept(
+    {
+      method: 'POST',
       pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
     },
     mockVersion,
@@ -158,16 +164,16 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'GET',
-      pathname: `/api/k8s/api/v1/namespaces/${projectId}/pods/conditional-execution-pipeline-0858f-flip-coin-pod`,
+      pathname: `/api/k8s/api/v1/namespaces/${projectId}/pods/iris-training-pipeline-v4zp7-2757091352`,
     },
     mockPipelinePodK8sResource({}),
   );
 
   cy.intercept(
-    `/api/k8s/api/v1/namespaces/${projectId}/pods/conditional-execution-pipeline-0858f-flip-coin-pod/log?container=step-main&tailLines=500`,
+    `/api/k8s/api/v1/namespaces/${projectId}/pods/iris-training-pipeline-v4zp7-2757091352/log?container=step-main&tailLines=500`,
     mockPodLogs({
       namespace: projectId,
-      podName: 'conditional-execution-pipeline-0858f-flip-coin-pod',
+      podName: 'iris-training-pipeline-v4zp7-2757091352',
       containerName: 'step-main',
     }),
   );
@@ -175,23 +181,6 @@ const initIntercepts = () => {
 
 describe('Pipeline topology', () => {
   describe('Pipeline details', () => {
-    // TODO, remove skip after https://issues.redhat.com/browse/RHOAIENG-2282
-    it.skip('Test pipeline topology renders', () => {
-      initIntercepts();
-
-      pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
-
-      pipelinesTopology.findTaskNode('print-msg').click();
-      pipelinesTopology
-        .findTaskDrawer()
-        .findByText('$(tasks.random-num.results.Output)')
-        .should('exist');
-      pipelinesTopology.findCloseDrawerButton().click();
-
-      pipelinesTopology.findTaskNode('flip-coin').click();
-      pipelinesTopology.findTaskDrawer().findByText('/tmp/outputs/Output/data').should('exist');
-    });
-
     describe('Navigation', () => {
       beforeEach(() => {
         initIntercepts();
@@ -204,11 +193,25 @@ describe('Pipeline topology', () => {
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
       });
 
+      it('navigates to "Schedule run" page on "Schedule run" click', () => {
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+        pipelineDetails.findActionsDropdown().click();
+        cy.findByText('Schedule run').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create?runType=scheduled`);
+      });
+
       it('Test pipeline details view runs navigation', () => {
         pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
         pipelineDetails.findActionsDropdown().click();
         cy.findByText('View runs').click();
-        verifyRelativeURL(`/pipelineRuns/${projectId}`);
+        verifyRelativeURL(`/pipelineRuns/${projectId}?runType=active`);
+      });
+
+      it('navigates to "Schedules" on "View schedules" click', () => {
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+        pipelineDetails.findActionsDropdown().click();
+        cy.findByText('View schedules').click();
+        verifyRelativeURL(`/pipelineRuns/${projectId}?runType=scheduled`);
       });
     });
   });
@@ -359,12 +362,12 @@ describe('Pipeline topology', () => {
         .findBottomDrawer()
         .findBottomDrawerDetailItem('neighbors')
         .findValue()
-        .contains('0');
+        .contains('1');
       pipelineRunDetails
         .findBottomDrawer()
         .findBottomDrawerDetailItem('standard_scaler')
         .findValue()
-        .contains('yes');
+        .contains('False');
     });
   });
 
@@ -372,20 +375,18 @@ describe('Pipeline topology', () => {
     beforeEach(() => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
-      pipelineRunDetails.findTaskNode('flip-coin').click();
+      pipelineRunDetails.findTaskNode('create-dataset').click();
       pipelineRunDetails.findRightDrawer().findRightDrawerDetailsTab().should('be.visible');
-      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().should('be.visible');
       pipelineRunDetails.findRightDrawer().findRightDrawerLogsTab().should('be.visible');
       pipelineRunDetails.findRightDrawer().findRightDrawerLogsTab().click();
       pipelineRunDetails.findLogsSuccessAlert().should('be.visible');
     });
 
-    // TODO, remove skip after https://issues.redhat.com/browse/RHOAIENG-2282
-    it.skip('test whether the logs load in Logs tab', () => {
+    it('test whether the logs load in Logs tab', () => {
       pipelineRunDetails
         .findLogs()
         .contains(
-          'sample log for namespace test-project, pod name conditional-execution-pipeline-0858f-flip-coin-pod and for step step-main',
+          'sample log for namespace test-project, pod name iris-training-pipeline-v4zp7-2757091352 and for step step-main',
         );
       // test whether single step logs download dropdown item is enabled when logs are available
       pipelineRunDetails.findDownloadStepsToggle().click();
@@ -399,8 +400,7 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findRawLogs().should('not.exist');
     });
 
-    // TODO, remove skip after https://issues.redhat.com/browse/RHOAIENG-2282
-    it.skip('test logs of another step', () => {
+    it('test logs of another step', () => {
       pipelineRunDetails.findStepSelect().should('not.be.disabled');
       pipelineRunDetails.selectStepByName('step-copy-artifacts');
       pipelineRunDetails.findLogs().contains('No logs available');

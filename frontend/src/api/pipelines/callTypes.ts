@@ -20,6 +20,8 @@ import {
   GetPipelineVersion,
   DeletePipelineVersion,
   ListPipelineVersions,
+  CreatePipelineAndVersion,
+  CreatePipelineVersion,
 } from '~/concepts/pipelines/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -28,6 +30,8 @@ import { K8sAPIOptions } from '~/k8sTypes';
 type KubeflowSpecificAPICall = (opts: K8sAPIOptions, ...args: any[]) => Promise<unknown>;
 type KubeflowAPICall<ActualCall extends KubeflowSpecificAPICall> = (hostPath: string) => ActualCall;
 
+export type CreatePipelineVersionAPI = KubeflowAPICall<CreatePipelineVersion>;
+export type CreatePipelineAndVersionAPI = KubeflowAPICall<CreatePipelineAndVersion>;
 export type CreateExperimentAPI = KubeflowAPICall<CreateExperiment>;
 export type CreatePipelineRunAPI = KubeflowAPICall<CreatePipelineRun>;
 export type CreatePipelineRunJobAPI = KubeflowAPICall<CreatePipelineRunJob>;

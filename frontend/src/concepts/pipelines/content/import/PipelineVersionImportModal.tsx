@@ -7,15 +7,16 @@ import {
   Modal,
   Stack,
   StackItem,
+  TextArea,
   TextInput,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { generatePipelineVersionName } from './utils';
+import { PipelineUploadOption, generatePipelineVersionName } from './utils';
+import PipelineUploadRadio from './PipelineUploadRadio';
 
 type PipelineVersionImportModalProps = {
   existingPipeline?: PipelineKFv2 | null;
@@ -29,13 +30,21 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [{ name, description, pipeline, fileContents }, setData, resetData] =
-    usePipelineVersionImportModalData(existingPipeline);
+  const [
+    { name, description, pipeline, fileContents, uploadOption, pipelineUrl },
+    setData,
+    resetData,
+  ] = usePipelineVersionImportModalData(existingPipeline);
 
   const pipelineId = pipeline?.pipeline_id || '';
   const pipelineName = pipeline?.display_name || '';
 
-  const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents || !pipeline;
+  const isImportButtonDisabled =
+    !apiAvailable ||
+    importing ||
+    !name ||
+    !pipeline ||
+    (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
 
   const onBeforeClose = (
     pipelineVersion?: PipelineVersionKFv2,
@@ -45,6 +54,38 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     setImporting(false);
     setError(undefined);
     resetData();
+  };
+
+  const onSubmit = () => {
+    setImporting(true);
+    setError(undefined);
+
+    if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
+      api
+        .uploadPipelineVersion({}, name, description, fileContents, pipelineId)
+        .then((pipelineVersion) => onBeforeClose(pipelineVersion, pipeline))
+        .catch((e) => {
+          setImporting(false);
+          setError(e);
+        });
+    } else {
+      api
+        .createPipelineVersion({}, pipelineId, {
+          /* eslint-disable camelcase */
+          pipeline_id: pipelineId,
+          display_name: name,
+          description,
+          package_url: {
+            pipeline_url: pipelineUrl,
+          },
+          /* eslint-enable camelcase */
+        })
+        .then((pipelineVersion) => onBeforeClose(pipelineVersion))
+        .catch((e) => {
+          setImporting(false);
+          setError(e);
+        });
+    }
   };
 
   return (
@@ -58,17 +99,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
           variant="primary"
           isDisabled={isImportButtonDisabled}
           isLoading={importing}
-          onClick={() => {
-            setImporting(true);
-            setError(undefined);
-            api
-              .uploadPipelineVersion({}, name, description, fileContents, pipelineId)
-              .then((pipelineVersion) => onBeforeClose(pipelineVersion, pipeline))
-              .catch((e) => {
-                setImporting(false);
-                setError(e);
-              });
-          }}
+          onClick={onSubmit}
           data-testid="upload-version-submit-button"
         >
           Upload
@@ -110,7 +141,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
           </StackItem>
           <StackItem>
             <FormGroup label="Pipeline version description" fieldId="pipeline-version-description">
-              <TextInput
+              <TextArea
                 isRequired
                 type="text"
                 id="pipeline-version-description"
@@ -121,9 +152,15 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
             </FormGroup>
           </StackItem>
           <StackItem>
-            <PipelineFileUpload
+            <PipelineUploadRadio
               fileContents={fileContents}
-              onUpload={(data) => setData('fileContents', data)}
+              setFileContents={(data) => setData('fileContents', data)}
+              pipelineUrl={pipelineUrl}
+              setPipelineUrl={(url) => setData('pipelineUrl', url)}
+              uploadOption={uploadOption}
+              setUploadOption={(option) => {
+                setData('uploadOption', option);
+              }}
             />
           </StackItem>
           {error && (

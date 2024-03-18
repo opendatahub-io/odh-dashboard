@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormGroup, FormSection, Text } from '@patternfly/react-core';
+import { Form, FormSection, Text } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import {
   RunFormData,
@@ -17,6 +17,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import ExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ExperimentSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PipelineSection from './contentSections/PipelineSection';
+import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 import { getInputDefinitionParams } from './utils';
 
@@ -30,7 +31,6 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   const selectedVersion = data.version || latestVersion;
   const paramsRef = React.useRef(data.params);
-
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const updateInputParams = React.useCallback(
@@ -56,17 +56,16 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   }, [latestVersion, onValueChange, updateInputParams]);
 
   return (
-    <Form
-      maxWidth="500px"
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      <FormSection id="run-section-project-name" title="Project">
-        <FormGroup label="Project">
-          <Text>{getProjectDisplayName(data.project)}</Text>
-        </FormGroup>
+    <Form onSubmit={(e) => e.preventDefault()} maxWidth="500px">
+      <RunTypeSection runType={runType} />
+
+      <FormSection
+        id={CreateRunPageSections.PROJECT}
+        title={runPageSectionTitles[CreateRunPageSections.PROJECT]}
+      >
+        <Text>{getProjectDisplayName(data.project)}</Text>
       </FormSection>
+
       <FormSection
         id={CreateRunPageSections.NAME_DESC}
         aria-label={runPageSectionTitles[CreateRunPageSections.NAME_DESC]}
@@ -78,12 +77,14 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
           setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
         />
       </FormSection>
+
       {isExperimentsAvailable && (
         <ExperimentSection
           value={data.experiment}
           onChange={(experiment) => onValueChange('experiment', experiment)}
         />
       )}
+
       <PipelineSection
         value={data.pipeline}
         onChange={async (pipeline) => {
@@ -91,6 +92,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
           onValueChange('version', undefined);
         }}
       />
+
       <PipelineVersionSection
         selectedPipeline={data.pipeline}
         value={selectedVersion}
@@ -99,14 +101,21 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
           updateInputParams(version);
         }}
       />
+
       {runType === PipelineRunType.Scheduled && (
-        <RunTypeSectionScheduled
-          data={(data.runType as ScheduledRunType).data}
-          onChange={(scheduleData) =>
-            onValueChange('runType', { type: RunTypeOption.SCHEDULED, data: scheduleData })
-          }
-        />
+        <FormSection
+          id={CreateRunPageSections.SCHEDULE_SETTINGS}
+          title={runPageSectionTitles[CreateRunPageSections.SCHEDULE_SETTINGS]}
+        >
+          <RunTypeSectionScheduled
+            data={(data.runType as ScheduledRunType).data}
+            onChange={(scheduleData) =>
+              onValueChange('runType', { type: RunTypeOption.SCHEDULED, data: scheduleData })
+            }
+          />
+        </FormSection>
       )}
+
       <ParamsSection
         runParams={data.params}
         version={selectedVersion}

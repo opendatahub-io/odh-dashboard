@@ -2,6 +2,7 @@ import * as React from 'react';
 import axios from 'axios';
 
 import useFetchState, {
+  FetchOptions,
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
@@ -26,6 +27,7 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   step: number,
   responsePredicate: ResponsePredicate<T>,
   namespace: string,
+  fetchOptions?: Partial<FetchOptions>,
 ): [...FetchState<T[]>, boolean] => {
   const pendingRef = React.useRef(active);
   const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {
@@ -59,7 +61,7 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, fetchData]);
 
-  return [...useFetchState<T[]>(fetchData, []), pendingRef.current];
+  return [...useFetchState<T[]>(fetchData, [], fetchOptions), pendingRef.current];
 };
 
 export const defaultResponsePredicate: ResponsePredicate = (data) => data.result?.[0]?.values || [];

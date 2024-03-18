@@ -76,12 +76,43 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               },
             },
             {
+              title: 'Schedule run',
+              onClick: () => {
+                navigate(
+                  {
+                    pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  },
+                  {
+                    state: { lastPipeline: pipeline, lastVersion: version },
+                  },
+                );
+              },
+            },
+            {
+              isSeparator: true,
+            },
+            {
               title: 'View runs',
               onClick: () => {
                 navigate(
                   {
                     pathname: routePipelineRunsNamespace(namespace),
                     search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                  },
+                  {
+                    state: { lastVersion: version },
+                  },
+                );
+              },
+            },
+            {
+              title: 'View schedules',
+              onClick: () => {
+                navigate(
+                  {
+                    pathname: routePipelineRunsNamespace(namespace),
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
                   },
                   {
                     state: { lastVersion: version },
