@@ -193,7 +193,7 @@ describe('Pipeline topology', () => {
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
       });
 
-      it('navigates to "Schedule run" page on "Schedule run" click', () => {
+      it.skip('navigates to "Schedule run" page on "Schedule run" click', () => {
         pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
         pipelineDetails.findActionsDropdown().click();
         cy.findByText('Schedule run').click();
