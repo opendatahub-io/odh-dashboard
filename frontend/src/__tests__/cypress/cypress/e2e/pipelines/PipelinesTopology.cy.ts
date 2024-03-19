@@ -184,6 +184,10 @@ describe('Pipeline topology', () => {
     describe('Navigation', () => {
       beforeEach(() => {
         initIntercepts();
+        // https://issues.redhat.com/browse/RHOAIENG-4562
+        // Bypass intermittent Cypress error:
+        // Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/base/worker/workerMain.js' failed to load.
+        Cypress.on('uncaught:exception', () => false);
       });
 
       it('Test pipeline details create run navigation', () => {
