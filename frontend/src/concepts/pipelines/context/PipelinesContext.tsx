@@ -18,8 +18,8 @@ import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSec
 import { deleteServer } from '~/concepts/pipelines/utils';
 import useJobRelatedInformation from '~/concepts/pipelines/context/useJobRelatedInformation';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
+import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
-
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
@@ -38,6 +38,7 @@ type PipelineContext = {
   refreshAPIState: () => void;
   getJobInformation: GetJobInformationType;
   apiState: PipelineAPIState;
+  metadataStoreServiceClient: MetadataStoreServicePromiseClient;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -56,6 +57,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
     data: null,
   }),
   apiState: { apiAvailable: false, api: null as unknown as PipelineAPIState['api'] },
+  metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
 });
 
 type PipelineContextProviderProps = {
@@ -79,10 +81,11 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   const ignoreTimedOut = React.useCallback(() => {
     setDisableTimeout(true);
   }, []);
+  const dspaName = pipelineNamespaceCR?.metadata.name;
 
   const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
-    pipelineNamespaceCR?.metadata.name ?? '',
+    dspaName ?? '',
     namespace,
   );
 
@@ -92,6 +95,11 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
     [refreshRoute, refreshCR],
+  );
+
+  const metadataStoreServiceClient = React.useMemo(
+    () => new MetadataStoreServicePromiseClient(`/api/mlmd/${namespace}/${dspaName}`),
+    [namespace, dspaName],
   );
 
   const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
@@ -123,6 +131,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         refreshState,
         refreshAPIState,
         getJobInformation,
+        metadataStoreServiceClient,
       }}
     >
       {children}
@@ -149,6 +158,7 @@ type UsePipelinesAPI = PipelineAPIState & {
    */
   getJobInformation: GetJobInformationType;
   refreshAllAPI: () => void;
+  metadataStoreServiceClient: MetadataStoreServicePromiseClient;
 };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
@@ -163,6 +173,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     project,
     refreshAPIState: refreshAllAPI,
     getJobInformation,
+    metadataStoreServiceClient,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -179,6 +190,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     project,
     refreshAllAPI,
     getJobInformation,
+    metadataStoreServiceClient,
     ...apiState,
   };
 };
