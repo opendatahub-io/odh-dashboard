@@ -36,7 +36,7 @@ type RunPageProps = {
 };
 
 const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
-  const { namespace } = useParams();
+  const { namespace, experimentId } = useParams();
   const location = useLocation();
   const { runType, triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.RunType,
@@ -50,7 +50,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
 
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
   const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
-  const [cloneRunExperiment] = useExperimentById(cloneRunExperimentId);
+  const [runExperiment] = useExperimentById(cloneRunExperimentId || experimentId);
 
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
@@ -77,7 +77,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     },
     pipeline: location.state?.lastPipeline || cloneRunPipeline,
     version: location.state?.lastVersion || cloneRunPipelineVersion,
-    experiment: cloneRunExperiment,
+    experiment: runExperiment,
   });
 
   const onValueChange = React.useCallback(

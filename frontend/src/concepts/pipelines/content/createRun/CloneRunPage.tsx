@@ -12,7 +12,7 @@ import { runTypeCategory } from './types';
 
 const CloneRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
   const [run, loaded, error] = useCloneRunData();
-  const { runTypeString } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
+  const { runType: runTypeString } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
   const runType = asEnumMember(runTypeString, PipelineRunType);
   const title = `Duplicate ${runTypeCategory[runType || PipelineRunType.Active]}`;
 

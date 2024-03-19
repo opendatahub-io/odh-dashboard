@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
@@ -20,8 +20,9 @@ import { BulkArchiveRunModal } from '~/pages/pipelines/global/runs/BulkArchiveRu
 import { BulkRestoreRunModal } from '~/pages/pipelines/global/runs/BulkRestoreRunModal';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { routePipelineRunCreateNamespace } from '~/routes';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
+import { createRunRoute } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKFv2[];
@@ -52,6 +53,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   ...tableProps
 }) => {
   const navigate = useNavigate();
+  const { experimentId } = useParams();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const {
@@ -61,6 +63,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     isSelected,
     setSelections: setSelectedIds,
   } = useCheckboxTable(runs.map(({ run_id: runId }) => runId));
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
@@ -90,12 +93,14 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     return (
       <Button
         variant="primary"
-        onClick={() => navigate(routePipelineRunCreateNamespace(namespace))}
+        onClick={() =>
+          navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined))
+        }
       >
         Create run
       </Button>
     );
-  }, [runType, selectedIds.length, navigate, namespace]);
+  }, [runType, selectedIds.length, navigate, isExperimentsAvailable, experimentId, namespace]);
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
@@ -114,7 +119,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
         data={runs}
-        columns={pipelineRunColumns}
+        columns={
+          isExperimentsAvailable && experimentId
+            ? pipelineRunColumns.filter((column) => column.field !== 'experiment')
+            : pipelineRunColumns
+        }
         enablePagination="compact"
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />

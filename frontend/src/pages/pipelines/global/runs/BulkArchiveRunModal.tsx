@@ -71,7 +71,7 @@ export const BulkArchiveRunModal: React.FC<BulkArchiveRunModalProps> = ({ runs, 
     >
       <Stack hasGutter>
         <StackItem>
-          <b>{runs.length}</b> runs will be archived and sent to the <b>Archived runs</b> tab.
+          <b>{runs.length}</b> runs will be archived and sent to the <b>Archived</b> runs tab.
         </StackItem>
 
         <StackItem>

@@ -110,6 +110,10 @@ class PipelineDetails extends PipelinesTopology {
   selectStepByName(name: string): void {
     this.findStepSelect().click().findByText(name).click();
   }
+
+  selectActionDropdownItem(label: string) {
+    this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
+  }
 }
 
 class PipelineRunJobDetails extends RunDetails {
@@ -120,6 +124,10 @@ class PipelineRunJobDetails extends RunDetails {
 
   findActionsDropdown() {
     return cy.findByTestId('pipeline-run-job-details-actions');
+  }
+
+  selectActionDropdownItem(label: string) {
+    this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
   }
 }
 
@@ -167,6 +175,10 @@ class PipelineRunDetails extends RunDetails {
 
   selectStepByName(name: string): void {
     this.findStepSelect().click().findByText(name).click();
+  }
+
+  selectActionDropdownItem(label: string) {
+    this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
   }
 }
 

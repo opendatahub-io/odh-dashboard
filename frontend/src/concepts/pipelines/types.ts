@@ -30,12 +30,10 @@ export type PipelineParams = {
   sortDirection?: 'asc' | 'desc';
   filter?: PipelinesFilter;
 };
-export type PipelineParamsWithExperiments = PipelineParams & { experiment_id?: string };
+export type PipelineRunParams = PipelineParams & { experimentId?: string };
 
 export type PipelineOptions = Omit<PipelineParams, 'pageToken'> & { page?: number };
-export type PipelineOptionsWithExperiments = PipelineOptions & {
-  experiment_id?: string;
-};
+export type PipelineRunOptions = Omit<PipelineRunParams, 'pageToken'> & { page?: number };
 
 export type PipelineListPaged<T extends PipelineCoreResourceKFv2> = {
   totalSize: number;
@@ -97,11 +95,11 @@ export type ListPipelines = (
 ) => Promise<ListPipelinesResponseKF>;
 export type ListPipelineRuns = (
   opts: K8sAPIOptions,
-  params?: PipelineParamsWithExperiments,
+  params?: PipelineRunParams,
 ) => Promise<ListPipelineRunsResourceKF>;
 export type ListPipelineRunJobs = (
   opts: K8sAPIOptions,
-  params?: PipelineParams,
+  params?: PipelineRunParams,
 ) => Promise<ListPipelineRunJobsResourceKF>;
 export type ListPipelineVersions = (
   opts: K8sAPIOptions,

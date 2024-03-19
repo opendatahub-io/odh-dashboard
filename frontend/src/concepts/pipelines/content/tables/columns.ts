@@ -16,7 +16,7 @@ export const pipelineColumns: SortableData<PipelineKFv2>[] = [
   expandTableColumn(),
   checkboxTableColumn(),
   {
-    label: 'Pipeline name',
+    label: 'Pipeline',
     field: 'name',
     sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 40,
@@ -87,16 +87,15 @@ export const experimentColumns: SortableData<ExperimentKFv2>[] = [
 export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
   checkboxTableColumn(),
   {
-    label: 'Name',
+    label: 'Run',
     field: 'name',
     sortable: true,
-    width: 20,
   },
   {
     label: 'Experiment',
     field: 'experiment',
     sortable: false,
-    width: 10,
+    width: 15,
   },
   {
     label: 'Pipeline version',
@@ -108,16 +107,19 @@ export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
     label: 'Started',
     field: 'created_at',
     sortable: true,
+    width: 15,
   },
   {
     label: 'Duration',
     field: 'duration',
     sortable: false,
+    width: 15,
   },
   {
     label: 'Status',
     field: 'status',
     sortable: true,
+    width: 10,
   },
   kebabTableColumn(),
 ];
@@ -125,7 +127,7 @@ export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
 export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
   checkboxTableColumn(),
   {
-    label: 'Name',
+    label: 'Schedule',
     field: 'name',
     sortable: true,
     width: 20,
@@ -158,6 +160,7 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
     label: 'Created',
     field: 'created_at',
     sortable: true,
+    width: 10,
   },
   kebabTableColumn(),
 ];

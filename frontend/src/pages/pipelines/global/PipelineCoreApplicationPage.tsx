@@ -4,7 +4,7 @@ import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
 import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
 
-type PipelineCoreApplicationPageProps = {
+export type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
   getRedirectPath: (namespace: string) => string;
   overrideChildPadding?: boolean;

@@ -5,6 +5,8 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
+import { experimentRunsRoute, experimentSchedulesRoute, experimentsBaseRoute } from '~/routes';
+import { useExperimentByParams } from './experiments/useExperimentByParams';
 
 type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -33,6 +35,44 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
           />,
         ]}
         contextPath={redirectPath(namespace)}
+      />
+    </EnsureAPIAvailability>
+  );
+};
+
+export const GlobalExperimentDetails: React.FC<
+  Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'> & {
+    isSchedule?: boolean;
+  }
+> = ({ BreadcrumbDetailsComponent, isSchedule }) => {
+  const experiment = useExperimentByParams();
+  const experimentId = experiment?.experiment_id;
+  const { namespace, project } = usePipelinesAPI();
+
+  return (
+    <EnsureAPIAvailability>
+      <BreadcrumbDetailsComponent
+        breadcrumbPath={[
+          <BreadcrumbItem key="experiments">
+            <Link to={experimentsBaseRoute(namespace)}>
+              Experiments - {getProjectDisplayName(project)}
+            </Link>
+          </BreadcrumbItem>,
+          <BreadcrumbItem key="experiment">
+            {experiment?.display_name ? (
+              <Link to={experimentRunsRoute(namespace, experimentId)}>
+                {experiment.display_name}
+              </Link>
+            ) : (
+              'Loading...'
+            )}
+          </BreadcrumbItem>,
+        ]}
+        contextPath={
+          isSchedule
+            ? experimentSchedulesRoute(namespace, experimentId)
+            : experimentRunsRoute(namespace, experimentId)
+        }
       />
     </EnsureAPIAvailability>
   );

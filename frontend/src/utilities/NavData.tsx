@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useUser } from '~/redux/selectors';
-import { routePipelineRuns, routePipelines } from '~/routes';
+import { experimentsRootPath, routePipelineRuns, routePipelines } from '~/routes';
 
 type NavDataCommon = {
   id: string;
@@ -74,7 +74,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
         {
           id: 'experiments-and-runs',
           label: 'Experiments and runs',
-          href: '/pipelineExperiments', // TODO: make sure this is better handled later
+          href: experimentsRootPath,
         },
       ],
     });

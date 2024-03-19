@@ -132,7 +132,7 @@ export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params
       {
         ...pipelineParamsToQuery(params),
         // eslint-disable-next-line camelcase
-        experiment_id: params?.experiment_id,
+        experiment_id: params?.experimentId,
       },
       opts,
     ),
@@ -178,7 +178,16 @@ export const listPipelineArchivedRuns: ListPipelinesRunAPI = (hostPath) => (opts
 
 export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    proxyGET(hostPath, '/apis/v2beta1/recurringruns', pipelineParamsToQuery(params), opts),
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/recurringruns',
+      {
+        ...pipelineParamsToQuery(params),
+        // eslint-disable-next-line camelcase
+        experiment_id: params?.experimentId,
+      },
+      opts,
+    ),
   );
 
 export const listPipelineVersions: ListPipelineVersionsAPI =

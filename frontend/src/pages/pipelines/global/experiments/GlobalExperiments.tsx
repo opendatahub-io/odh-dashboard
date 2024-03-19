@@ -5,6 +5,7 @@ import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreAp
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { experimentsBaseRoute } from '~/routes';
 import { ExperimentListTabs, experimentsPageDescription, experimentsPageTitle } from './const';
 import GlobalExperimentsTabs from './GlobalExperimentsTabs';
 
@@ -20,7 +21,7 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
       title={experimentsPageTitle}
       description={experimentsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
-      getRedirectPath={(namespace) => `/pipelineExperiments/${namespace}`}
+      getRedirectPath={experimentsBaseRoute}
       overrideChildPadding
     >
       <EnsureAPIAvailability>

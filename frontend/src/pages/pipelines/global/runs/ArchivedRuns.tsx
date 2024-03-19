@@ -49,7 +49,8 @@ export const ArchivedRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          Archive a run before you delete it. Archived runs can be restored later.
+          Archive a run to remove it from the <b>Active</b> runs tab. Archived runs can be restored
+          later, or deleted.
         </EmptyStateBody>
       </EmptyState>
     );

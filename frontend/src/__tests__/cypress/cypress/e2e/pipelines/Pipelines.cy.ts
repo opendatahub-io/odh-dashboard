@@ -266,7 +266,7 @@ describe('Pipelines', () => {
     pipelinesTable.findRowByName('New pipeline version');
   });
 
-  it.only('delete a single pipeline', () => {
+  it('delete a single pipeline', () => {
     createDeletePipelineIntercept(initialMockPipeline.pipeline_id).as('deletePipeline');
     pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id);
     pipelinesGlobal.visit(projectName);

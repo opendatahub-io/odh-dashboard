@@ -4,9 +4,7 @@ import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class ExperimentsTabs {
   visit(namespace?: string, tab?: string) {
-    cy.visitWithLogin(
-      `/pipelineExperiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`,
-    );
+    cy.visitWithLogin(`/experiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`);
     this.wait();
   }
 
