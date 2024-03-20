@@ -16,10 +16,20 @@ const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModalTyp
     isOpen={isOpen}
     onClose={() => onClose(false)}
     actions={[
-      <Button key="confirm-disable" variant="primary" onClick={() => onClose(true)}>
+      <Button
+        data-testid="disable-button"
+        key="confirm-disable"
+        variant="primary"
+        onClick={() => onClose(true)}
+      >
         Disable
       </Button>,
-      <Button key="cancel" variant="secondary" onClick={() => onClose(false)}>
+      <Button
+        data-testid="cancel-button"
+        key="cancel"
+        variant="secondary"
+        onClick={() => onClose(false)}
+      >
         Cancel
       </Button>,
     ]}

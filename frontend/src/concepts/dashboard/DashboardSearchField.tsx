@@ -33,7 +33,7 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
   onSearchValueChange,
   onSearchTypeChange,
 }) => (
-  <InputGroup>
+  <InputGroup data-testid="dashboard-table-toolbar">
     <InputGroupItem>
       <SimpleDropdownSelect
         aria-label="Filter type"

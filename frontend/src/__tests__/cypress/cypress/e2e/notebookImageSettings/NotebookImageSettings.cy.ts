@@ -87,20 +87,21 @@ describe('Notebook images', () => {
 
     // test filtering
     // by name
-    notebookImageSettings.findSearchInput().type('123');
+    const notebookImageTableToolbar = notebookImageSettings.getTableToolbar();
+    notebookImageTableToolbar.findSearchInput().type('123');
     notebookImageSettings.getRow('image-123').find().should('exist');
 
     // by provider
-    notebookImageSettings.findResetButton().click();
-    notebookImageSettings.findFilterMenuOption('Provider').click();
-    notebookImageSettings.findSearchInput().type('provider-321');
+    notebookImageTableToolbar.findResetButton().click();
+    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
+    notebookImageTableToolbar.findSearchInput().type('provider-321');
     notebookImageSettings.getRow('image-321').find().should('exist');
 
     // by description
     // test switching filtering options
-    notebookImageSettings.findFilterMenuOption('Description').click();
+    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Description').click();
     notebookImageSettings.findEmptyResults();
-    notebookImageSettings.findFilterMenuOption('Provider').click();
+    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
     notebookImageSettings.getRow('image-321').find().should('exist');
   });
 
