@@ -32,8 +32,9 @@ import './OdhCard.scss';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
-  favorite: boolean;
-  updateFavorite: (isFavorite: boolean) => void;
+  showFavorite?: boolean;
+  favorite?: boolean;
+  updateFavorite?: (isFavorite: boolean) => void;
 };
 
 // fire an event when any resource on the Resource page is accessed
@@ -54,7 +55,14 @@ const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Continue,
   LaunchStatusEnum.Close,
 ];
-const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
+const OdhDocCard: React.FC<OdhDocCardProps> = ({
+  odhDoc,
+  showFavorite,
+  favorite = false,
+  updateFavorite = () => {
+    // do nothing
+  },
+}) => {
   const [qsContext, selected] = useQuickStartCardSelected(
     odhDoc.metadata.name,
     odhDoc.metadata.name,
@@ -146,9 +154,9 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     >
       <CardHeader
         actions={{
-          actions: (
+          actions: showFavorite ? (
             <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
-          ),
+          ) : undefined,
           hasNoOffset: true,
           className: undefined,
         }}

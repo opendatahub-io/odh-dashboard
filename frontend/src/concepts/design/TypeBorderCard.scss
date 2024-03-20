@@ -77,4 +77,62 @@
       background: var(--ai-serving--BorderColor);
     }
   }
+  &.m-is-selectable {
+    &:after {
+      display: none;
+      top: unset;
+      bottom: 0;
+      transform: rotate( -180deg );
+    }
+    &:hover {
+      cursor: pointer;
+    }
+    &:hover, &.m-is-selected {
+      &:after {
+        display: block
+      }
+      &.project {
+        border-color: var(--ai-project--BorderColor);
+      }
+      &.notebook {
+        border-color: var(--ai-notebook--BorderColor);
+      }
+      &.pipeline {
+        border-color: var(--ai-pipeline--BorderColor);
+      }
+      &.pipeline-run {
+        border-color: var(--ai-pipeline--BorderColor);
+      }
+      &.cluster-storage {
+        border-color: var(--ai-cluster-storage--BorderColor);
+      }
+      &.model-server {
+        border-color: var(--ai-model-server--BorderColor);
+      }
+      &.data-connection {
+        border-color: var(--ai-data-connection--BorderColor);
+      }
+      &.user {
+        border-color: var(--ai-user--BorderColor);
+      }
+      &.group {
+        border-color: var(--ai-group--BorderColor);
+      }
+      &.set-up {
+        border-color: var(--ai-set-up--BorderColor);
+      }
+      &.organize {
+        border-color: var(--ai-organize--BorderColor);
+      }
+      &.training {
+        border-color: var(--ai-training--BorderColor);
+      }
+      &.serving {
+        border-color: var(--ai-serving--BorderColor);
+      }
+    }
+    &.m-is-selected {
+      border-width: 2px;
+    }
+  }
 }
