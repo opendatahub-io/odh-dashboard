@@ -30,9 +30,7 @@ const ServeModelsSection: React.FC = () => {
 
   return (
     <DeployedModelsSection
-      isMultiPlatform={
-        modelMeshEnabled && currentProjectServingPlatform === ServingRuntimePlatform.MULTI
-      }
+      isMultiPlatform={currentProjectServingPlatform === ServingRuntimePlatform.MULTI}
     />
   );
 };

@@ -15,6 +15,8 @@ export type IsAreaAvailableStatus = {
 
 /** All areas that we need to support in some fashion or another */
 export enum SupportedArea {
+  HOME = 'home',
+
   /* Standalone areas */
   DS_PIPELINES = 'ds-pipelines',
   // TODO: Jupyter Tile Support? (outside of feature flags today)

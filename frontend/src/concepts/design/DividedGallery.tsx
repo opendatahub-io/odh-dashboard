@@ -7,6 +7,7 @@ type DividedGalleryProps = Omit<GalleryProps, 'minWidths' | 'maxWidths'> & {
   minSize: string;
   itemCount: number;
   showClose?: boolean;
+  closeAlt?: string;
   onClose?: () => void;
 };
 
@@ -16,6 +17,7 @@ const DividedGallery: React.FC<DividedGalleryProps> = ({
   minSize,
   itemCount,
   showClose,
+  closeAlt,
   onClose,
   children,
   className,
@@ -30,8 +32,8 @@ const DividedGallery: React.FC<DividedGalleryProps> = ({
       {children}
       {showClose ? (
         <div className="odh-divided-gallery__close">
-          <Button aria-label="close" isInline variant="plain" onClick={onClose}>
-            <TimesIcon />
+          <Button aria-label={closeAlt || 'close'} isInline variant="plain" onClick={onClose}>
+            <TimesIcon alt={`close ${closeAlt}`} />
           </Button>
         </div>
       ) : null}

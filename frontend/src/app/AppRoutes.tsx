@@ -6,6 +6,8 @@ import { useUser } from '~/redux/selectors';
 import { globExperimentsAll, globPipelineRunsAll, globPipelinesAll } from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
+const HomePage = React.lazy(() => import('../pages/home/Home'));
+
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
 );
@@ -67,7 +69,8 @@ const AppRoutes: React.FC = () => {
   return (
     <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <Routes>
-        <Route path="/" element={<InstalledApplications />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/applications" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
 
