@@ -16,6 +16,7 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
       <Tooltip content={`${ODH_PRODUCT_NAME} certified and supported`}>
         <Button variant="plain" style={{ padding: 0, verticalAlign: 'middle' }}>
           <img
+            data-testid="tooltip-img"
             style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}
             src="../images/CheckStar.svg"
             alt={`${ODH_PRODUCT_NAME} certified and supported`}
@@ -27,7 +28,9 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
 
   return (
     <CardTitle>
-      <span style={{ verticalAlign: 'text-bottom' }}>{title}</span>
+      <span data-testid="cardtitle" style={{ verticalAlign: 'text-bottom' }}>
+        {title}
+      </span>
       {isRedHatSupported(odhApp) && icon}
       {showProvider && odhApp.spec.provider && (
         <div>
