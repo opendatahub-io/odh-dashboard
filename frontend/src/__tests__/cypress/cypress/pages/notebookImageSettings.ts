@@ -24,20 +24,6 @@ class NotebookImageSettings {
     return cy.findByRole('button', { name: 'Import new image' });
   }
 
-  // table tool bar
-  findFilterMenuOption(itemLabel: string) {
-    cy.findByTestId('filter-dropdown-select').click();
-    return cy.findByRole('menuitem', { name: itemLabel });
-  }
-
-  findSearchInput() {
-    return cy.findByRole('textbox', { name: 'Search input' });
-  }
-
-  findResetButton() {
-    return cy.findByRole('button', { name: 'Reset' });
-  }
-
   findEmptyResults() {
     return cy.findByRole('heading', { name: 'No results found' });
   }

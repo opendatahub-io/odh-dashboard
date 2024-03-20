@@ -10,6 +10,14 @@ class AcceleratorRow extends TableRow {
     this.find().find(`[data-label=Identifier]`).should('have.text', name);
     return this;
   }
+
+  findEnabled() {
+    return this.find().find(`[data-label=Enable]`).findByTestId('enable-switch');
+  }
+
+  findEnableSwitch() {
+    return this.find().find(`[data-label=Enable]`).find('span');
+  }
 }
 
 class TolerationRow extends TableRow {
@@ -33,20 +41,6 @@ class AcceleratorProfile {
   visit() {
     cy.visitWithLogin('/acceleratorProfiles');
     this.wait();
-  }
-
-  shouldBeSortedByColumn(column: string, order: string) {
-    this.findColumn(column).then(($cells) => {
-      const cellValues = Array.from($cells).map((cell) => cell.textContent?.trim());
-      const sortedCellValues =
-        order === 'asc'
-          ? [...cellValues].sort()
-          : [...cellValues].sort((a, b) =>
-              b === undefined || a === undefined ? -1 : b.localeCompare(a),
-            );
-      expect(cellValues).to.deep.equal(sortedCellValues);
-    });
-    return this;
   }
 
   private wait() {
@@ -74,24 +68,8 @@ class AcceleratorProfile {
     return this.findTable().find('thead').findByRole('button', { name });
   }
 
-  findResetButton() {
-    return cy.findByRole('button', { name: 'Reset' });
-  }
-
-  findFilterMenuOption() {
-    return cy.findByTestId('filter-dropdown-select');
-  }
-
-  findSearchInput() {
-    return cy.findByRole('textbox', { name: 'Search input' });
-  }
-
   private findTable() {
     return cy.findByTestId('accelerator-profile-table');
-  }
-
-  private findColumn(column: string) {
-    return this.findTable().find('tbody').find(`[data-label=${column}]`);
   }
 
   getRow(name: string) {
@@ -138,6 +116,19 @@ class ManageAcceleratorProfile {
   }
 }
 
+class DisableAcceleratorProfileModal extends Modal {
+  constructor(disable = true) {
+    super(disable ? 'Disable accelerator profile' : '');
+  }
+
+  findDisableButton() {
+    return this.findFooter().findByRole('button', { name: 'Disable' });
+  }
+
+  findCancelButton() {
+    return this.findFooter().findByRole('button', { name: 'Cancel' });
+  }
+}
 class TolerationsModal extends Modal {
   constructor(edit = false) {
     super(edit ? 'Edit toleration' : 'Add toleration');
@@ -251,3 +242,4 @@ export const createTolerationModal = new TolerationsModal(false);
 export const editTolerationModal = new TolerationsModal(true);
 export const editAcceleratorProfile = new EditAcceleratorProfile();
 export const identifierAcceleratorProfile = new IdentifierAcceleratorProfile();
+export const disableAcceleratorProfileModal = new DisableAcceleratorProfileModal();
