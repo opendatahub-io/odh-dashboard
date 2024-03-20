@@ -35,6 +35,7 @@ import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
+import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -771,6 +772,56 @@ describe('Serving Runtime List', () => {
         .findDescriptionListItem('Model server replicas')
         .next('dd')
         .should('have.text', '3');
+    });
+
+    it('Successfully deletes KServe model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: false }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: false,
+          }),
+        ],
+      });
+      cy.intercept(
+        {
+          method: 'DELETE',
+          pathname:
+            '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model-legacy',
+        },
+        {},
+      ).as('deleteServingRuntimes');
+      cy.intercept(
+        {
+          method: 'DELETE',
+          pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts/test-model-legacy-sa',
+        },
+        {},
+      ).as('deleteServiceAccounts');
+      cy.intercept(
+        {
+          method: 'DELETE',
+          pathname:
+            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/test-model-legacy-view',
+        },
+        {},
+      ).as('deleteRoleBindings');
+      projectDetails.visit('test-project');
+      modelServingSection.getModelMeshRow('ovms').findKebabAction('Delete model server').click();
+      deleteModal.shouldBeOpen();
+      deleteModal.findSubmitButton().should('be.disabled');
+
+      deleteModal.findInput().type('test-model-legacy');
+      deleteModal.findSubmitButton().should('be.enabled');
+      deleteModal.findSubmitButton().click();
+      cy.wait('@deleteServingRuntimes');
+      cy.wait('@deleteServiceAccounts');
+      cy.wait('@deleteRoleBindings');
     });
 
     it('Check path error in KServe Modal', () => {
