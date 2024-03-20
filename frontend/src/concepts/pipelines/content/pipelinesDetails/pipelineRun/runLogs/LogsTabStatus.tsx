@@ -71,8 +71,7 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
     >
       <p>
         The log refreshes every {Math.floor(LOG_REFRESH_RATE / 1000)} seconds and displays the
-        latest {LOG_TAIL_LINES} lines. Exceptionally long lines are abridged. To view the full log
-        for this task, you can{' '}
+        latest {LOG_TAIL_LINES} lines. To view the full log for this task, you can{' '}
         <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownload}>
           download all step logs
         </Button>{' '}

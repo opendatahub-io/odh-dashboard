@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   Button,
+  Checkbox,
   DropdownList,
   Icon,
   Spinner,
@@ -89,6 +90,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
   const [isFullScreen, setIsFullScreen] = React.useState(false);
   const [showSearchbar, setShowsearchbar] = React.useState(false);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [isTextWrapped, setIsTextWrapped] = React.useState(true);
 
   const logsTabRef = React.useRef<HTMLDivElement>(null);
   const dispatchResizeEvent = useDebounceCallback(
@@ -229,6 +231,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
             height="calc(100% - 75px)"
             data={data}
             logViewerRef={logViewerRef}
+            isTextWrapped={isTextWrapped}
             toolbar={
               !error && (
                 <Toolbar className={isFullScreen ? 'pf-v5-u-p-sm' : ''}>
@@ -309,6 +312,15 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                       )}
                     </ToolbarGroup>
                     <ToolbarGroup align={{ default: 'alignRight' }}>
+                      <ToolbarItem alignSelf="center">
+                        <Checkbox
+                          label="Wrap text"
+                          aria-label="wrap text checkbox"
+                          isChecked={isTextWrapped}
+                          id="wrap-text-checkbox"
+                          onChange={(_event, value) => setIsTextWrapped(value)}
+                        />
+                      </ToolbarItem>
                       <ToolbarItem spacer={{ default: 'spacerNone' }}>
                         {downloading && <Spinner size="sm" className="pf-v5-u-my-sm" />}
                         {podContainers.length <= 1 ? (
