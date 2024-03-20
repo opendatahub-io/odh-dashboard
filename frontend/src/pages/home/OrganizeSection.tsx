@@ -12,8 +12,6 @@ import {
 import projectIcon from '~/images/UI_icon-Red_Hat-Folder-Color.svg';
 import pipelineIcon from '~/images/UI_icon-Red_Hat-Branch-Color.svg';
 import chartIcon from '~/images/UI_icon-Red_Hat-Chart-Color.svg';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { SectionType } from '~/concepts/design/utils';
 import OrganizeGallery from '~/pages/home/OrganizeGallery';
@@ -65,12 +63,7 @@ type OrganizeSectionProps = PageSectionProps & {
 };
 
 const OrganizeSection: React.FC<OrganizeSectionProps> = ({ allowCreateProjects, ...rest }) => {
-  const { pipelinesServer } = usePipelinesAPI();
-  const servingPlatformStatuses = useServingPlatformStatuses();
   const [selected, setSelected] = React.useState<string | undefined>();
-
-  const modelServersEnabled =
-    servingPlatformStatuses.kServe.enabled || servingPlatformStatuses.modelMesh.enabled;
 
   return (
     <PageSection data-testid="landing-page-organize" variant="light" {...rest}>
@@ -94,24 +87,20 @@ const OrganizeSection: React.FC<OrganizeSectionProps> = ({ allowCreateProjects, 
               onSelect={() => setSelected((prev) => (prev === 'organize' ? undefined : 'organize'))}
             />
           ) : null}
-          {pipelinesServer.installed ? (
-            <OrganizeCard
-              title="Train models with pipelines"
-              imgSrc={pipelineIcon}
-              sectionType={SectionType.training}
-              selected={selected === 'train'}
-              onSelect={() => setSelected((prev) => (prev === 'train' ? undefined : 'train'))}
-            />
-          ) : null}
-          {modelServersEnabled ? (
-            <OrganizeCard
-              title="Deploy models and monitor for performance"
-              imgSrc={chartIcon}
-              sectionType={SectionType.serving}
-              selected={selected === 'serving'}
-              onSelect={() => setSelected((prev) => (prev === 'serving' ? undefined : 'serving'))}
-            />
-          ) : null}
+          <OrganizeCard
+            title="Train models with pipelines"
+            imgSrc={pipelineIcon}
+            sectionType={SectionType.training}
+            selected={selected === 'train'}
+            onSelect={() => setSelected((prev) => (prev === 'train' ? undefined : 'train'))}
+          />
+          <OrganizeCard
+            title="Deploy models and monitor for performance"
+            imgSrc={chartIcon}
+            sectionType={SectionType.serving}
+            selected={selected === 'serving'}
+            onSelect={() => setSelected((prev) => (prev === 'serving' ? undefined : 'serving'))}
+          />
         </Gallery>
         {selected === 'organize' ? (
           <OrganizeGallery onClose={() => setSelected(undefined)} />

@@ -7,19 +7,10 @@ import ProjectsSection from '~/pages/home/ProjectsSection';
 import OrganizeSection from '~/pages/home/OrganizeSection';
 import QuickStartsSection from '~/pages/home/QuickStartsSection';
 import EnableTeamSection from '~/pages/home/EnableTeamSection';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
-
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: 'project.openshift.io',
-  resource: 'projectrequests',
-  verb: 'create',
-};
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const [hintHidden, setHintHidden] = useLocalStorage('rhodsNewLandingPageMessage', null);
-  const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
 
   return (
     <>
@@ -58,11 +49,8 @@ const Home: React.FC = () => {
           </Hint>
         </PageSection>
       ) : null}
-      <ProjectsSection
-        allowCreate={rbacLoaded && allowCreate}
-        style={{ paddingTop: !hintHidden ? 0 : undefined }}
-      />
-      <OrganizeSection allowCreateProjects={rbacLoaded && allowCreate} />
+      <ProjectsSection allowCreate style={{ paddingTop: !hintHidden ? 0 : undefined }} />
+      <OrganizeSection allowCreateProjects />
       <QuickStartsSection />
       <EnableTeamSection />
     </>

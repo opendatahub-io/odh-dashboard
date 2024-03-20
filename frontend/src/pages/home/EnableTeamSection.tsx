@@ -8,17 +8,11 @@ import servingRuntimesImage from '~/images/Icon-Red_Hat-Sys_admin-A-Black-RGB.sv
 import clusterSettingsImage from '~/images/Icon-Red_Hat-Storage-A-Black-RGB.svg';
 import userImage from '~/images/UI_icon-Red_Hat-User-RGB.svg';
 import DividedGallery from '~/concepts/design/DividedGallery';
-import { useUser } from '~/redux/selectors';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 
 const EnableTeamSection: React.FC<PageSectionProps> = (props) => {
   const navigate = useNavigate();
   const [open, setOpen] = React.useState<boolean>(true);
-  const { isAdmin } = useUser();
-
-  if (!isAdmin) {
-    return null;
-  }
 
   return (
     <PageSection data-testid="landing-page-admin" variant="light" {...props}>
