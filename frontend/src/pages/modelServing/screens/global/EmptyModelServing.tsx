@@ -34,6 +34,7 @@ const EmptyModelServing: React.FC = () => {
     return (
       <EmptyState variant={EmptyStateVariant.sm}>
         <EmptyStateHeader
+          data-testid="empty-state-title"
           titleText="No deployed models yet"
           icon={<EmptyStateIcon icon={WrenchIcon} />}
           headingLevel="h2"
@@ -45,6 +46,7 @@ const EmptyModelServing: React.FC = () => {
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
+              data-testid="empty-state-action-button"
               variant="link"
               onClick={() => navigate(project ? `/projects/${project.metadata.name}` : '/projects')}
             >
@@ -59,6 +61,7 @@ const EmptyModelServing: React.FC = () => {
   return (
     <EmptyState>
       <EmptyStateHeader
+        data-testid="empty-state-title"
         titleText="No deployed models."
         icon={<EmptyStateIcon icon={PlusCircleIcon} />}
         headingLevel="h2"

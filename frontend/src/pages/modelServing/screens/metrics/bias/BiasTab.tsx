@@ -77,7 +77,7 @@ const BiasTab: React.FC = () => {
                   {/* Will be fixed by https://github.com/opendatahub-io/odh-dashboard/issues/2277 */}
                   <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
                   <StackItem>
-                    <ToolbarItem>
+                    <ToolbarItem data-testid="bias-metric-config-toolbar">
                       <BiasMetricConfigSelector
                         onChange={setSelectedBiasConfigs}
                         initialSelections={selectedBiasConfigs}

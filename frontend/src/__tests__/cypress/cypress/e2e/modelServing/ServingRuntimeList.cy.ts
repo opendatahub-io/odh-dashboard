@@ -517,18 +517,17 @@ describe('Serving Runtime List', () => {
         .findDeployedModelExpansionButton()
         .click();
       modelServingSection.findInferenceServiceTable().should('exist');
-      modelServingSection.findStatusTooltip('OVMS ONNX').should('be.visible');
-      modelServingSection.findStatusTooltipValue(
-        'OVMS ONNX',
-        'Failed to pull model from storage due to error',
-      );
+      let inferenceServiceRow = modelServingSection.getInferenceServiceRow('OVMS ONNX');
+      inferenceServiceRow.findStatusTooltip().should('be.visible');
+      inferenceServiceRow.findStatusTooltipValue('Failed to pull model from storage due to error');
 
       // Check status of deployed model which loaded successfully after an error
-      modelServingSection.findStatusTooltip('Loaded model').should('be.visible');
-      modelServingSection.findStatusTooltipValue('Loaded model', 'Loaded');
+      inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
+      inferenceServiceRow.findStatusTooltip().should('be.visible');
+      inferenceServiceRow.findStatusTooltipValue('Loaded');
 
       // Check API protocol in row
-      modelServingSection.findAPIProtocol('Loaded model').should('have.text', 'REST');
+      inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
     });
   });
 
@@ -542,7 +541,7 @@ describe('Serving Runtime List', () => {
 
       projectDetails.visit('test-project');
 
-      modelServingSection.findDeployModelButton().click();
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -615,7 +614,7 @@ describe('Serving Runtime List', () => {
 
       projectDetails.visit('test-project');
 
-      modelServingSection.findDeployModelButton().click();
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -765,10 +764,11 @@ describe('Serving Runtime List', () => {
       });
 
       projectDetails.visit('test-project');
-      modelServingSection.getKServeRow('Llama Service').findExpansion().should(be.collapsed);
-      modelServingSection.getKServeRow('Llama Service').findToggleButton().click();
-      modelServingSection
-        .findDescriptionListItem('Llama Service', 'Model server replicas')
+      const kserveRow = modelServingSection.getKServeRow('Llama Service');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Model server replicas')
         .next('dd')
         .should('have.text', '3');
     });
@@ -781,7 +781,7 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visit('test-project');
 
-      modelServingSection.findDeployModelButton().click();
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -1011,7 +1011,10 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visit('test-project');
 
-      modelServingSection.findAddModelServerButton().click();
+      modelServingSection
+        .getServingPlatformCard('multi-serving')
+        .findAddModelServerButton()
+        .click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1064,7 +1067,10 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visit('test-project');
 
-      modelServingSection.findAddModelServerButton().click();
+      modelServingSection
+        .getServingPlatformCard('multi-serving')
+        .findAddModelServerButton()
+        .click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1113,7 +1119,10 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visit('test-project');
 
-      modelServingSection.findAddModelServerButton().click();
+      modelServingSection
+        .getServingPlatformCard('multi-serving')
+        .findAddModelServerButton()
+        .click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1172,7 +1181,10 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visit('test-project');
 
-      modelServingSection.findAddModelServerButton().click();
+      modelServingSection
+        .getServingPlatformCard('multi-serving')
+        .findAddModelServerButton()
+        .click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1248,7 +1260,10 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visit('test-project');
 
-      modelServingSection.findAddModelServerButton().click();
+      modelServingSection
+        .getServingPlatformCard('multi-serving')
+        .findAddModelServerButton()
+        .click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1313,15 +1328,14 @@ describe('Serving Runtime List', () => {
         disableAccelerator: true,
       });
       projectDetails.visit('test-project');
-      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
-      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
         .next('dd')
         .should('have.text', 'No accelerator enabled');
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
-        .should('not.exist');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('not.exist');
     });
 
     it('Check accelerator when disabled but selected', () => {
@@ -1351,15 +1365,15 @@ describe('Serving Runtime List', () => {
         ],
       });
       projectDetails.visit('test-project');
-      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
-      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+
+      kserveRow
+        .findDescriptionListItem('Accelerator')
         .next('dd')
         .should('have.text', 'NVIDIA GPU (disabled)');
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
-        .should('exist');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
 
     it('Check accelerator when enabled but not selected', () => {
@@ -1370,15 +1384,14 @@ describe('Serving Runtime List', () => {
         disableAccelerator: false,
       });
       projectDetails.visit('test-project');
-      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
-      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Accelerator')
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
         .next('dd')
         .should('have.text', 'No accelerator selected');
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
-        .should('not.exist');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('not.exist');
     });
 
     it('Check accelerator when enabled and selected', () => {
@@ -1408,15 +1421,11 @@ describe('Serving Runtime List', () => {
         ],
       });
       projectDetails.visit('test-project');
-      modelServingSection.getKServeRow('Llama Caikit').findExpansion().should(be.collapsed);
-      modelServingSection.getKServeRow('Llama Caikit').findToggleButton().click();
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Accelerator')
-        .next('dd')
-        .should('have.text', 'NVIDIA GPU');
-      modelServingSection
-        .findDescriptionListItem('Llama Caikit', 'Number of accelerators')
-        .should('exist');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow.findDescriptionListItem('Accelerator').next('dd').should('have.text', 'NVIDIA GPU');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
   });
 

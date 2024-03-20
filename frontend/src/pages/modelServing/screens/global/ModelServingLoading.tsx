@@ -23,13 +23,13 @@ const ModelServingLoading: React.FC<ModelServingLoadingProps> = ({
   onCancel,
 }) => (
   <PageSection isFilled>
-    <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+    <EmptyState variant={EmptyStateVariant.lg} data-testid="loading-empty-state">
       <Spinner size="xl" />
       <EmptyStateHeader titleText={title} headingLevel="h1" />
       <EmptyStateBody>{description}</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Button variant="primary" onClick={onCancel}>
+          <Button data-testid="empty-state-cancel-button" variant="primary" onClick={onCancel}>
             Cancel
           </Button>
         </EmptyStateActions>

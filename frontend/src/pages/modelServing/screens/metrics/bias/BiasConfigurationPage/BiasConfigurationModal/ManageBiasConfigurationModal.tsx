@@ -86,6 +86,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
       <Form>
         <FormGroup label="Metric name" fieldId="metric-name" data-testid="metric-name">
           <TextInput
+            data-testid="metric-name-input"
             id="metric-name"
             value={configuration.requestName}
             onChange={(e, value) => setConfiguration('requestName', value)}
@@ -108,6 +109,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="protected-attribute"
+            data-testid="protected-attribute"
             value={configuration.protectedAttribute}
             onChange={(e, value) => setConfiguration('protectedAttribute', value)}
           />
@@ -121,6 +123,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="privileged-value"
+            data-testid="privileged-value"
             value={configuration.privilegedAttribute}
             onChange={(e, value) => setConfiguration('privilegedAttribute', value)}
           />
@@ -134,6 +137,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="unprivileged-value"
+            data-testid="unprivileged-value"
             value={configuration.unprivilegedAttribute}
             onChange={(e, value) => setConfiguration('unprivilegedAttribute', value)}
           />
@@ -147,6 +151,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="output"
+            data-testid="output"
             value={configuration.outcomeName}
             onChange={(e, value) => setConfiguration('outcomeName', value)}
           />
@@ -160,6 +165,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="output-value"
+            data-testid="output-value"
             value={configuration.favorableOutcome}
             onChange={(e, value) => setConfiguration('favorableOutcome', value)}
           />
@@ -173,6 +179,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="violation-threshold"
+            data-testid="violation-threshold"
             value={configuration.thresholdDelta}
             type="number"
             onChange={(e, value) => setConfiguration('thresholdDelta', Number(value))}
@@ -187,6 +194,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
         >
           <TextInput
             id="metric-batch-size"
+            data-testid="metric-batch-size"
             value={configuration.batchSize}
             type="number"
             onChange={(e, value) => setConfiguration('batchSize', Number(value))}

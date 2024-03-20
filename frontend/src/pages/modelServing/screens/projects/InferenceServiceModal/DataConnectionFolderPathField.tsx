@@ -47,6 +47,7 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
     <FormGroup fieldId="folder-path" label="Path" isRequired>
       <TextInput
         aria-label="folder-path"
+        data-testid="folder-path"
         type="text"
         value={folderPath}
         validated={validated}
