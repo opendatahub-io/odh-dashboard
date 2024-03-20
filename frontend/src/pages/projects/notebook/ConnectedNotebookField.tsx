@@ -41,7 +41,11 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   }
 
   return (
-    <FormGroup label="Connected workbench" fieldId="connect-existing-workbench">
+    <FormGroup
+      label="Connected workbench"
+      fieldId="connect-existing-workbench"
+      data-testid="connect-existing-workbench-group"
+    >
       <Select
         variant={isMultiSelect ? 'typeaheadmulti' : 'typeahead'}
         selections={selections}

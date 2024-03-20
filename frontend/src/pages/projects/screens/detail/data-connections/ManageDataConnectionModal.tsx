@@ -153,7 +153,13 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       onClose={() => onBeforeClose(false)}
       showClose
       actions={[
-        <Button key="submit-dc" variant="primary" isDisabled={isDisabled} onClick={submit}>
+        <Button
+          data-testid="data-connection-submit-button"
+          key="submit-dc"
+          variant="primary"
+          isDisabled={isDisabled}
+          onClick={submit}
+        >
           {existingData ? 'Update' : 'Add'} data connection
         </Button>,
         <Button key="cancel-dc" variant="secondary" onClick={() => onBeforeClose(false)}>

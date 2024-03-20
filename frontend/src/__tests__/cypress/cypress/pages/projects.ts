@@ -82,6 +82,12 @@ class CreateEditProjectModal extends Modal {
   }
 }
 
+class DataConnectionRow extends TableRow {
+  findWorkbenchConnection() {
+    return this.find().find(`[data-label="Connected workbenches"]`);
+  }
+}
+
 class ProjectDetails {
   visit(project: string) {
     cy.visit(`/projects/${project}`);
@@ -93,8 +99,22 @@ class ProjectDetails {
     cy.testA11y();
   }
 
+  findSortButton(name: string) {
+    return this.findDataConnectionTable().find('thead').findByRole('button', { name });
+  }
+
   private findModelServingPlatform(name: string) {
     return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
+  }
+
+  private findDataConnectionTable() {
+    return cy.findByTestId('data-connection-table');
+  }
+
+  getDataConnectionRow(name: string) {
+    return new DataConnectionRow(() =>
+      this.findDataConnectionTable().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
   }
 
   findSingleModelDeployButton() {
@@ -127,6 +147,10 @@ class ProjectDetails {
       .findByTestId('empty-state-title')
       .should(emptyState ? 'exist' : 'not.exist');
     return this;
+  }
+
+  findAddDataConnectionButton() {
+    return cy.findByTestId('add-data-connection-button');
   }
 
   shouldDivide() {

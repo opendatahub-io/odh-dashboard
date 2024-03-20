@@ -26,6 +26,7 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
       <Table
         variant="compact"
         data={connections}
+        data-testid="data-connection-table"
         columns={columns}
         rowRenderer={(dataConnection) => (
           <DataConnectionsTableRow
