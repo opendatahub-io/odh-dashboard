@@ -3,6 +3,8 @@ import { Card, CardTitle, CardBody, Bullseye, Spinner } from '@patternfly/react-
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 
+// TODO mturley this is unused until RBAC issues are resolved, we should remove it
+
 export const DWStatusTrendsChart: React.FC = () => {
   const { workloadTrendMetrics } = React.useContext(DistributedWorkloadsContext);
 

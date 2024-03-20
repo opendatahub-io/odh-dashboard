@@ -24,22 +24,47 @@ export type WorkloadStatusInfo = {
   status: WorkloadStatusType;
   message: string;
   color: LabelProps['color'];
+  chartColor: string;
   icon: React.ComponentClass<SVGIconProps>;
 };
 
 export const WorkloadStatusColorAndIcon: Record<
   WorkloadStatusType,
-  Pick<WorkloadStatusInfo, 'color' | 'icon'>
+  Pick<WorkloadStatusInfo, 'color' | 'chartColor' | 'icon'>
 > = {
-  Inadmissible: { color: 'gold', icon: ExclamationTriangleIcon },
-  Pending: { color: 'cyan', icon: PendingIcon },
-  Running: { color: 'blue', icon: InProgressIcon },
-  Succeeded: { color: 'green', icon: CheckCircleIcon },
-  Failed: { color: 'red', icon: ExclamationCircleIcon },
-  Unknown: { color: 'grey', icon: UnknownIcon },
+  Inadmissible: {
+    color: 'gold',
+    chartColor: 'var(--pf-v5-chart-color-gold-300, #F4C145)',
+    icon: ExclamationTriangleIcon,
+  },
+  Pending: {
+    color: 'cyan',
+    chartColor: 'var(--pf-v5-chart-color-cyan-300, #009596)',
+    icon: PendingIcon,
+  },
+  Running: {
+    color: 'blue',
+    chartColor: 'var(--pf-v5-chart-color-blue-300, #06C)',
+    icon: InProgressIcon,
+  },
+  Succeeded: {
+    color: 'green',
+    chartColor: 'var(--pf-v5-chart-color-green-300, #4CB140)',
+    icon: CheckCircleIcon,
+  },
+  Failed: {
+    color: 'red',
+    chartColor: 'var(--pf-chart-color-red-100, #C9190B)',
+    icon: ExclamationCircleIcon,
+  },
+  Unknown: {
+    color: 'grey',
+    chartColor: 'var(--pf-chart-color-black-300, #B8BBBE)',
+    icon: UnknownIcon,
+  },
 };
 
-export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo | null => {
+export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
   const conditions = wl.status?.conditions;
   const knownStatusConditions: Record<WorkloadStatusType, WorkloadCondition | undefined> = {
     Failed: conditions?.find(
@@ -72,4 +97,21 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo | null => {
     message: knownStatusConditions[statusType]?.message || 'No message',
     ...WorkloadStatusColorAndIcon[statusType],
   };
+};
+
+export type WorkloadStatusCounts = Record<WorkloadStatusType, number>;
+
+export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts => {
+  const statusCounts: WorkloadStatusCounts = {
+    Inadmissible: 0,
+    Pending: 0,
+    Running: 0,
+    Succeeded: 0,
+    Failed: 0,
+    Unknown: 0,
+  };
+  workloads.forEach((wl) => {
+    statusCounts[getStatusInfo(wl).status]++;
+  });
+  return statusCounts;
 };

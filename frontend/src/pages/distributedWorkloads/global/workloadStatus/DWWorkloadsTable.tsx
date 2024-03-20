@@ -54,8 +54,7 @@ export const DWWorkloadsTable: React.FC = () => {
     {
       field: 'status',
       label: 'Status',
-      sortable: (a, b) =>
-        (getStatusInfo(a)?.status || '').localeCompare(getStatusInfo(b)?.status || ''),
+      sortable: (a, b) => getStatusInfo(a).status.localeCompare(getStatusInfo(b).status),
     },
     {
       field: 'created',
@@ -87,9 +86,6 @@ export const DWWorkloadsTable: React.FC = () => {
           data-id="workload-table"
           rowRenderer={(workload) => {
             const statusInfo = getStatusInfo(workload);
-            if (!statusInfo) {
-              return <Tr />;
-            }
             return (
               <Tr key={workload.metadata?.uid}>
                 <Td dataLabel="Name">{workload.metadata?.name || 'Unnamed'}</Td>
