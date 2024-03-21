@@ -8,17 +8,20 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPrometheusDWQuery } from '~/__mocks__/mockPrometheusDWQuery';
 import { mockPrometheusDWQueryRange } from '~/__mocks__/mockPrometheusDWQueryRange';
+import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
 
 type HandlersProps = {
   isKueueInstalled?: boolean;
   disableDistributedWorkloads?: boolean;
   hasProjects?: boolean;
+  hasWorkloads?: boolean;
 };
 
 const initIntercepts = ({
   isKueueInstalled = true,
   disableDistributedWorkloads = false,
   hasProjects = true,
+  hasWorkloads = true,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -44,6 +47,20 @@ const initIntercepts = ({
         ? [
             mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test Project' }),
             mockProjectK8sResource({ k8sName: 'test-project-2', displayName: 'Test Project 2' }),
+          ]
+        : [],
+    ),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/namespaces/*/workloads',
+    },
+    mockK8sResourceList(
+      hasWorkloads
+        ? [
+            mockWorkloadK8sResource({ k8sName: 'test-workload' }),
+            mockWorkloadK8sResource({ k8sName: 'test-workload-2' }),
           ]
         : [],
     ),
@@ -149,5 +166,21 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.visit();
 
     cy.findByText('No data science projects').should('exist');
+  });
+
+  it('Should render the workloads table', () => {
+    initIntercepts({});
+    globalDistributedWorkloads.visit();
+
+    cy.findByLabelText('Workload status tab').click();
+    cy.findByText('test-workload').should('exist');
+  });
+
+  it('Should render the workloads table with empty state', () => {
+    initIntercepts({ hasWorkloads: false });
+    globalDistributedWorkloads.visit();
+
+    cy.findByLabelText('Workload status tab').click();
+    cy.findByText('No workloads match your filters').should('exist');
   });
 });
