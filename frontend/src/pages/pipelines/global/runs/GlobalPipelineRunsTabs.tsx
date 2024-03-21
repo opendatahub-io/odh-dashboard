@@ -47,17 +47,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
           <ActiveRuns />
         </PageSection>
       </Tab>
-      <Tab
-        eventKey={PipelineRunType.Archived}
-        title={<TabTitleText>Archived runs</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Archived} tab`}
-        className="odh-pipeline-runs-page-tabs__content"
-        data-testid="archived-runs-tab"
-      >
-        <PageSection isFilled variant="light">
-          <ArchivedRuns />
-        </PageSection>
-      </Tab>
+
       <Tab
         eventKey={PipelineRunType.Scheduled}
         title={<TabTitleText>{PipelineRunTabTitle.Schedules}</TabTitleText>}
@@ -67,6 +57,18 @@ const GlobalPipelineRunsTab: React.FC = () => {
       >
         <PageSection isFilled variant="light">
           <ScheduledRuns />
+        </PageSection>
+      </Tab>
+
+      <Tab
+        eventKey={PipelineRunType.Archived}
+        title={<TabTitleText>{PipelineRunTabTitle.Archived}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.Archived} tab`}
+        className="odh-pipeline-runs-page-tabs__content"
+        data-testid="archived-runs-tab"
+      >
+        <PageSection isFilled variant="light">
+          <ArchivedRuns />
         </PageSection>
       </Tab>
     </Tabs>

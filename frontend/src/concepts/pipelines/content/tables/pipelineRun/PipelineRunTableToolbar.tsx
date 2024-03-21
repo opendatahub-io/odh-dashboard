@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
+import { useParams } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
@@ -8,14 +9,7 @@ import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes
 import DashboardDatePicker from '~/components/DashboardDatePicker';
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-
-const options = {
-  [FilterOptions.NAME]: 'Name',
-  [FilterOptions.EXPERIMENT]: 'Experiment',
-  [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-  [FilterOptions.CREATED_AT]: 'Started',
-  [FilterOptions.STATUS]: 'Status',
-};
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -33,12 +27,27 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { experimentId } = useParams();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState, ...statusRuntimeStates } =
     runtimeStateLabels;
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+
+  const options = React.useMemo(
+    () => ({
+      [FilterOptions.NAME]: 'Run',
+      ...(!(isExperimentsAvailable && experimentId) && {
+        [FilterOptions.EXPERIMENT]: 'Experiment',
+      }),
+      [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+      [FilterOptions.CREATED_AT]: 'Started',
+      [FilterOptions.STATUS]: 'Status',
+    }),
+    [experimentId, isExperimentsAvailable],
+  );
 
   return (
-    <PipelineFilterBar<keyof typeof options>
+    <PipelineFilterBar
       {...toolbarProps}
       filterOptions={options}
       filterOptionRenders={{

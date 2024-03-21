@@ -257,14 +257,14 @@ describe('Pipeline runs', () => {
       });
 
       describe('Table filter', () => {
-        it('filter by run name', () => {
+        it('filter by name', () => {
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
-          // Select the "Name" filter, enter a value to filter by
+          // Select the "Run" filter, enter a value to filter by
           pipelineRunsGlobal
             .findActiveRunsToolbar()
-            .within(() => pipelineRunsGlobal.selectFilterByName('Name'));
+            .within(() => pipelineRunsGlobal.selectFilterByName('Run'));
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunFilterBar.findNameInput().type('run 1'));
@@ -504,7 +504,7 @@ describe('Pipeline runs', () => {
       });
 
       it('navigate to create run page', () => {
-        pipelineRunsGlobal.findCreateScheduleButton().click();
+        pipelineRunsGlobal.findScheduleRunButton().click();
         verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
       });
     });
@@ -536,7 +536,7 @@ describe('Pipeline runs', () => {
 
       describe('Navigation', () => {
         it('navigate to create scheduled run page', () => {
-          pipelineRunsGlobal.findCreateScheduleButton().click();
+          pipelineRunsGlobal.findScheduleRunButton().click();
           verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
         });
         it('navigate to clone scheduled run page', () => {
@@ -561,8 +561,8 @@ describe('Pipeline runs', () => {
           // Verify initial job rows exist
           pipelineRunJobTable.findRows().should('have.length', 3);
 
-          // Select the "Name" filter, enter a value to filter by
-          pipelineRunJobTable.selectFilterByName('Name');
+          // Select the "Schedule" filter, enter a value to filter by
+          pipelineRunJobTable.selectFilterByName('Schedule');
           pipelineRunJobTable.findFilterTextField().type('test-pipeline');
 
           // Mock jobs (filtered by typed job name)

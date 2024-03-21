@@ -379,13 +379,8 @@ describe('Pipeline create runs', () => {
         mockPipelineVersion.pipeline_id,
       );
 
-      // Mock jobs list with newly created job
-      pipelineRunJobTable
-        .mockGetJobs([...initialMockRecurringRuns, buildMockJobKF(createRecurringRunParams)])
-        .as('refreshRecurringRuns');
-
       // Navigate to the 'Create run' page
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
       verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
       createSchedulePage.find();
 
@@ -433,16 +428,10 @@ describe('Pipeline create runs', () => {
         });
       });
 
-      // Should show newly created schedule in the table
-      cy.wait('@refreshRecurringRuns').then((interception) => {
-        expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/recurringruns',
-          method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
-          queryParams: { sort_by: 'created_at desc', page_size: 10 },
-        });
-      });
-      pipelineRunJobTable.findRowByName('New job');
+      // Should be redirected to the schedule details page
+      verifyRelativeURL(
+        `/pipelineRuns/${projectName}/pipelineRunJob/view/${createRecurringRunParams.recurring_run_id}`,
+      );
     });
 
     it('duplicates a schedule', () => {
@@ -465,11 +454,6 @@ describe('Pipeline create runs', () => {
       cloneSchedulePage.mockGetPipelineVersion(mockPipelineVersion);
       cloneSchedulePage.mockGetPipeline(mockPipeline);
       cloneSchedulePage.mockGetExperiment(mockExperiment);
-
-      // Mock jobs list with newly cloned job
-      pipelineRunJobTable
-        .mockGetJobs([...initialMockRecurringRuns, mockDuplicateRecurringRun])
-        .as('refreshRecurringRuns');
 
       // Navigate to clone run page for a given schedule
       pipelineRunJobTable.selectRowActionByName(mockRecurringRun.display_name, 'Duplicate');
@@ -523,21 +507,14 @@ describe('Pipeline create runs', () => {
         });
       });
 
-      // Should show newly cloned schedule in the table
-      cy.wait('@refreshRecurringRuns').then((interception) => {
-        expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/recurringruns',
-          method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
-          queryParams: { sort_by: 'created_at desc', page_size: 10 },
-        });
-      });
-
-      pipelineRunJobTable.findRowByName('Duplicate of Test job');
+      // Should be redirected to the schedule details page
+      verifyRelativeURL(
+        `/pipelineRuns/${projectName}/pipelineRunJob/view/${mockDuplicateRecurringRun.recurring_run_id}`,
+      );
     });
 
     it('shows cron & periodic fields', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findScheduledRunTypeSelector().click();
       createSchedulePage.findScheduledRunTypeSelectorPeriodic().click();
@@ -551,7 +528,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should start concurrent at the max, 10', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldMinus().should('be.enabled');
       createSchedulePage.findMaxConcurrencyFieldPlus().should('be.disabled');
@@ -559,7 +536,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should allow the concurrency to update via +/-', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldMinus().click();
       createSchedulePage.findMaxConcurrencyFieldMinus().click();
@@ -570,7 +547,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should not allow concurrency to go under or above the bounds', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldValue().fill('0');
       createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', 1);
@@ -580,7 +557,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should hide and show date toggles', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findStartDatePickerDate().should('not.be.visible');
       createSchedulePage.findStartDatePickerTime().should('not.be.visible');
@@ -596,7 +573,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should see catch up is enabled by default', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findCatchUpSwitchValue().should('be.checked');
       createSchedulePage.findCatchUpSwitch().click();

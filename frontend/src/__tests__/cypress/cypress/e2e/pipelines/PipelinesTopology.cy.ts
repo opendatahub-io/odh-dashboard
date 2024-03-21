@@ -143,7 +143,7 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/runs/`,
+      pathname: '/api/proxy/apis/v2beta1/runs',
     },
     { runs: [mockRun] },
   );
@@ -184,6 +184,7 @@ describe('Pipeline topology', () => {
     describe('Navigation', () => {
       beforeEach(() => {
         initIntercepts();
+        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
         // https://issues.redhat.com/browse/RHOAIENG-4562
         // Bypass intermittent Cypress error:
         // Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/base/worker/workerMain.js' failed to load.
@@ -191,30 +192,22 @@ describe('Pipeline topology', () => {
       });
 
       it('Test pipeline details create run navigation', () => {
-        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
-        pipelineDetails.findActionsDropdown().click();
-        cy.findByText('Create run').click();
+        pipelineDetails.selectActionDropdownItem('Create run');
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
       });
 
       it('navigates to "Schedule run" page on "Schedule run" click', () => {
-        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
-        pipelineDetails.findActionsDropdown().click();
-        cy.findByText('Schedule run').click();
+        pipelineDetails.selectActionDropdownItem('Schedule run');
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create?runType=scheduled`);
       });
 
       it('Test pipeline details view runs navigation', () => {
-        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
-        pipelineDetails.findActionsDropdown().click();
-        cy.findByText('View runs').click();
+        pipelineDetails.selectActionDropdownItem('View runs');
         verifyRelativeURL(`/pipelineRuns/${projectId}?runType=active`);
       });
 
       it('navigates to "Schedules" on "View schedules" click', () => {
-        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
-        pipelineDetails.findActionsDropdown().click();
-        cy.findByText('View schedules').click();
+        pipelineDetails.selectActionDropdownItem('View schedules');
         verifyRelativeURL(`/pipelineRuns/${projectId}?runType=scheduled`);
       });
     });
@@ -228,15 +221,13 @@ describe('Pipeline topology', () => {
 
       it('Test pipeline run duplicate navigation', () => {
         pipelineRunDetails.visit(projectId, mockRun.run_id);
-        pipelineRunDetails.findActionsDropdown().click();
-        cy.findByText('Duplicate').click();
+        pipelineRunDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/clone/${mockRun.run_id}`);
       });
 
       it('Test pipeline job duplicate navigation', () => {
         pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
-        pipelineRunJobDetails.findActionsDropdown().click();
-        cy.findByText('Duplicate run').click();
+        pipelineRunJobDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(
           `/pipelineRuns/${projectId}/pipelineRun/cloneJob/${mockJob.recurring_run_id}?runType=scheduled`,
         );

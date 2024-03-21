@@ -1,25 +1,27 @@
 /* eslint-disable camelcase */
-import { buildMockExperimentKF, buildMockRunKF } from '~/__mocks__';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import {
+  buildMockExperimentKF,
+  mockDashboardConfig,
+  mockDataSciencePipelineApplicationK8sResource,
+  mockK8sResourceList,
+  buildMockPipelineV2,
+  buildMockPipelines,
   buildMockPipelineVersionV2,
   buildMockPipelineVersionsV2,
-} from '~/__mocks__/mockPipelineVersionsProxy';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
+  mockProjectK8sResource,
+  mockRouteK8sResource,
+  mockStatus,
+} from '~/__mocks__';
 import { experimentsTabs } from '~/__tests__/cypress/cypress/pages/pipelines/experiments';
-import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
+import { pipelineRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
 const initialMockPipelineVersion = buildMockPipelineVersionV2({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
-const mockExperimentArray = [
+const mockExperiments = [
   buildMockExperimentKF({
     display_name: 'Test experiment 1',
     experiment_id: '1',
@@ -34,24 +36,10 @@ const mockExperimentArray = [
   }),
 ];
 
-const runs = Array.from({ length: 5 }, (_, i) =>
-  buildMockRunKF({
-    display_name: 'Test triggered run 1',
-    run_id: `run-${i}`,
-    pipeline_version_reference: {
-      pipeline_id: initialMockPipeline.pipeline_id,
-      pipeline_version_id: initialMockPipelineVersion.pipeline_version_id,
-    },
-    experiment_id: '1',
-    created_at: '2024-02-01T00:00:00Z',
-    state: RuntimeStateKF.SUCCEEDED,
-  }),
-);
-
-describe('Pipeline Experiments', () => {
+describe('Experiments', () => {
   beforeEach(() => {
     initIntercepts();
-    experimentsTabs.mockGetExperiments(mockExperimentArray);
+    experimentsTabs.mockGetExperiments(mockExperiments);
     experimentsTabs.visit(projectName);
   });
 
@@ -69,18 +57,55 @@ describe('Pipeline Experiments', () => {
     // Verify initial run rows exist
     experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 3);
 
-    // Select the "Name" filter, enter a value to filter by
+    // Select the "Experiment" filter, enter a value to filter by
     experimentsTabs.getActiveExperimentsTable().selectFilterByName('Experiment');
     experimentsTabs.getActiveExperimentsTable().findFilterTextField().type('Test experiment 2');
 
-    // Mock runs (filtered by typed run name)
+    // Mock experiments (filtered by typed experiment name)
     experimentsTabs.mockGetExperiments(
-      mockExperimentArray.filter((exp) => exp.display_name.includes('Test experiment 2')),
+      mockExperiments.filter((exp) => exp.display_name.includes('Test experiment 2')),
     );
 
-    // Verify only rows with the typed run name exist
+    // Verify only rows with the typed experiment name exist
     experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 1);
     experimentsTabs.getActiveExperimentsTable().findRowByName('Test experiment 2');
+  });
+
+  describe('Runs page', () => {
+    const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
+    const [mockExperiment] = mockExperiments;
+
+    beforeEach(() => {
+      activeExperimentsTable.findRowByName(mockExperiment.display_name).find('a').click();
+    });
+
+    it('navigates to the runs page when clicking an experiment name', () => {
+      verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+      cy.findByLabelText('Breadcrumb').findByText('Experiments');
+    });
+
+    it('has "Experiment" value pre-filled when on the "Create run" page', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
+    });
+
+    it('navigates back to experiments from "Create run" page breadcrumb', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`).click();
+      verifyRelativeURL(`/experiments/${projectName}`);
+    });
+
+    it('navigates back to experiment runs page from "Create run" page breadcrumb', () => {
+      pipelineRunsGlobal.findCreateRunButton().click();
+      cy.findByLabelText('Breadcrumb').findByText(mockExperiment.display_name).click();
+      verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+    });
+
+    it('has "Experiment" value pre-filled when on the "Schedule run" page', () => {
+      pipelineRunsGlobal.findSchedulesTab().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
+      cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
+    });
   });
 });
 
@@ -113,7 +138,9 @@ const initIntercepts = () => {
     {
       pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
     },
-    mockK8sResourceList([mockProjectK8sResource({ k8sName: projectName })]),
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: projectName, displayName: projectName }),
+    ]),
   );
 
   cy.intercept(
@@ -134,6 +161,21 @@ const initIntercepts = () => {
     {
       pathname: '/api/proxy/apis/v2beta1/runs',
     },
-    { runs },
+    { runs: [] },
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/proxy/apis/v2beta1/recurringruns',
+    },
+    {
+      recurringRuns: [],
+    },
+  );
+  cy.intercept(
+    {
+      pathname: `/api/proxy/apis/v2beta1/experiments/${mockExperiments[0].experiment_id}`,
+    },
+    mockExperiments[0],
   );
 };

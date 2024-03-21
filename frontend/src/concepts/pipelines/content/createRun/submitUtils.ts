@@ -10,6 +10,8 @@ import {
   CreatePipelineRunKFData,
   DateTimeKF,
   InputDefinitionParameterType,
+  PipelineRunJobKFv2,
+  PipelineRunKFv2,
   PipelineVersionKFv2,
   RecurringRunMode,
   RuntimeConfigParameters,
@@ -20,12 +22,11 @@ import {
   isFilledRunFormData,
 } from '~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds } from '~/utilities/time';
-import { routePipelineRunDetails } from '~/routes';
 
 const createRun = async (
   formData: SafeRunFormData,
   createPipelineRun: PipelineAPIs['createPipelineRun'],
-): Promise<string> => {
+): Promise<PipelineRunKFv2> => {
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
     display_name: formData.nameDesc.name,
@@ -42,9 +43,7 @@ const createRun = async (
   };
 
   /* eslint-enable camelcase */
-  return createPipelineRun({}, data).then((runResource) =>
-    routePipelineRunDetails(runResource.run_id),
-  );
+  return createPipelineRun({}, data);
 };
 
 const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
@@ -59,7 +58,7 @@ const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null 
 const createJob = async (
   formData: SafeRunFormData,
   createPipelineRunJob: PipelineAPIs['createPipelineRunJob'],
-): Promise<string> => {
+): Promise<PipelineRunJobKFv2> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
@@ -103,13 +102,16 @@ const createJob = async (
     service_account: '',
     experiment_id: formData.experiment?.experiment_id || '',
   };
-
   /* eslint-enable camelcase */
-  return createPipelineRunJob({}, data).then(() => '');
+
+  return createPipelineRunJob({}, data);
 };
 
 /** Returns the relative path to navigate to from the namespace qualified route */
-export const handleSubmit = (formData: RunFormData, api: PipelineAPIs): Promise<string> => {
+export const handleSubmit = (
+  formData: RunFormData,
+  api: PipelineAPIs,
+): Promise<PipelineRunKFv2 | PipelineRunJobKFv2> => {
   if (!isFilledRunFormData(formData)) {
     throw new Error('Form data was incomplete.');
   }

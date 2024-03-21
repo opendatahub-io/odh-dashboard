@@ -39,10 +39,10 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   breadcrumbPath,
   contextPath,
 }) => {
-  const { pipelineRunJobId } = useParams();
+  const { recurringRunId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [job, jobLoaded, jobError] = usePipelineRunJobById(pipelineRunJobId);
+  const [job, jobLoaded, jobError] = usePipelineRunJobById(recurringRunId);
   const [version, versionLoaded, versionError] = usePipelineVersionById(
     job?.pipeline_version_reference.pipeline_id,
     job?.pipeline_version_reference.pipeline_version_id,

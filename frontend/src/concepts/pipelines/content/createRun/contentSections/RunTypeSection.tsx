@@ -9,7 +9,8 @@ import {
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { routePipelineRunsNamespace } from '~/routes';
+import { runsBaseRoute } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 interface RunTypeSectionProps {
   runType: PipelineRunType;
@@ -17,8 +18,9 @@ interface RunTypeSectionProps {
 
 export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
   const navigate = useNavigate();
-  const { namespace } = useParams();
+  const { namespace, experimentId } = useParams();
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   let runTypeValue = 'Run once immediately after creation';
   let alertProps = {
@@ -31,7 +33,7 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
     runTypeValue = 'Schedule recurring run';
     alertProps = {
       title: 'Go to Active runs to create a run that executes once immediately after creation.',
-      label: `Go to ${PipelineRunTabTitle.Active}`,
+      label: `Go to ${PipelineRunTabTitle.Active} runs`,
       navSearch: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
     };
   }
@@ -54,7 +56,10 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
               variant="link"
               onClick={() =>
                 navigate({
-                  pathname: routePipelineRunsNamespace(namespace),
+                  pathname: runsBaseRoute(
+                    namespace,
+                    isExperimentsAvailable ? experimentId : undefined,
+                  ),
                   search: alertProps.navSearch,
                 })
               }

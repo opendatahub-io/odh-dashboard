@@ -70,7 +70,7 @@ export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ run, onCancel 
     >
       <Stack hasGutter>
         <StackItem>
-          The run will be archived and sent to the <b>Archived runs</b> tab, where it can be
+          The run will be archived and sent to the <b>Archived</b> runs tab, where it can be
           restored.
         </StackItem>
 

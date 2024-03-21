@@ -38,10 +38,10 @@ import { routePipelineRunsNamespace } from '~/routes';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
-  const { pipelineRunId } = useParams();
+  const { runId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [runResource, runLoaded, runError] = usePipelineRunById(pipelineRunId, true);
+  const [runResource, runLoaded, runError] = usePipelineRunById(runId, true);
   const [version, versionLoaded, versionError] = usePipelineVersionById(
     runResource?.pipeline_version_reference.pipeline_id,
     runResource?.pipeline_version_reference.pipeline_version_id,

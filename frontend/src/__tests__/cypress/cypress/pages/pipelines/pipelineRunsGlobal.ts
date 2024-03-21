@@ -25,11 +25,11 @@ class PipelineRunsGlobal {
   }
 
   findActiveRunsTab() {
-    return cy.findByRole('tab', { name: 'Active runs tab' });
+    return cy.findByRole('tab', { name: 'Active tab' });
   }
 
   findArchivedRunsTab() {
-    return cy.findByRole('tab', { name: 'Archived runs tab' });
+    return cy.findByRole('tab', { name: 'Archived tab' });
   }
 
   findProjectSelect() {
@@ -40,7 +40,7 @@ class PipelineRunsGlobal {
     return cy.findByRole('button', { name: 'Create run' });
   }
 
-  findCreateScheduleButton() {
+  findScheduleRunButton() {
     return cy.findByRole('button', { name: 'Schedule run' });
   }
 

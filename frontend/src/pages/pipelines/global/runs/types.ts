@@ -5,7 +5,7 @@ export enum PipelineRunType {
 }
 
 export enum PipelineRunTabTitle {
-  Active = 'Active runs',
-  Archived = 'Archived runs',
+  Active = 'Active',
+  Archived = 'Archived',
   Schedules = 'Schedules',
 }

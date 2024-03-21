@@ -3,37 +3,39 @@ import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { FetchState } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
-import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
+import { PipelineListPaged, PipelineRunOptions } from '~/concepts/pipelines/types';
 
 export const usePipelineActiveRuns = (
-  options?: PipelineOptions,
+  options?: PipelineRunOptions,
 ): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
   const { api } = usePipelinesAPI();
+  const experimentId = options?.experimentId;
 
   return usePipelineQuery<PipelineRunKFv2>(
     React.useCallback(
       (opts, params) =>
         api
-          .listPipelineActiveRuns(opts, params)
+          .listPipelineActiveRuns(opts, { ...params, ...(experimentId && { experimentId }) })
           .then((result) => ({ ...result, items: result.runs })),
-      [api],
+      [api, experimentId],
     ),
     options,
   );
 };
 
 export const usePipelineArchivedRuns = (
-  options?: PipelineOptions,
+  options?: PipelineRunOptions,
 ): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
   const { api } = usePipelinesAPI();
+  const experimentId = options?.experimentId;
 
   return usePipelineQuery<PipelineRunKFv2>(
     React.useCallback(
       (opts, params) =>
         api
-          .listPipelineArchivedRuns(opts, params)
+          .listPipelineArchivedRuns(opts, { ...params, ...(experimentId && { experimentId }) })
           .then((result) => ({ ...result, items: result.runs })),
-      [api],
+      [api, experimentId],
     ),
     options,
   );
@@ -41,7 +43,7 @@ export const usePipelineArchivedRuns = (
 
 export const usePipelineRunsByExperiment = (
   experimentId: string,
-  options?: PipelineOptions,
+  options?: PipelineRunOptions,
 ): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
   const { api } = usePipelinesAPI();
 
@@ -50,7 +52,7 @@ export const usePipelineRunsByExperiment = (
       (opts, params) =>
         api
           // eslint-disable-next-line camelcase
-          .listPipelineRuns(opts, { ...params, experiment_id: experimentId })
+          .listPipelineRuns(opts, { ...params, experimentId })
           .then((result) => ({ ...result, items: result.runs })),
       [api, experimentId],
     ),

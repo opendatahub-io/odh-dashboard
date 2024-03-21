@@ -10,12 +10,24 @@ import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatibl
 import { routePipelineRunsNamespace } from '~/routes';
 import GlobalPipelineRunsTabs from './GlobalPipelineRunsTabs';
 
-const GlobalPipelineRuns: React.FC = () => (
+type GlobalPipelineRunsProps = Partial<
+  Pick<
+    React.ComponentProps<typeof PipelineCoreApplicationPage>,
+    'breadcrumb' | 'description' | 'getRedirectPath'
+  >
+>;
+
+const GlobalPipelineRuns: React.FC<GlobalPipelineRunsProps> = ({
+  breadcrumb,
+  description = pipelineRunsPageDescription,
+  getRedirectPath = routePipelineRunsNamespace,
+}) => (
   <PipelineCoreApplicationPage
     title={pipelineRunsPageTitle}
-    description={pipelineRunsPageDescription}
-    getRedirectPath={routePipelineRunsNamespace}
+    description={description}
+    getRedirectPath={getRedirectPath}
     overrideChildPadding
+    breadcrumb={breadcrumb}
   >
     <EnsureAPIAvailability>
       <EnsureCompatiblePipelineServer>
