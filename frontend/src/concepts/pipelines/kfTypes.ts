@@ -196,8 +196,11 @@ export type PipelineComponentsKF = Record<string, PipelineComponentKF | undefine
  * Artifacts nodes do not have statuses and are not tasks, but they are bi-products of what tasks do.
  */
 export type TaskKF = {
-  cachingOptions: {
+  cachingOptions?: {
     enableCache: boolean;
+  };
+  triggerPolicy?: {
+    strategy: TriggerStrategy;
   };
   taskInfo: {
     /** Node name */
@@ -234,7 +237,7 @@ export type TaskKF = {
         /** @see PipelineSpec.root.inputDefinitions.parameters */
         componentInputParameter?: string;
         runtimeValue?: {
-          constant: boolean;
+          constant: string;
         };
       }
     >;
@@ -245,6 +248,12 @@ export type DAG = {
   tasks: Record<string, TaskKF>;
   // TODO: determine if there are more properties
 };
+
+export enum TriggerStrategy {
+  TRIGGER_STRATEGY_UNSPECIFIED = 'TRIGGER_STRATEGY_UNSPECIFIED',
+  ALL_UPSTREAM_TASKS_SUCCEEDED = 'ALL_UPSTREAM_TASKS_SUCCEEDED',
+  ALL_UPSTREAM_TASKS_COMPLETED = 'ALL_UPSTREAM_TASKS_COMPLETED',
+}
 
 export type ParameterKFV2 = {
   parameterType: InputDefinitionParameterType;
