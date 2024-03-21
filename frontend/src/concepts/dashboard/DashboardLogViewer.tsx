@@ -8,7 +8,8 @@ const DashboardLogViewer: React.FC<{
   footer: JSX.Element | false;
   onScroll: React.ComponentProps<typeof LogViewer>['onScroll'];
   height?: number | string;
-}> = ({ data, logViewerRef, toolbar, footer, onScroll, height = '100%' }) => (
+  isTextWrapped?: boolean;
+}> = ({ data, logViewerRef, toolbar, footer, onScroll, height = '100%', isTextWrapped }) => (
   <LogViewer
     data-testid="logs"
     hasLineNumbers={false}
@@ -18,6 +19,7 @@ const DashboardLogViewer: React.FC<{
     toolbar={toolbar}
     footer={footer}
     onScroll={onScroll}
+    isTextWrapped={isTextWrapped}
   />
 );
 
