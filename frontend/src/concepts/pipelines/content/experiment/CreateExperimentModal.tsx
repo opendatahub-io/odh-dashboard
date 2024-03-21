@@ -14,12 +14,12 @@ import { getProjectDisplayName } from '~/pages/projects/utils';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
-type ManageExperimentModalProps = {
+type CreateExperimentModalProps = {
   isOpen: boolean;
   onClose: (experiment?: ExperimentKFv2) => void;
 };
 
-const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, onClose }) => {
+const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ isOpen, onClose }) => {
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -109,4 +109,4 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
   );
 };
 
-export default ManageExperimentModal;
+export default CreateExperimentModal;

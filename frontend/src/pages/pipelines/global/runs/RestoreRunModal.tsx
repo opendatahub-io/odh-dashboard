@@ -1,62 +1,53 @@
-import React from 'react';
-
-import { Button, Modal } from '@patternfly/react-core';
-
+import * as React from 'react';
+import { ListItem, Stack, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useNotification from '~/utilities/useNotification';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { RestoreModal } from '~/concepts/pipelines/content/RestoreModal';
+import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 import { PipelineRunTabTitle } from './types';
 
 interface RestoreRunModalProps {
-  run: PipelineRunKFv2;
-  onCancel(): void;
+  isOpen: boolean;
+  runs: PipelineRunKFv2[];
+  onCancel: () => void;
 }
 
-export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ run, onCancel }) => {
-  const { api, refreshAllAPI } = usePipelinesAPI();
-  const notification = useNotification();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  const onConfirm = React.useCallback(async () => {
-    setIsSubmitting(true);
-    try {
-      await api.unarchivePipelineRun({}, run.run_id);
-
-      refreshAllAPI();
-      setIsSubmitting(false);
-      onCancel();
-    } catch (e) {
-      if (e instanceof Error) {
-        notification.error('Unable to restore the pipeline run.', e.message);
-      }
-      setIsSubmitting(false);
-    }
-  }, [api, run.run_id, notification, refreshAllAPI, onCancel]);
-
+export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ isOpen, runs, onCancel }) => {
+  const isSingleRestoring = runs.length === 1;
+  const { api } = usePipelinesAPI();
+  const onSubmit = React.useCallback(
+    () => Promise.all(runs.map((run) => api.unarchivePipelineRun({}, run.run_id))),
+    [api, runs],
+  );
   return (
-    <Modal
-      isOpen
-      title="Restore run?"
-      variant="small"
-      onClose={onCancel}
-      actions={[
-        <Button
-          key="confirm"
-          variant="primary"
-          onClick={onConfirm}
-          isDisabled={isSubmitting}
-          isLoading={isSubmitting}
-        >
-          Restore
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onCancel}>
-          Cancel
-        </Button>,
-      ]}
-      data-testid="restore-run-modal"
+    <RestoreModal
+      title={`Restore run${isSingleRestoring ? '' : 's'}?`}
+      onCancel={onCancel}
+      onSubmit={onSubmit}
+      isOpen={isOpen}
+      testId="restore-run-modal"
+      alertTitle={`Error restoring ${isSingleRestoring ? runs[0].display_name : 'runs'}`}
     >
-      <b>{run.display_name}</b> will be restored and returned to the{' '}
-      <b>{PipelineRunTabTitle.Active}</b> tab.
-    </Modal>
+      {isSingleRestoring ? (
+        <>
+          <b>{runs[0].display_name}</b> will be restored and returned to the{' '}
+          <b>{PipelineRunTabTitle.Active}</b> tab.
+        </>
+      ) : (
+        <Stack hasGutter>
+          <StackItem>
+            <b>{runs.length}</b> runs will be restored and returned to the{' '}
+            <b>{PipelineRunTabTitle.Active}</b> tab.
+          </StackItem>
+          <StackItem>
+            <BulkActionExpandableSection title="Selected runs">
+              {runs.map((run) => (
+                <ListItem key={run.run_id}>{run.display_name}</ListItem>
+              ))}
+            </BulkActionExpandableSection>
+          </StackItem>
+        </Stack>
+      )}
+    </RestoreModal>
   );
 };

@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import DeleteExperimentModal from '~/pages/pipelines/global/experiments/DeleteExperimentModal';
+import { RestoreExperimentModal } from '~/pages/pipelines/global/experiments/RestoreExperimentModal';
 import ExperimentTableBase from './ExperimentTableBase';
 import { ArchivedExperimentTableToolbar } from './ExperimentTableToolbar';
 
@@ -11,12 +13,9 @@ type ArchivedExperimentTableProps = Omit<
 const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...baseTable }) => {
   const { experiments } = baseTable;
 
-  const [, setRestoreResources] = React.useState<ExperimentKFv2[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onRestore = (experiment: ExperimentKFv2) => null;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onDelete = (experiment: ExperimentKFv2) => null;
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [deleteExperiment, setDeleteExperiment] = React.useState<ExperimentKFv2>();
+  const [restoreExperiments, setRestoreExperiments] = React.useState<ExperimentKFv2[]>([]);
 
   return (
     <>
@@ -26,22 +25,23 @@ const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...ba
           {
             title: 'Restore',
             onClick: () => {
-              onRestore(experiment);
+              setRestoreExperiments([experiment]);
+              setIsRestoreModalOpen(true);
             },
           },
           {
             title: 'Delete',
             isDisabled: experiment.display_name === 'Default',
             onClick: () => {
-              onDelete(experiment);
+              setDeleteExperiment(experiment);
             },
           },
         ]}
         toolbarContentRenderer={(selections) => (
           <ArchivedExperimentTableToolbar
             restoreAllEnabled={selections.length > 0}
-            onRestoreAll={() =>
-              setRestoreResources(
+            onRestoreAll={() => {
+              setRestoreExperiments(
                 selections
                   .map<ExperimentKFv2 | undefined>((selection) =>
                     experiments.find(
@@ -49,10 +49,20 @@ const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...ba
                     ),
                   )
                   .filter((v): v is ExperimentKFv2 => !!v),
-              )
-            }
+              );
+              setIsRestoreModalOpen(true);
+            }}
           />
         )}
+      />
+      <RestoreExperimentModal
+        isOpen={isRestoreModalOpen}
+        experiments={restoreExperiments}
+        onCancel={() => setIsRestoreModalOpen(false)}
+      />
+      <DeleteExperimentModal
+        onCancel={() => setDeleteExperiment(undefined)}
+        experiment={deleteExperiment}
       />
     </>
   );

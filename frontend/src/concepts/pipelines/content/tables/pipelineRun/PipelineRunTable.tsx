@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
-
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
@@ -16,8 +15,6 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
-import { BulkArchiveRunModal } from '~/pages/pipelines/global/runs/BulkArchiveRunModal';
-import { BulkRestoreRunModal } from '~/pages/pipelines/global/runs/BulkRestoreRunModal';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
@@ -176,45 +173,22 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         data-testid={`${runType}-runs-table`}
         id={`${runType}-runs-table`}
       />
-
-      {isArchiveModalOpen &&
-        (selectedRuns.length === 1 ? (
-          <ArchiveRunModal
-            run={selectedRuns[0]}
-            onCancel={() => {
-              setIsArchiveModalOpen(false);
-              setSelectedIds([]);
-            }}
-          />
-        ) : (
-          <BulkArchiveRunModal
-            runs={selectedRuns}
-            onCancel={() => {
-              setIsArchiveModalOpen(false);
-              setSelectedIds([]);
-            }}
-          />
-        ))}
-
-      {isRestoreModalOpen &&
-        (selectedRuns.length === 1 ? (
-          <RestoreRunModal
-            run={selectedRuns[0]}
-            onCancel={() => {
-              setIsRestoreModalOpen(false);
-              setSelectedIds([]);
-            }}
-          />
-        ) : (
-          <BulkRestoreRunModal
-            runs={selectedRuns}
-            onCancel={() => {
-              setIsRestoreModalOpen(false);
-              setSelectedIds([]);
-            }}
-          />
-        ))}
-
+      <ArchiveRunModal
+        isOpen={isArchiveModalOpen}
+        runs={selectedRuns}
+        onCancel={() => {
+          setIsArchiveModalOpen(false);
+          setSelectedIds([]);
+        }}
+      />
+      <RestoreRunModal
+        isOpen={isRestoreModalOpen}
+        runs={selectedRuns}
+        onCancel={() => {
+          setIsRestoreModalOpen(false);
+          setSelectedIds([]);
+        }}
+      />
       {isDeleteModalOpen && (
         <DeletePipelineRunsModal
           toDeleteResources={selectedRuns}

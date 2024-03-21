@@ -17,10 +17,10 @@ import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersio
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { cloneRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -137,13 +137,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       </Td>
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn items={actions} />
-
-        {isRestoreModalOpen && (
-          <RestoreRunModal run={run} onCancel={() => setIsRestoreModalOpen(false)} />
-        )}
-        {isArchiveModalOpen && (
-          <ArchiveRunModal run={run} onCancel={() => setIsArchiveModalOpen(false)} />
-        )}
+        <RestoreRunModal
+          isOpen={isRestoreModalOpen}
+          runs={[run]}
+          onCancel={() => setIsRestoreModalOpen(false)}
+        />
+        <ArchiveRunModal
+          isOpen={isArchiveModalOpen}
+          runs={[run]}
+          onCancel={() => setIsArchiveModalOpen(false)}
+        />
       </Td>
     </Tr>
   );

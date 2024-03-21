@@ -12,9 +12,15 @@ import {
   mockRouteK8sResource,
   mockStatus,
 } from '~/__mocks__';
+import {
+  archiveExperimentModal,
+  bulkArchiveExperimentModal,
+  bulkRestoreExperimentModal,
+  pipelineRunsGlobal,
+  restoreExperimentModal,
+} from '~/__tests__/cypress/cypress/pages/pipelines';
 import { experimentsTabs } from '~/__tests__/cypress/cypress/pages/pipelines/experiments';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
-import { pipelineRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -37,38 +43,141 @@ const mockExperiments = [
 ];
 
 describe('Experiments', () => {
-  beforeEach(() => {
-    initIntercepts();
-    experimentsTabs.mockGetExperiments(mockExperiments);
-    experimentsTabs.visit(projectName);
+  describe('Active experiments', () => {
+    beforeEach(() => {
+      initIntercepts();
+      experimentsTabs.mockGetExperiments(mockExperiments);
+      experimentsTabs.visit(projectName);
+    });
+
+    it('shows empty states', () => {
+      experimentsTabs.mockGetExperiments([]);
+      experimentsTabs.visit(projectName);
+      experimentsTabs.findActiveTab().click();
+      experimentsTabs.getActiveExperimentsTable().findEmptyState().should('exist');
+      experimentsTabs.findArchivedTab().click();
+      experimentsTabs.getArchivedExperimentsTable().findEmptyState().should('exist');
+    });
+
+    it('filters by experiment name', () => {
+      experimentsTabs.findActiveTab().click();
+      // Verify initial run rows exist
+      experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 3);
+
+      // Select the "Experiment" filter, enter a value to filter by
+      experimentsTabs.getActiveExperimentsTable().selectFilterByName('Experiment');
+      experimentsTabs.getActiveExperimentsTable().findFilterTextField().type('Test experiment 2');
+
+      // Mock experiments (filtered by typed experiment name)
+      experimentsTabs.mockGetExperiments(
+        mockExperiments.filter((exp) => exp.display_name.includes('Test experiment 2')),
+      );
+
+      // Verify only rows with the typed experiment name exist
+      experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 1);
+      experimentsTabs.getActiveExperimentsTable().findRowByName('Test experiment 2');
+    });
+
+    it('archive a single experiment', () => {
+      const [experimentToArchive] = mockExperiments;
+
+      const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
+
+      activeExperimentsTable.mockArchiveExperiment(experimentToArchive.experiment_id);
+      activeExperimentsTable.selectRowActionByName(experimentToArchive.display_name, 'Archive');
+
+      experimentsTabs.mockGetExperiments(
+        [mockExperiments[1], mockExperiments[2]],
+        [experimentToArchive],
+      );
+      archiveExperimentModal.findConfirmInput().type(experimentToArchive.display_name);
+      archiveExperimentModal.findSubmitButton().click();
+      activeExperimentsTable.shouldRowNotBeVisible(experimentToArchive.display_name);
+
+      experimentsTabs.findArchivedTab().click();
+      experimentsTabs
+        .getArchivedExperimentsTable()
+        .findRowByName(experimentToArchive.display_name)
+        .should('exist');
+    });
+
+    it('archive multiple experiments', () => {
+      const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
+      mockExperiments.forEach((activeExperiment) => {
+        activeExperimentsTable.mockArchiveExperiment(activeExperiment.experiment_id);
+        activeExperimentsTable
+          .findRowByName(activeExperiment.display_name)
+          .findByLabelText('Checkbox')
+          .click();
+      });
+
+      activeExperimentsTable.findActionsKebab().findDropdownItem('Archive').click();
+      experimentsTabs.mockGetExperiments([], mockExperiments);
+      bulkArchiveExperimentModal.findConfirmInput().type('Archive 3 experiments');
+      bulkArchiveExperimentModal.findSubmitButton().click();
+      activeExperimentsTable.findEmptyState().should('exist');
+
+      experimentsTabs.findArchivedTab().click();
+      mockExperiments.forEach((experiment) =>
+        experimentsTabs
+          .getArchivedExperimentsTable()
+          .findRowByName(experiment.display_name)
+          .should('exist'),
+      );
+    });
   });
 
-  it('shows empty states', () => {
-    experimentsTabs.mockGetExperiments([]);
-    experimentsTabs.visit(projectName);
-    experimentsTabs.findActiveTab().click();
-    experimentsTabs.getActiveExperimentsTable().findEmptyState().should('exist');
-    experimentsTabs.findArchivedTab().click();
-    experimentsTabs.getArchivedExperimentsTable().findEmptyState().should('exist');
-  });
+  describe('Archived experiments', () => {
+    beforeEach(() => {
+      initIntercepts();
+      experimentsTabs.mockGetExperiments([], mockExperiments);
+      experimentsTabs.visit(projectName);
+      experimentsTabs.findArchivedTab().click();
+    });
+    it('restore a single experiment', () => {
+      const [experimentToRestore] = mockExperiments;
 
-  it('filters by experiment name', () => {
-    experimentsTabs.findActiveTab().click();
-    // Verify initial run rows exist
-    experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 3);
+      const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
 
-    // Select the "Experiment" filter, enter a value to filter by
-    experimentsTabs.getActiveExperimentsTable().selectFilterByName('Experiment');
-    experimentsTabs.getActiveExperimentsTable().findFilterTextField().type('Test experiment 2');
+      archivedExperimentsTable.mockRestoreExperiment(experimentToRestore.experiment_id);
+      archivedExperimentsTable.selectRowActionByName(experimentToRestore.display_name, 'Restore');
 
-    // Mock experiments (filtered by typed experiment name)
-    experimentsTabs.mockGetExperiments(
-      mockExperiments.filter((exp) => exp.display_name.includes('Test experiment 2')),
-    );
+      experimentsTabs.mockGetExperiments(
+        [experimentToRestore],
+        [mockExperiments[1], mockExperiments[2]],
+      );
+      restoreExperimentModal.findSubmitButton().click();
+      archivedExperimentsTable.shouldRowNotBeVisible(experimentToRestore.display_name);
 
-    // Verify only rows with the typed experiment name exist
-    experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 1);
-    experimentsTabs.getActiveExperimentsTable().findRowByName('Test experiment 2');
+      experimentsTabs.findActiveTab().click();
+      experimentsTabs
+        .getActiveExperimentsTable()
+        .findRowByName(experimentToRestore.display_name)
+        .should('exist');
+    });
+
+    it('restore multiple experiments', () => {
+      const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
+      mockExperiments.forEach((archivedExperiment) => {
+        archivedExperimentsTable.mockRestoreExperiment(archivedExperiment.experiment_id);
+        archivedExperimentsTable
+          .findRowByName(archivedExperiment.display_name)
+          .findByLabelText('Checkbox')
+          .click();
+      });
+      archivedExperimentsTable.findRestoreExperimentButton().click();
+      experimentsTabs.mockGetExperiments(mockExperiments, []);
+      bulkRestoreExperimentModal.findSubmitButton().click();
+      archivedExperimentsTable.findEmptyState().should('exist');
+
+      experimentsTabs.findActiveTab().click();
+      mockExperiments.forEach((experiment) =>
+        experimentsTabs
+          .getActiveExperimentsTable()
+          .findRowByName(experiment.display_name)
+          .should('exist'),
+      );
+    });
   });
 
   describe('Runs page', () => {
@@ -76,6 +185,9 @@ describe('Experiments', () => {
     const [mockExperiment] = mockExperiments;
 
     beforeEach(() => {
+      initIntercepts();
+      experimentsTabs.mockGetExperiments(mockExperiments);
+      experimentsTabs.visit(projectName);
       activeExperimentsTable.findRowByName(mockExperiment.display_name).find('a').click();
     });
 

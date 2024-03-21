@@ -5,3 +5,8 @@ export enum ExperimentListTabs {
   ACTIVE = 'active',
   ARCHIVED = 'archived',
 }
+
+export enum ExperimentListTabTitle {
+  ACTIVE = 'Active',
+  ARCHIVED = 'Archived',
+}
