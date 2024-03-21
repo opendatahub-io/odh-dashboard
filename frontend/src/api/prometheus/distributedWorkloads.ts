@@ -26,6 +26,8 @@ const getDWProjectMetricsQueries = (namespace: string): Record<DWProjectMetricTy
   cpuUtilized: `namespace=${namespace}&query=pod:container_cpu_usage:sum{namespace='${namespace}'}`,
 });
 
+// TODO mturley add unit tests for useDWProjectMetrics once RBAC issues are settled and we know these are really the queries we need
+
 export const useDWProjectMetrics = (namespace?: string, refreshRate = 0): DWProjectMetrics => {
   const queries = namespace ? getDWProjectMetricsQueries(namespace) : undefined;
   const data: DWProjectMetrics['data'] = {
@@ -72,6 +74,8 @@ const getDWWorkloadCurrentMetricsQueries = (
   numJobsInadmissible: `namespace=${namespace}&query=kueue_pending_workloads{status='inadmissible'}`,
   numJobsPending: `namespace=${namespace}&query=kueue_pending_workloads{status!='inadmissible'}`,
 });
+
+// TODO mturley add unit tests for useDWProjectMetrics once RBAC issues are settled and we know these are really the queries we need
 
 export const useDWWorkloadCurrentMetrics = (
   namespace?: string,
@@ -140,6 +144,8 @@ const getDWWorkloadTrendMetricsQueries = (
   jobsInadmissibleTrend: `kueue_pending_workloads{status='inadmissible', namespace='${namespace}'}`,
   jobsPendingTrend: `kueue_pending_workloads{status!='inadmissible', namespace='${namespace}'}`,
 });
+
+// TODO mturley add unit tests for useDWProjectMetrics once RBAC issues are settled and we know these are really the queries we need
 
 export const useDWWorkloadTrendMetrics = (
   timeframe: TimeframeTitle,

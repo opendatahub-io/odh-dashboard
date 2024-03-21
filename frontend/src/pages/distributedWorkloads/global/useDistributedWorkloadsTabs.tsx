@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import useDistributedWorkloadsEnabled from '~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
 import GlobalDistributedWorkloadsProjectMetricsTab from './projectMetrics/GlobalDistributedWorkloadsProjectMetricsTab';
 import GlobalDistributedWorkloadsWorkloadStatusTab from './workloadStatus/GlobalDistributedWorkloadsWorkloadStatusTab';
 
@@ -19,7 +19,7 @@ export type DistributedWorkloadsTabConfig = {
 };
 
 export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] => {
-  const dwAreaIsAvailable = useIsAreaAvailable(SupportedArea.DISTRIBUTED_WORKLOADS).status;
+  const dwAreaIsAvailable = useDistributedWorkloadsEnabled();
   return [
     {
       id: DistributedWorkloadsTabId.PROJECT_METRICS,
