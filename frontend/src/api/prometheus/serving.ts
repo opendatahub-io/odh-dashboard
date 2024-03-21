@@ -8,13 +8,10 @@ import {
   ModelMetricType,
   ServerMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import {
-  PerformanceMetricType,
-  RefreshIntervalTitle,
-  TimeframeTitle,
-} from '~/pages/modelServing/screens/types';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { RefreshIntervalTitle, TimeframeTitle } from '~/concepts/metrics/types';
+import { RefreshIntervalValue } from '~/concepts/metrics/const';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
-import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PROMETHEUS_BIAS_PATH } from '~/api/prometheus/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';

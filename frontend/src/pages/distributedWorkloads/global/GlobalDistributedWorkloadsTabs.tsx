@@ -7,12 +7,15 @@ import {
   PageSection,
   TabContent,
   TabContentBody,
+  ToolbarItem,
+  ToolbarGroup,
 } from '@patternfly/react-core';
+import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
+import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
 } from './useDistributedWorkloadsTabs';
-import DistributedWorkloadsToolbar from './DistributedWorkloadsToolbar';
 
 type GlobalDistributedWorkloadsTabsProps = {
   activeTabId: DistributedWorkloadsTabId;
@@ -53,7 +56,22 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
             ))}
         </Tabs>
       </PageSection>
-      {activeTab ? <DistributedWorkloadsToolbar tabConfig={activeTab} /> : null}
+      {activeTab ? (
+        <MetricsPageToolbar
+          leftToolbarItem={
+            <ToolbarGroup>
+              <ToolbarItem variant="label">Project</ToolbarItem>
+              <ToolbarItem spacer={{ default: 'spacerMd' }}>
+                <ProjectSelectorNavigator
+                  getRedirectPath={(newNamespace) =>
+                    `/distributedWorkloads/${activeTab.path}/${newNamespace}`
+                  }
+                />
+              </ToolbarItem>
+            </ToolbarGroup>
+          }
+        />
+      ) : null}
       <PageSection isFilled>
         {tabs
           .filter((tab) => tab.isAvailable)

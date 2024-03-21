@@ -1,6 +1,6 @@
 import { useBrowserStorage } from '~/components/browserStorage';
 import { SetBrowserStorageHook } from '~/components/browserStorage/BrowserStorageContext';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { TimeframeTitle } from '~/concepts/metrics/types';
 
 const useCurrentTimeframeBrowserStorage = (): [
   TimeframeTitle,

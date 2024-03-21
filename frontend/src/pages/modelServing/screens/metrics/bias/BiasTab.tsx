@@ -15,7 +15,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
+import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import BiasChart from '~/pages/modelServing/screens/metrics/bias/BiasChart';
@@ -74,7 +74,7 @@ const BiasTab: React.FC = () => {
             leftToolbarItem={
               <ToolbarGroup>
                 <Stack>
-                  {/* Will be fixed by https://github.com/opendatahub-io/odh-dashboard/issues/2277 */}
+                  {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
                   <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
                   <StackItem>
                     <ToolbarItem data-testid="bias-metric-config-toolbar">

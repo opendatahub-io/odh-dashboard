@@ -4,7 +4,7 @@ import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { Link } from 'react-router-dom';
-import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { TimeframeTitle } from '~/concepts/metrics/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
 import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
@@ -13,7 +13,7 @@ import {
   BIAS_CHART_CONFIGS,
   BIAS_THRESHOLD_COLOR,
 } from '~/pages/modelServing/screens/metrics/const';
-import { PROMETHEUS_REQUEST_RESOLUTION } from '~/pages/modelServing/screens/const';
+import { PROMETHEUS_REQUEST_RESOLUTION } from '~/concepts/metrics/const';
 import {
   BiasSelectOption,
   DomainCalculator,
@@ -54,15 +54,7 @@ export const getModelMetricsQueries = (
   };
 };
 
-export const isTimeframeTitle = (
-  timeframe: string | SelectOptionObject,
-): timeframe is TimeframeTitle =>
-  Object.values(TimeframeTitle).includes(timeframe as TimeframeTitle);
-
-export const isRefreshIntervalTitle = (
-  refreshInterval: string | SelectOptionObject,
-): refreshInterval is RefreshIntervalTitle =>
-  Object.values(RefreshIntervalTitle).includes(refreshInterval as RefreshIntervalTitle);
+// TODO mturley move the rest of the relevant utils here to ~/concepts/metrics/utils when we move MetricsChart
 
 export const convertTimestamp = (timestamp: number, show?: 'date' | 'second'): string => {
   const date = new Date(timestamp);

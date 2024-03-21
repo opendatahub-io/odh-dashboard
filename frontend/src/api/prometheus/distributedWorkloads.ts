@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { FetchStateObject, PrometheusQueryRangeResultValue } from '~/types';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-// TODO mturley these imports from ~/pages/modelServing/* should be moved somewhere page-agnostic
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { TimeframeTitle } from '~/concepts/metrics/types';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import usePrometheusNumberValueQuery from './usePrometheusNumberValueQuery';
 import { defaultResponsePredicate } from './usePrometheusQueryRange';
