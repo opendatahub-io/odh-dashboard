@@ -8,7 +8,7 @@ class PipelinesSection {
   }
 
   findUploadVersionButton() {
-    return cy.get('#import-pipeline-version-button');
+    return this.find().find('#import-pipeline-version-button');
   }
 
   findAllActions() {

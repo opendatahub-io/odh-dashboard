@@ -105,7 +105,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 
         {error && (
           <StackItem>
-            <Alert title={`Error deleting ${deleteNameSanitized}`} isInline variant="danger">
+            <Alert
+              data-testid="delete-model-error-message-alert"
+              title={`Error deleting ${deleteNameSanitized}`}
+              isInline
+              variant="danger"
+            >
               {error.message}
             </Alert>
           </StackItem>

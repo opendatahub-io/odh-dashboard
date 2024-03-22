@@ -132,6 +132,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
               <TextInput
                 isRequired
                 type="text"
+                data-testid="pipeline-version-name"
                 id="pipeline-version-name"
                 name="pipeline-version-name"
                 value={name}
@@ -145,6 +146,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
                 isRequired
                 type="text"
                 id="pipeline-version-description"
+                data-testid="pipeline-version-description"
                 name="pipeline-version-description"
                 value={description}
                 onChange={(e, value) => setData('description', value)}

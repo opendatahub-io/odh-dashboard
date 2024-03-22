@@ -21,7 +21,7 @@ class PipelineRunsGlobal {
   }
 
   findSchedulesTab() {
-    return cy.findByRole('tab', { name: 'Schedules tab' });
+    return cy.findByTestId('schedules-tab');
   }
 
   findActiveRunsTab() {
@@ -37,15 +37,15 @@ class PipelineRunsGlobal {
   }
 
   findCreateRunButton() {
-    return cy.findByRole('button', { name: 'Create run' });
+    return cy.findByTestId('create-run-button');
   }
 
   findScheduleRunButton() {
-    return cy.findByRole('button', { name: 'Schedule run' });
+    return cy.findByTestId('schedule-run-button');
   }
 
   findRestoreRunButton() {
-    return cy.findByRole('button', { name: 'Restore' });
+    return cy.findByTestId('restore-button');
   }
 
   findActiveRunsToolbar() {

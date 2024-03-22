@@ -25,6 +25,7 @@ const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
   <Bullseye>
     <EmptyState variant={variant}>
       <EmptyStateHeader
+        data-testid="no-result-found-title"
         titleText="No results found"
         {...(hasIcon && { icon: <EmptyStateIcon icon={SearchIcon} /> })}
         headingLevel="h2"

@@ -12,19 +12,19 @@ class PipelineImportModal extends Modal {
   }
 
   findPipelineNameInput() {
-    return this.find().findByRole('textbox', { name: 'Pipeline name' });
+    return this.find().findByTestId('pipeline-name');
   }
 
   findPipelineDescriptionInput() {
-    return this.find().findByRole('textbox', { name: 'Pipeline description' });
+    return this.find().findByTestId('pipeline-description');
   }
 
   findUploadPipelineInput() {
-    return this.find().get('[data-testid="pipeline-file-upload"] input[type="file"]');
+    return this.find().find('[data-testid="pipeline-file-upload"] input[type="file"]');
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: 'Import pipeline' });
+    return this.findFooter().findByTestId('import-button');
   }
 
   findUploadPipelineRadio() {

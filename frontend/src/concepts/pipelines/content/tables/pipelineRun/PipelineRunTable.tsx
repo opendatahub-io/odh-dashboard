@@ -78,6 +78,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     if (runType === PipelineRunType.Archived) {
       return (
         <Button
+          data-testid="restore-button"
           variant="primary"
           isDisabled={!selectedIds.length}
           onClick={() => setIsRestoreModalOpen(true)}
@@ -89,6 +90,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
     return (
       <Button
+        data-testid="create-run-button"
         variant="primary"
         onClick={() =>
           navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined))

@@ -61,6 +61,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
     >
       <ToolbarItem>
         <Button
+          data-testid="schedule-run-button"
           variant="primary"
           onClick={() =>
             navigate({

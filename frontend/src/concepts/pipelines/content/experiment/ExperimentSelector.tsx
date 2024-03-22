@@ -69,7 +69,7 @@ const ExperimentSelector: React.FC<ExperimentSelectorProps> = ({ selection, onSe
                   variant={EmptyStateVariant.xs}
                 />
               }
-              data-id="experiment-selector-table-list"
+              data-testid="experiment-selector-table-list"
               borders={false}
               variant={TableVariant.compact}
               columns={experimentSelectorColumns}

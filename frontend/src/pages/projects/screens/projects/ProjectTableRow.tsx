@@ -40,7 +40,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           {project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] && (
             <FlexItem style={{ display: 'flex' }}>
               <Tooltip content="Data Science">
-                <Label isCompact color="green">
+                <Label data-testid="ds-project-label" isCompact color="green">
                   DS
                 </Label>
               </Tooltip>

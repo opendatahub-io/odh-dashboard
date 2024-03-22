@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class ExperimentsTabs {
   visit(namespace?: string, tab?: string) {
@@ -21,7 +22,7 @@ class ExperimentsTabs {
     return cy.findByTestId('experiments-archived-tab');
   }
 
-  getActiveExperimentsTable() {
+  getActiveExperimentsTable(): ExperimentsTable {
     return new ExperimentsTable(() => cy.findByTestId('experiments-active-tab-content'));
   }
 
@@ -53,6 +54,12 @@ class ExperimentsTabs {
         }
       },
     );
+  }
+}
+
+class ExperimentsRow extends TableRow {
+  findCheckbox() {
+    return this.find().find(`[data-label=Checkbox]`).find('input');
   }
 }
 
@@ -95,8 +102,10 @@ class ExperimentsTable {
     return this.findContainer().findByTestId('experiment-table');
   }
 
-  findRowByName(name: string) {
-    return this.find().findAllByRole('cell', { name }).parents('tr');
+  getRowByName(name: string) {
+    return new ExperimentsRow(() =>
+      this.find().find(`[data-label=Experiment]`).contains(name).parents('tr'),
+    );
   }
 
   findRows() {
@@ -104,7 +113,7 @@ class ExperimentsTable {
   }
 
   findRowKebabByName(name: string) {
-    return this.findRowByName(name).findByRole('button', { name: 'Kebab toggle' });
+    return this.getRowByName(name).findKebabAction(name);
   }
 
   findActionsKebab() {
@@ -131,16 +140,6 @@ class ExperimentsTable {
     return this.findContainer()
       .findByTestId('experiment-table-toolbar')
       .findByTestId('run-table-toolbar-filter-text-field');
-  }
-
-  selectRowActionByName(rowName: string, actionName: string) {
-    this.findRowKebabByName(rowName).click();
-    this.findContainer()
-      .findByRole('menu')
-      .get('span')
-      .contains(actionName)
-      .parents('button')
-      .click();
   }
 }
 

@@ -33,7 +33,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   <Stack hasGutter style={{ flex: 'auto' }}>
     {error && (
       <StackItem>
-        <Alert isInline variant="danger" title={alertTitle}>
+        <Alert data-testid="error-message-alert" isInline variant="danger" title={alertTitle}>
           {error.message}
         </Alert>
       </StackItem>

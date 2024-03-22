@@ -5,10 +5,12 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import {
   importNotebookImageModal,
+  notebookImageDeleteModal,
   notebookImageSettings,
   updateNotebookImageModal,
 } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 describe('Notebook images', () => {
   it('Table filtering, sorting, searching', () => {
@@ -40,19 +42,27 @@ describe('Notebook images', () => {
     // test sorting
     // by name
     notebookImageSettings.findTableHeaderButton('Name').click();
-    cy.findByText('image-999');
+    notebookImageSettings.findTableHeaderButton('Name').should(be.sortDescending);
+    notebookImageSettings.findTableHeaderButton('Name').click();
+    notebookImageSettings.findTableHeaderButton('Name').should(be.sortAscending);
 
     // by description
     notebookImageSettings.findTableHeaderButton('Description').click();
-    cy.findByText('image-0');
+    notebookImageSettings.findTableHeaderButton('Description').should(be.sortAscending);
+    notebookImageSettings.findTableHeaderButton('Description').click();
+    notebookImageSettings.findTableHeaderButton('Description').should(be.sortDescending);
 
     // by provider
     notebookImageSettings.findTableHeaderButton('Provider').click();
-    cy.findByText('image-0');
+    notebookImageSettings.findTableHeaderButton('Provider').should(be.sortAscending);
+    notebookImageSettings.findTableHeaderButton('Provider').click();
+    notebookImageSettings.findTableHeaderButton('Provider').should(be.sortDescending);
 
     // by enabled
     notebookImageSettings.findTableHeaderButton('Enable').click();
-    cy.findByText('image-14');
+    notebookImageSettings.findTableHeaderButton('Enable').should(be.sortAscending);
+    notebookImageSettings.findTableHeaderButton('Enable').click();
+    notebookImageSettings.findTableHeaderButton('Enable').should(be.sortDescending);
     notebookImageSettings.findTableHeaderButton('Name').click();
 
     // test pagination
@@ -61,36 +71,37 @@ describe('Notebook images', () => {
     tablePagination.top.findNextButton().click();
     tablePagination.top.findNextButton().click();
     tablePagination.top.findNextButton().click();
-    cy.findByText('image-136');
+    notebookImageSettings.getRow('image-136').find().should('exist');
 
     // test type page
     tablePagination.top.findInput().clear();
     tablePagination.top.findInput().type('50{enter}');
-    cy.findByText('image-542');
+    notebookImageSettings.getRow('image-542').find().should('exist');
 
     // test last and first page
     tablePagination.top.findLastButton().click();
-    cy.findByText('image-999');
+    notebookImageSettings.getRow('image-999').find().should('exist');
+
     tablePagination.top.findFirstButton().click();
-    cy.findByText('image-0');
+    notebookImageSettings.getRow('image-0').find().should('exist');
 
     // test filtering
     // by name
     notebookImageSettings.findSearchInput().type('123');
-    cy.findByText('image-123');
+    notebookImageSettings.getRow('image-123').find().should('exist');
 
     // by provider
     notebookImageSettings.findResetButton().click();
     notebookImageSettings.findFilterMenuOption('Provider').click();
     notebookImageSettings.findSearchInput().type('provider-321');
-    cy.findByText('image-321');
+    notebookImageSettings.getRow('image-321').find().should('exist');
 
     // by description
     // test switching filtering options
     notebookImageSettings.findFilterMenuOption('Description').click();
     notebookImageSettings.findEmptyResults();
     notebookImageSettings.findFilterMenuOption('Provider').click();
-    cy.findByText('image-321');
+    notebookImageSettings.getRow('image-321').find().should('exist');
   });
 
   it('Import form fields', () => {
@@ -127,33 +138,28 @@ describe('Notebook images', () => {
 
     importNotebookImageModal.findSoftwareVersionInput().type('version');
 
-    importNotebookImageModal.findSaveResourceButton().click();
+    importNotebookImageModal.findSaveResourceButton('Software').click();
     importNotebookImageModal.findSubmitButton().should('be.enabled');
-    importNotebookImageModal.find().findByRole('cell', { name: 'software' }).should('exist');
-    importNotebookImageModal.find().findByRole('cell', { name: 'version' }).should('exist');
+    let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software');
+    notebookImageTabRow.shouldHaveVersionColumn('version');
 
     // test adding another software using Enter
-    importNotebookImageModal.findAddResourceButton().click();
+    importNotebookImageModal.findAddSoftwareResourceButton().click();
     importNotebookImageModal.findSoftwareNameInput().type('software-1');
     importNotebookImageModal.findSoftwareVersionInput().type('version-1{enter}');
     importNotebookImageModal.findSubmitButton().should('be.disabled');
-    importNotebookImageModal.find().findByRole('cell', { name: 'software-1' }).should('exist');
-    importNotebookImageModal.find().findByRole('cell', { name: 'version-1' }).should('exist');
+    notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software-1');
+    notebookImageTabRow.shouldHaveVersionColumn('version-1');
 
     // test escaping from the form doesnt add the software
     importNotebookImageModal.findSoftwareNameInput().type('software-2{esc}');
-    importNotebookImageModal.find().findByRole('cell', { name: 'software-2' }).should('not.exist');
+    importNotebookImageModal.findSoftwareRows().should('not.contain', 'software-2');
+
     importNotebookImageModal.findSubmitButton().should('be.enabled');
 
     // test deleting software
-    importNotebookImageModal
-      .find()
-      .findByRole('row', {
-        name: /software-1 version-1/,
-      })
-      .findByRole('button', { name: 'Remove displayed content' })
-      .click();
-    importNotebookImageModal.find().findByRole('cell', { name: 'software-1' }).should('not.exist');
+    notebookImageTabRow.findRemoveContentButton().click();
+    importNotebookImageModal.findSoftwareRows().should('not.contain', 'software-1');
 
     // test packages tab
     importNotebookImageModal.findPackagesTab().click();
@@ -164,35 +170,35 @@ describe('Notebook images', () => {
     importNotebookImageModal.findSubmitButton().should('be.disabled');
 
     // test form is enabled after submitting packages
-    importNotebookImageModal.findPackageseNameInput().type('packages');
+    importNotebookImageModal.findPackagesNameInput().type('packages');
     importNotebookImageModal.findPackagesVersionInput().type('version');
-    importNotebookImageModal.findSaveResourceButton().click();
+    importNotebookImageModal.findSaveResourceButton('Packages').click();
     importNotebookImageModal.findSubmitButton().should('be.enabled');
-    importNotebookImageModal.find().findByRole('cell', { name: 'packages' }).should('exist');
-    importNotebookImageModal.find().findByRole('cell', { name: 'version' }).should('exist');
+    notebookImageTabRow = importNotebookImageModal.getPackagesRow('packages');
+    notebookImageTabRow.shouldHaveVersionColumn('version');
 
     // test adding another packages using Enter
-    importNotebookImageModal.findAddPackagesButton().click();
-    importNotebookImageModal.findPackageseNameInput().type('packages-1');
+    importNotebookImageModal.findAddPackagesResourceButton().click();
+    importNotebookImageModal.findPackagesNameInput().type('packages-1');
     importNotebookImageModal.findPackagesVersionInput().type('version-1{enter}');
     importNotebookImageModal.findSubmitButton().should('be.disabled');
-    importNotebookImageModal.find().findByRole('cell', { name: 'packages-1' }).should('exist');
-    importNotebookImageModal.find().findByRole('cell', { name: 'version-1' }).should('exist');
+    notebookImageTabRow = importNotebookImageModal.getPackagesRow('packages-1');
+    notebookImageTabRow.shouldHaveVersionColumn('version-1');
 
     // test escaping from the form doesnt add the packages
-    importNotebookImageModal.findPackageseNameInput().type('packages-2{esc}');
-    importNotebookImageModal.find().findByRole('cell', { name: 'packages-2' }).should('not.exist');
+    importNotebookImageModal.findPackagesNameInput().type('packages-2{esc}');
+    importNotebookImageModal.findPackagesRows().should('not.contain', 'packages-2');
     importNotebookImageModal.findSubmitButton().should('be.enabled');
 
     // test open packages form blocks cancel, import, close, and tabbing
-    importNotebookImageModal.findAddPackagesButton().click();
+    importNotebookImageModal.findAddPackagesResourceButton().click();
     importNotebookImageModal.findCancelButton().should('be.disabled');
     importNotebookImageModal.findSubmitButton().should('be.disabled');
 
     //succesfully import notebook image
-    importNotebookImageModal.findPackageseNameInput().type('packages-3');
+    importNotebookImageModal.findPackagesNameInput().type('packages-3');
     importNotebookImageModal.findPackagesVersionInput().type('version');
-    importNotebookImageModal.findSaveResourceButton().click();
+    importNotebookImageModal.findSaveResourceButton('Packages').click();
     importNotebookImageModal.findSubmitButton().should('be.enabled');
 
     importNotebookImageModal.findSubmitButton().click();
@@ -239,12 +245,12 @@ describe('Notebook images', () => {
     updateNotebookImageModal.findDescriptionInput().should('have.value', 'A custom notebook image');
 
     // test software and packages have correct values
-    updateNotebookImageModal.find().findByRole('cell', { name: 'test-software' }).should('exist');
-    updateNotebookImageModal.find().findByRole('cell', { name: '2.0' }).should('exist');
+    let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('test-software');
+    notebookImageTabRow.shouldHaveVersionColumn('2.0');
 
     updateNotebookImageModal.findPackagesTab().click();
-    updateNotebookImageModal.find().findByRole('cell', { name: 'test-package' }).should('exist');
-    updateNotebookImageModal.find().findByRole('cell', { name: '1.0' }).should('exist');
+    notebookImageTabRow = importNotebookImageModal.getPackagesRow('test-package');
+    notebookImageTabRow.shouldHaveVersionColumn('1.0');
 
     // test edit notebook image
     updateNotebookImageModal.findNameInput().clear();
@@ -327,7 +333,7 @@ describe('Notebook images', () => {
       expect(interception.request.method).to.eql('POST');
     });
 
-    cy.findByText('Testing create error message');
+    importNotebookImageModal.findErrorMessageAlert().should('exist');
     importNotebookImageModal.findCloseButton().click();
 
     // edit error
@@ -338,21 +344,22 @@ describe('Notebook images', () => {
       expect(interception.request.method).to.eql('PUT');
     });
 
-    cy.findByText('Testing edit error message');
+    updateNotebookImageModal.findErrorMessageAlert().should('exist');
     updateNotebookImageModal.findCloseButton().click();
 
     // delete error
     notebookImageSettings.getRow('Testing Custom Image').find().findKebabAction('Delete').click();
-    deleteModal.findInput().type('Testing Custom Image');
-    deleteModal.findSubmitButton().click();
+    notebookImageDeleteModal.findInput().type('Testing Custom Image');
+    notebookImageDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteError');
-
-    cy.findByRole('heading', { name: 'Danger alert: Error deleting Testing Custom Image' });
+    notebookImageDeleteModal
+      .findAlertMessage()
+      .should('have.text', 'Danger alert:Error deleting Testing Custom Image');
     deleteModal.findCloseButton().click();
 
     // test error icon
-    cy.findByRole('button', { name: 'error icon' });
+    notebookImageSettings.findErrorButton().should('exist');
   });
 
   it('Import modal opens from the empty state', () => {

@@ -12,15 +12,15 @@ class PipelinesGlobal {
   }
 
   findImportPipelineButton() {
-    return cy.findByRole('button', { name: 'Import pipeline' });
+    return cy.findByTestId('import-pipeline-button');
   }
 
   findUploadVersionButton() {
-    cy.findByLabelText('Import pipeline and pipeline version button').click();
+    cy.findByTestId('import-pipeline-split-button').click();
     return cy.findByRole('menuitem').get('span').contains('Upload new version');
   }
 
-  findProjectSelect() {
+  private findProjectSelect() {
     return cy.findByTestId('project-selector-dropdown');
   }
 
@@ -37,8 +37,7 @@ class PipelinesGlobal {
   }
 
   findDeleteButton() {
-    cy.findByTestId('global-pipelines-kebab-actions').click();
-    return cy.findAllByRole('menuitem').get('a').contains('Delete');
+    return cy.findByTestId('global-pipelines-kebab-actions').findDropdownItem('Delete');
   }
 }
 

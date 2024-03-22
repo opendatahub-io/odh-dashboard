@@ -57,6 +57,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             isRequired
             ref={autoSelectNameRef}
             id={nameFieldId}
+            data-testid={nameFieldId}
             name={nameFieldId}
             value={data.name}
             onChange={(e, name) => setData({ ...data, name })}
@@ -90,6 +91,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
               isDisabled={disableK8sName}
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
+              data-testid={`resource-${nameFieldId}`}
               value={data.k8sName ?? k8sName}
               onChange={(e, value) => {
                 setData({ ...data, k8sName: value });
@@ -119,6 +121,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
           <TextArea
             resizeOrientation="vertical"
             id={descriptionFieldId}
+            data-testid={descriptionFieldId}
             name={descriptionFieldId}
             value={data.description}
             onChange={(e, description) => setData({ ...data, description })}

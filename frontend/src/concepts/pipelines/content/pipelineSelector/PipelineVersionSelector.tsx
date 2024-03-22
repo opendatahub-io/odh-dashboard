@@ -71,7 +71,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
             <TableBase
               itemCount={fetchedSize}
               loading={!loaded}
-              data-id="pipeline-version-selector-table-list"
+              data-testid="pipeline-version-selector-table-list"
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}

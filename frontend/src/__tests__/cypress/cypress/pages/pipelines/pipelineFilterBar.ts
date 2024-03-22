@@ -8,11 +8,11 @@ class PipelineFilterBar {
 
 class PipelineRunFilterBar extends PipelineFilterBar {
   findNameInput() {
-    return cy.findByLabelText('Search for a run name');
+    return cy.findByTestId('search-for-run-name');
   }
 
   findExperimentInput() {
-    return cy.get('#experiment-search-input');
+    return cy.findByTestId('run-table-toolbar-filter-text-field').find('#experiment-search-input');
   }
 
   findPipelineVersionSelect() {
@@ -20,7 +20,7 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   }
 
   findStartDateInput() {
-    return cy.findByLabelText('Select a start date');
+    return cy.findByTestId('data-picker').find('input');
   }
 
   findStatusSelect() {
@@ -34,8 +34,10 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   selectPipelineVersionByName(name: string): void {
     this.findPipelineVersionSelect()
       .click()
-      .get('[data-id="pipeline-version-selector-table-list"]')
-      .findByText(name)
+      .parents()
+      .findByTestId('pipeline-version-selector-table-list')
+      .find('td')
+      .contains(name)
       .click();
   }
 
