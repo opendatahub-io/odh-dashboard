@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Flex, FlexItem, Spinner } from '@patternfly/react-core';
+import { Bullseye, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { ResourceUsage } from './sections/ResourceUsage';
@@ -28,9 +28,9 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { getWorkloadCurrentUsage, topResourceConsumingWorkloads } = projectCurrentMetrics;
+  const { getWorkloadCurrentUsage, topWorkloadsByUsage } = projectCurrentMetrics;
   // eslint-disable-next-line no-console
-  console.log({ topResourceConsumingWorkloads });
+  console.log({ topWorkloadsByUsage });
 
   //TODO: need 'no quota' logic
   // if (false) {
@@ -48,23 +48,23 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
 
   return (
     <>
-      <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
-        <FlexItem>
+      <Stack hasGutter>
+        <StackItem>
           <DWSectionCard title="Resource Usage" content={<ResourceUsage />} />
-        </FlexItem>
-        <FlexItem>
+        </StackItem>
+        <StackItem>
           <DWSectionCard
             title="Top resource-consuming distributed workloads"
             content={<TopResourceConsumingWorkloads />}
           />
-        </FlexItem>
-        <FlexItem>
+        </StackItem>
+        <StackItem>
           <DWSectionCard
             title="Distributed workload resource metrics"
             content={<WorkloadResourceMetrics />}
           />
-        </FlexItem>
-      </Flex>
+        </StackItem>
+      </Stack>
     </>
   );
 };

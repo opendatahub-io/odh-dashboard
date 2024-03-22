@@ -9,20 +9,22 @@ import {
   EmptyStateIcon,
   CardBody,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { CubesIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 
-export const NoWorkloadState: React.FC = () => (
+export const NoWorkloadState: React.FC<{ title?: string; subTitle?: string; warn?: boolean }> = ({
+  title = 'No distributed workloads',
+  subTitle = 'No distributed workloads in the selected project are currently consuming resources.',
+  warn = false,
+}) => (
   <CardBody>
     <EmptyState>
       <EmptyStateHeader
-        titleText="No distributed workloads"
+        titleText={title}
         headingLevel="h4"
-        icon={<EmptyStateIcon icon={CubesIcon} />}
+        icon={<EmptyStateIcon icon={warn ? ExclamationTriangleIcon : CubesIcon} />}
       />
-      <EmptyStateBody>
-        Select another project or create a distributed workload in the selected project.
-      </EmptyStateBody>
+      <EmptyStateBody>{subTitle}</EmptyStateBody>
     </EmptyState>
   </CardBody>
 );

@@ -36,7 +36,7 @@ export const DistributedWorkloadsContext = React.createContext<DistributedWorklo
       memoryBytesUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
     },
     getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
-    topResourceConsumingWorkloads: {
+    topWorkloadsByUsage: {
       cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
       memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
     },
