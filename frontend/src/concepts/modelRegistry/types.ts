@@ -1,3 +1,5 @@
+import { K8sAPIOptions } from '~/k8sTypes';
+
 export enum RegisteredModelState {
   LIVE = 'LIVE',
   ARCHIVED = 'ARCHIVED',
@@ -107,5 +109,81 @@ export type ModelRegistryListParams = {
 };
 
 export type RegisteredModelList = ModelRegistryListParams & { items: RegisteredModel[] };
+
 export type ModelVersionList = ModelRegistryListParams & { items: ModelVersion[] };
+
 export type ModelArtifactList = ModelRegistryListParams & { items: ModelArtifact[] };
+
+export type CreateRegisteredModel = (
+  opts: K8sAPIOptions,
+  data: CreateRegisteredModelData,
+) => Promise<RegisteredModel>;
+
+export type CreateModelVersion = (
+  opts: K8sAPIOptions,
+  data: CreateModelVersionData,
+) => Promise<ModelVersion>;
+
+export type CreateModelArtifact = (
+  opts: K8sAPIOptions,
+  data: CreateModelArtifactData,
+) => Promise<ModelArtifact>;
+
+export type GetRegisteredModel = (
+  opts: K8sAPIOptions,
+  registeredModelID: string,
+) => Promise<RegisteredModel>;
+
+export type GetModelVersion = (
+  opts: K8sAPIOptions,
+  modelversionId: string,
+) => Promise<ModelVersion>;
+
+export type GetModelArtifact = (
+  opts: K8sAPIOptions,
+  modelartifactId: string,
+) => Promise<ModelArtifact>;
+
+export type GetListModelArtifacts = (opts: K8sAPIOptions) => Promise<ModelArtifactList>;
+
+export type GetListModelVersions = (opts: K8sAPIOptions) => Promise<ModelVersionList>;
+
+export type GetListRegisteredModels = (opts: K8sAPIOptions) => Promise<RegisteredModelList>;
+
+export type GetModelVersionsByRegisteredModel = (
+  opts: K8sAPIOptions,
+  registeredmodelId: string,
+) => Promise<ModelVersionList>;
+
+export type PatchRegisteredModel = (
+  opts: K8sAPIOptions,
+  data: Partial<RegisteredModel>,
+  registeredModelID: string,
+) => Promise<RegisteredModel>;
+
+export type PatchModelVersion = (
+  opts: K8sAPIOptions,
+  data: Partial<ModelVersion>,
+  modelversionId: string,
+) => Promise<ModelVersion>;
+
+export type PatchModelArtifact = (
+  opts: K8sAPIOptions,
+  data: Partial<ModelArtifact>,
+  modelartifactId: string,
+) => Promise<ModelArtifact>;
+
+export type ModelRegistryAPIs = {
+  createRegisteredModel: CreateRegisteredModel;
+  createModelVersion: CreateModelVersion;
+  createModelArtifact: CreateModelArtifact;
+  getRegisteredModel: GetRegisteredModel;
+  getModelVersion: GetModelVersion;
+  getModelArtifact: GetModelArtifact;
+  listModelArtifacts: GetListModelArtifacts;
+  listModelVersions: GetListModelVersions;
+  listRegisteredModels: GetListRegisteredModels;
+  patchRegisteredModel: PatchRegisteredModel;
+  patchModelVersion: PatchModelVersion;
+  patchModelArtifact: PatchModelArtifact;
+};
