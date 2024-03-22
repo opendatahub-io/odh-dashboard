@@ -1136,6 +1136,7 @@ export type DashboardCommonConfig = {
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
   disablePipelineExperiments: boolean;
   disableDistributedWorkloads: boolean;
+  disableModelRegistry: boolean;
 };
 
 export type OperatorStatus = {

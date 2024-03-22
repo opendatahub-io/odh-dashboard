@@ -34,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disablePipelineExperiments: boolean;
+      disableModelRegistry: boolean;
     };
     groupsConfig?: {
       adminGroups: string;

@@ -24,6 +24,7 @@ spec:
     disableKServe: false
     disableModelMesh: false
     disableDistributedWorkloads: true
+    disableModelRegistry: true
   groupsConfig:
     adminGroups: "<admin_groups>"
     allowedGroups: "system:authenticated"
