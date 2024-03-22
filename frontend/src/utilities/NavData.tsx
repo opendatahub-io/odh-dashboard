@@ -93,6 +93,11 @@ const useModelServingNav = (): NavDataItem[] =>
     { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
   ]);
 
+const useModelRegistrySectionNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.MODEL_REGISTRY, [
+    { id: 'modelRegistry', label: 'Model Registry', href: '/modelRegistry' },
+  ]);
+
 const useResourcesNav = (): NavDataHref[] => [
   { id: 'resources', label: 'Resources', href: '/resources' },
 ];
@@ -171,6 +176,7 @@ export const useBuildNavData = (): NavDataItem[] => [
   ...useDSPipelinesNav(),
   ...useDistributedWorkloadsNav(),
   ...useModelServingNav(),
+  ...useModelRegistrySectionNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),
 ];

@@ -66,4 +66,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableDistributedWorkloads'],
     requiredComponents: [StackComponent.KUEUE],
   },
+  [SupportedArea.MODEL_REGISTRY]: {
+    featureFlags: ['disableModelRegistry'],
+    requiredComponents: [StackComponent.MODEL_REGISTRY],
+  },
 };
