@@ -9,6 +9,8 @@ import {
   updateNotebookImageModal,
 } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { tableToolbar } from '~/__tests__/cypress/cypress/pages/components/TableToolbar';
 
 describe('Notebook images', () => {
   it('Table filtering, sorting, searching', () => {
@@ -40,18 +42,22 @@ describe('Notebook images', () => {
     // test sorting
     // by name
     notebookImageSettings.findTableHeaderButton('Name').click();
+    notebookImageSettings.findTableHeaderButton('Name').should(be.sortDescending);
     cy.findByText('image-999');
 
     // by description
     notebookImageSettings.findTableHeaderButton('Description').click();
+    notebookImageSettings.findTableHeaderButton('Description').should(be.sortAscending);
     cy.findByText('image-0');
 
     // by provider
     notebookImageSettings.findTableHeaderButton('Provider').click();
+    notebookImageSettings.findTableHeaderButton('Provider').should(be.sortAscending);
     cy.findByText('image-0');
 
     // by enabled
     notebookImageSettings.findTableHeaderButton('Enable').click();
+    notebookImageSettings.findTableHeaderButton('Enable').parents().should(be.sortAscending);
     cy.findByText('image-14');
     notebookImageSettings.findTableHeaderButton('Name').click();
 
@@ -76,20 +82,20 @@ describe('Notebook images', () => {
 
     // test filtering
     // by name
-    notebookImageSettings.findSearchInput().type('123');
+    tableToolbar.findSearchInput().type('123');
     cy.findByText('image-123');
 
     // by provider
-    notebookImageSettings.findResetButton().click();
-    notebookImageSettings.findFilterMenuOption('Provider').click();
-    notebookImageSettings.findSearchInput().type('provider-321');
+    tableToolbar.findResetButton().click();
+    tableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider');
+    tableToolbar.findSearchInput().type('provider-321');
     cy.findByText('image-321');
 
     // by description
     // test switching filtering options
-    notebookImageSettings.findFilterMenuOption('Description').click();
+    tableToolbar.findFilterMenuOption('filter-dropdown-select', 'Description');
     notebookImageSettings.findEmptyResults();
-    notebookImageSettings.findFilterMenuOption('Provider').click();
+    tableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider');
     cy.findByText('image-321');
   });
 
