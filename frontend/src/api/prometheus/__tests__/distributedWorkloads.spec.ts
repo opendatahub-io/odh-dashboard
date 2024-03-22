@@ -8,7 +8,7 @@ import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { POLL_INTERVAL } from '~/utilities/const';
 import {
   DWProjectCurrentMetrics,
-  TopResourceConsumingWorkloads,
+  TopWorkloadsByUsage,
   WorkloadCurrentUsage,
   WorkloadMetricPromQueryResponse,
   getTopResourceConsumingWorkloads,
@@ -225,7 +225,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: 'other', usage: 16474092 },
         ],
       },
-    } satisfies TopResourceConsumingWorkloads);
+    } satisfies TopWorkloadsByUsage);
   });
 
   it('sorts all workloads and excludes the "other" group when there are exactly 6', () => {
@@ -254,7 +254,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[5], usage: 8237036 },
         ],
       },
-    } satisfies TopResourceConsumingWorkloads);
+    } satisfies TopWorkloadsByUsage);
   });
 
   it('sorts all workloads and excludes the "other" group when there are less than 6', () => {
@@ -277,7 +277,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[0], usage: 8237056 },
         ],
       },
-    } satisfies TopResourceConsumingWorkloads);
+    } satisfies TopWorkloadsByUsage);
   });
 });
 
@@ -325,7 +325,7 @@ describe('useDWProjectCurrentMetrics', () => {
       loaded: false,
       error: undefined,
       getWorkloadCurrentUsage: expect.any(Function),
-      topResourceConsumingWorkloads: {
+      topWorkloadsByUsage: {
         cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
         memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
       },
@@ -378,7 +378,7 @@ describe('useDWProjectCurrentMetrics', () => {
       loaded: true,
       error: undefined,
       getWorkloadCurrentUsage: expect.any(Function),
-      topResourceConsumingWorkloads: {
+      topWorkloadsByUsage: {
         cpuCoresUsed: {
           topWorkloads: [
             { workload: mockWorkloads[3], usage: 0.04300163333333333 },

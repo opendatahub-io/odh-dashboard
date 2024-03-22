@@ -53,7 +53,7 @@ export type WorkloadWithUsage = {
   workload: WorkloadKind | 'other';
   usage: number | undefined;
 };
-export type TopResourceConsumingWorkloads = Record<
+export type TopWorkloadsByUsage = Record<
   keyof WorkloadCurrentUsage,
   { totalUsage: number; topWorkloads: WorkloadWithUsage[] }
 >;
@@ -64,7 +64,7 @@ export const getTotalUsage = (workloadsWithUsage: WorkloadWithUsage[]): number =
 export const getTopResourceConsumingWorkloads = (
   workloads: WorkloadKind[],
   getWorkloadCurrentUsage: (workload: WorkloadKind) => WorkloadCurrentUsage,
-): TopResourceConsumingWorkloads => {
+): TopWorkloadsByUsage => {
   const getTopWorkloadsFor = (
     usageType: keyof WorkloadCurrentUsage,
   ): { totalUsage: number; topWorkloads: WorkloadWithUsage[] } => {
@@ -111,7 +111,7 @@ export type DWProjectCurrentMetrics = FetchStateObject<{
   >;
 }> & {
   getWorkloadCurrentUsage: (workload: WorkloadKind) => WorkloadCurrentUsage;
-  topResourceConsumingWorkloads: TopResourceConsumingWorkloads;
+  topWorkloadsByUsage: TopWorkloadsByUsage;
 };
 
 export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
@@ -121,7 +121,7 @@ export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
     memoryBytesUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
   },
   getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
-  topResourceConsumingWorkloads: {
+  topWorkloadsByUsage: {
     cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
     memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
   },
@@ -162,7 +162,7 @@ export const useDWProjectCurrentMetrics = (
     },
     [data.cpuCoresUsedByJobName, data.memoryBytesUsedByJobName],
   );
-  const topResourceConsumingWorkloads: TopResourceConsumingWorkloads = React.useMemo(
+  const topWorkloadsByUsage: TopWorkloadsByUsage = React.useMemo(
     () => getTopResourceConsumingWorkloads(workloads, getWorkloadCurrentUsage),
     [workloads, getWorkloadCurrentUsage],
   );
@@ -175,6 +175,6 @@ export const useDWProjectCurrentMetrics = (
     loaded: Object.values(data).every(({ loaded }) => loaded),
     error: Object.values(data).find(({ error }) => !!error)?.error,
     getWorkloadCurrentUsage,
-    topResourceConsumingWorkloads,
+    topWorkloadsByUsage,
   };
 };

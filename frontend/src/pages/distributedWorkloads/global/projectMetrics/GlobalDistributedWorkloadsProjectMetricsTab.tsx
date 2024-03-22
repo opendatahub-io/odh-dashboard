@@ -5,8 +5,8 @@ import {
   EmptyStateBody,
   EmptyStateHeader,
   EmptyStateIcon,
-  Flex,
-  FlexItem,
+  Stack,
+  StackItem,
   Spinner,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
@@ -56,24 +56,24 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
 
   return (
     <>
-      <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
-        <FlexItem>
+      <Stack hasGutter>
+        <StackItem>
           <DWSectionCard title="Resource Usage" content={<ResourceUsage />} />
-        </FlexItem>
-        <FlexItem>
+        </StackItem>
+        <StackItem>
           <DWSectionCard
             title="Top resource-consuming distributed workloads"
             content={<TopResourceConsumingWorkloads />}
           />
-        </FlexItem>
-        <FlexItem>
+        </StackItem>
+        <StackItem>
           <DWSectionCard
             title="Distributed workload resource metrics"
             hasDivider={false}
             content={<WorkloadResourceMetricsTable />}
           />
-        </FlexItem>
-      </Flex>
+        </StackItem>
+      </Stack>
     </>
   );
 };
