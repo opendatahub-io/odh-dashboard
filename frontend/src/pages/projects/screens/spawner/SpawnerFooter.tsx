@@ -10,19 +10,20 @@ import {
 } from '@patternfly/react-core';
 import { assembleSecret, createNotebook, createSecret, updateNotebook } from '~/api';
 import {
+  DataConnectionData,
+  EnvVariable,
   StartNotebookData,
   StorageData,
-  EnvVariable,
-  DataConnectionData,
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { fireTrackingEvent, fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { TrackingOutcome } from '~/types';
 import {
-  createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
+  createPvcDataForNotebook,
   replaceRootVolumesForNotebook,
   updateConfigMapsAndSecretsForNotebook,
 } from './service';
@@ -82,7 +83,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { acceleratorProfile, notebookSize, image } = startNotebookData;
-    fireTrackingEvent(`Workbench ${type}`, {
+    fireTrackingEventRaw(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, {
       acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
@@ -95,13 +96,26 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         : `${image.imageStream?.metadata.name || 'unknown image'} - ${
             image.imageVersion?.name || 'unknown version'
           }`,
+      imageName: image.imageStream?.metadata.name,
       projectName,
       notebookName: name,
+      storageType: storageData.storageType,
+      storageDataSize: storageData.creating.size,
+      dataConnectionType: dataConnection.creating?.type,
+      dataConnectionCategory: dataConnection.creating?.values?.category,
+      dataConnectionEnabled: dataConnection.enabled,
+      outcome: TrackingOutcome.submit,
+      success: true,
     });
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);
   };
   const handleError = (e: Error) => {
+    fireTrackingEvent('Workbench Created', {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: e.message,
+    });
     setErrorMessage(e.message || 'Error creating workbench');
     setCreateInProgress(false);
   };
@@ -266,7 +280,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
             <Button
               variant="link"
               id="cancel-button"
-              onClick={() => navigate(`/projects/${projectName}`)}
+              onClick={() => {
+                fireTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
+                  outcome: TrackingOutcome.cancel,
+                });
+                navigate(`/projects/${projectName}`);
+              }}
             >
               Cancel
             </Button>
