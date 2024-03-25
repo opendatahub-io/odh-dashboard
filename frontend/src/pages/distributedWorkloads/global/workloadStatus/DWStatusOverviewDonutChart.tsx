@@ -41,7 +41,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
       <CardBody style={{ maxHeight: 280 }}>
         <Bullseye>
           <ChartDonut
-            ariaDesc="Distributed Workload Status overview"
+            ariaDesc="Distributed workload status overview"
             ariaTitle="Status overview donut chart"
             constrainToVisibleArea
             data={Object.keys(statusCounts).map((statusType) => ({

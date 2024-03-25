@@ -133,7 +133,7 @@ describe('Distributed Workload Metrics', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Distributed Workload Status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project');
     cy.findByText('Status overview').should('exist');
 
@@ -151,7 +151,7 @@ describe('Distributed Workload Metrics', () => {
     globalDistributedWorkloads.selectProjectByName('Test Project 2');
     cy.url().should('include', '/projectMetrics/test-project-2');
 
-    cy.findByLabelText('Distributed Workload Status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project-2');
 
     cy.findByLabelText('Project metrics tab').click();
@@ -172,7 +172,7 @@ describe('Distributed Workload Metrics', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Distributed Workload Status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.findByText('test-workload').should('exist');
   });
 
@@ -180,7 +180,7 @@ describe('Distributed Workload Metrics', () => {
     initIntercepts({ hasWorkloads: false });
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Distributed Workload Status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.findByText('No distributed workload match your filters').should('exist');
   });
 });
