@@ -451,226 +451,263 @@ export const buildMockPipelineVersionV2 = (
   display_name: 'version-1',
   created_at: '2023-12-07T16:08:01Z',
   description: 'test',
+
   pipeline_spec: {
-    components: {
-      'comp-create-dataset': {
-        executorLabel: 'exec-create-dataset',
-        outputDefinitions: {
-          artifacts: {
-            iris_dataset: {
-              artifactType: {
-                schemaTitle: ArtifactType.DATASET,
-                schemaVersion: '0.0.1',
+    platform_spec: {
+      platforms: {
+        kubernetes: {
+          deploymentSpec: {
+            executors: {
+              'exec-normalize-dataset': {
+                container: { image: '' },
+                pvcMount: [
+                  {
+                    mountPath: '/data/1',
+                    taskOutputParameter: {
+                      outputParameterKey: 'name',
+                      producerTask: 'create-dataset',
+                    },
+                  },
+                ],
+              },
+              'exec-train-model': {
+                container: { image: '' },
+                pvcMount: [
+                  {
+                    mountPath: '/data/2',
+                    taskOutputParameter: {
+                      outputParameterKey: 'name',
+                      producerTask: 'normalize-dataset',
+                    },
+                  },
+                ],
               },
             },
           },
         },
       },
-      'comp-normalize-dataset': {
-        executorLabel: 'exec-normalize-dataset',
-        inputDefinitions: {
-          artifacts: {
-            input_iris_dataset: {
-              artifactType: {
-                schemaTitle: ArtifactType.DATASET,
-                schemaVersion: '0.0.1',
+    },
+    pipeline_spec: {
+      components: {
+        'comp-create-dataset': {
+          executorLabel: 'exec-create-dataset',
+          outputDefinitions: {
+            artifacts: {
+              iris_dataset: {
+                artifactType: {
+                  schemaTitle: ArtifactType.DATASET,
+                  schemaVersion: '0.0.1',
+                },
               },
             },
           },
+        },
+        'comp-normalize-dataset': {
+          executorLabel: 'exec-normalize-dataset',
+          inputDefinitions: {
+            artifacts: {
+              input_iris_dataset: {
+                artifactType: {
+                  schemaTitle: ArtifactType.DATASET,
+                  schemaVersion: '0.0.1',
+                },
+              },
+            },
+            parameters: {
+              min_max_scaler: {
+                parameterType: InputDefinitionParameterType.BOOLEAN,
+              },
+              standard_scaler: {
+                parameterType: InputDefinitionParameterType.STRING,
+              },
+            },
+          },
+          outputDefinitions: {
+            artifacts: {
+              normalized_iris_dataset: {
+                artifactType: {
+                  schemaTitle: ArtifactType.DATASET,
+                  schemaVersion: '0.0.1',
+                },
+              },
+            },
+          },
+        },
+        'comp-train-model': {
+          executorLabel: 'exec-train-model',
+          inputDefinitions: {
+            artifacts: {
+              normalized_iris_dataset: {
+                artifactType: {
+                  schemaTitle: ArtifactType.DATASET,
+                  schemaVersion: '0.0.1',
+                },
+              },
+            },
+            parameters: {
+              n_neighbors: {
+                parameterType: InputDefinitionParameterType.INTEGER,
+              },
+            },
+          },
+          outputDefinitions: {
+            artifacts: {
+              model: {
+                artifactType: {
+                  schemaTitle: ArtifactType.MODEL,
+                  schemaVersion: '0.0.1',
+                },
+              },
+            },
+          },
+        },
+      },
+      deploymentSpec: {
+        executors: {
+          'exec-create-dataset': {
+            container: {
+              args: ['--executor_input', '{{$}}', '--function_to_execute', 'create_dataset'],
+              command: [
+                'sh',
+                '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.6.0\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n',
+                'sh',
+                '-ec',
+                'program_path=$(mktemp -d)\n\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
+                "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef create_dataset(iris_dataset: Output[Dataset]):\n    import pandas as pd\n\n    csv_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'\n    col_names = [\n        'Sepal_Length', 'Sepal_Width', 'Petal_Length', 'Petal_Width', 'Labels'\n    ]\n    df = pd.read_csv(csv_url, names=col_names)\n\n    with open(iris_dataset.path, 'w') as f:\n        df.to_csv(f)\n\n",
+              ],
+              image: 'quay.io/hukhan/iris-base:1',
+            },
+          },
+          'exec-normalize-dataset': {
+            container: {
+              args: ['--executor_input', '{{$}}', '--function_to_execute', 'normalize_dataset'],
+              command: [
+                'sh',
+                '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.6.0\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n',
+                'sh',
+                '-ec',
+                'program_path=$(mktemp -d)\n\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
+                "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef normalize_dataset(\n    input_iris_dataset: Input[Dataset],\n    normalized_iris_dataset: Output[Dataset],\n    standard_scaler: bool,\n    min_max_scaler: bool,\n):\n    if standard_scaler is min_max_scaler:\n        raise ValueError(\n            'Exactly one of standard_scaler or min_max_scaler must be True.')\n\n    import pandas as pd\n    from sklearn.preprocessing import MinMaxScaler\n    from sklearn.preprocessing import StandardScaler\n\n    with open(input_iris_dataset.path) as f:\n        df = pd.read_csv(f)\n    labels = df.pop('Labels')\n\n    if standard_scaler:\n        scaler = StandardScaler()\n    if min_max_scaler:\n        scaler = MinMaxScaler()\n\n    df = pd.DataFrame(scaler.fit_transform(df))\n    df['Labels'] = labels\n    normalized_iris_dataset.metadata['state'] = \"Normalized\"\n    with open(normalized_iris_dataset.path, 'w') as f:\n        df.to_csv(f)\n\n",
+              ],
+              image: 'quay.io/hukhan/iris-base:1',
+            },
+          },
+          'exec-train-model': {
+            container: {
+              args: ['--executor_input', '{{$}}', '--function_to_execute', 'train_model'],
+              command: [
+                'sh',
+                '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.6.0\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n',
+                'sh',
+                '-ec',
+                'program_path=$(mktemp -d)\n\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
+                "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_model(\n    normalized_iris_dataset: Input[Dataset],\n    model: Output[Model],\n    n_neighbors: int,\n):\n    import pickle\n\n    import pandas as pd\n    from sklearn.model_selection import train_test_split\n    from sklearn.neighbors import KNeighborsClassifier\n\n    with open(normalized_iris_dataset.path) as f:\n        df = pd.read_csv(f)\n\n    y = df.pop('Labels')\n    X = df\n\n    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)\n\n    clf = KNeighborsClassifier(n_neighbors=n_neighbors)\n    clf.fit(X_train, y_train)\n\n    model.metadata['framework'] = 'scikit-learn'\n    with open(model.path, 'wb') as f:\n        pickle.dump(clf, f)\n\n",
+              ],
+              image: 'quay.io/hukhan/iris-base:1',
+            },
+          },
+        },
+      },
+      pipelineInfo: {
+        name: 'iris-training-pipeline',
+      },
+      root: {
+        dag: {
+          tasks: {
+            'create-dataset': {
+              cachingOptions: {
+                enableCache: true,
+              },
+              componentRef: {
+                name: 'comp-create-dataset',
+              },
+              taskInfo: {
+                name: 'create-dataset',
+              },
+            },
+            'normalize-dataset': {
+              cachingOptions: {
+                enableCache: true,
+              },
+              componentRef: {
+                name: 'comp-normalize-dataset',
+              },
+              dependentTasks: ['create-dataset'],
+              inputs: {
+                artifacts: {
+                  input_iris_dataset: {
+                    taskOutputArtifact: {
+                      outputArtifactKey: 'iris_dataset',
+                      producerTask: 'create-dataset',
+                    },
+                  },
+                },
+                parameters: {
+                  min_max_scaler: {
+                    runtimeValue: {
+                      constant: 'false',
+                    },
+                  },
+                  standard_scaler: {
+                    runtimeValue: {
+                      constant: 'true',
+                    },
+                  },
+                },
+              },
+              taskInfo: {
+                name: 'normalize-dataset',
+              },
+            },
+            'train-model': {
+              cachingOptions: {
+                enableCache: true,
+              },
+              componentRef: {
+                name: 'comp-train-model',
+              },
+              dependentTasks: ['normalize-dataset'],
+              inputs: {
+                artifacts: {
+                  normalized_iris_dataset: {
+                    taskOutputArtifact: {
+                      outputArtifactKey: 'normalized_iris_dataset',
+                      producerTask: 'normalize-dataset',
+                    },
+                  },
+                },
+                parameters: {
+                  n_neighbors: {
+                    componentInputParameter: 'neighbors',
+                  },
+                },
+              },
+              taskInfo: {
+                name: 'train-model',
+              },
+            },
+          },
+        },
+        inputDefinitions: {
           parameters: {
             min_max_scaler: {
               parameterType: InputDefinitionParameterType.BOOLEAN,
+            },
+            neighbors: {
+              parameterType: InputDefinitionParameterType.INTEGER,
             },
             standard_scaler: {
               parameterType: InputDefinitionParameterType.STRING,
             },
           },
         },
-        outputDefinitions: {
-          artifacts: {
-            normalized_iris_dataset: {
-              artifactType: {
-                schemaTitle: ArtifactType.DATASET,
-                schemaVersion: '0.0.1',
-              },
-            },
-          },
-        },
       },
-      'comp-train-model': {
-        executorLabel: 'exec-train-model',
-        inputDefinitions: {
-          artifacts: {
-            normalized_iris_dataset: {
-              artifactType: {
-                schemaTitle: ArtifactType.DATASET,
-                schemaVersion: '0.0.1',
-              },
-            },
-          },
-          parameters: {
-            n_neighbors: {
-              parameterType: InputDefinitionParameterType.INTEGER,
-            },
-          },
-        },
-        outputDefinitions: {
-          artifacts: {
-            model: {
-              artifactType: {
-                schemaTitle: ArtifactType.MODEL,
-                schemaVersion: '0.0.1',
-              },
-            },
-          },
-        },
-      },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.6.0',
     },
-    deploymentSpec: {
-      executors: {
-        'exec-create-dataset': {
-          container: {
-            args: ['--executor_input', '{{$}}', '--function_to_execute', 'create_dataset'],
-            command: [
-              'sh',
-              '-c',
-              '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.6.0\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n',
-              'sh',
-              '-ec',
-              'program_path=$(mktemp -d)\n\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
-              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef create_dataset(iris_dataset: Output[Dataset]):\n    import pandas as pd\n\n    csv_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'\n    col_names = [\n        'Sepal_Length', 'Sepal_Width', 'Petal_Length', 'Petal_Width', 'Labels'\n    ]\n    df = pd.read_csv(csv_url, names=col_names)\n\n    with open(iris_dataset.path, 'w') as f:\n        df.to_csv(f)\n\n",
-            ],
-            image: 'quay.io/hukhan/iris-base:1',
-          },
-        },
-        'exec-normalize-dataset': {
-          container: {
-            args: ['--executor_input', '{{$}}', '--function_to_execute', 'normalize_dataset'],
-            command: [
-              'sh',
-              '-c',
-              '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.6.0\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n',
-              'sh',
-              '-ec',
-              'program_path=$(mktemp -d)\n\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
-              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef normalize_dataset(\n    input_iris_dataset: Input[Dataset],\n    normalized_iris_dataset: Output[Dataset],\n    standard_scaler: bool,\n    min_max_scaler: bool,\n):\n    if standard_scaler is min_max_scaler:\n        raise ValueError(\n            'Exactly one of standard_scaler or min_max_scaler must be True.')\n\n    import pandas as pd\n    from sklearn.preprocessing import MinMaxScaler\n    from sklearn.preprocessing import StandardScaler\n\n    with open(input_iris_dataset.path) as f:\n        df = pd.read_csv(f)\n    labels = df.pop('Labels')\n\n    if standard_scaler:\n        scaler = StandardScaler()\n    if min_max_scaler:\n        scaler = MinMaxScaler()\n\n    df = pd.DataFrame(scaler.fit_transform(df))\n    df['Labels'] = labels\n    normalized_iris_dataset.metadata['state'] = \"Normalized\"\n    with open(normalized_iris_dataset.path, 'w') as f:\n        df.to_csv(f)\n\n",
-            ],
-            image: 'quay.io/hukhan/iris-base:1',
-          },
-        },
-        'exec-train-model': {
-          container: {
-            args: ['--executor_input', '{{$}}', '--function_to_execute', 'train_model'],
-            command: [
-              'sh',
-              '-c',
-              '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.6.0\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n',
-              'sh',
-              '-ec',
-              'program_path=$(mktemp -d)\n\nprintf "%s" "$0" > "$program_path/ephemeral_component.py"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"\n',
-              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_model(\n    normalized_iris_dataset: Input[Dataset],\n    model: Output[Model],\n    n_neighbors: int,\n):\n    import pickle\n\n    import pandas as pd\n    from sklearn.model_selection import train_test_split\n    from sklearn.neighbors import KNeighborsClassifier\n\n    with open(normalized_iris_dataset.path) as f:\n        df = pd.read_csv(f)\n\n    y = df.pop('Labels')\n    X = df\n\n    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)\n\n    clf = KNeighborsClassifier(n_neighbors=n_neighbors)\n    clf.fit(X_train, y_train)\n\n    model.metadata['framework'] = 'scikit-learn'\n    with open(model.path, 'wb') as f:\n        pickle.dump(clf, f)\n\n",
-            ],
-            image: 'quay.io/hukhan/iris-base:1',
-          },
-        },
-      },
-    },
-    pipelineInfo: {
-      name: 'iris-training-pipeline',
-    },
-    root: {
-      dag: {
-        tasks: {
-          'create-dataset': {
-            cachingOptions: {
-              enableCache: true,
-            },
-            componentRef: {
-              name: 'comp-create-dataset',
-            },
-            taskInfo: {
-              name: 'create-dataset',
-            },
-          },
-          'normalize-dataset': {
-            cachingOptions: {
-              enableCache: true,
-            },
-            componentRef: {
-              name: 'comp-normalize-dataset',
-            },
-            dependentTasks: ['create-dataset'],
-            inputs: {
-              artifacts: {
-                input_iris_dataset: {
-                  taskOutputArtifact: {
-                    outputArtifactKey: 'iris_dataset',
-                    producerTask: 'create-dataset',
-                  },
-                },
-              },
-              parameters: {
-                min_max_scaler: {
-                  runtimeValue: {
-                    constant: 'false',
-                  },
-                },
-                standard_scaler: {
-                  runtimeValue: {
-                    constant: 'true',
-                  },
-                },
-              },
-            },
-            taskInfo: {
-              name: 'normalize-dataset',
-            },
-          },
-          'train-model': {
-            cachingOptions: {
-              enableCache: true,
-            },
-            componentRef: {
-              name: 'comp-train-model',
-            },
-            dependentTasks: ['normalize-dataset'],
-            inputs: {
-              artifacts: {
-                normalized_iris_dataset: {
-                  taskOutputArtifact: {
-                    outputArtifactKey: 'normalized_iris_dataset',
-                    producerTask: 'normalize-dataset',
-                  },
-                },
-              },
-              parameters: {
-                n_neighbors: {
-                  componentInputParameter: 'neighbors',
-                },
-              },
-            },
-            taskInfo: {
-              name: 'train-model',
-            },
-          },
-        },
-      },
-      inputDefinitions: {
-        parameters: {
-          min_max_scaler: {
-            parameterType: InputDefinitionParameterType.BOOLEAN,
-          },
-          neighbors: {
-            parameterType: InputDefinitionParameterType.INTEGER,
-          },
-          standard_scaler: {
-            parameterType: InputDefinitionParameterType.STRING,
-          },
-        },
-      },
-    },
-    schemaVersion: '2.1.0',
-    sdkVersion: 'kfp-2.6.0',
   },
   ...pipelineVersion,
 });
