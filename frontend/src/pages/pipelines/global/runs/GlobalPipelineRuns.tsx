@@ -8,6 +8,8 @@ import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { routePipelineRunsNamespace } from '~/routes';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import GlobalPipelineRunsTabs from './GlobalPipelineRunsTabs';
 
 type GlobalPipelineRunsProps = Partial<
@@ -23,7 +25,9 @@ const GlobalPipelineRuns: React.FC<GlobalPipelineRunsProps> = ({
   getRedirectPath = routePipelineRunsNamespace,
 }) => (
   <PipelineCoreApplicationPage
-    title={pipelineRunsPageTitle}
+    title={
+      <TitleWithIcon title={pipelineRunsPageTitle} objectType={ProjectObjectType.pipelineRun} />
+    }
     description={description}
     getRedirectPath={getRedirectPath}
     overrideChildPadding

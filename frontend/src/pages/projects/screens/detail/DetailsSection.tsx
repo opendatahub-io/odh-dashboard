@@ -5,17 +5,25 @@ import {
   Bullseye,
   Flex,
   FlexItem,
+  PageSection,
   Spinner,
   Stack,
   StackItem,
+  Text,
+  TextContent,
   Title,
 } from '@patternfly/react-core';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import HeaderIcon from '~/concepts/design/HeaderIcon';
 import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
   id: ProjectSectionID;
   actions?: React.ReactNode[];
+  objectType: ProjectObjectType;
   title: string;
+  description?: string;
+  popover?: React.ReactNode;
   isLoading: boolean;
   loadError?: Error;
   isEmpty: boolean;
@@ -27,6 +35,7 @@ type DetailsSectionProps = {
 
 const DetailsSection: React.FC<DetailsSectionProps> = ({
   actions,
+  objectType,
   children,
   emptyState,
   id,
@@ -34,6 +43,8 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   isLoading,
   loadError,
   title,
+  description,
+  popover,
   labels,
   showDivider,
 }) => {
@@ -62,34 +73,61 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   };
 
   return (
-    <Stack
-      data-testid={`section-${id}`}
-      hasGutter
-      className={classNames({
-        'odh-details-section--divide': !loadError && (isLoading || isEmpty || showDivider),
-      })}
-    >
-      <StackItem>
-        <Flex>
-          <FlexItem>
-            <Title id={`${id}-title`} headingLevel="h2" size="xl">
-              {title}
-            </Title>
-          </FlexItem>
-          {actions && (
-            <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
-              {actions.map((action, index) => (
-                <FlexItem data-testid="details-section-action" key={index}>
-                  {action}
+    <PageSection aria-label="details-section" variant="light" id={id}>
+      <Stack
+        data-testid={`section-${id}`}
+        hasGutter
+        className={classNames({
+          'odh-details-section--divide': !loadError && (isLoading || isEmpty || showDivider),
+        })}
+      >
+        {!isEmpty ? (
+          <StackItem>
+            <Flex
+              direction={{ default: 'column', md: 'row' }}
+              gap={{ default: 'gapMd' }}
+              alignItems={{ md: 'alignItemsCenter' }}
+            >
+              <Flex flex={{ default: 'flex_1' }}>
+                <FlexItem>
+                  <Flex
+                    direction={{ default: 'row' }}
+                    gap={{ default: 'gapSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    <HeaderIcon type={objectType} />
+                    <FlexItem>
+                      <Title id={`${id}-title`} headingLevel="h2" size="xl">
+                        {title}
+                      </Title>
+                    </FlexItem>
+                    <FlexItem>{popover}</FlexItem>
+                  </Flex>
                 </FlexItem>
-              ))}
+                <FlexItem>
+                  <TextContent>
+                    {description && <Text component="p">{description}</Text>}
+                  </TextContent>
+                </FlexItem>
+              </Flex>
+              <Flex direction={{ default: 'column', md: 'row' }}>
+                {actions && (
+                  <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                    {actions.map((action, index) => (
+                      <FlexItem data-testid="details-section-action" key={index}>
+                        {action}
+                      </FlexItem>
+                    ))}
+                  </Flex>
+                )}
+                {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
+              </Flex>
             </Flex>
-          )}
-          {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
-        </Flex>
-      </StackItem>
-      <StackItem>{renderContent()}</StackItem>
-    </Stack>
+          </StackItem>
+        ) : null}
+        {renderContent()}
+      </Stack>
+    </PageSection>
   );
 };
 

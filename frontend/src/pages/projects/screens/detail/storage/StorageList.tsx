@@ -1,19 +1,28 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import { Button, Popover } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import ManageStorageModal from './ManageStorageModal';
+import { useAccessReview } from '~/api';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import StorageTable from './StorageTable';
+import ManageStorageModal from './ManageStorageModal';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   const {
+    currentProject,
     pvcs: { data: pvcs, loaded, error: loadError },
     refreshAllProjectData: refresh,
   } = React.useContext(ProjectDetailsContext);
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...AccessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
 
   const isPvcsEmpty = pvcs.length === 0;
 
@@ -21,12 +30,24 @@ const StorageList: React.FC = () => {
     <>
       <DetailsSection
         id={ProjectSectionID.CLUSTER_STORAGES}
+        objectType={ProjectObjectType.clusterStorage}
         title={ProjectSectionTitles[ProjectSectionID.CLUSTER_STORAGES] || ''}
+        popover={
+          <Popover
+            headerContent="About cluster storage"
+            bodyContent="For data science projects that require data to be retained, you can add cluster storage to the project."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        }
         actions={[
           <Button
             onClick={() => setOpen(true)}
             key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-            variant="secondary"
+            variant="primary"
           >
             Add cluster storage
           </Button>,
@@ -34,9 +55,24 @@ const StorageList: React.FC = () => {
         isLoading={!loaded}
         isEmpty={isPvcsEmpty}
         loadError={loadError}
-        emptyState={<EmptyDetailsList title="No storage" />}
+        emptyState={
+          <EmptyDetailsView
+            title="Start by adding cluster storage"
+            description="For data science projects that require data to be retained, you can add cluster storage to the project."
+            iconImage={typedEmptyImage(ProjectObjectType.clusterStorage)}
+            imageAlt="add cluster storage"
+            allowCreate={rbacLoaded && allowCreate}
+            createButton={
+              <Button onClick={() => setOpen(true)} variant="primary">
+                Add cluster storage
+              </Button>
+            }
+          />
+        }
       >
-        <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
+        {!isPvcsEmpty ? (
+          <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
+        ) : null}
       </DetailsSection>
       <ManageStorageModal
         isOpen={isOpen}

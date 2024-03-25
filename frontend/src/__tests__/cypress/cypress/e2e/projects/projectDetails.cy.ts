@@ -233,11 +233,10 @@ describe('Project Details', () => {
     it('Empty state component in project details', () => {
       initIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('workbenches', true);
-      projectDetails.shouldBeEmptyState('cluster-storages', true);
-      projectDetails.shouldBeEmptyState('data-connections', true);
-      projectDetails.shouldBeEmptyState('pipelines-projects', true);
-      projectDetails.shouldDivide();
+      projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', true);
+      projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', true);
+      projectDetails.shouldBeEmptyState('Data connections', 'data-connections', true);
+      projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', true);
     });
 
     it('Both model serving platforms are disabled', () => {
@@ -248,7 +247,7 @@ describe('Project Details', () => {
 
     it('Both model serving platforms are enabled with no serving runtimes templates', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'model-server');
 
       //single-model-serving platform
       projectDetails.findSingleModelDeployButton().should('have.attr', 'aria-disabled');
@@ -264,14 +263,14 @@ describe('Project Details', () => {
     it('Single model serving platform is enabled', () => {
       initIntercepts({ templates: true, disableKServeConfig: false, disableModelConfig: true });
       projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('model-server', true);
+      projectDetails.shouldBeEmptyState('Models', 'model-server', true);
       projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
     });
 
     it('Multi model serving platform is enabled', () => {
       initIntercepts({ templates: true, disableKServeConfig: true, disableModelConfig: false });
       projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('model-server', true);
+      projectDetails.shouldBeEmptyState('Models', 'model-server', true);
 
       projectDetails.findServingPlatformLabel().should('have.text', 'Multi-model serving enabled');
     });
@@ -281,15 +280,15 @@ describe('Project Details', () => {
     it('No empty state components in the project details', () => {
       initIntercepts({});
       projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('workbenches', false);
-      projectDetails.shouldBeEmptyState('cluster-storages', false);
-      projectDetails.shouldBeEmptyState('data-connections', false);
-      projectDetails.shouldBeEmptyState('pipelines-projects', false);
+      projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', false);
+      projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', false);
+      projectDetails.shouldBeEmptyState('Data connections', 'data-connections', false);
+      projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', false);
     });
 
     it('Notebook with deleted image', () => {
       initIntercepts({ imageStreamName: 'test' });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'workbenches');
       const notebookRow = projectDetails.getNotebookRow('test-notebook');
       notebookRow.shouldHaveNotebookImageName('Test image');
       notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
@@ -297,7 +296,7 @@ describe('Project Details', () => {
 
     it('Notebook with disabled image', () => {
       initIntercepts({ isEnabled: 'false' });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'workbenches');
       const notebookRow = projectDetails.getNotebookRow('test-notebook');
       notebookRow.shouldHaveNotebookImageName('Test image');
       notebookRow.findNotebookImageAvailability().should('have.text', 'Disabled');
@@ -305,7 +304,7 @@ describe('Project Details', () => {
 
     it('Notebook with unknown image', () => {
       initIntercepts({ isUnknown: true });
-      projectDetails.visit('test-project');
+      projectDetails.visitSection('test-project', 'workbenches');
       projectDetails.getNotebookRow('test-notebook').shouldHaveNotebookImageName('unknown');
     });
   });

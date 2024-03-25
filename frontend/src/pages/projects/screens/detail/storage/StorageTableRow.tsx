@@ -56,7 +56,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
 
   return (
     <Tbody isExpanded={isExpanded}>
-      <Tr>
+      <Tr {...(rowIndex % 2 === 0 && { isStriped: true })}>
         <Td
           expand={{
             rowIndex,
@@ -81,8 +81,12 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         </Td>
         <Td dataLabel="Type">
           <Text>
-            <HddIcon />
-            {` Persistent storage`}
+            <Flex>
+              <FlexItem spacer={{ default: 'spacerSm' }}>
+                <HddIcon />
+              </FlexItem>
+              <FlexItem>{` Persistent storage`}</FlexItem>
+            </Flex>
           </Text>
         </Td>
         <Td dataLabel="Connected workbenches">

@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Bullseye, Button, Spinner, Stack, StackItem } from '@patternfly/react-core';
+import { Bullseye, Button, ButtonVariant, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -10,6 +9,9 @@ import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import { routePipelinesNamespace, routeProjectPipelineDetailsNamespace } from '~/routes';
+import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
+import { useAccessReview } from '~/api';
+import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
 
 type PipelinesListProps = {
   setIsPipelinesEmpty: (isEmpty: boolean) => void;
@@ -22,6 +24,10 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable(TABLE_CONTENT_LIMIT);
   const navigate = useNavigate();
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...AccessReviewResource,
+    namespace,
+  });
 
   const isPipelinesEmpty = pipelines.length === 0;
 
@@ -44,7 +50,9 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
   }
 
   if (loaded && pipelines.length === 0 && !tableProps.filter) {
-    return <EmptyDetailsList title="No pipelines" />;
+    return (
+      <NoPipelineServer variant={ButtonVariant.primary} allowCreate={rbacLoaded && allowCreate} />
+    );
   }
 
   return (

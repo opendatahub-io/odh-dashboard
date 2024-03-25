@@ -16,6 +16,7 @@ type TableProps<DataType> = Omit<
 const Table = <T,>({
   data: allData,
   columns,
+  subColumns,
   enablePagination,
   defaultSortColumn = 0,
   truncateRenderingAt = 0,
@@ -23,7 +24,7 @@ const Table = <T,>({
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
-  const sort = useTableColumnSort<T>(columns, defaultSortColumn);
+  const sort = useTableColumnSort<T>(columns, subColumns || [], defaultSortColumn);
   const sortedData = sort.transformData(allData);
 
   let data: T[];
@@ -46,6 +47,7 @@ const Table = <T,>({
     <TableBase
       data={data}
       columns={columns}
+      subColumns={subColumns}
       enablePagination={enablePagination}
       itemCount={allData.length}
       perPage={pageSize}

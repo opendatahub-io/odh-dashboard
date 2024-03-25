@@ -14,7 +14,7 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import ExternalLink from '~/components/ExternalLink';
-import NoPipelineServer from './NoPipelineServer';
+import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import { usePipelinesAPI } from './context';
 
 // TODO: Fix doc link to go to more docs on v2

@@ -6,11 +6,11 @@ import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class PipelinesTableRow extends TableRow {
   findPipelineName(name: string) {
-    return this.find().findByRole('heading', { name }).find('a');
+    return this.find().findByTestId(`table-row-title-${name}`).find('a');
   }
 
   findPipelineVersionName(name: string) {
-    return this.find().parents().findByRole('heading', { name }).find('a');
+    return this.find().parents().findByTestId(`table-row-title-${name}`).find('a');
   }
 
   toggleExpandByIndex(index: number) {
@@ -34,7 +34,9 @@ class PipelinesTable {
   }
 
   getRowByName(name: string) {
-    return new PipelinesTableRow(() => this.find().findByRole('heading', { name }).parents('tr'));
+    return new PipelinesTableRow(() =>
+      this.find().findByTestId(`table-row-title-${name}`).parents('tr'),
+    );
   }
 
   shouldRowNotBeVisible(name: string) {

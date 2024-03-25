@@ -5,6 +5,8 @@ import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ProjectScope } from '~/pages/projects/types';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import EmptyProjects from './EmptyProjects';
 import ProjectListView from './ProjectListView';
 import ProjectScopeSelect from './ProjectScopeSelect';
@@ -25,7 +27,7 @@ const ProjectView: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Data Science Projects"
+      title={<TitleWithIcon title="Data Science Projects" objectType={ProjectObjectType.project} />}
       description={
         rbacLoaded
           ? `View your existing projects${allowCreate ? ' or create new projects' : ''}.`
@@ -40,6 +42,7 @@ const ProjectView: React.FC = () => {
       }
       emptyStatePage={<EmptyProjects allowCreate={allowCreate} />}
       provideChildrenPadding
+      removeChildrenTopPadding
     >
       <ProjectListView allowCreate={allowCreate} scope={scope} />
     </ApplicationsPage>

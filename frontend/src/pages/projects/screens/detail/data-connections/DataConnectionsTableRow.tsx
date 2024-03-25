@@ -16,14 +16,16 @@ type DataConnectionsTableRowProps = {
   obj: DataConnection;
   onEditDataConnection: (pvc: DataConnection) => void;
   onDeleteDataConnection: (dataConnection: DataConnection) => void;
+  rowIndex: number;
 };
 
 const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   obj,
   onEditDataConnection,
   onDeleteDataConnection,
+  rowIndex,
 }) => (
-  <Tr>
+  <Tr isStriped={rowIndex % 2 === 0}>
     <EmptyTableCellForAlignment />
     <Td dataLabel="Name">
       <TableRowTitleDescription
