@@ -9,7 +9,7 @@ class GlobalDistributedWorkloads {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Workload Metrics');
+    return appChrome.findNavItem('Distributed Workload Metrics');
   }
 
   shouldNotFoundPage() {
@@ -22,7 +22,7 @@ class GlobalDistributedWorkloads {
   }
 
   shouldHavePageTitle() {
-    return cy.findByTestId('app-page-title').should('have.text', 'Workload Metrics');
+    return cy.findByTestId('app-page-title').should('have.text', 'Distributed Workload Metrics');
   }
 
   findProjectSelect() {

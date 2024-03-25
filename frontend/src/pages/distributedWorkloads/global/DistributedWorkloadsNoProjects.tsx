@@ -21,7 +21,7 @@ const DistributedWorkloadsNoProjects: React.FC = () => {
         headingLevel="h4"
       />
       <EmptyStateBody>
-        To view workload metrics, first create a data science project.
+        To view distributed workload metrics, first create a data science project.
       </EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton

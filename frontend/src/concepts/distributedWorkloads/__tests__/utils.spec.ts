@@ -39,7 +39,7 @@ describe('getStatusInfo', () => {
 });
 
 describe('getStatusCounts', () => {
-  it('correctly aggregates counts of workload statuses', () => {
+  it('correctly aggregates counts of distributed workload statuses', () => {
     const workloads = [
       mockWorkloadK8sResource({
         k8sName: 'test-workload',

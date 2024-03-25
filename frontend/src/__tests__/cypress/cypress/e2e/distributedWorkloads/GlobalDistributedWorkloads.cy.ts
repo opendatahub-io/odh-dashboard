@@ -77,8 +77,8 @@ const initIntercepts = ({
   );
 };
 
-describe('Workload Metrics', () => {
-  it('Workload Metrics page does not exist if kueue is not installed', () => {
+describe('Distributed Workload Metrics', () => {
+  it('Distributed Workload Metrics page does not exist if kueue is not installed', () => {
     initIntercepts({
       isKueueInstalled: false,
       disableDistributedWorkloads: false,
@@ -91,7 +91,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.shouldNotFoundPage();
   });
 
-  it('Workload Metrics page does not exist if feature is disabled', () => {
+  it('Distributed Workload Metrics page does not exist if feature is disabled', () => {
     initIntercepts({
       isKueueInstalled: true,
       disableDistributedWorkloads: true,
@@ -104,7 +104,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.shouldNotFoundPage();
   });
 
-  it('Workload Metrics page exists if kueue is installed and feature is enabled', () => {
+  it('Distributed Workload Metrics page exists if kueue is installed and feature is enabled', () => {
     initIntercepts({
       isKueueInstalled: true,
       disableDistributedWorkloads: false,
@@ -128,7 +128,7 @@ describe('Workload Metrics', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Workload status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project');
     globalDistributedWorkloads.findStatusOverviewCard().should('exist');
 
@@ -145,7 +145,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.selectProjectByName('Test Project 2');
     cy.url().should('include', '/projectMetrics/test-project-2');
 
-    cy.findByLabelText('Workload status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project-2');
 
     cy.findByLabelText('Project metrics tab').click();
@@ -165,7 +165,7 @@ describe('Workload Metrics', () => {
   it('Should render the status overview chart', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Workload status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
 
     const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
     statusOverview.should('exist');
@@ -180,7 +180,7 @@ describe('Workload Metrics', () => {
       ],
     });
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Workload status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
 
     const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
     statusOverview.should('exist');
@@ -191,7 +191,7 @@ describe('Workload Metrics', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Workload status tab').click();
+    cy.findByLabelText('Distributed workload status tab').click();
     cy.findByText('test-workload').should('exist');
   });
 
@@ -199,8 +199,8 @@ describe('Workload Metrics', () => {
     initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Workload status tab').click();
-    cy.findByText('No workloads match your filters').should('exist');
+    cy.findByLabelText('Distributed workload status tab').click();
+    cy.findByText('No distributed workloads match your filters').should('exist');
   });
 
   it('Should render the projects metrics with empty workload state', () => {
