@@ -1,15 +1,140 @@
 import { genUID } from '~/__mocks__/mockUtils';
-import { WorkloadKind } from '~/k8sTypes';
+import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
+import { WorkloadCondition, WorkloadKind } from '~/k8sTypes';
+
+const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition[]> = {
+  Pending: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'Waiting for resources',
+      reason: '',
+      status: 'False',
+      type: 'QuotaReserved',
+    },
+  ],
+  Inadmissible: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is inadmissible',
+      reason: 'Inadmissible',
+      status: 'False',
+      type: 'QuotaReserved',
+    },
+  ],
+  Admitted: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is admitted',
+      reason: 'Admitted',
+      status: 'True',
+      type: 'Admitted',
+    },
+  ],
+  Running: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'Quota reserved in ClusterQueue cluster-queue',
+      reason: 'QuotaReserved',
+      status: 'True',
+      type: 'QuotaReserved',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is admitted',
+      reason: 'Admitted',
+      status: 'True',
+      type: 'Admitted',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is running',
+      reason: 'PodsReady',
+      status: 'True',
+      type: 'PodsReady',
+    },
+  ],
+  Evicted: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'Quota reserved in ClusterQueue cluster-queue',
+      reason: 'QuotaReserved',
+      status: 'True',
+      type: 'QuotaReserved',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is admitted',
+      reason: 'Admitted',
+      status: 'True',
+      type: 'Admitted',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is evicted',
+      reason: 'Evicted',
+      status: 'True',
+      type: 'Evicted',
+    },
+  ],
+  Succeeded: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'Quota reserved in ClusterQueue cluster-queue',
+      reason: 'QuotaReserved',
+      status: 'True',
+      type: 'QuotaReserved',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is admitted',
+      reason: 'Admitted',
+      status: 'True',
+      type: 'Admitted',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:17:15Z',
+      message: 'Job finished successfully',
+      reason: 'JobFinished',
+      status: 'True',
+      type: 'Finished',
+    },
+  ],
+  Failed: [
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'Quota reserved in ClusterQueue cluster-queue',
+      reason: 'QuotaReserved',
+      status: 'True',
+      type: 'QuotaReserved',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:15:28Z',
+      message: 'The workload is admitted',
+      reason: 'Admitted',
+      status: 'True',
+      type: 'Admitted',
+    },
+    {
+      lastTransitionTime: '2024-03-18T19:17:15Z',
+      message: 'There was an error',
+      reason: 'Failed',
+      status: 'True',
+      type: 'Finished',
+    },
+  ],
+};
 
 type MockResourceConfigType = {
   k8sName?: string;
   namespace?: string;
   ownerJobName?: string;
+  mockStatus?: WorkloadStatusType | null;
 };
 export const mockWorkloadK8sResource = ({
   k8sName = 'test-workload',
   namespace = 'test-project',
   ownerJobName,
+  mockStatus = WorkloadStatusType.Succeeded,
 }: MockResourceConfigType): WorkloadKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta1',
   kind: 'Workload',
@@ -45,28 +170,6 @@ export const mockWorkloadK8sResource = ({
     queueName: 'user-queue',
   },
   status: {
-    conditions: [
-      {
-        lastTransitionTime: '2024-03-18T19:15:28Z',
-        message: 'Quota reserved in ClusterQueue cluster-queue',
-        reason: 'QuotaReserved',
-        status: 'True',
-        type: 'QuotaReserved',
-      },
-      {
-        lastTransitionTime: '2024-03-18T19:15:28Z',
-        message: 'The workload is admitted',
-        reason: 'Admitted',
-        status: 'True',
-        type: 'Admitted',
-      },
-      {
-        lastTransitionTime: '2024-03-18T19:17:15Z',
-        message: 'Job finished successfully',
-        reason: 'JobFinished',
-        status: 'True',
-        type: 'Finished',
-      },
-    ],
+    conditions: mockStatus ? mockWorkloadStatusConditions[mockStatus] : [],
   },
 });

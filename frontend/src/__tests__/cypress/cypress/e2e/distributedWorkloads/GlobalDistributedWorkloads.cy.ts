@@ -8,19 +8,27 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
+import { WorkloadKind } from '~/k8sTypes';
+import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
 
 type HandlersProps = {
   isKueueInstalled?: boolean;
   disableDistributedWorkloads?: boolean;
   hasProjects?: boolean;
-  hasWorkloads?: boolean;
+  workloads?: WorkloadKind[];
 };
 
 const initIntercepts = ({
   isKueueInstalled = true,
   disableDistributedWorkloads = false,
   hasProjects = true,
-  hasWorkloads = true,
+  workloads = [
+    mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: WorkloadStatusType.Succeeded }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload-2',
+      mockStatus: WorkloadStatusType.Succeeded,
+    }),
+  ],
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -55,14 +63,7 @@ const initIntercepts = ({
       method: 'GET',
       pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/namespaces/*/workloads',
     },
-    mockK8sResourceList(
-      hasWorkloads
-        ? [
-            mockWorkloadK8sResource({ k8sName: 'test-workload' }),
-            mockWorkloadK8sResource({ k8sName: 'test-workload-2' }),
-          ]
-        : [],
-    ),
+    mockK8sResourceList(workloads),
   );
   cy.intercept(
     {
@@ -129,7 +130,7 @@ describe('Workload Metrics', () => {
 
     cy.findByLabelText('Workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project');
-    cy.findByText('Status overview').should('exist');
+    globalDistributedWorkloads.findStatusOverviewCard().should('exist');
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project');
@@ -161,6 +162,31 @@ describe('Workload Metrics', () => {
     cy.findByText('No data science projects').should('exist');
   });
 
+  it('Should render the status overview chart', () => {
+    initIntercepts({});
+    globalDistributedWorkloads.visit();
+    cy.findByLabelText('Workload status tab').click();
+
+    const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
+    statusOverview.should('exist');
+    statusOverview.findByText('Succeeded: 2').should('exist');
+  });
+
+  it('Should render the status overview chart with pending fallback statuses', () => {
+    initIntercepts({
+      workloads: [
+        mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: null }),
+        mockWorkloadK8sResource({ k8sName: 'test-workload-2', mockStatus: null }),
+      ],
+    });
+    globalDistributedWorkloads.visit();
+    cy.findByLabelText('Workload status tab').click();
+
+    const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
+    statusOverview.should('exist');
+    statusOverview.findByText('Pending: 2').should('exist');
+  });
+
   it('Should render the workloads table', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
@@ -170,7 +196,7 @@ describe('Workload Metrics', () => {
   });
 
   it('Should render the workloads table with empty state', () => {
-    initIntercepts({ hasWorkloads: false });
+    initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
 
     cy.findByLabelText('Workload status tab').click();
@@ -178,7 +204,7 @@ describe('Workload Metrics', () => {
   });
 
   it('Should render the projects metrics with empty workload state', () => {
-    initIntercepts({ hasWorkloads: false });
+    initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
 
     cy.findByLabelText('Project metrics tab').click();
