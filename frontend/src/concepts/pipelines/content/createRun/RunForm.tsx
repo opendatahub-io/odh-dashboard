@@ -37,9 +37,9 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
     (version: PipelineVersionKFv2 | undefined) =>
       onValueChange(
         'params',
-        Object.keys(getInputDefinitionParams(version) || {}).reduce(
-          (acc: RuntimeConfigParameters, parameter) => {
-            acc[parameter] = paramsRef.current?.[parameter] ?? '';
+        Object.entries(getInputDefinitionParams(version) || {}).reduce(
+          (acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
+            acc[paramKey] = paramsRef.current?.[paramKey] ?? paramValue.defaultValue ?? '';
             return acc;
           },
           {},

@@ -40,13 +40,21 @@ const runTypeSafeDates = (runType: RunFormData['runType']): boolean =>
     isValidDate(runType.data.end) &&
     isStartBeforeEnd(runType.data.start, runType.data.end));
 
-export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunFormData =>
-  !!formData.nameDesc.name &&
-  !!formData.pipeline &&
-  !!formData.version &&
-  Object.values(formData.params || {}).every((param) => param !== '') &&
-  runTypeSafeData(formData.runType) &&
-  runTypeSafeDates(formData.runType);
+export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunFormData => {
+  const inputDefinitionParams = getInputDefinitionParams(formData.version);
+  const hasRequiredInputParams = Object.entries(formData.params || {}).every(
+    ([paramKey, paramValue]) => inputDefinitionParams?.[paramKey].isOptional || paramValue !== '',
+  );
+
+  return (
+    !!formData.nameDesc.name &&
+    !!formData.pipeline &&
+    !!formData.version &&
+    hasRequiredInputParams &&
+    runTypeSafeData(formData.runType) &&
+    runTypeSafeDates(formData.runType)
+  );
+};
 
 export const isFilledRunFormDataExperiment = (formData: RunFormData): formData is SafeRunFormData =>
   isFilledRunFormData(formData) && !!formData.experiment;
