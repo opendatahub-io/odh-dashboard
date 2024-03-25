@@ -12,7 +12,7 @@ export const DWStatusTrendsChart: React.FC = () => {
     return (
       <Card isFullHeight>
         <EmptyStateErrorMessage
-          title="Error loading workload status trends"
+          title="Error loading distributed workload status trends"
           bodyText={workloadTrendMetrics.error.message}
         />
       </Card>

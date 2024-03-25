@@ -11,7 +11,7 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
   if (projectMetrics.error) {
     return (
       <EmptyStateErrorMessage
-        title="Error loading workload metrics"
+        title="Error loading distributed workload metrics"
         bodyText={projectMetrics.error.message}
       />
     );
