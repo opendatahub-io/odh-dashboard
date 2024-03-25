@@ -53,7 +53,6 @@
                   "f:disablePerformanceMetrics": {},
                   "f:disableTracking": {},
                   "f:enablement": {},
-                  "f:modelMetricsNamespace": {}
                 },
                 "f:groupsConfig": { ".": {}, "f:adminGroups": {}, "f:allowedGroups": {} },
                 "f:notebookController": {
@@ -115,7 +114,6 @@
           "disableModelServing": false,
           "disableProjectSharing": false,
           "disableCustomServingRuntimes": false,
-          "modelMetricsNamespace": "",
           "disablePipelines": false,
           "disableKServe": false,
           "disableModelMesh": false
