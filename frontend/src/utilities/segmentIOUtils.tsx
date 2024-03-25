@@ -1,6 +1,22 @@
 import { TrackingEventProperties } from '~/types';
 import { DEV_MODE } from './const';
 
+// The following is like the original method below, but allows for more 'free form' properties.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/explicit-module-boundary-types
+export const fireTrackingEventRaw = (eventType: string, properties?: any): void => {
+  const clusterID = window.clusterID ?? '';
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(
+      `Telemetry event triggered: ${eventType}${
+        properties ? ` - ${JSON.stringify(properties)}` : ''
+      }`,
+    );
+  } else if (window.analytics) {
+    window.analytics.track(eventType, { ...properties, clusterID });
+  }
+};
+
 export const fireTrackingEvent = (
   eventType: string,
   properties?: TrackingEventProperties,
