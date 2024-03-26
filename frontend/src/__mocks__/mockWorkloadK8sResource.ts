@@ -4,10 +4,12 @@ import { WorkloadKind } from '~/k8sTypes';
 type MockResourceConfigType = {
   k8sName?: string;
   namespace?: string;
+  ownerJobName?: string;
 };
 export const mockWorkloadK8sResource = ({
   k8sName = 'test-workload',
   namespace = 'test-project',
+  ownerJobName,
 }: MockResourceConfigType): WorkloadKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta1',
   kind: 'Workload',
@@ -21,6 +23,20 @@ export const mockWorkloadK8sResource = ({
     namespace,
     resourceVersion: '9279356',
     uid: genUID('workload'),
+    ...(ownerJobName
+      ? {
+          ownerReferences: [
+            {
+              apiVersion: 'batch/v1',
+              blockOwnerDeletion: true,
+              controller: true,
+              kind: 'Job',
+              name: ownerJobName,
+              uid: genUID('job'),
+            },
+          ],
+        }
+      : {}),
   },
   spec: {
     active: true,

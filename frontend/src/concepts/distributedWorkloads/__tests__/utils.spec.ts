@@ -1,5 +1,9 @@
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { getStatusCounts, getStatusInfo } from '~/concepts/distributedWorkloads/utils';
+import {
+  getStatusCounts,
+  getStatusInfo,
+  getWorkloadOwnerJobName,
+} from '~/concepts/distributedWorkloads/utils';
 
 describe('getStatusInfo', () => {
   it('provides correct info for completed workload', () => {
@@ -26,5 +30,24 @@ describe('getStatusCounts', () => {
       Failed: 0,
       Unknown: 0,
     });
+  });
+});
+
+describe('getWorkloadOwnerJobName', () => {
+  it('returns the name of the job found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerJobName: 'test-job',
+    });
+    expect(getWorkloadOwnerJobName(mockWorkload)).toBe('test-job');
+  });
+
+  it('returns undefined if there is no job in ownerReferences', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+    });
+    expect(getWorkloadOwnerJobName(mockWorkload)).toBe(undefined);
   });
 });

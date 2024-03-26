@@ -70,6 +70,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
               </ToolbarItem>
             </ToolbarGroup>
           }
+          hasTimeRangeSelect={false}
         />
       ) : null}
       <PageSection isFilled>
