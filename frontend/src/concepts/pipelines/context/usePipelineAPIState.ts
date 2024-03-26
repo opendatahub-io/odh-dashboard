@@ -27,6 +27,9 @@ import {
   unarchivePipelineRun,
   createPipelineAndVersion,
   createPipelineVersion,
+  archiveExperiment,
+  unarchiveExperiment,
+  deleteExperiment,
 } from '~/api';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { APIState } from '~/concepts/proxy/types';
@@ -53,6 +56,7 @@ const usePipelineAPIState = (
       deletePipelineRun: deletePipelineRun(path),
       deletePipelineRunJob: deletePipelineRunJob(path),
       deletePipelineVersion: deletePipelineVersion(path),
+      deleteExperiment: deleteExperiment(path),
       listExperiments: listExperiments(path),
       listPipelines: listPipelines(path),
       listPipelineRuns: listPipelineRuns(path),
@@ -62,6 +66,8 @@ const usePipelineAPIState = (
       listPipelineVersions: listPipelineVersions(path),
       archivePipelineRun: archivePipelineRun(path),
       unarchivePipelineRun: unarchivePipelineRun(path),
+      archiveExperiment: archiveExperiment(path),
+      unarchiveExperiment: unarchiveExperiment(path),
       stopPipelineRun: stopPipelineRun(path),
       updatePipelineRunJob: updatePipelineRunJob(path),
       uploadPipeline: uploadPipeline(path),

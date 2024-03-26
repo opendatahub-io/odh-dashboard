@@ -173,14 +173,14 @@ describe('Pipeline runs', () => {
       });
 
       it('renders the page with table data', () => {
-        activeRunsTable.findRowByName('Test active run 1');
+        activeRunsTable.getRowByName('Test active run 1');
       });
 
       it('archive a single run', () => {
         const [runToArchive] = mockActiveRuns;
 
         activeRunsTable.mockArchiveRun(runToArchive.run_id);
-        activeRunsTable.selectRowActionByName(runToArchive.display_name, 'Archive');
+        activeRunsTable.getRowByName(runToArchive.display_name).findKebabAction('Archive').click();
 
         activeRunsTable.mockGetRuns([mockActiveRuns[1]], [runToArchive]);
         archiveRunModal.findConfirmInput().type(runToArchive.display_name);
@@ -188,13 +188,13 @@ describe('Pipeline runs', () => {
         activeRunsTable.shouldRowNotBeVisible(runToArchive.display_name);
 
         pipelineRunsGlobal.findArchivedRunsTab().click();
-        archivedRunsTable.findRowByName(runToArchive.display_name).should('exist');
+        archivedRunsTable.getRowByName(runToArchive.display_name).find().should('exist');
       });
 
       it('archive multiple runs', () => {
         mockActiveRuns.forEach((activeRun) => {
           activeRunsTable.mockArchiveRun(activeRun.run_id);
-          activeRunsTable.findRowByName(activeRun.display_name).findByLabelText('Checkbox').click();
+          activeRunsTable.getRowByName(activeRun.display_name).findCheckbox().click();
         });
 
         activeRunsTable.findActionsKebab().findDropdownItem('Archive').click();
@@ -205,7 +205,7 @@ describe('Pipeline runs', () => {
 
         pipelineRunsGlobal.findArchivedRunsTab().click();
         mockActiveRuns.forEach((run) =>
-          archivedRunsTable.findRowByName(run.display_name).should('exist'),
+          archivedRunsTable.getRowByName(run.display_name).find().should('exist'),
         );
       });
 
@@ -215,7 +215,10 @@ describe('Pipeline runs', () => {
           verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create`);
         });
         it('navigate to clone run page', () => {
-          activeRunsTable.selectRowActionByName(mockActiveRuns[0].display_name, 'Duplicate');
+          activeRunsTable
+            .getRowByName(mockActiveRuns[0].display_name)
+            .findKebabAction('Duplicate')
+            .click();
           verifyRelativeURL(
             `/pipelineRuns/${projectName}/pipelineRun/clone/${mockActiveRuns[0].run_id}`,
           );
@@ -230,9 +233,10 @@ describe('Pipeline runs', () => {
         });
         it('navigate to run details page', () => {
           activeRunsTable
-            .findRowByName(mockActiveRuns[0].display_name)
-            .findByText(mockActiveRuns[0].display_name)
+            .getRowByName(mockActiveRuns[0].display_name)
+            .findColumnName(mockActiveRuns[0].display_name)
             .click();
+
           verifyRelativeURL(
             `/pipelineRuns/${projectName}/pipelineRun/view/${mockActiveRuns[0].run_id}`,
           );
@@ -247,8 +251,8 @@ describe('Pipeline runs', () => {
             return;
           }
           activeRunsTable
-            .findRowByName(mockActiveRuns[0].display_name)
-            .findByText(selectedVersion.display_name)
+            .getRowByName(mockActiveRuns[0].display_name)
+            .findColumnVersion(selectedVersion.display_name)
             .click();
           verifyRelativeURL(
             `/pipelines/${projectName}/pipeline/view/${selectedVersion.pipeline_id}/${selectedVersion.pipeline_version_id}`,
@@ -257,14 +261,14 @@ describe('Pipeline runs', () => {
       });
 
       describe('Table filter', () => {
-        it('filter by run name', () => {
+        it('filter by name', () => {
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
-          // Select the "Name" filter, enter a value to filter by
+          // Select the "Run" filter, enter a value to filter by
           pipelineRunsGlobal
             .findActiveRunsToolbar()
-            .within(() => pipelineRunsGlobal.selectFilterByName('Name'));
+            .within(() => pipelineRunsGlobal.selectFilterByName('Run'));
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunFilterBar.findNameInput().type('run 1'));
@@ -277,7 +281,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the typed run name exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.findRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1');
         });
 
         it('filter by experiment', () => {
@@ -306,8 +310,8 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 2);
-          activeRunsTable.findRowByName('Test active run 1');
-          activeRunsTable.findRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 3');
         });
 
         it('filter by pipeline version', () => {
@@ -333,7 +337,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.findRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1');
         });
 
         it('filter by started', () => {
@@ -356,7 +360,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected start date exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.findRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 3');
 
           // Mock runs with a cleared filter before updating again
           activeRunsTable.mockGetRuns(mockActiveRuns, [], 1);
@@ -400,7 +404,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.findRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1');
 
           // Mock runs (filtered by a status of 'SUCCEEDED')
           activeRunsTable.mockGetActiveRuns(
@@ -416,7 +420,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.findRowByName('Test active run 2');
+          activeRunsTable.getRowByName('Test active run 2');
 
           // Mock runs (filtered by a status of 'CANCELED')
           activeRunsTable.mockGetActiveRuns(
@@ -432,7 +436,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.findRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 3');
         });
       });
     });
@@ -453,7 +457,7 @@ describe('Pipeline runs', () => {
 
       it('renders the page with table data', () => {
         mockArchivedRuns.forEach((archivedRun) =>
-          archivedRunsTable.findRowByName(archivedRun.display_name).should('exist'),
+          archivedRunsTable.getRowByName(archivedRun.display_name).find().should('exist'),
         );
       });
 
@@ -461,23 +465,23 @@ describe('Pipeline runs', () => {
         const [runToRestore] = mockArchivedRuns;
 
         archivedRunsTable.mockRestoreRun(runToRestore.run_id);
-        archivedRunsTable.selectRowActionByName(runToRestore.display_name, 'Restore');
+        archivedRunsTable
+          .getRowByName(runToRestore.display_name)
+          .findKebabAction('Restore')
+          .click();
 
         archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]]);
         restoreRunModal.findSubmitButton().click();
         archivedRunsTable.shouldRowNotBeVisible(runToRestore.display_name);
 
         pipelineRunsGlobal.findActiveRunsTab().click();
-        activeRunsTable.findRowByName(runToRestore.display_name).should('exist');
+        activeRunsTable.getRowByName(runToRestore.display_name).find().should('exist');
       });
 
       it('restore multiple runs', () => {
         mockArchivedRuns.forEach((archivedRun) => {
           archivedRunsTable.mockRestoreRun(archivedRun.run_id);
-          archivedRunsTable
-            .findRowByName(archivedRun.display_name)
-            .findByLabelText('Checkbox')
-            .click();
+          archivedRunsTable.getRowByName(archivedRun.display_name).findCheckbox().click();
         });
         pipelineRunsGlobal.findRestoreRunButton().click();
         archivedRunsTable.mockGetRuns(mockArchivedRuns, []);
@@ -486,7 +490,7 @@ describe('Pipeline runs', () => {
 
         pipelineRunsGlobal.findActiveRunsTab().click();
         mockArchivedRuns.forEach((run) =>
-          activeRunsTable.findRowByName(run.display_name).should('exist'),
+          activeRunsTable.getRowByName(run.display_name).find().should('exist'),
         );
       });
     });
@@ -504,7 +508,7 @@ describe('Pipeline runs', () => {
       });
 
       it('navigate to create run page', () => {
-        pipelineRunsGlobal.findCreateScheduleButton().click();
+        pipelineRunsGlobal.findScheduleRunButton().click();
         verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
       });
     });
@@ -523,32 +527,38 @@ describe('Pipeline runs', () => {
 
       it('renders the page with table rows', () => {
         pipelineRunJobTable.find().should('exist');
-        pipelineRunJobTable.findRowByName('test-pipeline').should('exist');
-        pipelineRunJobTable.findRowByName('other-pipeline').should('exist');
-        pipelineRunJobTable.findRowByName('another-pipeline').should('exist');
+        pipelineRunJobTable.getRowByName('test-pipeline').find().should('exist');
+        pipelineRunJobTable.getRowByName('other-pipeline').find().should('exist');
+        pipelineRunJobTable.getRowByName('another-pipeline').find().should('exist');
       });
 
       it('can disable a job', () => {
         pipelineRunJobTable.mockDisableJob(mockJobs[0]).as('disableJob');
-        pipelineRunJobTable.findStatusSwitchByRowName(mockJobs[0].display_name).click();
+        pipelineRunJobTable
+          .getRowByName(mockJobs[0].display_name)
+          .findStatusSwitchByRowName()
+          .click();
         cy.wait('@disableJob');
       });
 
       describe('Navigation', () => {
         it('navigate to create scheduled run page', () => {
-          pipelineRunsGlobal.findCreateScheduleButton().click();
+          pipelineRunsGlobal.findScheduleRunButton().click();
           verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
         });
         it('navigate to clone scheduled run page', () => {
-          pipelineRunJobTable.selectRowActionByName(mockJobs[0].display_name, 'Duplicate');
+          pipelineRunJobTable
+            .getRowByName(mockJobs[0].display_name)
+            .findKebabAction('Duplicate')
+            .click();
           verifyRelativeURL(
             `/pipelineRuns/${projectName}/pipelineRun/cloneJob/${mockJobs[0].recurring_run_id}?runType=scheduled`,
           );
         });
         it('navigate to scheduled run details page', () => {
           pipelineRunJobTable
-            .findRowByName(mockJobs[0].display_name)
-            .findByText(mockJobs[0].display_name)
+            .getRowByName(mockJobs[0].display_name)
+            .findColumnName(mockJobs[0].display_name)
             .click();
           verifyRelativeURL(
             `/pipelineRuns/${projectName}/pipelineRunJob/view/${mockJobs[0].recurring_run_id}`,
@@ -561,8 +571,8 @@ describe('Pipeline runs', () => {
           // Verify initial job rows exist
           pipelineRunJobTable.findRows().should('have.length', 3);
 
-          // Select the "Name" filter, enter a value to filter by
-          pipelineRunJobTable.selectFilterByName('Name');
+          // Select the "Schedule" filter, enter a value to filter by
+          pipelineRunJobTable.selectFilterByName('Schedule');
           pipelineRunJobTable.findFilterTextField().type('test-pipeline');
 
           // Mock jobs (filtered by typed job name)
@@ -572,7 +582,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the typed job name exist
           pipelineRunJobTable.findRows().should('have.length', 1);
-          pipelineRunJobTable.findRowByName('test-pipeline');
+          pipelineRunJobTable.getRowByName('test-pipeline');
         });
       });
     });

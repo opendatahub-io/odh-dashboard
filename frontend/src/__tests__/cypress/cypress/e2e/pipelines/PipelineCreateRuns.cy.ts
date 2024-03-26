@@ -68,10 +68,10 @@ describe('Pipeline create runs', () => {
 
   it('renders the page with scheduled and active runs table data', () => {
     pipelineRunsGlobal.findSchedulesTab().click();
-    pipelineRunJobTable.findRowByName('Test job');
+    pipelineRunJobTable.getRowByName('Test job');
 
     pipelineRunsGlobal.findActiveRunsTab().click();
-    activeRunsTable.findRowByName('Test run');
+    activeRunsTable.getRowByName('Test run');
   });
 
   describe('Runs', () => {
@@ -114,16 +114,17 @@ describe('Pipeline create runs', () => {
       // Fill out the form without a schedule and submit
       createRunPage.fillName('New run');
       createRunPage.fillDescription('New run description');
-      createRunPage.findExperimentSelect().should('not.be.disabled');
+      createRunPage.findExperimentSelect().should('not.be.disabled').click();
       createRunPage.selectExperimentByName('Test experiment 1');
-      createRunPage.findPipelineSelect().should('not.be.disabled');
+      createRunPage.findPipelineSelect().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.findPipelineVersionSelect().should('not.be.disabled');
 
       const parameters = createRunParams.runtime_config?.parameters || {};
-      createRunPage.findParamById('radio-min_max_scaler-false').click();
-      createRunPage.fillParamInputById('neighbors', String(parameters.neighbors));
-      createRunPage.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
+      paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
       createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRun');
       createRunPage.submit();
 
@@ -176,7 +177,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to clone run page for a given active run
       pipelineRunsGlobal.findActiveRunsTab().click();
-      activeRunsTable.selectRowActionByName(mockRun.display_name, 'Duplicate');
+      activeRunsTable.getRowByName(mockRun.display_name).findKebabAction('Duplicate').click();
       verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
@@ -185,9 +186,10 @@ describe('Pipeline create runs', () => {
       cloneRunPage
         .findPipelineVersionSelect()
         .should('have.text', mockPipelineVersion.display_name);
-      cloneRunPage.findParamById('radio-min_max_scaler-false').should('be.checked');
-      cloneRunPage.findParamById('neighbors').find('input').should('have.value', '1');
-      cloneRunPage.findParamById('standard_scaler').should('have.value', 'false');
+      const paramsSection = cloneRunPage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
+      paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
+      paramsSection.findParamById('standard_scaler').should('have.value', 'false');
 
       cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('duplicateRun');
       cloneRunPage.submit();
@@ -288,23 +290,24 @@ describe('Pipeline create runs', () => {
 
       // Fill out the form with all input parameters
       createRunPage.fillName('New run');
-      createRunPage.findExperimentSelect().should('not.be.disabled');
+      createRunPage.findExperimentSelect().should('not.be.disabled').click();
       createRunPage.selectExperimentByName('Test experiment 1');
-      createRunPage.findPipelineSelect().should('not.be.disabled');
+      createRunPage.findPipelineSelect().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.findPipelineVersionSelect().should('not.be.disabled');
 
       const parameters = createRunParams.runtime_config?.parameters || {};
-      createRunPage.fillParamInputById('string_param', String(parameters.string_param));
-      createRunPage.fillParamInputById('double_param', String(parameters.double_param));
-      createRunPage
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.fillParamInputById('string_param', String(parameters.string_param));
+      paramsSection.fillParamInputById('double_param', String(parameters.double_param));
+      paramsSection
         .findParamById('int_param')
         .find('input')
         .clear()
         .type(String(parameters.int_param));
-      createRunPage.fillParamInputById('struct_param', JSON.stringify(parameters.struct_param));
-      createRunPage.fillParamInputById('list_param', JSON.stringify(parameters.list_param));
-      createRunPage.findParamById('radio-bool_param-false').click();
+      paramsSection.fillParamInputById('struct_param', JSON.stringify(parameters.struct_param));
+      paramsSection.fillParamInputById('list_param', JSON.stringify(parameters.list_param));
+      paramsSection.findParamById('radio-bool_param-false').click();
 
       createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRuns');
       createRunPage.submit();
@@ -379,29 +382,25 @@ describe('Pipeline create runs', () => {
         mockPipelineVersion.pipeline_id,
       );
 
-      // Mock jobs list with newly created job
-      pipelineRunJobTable
-        .mockGetJobs([...initialMockRecurringRuns, buildMockJobKF(createRecurringRunParams)])
-        .as('refreshRecurringRuns');
-
       // Navigate to the 'Create run' page
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
       verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
       createSchedulePage.find();
 
       // Fill out the form with a schedule and submit
       createSchedulePage.fillName('New job');
       createSchedulePage.fillDescription('New job description');
-      createSchedulePage.findExperimentSelect().should('not.be.disabled');
+      createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
-      createSchedulePage.findPipelineSelect().should('not.be.disabled');
+      createSchedulePage.findPipelineSelect().should('not.be.disabled').click();
       createSchedulePage.selectPipelineByName('Test pipeline');
       createSchedulePage.findPipelineVersionSelect().should('not.be.disabled');
 
       const parameters = createRecurringRunParams.runtime_config?.parameters || {};
-      createRunPage.findParamById('radio-min_max_scaler-false').click();
-      createRunPage.fillParamInputById('neighbors', String(parameters.neighbors));
-      createRunPage.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
+      paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
       createSchedulePage
         .mockCreateRecurringRun(mockPipelineVersion, createRecurringRunParams)
         .as('createSchedule');
@@ -433,16 +432,10 @@ describe('Pipeline create runs', () => {
         });
       });
 
-      // Should show newly created schedule in the table
-      cy.wait('@refreshRecurringRuns').then((interception) => {
-        expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/recurringruns',
-          method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
-          queryParams: { sort_by: 'created_at desc', page_size: 10 },
-        });
-      });
-      pipelineRunJobTable.findRowByName('New job');
+      // Should be redirected to the schedule details page
+      verifyRelativeURL(
+        `/pipelineRuns/${projectName}/pipelineRunJob/view/${createRecurringRunParams.recurring_run_id}`,
+      );
     });
 
     it('duplicates a schedule', () => {
@@ -466,13 +459,11 @@ describe('Pipeline create runs', () => {
       cloneSchedulePage.mockGetPipeline(mockPipeline);
       cloneSchedulePage.mockGetExperiment(mockExperiment);
 
-      // Mock jobs list with newly cloned job
-      pipelineRunJobTable
-        .mockGetJobs([...initialMockRecurringRuns, mockDuplicateRecurringRun])
-        .as('refreshRecurringRuns');
-
       // Navigate to clone run page for a given schedule
-      pipelineRunJobTable.selectRowActionByName(mockRecurringRun.display_name, 'Duplicate');
+      pipelineRunJobTable
+        .getRowByName(mockRecurringRun.display_name)
+        .findKebabAction('Duplicate')
+        .click();
       verifyRelativeURL(
         `/pipelineRuns/${projectName}/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
       );
@@ -483,9 +474,10 @@ describe('Pipeline create runs', () => {
       cloneSchedulePage
         .findPipelineVersionSelect()
         .should('have.text', mockPipelineVersion.display_name);
-      cloneSchedulePage.findParamById('radio-min_max_scaler-false').should('be.checked');
-      cloneSchedulePage.findParamById('neighbors').find('input').should('have.value', '0');
-      cloneSchedulePage.findParamById('standard_scaler').should('have.value', 'yes');
+      const paramsSection = cloneSchedulePage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
+      paramsSection.findParamById('neighbors').find('input').should('have.value', '0');
+      paramsSection.findParamById('standard_scaler').should('have.value', 'yes');
       cloneSchedulePage
         .mockCreateRecurringRun(mockPipelineVersion, mockDuplicateRecurringRun)
         .as('duplicateSchedule');
@@ -523,21 +515,14 @@ describe('Pipeline create runs', () => {
         });
       });
 
-      // Should show newly cloned schedule in the table
-      cy.wait('@refreshRecurringRuns').then((interception) => {
-        expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/recurringruns',
-          method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
-          queryParams: { sort_by: 'created_at desc', page_size: 10 },
-        });
-      });
-
-      pipelineRunJobTable.findRowByName('Duplicate of Test job');
+      // Should be redirected to the schedule details page
+      verifyRelativeURL(
+        `/pipelineRuns/${projectName}/pipelineRunJob/view/${mockDuplicateRecurringRun.recurring_run_id}`,
+      );
     });
 
     it('shows cron & periodic fields', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findScheduledRunTypeSelector().click();
       createSchedulePage.findScheduledRunTypeSelectorPeriodic().click();
@@ -551,7 +536,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should start concurrent at the max, 10', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldMinus().should('be.enabled');
       createSchedulePage.findMaxConcurrencyFieldPlus().should('be.disabled');
@@ -559,7 +544,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should allow the concurrency to update via +/-', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldMinus().click();
       createSchedulePage.findMaxConcurrencyFieldMinus().click();
@@ -570,7 +555,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should not allow concurrency to go under or above the bounds', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldValue().fill('0');
       createSchedulePage.findMaxConcurrencyFieldValue().should('have.value', 1);
@@ -580,7 +565,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should hide and show date toggles', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findStartDatePickerDate().should('not.be.visible');
       createSchedulePage.findStartDatePickerTime().should('not.be.visible');
@@ -596,7 +581,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should see catch up is enabled by default', () => {
-      pipelineRunsGlobal.findCreateScheduleButton().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findCatchUpSwitchValue().should('be.checked');
       createSchedulePage.findCatchUpSwitch().click();

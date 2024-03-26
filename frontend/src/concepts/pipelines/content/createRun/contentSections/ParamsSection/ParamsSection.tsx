@@ -70,7 +70,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
           input = <NumberInputParam isFloat {...inputProps} />;
           break;
         case InputDefinitionParameterType.STRING:
-          input = <TextInput {...inputProps} value={String(value)} />;
+          input = <TextInput data-testid={inputProps.id} {...inputProps} value={String(value)} />;
       }
 
       return (
@@ -91,6 +91,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
   return (
     <FormSection
       id={CreateRunPageSections.PARAMS}
+      data-testid={CreateRunPageSections.PARAMS}
       title={runPageSectionTitles[CreateRunPageSections.PARAMS]}
     >
       {renderContent()}

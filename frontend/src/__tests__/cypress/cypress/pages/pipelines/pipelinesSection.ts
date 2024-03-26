@@ -3,12 +3,20 @@ class PipelinesSection {
     return cy.findByTestId('section-pipelines-projects');
   }
 
+  findCreatePipelineButton() {
+    return cy.findByTestId('create-pipeline-button');
+  }
+
   findImportPipelineButton() {
+    return cy.findByTestId('import-pipeline-button');
+  }
+
+  findImportPipelineSplitButton() {
     return cy.findByTestId('import-pipeline-split-button');
   }
 
   findUploadVersionButton() {
-    return cy.get('#import-pipeline-version-button');
+    return this.find().find('#import-pipeline-version-button');
   }
 
   findAllActions() {

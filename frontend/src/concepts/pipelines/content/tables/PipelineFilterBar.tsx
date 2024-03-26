@@ -19,7 +19,7 @@ type FilterOptionRenders = {
 type Child = React.ReactElement<typeof ToolbarItem>;
 type PipelineFilterBarProps<Options extends FilterOptions> = {
   children: Child | Child[];
-  filterOptions: Record<Options, string>;
+  filterOptions: { [key in Options]?: string };
   filterOptionRenders: Record<Options, (props: FilterOptionRenders) => React.ReactNode>;
   filterData: Record<Options, string | { label: string; value: string } | undefined>;
   onFilterUpdate: (filterType: Options, value?: string | { label: string; value: string }) => void;

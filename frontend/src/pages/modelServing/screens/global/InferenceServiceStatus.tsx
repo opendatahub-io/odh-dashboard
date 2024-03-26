@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { Text, Icon, Spinner, Tooltip } from '@patternfly/react-core';
+import { Text, Icon, Tooltip } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
+  InProgressIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
@@ -13,11 +14,13 @@ import { useModelStatus } from './useModelStatus';
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
   isKserve: boolean;
+  iconSize?: React.ComponentProps<typeof Icon>['iconSize'];
 };
 
 const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   inferenceService,
   isKserve,
+  iconSize,
 }) => {
   const [modelStatus] = useModelStatus(
     inferenceService.metadata.namespace,
@@ -41,6 +44,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             status="success"
             isInline
             tabIndex={0}
+            iconSize={iconSize}
           >
             <CheckCircleIcon />
           </Icon>
@@ -54,6 +58,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             status="danger"
             isInline
             tabIndex={0}
+            iconSize={iconSize}
           >
             <ExclamationCircleIcon />
           </Icon>
@@ -61,8 +66,8 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       case InferenceServiceModelState.PENDING:
       case InferenceServiceModelState.LOADING:
         return (
-          <Icon isInline>
-            <Spinner size="md" />
+          <Icon isInline iconSize={iconSize}>
+            <InProgressIcon />
           </Icon>
         );
       case InferenceServiceModelState.UNKNOWN:
@@ -74,6 +79,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             status="warning"
             isInline
             tabIndex={0}
+            iconSize={iconSize}
           >
             <OutlinedQuestionCircleIcon />
           </Icon>
@@ -87,6 +93,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             status="warning"
             isInline
             tabIndex={0}
+            iconSize={iconSize}
           >
             <OutlinedQuestionCircleIcon />
           </Icon>

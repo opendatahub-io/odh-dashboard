@@ -5,12 +5,13 @@ import {
   DropdownSeparator,
   DropdownToggle,
 } from '@patternfly/react-core/deprecated';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
-import { routePipelineRunJobCloneNamespace } from '~/routes';
+import { cloneScheduleRoute } from '~/routes';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type PipelineRunJobDetailsActionsProps = {
   job?: PipelineRunJobKFv2;
@@ -24,6 +25,8 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
+  const { experimentId } = useParams();
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
     <Dropdown
@@ -44,12 +47,16 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
                 key="clone-run"
                 onClick={() =>
                   navigate({
-                    pathname: routePipelineRunJobCloneNamespace(namespace, job.recurring_run_id),
+                    pathname: cloneScheduleRoute(
+                      namespace,
+                      job.recurring_run_id,
+                      isExperimentsAvailable ? experimentId : undefined,
+                    ),
                     search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
                   })
                 }
               >
-                Duplicate run
+                Duplicate
               </DropdownItem>,
               <DropdownSeparator key="separator" />,
               <DropdownItem key="delete-run" onClick={() => onDelete()}>

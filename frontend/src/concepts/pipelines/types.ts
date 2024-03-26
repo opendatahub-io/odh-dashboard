@@ -30,12 +30,10 @@ export type PipelineParams = {
   sortDirection?: 'asc' | 'desc';
   filter?: PipelinesFilter;
 };
-export type PipelineParamsWithExperiments = PipelineParams & { experiment_id?: string };
+export type PipelineRunParams = PipelineParams & { experimentId?: string };
 
 export type PipelineOptions = Omit<PipelineParams, 'pageToken'> & { page?: number };
-export type PipelineOptionsWithExperiments = PipelineOptions & {
-  experiment_id?: string;
-};
+export type PipelineRunOptions = Omit<PipelineRunParams, 'pageToken'> & { page?: number };
 
 export type PipelineListPaged<T extends PipelineCoreResourceKFv2> = {
   totalSize: number;
@@ -87,6 +85,7 @@ export type DeletePipelineVersion = (
   pipelineId: string,
   pipelineVersionId: string,
 ) => Promise<void>;
+export type DeleteExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<void>;
 export type ListExperiments = (
   opts: K8sAPIOptions,
   params?: PipelineParams,
@@ -97,11 +96,11 @@ export type ListPipelines = (
 ) => Promise<ListPipelinesResponseKF>;
 export type ListPipelineRuns = (
   opts: K8sAPIOptions,
-  params?: PipelineParamsWithExperiments,
+  params?: PipelineRunParams,
 ) => Promise<ListPipelineRunsResourceKF>;
 export type ListPipelineRunJobs = (
   opts: K8sAPIOptions,
-  params?: PipelineParams,
+  params?: PipelineRunParams,
 ) => Promise<ListPipelineRunJobsResourceKF>;
 export type ListPipelineVersions = (
   opts: K8sAPIOptions,
@@ -114,6 +113,7 @@ export type UpdatePipelineRunJob = (
   jobId: string,
   enabled: boolean,
 ) => Promise<void>;
+export type UpdateExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<void>;
 export type UploadPipeline = (
   opts: K8sAPIOptions,
   name: string,
@@ -143,6 +143,7 @@ export type PipelineAPIs = {
   deletePipelineRun: DeletePipelineRun;
   deletePipelineRunJob: DeletePipelineRunJob;
   deletePipelineVersion: DeletePipelineVersion;
+  deleteExperiment: DeleteExperiment;
   listExperiments: ListExperiments;
   listPipelines: ListPipelines;
   listPipelineRuns: ListPipelineRuns;
@@ -152,6 +153,8 @@ export type PipelineAPIs = {
   listPipelineVersions: ListPipelineVersions;
   archivePipelineRun: UpdatePipelineRun;
   unarchivePipelineRun: UpdatePipelineRun;
+  archiveExperiment: UpdateExperiment;
+  unarchiveExperiment: UpdateExperiment;
   stopPipelineRun: UpdatePipelineRun;
   updatePipelineRunJob: UpdatePipelineRunJob;
   uploadPipeline: UploadPipeline;

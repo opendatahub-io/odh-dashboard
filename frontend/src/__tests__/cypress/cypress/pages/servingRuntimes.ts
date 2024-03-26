@@ -69,7 +69,7 @@ class ServingRuntimes {
     return cy.findByRole('button', { name: 'Start from scratch' });
   }
 
-  findCreateButton() {
+  findSubmitButton() {
     return cy.findByTestId('create-button');
   }
 
@@ -97,13 +97,17 @@ class ServingRuntimes {
     return this;
   }
 
-  shouldSelectPlatform(value: string) {
+  selectPlatform(value: string) {
     this.findSelectServingPlatformButton().click();
     cy.findByRole('menuitem', { name: value }).click();
   }
 
-  shouldSelectAPIProtocol(value: string) {
+  selectAPIProtocol(value: string) {
     cy.findByRole('menuitem', { name: value }).click();
+  }
+
+  uploadYaml(filePath: string) {
+    this.getDashboardCodeEditor().findUpload().selectFile([filePath], { force: true });
   }
 
   getDashboardCodeEditor() {

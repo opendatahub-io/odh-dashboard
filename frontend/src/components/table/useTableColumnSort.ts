@@ -3,6 +3,7 @@ import { GetColumnSort, SortableData } from './types';
 
 type TableColumnSortProps<DataType> = {
   columns: SortableData<DataType>[];
+  subColumns?: SortableData<DataType>[];
   sortDirection?: 'asc' | 'desc';
   setSortDirection: (dir: 'asc' | 'desc') => void;
 };
@@ -19,12 +20,14 @@ type TableColumnSortByIndexProps<DataType> = TableColumnSortProps<DataType> & {
 
 export const getTableColumnSort = <T>({
   columns,
+  subColumns,
   sortField,
   setSortField,
   ...sortProps
 }: TableColumnSortByFieldProps<T>): GetColumnSort =>
   getTableColumnSortByIndex<T>({
     columns,
+    subColumns,
     sortIndex: columns.findIndex((c) => c.field === sortField),
     setSortIndex: (index: number) => setSortField(String(columns[index].field)),
     ...sortProps,
@@ -33,13 +36,17 @@ export const getTableColumnSort = <T>({
 const getTableColumnSortByIndex =
   <T>({
     columns,
+    subColumns,
     sortIndex,
     sortDirection,
     setSortIndex,
     setSortDirection,
   }: TableColumnSortByIndexProps<T>): GetColumnSort =>
   (columnIndex: number) =>
-    columns[columnIndex].sortable
+    (columnIndex < columns.length
+      ? columns[columnIndex]
+      : subColumns?.[columnIndex - columns.length]
+    )?.sortable
       ? {
           sortBy: {
             index: sortIndex,
@@ -63,6 +70,7 @@ const getTableColumnSortByIndex =
  */
 const useTableColumnSort = <T>(
   columns: SortableData<T>[],
+  subColumns: SortableData<T>[],
   defaultSortColIndex?: number,
 ): {
   transformData: (data: T[]) => T[];
@@ -82,7 +90,10 @@ const useTableColumnSort = <T>(
       }
 
       return [...data].sort((a, b) => {
-        const columnField = columns[activeSortIndex];
+        const columnField =
+          activeSortIndex < columns.length
+            ? columns[activeSortIndex]
+            : subColumns[activeSortIndex - columns.length];
 
         const compute = () => {
           if (typeof columnField.sortable === 'function') {
@@ -110,6 +121,7 @@ const useTableColumnSort = <T>(
     },
     getColumnSort: getTableColumnSortByIndex<T>({
       columns,
+      subColumns,
       sortDirection: activeSortDirection,
       setSortDirection: setActiveSortDirection,
       sortIndex: activeSortIndex,

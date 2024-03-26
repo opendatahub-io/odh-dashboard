@@ -55,25 +55,28 @@ export const useWatchGroups = (): {
     }
   }, [errorAdmin, errorUser, notification]);
 
-  const updateGroups = (group: GroupsConfig) => {
-    setIsLoading(true);
-    updateGroupsSettings(group)
-      .then((response) => {
-        setGroupSettings(response);
-        notification.success(
-          'Group settings changes saved',
-          'It may take up to 2 minutes for configuration changes to be applied.',
-        );
-      })
-      .catch((error) => {
-        setLoadError(error);
-        setLoaded(false);
-      })
-      .finally(() => {
-        setIsLoading(false);
-        setIsGroupSettingsChanged(false);
-      });
-  };
+  const updateGroups = React.useCallback(
+    (group: GroupsConfig) => {
+      setIsLoading(true);
+      updateGroupsSettings(group)
+        .then((response) => {
+          setGroupSettings(response);
+          notification.success(
+            'Group settings changes saved',
+            'It may take up to 2 minutes for configuration changes to be applied.',
+          );
+        })
+        .catch((error) => {
+          setLoadError(error);
+          setLoaded(false);
+        })
+        .finally(() => {
+          setIsLoading(false);
+          setIsGroupSettingsChanged(false);
+        });
+    },
+    [notification],
+  );
 
   return {
     groupSettings,

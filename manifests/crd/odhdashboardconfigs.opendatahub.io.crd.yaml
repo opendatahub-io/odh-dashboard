@@ -65,6 +65,8 @@ spec:
                       type: boolean
                     disableDistributedWorkloads:
                       type: boolean
+                    disableModelRegistry:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

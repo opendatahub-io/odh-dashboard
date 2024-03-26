@@ -3,7 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
-import { globPipelineRunsAll, globPipelinesAll } from '~/routes';
+import { globExperimentsAll, globPipelineRunsAll, globPipelinesAll } from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
 const InstalledApplications = React.lazy(
@@ -50,6 +50,8 @@ const AcceleratorProfileRoutes = React.lazy(
   () => import('../pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
 );
 
+const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
+
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
@@ -82,9 +84,11 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
 
+        <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
+
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
         <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
-        <Route path="/pipelineExperiments/*" element={<GlobalPipelineExperimentRoutes />} />
+        <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 

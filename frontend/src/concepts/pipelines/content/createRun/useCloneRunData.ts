@@ -8,9 +8,9 @@ const useCloneRunData = (): [
   loaded: boolean,
   error: Error | undefined,
 ] => {
-  const { pipelineRunId, pipelineRunJobId } = useParams();
-  const [run, runLoaded, runError] = usePipelineRunById(pipelineRunId);
-  const [job, jobLoaded, jobError] = usePipelineRunJobById(pipelineRunJobId);
+  const { runId, recurringRunId } = useParams();
+  const [run, runLoaded, runError] = usePipelineRunById(runId);
+  const [job, jobLoaded, jobError] = usePipelineRunJobById(recurringRunId);
 
   if (jobLoaded || jobError) {
     return [job, jobLoaded, jobError];

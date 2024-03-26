@@ -75,7 +75,7 @@ class ModelMetricsBias extends ModelMetricsGlobal {
   }
 
   findConfigSelector() {
-    return cy.get('#bias-metric-config-selector');
+    return cy.findByTestId('bias-metric-config-toolbar').find('#bias-metric-config-selector');
   }
 
   shouldNotBeConfigured() {
@@ -136,15 +136,15 @@ class ConfigureBiasMetricModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: 'Configure' });
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
   findMetricNameInput() {
-    return this.find().find('#metric-name');
+    return this.find().findByTestId('metric-name-input');
   }
 
   findProtectedAttributeInput() {
-    return this.find().find('#protected-attribute');
+    return this.find().findByTestId('protected-attribute');
   }
 
   findMetricTypeSelect() {
@@ -152,27 +152,27 @@ class ConfigureBiasMetricModal extends Modal {
   }
 
   findPrivilegedValueInput() {
-    return this.find().find('#privileged-value');
+    return this.find().findByTestId('privileged-value');
   }
 
   findUnprivilegedValueInput() {
-    return this.find().find('#unprivileged-value');
+    return this.find().findByTestId('unprivileged-value');
   }
 
   findOutputInput() {
-    return this.find().find('#output');
+    return this.find().findByTestId('output');
   }
 
   findOutputValueInput() {
-    return this.find().find('#output-value');
+    return this.find().findByTestId('output-value');
   }
 
   findViolationThresholdInput() {
-    return this.find().find('#violation-threshold');
+    return this.find().findByTestId('violation-threshold');
   }
 
   findMetricBatchSizeInput() {
-    return this.find().find('#metric-batch-size');
+    return this.find().findByTestId('metric-batch-size');
   }
 }
 

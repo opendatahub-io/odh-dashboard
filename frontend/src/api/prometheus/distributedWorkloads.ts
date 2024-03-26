@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { FetchStateObject, PrometheusQueryRangeResultValue } from '~/types';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-// TODO mturley these imports from ~/pages/modelServing/* should be moved somewhere page-agnostic
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { TimeframeTitle } from '~/concepts/metrics/types';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import usePrometheusNumberValueQuery from './usePrometheusNumberValueQuery';
 import { defaultResponsePredicate } from './usePrometheusQueryRange';
@@ -27,6 +26,8 @@ const getDWProjectMetricsQueries = (namespace: string): Record<DWProjectMetricTy
   cpuUtilized: `namespace=${namespace}&query=pod:container_cpu_usage:sum{namespace='${namespace}'}`,
 });
 
+// TODO mturley add unit tests for useDWProjectMetrics once RBAC issues are settled and we know these are really the queries we need
+
 export const useDWProjectMetrics = (namespace?: string, refreshRate = 0): DWProjectMetrics => {
   const queries = namespace ? getDWProjectMetricsQueries(namespace) : undefined;
   const data: DWProjectMetrics['data'] = {
@@ -45,77 +46,6 @@ export const useDWProjectMetrics = (namespace?: string, refreshRate = 0): DWProj
       cpuRequestedRefresh();
       cpuUtilizedRefresh();
     }, [cpuRequestedRefresh, cpuUtilizedRefresh]),
-    loaded: Object.values(data).every(({ loaded }) => loaded),
-    error: Object.values(data).find(({ error }) => !!error)?.error,
-  };
-};
-
-export type DWWorkloadCurrentMetricsValues = {
-  numJobsActive: number;
-  numJobsSucceeded: number;
-  numJobsFailed: number;
-  numJobsInadmissible: number;
-  numJobsPending: number;
-};
-export type DWWorkloadCurrentMetricType = keyof DWWorkloadCurrentMetricsValues;
-export type DWWorkloadCurrentMetrics = FetchStateObject<{
-  [key in DWWorkloadCurrentMetricType]: FetchStateObject<
-    DWWorkloadCurrentMetricsValues[key] | undefined
-  >;
-}>;
-
-const getDWWorkloadCurrentMetricsQueries = (
-  namespace: string,
-): Record<DWWorkloadCurrentMetricType, string> => ({
-  numJobsActive: `namespace=${namespace}&query=kube_job_status_active`,
-  numJobsSucceeded: `namespace=${namespace}&query=kube_job_status_succeeded`,
-  numJobsFailed: `namespace=${namespace}&query=kube_job_status_failed`,
-  numJobsInadmissible: `namespace=${namespace}&query=kueue_pending_workloads{status='inadmissible'}`,
-  numJobsPending: `namespace=${namespace}&query=kueue_pending_workloads{status!='inadmissible'}`,
-});
-
-export const useDWWorkloadCurrentMetrics = (
-  namespace?: string,
-  refreshRate = 0,
-): DWWorkloadCurrentMetrics => {
-  const queries = namespace ? getDWWorkloadCurrentMetricsQueries(namespace) : undefined;
-  const data: DWWorkloadCurrentMetrics['data'] = {
-    numJobsActive: useMakeFetchObject(
-      usePrometheusNumberValueQuery(queries?.numJobsActive, refreshRate),
-    ),
-    numJobsSucceeded: useMakeFetchObject(
-      usePrometheusNumberValueQuery(queries?.numJobsSucceeded, refreshRate),
-    ),
-    numJobsFailed: useMakeFetchObject(
-      usePrometheusNumberValueQuery(queries?.numJobsFailed, refreshRate),
-    ),
-    numJobsInadmissible: useMakeFetchObject(
-      usePrometheusNumberValueQuery(queries?.numJobsInadmissible, refreshRate),
-    ),
-    numJobsPending: useMakeFetchObject(
-      usePrometheusNumberValueQuery(queries?.numJobsPending, refreshRate),
-    ),
-  };
-  const numJobsActiveRefresh = data.numJobsActive.refresh;
-  const numJobsSucceededRefresh = data.numJobsSucceeded.refresh;
-  const numJobsFailedRefresh = data.numJobsFailed.refresh;
-  const numJobsInadmissibleRefresh = data.numJobsInadmissible.refresh;
-  const numJobsPendingRefresh = data.numJobsPending.refresh;
-  return {
-    data,
-    refresh: React.useCallback(() => {
-      numJobsActiveRefresh();
-      numJobsSucceededRefresh();
-      numJobsFailedRefresh();
-      numJobsInadmissibleRefresh();
-      numJobsPendingRefresh();
-    }, [
-      numJobsActiveRefresh,
-      numJobsSucceededRefresh,
-      numJobsFailedRefresh,
-      numJobsInadmissibleRefresh,
-      numJobsPendingRefresh,
-    ]),
     loaded: Object.values(data).every(({ loaded }) => loaded),
     error: Object.values(data).find(({ error }) => !!error)?.error,
   };
@@ -141,6 +71,8 @@ const getDWWorkloadTrendMetricsQueries = (
   jobsInadmissibleTrend: `kueue_pending_workloads{status='inadmissible', namespace='${namespace}'}`,
   jobsPendingTrend: `kueue_pending_workloads{status!='inadmissible', namespace='${namespace}'}`,
 });
+
+// TODO mturley this workloadTrendMetrics is currently unused until RBAC issues are resolved and the DWStatusTrendsChart is restored.
 
 export const useDWWorkloadTrendMetrics = (
   timeframe: TimeframeTitle,

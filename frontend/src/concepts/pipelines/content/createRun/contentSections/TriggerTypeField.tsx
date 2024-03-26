@@ -30,7 +30,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
   switch (data.triggerType) {
     case ScheduledType.CRON:
       content = (
-        <FormGroup label="Cron string">
+        <FormGroup label="Cron string" data-testid="cron-string-group">
           <ClipboardCopy
             hoverTip="Copy"
             clickTip="Copied"
@@ -47,7 +47,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
       break;
     case ScheduledType.PERIODIC:
       content = (
-        <FormGroup label="Run every">
+        <FormGroup label="Run every" data-testid="run-every-group">
           <Split hasGutter>
             <SplitItem>
               <NumberInputWrapper

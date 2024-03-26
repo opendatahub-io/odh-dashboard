@@ -111,6 +111,17 @@ export const proxyUPDATE = <T>(
     parseJSON: options?.parseJSON,
   });
 
+export const proxyPATCH = <T>(
+  host: string,
+  path: string,
+  data: Record<string, unknown>,
+  options?: K8sAPIOptions,
+): Promise<T> =>
+  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'PATCH' }), {
+    data,
+    parseJSON: options?.parseJSON,
+  });
+
 export const proxyDELETE = <T>(
   host: string,
   path: string,

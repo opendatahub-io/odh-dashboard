@@ -883,14 +883,7 @@ export type WorkloadKind = K8sResourceCommon & {
         tolerations?: Toleration[];
       }[];
     }[];
-    conditions?: {
-      lastTransitionTime: string;
-      message: string;
-      observedGeneration?: number;
-      reason: string;
-      status: 'True' | 'False' | 'Unknown';
-      type: string;
-    }[];
+    conditions?: WorkloadCondition[];
     reclaimablePods?: {
       count: number;
       name: string;
@@ -900,6 +893,15 @@ export type WorkloadKind = K8sResourceCommon & {
       requeueAt?: string;
     };
   };
+};
+
+export type WorkloadCondition = {
+  lastTransitionTime: string;
+  message: string;
+  observedGeneration?: number;
+  reason: string;
+  status: 'True' | 'False' | 'Unknown';
+  type: string;
 };
 
 export type AccessReviewResourceAttributes = {
@@ -1134,6 +1136,7 @@ export type DashboardCommonConfig = {
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
   disablePipelineExperiments: boolean;
   disableDistributedWorkloads: boolean;
+  disableModelRegistry: boolean;
 };
 
 export type OperatorStatus = {
@@ -1196,4 +1199,32 @@ export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in StackComponent]?: boolean };
   phase?: string;
+};
+
+export type ModelRegistryKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    grpc: {
+      port: number;
+    };
+    rest: {
+      port: number;
+      serviceRoute: string;
+    };
+    mysql: {
+      database: string;
+      host: string;
+      port?: number;
+    };
+    postgres: {
+      database: string;
+      host?: string;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+  };
 };

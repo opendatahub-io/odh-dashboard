@@ -11,13 +11,15 @@ import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { routePipelinesNamespace } from '~/routes';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPi = usePipelinesAPI();
 
   return (
     <PipelineCoreApplicationPage
-      title={pipelinesPageTitle}
+      title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
       description={pipelinesPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />}
       getRedirectPath={routePipelinesNamespace}

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Bullseye,
-  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
@@ -13,6 +12,7 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
 import { useActiveExperiments } from '~/concepts/pipelines/apiHooks/useExperiments';
 import ActiveExperimentTable from '~/concepts/pipelines/content/tables/experiment/ActiveExperimentTable';
+import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
 
 const ActiveExperimentsList: React.FC = () => {
   const [[{ items: experiments, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
@@ -51,7 +51,7 @@ const ActiveExperimentsList: React.FC = () => {
         />
         <EmptyStateBody>Click the button below to create a new active experiment.</EmptyStateBody>
         <EmptyStateFooter>
-          <Button>Create experiment</Button>
+          <CreateExperimentButton />
         </EmptyStateFooter>
       </EmptyState>
     );

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
+import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getModelMetricsQueries } from '~/pages/modelServing/screens/metrics/utils';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
@@ -16,13 +17,15 @@ const ProjectModelMetricsWrapper: React.FC = () => (
     {(model, currentProject) => {
       const queries = getModelMetricsQueries(model);
       return (
-        <ModelServingMetricsProvider
-          queries={queries}
-          type={PerformanceMetricType.MODEL}
-          namespace={currentProject.metadata.name}
-        >
-          <Outlet context={{ model, currentProject }} />
-        </ModelServingMetricsProvider>
+        <MetricsCommonContextProvider>
+          <ModelServingMetricsProvider
+            queries={queries}
+            type={PerformanceMetricType.MODEL}
+            namespace={currentProject.metadata.name}
+          >
+            <Outlet context={{ model, currentProject }} />
+          </ModelServingMetricsProvider>
+        </MetricsCommonContextProvider>
       );
     }}
   </ProjectModelMetricsPathWrapper>

@@ -7,6 +7,8 @@ import { DistributedWorkloadsContextProvider } from '~/concepts/distributedWorkl
 import { DistributedWorkloadsTabConfig } from '~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
 import DistributedWorkloadsNoProjects from '~/pages/distributedWorkloads/global/DistributedWorkloadsNoProjects';
 import GlobalDistributedWorkloadsTabs from '~/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs';
+import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
+import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 
 const title = 'Workload Metrics';
 const description = 'Monitor the metrics of your active resources.';
@@ -58,9 +60,11 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
   // We're all good, either no namespace is required or we have a valid one
   return (
     <ApplicationsPage {...{ title, description }} loaded empty={false}>
-      <DistributedWorkloadsContextProvider namespace={namespace}>
-        <GlobalDistributedWorkloadsTabs activeTabId={activeTab.id} />
-      </DistributedWorkloadsContextProvider>
+      <MetricsCommonContextProvider initialRefreshInterval={RefreshIntervalTitle.THIRTY_MINUTES}>
+        <DistributedWorkloadsContextProvider namespace={namespace}>
+          <GlobalDistributedWorkloadsTabs activeTabId={activeTab.id} />
+        </DistributedWorkloadsContextProvider>
+      </MetricsCommonContextProvider>
     </ApplicationsPage>
   );
 };

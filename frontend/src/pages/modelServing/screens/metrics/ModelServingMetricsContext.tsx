@@ -6,12 +6,8 @@ import {
   PrometheusQueryRangeResultValue,
 } from '~/types';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
-import {
-  PerformanceMetricType,
-  RefreshIntervalTitle,
-  TimeframeTitle,
-} from '~/pages/modelServing/screens/types';
-import useCurrentTimeframeBrowserStorage from './useCurrentTimeframeBrowserStorage';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 
 export enum ServerMetricType {
   AVG_RESPONSE_TIME = 'runtime_avg-response-time',
@@ -32,13 +28,7 @@ type ModelServingMetricsContextType = {
     ModelMetricType | ServerMetricType,
     ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
   >;
-  currentTimeframe: TimeframeTitle;
-  setCurrentTimeframe: (timeframe: TimeframeTitle) => void;
-  currentRefreshInterval: RefreshIntervalTitle;
-  setCurrentRefreshInterval: (interval: RefreshIntervalTitle) => void;
   refresh: () => void;
-  lastUpdateTime: number;
-  setLastUpdateTime: (time: number) => void;
   namespace: string;
 };
 
@@ -53,13 +43,7 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
     [ModelMetricType.TRUSTY_AI_SPD]: DEFAULT_CONTEXT_DATA,
     [ModelMetricType.TRUSTY_AI_DIR]: DEFAULT_CONTEXT_DATA,
   },
-  currentTimeframe: TimeframeTitle.ONE_HOUR,
-  setCurrentTimeframe: () => undefined,
-  currentRefreshInterval: RefreshIntervalTitle.FIVE_MINUTES,
-  setCurrentRefreshInterval: () => undefined,
   refresh: () => undefined,
-  lastUpdateTime: 0,
-  setLastUpdateTime: () => undefined,
   namespace: '',
 });
 
@@ -77,12 +61,8 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
   type,
   namespace,
 }) => {
-  const [currentTimeframe, setCurrentTimeframe] = useCurrentTimeframeBrowserStorage();
-
-  const [currentRefreshInterval, setCurrentRefreshInterval] = React.useState<RefreshIntervalTitle>(
-    RefreshIntervalTitle.FIVE_MINUTES,
-  );
-  const [lastUpdateTime, setLastUpdateTime] = React.useState<number>(Date.now());
+  const { currentTimeframe, lastUpdateTime, setLastUpdateTime, currentRefreshInterval } =
+    React.useContext(MetricsCommonContext);
 
   const { data, refresh } = useModelServingMetrics(
     type,
@@ -95,26 +75,8 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
   );
 
   const contextValue = React.useMemo(
-    () => ({
-      data,
-      currentTimeframe,
-      setCurrentTimeframe,
-      currentRefreshInterval,
-      setCurrentRefreshInterval,
-      refresh,
-      lastUpdateTime,
-      setLastUpdateTime,
-      namespace,
-    }),
-    [
-      data,
-      currentTimeframe,
-      setCurrentTimeframe,
-      currentRefreshInterval,
-      refresh,
-      lastUpdateTime,
-      namespace,
-    ],
+    () => ({ data, refresh, namespace }),
+    [data, refresh, namespace],
   );
 
   return (

@@ -19,6 +19,7 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
   return (
     <>
       <Button
+        data-testid="import-pipeline-button"
         {...buttonProps}
         isDisabled={!apiAvailable || buttonProps.isDisabled || !pipelinesServer.compatible}
         onClick={() => setOpen(true)}

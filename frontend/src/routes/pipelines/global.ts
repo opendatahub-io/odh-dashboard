@@ -3,8 +3,8 @@ export const globNamespaceAll = `/${globNamespace}?/*`;
 
 const globPipelineId = ':pipelineId';
 const globPipelineVersionId = ':pipelineVersionId';
-const globPipelineRunId = ':pipelineRunId';
-const globPipelineRunJobId = ':pipelineRunJobId';
+const globPipelineRunId = ':runId';
+const globPipelineRunJobId = ':recurringRunId';
 
 // pipelines and versions
 const globPipeline = 'pipeline';
@@ -48,7 +48,8 @@ export const routePipelineRunCloneNamespace = (namespace: string, runId: string)
 
 // pipeline run jobs
 const globPipelineRunJob = 'pipelineRunJob';
-const routePipelineRunJobDetails = (jobId: string): string => `${globPipelineRunJob}/view/${jobId}`;
+export const routePipelineRunJobDetails = (jobId: string): string =>
+  `${globPipelineRunJob}/view/${jobId}`;
 export const globPipelineRunJobDetails = routePipelineRunJobDetails(globPipelineRunJobId);
 export const routePipelineRunJobDetailsNamespace = (namespace: string, jobId: string): string =>
   `${routePipelineRunsNamespace(namespace)}/${routePipelineRunJobDetails(jobId)}`;

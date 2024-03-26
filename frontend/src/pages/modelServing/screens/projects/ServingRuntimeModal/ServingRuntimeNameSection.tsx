@@ -13,6 +13,7 @@ const ServingRuntimeNameSection: React.FC<ServingRuntimeNameSectionProps> = ({ d
     <TextInput
       isRequired
       id="serving-runtime-name-input"
+      data-testid="serving-runtime-name-input"
       value={data.name}
       onChange={(e, name) => setData('name', name)}
     />

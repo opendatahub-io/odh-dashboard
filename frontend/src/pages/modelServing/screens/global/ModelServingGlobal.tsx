@@ -4,6 +4,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import EmptyModelServing from './EmptyModelServing';
 import InferenceServiceListView from './InferenceServiceListView';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -30,7 +32,9 @@ const ModelServingGlobal: React.FC = () => {
     <ApplicationsPage
       empty={servingRuntimes.length === 0 || inferenceServices.length === 0}
       emptyStatePage={<EmptyModelServing />}
-      title="Deployed models"
+      title={
+        <TitleWithIcon title="Deployed models" objectType={ProjectObjectType.deployedModels} />
+      }
       description="Manage and view the health and performance of your deployed models."
       loadError={notInstalledError}
       loaded={servingRuntimesLoaded && inferenceServicesLoaded}

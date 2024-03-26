@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
 
@@ -10,10 +10,11 @@ import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import { routePipelineRunCreateNamespace } from '~/routes';
+import { scheduleRunRoute } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const options = {
-  [FilterOptions.NAME]: 'Name',
+  [FilterOptions.NAME]: 'Schedule',
   [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
 };
 
@@ -31,8 +32,10 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const navigate = useNavigate();
+  const { experimentId } = useParams();
   const { namespace } = usePipelinesAPI();
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -58,10 +61,14 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
     >
       <ToolbarItem>
         <Button
+          data-testid="schedule-run-button"
           variant="primary"
           onClick={() =>
             navigate({
-              pathname: routePipelineRunCreateNamespace(namespace),
+              pathname: scheduleRunRoute(
+                namespace,
+                isExperimentsAvailable ? experimentId : undefined,
+              ),
               search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
             })
           }

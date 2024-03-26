@@ -1,8 +1,13 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { DeleteModal } from './components/DeleteModal';
 
-class NotebookRow extends TableRow {}
+class NotebookRow extends TableRow {
+  findDisplayedSoftware() {
+    return this.find().findByTestId('displayed-software');
+  }
+}
 
 class NotebookImageSettings {
   visit() {
@@ -16,12 +21,16 @@ class NotebookImageSettings {
   }
 
   private wait() {
-    cy.findByRole('button', { name: 'Import new image' });
+    this.findImportImageButton();
     cy.testA11y();
   }
 
+  findErrorIcon() {
+    return cy.findByRole('button', { name: 'error icon' });
+  }
+
   findImportImageButton() {
-    return cy.findByRole('button', { name: 'Import new image' });
+    return cy.findByTestId('import-new-image');
   }
 
   // table tool bar
@@ -34,16 +43,20 @@ class NotebookImageSettings {
     return cy.findByRole('textbox', { name: 'Search input' });
   }
 
+  findErrorButton() {
+    return cy.findByRole('button', { name: 'error icon' });
+  }
+
   findResetButton() {
     return cy.findByRole('button', { name: 'Reset' });
   }
 
   findEmptyResults() {
-    return cy.findByRole('heading', { name: 'No results found' });
+    return cy.findByTestId('no-result-found-title');
   }
 
   private findTable() {
-    return cy.findByRole('grid', { name: /Notebook images table/ });
+    return cy.findByTestId('notebook-images-table');
   }
 
   findTableHeaderButton(name: string) {
@@ -57,13 +70,30 @@ class NotebookImageSettings {
   }
 }
 
+class TabRow extends TableRow {
+  shouldHaveVersionColumn(name: string) {
+    this.find().find(`[data-label="Version"]`).contains(name);
+    return this;
+  }
+
+  findRemoveContentButton() {
+    return this.find().findByTestId('remove-displayed-content-button');
+  }
+}
+
+class NotebookImageDeleteModal extends DeleteModal {
+  findAlertMessage() {
+    return this.find().findByTestId('delete-model-error-message-alert');
+  }
+}
+
 class ImportUpdateNotebookImageModal extends Modal {
   constructor(private edit = false) {
     super(`${edit ? 'Update' : 'Import'} notebook image`);
   }
 
   findSubmitButton() {
-    return this.find().findByRole('button', { name: this.edit ? 'Update' : 'Import' });
+    return this.find().findByTestId('modal-submit-button');
   }
 
   findImageLocationInput() {
@@ -79,8 +109,9 @@ class ImportUpdateNotebookImageModal extends Modal {
   }
 
   // Software tab
+
   findSoftwareTab() {
-    return this.find().findByRole('tab', { name: 'Displayed content software tab' }).click();
+    return this.find().findByTestId('displayed-content-software-tab');
   }
 
   findAddSoftwareButton() {
@@ -88,44 +119,81 @@ class ImportUpdateNotebookImageModal extends Modal {
   }
 
   findSoftwareNameInput() {
-    return this.find().findByRole('textbox', { name: 'Software name input' });
+    return this.find().findByTestId('Software-name-input');
   }
 
   findSoftwareVersionInput() {
-    return this.find().findByRole('textbox', { name: 'Software version input' });
+    return this.find().findByTestId('Software-version-input');
+  }
+
+  findErrorMessageAlert() {
+    return this.find().findByTestId('error-message-alert');
   }
 
   // Packages tab
   findPackagesTab() {
-    return this.find().findByRole('tab', { name: 'Displayed content packages tab' }).click();
+    return this.find().findByTestId('displayed-content-packages-tab');
   }
 
   findAddPackagesButton() {
-    return this.find().findByRole('button', { name: 'Add packages' });
+    return this.find().findByTestId('add-packages-button');
   }
 
-  findPackageseNameInput() {
-    return this.find().findByRole('textbox', { name: 'Packages name input' });
+  findPackagesNameInput() {
+    return this.find().findByTestId('Packages-name-input');
   }
 
   findPackagesVersionInput() {
-    return this.find().findByRole('textbox', { name: 'Packages version input' });
+    return this.find().findByTestId('Packages-version-input');
+  }
+
+  findSoftwareTable() {
+    return cy.findByTestId(`displayed-content-table-software`);
+  }
+
+  findPackagesTable() {
+    return cy.findByTestId(`displayed-content-table-packages`);
+  }
+
+  getPackagesRow(name: string) {
+    return new TabRow(() =>
+      this.findPackagesTable().find(`[data-label=Packages]`).contains(name).parents('tr'),
+    );
+  }
+
+  getSoftwareRow(name: string) {
+    return new TabRow(() =>
+      this.findSoftwareTable().find(`[data-label=Software]`).contains(name).parents('tr'),
+    );
+  }
+
+  findSoftwareRows() {
+    return this.findSoftwareTable().find(`[data-label=Software]`);
+  }
+
+  findPackagesRows() {
+    return this.findPackagesTable().find(`[data-label=Packages]`);
   }
 
   // Software / Packages management
-  findAddResourceButton() {
-    return this.find().find('[data-id=add-resource-button]');
+  findAddSoftwareResourceButton() {
+    return this.find().findByTestId('add-software-resource-button');
   }
 
-  findSaveResourceButton() {
-    return this.find().findByRole('button', { name: 'Save displayed content' });
+  findAddPackagesResourceButton() {
+    return this.find().findByTestId('add-packages-resource-button');
   }
 
-  findDiscardResourceButton() {
-    return this.find().findByRole('button', { name: 'Discard displayed content' });
+  findSaveResourceButton(name: string) {
+    return this.find().findByTestId(`save-displayed-button-${name}`);
+  }
+
+  findDiscardResourceButton(name: string) {
+    return this.find().findByTestId(`discard-display-button-${name}`);
   }
 }
 
 export const notebookImageSettings = new NotebookImageSettings();
 export const importNotebookImageModal = new ImportUpdateNotebookImageModal();
 export const updateNotebookImageModal = new ImportUpdateNotebookImageModal(true);
+export const notebookImageDeleteModal = new NotebookImageDeleteModal();

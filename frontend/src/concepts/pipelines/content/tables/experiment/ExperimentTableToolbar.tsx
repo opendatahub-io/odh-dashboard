@@ -4,6 +4,7 @@ import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilte
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
+import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
 
 const options = {
   [FilterOptions.NAME]: 'Experiment',
@@ -64,11 +65,10 @@ export const ActiveExperimentTableToolbar: React.FC<ActiveExperimentTableToolbar
 }) => (
   <>
     <ToolbarItem>
-      <Button variant="primary">Create experiment</Button>
+      <CreateExperimentButton />
     </ToolbarItem>
     <ToolbarItem>
       <SimpleMenuActions
-        data-testid="experiment-table-toolbar-actions"
         dropdownItems={[
           {
             key: 'archive',

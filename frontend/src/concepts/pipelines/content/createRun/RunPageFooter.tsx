@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
 import {
   isFilledRunFormData,
@@ -12,6 +12,8 @@ import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isRunSchedule } from '~/concepts/pipelines/utils';
+import { routePipelineRunDetails, routePipelineRunJobDetails } from '~/routes';
 
 type RunPageFooterProps = {
   data: RunFormData;
@@ -19,6 +21,7 @@ type RunPageFooterProps = {
 };
 
 const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
+  const { experimentId } = useParams();
   const { api } = usePipelinesAPI();
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
   const navigate = useNavigate();
@@ -44,16 +47,24 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
           <SplitItem>
             <Button
               variant="primary"
+              data-testid="run-page-submit-button"
               isDisabled={!canSubmit || isSubmitting}
               onClick={() => {
                 setSubmitting(true);
                 setError(null);
                 handleSubmit(data, api)
-                  .then((path) => {
-                    navigate({
-                      pathname: `${contextPath}/${path}`,
-                      search: runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : '',
-                    });
+                  .then((resource) => {
+                    let detailsPath = isRunSchedule(resource)
+                      ? routePipelineRunJobDetails(resource.recurring_run_id)
+                      : routePipelineRunDetails(resource.run_id);
+
+                    if (isExperimentsAvailable && experimentId) {
+                      detailsPath = isRunSchedule(resource)
+                        ? resource.recurring_run_id
+                        : resource.run_id;
+                    }
+
+                    navigate(`${contextPath}/${detailsPath}`);
                   })
                   .catch((e) => {
                     setSubmitting(false);

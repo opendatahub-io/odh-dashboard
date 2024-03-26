@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import {
@@ -14,7 +14,8 @@ import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePi
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { routePipelineRunJobCloneNamespace, routePipelineRunJobDetailsNamespace } from '~/routes';
+import { cloneScheduleRoute, scheduleDetailsRoute } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;
@@ -30,8 +31,10 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
   job,
 }) => {
   const navigate = useNavigate();
+  const { experimentId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const { version, loaded, error } = usePipelineRunVersionInfo(job);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
     <Tr>
@@ -39,7 +42,13 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td dataLabel="Name">
         <TableRowTitleDescription
           title={
-            <Link to={routePipelineRunJobDetailsNamespace(namespace, job.recurring_run_id)}>
+            <Link
+              to={scheduleDetailsRoute(
+                namespace,
+                job.recurring_run_id,
+                isExperimentsAvailable ? experimentId : undefined,
+              )}
+            >
               <TableText wrapModifier="truncate">{job.display_name}</TableText>
             </Link>
           }
@@ -79,7 +88,11 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
               title: 'Duplicate',
               onClick: () => {
                 navigate({
-                  pathname: routePipelineRunJobCloneNamespace(namespace, job.recurring_run_id),
+                  pathname: cloneScheduleRoute(
+                    namespace,
+                    job.recurring_run_id,
+                    isExperimentsAvailable ? experimentId : undefined,
+                  ),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
                 });
               },

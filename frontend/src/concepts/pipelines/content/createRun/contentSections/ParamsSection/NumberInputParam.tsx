@@ -20,6 +20,7 @@ export const NumberInputParam: React.FC<NumberInputParamProps> = ({
     return (
       <TextInput
         {...inputProps}
+        data-testid={inputProps.id}
         type="number"
         step={0.1}
         value={value}
@@ -34,6 +35,7 @@ export const NumberInputParam: React.FC<NumberInputParamProps> = ({
   return (
     <NumberInputWrapper
       {...inputProps}
+      data-testid={inputProps.id}
       value={value}
       onChange={(newValue) => {
         setValue(newValue);

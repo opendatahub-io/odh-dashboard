@@ -59,8 +59,8 @@ describe('Data science projects details', () => {
     );
     projectListPage.visit();
     projectListPage.shouldHaveProjects();
-    projectListPage.findProjectRow('Test Project').should('exist');
-    projectListPage.shouldHaveDSLabel('Test Project');
+    const projectRow = projectListPage.getProjectRow('Test Project');
+    projectRow.shouldHaveProjectIcon();
   });
 
   it('should delete project', () => {
@@ -75,11 +75,11 @@ describe('Data science projects details', () => {
     );
 
     projectListPage.visit();
-    projectListPage.findProjectRow('Test Project').findKebabAction('Delete project').click();
+    projectListPage.getProjectRow('Test Project').findKebabAction('Delete project').click();
     deleteModal.shouldBeOpen();
     deleteModal.findSubmitButton().should('be.disabled');
     deleteModal.findCancelButton().should('be.enabled').click();
-    projectListPage.findProjectRow('Test Project').findKebabAction('Delete project').click();
+    projectListPage.getProjectRow('Test Project').findKebabAction('Delete project').click();
     deleteModal.findInput().type('Test Project');
 
     cy.intercept(

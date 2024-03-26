@@ -34,6 +34,7 @@ export const FieldListField = ({
     <FormGroup isRequired={options.isRequired} label={options.label}>
       <ComponentField
         aria-label={`Field list ${options.key}`}
+        data-testid={`field ${options.key}`}
         isRequired={options.isRequired}
         value={value}
         placeholder={options.placeholder}

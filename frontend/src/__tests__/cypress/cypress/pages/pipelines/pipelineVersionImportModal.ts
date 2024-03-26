@@ -20,18 +20,15 @@ class PipelineImportModal extends Modal {
   }
 
   findVersionNameInput() {
-    return this.find().findByRole('textbox', { name: 'Pipeline version name', hidden: true });
+    return this.find().findByTestId('pipeline-version-name');
   }
 
   findVersionDescriptionInput() {
-    return this.find().findByRole('textbox', {
-      name: 'Pipeline version description',
-      hidden: true,
-    });
+    return this.find().findByTestId('pipeline-version-description');
   }
 
   findUploadPipelineInput() {
-    return this.find().get('[data-testid="pipeline-file-upload"] input[type="file"]');
+    return this.find().find('[data-testid="pipeline-file-upload"] input[type="file"]');
   }
 
   uploadPipelineYaml(filePath: string) {
@@ -57,8 +54,10 @@ class PipelineImportModal extends Modal {
   selectPipelineByName(name: string) {
     this.findPipelineSelect()
       .click()
-      .get('[data-id="pipeline-selector-table-list"]')
-      .findByText(name)
+      .parents()
+      .findByTestId('pipeline-selector-table-list')
+      .find('tr')
+      .contains(name)
       .click();
   }
 

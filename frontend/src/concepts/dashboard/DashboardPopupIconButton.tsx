@@ -13,7 +13,7 @@ const DashboardPopupIconButton = ({
   ...props
 }: DashboardPopupIconButtonProps): React.JSX.Element => (
   <Button variant="plain" isInline style={{ padding: 0 }} {...props}>
-    <Icon tabIndex={0} isInline style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
+    <Icon isInline style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
       {icon}
     </Icon>
   </Button>

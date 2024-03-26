@@ -25,6 +25,8 @@ import {
   UpdatePipelineRunAPI,
   CreatePipelineAndVersionAPI,
   CreatePipelineVersionAPI,
+  UpdateExperimentAPI,
+  DeleteExperimentAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -114,6 +116,11 @@ export const deletePipelineVersion: DeletePipelineVersionAPI =
       ),
     );
 
+export const deleteExperiment: DeleteExperimentAPI = (hostPath) => (opts, experimentId) =>
+  handlePipelineFailures(
+    proxyDELETE(hostPath, `/apis/v2beta1/experiments/${experimentId}`, {}, {}, opts),
+  );
+
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
     proxyGET(hostPath, '/apis/v2beta1/experiments', pipelineParamsToQuery(params), opts),
@@ -132,7 +139,7 @@ export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params
       {
         ...pipelineParamsToQuery(params),
         // eslint-disable-next-line camelcase
-        experiment_id: params?.experiment_id,
+        experiment_id: params?.experimentId,
       },
       opts,
     ),
@@ -178,7 +185,16 @@ export const listPipelineArchivedRuns: ListPipelinesRunAPI = (hostPath) => (opts
 
 export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    proxyGET(hostPath, '/apis/v2beta1/recurringruns', pipelineParamsToQuery(params), opts),
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/recurringruns',
+      {
+        ...pipelineParamsToQuery(params),
+        // eslint-disable-next-line camelcase
+        experiment_id: params?.experimentId,
+      },
+      opts,
+    ),
   );
 
 export const listPipelineVersions: ListPipelineVersionsAPI =
@@ -202,6 +218,16 @@ export const archivePipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, run
 export const unarchivePipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(
     proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:unarchive`, {}, opts),
+  );
+
+export const archiveExperiment: UpdateExperimentAPI = (hostPath) => (opts, experimentId) =>
+  handlePipelineFailures(
+    proxyENDPOINT(hostPath, `/apis/v2beta1/experiments/${experimentId}:archive`, {}, opts),
+  );
+
+export const unarchiveExperiment: UpdateExperimentAPI = (hostPath) => (opts, experimentId) =>
+  handlePipelineFailures(
+    proxyENDPOINT(hostPath, `/apis/v2beta1/experiments/${experimentId}:unarchive`, {}, opts),
   );
 
 export const stopPipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>

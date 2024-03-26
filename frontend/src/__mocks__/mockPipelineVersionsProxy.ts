@@ -364,12 +364,12 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
                 parameters: {
                   min_max_scaler: {
                     runtimeValue: {
-                      constant: false,
+                      constant: 'false',
                     },
                   },
                   standard_scaler: {
                     runtimeValue: {
-                      constant: true,
+                      constant: 'true',
                     },
                   },
                 },
@@ -612,12 +612,12 @@ export const buildMockPipelineVersionV2 = (
               parameters: {
                 min_max_scaler: {
                   runtimeValue: {
-                    constant: false,
+                    constant: 'false',
                   },
                 },
                 standard_scaler: {
                   runtimeValue: {
-                    constant: true,
+                    constant: 'true',
                   },
                 },
               },

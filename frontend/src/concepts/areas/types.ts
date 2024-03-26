@@ -44,6 +44,9 @@ export enum SupportedArea {
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
+
+  /* Model Registry areas */
+  MODEL_REGISTRY = 'model-registry',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */
@@ -58,6 +61,7 @@ export enum StackComponent {
   WORKBENCHES = 'workbenches',
   TRUSTY_AI = 'trustyai',
   KUEUE = 'kueue',
+  MODEL_REGISTRY = 'model-registry-operator',
 }
 
 // TODO: Support extra operators, like the pipelines operator -- maybe as a "external dependency need?"

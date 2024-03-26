@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
@@ -17,9 +17,10 @@ import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersio
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { routePipelineRunCloneNamespace } from '~/routes';
+import { cloneRunRoute } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -35,6 +36,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   run,
 }) => {
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
+  const { experimentId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
@@ -42,12 +44,15 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const actions: IAction[] = React.useMemo(() => {
     const cloneAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
-        navigate(routePipelineRunCloneNamespace(namespace, run.run_id));
+        navigate(
+          cloneRunRoute(namespace, run.run_id, isExperimentsAvailable ? experimentId : undefined),
+        );
       },
     };
 
@@ -91,15 +96,17 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     ];
   }, [
-    api,
-    namespace,
-    notification,
-    run.run_id,
-    run.state,
     runType,
+    run.state,
+    run.run_id,
     navigate,
+    isExperimentsAvailable,
+    experimentId,
+    namespace,
     onDelete,
+    api,
     refreshAllAPI,
+    notification,
   ]);
 
   return (
@@ -108,7 +115,9 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td dataLabel="Name">
         <PipelineRunTableRowTitle run={run} />
       </Td>
-      <Td dataLabel="Experiment">{experiment?.display_name || 'Default'}</Td>
+      {!(isExperimentsAvailable && experimentId) && (
+        <Td dataLabel="Experiment">{experiment?.display_name || 'Default'}</Td>
+      )}
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink
           displayName={version?.display_name}
@@ -128,13 +137,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       </Td>
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn items={actions} />
-
-        {isRestoreModalOpen && (
-          <RestoreRunModal run={run} onCancel={() => setIsRestoreModalOpen(false)} />
-        )}
-        {isArchiveModalOpen && (
-          <ArchiveRunModal run={run} onCancel={() => setIsArchiveModalOpen(false)} />
-        )}
+        <RestoreRunModal
+          isOpen={isRestoreModalOpen}
+          runs={[run]}
+          onCancel={() => setIsRestoreModalOpen(false)}
+        />
+        <ArchiveRunModal
+          isOpen={isArchiveModalOpen}
+          runs={[run]}
+          onCancel={() => setIsArchiveModalOpen(false)}
+        />
       </Td>
     </Tr>
   );

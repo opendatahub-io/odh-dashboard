@@ -8,5 +8,5 @@ export * from './pipelineRunTable';
 export * from './createRunPage';
 export * from './cloneRunPage';
 export * from './pipelineFilterBar';
-export * from './restoreRunModal';
-export * from './archiveRunModal';
+export * from './restoreModal';
+export * from './archiveModal';

@@ -38,8 +38,19 @@ const form = {
   },
 };
 
+const sort = {
+  sortAscending: ($subject: JQuery<HTMLElement>) => {
+    expect($subject.parents('th').attr('aria-sort')).to.eq('ascending');
+  },
+
+  sortDescending: ($subject: JQuery<HTMLElement>) => {
+    expect($subject.parents('th').attr('aria-sort')).to.eq('descending');
+  },
+};
+
 export const be = {
   ...status,
   ...expandCollapse,
   ...form,
+  ...sort,
 };

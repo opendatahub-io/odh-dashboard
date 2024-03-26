@@ -28,6 +28,8 @@ type Props<DataType> = {
   loading?: boolean;
   data: DataType[];
   columns: SortableData<DataType>[];
+  subColumns?: SortableData<DataType>[];
+  hasNestedHeader?: boolean;
   defaultSortColumn?: number;
   rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
   enablePagination?: boolean | 'compact';
@@ -70,6 +72,8 @@ const defaultPerPageOptions = [
 const TableBase = <T,>({
   data,
   columns,
+  subColumns,
+  hasNestedHeader,
   rowRenderer,
   enablePagination,
   toolbarContent,
@@ -118,6 +122,50 @@ const TableBase = <T,>({
       rowHeightsRef.current = heights;
     }
   }, [loading]);
+
+  const renderColumnHeader = (col: SortableData<T>, i: number, isSubheader?: boolean) => {
+    if (col.field === CHECKBOX_FIELD_ID && selectAll) {
+      return (
+        <React.Fragment key={`checkbox-${i}`}>
+          <Tooltip
+            key="select-all-checkbox"
+            content={selectAll.tooltip ?? 'Select all page items'}
+            triggerRef={selectAllRef}
+          />
+          <Th
+            ref={selectAllRef}
+            colSpan={col.colSpan}
+            rowSpan={col.rowSpan}
+            select={{
+              isSelected: selectAll.selected,
+              onSelect: (e, value) => selectAll.onSelect(value),
+              isDisabled: selectAll.disabled,
+            }}
+            // TODO: Log PF bug -- when there are no rows this gets truncated
+            style={{ minWidth: '45px' }}
+            isSubheader={isSubheader}
+          />
+        </React.Fragment>
+      );
+    }
+
+    return col.label ? (
+      <Th
+        key={col.field + i}
+        colSpan={col.colSpan}
+        rowSpan={col.rowSpan}
+        sort={getColumnSort && col.sortable ? getColumnSort(i) : undefined}
+        width={col.width}
+        info={col.info}
+        isSubheader={isSubheader}
+      >
+        {col.label}
+      </Th>
+    ) : (
+      // Table headers cannot be empty for a11y, table cells can -- https://dequeuniversity.com/rules/axe/4.0/empty-table-header
+      <Td key={col.field + i} width={col.width} />
+    );
+  };
 
   const renderRows = () =>
     loading
@@ -174,7 +222,7 @@ const TableBase = <T,>({
   return (
     <>
       {(toolbarContent || showPagination) && (
-        <Toolbar customChipGroupContent={<></>}>
+        <Toolbar inset={{ default: 'insetNone' }} customChipGroupContent={<></>}>
           <ToolbarContent>
             {toolbarContent}
             {showPagination && (
@@ -187,46 +235,11 @@ const TableBase = <T,>({
       )}
       <Table {...props} ref={tableRef}>
         {caption && <Caption>{caption}</Caption>}
-        <Thead noWrap>
-          <Tr>
-            {columns.map((col, i) => {
-              if (col.field === CHECKBOX_FIELD_ID && selectAll) {
-                return (
-                  <React.Fragment key={`checkbox-${i}`}>
-                    <Tooltip
-                      key="select-all-checkbox"
-                      content={selectAll.tooltip ?? 'Select all page items'}
-                      triggerRef={selectAllRef}
-                    />
-                    <Th
-                      ref={selectAllRef}
-                      select={{
-                        isSelected: selectAll.selected,
-                        onSelect: (e, value) => selectAll.onSelect(value),
-                        isDisabled: selectAll.disabled,
-                      }}
-                      // TODO: Log PF bug -- when there are no rows this gets truncated
-                      style={{ minWidth: '45px' }}
-                    />
-                  </React.Fragment>
-                );
-              }
-
-              return col.label ? (
-                <Th
-                  key={col.field + i}
-                  sort={getColumnSort && col.sortable ? getColumnSort(i) : undefined}
-                  width={col.width}
-                  info={col.info}
-                >
-                  {col.label}
-                </Th>
-              ) : (
-                // Table headers cannot be empty for a11y, table cells can -- https://dequeuniversity.com/rules/axe/4.0/empty-table-header
-                <Td key={col.field + i} width={col.width} />
-              );
-            })}
-          </Tr>
+        <Thead noWrap hasNestedHeader={hasNestedHeader}>
+          <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>
+          {subColumns?.length ? (
+            <Tr>{subColumns.map((col, i) => renderColumnHeader(col, columns.length + i, true))}</Tr>
+          ) : null}
         </Thead>
         {disableRowRenderSupport ? renderRows() : <Tbody {...tbodyProps}>{renderRows()}</Tbody>}
         {footerRow && footerRow(page)}

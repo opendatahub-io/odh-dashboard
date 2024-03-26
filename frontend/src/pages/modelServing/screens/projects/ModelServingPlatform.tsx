@@ -1,21 +1,35 @@
 import * as React from 'react';
-import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Label } from '@patternfly/react-core';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import {
+  Alert,
+  Flex,
+  FlexItem,
+  Gallery,
+  GalleryItem,
+  Label,
+  Popover,
+} from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import {
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '~/types';
-import ModelServingPlatformSelect from '~/pages/modelServing/screens/projects/ModelServingPlatformSelect';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import EmptyDetailsView from '~/components/EmptyDetailsView';
+import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
+import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
+import { useAccessReview } from '~/api';
+import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
+import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -64,6 +78,11 @@ const ModelServingPlatform: React.FC = () => {
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...AccessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
+
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
     if (submit) {
@@ -76,6 +95,7 @@ const ModelServingPlatform: React.FC = () => {
   return (
     <>
       <DetailsSection
+        objectType={ProjectObjectType.deployedModels}
         id={ProjectSectionID.MODEL_SERVER}
         title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
         actions={
@@ -84,6 +104,7 @@ const ModelServingPlatform: React.FC = () => {
             : [
                 <ModelServingPlatformButtonAction
                   isProjectModelMesh={isProjectModelMesh}
+                  testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
                   emptyTemplates={emptyTemplates}
                   onClick={() => {
                     setPlatformSelected(
@@ -96,14 +117,66 @@ const ModelServingPlatform: React.FC = () => {
                 />,
               ]
         }
+        description={
+          shouldShowPlatformSelection && emptyModelServer
+            ? 'Select the type of model serving platform to be used when deploying models in this project.'
+            : undefined
+        }
+        popover={
+          <Popover
+            headerContent="About model serving"
+            bodyContent="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        }
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
-        isEmpty={!shouldShowPlatformSelection && emptyModelServer}
+        isEmpty={shouldShowPlatformSelection}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
-          <EmptyDetailsList
-            title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-            icon={PlusCircleIcon}
-          />
+          kServeEnabled || modelMeshEnabled ? (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
+              <FlexItem
+                flex={{ default: 'flex_1' }}
+                style={{ borderRight: '1px solid var(--pf-v5-global--BorderColor--100)' }}
+              >
+                <EmptyDetailsView
+                  title="Start by adding a model server"
+                  description="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
+                  iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
+                  imageAlt="add a model server"
+                  allowCreate={false}
+                />
+              </FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }}>
+                <Gallery hasGutter>
+                  <GalleryItem>
+                    <EmptySingleModelServingCard allowCreate={rbacLoaded && allowCreate} />
+                  </GalleryItem>
+                  <GalleryItem>
+                    <EmptyMultiModelServingCard allowCreate={rbacLoaded && allowCreate} />
+                  </GalleryItem>
+                </Gallery>
+                <Alert
+                  style={{ marginTop: 'var(--pf-v5-global--spacer--md)' }}
+                  variant="info"
+                  isInline
+                  isPlain
+                  title="Your project can only support one platform"
+                >
+                  <p>
+                    Choose a platform that best fits your needs. Changes cannot be made once a model
+                    has deployed.
+                  </p>
+                </Alert>
+              </FlexItem>
+            </Flex>
+          ) : (
+            <EmptyModelServingPlatform />
+          )
         }
         labels={
           currentProjectServingPlatform && [
@@ -113,13 +186,10 @@ const ModelServingPlatform: React.FC = () => {
           ]
         }
       >
-        {shouldShowPlatformSelection ? (
-          <ModelServingPlatformSelect
-            onSelect={(selectedPlatform) => {
-              setPlatformSelected(selectedPlatform);
-            }}
-            emptyTemplates={emptyTemplates}
-            emptyPlatforms={!modelMeshEnabled && !kServeEnabled}
+        {emptyModelServer ? (
+          <EmptyDetailsList
+            title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
+            icon={PlusCircleIcon}
           />
         ) : isProjectModelMesh ? (
           <ModelMeshServingRuntimeTable />

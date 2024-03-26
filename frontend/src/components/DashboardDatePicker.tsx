@@ -13,6 +13,7 @@ type Props = {
 
 const DashboardDatePicker: React.FC<Props> = ({ hideError, ...props }) => (
   <DatePicker
+    data-testid="data-picker"
     className={hideError ? 'odh-dashboard-date-picker--hide-error' : undefined}
     {...props}
   />

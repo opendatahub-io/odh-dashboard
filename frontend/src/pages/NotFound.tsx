@@ -14,7 +14,7 @@ import { HomeIcon, PathMissingIcon } from '@patternfly/react-icons';
 
 const NotFound: React.FC = () => (
   <PageSection variant={PageSectionVariants.light}>
-    <EmptyState variant={EmptyStateVariant.full}>
+    <EmptyState variant={EmptyStateVariant.full} data-testid="not-found-page">
       <EmptyStateHeader
         titleText="We can‘t find that page"
         icon={<EmptyStateIcon icon={PathMissingIcon} />}

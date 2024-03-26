@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { List, ListItem, Spinner } from '@patternfly/react-core';
+import { Badge, List, ListItem, Spinner } from '@patternfly/react-core';
 import { getNotebookDisplayName } from '~/pages/projects/utils';
 import useRelatedNotebooks, { ConnectedNotebookContext } from './useRelatedNotebooks';
 
@@ -34,7 +34,9 @@ const ConnectedNotebookNames: React.FC<ConnectedNotebookNamesProps> = ({
   return (
     <List isPlain>
       {connectedNotebooks.map((notebook) => (
-        <ListItem key={notebook.metadata.uid}>{getNotebookDisplayName(notebook)}</ListItem>
+        <ListItem key={notebook.metadata.uid}>
+          <Badge isRead>{getNotebookDisplayName(notebook)}</Badge>
+        </ListItem>
       ))}
     </List>
   );

@@ -17,14 +17,16 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { routePipelineRunCreateNamespace } from '~/routes';
+import { createRunRoute } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
   const navigate = useNavigate();
-  const { namespace } = useParams();
+  const { namespace, experimentId } = useParams();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable();
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (error) {
     return (
@@ -59,18 +61,22 @@ export const ActiveRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          To get started, create a run. Alternatively, click the{' '}
-          <b>{PipelineRunTabTitle.Schedules}</b> tab to create, manage, and execute schedules. A
-          schedule is a job consisting of one or more recurring runs.
+          To get started, create a run. Alternatively, go to the{' '}
+          <b>{PipelineRunTabTitle.Schedules}</b> tab and create a schedule to execute recurring
+          runs.
         </EmptyStateBody>
 
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
+              data-testid="create-run-button"
               variant="primary"
               onClick={() =>
                 navigate({
-                  pathname: routePipelineRunCreateNamespace(namespace),
+                  pathname: createRunRoute(
+                    namespace,
+                    isExperimentsAvailable ? experimentId : undefined,
+                  ),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
                 })
               }

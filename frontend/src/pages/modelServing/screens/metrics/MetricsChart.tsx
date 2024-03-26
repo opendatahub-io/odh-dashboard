@@ -27,8 +27,8 @@ import {
   createContainer,
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
-import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
-import { ModelServingMetricsContext } from './ModelServingMetricsContext';
+import { TimeframeTimeRange } from '~/concepts/metrics/const';
+import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 import {
   DomainCalculator,
   MetricChartLine,
@@ -71,7 +71,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
-  const { currentTimeframe, lastUpdateTime } = React.useContext(ModelServingMetricsContext);
+  const { currentTimeframe, lastUpdateTime } = React.useContext(MetricsCommonContext);
   const metrics = useStableMetrics(unstableMetrics, title);
   const CursorVoronoiContainer = React.useMemo(() => createContainer('voronoi', 'cursor'), []);
   const [tooltipDisabled, setTooltipDisabled] = React.useState(false);

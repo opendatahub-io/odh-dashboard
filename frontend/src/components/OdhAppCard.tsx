@@ -168,7 +168,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   return (
     <Card
       component="div"
-      data-id={odhApp.metadata.name}
+      data-testid={`card ${odhApp.metadata.name}`}
       id={odhApp.metadata.name}
       role="listitem"
       className={cardClasses}
@@ -196,7 +196,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         }}
         style={{ paddingRight: 0 }}
       >
-        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
+        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} data-testid="brand-image" />
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
@@ -204,10 +204,14 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         odhApp.spec.category &&
         odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
-            <span className="odh-card__partner-badge">{odhApp.spec.category}</span>
+            <span className="odh-card__partner-badge" data-testid="partner-badge">
+              {odhApp.spec.category}
+            </span>
           </div>
         ) : null}
-        {odhApp.spec.description}
+        <span className="odh-card__partner-badge-description" data-testid="badge-description">
+          {odhApp.spec.description}
+        </span>
       </CardBody>
       {cardFooter}
       <EnableModal shown={enableOpen} onClose={() => setEnableOpen(false)} selectedApp={odhApp} />

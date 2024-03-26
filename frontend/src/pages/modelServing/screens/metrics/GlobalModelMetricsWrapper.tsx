@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind } from '~/k8sTypes';
+import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import ModelMetricsPathWrapper from './ModelMetricsPathWrapper';
 import { ModelServingMetricsProvider } from './ModelServingMetricsContext';
 import { getModelMetricsQueries } from './utils';
@@ -16,13 +17,15 @@ const GlobalModelMetricsWrapper: React.FC = () => (
     {(model, projectName) => {
       const queries = getModelMetricsQueries(model);
       return (
-        <ModelServingMetricsProvider
-          queries={queries}
-          type={PerformanceMetricType.MODEL}
-          namespace={projectName}
-        >
-          <Outlet context={{ model, projectName }} />
-        </ModelServingMetricsProvider>
+        <MetricsCommonContextProvider>
+          <ModelServingMetricsProvider
+            queries={queries}
+            type={PerformanceMetricType.MODEL}
+            namespace={projectName}
+          >
+            <Outlet context={{ model, projectName }} />
+          </ModelServingMetricsProvider>
+        </MetricsCommonContextProvider>
       );
     }}
   </ModelMetricsPathWrapper>

@@ -30,7 +30,7 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
         empty={isEmpty}
         loadError={loadError}
       >
-        <PageSection isFilled data-id="page-content">
+        <PageSection isFilled data-testid="enabled-application">
           <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
             {components.map((c) => (
               <OdhAppCard key={c.metadata.name} odhApp={c} />

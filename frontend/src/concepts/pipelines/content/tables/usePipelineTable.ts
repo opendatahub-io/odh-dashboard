@@ -1,6 +1,12 @@
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
-import { PipelineListPaged, PipelineOptions, PipelinesFilter } from '~/concepts/pipelines/types';
+import {
+  PipelineListPaged,
+  PipelineOptions,
+  PipelineRunOptions,
+  PipelinesFilter,
+} from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
 export type TableSortProps = {
@@ -49,10 +55,11 @@ export const getTablePagingProps = (
 
 const createUsePipelineTable =
   <T extends PipelineCoreResourceKFv2>(
-    useState: (options: PipelineOptions) => FetchState<PipelineListPaged<T>>,
+    useState: (options: PipelineOptions | PipelineRunOptions) => FetchState<PipelineListPaged<T>>,
   ) =>
   // providing a limit overrides pageSize and prevents paging
   (limit?: number): [FetchState<PipelineListPaged<T>>, TableProps] => {
+    const { experimentId } = useParams();
     const [page, setPage] = React.useState(1);
     const [pageSize, setPageSize] = React.useState(limit || 10);
     const [sortField, setSortField] = React.useState<string>();
@@ -60,7 +67,7 @@ const createUsePipelineTable =
     const [filter, setFilter] = React.useState<PipelinesFilter | undefined>();
     const [initialLoaded, setInitialLoaded] = React.useState(false);
 
-    const state = useState({ page, pageSize, sortField, sortDirection, filter });
+    const state = useState({ page, pageSize, sortField, sortDirection, filter, experimentId });
 
     const loaded = state[1];
     // Track the first load so that the full page spinner is first shown.

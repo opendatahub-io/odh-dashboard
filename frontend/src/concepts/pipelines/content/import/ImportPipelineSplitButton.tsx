@@ -54,6 +54,7 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
                 <MenuToggleAction
                   id="import-pipeline-button"
                   key="import-pipeline-button"
+                  data-testid="import-pipeline-button"
                   aria-label="Import pipeline"
                   onClick={() => setPipelineModalOpen(true)}
                 >

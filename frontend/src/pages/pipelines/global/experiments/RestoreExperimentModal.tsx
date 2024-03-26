@@ -1,0 +1,66 @@
+import * as React from 'react';
+import { ListItem, StackItem, Stack } from '@patternfly/react-core';
+import { RestoreModal } from '~/concepts/pipelines/content/RestoreModal';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentListTabTitle } from '~/pages/pipelines/global/experiments/const';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
+import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
+
+interface RestoreExperimentModalProps {
+  experiments: ExperimentKFv2[];
+  onCancel: () => void;
+  isOpen: boolean;
+}
+
+export const RestoreExperimentModal: React.FC<RestoreExperimentModalProps> = ({
+  experiments,
+  onCancel,
+  isOpen,
+}) => {
+  const isSingleRestoring = experiments.length === 1;
+
+  const { api } = usePipelinesAPI();
+  const onSubmit = React.useCallback(
+    () =>
+      Promise.all(
+        experiments.map((experiment) => api.unarchiveExperiment({}, experiment.experiment_id)),
+      ),
+    [api, experiments],
+  );
+  return (
+    <RestoreModal
+      isOpen={isOpen}
+      onCancel={onCancel}
+      onSubmit={onSubmit}
+      title={`Restore experiment${isSingleRestoring ? '' : 's'}?`}
+      testId="restore-experiment-modal"
+      alertTitle={`Error restoring ${
+        isSingleRestoring ? experiments[0].display_name : 'experiments'
+      }`}
+    >
+      {isSingleRestoring ? (
+        <>
+          <b>{experiments[0].display_name}</b> will be restored and returned to the{' '}
+          <b>{ExperimentListTabTitle.ACTIVE}</b> tab. Its runs and schedules can be restored from
+          the <b>{PipelineRunTabTitle.Archived}</b> and <b>{PipelineRunTabTitle.Schedules}</b> tabs.
+        </>
+      ) : (
+        <Stack hasGutter>
+          <StackItem>
+            <b>{experiments.length}</b> experiments will be restored and returned to the{' '}
+            <b>{ExperimentListTabTitle.ACTIVE}</b> tab. Their runs can be restored from the{' '}
+            <b>{PipelineRunTabTitle.Archived}</b> page.
+          </StackItem>
+          <StackItem>
+            <BulkActionExpandableSection title="Selected experiments">
+              {experiments.map((experiment) => (
+                <ListItem key={experiment.experiment_id}>{experiment.display_name}</ListItem>
+              ))}
+            </BulkActionExpandableSection>
+          </StackItem>
+        </Stack>
+      )}
+    </RestoreModal>
+  );
+};

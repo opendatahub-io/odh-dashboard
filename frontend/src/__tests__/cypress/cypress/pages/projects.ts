@@ -13,6 +13,12 @@ class NotebookRow extends TableRow {
   }
 }
 
+class ProjectRow extends TableRow {
+  shouldHaveProjectIcon() {
+    return this.find().findByTestId('ds-project-image').should('exist');
+  }
+}
+
 class ProjectListPage {
   visit() {
     cy.visitWithLogin('/projects');
@@ -25,7 +31,7 @@ class ProjectListPage {
   }
 
   private wait() {
-    cy.findByText('View your existing projects or create new projects.');
+    cy.findByTestId('app-page-title');
     cy.testA11y();
   }
 
@@ -35,24 +41,20 @@ class ProjectListPage {
   }
 
   shouldBeEmpty() {
-    cy.findByText('No data science projects yet.').should('exist');
+    cy.findByTestId('no-data-science-project').should('exist');
     return this;
   }
 
   findCreateProjectButton() {
-    return cy.findByRole('button', { name: 'Create data science project' });
-  }
-
-  shouldHaveDSLabel(projectName: string) {
-    return this.findProjectRow(projectName).findByText('DS').should('exist');
+    return cy.findByTestId('create-data-science-project');
   }
 
   findProjectsTable() {
-    return cy.get('[data-id=project-view-table]');
+    return cy.findByTestId('project-view-table');
   }
 
-  findProjectRow(projectName: string) {
-    return this.findProjectLink(projectName).parents('tr');
+  getProjectRow(projectName: string) {
+    return new ProjectRow(() => this.findProjectLink(projectName).parents('tr'));
   }
 
   findProjectLink(projectName: string) {
@@ -66,19 +68,25 @@ class CreateEditProjectModal extends Modal {
   }
 
   findNameInput() {
-    return this.find().findByLabelText('Name *');
+    return this.find().findByTestId('manage-project-modal-name');
   }
 
   findResourceNameInput() {
-    return this.find().findByLabelText('Resource name *');
+    return this.find().findByTestId('resource-manage-project-modal-name');
   }
 
   findDescriptionInput() {
-    return this.find().findByLabelText('Description');
+    return this.find().findByTestId('manage-project-modal-description');
   }
 
   findSubmitButton() {
     return this.findFooter().findByRole('button', { name: this.edit ? /Edit/ : /Create/ });
+  }
+}
+
+class DataConnectionRow extends TableRow {
+  findWorkbenchConnection() {
+    return this.find().find(`[data-label="Connected workbenches"]`);
   }
 }
 
@@ -88,21 +96,40 @@ class ProjectDetails {
     this.wait();
   }
 
-  private wait() {
-    cy.findByRole('tab', { name: 'Components' });
+  visitSection(project: string, section: string) {
+    cy.visit(`/projects/${project}?section=${section}`);
+    this.wait(section);
+  }
+
+  private wait(section = 'overview') {
+    cy.findByTestId(`section-${section}`);
     cy.testA11y();
+  }
+
+  findSortButton(name: string) {
+    return this.findDataConnectionTable().find('thead').findByRole('button', { name });
   }
 
   private findModelServingPlatform(name: string) {
     return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
   }
 
+  private findDataConnectionTable() {
+    return cy.findByTestId('data-connection-table');
+  }
+
+  getDataConnectionRow(name: string) {
+    return new DataConnectionRow(() =>
+      this.findDataConnectionTable().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
+
   findSingleModelDeployButton() {
-    return this.findModelServingPlatform('single').findByTestId('model-serving-platform-button');
+    return this.findModelServingPlatform('single').findByTestId('single-serving-deploy-button');
   }
 
   findMultiModelButton() {
-    return this.findModelServingPlatform('multi').findByTestId('model-serving-platform-button');
+    return this.findModelServingPlatform('multi').findByTestId('multi-serving-add-server-button');
   }
 
   findDeployModelTooltip() {
@@ -122,20 +149,16 @@ class ProjectDetails {
     return cy.findByTestId(`section-${componentName}`);
   }
 
-  shouldBeEmptyState(componentName: string, emptyState: boolean) {
+  shouldBeEmptyState(tabName: string, componentName: string, emptyState: boolean) {
+    this.findTab(tabName).click();
     this.findComponent(componentName)
       .findByTestId('empty-state-title')
       .should(emptyState ? 'exist' : 'not.exist');
     return this;
   }
 
-  shouldDivide() {
-    cy.findAllByTestId('details-page-section').then((sections) => {
-      cy.wrap(sections)
-        .find('.odh-details-section--divide')
-        .should('have.length', sections.length - 1);
-    });
-    return this;
+  findAddDataConnectionButton() {
+    return cy.findByTestId('add-data-connection-button');
   }
 
   private findTable() {

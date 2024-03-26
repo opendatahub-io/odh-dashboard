@@ -22,6 +22,10 @@ export * from './k8s/acceleratorProfiles';
 export * from './k8s/clusterQueues';
 export * from './k8s/workloads';
 
+// Model registry
+export * from './modelRegistry/custom';
+export * from './modelRegistry/k8s';
+
 // Pipelines uses special redirected API
 export * from './pipelines/custom';
 export * from './pipelines/k8s';
