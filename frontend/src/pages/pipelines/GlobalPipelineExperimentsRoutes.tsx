@@ -16,6 +16,8 @@ import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import { GlobalExperimentDetails } from './global/GlobalPipelineCoreDetails';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 import { ExperimentRunsListBreadcrumb } from './global/experiments/ExperimentRunsListBreadcrumb';
+import GlobalComparePipelineRunsLoader from './global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
+import CompareRunsPage from './global/experiments/compareRuns/CompareRunsPage';
 
 const GlobalPipelineExperimentsRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -68,6 +70,16 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
         path=":experimentId/schedules/clone/:recurringRunId"
         element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CloneRunPage} isSchedule />}
       />
+      <Route path=":experimentId/compareRuns" element={<GlobalComparePipelineRunsLoader />}>
+        <Route
+          index
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CompareRunsPage} />}
+        />
+        {/* <Route
+          path="add"
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={TODO} />}
+        /> */}
+      </Route>
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </ProjectsRoutes>

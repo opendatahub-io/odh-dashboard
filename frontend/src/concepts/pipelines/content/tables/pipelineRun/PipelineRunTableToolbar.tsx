@@ -17,13 +17,11 @@ export type FilterProps = Pick<
 >;
 
 interface PipelineRunTableToolbarProps extends FilterProps {
-  primaryAction: React.ReactNode;
-  dropdownActions: React.ReactNode;
+  actions: React.ReactNode[];
 }
 
 const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
-  primaryAction,
-  dropdownActions,
+  actions,
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
@@ -100,8 +98,9 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
         ),
       }}
     >
-      <ToolbarItem>{primaryAction}</ToolbarItem>
-      <ToolbarItem>{dropdownActions}</ToolbarItem>
+      {actions.map((action, index) => (
+        <ToolbarItem key={index}>{action}</ToolbarItem>
+      ))}
     </PipelineFilterBar>
   );
 };
