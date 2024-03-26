@@ -24,4 +24,16 @@ export class Card {
   findPartnerBadgeDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('badge-description');
   }
+
+  findCardProvider(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cardprovider');
+  }
+
+  findCardBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cardbody');
+  }
+
+  findExploreCard(metadataName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(['card', metadataName]);
+  }
 }
