@@ -8,13 +8,17 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { WorkloadKind } from '~/k8sTypes';
+import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
+import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
+import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
 
 type HandlersProps = {
   isKueueInstalled?: boolean;
   disableDistributedWorkloads?: boolean;
   hasProjects?: boolean;
+  clusterQueues?: ClusterQueueKind[];
+  localQueues?: LocalQueueKind[];
   workloads?: WorkloadKind[];
 };
 
@@ -22,6 +26,10 @@ const initIntercepts = ({
   isKueueInstalled = true,
   disableDistributedWorkloads = false,
   hasProjects = true,
+  clusterQueues = [mockClusterQueueK8sResource({ name: 'test-cluster-queue' })],
+  localQueues = [
+    mockLocalQueueK8sResource({ name: 'test-local-queue', namespace: 'test-project' }),
+  ],
   workloads = [
     mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: WorkloadStatusType.Succeeded }),
     mockWorkloadK8sResource({
@@ -61,6 +69,20 @@ const initIntercepts = ({
   cy.intercept(
     {
       method: 'GET',
+      pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/clusterqueues',
+    },
+    mockK8sResourceList(clusterQueues),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/namespaces/*/localqueues',
+    },
+    mockK8sResourceList(localQueues),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
       pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/namespaces/*/workloads',
     },
     mockK8sResourceList(workloads),
@@ -77,8 +99,8 @@ const initIntercepts = ({
   );
 };
 
-describe('Distributed Workload Metrics', () => {
-  it('Distributed Workload Metrics page does not exist if kueue is not installed', () => {
+describe('Distributed Workload Metrics root page', () => {
+  it('Does not exist if kueue is not installed', () => {
     initIntercepts({
       isKueueInstalled: false,
       disableDistributedWorkloads: false,
@@ -91,7 +113,7 @@ describe('Distributed Workload Metrics', () => {
     globalDistributedWorkloads.shouldNotFoundPage();
   });
 
-  it('Distributed Workload Metrics page does not exist if feature is disabled', () => {
+  it('Does not exist if feature is disabled', () => {
     initIntercepts({
       isKueueInstalled: true,
       disableDistributedWorkloads: true,
@@ -104,7 +126,7 @@ describe('Distributed Workload Metrics', () => {
     globalDistributedWorkloads.shouldNotFoundPage();
   });
 
-  it('Distributed Workload Metrics page exists if kueue is installed and feature is enabled', () => {
+  it('Exists if kueue is installed and feature is enabled', () => {
     initIntercepts({
       isKueueInstalled: true,
       disableDistributedWorkloads: false,
@@ -161,7 +183,62 @@ describe('Distributed Workload Metrics', () => {
 
     cy.findByText('No data science projects').should('exist');
   });
+});
 
+describe('Project Metrics tab', () => {
+  it('Should render with no quota state when there is no clusterqueue', () => {
+    initIntercepts({ clusterQueues: [] });
+    globalDistributedWorkloads.visit();
+    cy.findByLabelText('Project metrics tab').click();
+    cy.findByText('Quota is not set').should('exist');
+  });
+
+  it('Should render with no quota state when the clusterqueue has no resourceGroups', () => {
+    initIntercepts({
+      clusterQueues: [
+        mockClusterQueueK8sResource({ name: 'test-cluster-queue', hasResourceGroups: false }),
+      ],
+    });
+    globalDistributedWorkloads.visit();
+    cy.findByLabelText('Project metrics tab').click();
+    cy.findByText('Quota is not set').should('exist');
+  });
+
+  it('Should render with no quota state when there are no localqueues', () => {
+    initIntercepts({ localQueues: [] });
+    globalDistributedWorkloads.visit();
+    cy.findByLabelText('Project metrics tab').click();
+    cy.findByText('Quota is not set').should('exist');
+  });
+
+  it('Should render with no workloads empty state', () => {
+    initIntercepts({ workloads: [] });
+    globalDistributedWorkloads.visit();
+
+    cy.findByLabelText('Project metrics tab').click();
+
+    cy.findByText('Resource Usage').should('exist');
+
+    cy.findByText('Top resource-consuming distributed workloads')
+      .closest('.dw-section-card')
+      .within(() => {
+        cy.findByText('No distributed workloads');
+      });
+    cy.findByText('Distributed workload resource metrics')
+      .closest('.dw-section-card')
+      .within(() => {
+        cy.findByText('No distributed workloads');
+      });
+    cy.findByText('Resource Usage')
+      .closest('.dw-section-card')
+      .within(() => {
+        //Resource Usage shows chart even if empty workload\
+        cy.findByText('Charts Placeholder');
+      });
+  });
+});
+
+describe('Workload Status tab', () => {
   it('Should render the status overview chart', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
@@ -201,31 +278,5 @@ describe('Distributed Workload Metrics', () => {
 
     cy.findByLabelText('Distributed workload status tab').click();
     cy.findByText('No distributed workloads match your filters').should('exist');
-  });
-
-  it('Should render the projects metrics with empty workload state', () => {
-    initIntercepts({ workloads: [] });
-    globalDistributedWorkloads.visit();
-
-    cy.findByLabelText('Project metrics tab').click();
-
-    cy.findByText('Resource Usage').should('exist');
-
-    cy.findByText('Top resource-consuming distributed workloads')
-      .closest('.dw-section-card')
-      .within(() => {
-        cy.findByText('No distributed workloads');
-      });
-    cy.findByText('Distributed workload resource metrics')
-      .closest('.dw-section-card')
-      .within(() => {
-        cy.findByText('No distributed workloads');
-      });
-    cy.findByText('Resource Usage')
-      .closest('.dw-section-card')
-      .within(() => {
-        //Resource Usage shows chart even if empty workload\
-        cy.findByText('Charts Placeholder');
-      });
   });
 });

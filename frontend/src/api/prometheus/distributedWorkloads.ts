@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { FetchStateObject, PrometheusQueryResponse } from '~/types';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
 import { WorkloadKind } from '~/k8sTypes';
 import { getWorkloadOwnerJobName } from '~/concepts/distributedWorkloads/utils';
 import usePrometheusQuery from './usePrometheusQuery';
@@ -111,6 +112,19 @@ export type DWProjectCurrentMetrics = FetchStateObject<{
 }> & {
   getWorkloadCurrentUsage: (workload: WorkloadKind) => WorkloadCurrentUsage;
   topResourceConsumingWorkloads: TopResourceConsumingWorkloads;
+};
+
+export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
+  ...DEFAULT_VALUE_FETCH_STATE,
+  data: {
+    cpuCoresUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
+    memoryBytesUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
+  },
+  getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
+  topResourceConsumingWorkloads: {
+    cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
+    memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
+  },
 };
 
 const getDWProjectCurrentMetricsQueries = (
