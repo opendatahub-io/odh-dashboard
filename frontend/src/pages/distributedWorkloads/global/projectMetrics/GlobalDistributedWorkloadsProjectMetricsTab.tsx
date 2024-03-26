@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { Bullseye, Spinner, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { WrenchIcon } from '@patternfly/react-icons';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { ResourceUsage } from './sections/ResourceUsage';
@@ -8,18 +18,21 @@ import { WorkloadResourceMetrics } from './sections/WorkloadResourceMetrics';
 import { DWSectionCard } from './sections/DWSectionCard';
 
 const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
-  const { projectCurrentMetrics } = React.useContext(DistributedWorkloadsContext);
+  const { clusterQueue, localQueues } = React.useContext(DistributedWorkloadsContext);
+  const requiredFetches = [clusterQueue, localQueues];
+  const error = requiredFetches.find((f) => !!f.error)?.error;
+  const loaded = requiredFetches.every((f) => f.loaded);
 
-  if (projectCurrentMetrics.error) {
+  if (error) {
     return (
       <EmptyStateErrorMessage
         title="Error loading distributed workload metrics"
-        bodyText={projectCurrentMetrics.error.message}
+        bodyText={error.message}
       />
     );
   }
 
-  if (!projectCurrentMetrics.loaded) {
+  if (!loaded) {
     return (
       <Bullseye style={{ minHeight: 150 }}>
         <Spinner />
@@ -27,24 +40,19 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { getWorkloadCurrentUsage, topWorkloadsByUsage } = projectCurrentMetrics;
-  // eslint-disable-next-line no-console
-  console.log({ topWorkloadsByUsage });
-
-  //TODO: need 'no quota' logic
-  // if (false) {
-  //   return (
-  //     <EmptyState>
-  //       <EmptyStateHeader
-  //         titleText="Quota is not set"
-  //         headingLevel="h4"
-  //         icon={<EmptyStateIcon icon={WrenchIcon} />}
-  //       />
-  //       <EmptyStateBody>Select another project or set the quota for this project.</EmptyStateBody>
-  //     </EmptyState>
-  //   );
-  // }
+  // clusterQueue.data will only be defined here if it has spec.resourceGroups (see DistributedWorkloadsContext)
+  if (!clusterQueue.data || localQueues.data.length === 0) {
+    return (
+      <EmptyState>
+        <EmptyStateHeader
+          titleText="Quota is not set"
+          headingLevel="h4"
+          icon={<EmptyStateIcon icon={WrenchIcon} />}
+        />
+        <EmptyStateBody>Select another project or set the quota for this project.</EmptyStateBody>
+      </EmptyState>
+    );
+  }
 
   return (
     <>

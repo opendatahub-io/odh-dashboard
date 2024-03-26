@@ -1,20 +1,26 @@
 import * as React from 'react';
 import { Bullseye, Alert } from '@patternfly/react-core';
-import { ClusterQueueKind, WorkloadKind } from '~/k8sTypes';
+import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
 import { FetchStateObject } from '~/types';
 import { DEFAULT_LIST_FETCH_STATE, DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import { DWProjectCurrentMetrics, useDWProjectCurrentMetrics } from '~/api';
+import {
+  DEFAULT_DW_PROJECT_CURRENT_METRICS,
+  DWProjectCurrentMetrics,
+  useDWProjectCurrentMetrics,
+} from '~/api';
 import { RefreshIntervalValue } from '~/concepts/metrics/const';
 import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 import useClusterQueues from './useClusterQueues';
+import useLocalQueues from './useLocalQueues';
 import useWorkloads from './useWorkloads';
 
 type DistributedWorkloadsContextType = {
-  clusterQueues: FetchStateObject<ClusterQueueKind[]>;
+  clusterQueue: FetchStateObject<ClusterQueueKind | undefined>;
+  localQueues: FetchStateObject<LocalQueueKind[]>;
   workloads: FetchStateObject<WorkloadKind[]>;
   projectCurrentMetrics: DWProjectCurrentMetrics;
   refreshAllData: () => void;
@@ -27,20 +33,10 @@ type DistributedWorkloadsContextProviderProps = {
 };
 
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
-  clusterQueues: DEFAULT_LIST_FETCH_STATE,
+  clusterQueue: DEFAULT_VALUE_FETCH_STATE,
+  localQueues: DEFAULT_LIST_FETCH_STATE,
   workloads: DEFAULT_LIST_FETCH_STATE,
-  projectCurrentMetrics: {
-    ...DEFAULT_VALUE_FETCH_STATE,
-    data: {
-      cpuCoresUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
-      memoryBytesUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
-    },
-    getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
-    topWorkloadsByUsage: {
-      cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
-      memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
-    },
-  },
+  projectCurrentMetrics: DEFAULT_DW_PROJECT_CURRENT_METRICS,
   refreshAllData: () => undefined,
 });
 
@@ -60,7 +56,18 @@ export const DistributedWorkloadsContextProvider =
     // TODO mturley implement lazy loading, let the context consumers tell us what data they need and make the other ones throw a NotReadyError
 
     const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
+    // We only support one ClusterQueue, but if the user has created multiple we use the first one with resourceGroups
+    const clusterQueue: FetchStateObject<ClusterQueueKind | undefined> = {
+      ...clusterQueues,
+      data: clusterQueues.data.find((cq) => cq.spec.resourceGroups?.length),
+    };
+
+    const localQueues = useMakeFetchObject<LocalQueueKind[]>(
+      useLocalQueues(namespace, refreshRate),
+    );
+
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
+
     const projectCurrentMetrics = useDWProjectCurrentMetrics(
       workloads.data,
       namespace,
@@ -68,14 +75,16 @@ export const DistributedWorkloadsContextProvider =
     );
 
     const clusterQueuesRefresh = clusterQueues.refresh;
+    const localQueuesRefresh = localQueues.refresh;
     const workloadsRefresh = workloads.refresh;
     const projectCurrentMetricsRefresh = projectCurrentMetrics.refresh;
 
     const refreshAllData = React.useCallback(() => {
       clusterQueuesRefresh();
+      localQueuesRefresh();
       workloadsRefresh();
       projectCurrentMetricsRefresh();
-    }, [clusterQueuesRefresh, workloadsRefresh, projectCurrentMetricsRefresh]);
+    }, [clusterQueuesRefresh, localQueuesRefresh, workloadsRefresh, projectCurrentMetricsRefresh]);
 
     const fetchError = [clusterQueues, workloads, projectCurrentMetrics].find(
       ({ error }) => !!error,
@@ -94,7 +103,8 @@ export const DistributedWorkloadsContextProvider =
     return (
       <DistributedWorkloadsContext.Provider
         value={{
-          clusterQueues,
+          clusterQueue,
+          localQueues,
           workloads,
           projectCurrentMetrics,
           refreshAllData,
