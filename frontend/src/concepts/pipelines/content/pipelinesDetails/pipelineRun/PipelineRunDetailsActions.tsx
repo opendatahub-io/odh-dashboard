@@ -8,8 +8,8 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
-import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
-import { cloneRunRoute } from '~/routes';
+import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { cloneRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type PipelineRunDetailsActionsProps = {
@@ -24,6 +24,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
   const notification = useNotification();
   const [open, setOpen] = React.useState(false);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const isRunActive = run?.storage_state === StorageStateKF.AVAILABLE;
 
   return (
     <Dropdown
@@ -65,6 +66,18 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
               >
                 Duplicate
               </DropdownItem>,
+              isExperimentsAvailable && experimentId && isRunActive ? (
+                <DropdownItem
+                  key="compare-runs"
+                  onClick={() =>
+                    navigate(experimentsCompareRunsRoute(namespace, experimentId, [run.run_id]))
+                  }
+                >
+                  Compare runs
+                </DropdownItem>
+              ) : (
+                <></>
+              ),
               <DropdownSeparator key="separator" />,
               <DropdownItem key="delete-run" onClick={() => onDelete()}>
                 Delete
