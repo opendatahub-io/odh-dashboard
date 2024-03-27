@@ -22,7 +22,7 @@ class ModelRegistry {
   }
 
   private waitLanding() {
-    cy.findByTestId('enabled-application').should('be.visible');
+    cy.findByTestId('landing-page-projects').should('be.visible');
   }
 
   shouldBeEmpty() {

@@ -28,6 +28,8 @@ export enum SupportedArea {
   USER_MANAGEMENT = 'user-management',
   ACCELERATOR_PROFILES = 'accelerator-profiles',
 
+  HOME = 'home',
+
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',
   DS_PROJECTS_VIEW = 'ds-projects',
