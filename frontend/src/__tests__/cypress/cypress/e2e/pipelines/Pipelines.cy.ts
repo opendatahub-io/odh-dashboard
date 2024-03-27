@@ -35,7 +35,7 @@ describe('Pipelines', () => {
 
   it('renders the page with pipelines table data', () => {
     pipelinesTable.find();
-    pipelinesTable.getRowByName('Test pipeline');
+    pipelinesTable.getRowByName('Test pipeline').find().should('exist');
   });
 
   it('incompatible dpsa version shows error', () => {
@@ -113,7 +113,7 @@ describe('Pipelines', () => {
     });
 
     // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowByName('New pipeline');
+    pipelinesTable.getRowByName('New pipeline').find().should('exist');
   });
 
   it('imports a new pipeline by url', () => {
@@ -160,7 +160,7 @@ describe('Pipelines', () => {
     cy.wait('@refreshPipelines');
 
     // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowByName('New pipeline');
+    pipelinesTable.getRowByName('New pipeline').find().should('exist');
   });
 
   it('uploads a new pipeline version', () => {
@@ -219,7 +219,7 @@ describe('Pipelines', () => {
 
     // Verify the uploaded pipeline version is in the table
     pipelinesTable.getRowByName('Test pipeline').toggleExpandByIndex(0);
-    pipelinesTable.getRowByName('New pipeline version');
+    pipelinesTable.getRowByName('New pipeline version').find().should('exist');
   });
 
   it('imports a new pipeline version by url', () => {
@@ -263,7 +263,7 @@ describe('Pipelines', () => {
 
     // Verify the uploaded pipeline version is in the table
     pipelinesTable.getRowByName('Test pipeline').toggleExpandByIndex(0);
-    pipelinesTable.getRowByName('New pipeline version');
+    pipelinesTable.getRowByName('New pipeline version').find().should('exist');
   });
 
   it('delete a single pipeline', () => {

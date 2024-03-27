@@ -75,7 +75,11 @@ describe('Experiments', () => {
 
       // Verify only rows with the typed experiment name exist
       experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 1);
-      experimentsTabs.getActiveExperimentsTable().getRowByName('Test experiment 2');
+      experimentsTabs
+        .getActiveExperimentsTable()
+        .getRowByName('Test experiment 2')
+        .find()
+        .should('exist');
     });
 
     it('archive a single experiment', () => {
