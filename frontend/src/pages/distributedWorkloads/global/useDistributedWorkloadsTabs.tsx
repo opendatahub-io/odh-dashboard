@@ -31,7 +31,7 @@ export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] =
     },
     {
       id: DistributedWorkloadsTabId.WORKLOAD_STATUS,
-      title: 'Workload status',
+      title: 'Distributed workload status',
       path: 'workloadStatus',
       isAvailable: dwAreaIsAvailable,
       projectSelectorMode: 'singleProjectOnly',

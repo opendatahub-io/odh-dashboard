@@ -22,7 +22,7 @@ export const DWWorkloadsTable: React.FC = () => {
     return (
       <Card isFullHeight>
         <EmptyStateErrorMessage
-          title="Error loading workloads"
+          title="Error loading distributed workload"
           bodyText={workloads.error.message}
         />
       </Card>
@@ -76,13 +76,13 @@ export const DWWorkloadsTable: React.FC = () => {
 
   return (
     <Card>
-      <CardTitle>Workloads</CardTitle>
+      <CardTitle>Distributed Workload</CardTitle>
       <CardBody>
         <Table
           enablePagination
           data={workloads.data}
           columns={columns}
-          emptyTableView={<>No workloads match your filters</>}
+          emptyTableView={<>No distributed workload match your filters</>}
           data-id="workload-table"
           rowRenderer={(workload) => {
             const statusInfo = getStatusInfo(workload);

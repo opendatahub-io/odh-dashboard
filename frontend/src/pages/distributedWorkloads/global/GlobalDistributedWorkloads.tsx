@@ -10,7 +10,7 @@ import GlobalDistributedWorkloadsTabs from '~/pages/distributedWorkloads/global/
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 
-const title = 'Workload Metrics';
+const title = 'Distributed Workload Metrics';
 const description = 'Monitor the metrics of your active resources.';
 
 type GlobalDistributedWorkloadsProps = {
