@@ -9,7 +9,18 @@ import { PipelineRunKFv2, RuntimeStateKF, runtimeStateLabels } from '~/concepts/
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
-const usePipelineById = (
+export const usePipelineRunsByIds = (pipelineRunIds: string[]): FetchState<PipelineRunKFv2[]> => {
+  const { api } = usePipelinesAPI();
+
+  const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKFv2[]>>(
+    (opts) => Promise.all(pipelineRunIds.map((id) => api.getPipelineRun(opts, id))),
+    [api, pipelineRunIds],
+  );
+
+  return useFetchState(call, []);
+};
+
+const usePipelineRunById = (
   pipelineRunId?: string,
   refreshForDetails?: boolean,
 ): FetchState<PipelineRunKFv2 | null> => {
@@ -48,4 +59,4 @@ const usePipelineById = (
   return runData;
 };
 
-export default usePipelineById;
+export default usePipelineRunById;

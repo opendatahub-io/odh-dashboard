@@ -64,3 +64,19 @@ export const experimentScheduleDetailsRoute = (
   !experimentId || !recurringRunId
     ? experimentsBaseRoute(namespace)
     : `${experimentSchedulesRoute(namespace, experimentId)}/${recurringRunId}`;
+
+const compareRunsSelect = (runIds: string[]) => `?compare=${runIds.join(',')}`;
+
+export const experimentsCompareRunsRoute = (
+  namespace: string,
+  experimentId: string,
+  runIds: string[],
+): string =>
+  `${experimentsBaseRoute(namespace)}/${experimentId}/compare-runs${compareRunsSelect(runIds)}`;
+
+export const experimentsManageCompareRunsRoute = (
+  namespace: string,
+  experimentId: string,
+  runIds: string[],
+): string =>
+  `${experimentsBaseRoute(namespace)}/${experimentId}/compare-runs/add${compareRunsSelect(runIds)}`;
