@@ -56,6 +56,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
       <Table
         enablePagination
         variant="compact"
+        defaultSortColumn={3}
         data={filteredProjects}
         hasNestedHeader
         columns={columns}
