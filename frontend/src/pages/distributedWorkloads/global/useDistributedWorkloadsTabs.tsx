@@ -13,8 +13,6 @@ export type DistributedWorkloadsTabConfig = {
   title: string;
   path: string;
   isAvailable: boolean;
-  // TODO mturley remove this now that all our tabs here are single project only, or leave in case we add future tabs?
-  projectSelectorMode: 'singleProjectOnly' | 'projectOrAll' | null;
   ContentComponent: React.FC;
 };
 
@@ -26,7 +24,6 @@ export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] =
       title: 'Project metrics',
       path: 'projectMetrics',
       isAvailable: dwAreaIsAvailable,
-      projectSelectorMode: 'singleProjectOnly',
       ContentComponent: GlobalDistributedWorkloadsProjectMetricsTab,
     },
     {
@@ -34,7 +31,6 @@ export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] =
       title: 'Workload status',
       path: 'workloadStatus',
       isAvailable: dwAreaIsAvailable,
-      projectSelectorMode: 'singleProjectOnly',
       ContentComponent: GlobalDistributedWorkloadsWorkloadStatusTab,
     },
   ];

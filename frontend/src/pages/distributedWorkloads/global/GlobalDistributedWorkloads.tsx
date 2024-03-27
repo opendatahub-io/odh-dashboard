@@ -9,6 +9,7 @@ import DistributedWorkloadsNoProjects from '~/pages/distributedWorkloads/global/
 import GlobalDistributedWorkloadsTabs from '~/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs';
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
+import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 
 const title = 'Workload Metrics';
 const description = 'Monitor the metrics of your active resources.';
@@ -35,31 +36,37 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
       />
     );
   }
-
-  if (activeTab.projectSelectorMode !== null) {
-    if (!namespace && (activeTab.projectSelectorMode === 'singleProjectOnly' || preferredProject)) {
-      // No namespace is in the path and either this tab requires one or we have a preferred one to go to
-      const redirectProject = preferredProject ?? projects[0];
-      return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
-    }
-    if (namespace && !projects.find(byName(namespace))) {
-      // This tab allows or requires a namespace but was given an invalid one.
-      return (
-        <ApplicationsPage
-          {...{ title, description }}
-          loaded
-          empty
-          emptyStatePage={
-            <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
-          }
-        />
-      );
-    }
+  if (!namespace) {
+    const redirectProject = preferredProject ?? projects[0];
+    return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
+  }
+  if (namespace && !projects.find(byName(namespace))) {
+    // The namespace in the URL is invalid
+    return (
+      <ApplicationsPage
+        {...{ title, description }}
+        loaded
+        empty
+        emptyStatePage={
+          <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+        }
+      />
+    );
   }
 
   // We're all good, either no namespace is required or we have a valid one
   return (
-    <ApplicationsPage {...{ title, description }} loaded empty={false}>
+    <ApplicationsPage
+      {...{ title, description }}
+      loaded
+      empty={false}
+      headerContent={
+        <ProjectSelectorNavigator
+          getRedirectPath={(ns: string) => `/distributedWorkloads/${activeTab.path}/${ns}`}
+          showTitle
+        />
+      }
+    >
       <MetricsCommonContextProvider initialRefreshInterval={RefreshIntervalTitle.THIRTY_MINUTES}>
         <DistributedWorkloadsContextProvider namespace={namespace}>
           <GlobalDistributedWorkloadsTabs activeTabId={activeTab.id} />
