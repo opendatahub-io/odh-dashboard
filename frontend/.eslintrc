@@ -19,6 +19,7 @@
     "react-hooks",
     "eslint-plugin-react-hooks",
     "import",
+    "no-only-tests",
     "no-relative-import-paths",
     "prettier"
   ],
@@ -68,6 +69,7 @@
     "react/no-unused-prop-types": "error",
     "arrow-body-style": "error",
     "curly": "error",
+    "no-only-tests/no-only-tests": "error",
     "@typescript-eslint/default-param-last": "error",
     "@typescript-eslint/dot-notation": ["error", { "allowKeywords": true }],
     "@typescript-eslint/lines-between-class-members": [
