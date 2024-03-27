@@ -11,12 +11,17 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import {
+  CreatingInferenceServiceObject,
+  CreatingServingRuntimeObject,
+} from '~/pages/modelServing/screens/types';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 
 type ServingRuntimeTokenSectionProps = {
-  data: CreatingServingRuntimeObject;
-  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
+  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
+  setData:
+    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
+    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   allowCreate: boolean;
   createNewToken: () => void;
 };

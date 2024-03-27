@@ -10,7 +10,13 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ServingRuntimeKind, InferenceServiceKind, TemplateKind, ProjectKind } from '~/k8sTypes';
+import {
+  ServingRuntimeKind,
+  InferenceServiceKind,
+  TemplateKind,
+  ProjectKind,
+  SecretKind,
+} from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
@@ -26,9 +32,12 @@ import useServingRuntimes from './useServingRuntimes';
 import useTemplates from './customServingRuntimes/useTemplates';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from './customServingRuntimes/useTemplateDisablement';
+import { getTokenNames } from './utils';
+import useServingRuntimeSecrets from './screens/projects/useServingRuntimeSecrets';
 
 type ModelServingContextType = {
   refreshAllData: () => void;
+  filterTokens: (servingRuntime?: string) => SecretKind[];
   dataConnections: ContextResourceData<DataConnection>;
   servingRuntimeTemplates: ContextResourceData<TemplateKind>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
@@ -37,6 +46,7 @@ type ModelServingContextType = {
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   project: ProjectKind | null;
   preferredProject: ProjectKind | null;
+  serverSecrets: ContextResourceData<SecretKind>;
   projects: ProjectKind[] | null;
 };
 
@@ -48,12 +58,14 @@ type ModelServingContextProviderProps = {
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
   refreshAllData: () => undefined,
+  filterTokens: () => [],
   dataConnections: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
+  serverSecrets: DEFAULT_CONTEXT_DATA,
   project: null,
   preferredProject: null,
   projects: null,
@@ -77,6 +89,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const servingRuntimeTemplateDisablement = useContextResourceData<string>(
     useTemplateDisablement(dashboardNamespace),
   );
+  const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
@@ -102,6 +115,24 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
       ? new Error('No model serving platform installed')
       : undefined;
 
+  const filterTokens = React.useCallback(
+    (servingRuntimeName?: string): SecretKind[] => {
+      if (!namespace || !servingRuntimeName) {
+        return [];
+      }
+      const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
+
+      const secrets = serverSecrets.data.filter(
+        (secret) =>
+          secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
+          serviceAccountName,
+      );
+
+      return secrets;
+    },
+    [namespace, serverSecrets],
+  );
+
   if (
     notInstalledError ||
     servingRuntimes.error ||
@@ -109,6 +140,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     servingRuntimeTemplates.error ||
     servingRuntimeTemplateOrder.error ||
     servingRuntimeTemplateDisablement.error ||
+    serverSecrets.error ||
     dataConnections.error
   ) {
     return getErrorComponent ? (
@@ -136,6 +168,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
               servingRuntimeTemplates.error?.message ||
               servingRuntimeTemplateOrder.error?.message ||
               servingRuntimeTemplateDisablement.error?.message ||
+              serverSecrets.error?.message ||
               dataConnections.error?.message}
           </EmptyStateBody>
           <EmptyStateFooter>
@@ -158,6 +191,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         servingRuntimeTemplateDisablement,
         dataConnections,
         refreshAllData,
+        filterTokens,
+        serverSecrets,
         project,
         preferredProject,
         projects,

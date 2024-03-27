@@ -31,6 +31,7 @@ import {
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import {
+  CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   ServingRuntimeEditInfo,
   ServingRuntimeSize,
@@ -65,15 +66,15 @@ export const requestsUnderLimits = (resources: ContainerResources): boolean =>
   isMemoryLimitLarger(resources.requests?.memory, resources.limits?.memory, true);
 
 export const setUpTokenAuth = async (
-  fillData: CreatingServingRuntimeObject,
-  servingRuntimeName: string,
+  fillData: CreatingServingRuntimeObject | CreatingInferenceServiceObject,
+  deployedModelName: string,
   namespace: string,
   createTokenAuth: boolean,
-  owner: ServingRuntimeKind,
+  owner: ServingRuntimeKind | InferenceServiceKind,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const { serviceAccountName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
+  const { serviceAccountName, roleBindingName } = getTokenNames(deployedModelName, namespace);
 
   const serviceAccount = addOwnerReference(
     assembleServiceAccount(serviceAccountName, namespace),
@@ -91,7 +92,7 @@ export const setUpTokenAuth = async (
         ])
       : Promise.resolve()
   )
-    .then(() => createSecrets(fillData, servingRuntimeName, namespace, existingSecrets, opts))
+    .then(() => createSecrets(fillData, deployedModelName, namespace, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
 
@@ -120,13 +121,13 @@ export const createRoleBindingIfMissing = async (
   });
 
 export const createSecrets = async (
-  fillData: CreatingServingRuntimeObject,
-  servingRuntimeName: string,
+  fillData: CreatingServingRuntimeObject | CreatingInferenceServiceObject,
+  deployedModelName: string,
   namespace: string,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
+  const { serviceAccountName } = getTokenNames(deployedModelName, namespace);
   const deletedSecrets =
     existingSecrets
       ?.map((secret) => secret.metadata.name)
