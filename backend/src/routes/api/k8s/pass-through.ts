@@ -9,7 +9,7 @@ import { proxyCall, ProxyError, ProxyErrorType } from '../../../utils/httpUtils'
 
 export type PassThroughData = {
   method: string;
-  requestData: string;
+  requestData?: string;
   url: string;
 };
 
