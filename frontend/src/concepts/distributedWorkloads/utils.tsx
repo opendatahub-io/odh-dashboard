@@ -6,19 +6,21 @@ import {
   InProgressIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  UnknownIcon,
+  UploadIcon,
+  BanIcon,
 } from '@patternfly/react-icons';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import { WorkloadCondition, WorkloadKind } from '~/k8sTypes';
 
-//Workload utilities
-export type WorkloadStatusType =
-  | 'Inadmissible'
-  | 'Pending'
-  | 'Running'
-  | 'Succeeded'
-  | 'Failed'
-  | 'Unknown';
+export enum WorkloadStatusType {
+  Pending = 'Pending',
+  Inadmissible = 'Inadmissible',
+  Admitted = 'Admitted',
+  Running = 'Running',
+  Evicted = 'Evicted',
+  Succeeded = 'Succeeded',
+  Failed = 'Failed',
+}
 
 export type WorkloadStatusInfo = {
   status: WorkloadStatusType;
@@ -32,20 +34,30 @@ export const WorkloadStatusColorAndIcon: Record<
   WorkloadStatusType,
   Pick<WorkloadStatusInfo, 'color' | 'chartColor' | 'icon'>
 > = {
-  Inadmissible: {
-    color: 'gold',
-    chartColor: 'var(--pf-v5-chart-color-gold-300, #F4C145)',
-    icon: ExclamationTriangleIcon,
-  },
   Pending: {
     color: 'cyan',
     chartColor: 'var(--pf-v5-chart-color-cyan-300, #009596)',
     icon: PendingIcon,
   },
+  Inadmissible: {
+    color: 'gold',
+    chartColor: 'var(--pf-v5-chart-color-gold-300, #F4C145)',
+    icon: ExclamationTriangleIcon,
+  },
+  Admitted: {
+    color: 'purple',
+    chartColor: 'var(--pf-v5-chart-color-purple-300, #5752D1)',
+    icon: UploadIcon,
+  },
   Running: {
     color: 'blue',
     chartColor: 'var(--pf-v5-chart-color-blue-300, #06C)',
     icon: InProgressIcon,
+  },
+  Evicted: {
+    color: 'grey',
+    chartColor: 'var(--pf-chart-color-black-300, #B8BBBE)',
+    icon: BanIcon,
   },
   Succeeded: {
     color: 'green',
@@ -57,41 +69,44 @@ export const WorkloadStatusColorAndIcon: Record<
     chartColor: 'var(--pf-chart-color-red-100, #C9190B)',
     icon: ExclamationCircleIcon,
   },
-  Unknown: {
-    color: 'grey',
-    chartColor: 'var(--pf-chart-color-black-300, #B8BBBE)',
-    icon: UnknownIcon,
-  },
 };
 
 export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
   const conditions = wl.status?.conditions;
+  // Order matters here: The first matching condition in this order will be used for the current status.
+  const statusesInEvalOrder: WorkloadStatusType[] = [
+    WorkloadStatusType.Failed,
+    WorkloadStatusType.Succeeded,
+    WorkloadStatusType.Evicted,
+    WorkloadStatusType.Inadmissible,
+    WorkloadStatusType.Pending,
+    WorkloadStatusType.Running,
+    WorkloadStatusType.Admitted,
+  ];
   const knownStatusConditions: Record<WorkloadStatusType, WorkloadCondition | undefined> = {
     Failed: conditions?.find(
       ({ type, status, message, reason }) =>
         status === 'True' &&
-        (type === 'Failed' || /error|failed/.test(`${message} ${reason}`.toLowerCase())),
+        type === 'Finished' &&
+        /error|failed|rejected/.test(`${message} ${reason}`.toLowerCase()),
     ),
     Succeeded: conditions?.find(
       ({ type, status, message, reason }) =>
         status === 'True' &&
-        (type === 'Finished' || /success|succeeded/.test(`${message} ${reason}`.toLowerCase())),
+        type === 'Finished' &&
+        /success|succeeded/.test(`${message} ${reason}`.toLowerCase()),
     ),
-    Inadmissible: conditions?.find(({ type, status }) => type === 'Admitted' && status === 'False'),
+    Evicted: conditions?.find(({ type, status }) => type === 'Evicted' && status === 'True'),
+    Inadmissible: conditions?.find(
+      ({ type, status, reason }) =>
+        type === 'QuotaReserved' && status === 'False' && reason === 'Inadmissible',
+    ),
     Pending: conditions?.find(({ type, status }) => type === 'QuotaReserved' && status === 'False'),
-    Running: conditions?.find(({ type, status }) => type === 'Admitted' && status === 'True'),
-    Unknown: undefined,
+    Running: conditions?.find(({ type, status }) => type === 'PodsReady' && status === 'True'),
+    Admitted: conditions?.find(({ type, status }) => type === 'Admitted' && status === 'True'),
   };
-  const statusType = (Object.keys(knownStatusConditions) as WorkloadStatusType[]).find(
-    (st) => !!knownStatusConditions[st],
-  );
-  if (!statusType) {
-    return {
-      status: 'Unknown',
-      message: 'Unknown status',
-      ...WorkloadStatusColorAndIcon.Unknown,
-    };
-  }
+  const statusType =
+    statusesInEvalOrder.find((st) => !!knownStatusConditions[st]) || WorkloadStatusType.Pending;
   return {
     status: statusType,
     message: knownStatusConditions[statusType]?.message || 'No message',
@@ -102,13 +117,15 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
 export type WorkloadStatusCounts = Record<WorkloadStatusType, number>;
 
 export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts => {
+  // Order matters here: The statuses will appear in this order in the status overview chart legend.
   const statusCounts: WorkloadStatusCounts = {
-    Inadmissible: 0,
     Pending: 0,
+    Inadmissible: 0,
+    Admitted: 0,
     Running: 0,
+    Evicted: 0,
     Succeeded: 0,
     Failed: 0,
-    Unknown: 0,
   };
   workloads.forEach((wl) => {
     statusCounts[getStatusInfo(wl).status]++;
