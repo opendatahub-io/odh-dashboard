@@ -46,7 +46,7 @@ npm run start
 
 > If you'd like to run "backend" and "frontend" separately for development, cd into each directory in two different terminals and run `npm run start:dev` from each.
 
-For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md#Serving%20Content).
+For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md).
 
 ### Testing
 
