@@ -1,5 +1,4 @@
 import React from 'react';
-import * as _ from 'lodash-es';
 import useDimensions from 'react-cool-dimensions';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
@@ -10,7 +9,6 @@ import { useBrowserStorage } from '~/components/browserStorage';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '~/utilities/const';
-import { combineCategoryAnnotations } from '~/utilities/utils';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import {
   DOC_SORT_KEY,
@@ -28,6 +26,7 @@ import {
 import LearningCenterToolbar from './LearningCenterToolbar';
 import LearningCenterFilters from './LearningCenterFilters';
 import { useDocFilterer } from './useDocFilterer';
+import { getQuickStartDocs, updateDocToComponent } from './utils';
 import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';
@@ -82,33 +81,13 @@ export const LearningCenter: React.FC = () => {
         }
       });
 
-      // Add doc cards for all quick starts
-      qsContext.allQuickStarts?.forEach((quickStart) => {
-        const odhDoc = _.merge({}, quickStart, {
-          spec: { type: OdhDocumentType.QuickStart },
-        });
-        docs.push(odhDoc as unknown as OdhDocument); // TODO: Fix QuickStart type dependency -- they updated their types and broke us
-      });
-
       const updatedDocApps = docs
         .filter((doc) => doc.spec.type !== 'getting-started')
-        .map((odhDoc) => {
-          const odhApp = components.find((c) => c.metadata.name === odhDoc.spec.appName);
-          const updatedDoc = _.cloneDeep(odhDoc);
-          if (odhApp) {
-            combineCategoryAnnotations(odhDoc, odhApp);
-            updatedDoc.spec.appDisplayName = odhApp.spec.displayName;
-            updatedDoc.spec.appEnabled = odhApp.spec.isEnabled ?? false;
-            updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
-            updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
-            updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
-            updatedDoc.spec.appCategory = odhDoc.spec.appCategory || odhApp.spec.category;
-          } else {
-            updatedDoc.spec.appEnabled = false;
-          }
-          return updatedDoc;
-        });
-      setDocApps(updatedDocApps);
+        .map((odhDoc) => updateDocToComponent(odhDoc, components));
+
+      const quickStartDocs = getQuickStartDocs(qsContext.allQuickStarts || [], components);
+
+      setDocApps([...updatedDocApps, ...quickStartDocs]);
     }
   }, [components, loaded, loadError, odhDocs, docsLoaded, docsLoadError, qsContext.allQuickStarts]);
 

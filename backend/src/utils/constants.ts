@@ -51,6 +51,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableProjects: false,
       disableModelServing: false,
       disableProjectSharing: false,
+      disableHome: false,
       disableCustomServingRuntimes: false,
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,

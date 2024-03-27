@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Text,
+  TextContent,
+  TextProps,
+  TextVariants,
+} from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import { SectionType, sectionTypeBorderColor } from './utils';
 
@@ -11,19 +19,21 @@ interface CollapsibleSectionProps {
   id?: string;
   showChildrenWhenClosed?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
+  titleComponent?: TextProps['component'];
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   sectionType,
   initialOpen = true,
   title,
+  titleComponent = TextVariants.h2,
   children,
   id,
   showChildrenWhenClosed,
   onOpenChange,
 }) => {
   const [open, setOpen] = React.useState<boolean>(initialOpen);
-  const localId = id || title.replace(' ', '-');
+  const localId = id || title.replace(/\s+/g, '-');
   const titleId = `${localId}-title`;
 
   return (
@@ -55,6 +65,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             aria-expanded={open}
             isInline
             variant="link"
+            style={{ fontSize: 'var(--pf-v5-global--FontSize--xl)' }}
             onClick={() => {
               setOpen((prev) => {
                 if (onOpenChange) {
@@ -69,7 +80,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         </FlexItem>
         <FlexItem>
           <TextContent>
-            <Text id={titleId} component={TextVariants.h2}>
+            <Text id={titleId} component={titleComponent}>
               {title}
             </Text>
           </TextContent>
