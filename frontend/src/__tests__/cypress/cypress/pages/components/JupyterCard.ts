@@ -13,6 +13,12 @@ export class JupyterCard extends Card {
         cy.findByText('Open Data Hub certified and supported');
       });
   }
+
+  findDrawerPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('explore-drawer-panel').then(() => {
+      cy.get('h2').findByText('Jupyter');
+    });
+  }
 }
 
 export const jupyterCard = new JupyterCard();

@@ -44,7 +44,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   return (
     <Card
       component="div"
-      data-testid={`explore-card ${odhApp.metadata.name}`}
+      data-testid={`card ${odhApp.metadata.name}`}
       id={odhApp.metadata.name}
       role="listitem"
       isSelectable={!disabled}
@@ -86,10 +86,10 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           },
         })}
       >
-        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
+        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} data-testid="brand-image" />
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} showProvider />
-      <CardBody>{odhApp.spec.description}</CardBody>
+      <CardBody data-testid="cardbody">{odhApp.spec.description}</CardBody>
       <EnableModal shown={enableOpen} onClose={onEnableClose} selectedApp={odhApp} />
     </Card>
   );

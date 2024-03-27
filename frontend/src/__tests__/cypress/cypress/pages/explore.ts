@@ -8,14 +8,6 @@ class ExplorePage {
     cy.findByTestId('explore-applications').should('be.visible');
     cy.testA11y();
   }
-
-  findExploreCard(metadataName: string) {
-    return cy.findByTestId(['explore-card', metadataName]);
-  }
-
-  findDrawerPanel() {
-    return cy.findByTestId('explore-drawer-panel');
-  }
 }
 
 export const explorePage = new ExplorePage();
