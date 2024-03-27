@@ -5,12 +5,13 @@ import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDe
 import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '~/concepts/pipelines/topology';
+import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'inputoutput',
   // VISUALIZATIONS = 'Visualizations',
   DETAILS = 'details',
-  // VOLUMES = 'volumes',
+  VOLUMES = 'volumes',
   LOGS = 'logs',
   // POD = 'Pod',
   // EVENTS = 'Events',
@@ -20,6 +21,7 @@ enum PipelineRunNodeTabs {
 const PipelineRunNodeTabsTitles = {
   [PipelineRunNodeTabs.INPUT_OUTPUT]: 'Input / Output',
   [PipelineRunNodeTabs.DETAILS]: 'Details',
+  [PipelineRunNodeTabs.VOLUMES]: 'Volumes',
   [PipelineRunNodeTabs.LOGS]: 'Logs',
 };
 
@@ -34,7 +36,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
     [PipelineRunNodeTabs.INPUT_OUTPUT]: <SelectedNodeInputOutputTab task={task} />,
     // [PipelineRunNodeTabs.VISUALIZATIONS]: <>TBD 2</>,
     [PipelineRunNodeTabs.DETAILS]: <SelectedNodeDetailsTab task={task} />,
-    // [PipelineRunNodeTabs.VOLUMES]: <SelectedNodeVolumeMountsTab task={task} />,
+    [PipelineRunNodeTabs.VOLUMES]: <SelectedNodeVolumeMountsTab task={task} />,
     [PipelineRunNodeTabs.LOGS]: <LogsTab task={task} />,
     // [PipelineRunNodeTabs.POD]: <>TBD 6</>,
     // [PipelineRunNodeTabs.EVENTS]: <>TBD 7</>,

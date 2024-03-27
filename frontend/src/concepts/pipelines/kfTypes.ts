@@ -267,6 +267,13 @@ export type PipelineExecutorKF = {
     command?: string[];
     image: string;
   };
+  pvcMount?: {
+    mountPath: string;
+    taskOutputParameter?: {
+      outputParameterKey: string;
+      producerTask: string;
+    };
+  }[];
 };
 
 export type PipelineExecutorsKF = Record<
@@ -320,7 +327,7 @@ export type PlatformSpec = {
 
 export type PipelineSpecVolume = {
   pipeline_spec: PipelineSpec;
-  platmform_spec: PlatformSpec;
+  platform_spec: PlatformSpec;
 };
 
 export type PipelineSpecVariable = EitherNotBoth<PipelineSpec, PipelineSpecVolume>;

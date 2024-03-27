@@ -36,6 +36,10 @@ class PipelineRunRightDrawer extends Contextual<HTMLDivElement> {
     return this.find().findByTestId('right-drawer-tab-volumes');
   }
 
+  findRightDrawerVolumesSection() {
+    return this.find().find('#volumes');
+  }
+
   findRightDrawerLogsTab() {
     return this.find().findByTestId('right-drawer-tab-logs');
   }
