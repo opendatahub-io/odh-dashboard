@@ -14,6 +14,7 @@ type MockResourceConfigType = {
   envFromName?: string;
   resources?: ContainerResources;
   opts?: RecursivePartial<NotebookKind>;
+  uid?: string;
 };
 
 export const mockNotebookK8sResource = ({
@@ -25,6 +26,7 @@ export const mockNotebookK8sResource = ({
   description = '',
   resources = DEFAULT_NOTEBOOK_SIZES[0].resources,
   opts = {},
+  uid = genUID('notebook'),
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -54,7 +56,7 @@ export const mockNotebookK8sResource = ({
         name,
         namespace,
         resourceVersion: '4800689',
-        uid: genUID('notebook'),
+        uid,
       },
       spec: {
         template: {

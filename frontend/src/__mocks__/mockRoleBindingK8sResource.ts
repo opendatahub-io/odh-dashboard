@@ -4,18 +4,20 @@ import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
 type MockResourceConfigType = {
   name?: string;
   namespace?: string;
+  uid?: string;
 };
 
 export const mockRoleBindingK8sResource = ({
   name = 'test-name-view',
   namespace = 'test-project',
+  uid = genUID('rolebinding'),
 }: MockResourceConfigType): RoleBindingKind => ({
   kind: 'RoleBinding',
   apiVersion: 'rbac.authorization.k8s.io/v1',
   metadata: {
     name,
     namespace,
-    uid: genUID('rolebinding'),
+    uid,
     creationTimestamp: '2023-02-14T21:43:59Z',
     labels: {
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',

@@ -29,7 +29,7 @@ import { Volume, VolumeMount } from '~/types';
 import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
-const assembleNotebook = (
+export const assembleNotebook = (
   data: StartNotebookData,
   username: string,
   canEnablePipelines?: boolean,
@@ -194,11 +194,11 @@ const assembleNotebook = (
 
 const getStopPatchDataString = (): string => new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
 
-const startPatch: Patch = {
+export const startPatch: Patch = {
   op: 'remove',
   path: '/metadata/annotations/kubeflow-resource-stopped',
 };
-const getStopPatch = (): Patch => ({
+export const getStopPatch = (): Patch => ({
   op: 'add',
   path: '/metadata/annotations/kubeflow-resource-stopped',
   value: getStopPatchDataString(),
@@ -299,20 +299,6 @@ export const updateNotebook = (
     ),
   );
 };
-
-export const createNotebookWithoutStarting = (
-  data: StartNotebookData,
-  username: string,
-): Promise<NotebookKind> =>
-  new Promise((resolve, reject) => {
-    createNotebook(data, username).then((notebook) => {
-      setTimeout(() => {
-        stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
-          .then(resolve)
-          .catch(reject);
-      }, 10_000);
-    });
-  });
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
