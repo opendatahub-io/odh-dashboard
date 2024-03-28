@@ -120,8 +120,7 @@ describe('Workload Metrics', () => {
     globalDistributedWorkloads.visit();
 
     cy.url().should('include', '/projectMetrics/test-project');
-    // TODO mturley replace this with real identifiable text on the loaded tab when it is completed
-    cy.findByText('TODO tab content for project metrics -- these are placeholders').should('exist');
+    cy.findByText('Top resource-consuming distributed workloads').should('exist');
   });
 
   it('Tabs navigate to corresponding routes and render their contents', () => {
@@ -134,8 +133,7 @@ describe('Workload Metrics', () => {
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project');
-    // TODO mturley replace this with real identifiable text on the loaded tab when it is completed
-    cy.findByText('TODO tab content for project metrics -- these are placeholders').should('exist');
+    cy.findByText('Top resource-consuming distributed workloads').should('exist');
   });
 
   it('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
@@ -177,5 +175,31 @@ describe('Workload Metrics', () => {
 
     cy.findByLabelText('Workload status tab').click();
     cy.findByText('No workloads match your filters').should('exist');
+  });
+
+  it('Should render the projects metrics with empty workload state', () => {
+    initIntercepts({ hasWorkloads: false });
+    globalDistributedWorkloads.visit();
+
+    cy.findByLabelText('Project metrics tab').click();
+
+    cy.findByText('Resource Usage').should('exist');
+
+    cy.findByText('Top resource-consuming distributed workloads')
+      .closest('.dw-section-card')
+      .within(() => {
+        cy.findByText('No distributed workloads');
+      });
+    cy.findByText('Distributed workload resource metrics')
+      .closest('.dw-section-card')
+      .within(() => {
+        cy.findByText('No distributed workloads');
+      });
+    cy.findByText('Resource Usage')
+      .closest('.dw-section-card')
+      .within(() => {
+        //Resource Usage shows chart even if empty workload\
+        cy.findByText('Charts Placeholder');
+      });
   });
 });
