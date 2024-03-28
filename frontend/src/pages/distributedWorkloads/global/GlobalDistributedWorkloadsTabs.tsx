@@ -7,11 +7,8 @@ import {
   PageSection,
   TabContent,
   TabContentBody,
-  ToolbarItem,
-  ToolbarGroup,
 } from '@patternfly/react-core';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
-import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
@@ -36,7 +33,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
           onSelect={(_, tabId) => {
             const tab = tabs.find(({ id }) => id === tabId);
             if (tab) {
-              const namespaceSuffix = tab.projectSelectorMode && !!namespace ? `/${namespace}` : '';
+              const namespaceSuffix = namespace ? `/${namespace}` : '';
               navigate(`/distributedWorkloads/${tab.path}${namespaceSuffix}`);
             }
           }}
@@ -56,23 +53,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
             ))}
         </Tabs>
       </PageSection>
-      {activeTab ? (
-        <MetricsPageToolbar
-          leftToolbarItem={
-            <ToolbarGroup>
-              <ToolbarItem variant="label">Project</ToolbarItem>
-              <ToolbarItem spacer={{ default: 'spacerMd' }}>
-                <ProjectSelectorNavigator
-                  getRedirectPath={(newNamespace) =>
-                    `/distributedWorkloads/${activeTab.path}/${newNamespace}`
-                  }
-                />
-              </ToolbarItem>
-            </ToolbarGroup>
-          }
-          hasTimeRangeSelect={false}
-        />
-      ) : null}
+      {activeTab ? <MetricsPageToolbar hasTimeRangeSelect={false} /> : null}
       <PageSection isFilled>
         {tabs
           .filter((tab) => tab.isAvailable)
