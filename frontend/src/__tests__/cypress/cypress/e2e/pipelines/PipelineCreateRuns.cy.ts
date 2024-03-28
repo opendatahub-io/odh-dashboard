@@ -220,6 +220,132 @@ describe('Pipeline create runs', () => {
       verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${mockDuplicateRun.run_id}`);
     });
 
+    it('create run with default and optional parameters', () => {
+      const createRunParams: Partial<PipelineRunKFv2> = {
+        display_name: 'New run',
+        description: 'New run description',
+        run_id: 'new-run-id',
+        runtime_config: {
+          parameters: {
+            string_param: 'String default value',
+            double_param: null,
+            int_param: 1,
+            struct_param: { default: 'value' },
+            list_param: [{ default: 'value' }],
+            bool_param: true,
+          },
+        },
+      };
+
+      // Mock experiments, pipelines & versions for form select dropdowns
+      createRunPage.mockGetExperiments(mockExperiments);
+      createRunPage.mockGetPipelines([mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        [
+          {
+            ...mockPipelineVersion,
+            pipeline_spec: {
+              components: {},
+              deploymentSpec: { executors: {} },
+              pipelineInfo: { name: '' },
+              schemaVersion: '',
+              sdkVersion: '',
+              ...getCorePipelineSpec(mockPipelineVersion.pipeline_spec),
+              root: {
+                dag: { tasks: {} },
+                inputDefinitions: {
+                  parameters: {
+                    string_param: {
+                      parameterType: InputDefinitionParameterType.STRING,
+                      defaultValue: 'String default value',
+                      description: 'Some string helper text',
+                    },
+                    double_param: {
+                      parameterType: InputDefinitionParameterType.DOUBLE,
+                      defaultValue: 0.1,
+                      description: 'Some double helper text',
+                      isOptional: true,
+                    },
+                    int_param: {
+                      parameterType: InputDefinitionParameterType.INTEGER,
+                      defaultValue: 1,
+                    },
+                    struct_param: {
+                      parameterType: InputDefinitionParameterType.STRUCT,
+                      defaultValue: { default: 'value' },
+                    },
+                    list_param: {
+                      parameterType: InputDefinitionParameterType.LIST,
+                      defaultValue: [{ default: 'value' }],
+                    },
+                    bool_param: {
+                      parameterType: InputDefinitionParameterType.BOOLEAN,
+                      defaultValue: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+        mockPipelineVersion.pipeline_id,
+      );
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      cy.url().should('include', '/pipelineRun/create');
+      createRunPage.find();
+
+      // Fill required fields
+      createRunPage.fillName('New run');
+      createRunPage.findExperimentSelect().click();
+      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.findPipelineSelect().click();
+      createRunPage.selectPipelineByName('Test pipeline');
+
+      // Verify default parameter values & helper text
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.findParamById('string_param').should('have.value', 'String default value');
+      cy.findByTestId('string_param-helper-text').should('have.text', 'Some string helper text');
+
+      paramsSection.findParamById('double_param').should('have.value', '0.1');
+      cy.findByTestId('double_param-form-group').should('not.have.text', '*', { exact: false });
+      cy.findByTestId('double_param-helper-text').should('have.text', 'Some double helper text');
+
+      paramsSection.findParamById('int_param').find('input').should('have.value', '1');
+      paramsSection.findParamById('struct_param').should('have.value', '{"default":"value"}');
+      paramsSection.findParamById('list_param').should('have.value', '[{"default":"value"}]');
+      paramsSection.findParamById('radio-bool_param-true').should('be.checked');
+
+      // Clear optional parameter then submit
+      paramsSection.findParamById('double_param').clear();
+      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRuns');
+      createRunPage.submit();
+
+      cy.wait('@createRuns').then((interception) => {
+        expect(interception.request.body).to.eql({
+          path: '/apis/v2beta1/runs',
+          method: 'POST',
+          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          queryParams: {},
+          data: {
+            display_name: 'New run',
+            description: '',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            },
+            runtime_config: createRunParams.runtime_config,
+            service_account: '',
+            experiment_id: 'experiment-1',
+          },
+        });
+      });
+
+      // Should be redirected to the run details page
+      cy.url().should('include', '/pipelineRun/view/new-run-id');
+    });
+
     it('create run with all parameter types', () => {
       const createRunParams: Partial<PipelineRunKFv2> = {
         display_name: 'New run',
@@ -325,16 +451,7 @@ describe('Pipeline create runs', () => {
               pipeline_id: 'test-pipeline',
               pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
             },
-            runtime_config: {
-              parameters: {
-                string_param: 'some string wrong',
-                double_param: 1.2,
-                int_param: 1,
-                struct_param: { patrick: 'star' },
-                list_param: [{ mr: 'krabs', sponge: 'bob' }],
-                bool_param: false,
-              },
-            },
+            runtime_config: createRunParams.runtime_config,
             service_account: '',
             experiment_id: 'experiment-1',
           },
