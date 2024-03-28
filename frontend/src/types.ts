@@ -6,11 +6,11 @@ import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 
-export type PrometheusQueryResponse = {
+export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
   data: {
-    result: {
+    result: ({
       value: [number, string];
-    }[];
+    } & TResultExtraProps)[];
     resultType: string;
   };
   status: string;

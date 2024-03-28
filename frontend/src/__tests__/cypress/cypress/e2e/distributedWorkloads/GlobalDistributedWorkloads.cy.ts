@@ -6,8 +6,7 @@ import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { globalDistributedWorkloads } from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockPrometheusDWQuery } from '~/__mocks__/mockPrometheusDWQuery';
-import { mockPrometheusDWQueryRange } from '~/__mocks__/mockPrometheusDWQueryRange';
+import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
 
 type HandlersProps = {
@@ -70,14 +69,10 @@ const initIntercepts = ({
       method: 'POST',
       pathname: '/api/prometheus/query',
     },
-    mockPrometheusDWQuery({ result: [] }),
-  );
-  cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/prometheus/queryRange',
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
     },
-    mockPrometheusDWQueryRange({ result: [] }),
   );
 };
 

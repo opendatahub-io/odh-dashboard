@@ -7,12 +7,7 @@ import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import {
-  DWProjectMetrics,
-  DWWorkloadTrendMetrics,
-  useDWProjectMetrics,
-  useDWWorkloadTrendMetrics,
-} from '~/api';
+import { DWProjectCurrentMetrics, useDWProjectCurrentMetrics } from '~/api';
 import { RefreshIntervalValue } from '~/concepts/metrics/const';
 import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 import useClusterQueues from './useClusterQueues';
@@ -21,8 +16,7 @@ import useWorkloads from './useWorkloads';
 type DistributedWorkloadsContextType = {
   clusterQueues: FetchStateObject<ClusterQueueKind[]>;
   workloads: FetchStateObject<WorkloadKind[]>;
-  projectMetrics: DWProjectMetrics;
-  workloadTrendMetrics: DWWorkloadTrendMetrics;
+  projectCurrentMetrics: DWProjectCurrentMetrics;
   refreshAllData: () => void;
   namespace?: string;
 };
@@ -35,19 +29,16 @@ type DistributedWorkloadsContextProviderProps = {
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
   clusterQueues: DEFAULT_LIST_FETCH_STATE,
   workloads: DEFAULT_LIST_FETCH_STATE,
-  projectMetrics: {
+  projectCurrentMetrics: {
     ...DEFAULT_VALUE_FETCH_STATE,
     data: {
-      cpuRequested: DEFAULT_VALUE_FETCH_STATE,
-      cpuUtilized: DEFAULT_VALUE_FETCH_STATE,
+      cpuCoresUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
+      memoryBytesUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
     },
-  },
-  workloadTrendMetrics: {
-    ...DEFAULT_VALUE_FETCH_STATE,
-    data: {
-      jobsActiveTrend: DEFAULT_LIST_FETCH_STATE,
-      jobsInadmissibleTrend: DEFAULT_LIST_FETCH_STATE,
-      jobsPendingTrend: DEFAULT_LIST_FETCH_STATE,
+    getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
+    topResourceConsumingWorkloads: {
+      cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
+      memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
     },
   },
   refreshAllData: () => undefined,
@@ -62,8 +53,7 @@ export const DistributedWorkloadsContextProvider =
     const project = projects.find(byName(namespace)) ?? null;
     useSyncPreferredProject(project);
 
-    const { currentTimeframe, currentRefreshInterval, lastUpdateTime, setLastUpdateTime } =
-      React.useContext(MetricsCommonContext);
+    const { currentRefreshInterval } = React.useContext(MetricsCommonContext);
 
     const refreshRate = RefreshIntervalValue[currentRefreshInterval];
 
@@ -71,34 +61,23 @@ export const DistributedWorkloadsContextProvider =
 
     const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
-    const projectMetrics = useDWProjectMetrics(namespace, refreshRate);
-
-    const workloadTrendMetrics = useDWWorkloadTrendMetrics(
-      currentTimeframe,
-      lastUpdateTime,
-      setLastUpdateTime,
+    const projectCurrentMetrics = useDWProjectCurrentMetrics(
+      workloads.data,
       namespace,
       refreshRate,
     );
 
     const clusterQueuesRefresh = clusterQueues.refresh;
     const workloadsRefresh = workloads.refresh;
-    const projectMetricsRefresh = projectMetrics.refresh;
+    const projectCurrentMetricsRefresh = projectCurrentMetrics.refresh;
 
-    const workloadTrendMetricsRefresh = workloadTrendMetrics.refresh;
     const refreshAllData = React.useCallback(() => {
       clusterQueuesRefresh();
       workloadsRefresh();
-      projectMetricsRefresh();
-      workloadTrendMetricsRefresh();
-    }, [
-      clusterQueuesRefresh,
-      workloadsRefresh,
-      projectMetricsRefresh,
-      workloadTrendMetricsRefresh,
-    ]);
+      projectCurrentMetricsRefresh();
+    }, [clusterQueuesRefresh, workloadsRefresh, projectCurrentMetricsRefresh]);
 
-    const fetchError = [clusterQueues, workloads, projectMetrics].find(
+    const fetchError = [clusterQueues, workloads, projectCurrentMetrics].find(
       ({ error }) => !!error,
     )?.error;
 
@@ -117,8 +96,7 @@ export const DistributedWorkloadsContextProvider =
         value={{
           clusterQueues,
           workloads,
-          projectMetrics,
-          workloadTrendMetrics,
+          projectCurrentMetrics,
           refreshAllData,
           namespace,
         }}

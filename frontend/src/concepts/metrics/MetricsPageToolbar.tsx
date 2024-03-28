@@ -12,24 +12,30 @@ import { MetricsRefreshIntervalSelect } from '~/concepts/metrics/MetricsRefreshI
 
 type MetricsPageToolbarProps = {
   leftToolbarItem?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
+  hasTimeRangeSelect?: boolean;
 };
 
-const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem }) => (
+const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({
+  leftToolbarItem,
+  hasTimeRangeSelect = true,
+}) => (
   <Toolbar isSticky>
     <ToolbarContent>
       {leftToolbarItem}
       <ToolbarGroup align={{ default: 'alignRight' }}>
-        <ToolbarGroup>
-          <Stack>
-            {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
-            <StackItem style={{ fontWeight: 'bold' }}>Time range</StackItem>
-            <StackItem>
-              <ToolbarItem>
-                <MetricsTimeRangeSelect />
-              </ToolbarItem>
-            </StackItem>
-          </Stack>
-        </ToolbarGroup>
+        {hasTimeRangeSelect && (
+          <ToolbarGroup>
+            <Stack>
+              {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
+              <StackItem style={{ fontWeight: 'bold' }}>Time range</StackItem>
+              <StackItem>
+                <ToolbarItem>
+                  <MetricsTimeRangeSelect />
+                </ToolbarItem>
+              </StackItem>
+            </Stack>
+          </ToolbarGroup>
+        )}
         <ToolbarGroup>
           <Stack>
             {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
