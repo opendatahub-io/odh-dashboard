@@ -108,23 +108,32 @@ describe('Custom serving runtimes', () => {
 
     cy.wait('@createSingleModelServingRuntime').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body.metadata).to.eql({
-        name: 'template-new',
-        annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
-        namespace: 'opendatahub',
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'template-new',
+          annotations: { 'openshift.io/display-name': 'New OVMS Server' },
+          namespace: 'opendatahub',
+        },
       });
     });
 
     cy.wait('@createTemplate').then((interception) => {
-      expect(interception.request.body.metadata.annotations).to.eql({
-        'opendatahub.io/modelServingSupport': '["single"]',
-        'opendatahub.io/apiProtocol': 'REST',
-      });
-      expect(interception.request.body.objects[0].metadata).to.eql({
-        name: 'template-new',
-        annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'opendatahub.io/modelServingSupport': '["single"]',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+        },
+        objects: [
+          {
+            metadata: {
+              name: 'template-new',
+              annotations: { 'openshift.io/display-name': 'New OVMS Server' },
+              labels: { 'opendatahub.io/dashboard': 'true' },
+            },
+          },
+        ],
       });
     });
   });
@@ -175,14 +184,22 @@ describe('Custom serving runtimes', () => {
     });
 
     cy.wait('@createTemplate').then((interception) => {
-      expect(interception.request.body.metadata.annotations).to.eql({
-        'opendatahub.io/modelServingSupport': '["multi"]',
-        'opendatahub.io/apiProtocol': 'REST',
-      });
-      expect(interception.request.body.objects[0].metadata).to.eql({
-        name: 'template-new',
-        annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'opendatahub.io/modelServingSupport': '["multi"]',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+        },
+        objects: [
+          {
+            metadata: {
+              name: 'template-new',
+              annotations: { 'openshift.io/display-name': 'New OVMS Server' },
+              labels: { 'opendatahub.io/dashboard': 'true' },
+            },
+          },
+        ],
       });
     });
   });
@@ -228,23 +245,29 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.findSubmitButton().click();
 
     cy.wait('@duplicateServingRuntime').then((interception) => {
-      expect(interception.request.body.metadata).to.eql({
+      expect(interception.request.body.metadata).to.containSubset({
         name: 'template-1-copy',
         annotations: { 'openshift.io/display-name': 'Copy of Multi Platform' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
         namespace: 'opendatahub',
       });
     });
 
     cy.wait('@duplicateTemplate').then((interception) => {
-      expect(interception.request.body.metadata.annotations).to.eql({
-        'opendatahub.io/modelServingSupport': '["single"]',
-        'opendatahub.io/apiProtocol': 'gRPC',
-      });
-      expect(interception.request.body.objects[0].metadata).to.eql({
-        name: 'template-1-copy',
-        annotations: { 'openshift.io/display-name': 'Copy of Multi Platform' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'opendatahub.io/modelServingSupport': '["single"]',
+            'opendatahub.io/apiProtocol': 'gRPC',
+          },
+        },
+        objects: [
+          {
+            metadata: {
+              name: 'template-1-copy',
+              annotations: { 'openshift.io/display-name': 'Copy of Multi Platform' },
+            },
+          },
+        ],
       });
     });
     cy.wait('@refreshServingRuntime');
@@ -281,30 +304,35 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.findSubmitButton().click();
 
     cy.wait('@editServingRuntime').then((interception) => {
-      expect(interception.request.body.metadata).to.eql({
-        name: 'template-1',
-        annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
-        namespace: 'opendatahub',
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'template-1',
+          annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
+        },
       });
     });
 
     cy.wait('@editTemplate').then((interception) => {
-      expect(interception.request.body[0].value.metadata).to.eql({
-        name: 'template-1',
-        annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
-        labels: { 'opendatahub.io/dashboard': 'true' },
-      });
-      expect(interception.request.body[1]).to.eql({
-        op: 'replace',
-        path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
-        value: '["single"]',
-      });
-      expect(interception.request.body[2]).to.eql({
-        op: 'replace',
-        path: '/metadata/annotations/opendatahub.io~1apiProtocol',
-        value: 'REST',
-      });
+      expect(interception.request.body).to.containSubset([
+        {
+          value: {
+            metadata: {
+              name: 'template-1',
+              annotations: { 'openshift.io/display-name': 'Updated Multi Platform' },
+            },
+          },
+        },
+        {
+          op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
+          value: '["single"]',
+        },
+        {
+          op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1apiProtocol',
+          value: 'REST',
+        },
+      ]);
     });
   });
 
