@@ -9,7 +9,7 @@ import { PipelineRunKFv2, RuntimeStateKF, runtimeStateLabels } from '~/concepts/
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
-const usePipelineById = (
+const usePipelineRunById = (
   pipelineRunId?: string,
   refreshForDetails?: boolean,
 ): FetchState<PipelineRunKFv2 | null> => {
@@ -48,4 +48,4 @@ const usePipelineById = (
   return runData;
 };
 
-export default usePipelineById;
+export default usePipelineRunById;

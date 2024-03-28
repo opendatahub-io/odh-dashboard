@@ -366,6 +366,43 @@ describe('Pipeline topology', () => {
     });
   });
 
+  describe('Pipeline run volume mounts', () => {
+    beforeEach(() => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+    });
+
+    it('Test node with no volume mounts', () => {
+      pipelineRunDetails.findTaskNode('create-dataset').click();
+      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().should('be.visible');
+      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().click();
+      pipelineRunDetails
+        .findRightDrawer()
+        .findRightDrawerVolumesSection()
+        .should('contain.text', 'No content');
+    });
+
+    it('Test node with volume mounts', () => {
+      pipelineRunDetails.findTaskNode('normalize-dataset').click();
+      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().should('be.visible');
+      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().click();
+      pipelineRunDetails
+        .findRightDrawer()
+        .findRightDrawerDetailItem('/data/1')
+        .findValue()
+        .should('contain', 'create-dataset');
+      // Close the side drawer to uncover the 'train-model' node
+      pipelineRunDetails.findTaskNode('normalize-dataset').click();
+      pipelineRunDetails.findTaskNode('train-model').click();
+      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().click();
+      pipelineRunDetails
+        .findRightDrawer()
+        .findRightDrawerDetailItem('/data/2')
+        .findValue()
+        .should('contain', 'normalize-dataset');
+    });
+  });
+
   describe('Pipelines logs', () => {
     beforeEach(() => {
       initIntercepts();

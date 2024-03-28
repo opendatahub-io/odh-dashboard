@@ -12,3 +12,7 @@ export enum PipelineRunSearchParam {
   RunType = 'runType',
   TriggerType = 'triggerType',
 }
+
+export enum CompareRunsSearchParam {
+  RUNS = 'runs',
+}

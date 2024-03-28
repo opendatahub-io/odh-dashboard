@@ -7,6 +7,7 @@ import {
   parseInputOutput,
   parseRuntimeInfo,
   parseTasksForArtifactRelationship,
+  parseVolumeMounts,
   translateStatusForNode,
 } from './parseUtils';
 import { KubeFlowTaskTopology } from './pipelineTaskTypes';
@@ -88,6 +89,7 @@ export const usePipelineTaskTopology = (
       inputs: parseInputOutput(component?.inputDefinitions),
       outputs: parseInputOutput(component?.outputDefinitions),
       status,
+      volumeMounts: parseVolumeMounts(spec.platform_spec, executorLabel),
     };
     if (taskValue.dependentTasks) {
       // This task's runAfters may need artifact relationships -- find those artifactIds

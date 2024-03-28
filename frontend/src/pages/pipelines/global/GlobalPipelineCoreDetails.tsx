@@ -6,6 +6,7 @@ import { getProjectDisplayName } from '~/pages/projects/utils';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { experimentRunsRoute, experimentSchedulesRoute, experimentsBaseRoute } from '~/routes';
+import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { useExperimentByParams } from './experiments/useExperimentByParams';
 
 type GlobalPipelineCoreDetailsProps = {
@@ -23,19 +24,21 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
 
   return (
     <EnsureAPIAvailability>
-      <BreadcrumbDetailsComponent
-        breadcrumbPath={[
-          <BreadcrumbItem
-            key="home"
-            render={() => (
-              <Link to={redirectPath(namespace)}>
-                {pageName} - {getProjectDisplayName(project)}
-              </Link>
-            )}
-          />,
-        ]}
-        contextPath={redirectPath(namespace)}
-      />
+      <EnsureCompatiblePipelineServer>
+        <BreadcrumbDetailsComponent
+          breadcrumbPath={[
+            <BreadcrumbItem
+              key="home"
+              render={() => (
+                <Link to={redirectPath(namespace)}>
+                  {pageName} - {getProjectDisplayName(project)}
+                </Link>
+              )}
+            />,
+          ]}
+          contextPath={redirectPath(namespace)}
+        />
+      </EnsureCompatiblePipelineServer>
     </EnsureAPIAvailability>
   );
 };
@@ -51,29 +54,31 @@ export const GlobalExperimentDetails: React.FC<
 
   return (
     <EnsureAPIAvailability>
-      <BreadcrumbDetailsComponent
-        breadcrumbPath={[
-          <BreadcrumbItem key="experiments">
-            <Link to={experimentsBaseRoute(namespace)}>
-              Experiments - {getProjectDisplayName(project)}
-            </Link>
-          </BreadcrumbItem>,
-          <BreadcrumbItem key="experiment">
-            {experiment?.display_name ? (
-              <Link to={experimentRunsRoute(namespace, experimentId)}>
-                {experiment.display_name}
+      <EnsureCompatiblePipelineServer>
+        <BreadcrumbDetailsComponent
+          breadcrumbPath={[
+            <BreadcrumbItem key="experiments">
+              <Link to={experimentsBaseRoute(namespace)}>
+                Experiments - {getProjectDisplayName(project)}
               </Link>
-            ) : (
-              'Loading...'
-            )}
-          </BreadcrumbItem>,
-        ]}
-        contextPath={
-          isSchedule
-            ? experimentSchedulesRoute(namespace, experimentId)
-            : experimentRunsRoute(namespace, experimentId)
-        }
-      />
+            </BreadcrumbItem>,
+            <BreadcrumbItem key="experiment">
+              {experiment?.display_name ? (
+                <Link to={experimentRunsRoute(namespace, experimentId)}>
+                  {experiment.display_name}
+                </Link>
+              ) : (
+                'Loading...'
+              )}
+            </BreadcrumbItem>,
+          ]}
+          contextPath={
+            isSchedule
+              ? experimentSchedulesRoute(namespace, experimentId)
+              : experimentRunsRoute(namespace, experimentId)
+          }
+        />
+      </EnsureCompatiblePipelineServer>
     </EnsureAPIAvailability>
   );
 };

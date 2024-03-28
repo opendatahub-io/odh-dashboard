@@ -255,8 +255,12 @@ export enum TriggerStrategy {
   ALL_UPSTREAM_TASKS_COMPLETED = 'ALL_UPSTREAM_TASKS_COMPLETED',
 }
 
+// https://github.com/kubeflow/pipelines/blob/cc971c962596afab4d5d544c466836ea3ee2656d/api/v2alpha1/pipeline_spec.proto#L197
 export type ParameterKFV2 = {
   parameterType: InputDefinitionParameterType;
+  defaultValue?: RuntimeConfigParamValue;
+  isOptional?: boolean;
+  description?: string;
 };
 
 export type ParametersKF = Record<string, ParameterKFV2>;
@@ -267,6 +271,13 @@ export type PipelineExecutorKF = {
     command?: string[];
     image: string;
   };
+  pvcMount?: {
+    mountPath: string;
+    taskOutputParameter?: {
+      outputParameterKey: string;
+      producerTask: string;
+    };
+  }[];
 };
 
 export type PipelineExecutorsKF = Record<
@@ -320,7 +331,7 @@ export type PlatformSpec = {
 
 export type PipelineSpecVolume = {
   pipeline_spec: PipelineSpec;
-  platmform_spec: PlatformSpec;
+  platform_spec: PlatformSpec;
 };
 
 export type PipelineSpecVariable = EitherNotBoth<PipelineSpec, PipelineSpecVolume>;
@@ -353,7 +364,7 @@ export type UrlKF = {
   pipeline_url: string;
 };
 
-export type RuntimeConfigParamValue = string | number | boolean | object | Array<object>;
+export type RuntimeConfigParamValue = string | number | boolean | object | Array<object> | null;
 export type RuntimeConfigParameters = Record<string, RuntimeConfigParamValue>;
 
 export type PipelineSpecRuntimeConfig = {

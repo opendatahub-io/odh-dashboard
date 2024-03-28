@@ -4,10 +4,12 @@ import {
   InputOutputArtifactType,
   InputOutputDefinition,
   PipelineComponentsKF,
+  PlatformSpec,
   RunDetailsKF,
   RuntimeStateKF,
   TaskDetailKF,
 } from '~/concepts/pipelines/kfTypes';
+import { VolumeMount } from '~/types';
 import { PipelineTaskInputOutput, PipelineTaskRunStatus } from './pipelineTaskTypes';
 
 export const composeArtifactType = (data: InputOutputArtifactType): string =>
@@ -183,4 +185,23 @@ export const translateStatusForNode = (stateKF?: RuntimeStateKF): RunStatus | un
     default:
       return undefined;
   }
+};
+
+export const parseVolumeMounts = (
+  platformSpec?: PlatformSpec,
+  executorLabel?: string,
+): VolumeMount[] => {
+  if (!platformSpec || !platformSpec.platforms.kubernetes || !executorLabel) {
+    return [];
+  }
+
+  const executor = platformSpec.platforms.kubernetes.deploymentSpec.executors[executorLabel];
+
+  if (!executor || !executor.pvcMount) {
+    return [];
+  }
+  return executor.pvcMount.map((pvc) => ({
+    mountPath: pvc.mountPath,
+    name: pvc.taskOutputParameter?.producerTask ?? '',
+  }));
 };

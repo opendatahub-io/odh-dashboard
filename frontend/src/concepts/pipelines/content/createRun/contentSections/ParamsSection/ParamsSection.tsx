@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Alert, FormGroup, FormSection, HelperText, TextInput } from '@patternfly/react-core';
+import {
+  Alert,
+  FormGroup,
+  FormHelperText,
+  FormSection,
+  HelperText,
+  HelperTextItem,
+  TextInput,
+} from '@patternfly/react-core';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
@@ -43,7 +51,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
 
     const formGroups = Object.entries(runParams).map(([label, value]) => {
       const inputDefinitionParams = getInputDefinitionParams(version);
-      const parameterType = inputDefinitionParams?.[label]?.parameterType;
+      const { parameterType, isOptional, description } = inputDefinitionParams?.[label] || {};
       const inputProps = {
         value,
         id: label,
@@ -74,8 +82,21 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
       }
 
       return (
-        <FormGroup key={label} label={label} fieldId={label} isRequired>
+        <FormGroup
+          key={label}
+          label={label}
+          fieldId={label}
+          isRequired={!isOptional}
+          data-testid={`${label}-form-group`}
+        >
           {input}
+          {description && (
+            <FormHelperText data-testid={`${label}-helper-text`}>
+              <HelperText>
+                <HelperTextItem>{description}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
       );
     });

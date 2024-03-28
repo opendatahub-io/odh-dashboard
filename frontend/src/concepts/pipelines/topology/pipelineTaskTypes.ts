@@ -1,5 +1,6 @@
 import { InputDefinitionParameterType, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { createNode } from '~/concepts/topology';
+import { VolumeMount } from '~/types';
 
 export type PipelineTaskParam = {
   label: string;
@@ -42,6 +43,8 @@ export type PipelineTask = {
   outputs?: PipelineTaskInputOutput;
   /** Run Status */
   status?: PipelineTaskRunStatus;
+  /** Volume Mounts */
+  volumeMounts?: VolumeMount[];
 };
 
 export type KubeFlowTaskTopology = {
