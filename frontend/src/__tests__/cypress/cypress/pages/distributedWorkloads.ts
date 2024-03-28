@@ -33,6 +33,10 @@ class GlobalDistributedWorkloads {
     this.findProjectSelect().findDropdownItem(name).click();
   }
 
+  findStatusOverviewCard() {
+    return cy.findByTestId('dw-status-overview-card');
+  }
+
   private wait() {
     this.shouldHavePageTitle();
     cy.testA11y();

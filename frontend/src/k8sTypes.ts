@@ -901,7 +901,7 @@ export type WorkloadCondition = {
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type: string;
+  type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
 };
 
 export type AccessReviewResourceAttributes = {
