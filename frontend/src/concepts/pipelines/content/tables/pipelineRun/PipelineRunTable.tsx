@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button } from '@patternfly/react-core';
+import { Button, Tooltip } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
@@ -18,7 +18,7 @@ import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
-import { createRunRoute } from '~/routes';
+import { createRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type PipelineRunTableProps = {
@@ -90,6 +90,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
     return (
       <Button
+        key="create-run"
         data-testid="create-run-button"
         variant="primary"
         onClick={() =>
@@ -100,6 +101,49 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       </Button>
     );
   }, [runType, selectedIds.length, navigate, isExperimentsAvailable, experimentId, namespace]);
+
+  const compareRunsAction =
+    isExperimentsAvailable && experimentId ? (
+      <Tooltip content="Select up to 10 runs to compare">
+        <Button
+          key="compare-runs"
+          data-testid="compare-runs-button"
+          variant="secondary"
+          isAriaDisabled={selectedIds.length === 0 || selectedIds.length > 10}
+          onClick={() =>
+            navigate(experimentsCompareRunsRoute(namespace, experimentId, selectedIds))
+          }
+        >
+          Compare runs
+        </Button>
+      </Tooltip>
+    ) : null;
+
+  const toolbarDropdownAction = (
+    <SimpleMenuActions
+      key="run-table-toolbar-actions"
+      data-testid="run-table-toolbar-actions"
+      dropdownItems={[
+        ...(runType === PipelineRunType.Archived
+          ? [
+              {
+                key: 'delete',
+                label: 'Delete',
+                onClick: () => setIsDeleteModalOpen(true),
+                isDisabled: !selectedIds.length,
+              },
+            ]
+          : [
+              {
+                key: 'archive',
+                label: 'Archive',
+                onClick: () => setIsArchiveModalOpen(true),
+                isDisabled: !selectedIds.length,
+              },
+            ]),
+      ]}
+    />
+  );
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
@@ -131,31 +175,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           <PipelineRunTableToolbar
             data-testid={`${runType}-runs-table-toolbar`}
             {...filterToolbarProps}
-            primaryAction={primaryToolbarAction}
-            dropdownActions={
-              <SimpleMenuActions
-                data-testid="run-table-toolbar-actions"
-                dropdownItems={[
-                  ...(runType === PipelineRunType.Archived
-                    ? [
-                        {
-                          key: 'delete',
-                          label: 'Delete',
-                          onClick: () => setIsDeleteModalOpen(true),
-                          isDisabled: !selectedIds.length,
-                        },
-                      ]
-                    : [
-                        {
-                          key: 'archive',
-                          label: 'Archive',
-                          onClick: () => setIsArchiveModalOpen(true),
-                          isDisabled: !selectedIds.length,
-                        },
-                      ]),
-                ]}
-              />
-            }
+            actions={[
+              primaryToolbarAction,
+              ...(compareRunsAction ? [compareRunsAction] : []),
+              toolbarDropdownAction,
+            ]}
           />
         }
         rowRenderer={(run) => (
