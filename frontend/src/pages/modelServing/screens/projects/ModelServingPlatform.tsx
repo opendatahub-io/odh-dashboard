@@ -92,6 +92,42 @@ const ModelServingPlatform: React.FC = () => {
     }
   };
 
+  const renderPlatformEmptyState = () => {
+    if (kServeEnabled || modelMeshEnabled) {
+      return (
+        <EmptyDetailsList
+          title={modelMeshEnabled ? 'Start by adding a model server' : 'Start by deploying a model'}
+          description={
+            modelMeshEnabled
+              ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authorization, the serving runtime, and how the project that the model server belongs to is accessed.'
+              : 'Each model is deployed on its own model server.'
+          }
+          actions={
+            <ModelServingPlatformButtonAction
+              isProjectModelMesh={isProjectModelMesh}
+              testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
+              emptyTemplates={emptyTemplates}
+              onClick={() => {
+                setPlatformSelected(
+                  isProjectModelMesh ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE,
+                );
+              }}
+            />
+          }
+          icon={isProjectModelMesh ? PlusCircleIcon : undefined}
+        />
+      );
+    }
+
+    return (
+      <EmptyDetailsList
+        title="No model serving platform selected"
+        description="To enable model serving, an administrator must first select a model serving platform in the cluster settings."
+        icon={PlusCircleIcon}
+      />
+    );
+  };
+
   return (
     <>
       <DetailsSection
@@ -99,7 +135,7 @@ const ModelServingPlatform: React.FC = () => {
         id={ProjectSectionID.MODEL_SERVER}
         title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
         actions={
-          shouldShowPlatformSelection || platformError
+          shouldShowPlatformSelection || platformError || emptyModelServer
             ? undefined
             : [
                 <ModelServingPlatformButtonAction
@@ -119,13 +155,13 @@ const ModelServingPlatform: React.FC = () => {
         }
         description={
           shouldShowPlatformSelection && emptyModelServer
-            ? 'Select the type of model serving platform to be used when deploying models in this project.'
+            ? 'Select the model serving type to be used when deploying models from this project.'
             : undefined
         }
         popover={
           <Popover
-            headerContent="About model serving"
-            bodyContent="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
+            headerContent="About models"
+            bodyContent="Deploy models to test them and integrate them into applications. Deploying a model makes it accessible via an API, enabling you to return predictions based on data inputs."
           >
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
@@ -137,7 +173,7 @@ const ModelServingPlatform: React.FC = () => {
         isEmpty={shouldShowPlatformSelection}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
-          kServeEnabled || modelMeshEnabled ? (
+          kServeEnabled && modelMeshEnabled ? (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
@@ -165,13 +201,8 @@ const ModelServingPlatform: React.FC = () => {
                   variant="info"
                   isInline
                   isPlain
-                  title="Your project can only support one platform"
-                >
-                  <p>
-                    Choose a platform that best fits your needs. Changes cannot be made once a model
-                    has deployed.
-                  </p>
-                </Alert>
+                  title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
+                />
               </FlexItem>
             </Flex>
           ) : (
@@ -187,10 +218,7 @@ const ModelServingPlatform: React.FC = () => {
         }
       >
         {emptyModelServer ? (
-          <EmptyDetailsList
-            title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-            icon={PlusCircleIcon}
-          />
+          renderPlatformEmptyState()
         ) : isProjectModelMesh ? (
           <ModelMeshServingRuntimeTable />
         ) : (

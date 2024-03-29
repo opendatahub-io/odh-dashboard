@@ -12,7 +12,7 @@ const PlatformSelectSection: React.FC = () => (
         style={{ paddingLeft: 'var(--pf-v5-global--spacer--md)' }}
       >
         <Text component="small">
-          Select the type of model serving platform to be used when deploying models in this
+          Select the type of model serving platform to be used when deploying models from this
           project.
         </Text>
       </TextContent>
@@ -26,7 +26,7 @@ const PlatformSelectSection: React.FC = () => (
       </Gallery>
       <Alert
         isInline
-        variant="warning"
+        variant="info"
         title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
       />
     </Stack>

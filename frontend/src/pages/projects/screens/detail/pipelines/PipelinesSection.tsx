@@ -60,7 +60,7 @@ const PipelinesSection: React.FC = () => {
           installed ? (
             <Popover
               headerContent="About pipelines"
-              bodyContent="Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models."
+              bodyContent="Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench."
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
