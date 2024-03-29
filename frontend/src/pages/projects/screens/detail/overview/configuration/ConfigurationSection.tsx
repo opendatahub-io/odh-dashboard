@@ -48,7 +48,7 @@ const ConfigurationSection: React.FC = () => {
           sectionType={SectionType.setup}
           imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
           title="Data connections"
-          description="For projects that use very large data sets, you can use data connections to link your project to an object storage bucket."
+          description="You can add data connections to workbenches to connect your project to data inputs and object storage buckets. You can also use data connections to specify the location of your models during deployment."
           isOpen={open}
           onClick={() =>
             navigate(

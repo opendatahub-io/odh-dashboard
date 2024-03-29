@@ -31,7 +31,8 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        Select the type of model serving platform to be used when deploying models in this project.
+        Select the type of model serving platform to be used when deploying models from this
+        project.
       </StackItem>
       <StackItem>
         <Gallery hasGutter maxWidths={{ default: '400px' }}>

@@ -38,7 +38,7 @@ const DataConnectionsList: React.FC = () => {
           !isDataConnectionsEmpty && (
             <Popover
               headerContent="About data connections"
-              bodyContent="Adding a data connection to your project allows you to connect data inputs to your workbenches."
+              bodyContent="You can add data connections to workbenches to connect your project to data inputs and object storage buckets. You can also use data connections to specify the location of your models during deployment."
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
@@ -67,7 +67,7 @@ const DataConnectionsList: React.FC = () => {
         emptyState={
           <EmptyDetailsView
             title="Start by adding a data connection"
-            description="Adding a data connection to your project allows you to connect data inputs to your workbenches."
+            description="You can add data connections to workbenches to connect your project to data inputs and object storage buckets. You can also use data connections to specify the location of your models during deployment."
             iconImage={typedEmptyImage(ProjectObjectType.dataConnection)}
             imageAlt="add a data connection"
             allowCreate={rbacLoaded && allowCreate}

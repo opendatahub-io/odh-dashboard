@@ -142,7 +142,7 @@ const NotebooksCard: React.FC = () => {
       sectionType={SectionType.training}
       title="Workbenches"
       popoverHeaderContent="About workbenches"
-      popoverBodyContent="Creating a workbench allows you to add a Jupyter notebook to your project."
+      popoverBodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
     >
       <MetricsContents
         title="Workbenches"
