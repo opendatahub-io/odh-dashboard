@@ -67,7 +67,7 @@ const DataConnectionsList: React.FC = () => {
         emptyState={
           <EmptyDetailsView
             title="Start by adding a data connection"
-            description="Adding a data connection to your project allows you toconnect data inputs to your workbenches."
+            description="Adding a data connection to your project allows you to connect data inputs to your workbenches."
             iconImage={typedEmptyImage(ProjectObjectType.dataConnection)}
             imageAlt="add a data connection"
             allowCreate={rbacLoaded && allowCreate}

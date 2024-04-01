@@ -29,12 +29,6 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   return (
     <div
       style={{
-        background: open ? undefined : 'var(--pf-v5-global--BackgroundColor--100)',
-        border:
-          open || showChildrenWhenClosed
-            ? undefined
-            : `1px solid ${sectionTypeBorderColor(sectionType)}`,
-        borderRadius: 16,
         padding: open ? undefined : 'var(--pf-v5-global--spacer--md)',
       }}
     >
