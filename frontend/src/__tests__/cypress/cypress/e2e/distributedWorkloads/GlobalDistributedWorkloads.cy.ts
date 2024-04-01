@@ -236,6 +236,22 @@ describe('Project Metrics tab', () => {
         cy.findByText('Charts Placeholder');
       });
   });
+
+  it('Should render the workload resource metrics table', () => {
+    initIntercepts({});
+    globalDistributedWorkloads.visit();
+
+    cy.findByLabelText('Project metrics tab').click();
+    cy.findByText('test-workload').should('exist');
+  });
+
+  it('Should render the workload resource metrics table with empty state', () => {
+    initIntercepts({ workloads: [] });
+    globalDistributedWorkloads.visit();
+
+    cy.findByLabelText('Project metrics tab').click();
+    cy.findByText('No distributed workloads match your filters').should('exist');
+  });
 });
 
 describe('Workload Status tab', () => {

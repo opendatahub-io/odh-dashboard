@@ -8,7 +8,7 @@ import {
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { usePVCFreeAmount } from '~/api';
 import { getPvcTotalSize } from '~/pages/projects/utils';
-import { bytesAsGB } from '~/utilities/number';
+import { bytesAsRoundedGiB } from '~/utilities/number';
 import { getFullStatusFromPercentage } from './utils';
 import useStorageStatusAlert from './useStorageStatusAlert';
 
@@ -25,7 +25,9 @@ const StorageWarningStatus: React.FC<StorageWarningStatusProps> = ({
 }) => {
   const [inUseInBytes, loaded] = usePVCFreeAmount(obj);
   const percentage = loaded
-    ? Number(((bytesAsGB(inUseInBytes) / parseFloat(getPvcTotalSize(obj))) * 100).toFixed(2))
+    ? Number(
+        ((bytesAsRoundedGiB(inUseInBytes) / parseFloat(getPvcTotalSize(obj))) * 100).toFixed(2),
+      )
     : NaN;
   useStorageStatusAlert(obj, percentage);
 

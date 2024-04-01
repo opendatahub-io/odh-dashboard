@@ -14,7 +14,7 @@ import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/Dis
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { ResourceUsage } from './sections/ResourceUsage';
 import { TopResourceConsumingWorkloads } from './sections/TopResourceConsumingWorkloads';
-import { WorkloadResourceMetrics } from './sections/WorkloadResourceMetrics';
+import { WorkloadResourceMetricsTable } from './sections/WorkloadResourceMetricsTable';
 import { DWSectionCard } from './sections/DWSectionCard';
 
 const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
@@ -69,7 +69,8 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
         <FlexItem>
           <DWSectionCard
             title="Distributed workload resource metrics"
-            content={<WorkloadResourceMetrics />}
+            hasDivider={false}
+            content={<WorkloadResourceMetricsTable />}
           />
         </FlexItem>
       </Flex>
