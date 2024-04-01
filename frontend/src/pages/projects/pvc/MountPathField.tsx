@@ -28,6 +28,7 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
       <InputGroupItem isFill>
         <TextInput
           isRequired
+          data-testid="mount-path-folder-value"
           aria-label="mount-path-folder-value"
           type="text"
           value={mountPath.value}
