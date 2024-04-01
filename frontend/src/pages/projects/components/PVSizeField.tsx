@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import ValueUnitField from '~/components/ValueUnitField';
-import { MEMORY_UNITS } from '~/utilities/valueUnits';
+import { MEMORY_UNITS_FOR_SELECTION } from '~/utilities/valueUnits';
 
 type PVSizeFieldProps = {
   fieldID: string;
@@ -18,7 +18,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
       onBlur={(value) => setSize(value)}
       onChange={(value) => setSize(value)}
       validated={currentSize ? 'warning' : 'default'}
-      options={MEMORY_UNITS}
+      options={MEMORY_UNITS_FOR_SELECTION}
       value={size}
     />
     {currentSize && (

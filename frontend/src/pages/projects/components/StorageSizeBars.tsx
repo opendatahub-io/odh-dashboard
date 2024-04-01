@@ -13,7 +13,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { getPvcTotalSize } from '~/pages/projects/utils';
 import { usePVCFreeAmount } from '~/api';
-import { bytesAsGB } from '~/utilities/number';
+import { bytesAsRoundedGiB } from '~/utilities/number';
 
 type StorageSizeBarProps = {
   pvc: PersistentVolumeClaimKind;
@@ -33,7 +33,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
     );
   }
 
-  const inUseValue = `${bytesAsGB(inUseInBytes)}Gi`;
+  const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}Gi`;
   const percentage = ((parseFloat(inUseValue) / parseFloat(maxValue)) * 100).toFixed(2);
   const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
 
