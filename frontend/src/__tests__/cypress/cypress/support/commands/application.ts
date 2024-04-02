@@ -181,14 +181,14 @@ Cypress.Commands.add('fill', { prevSubject: 'optional' }, (subject, text, option
   return cy.wrap(subject).type(text, options);
 });
 
-Cypress.Commands.add('pfSwitch', (dataId) => {
+Cypress.Commands.add('pfSwitch', { prevSubject: 'optional' }, (subject, dataId) => {
   Cypress.log({ displayName: 'pfSwitch', message: dataId });
-  return cy.findByTestId(dataId).parent();
+  return cy.wrap(subject).findByTestId(dataId).parent();
 });
 
-Cypress.Commands.add('pfSwitchValue', (dataId) => {
+Cypress.Commands.add('pfSwitchValue', { prevSubject: 'optional' }, (subject, dataId) => {
   Cypress.log({ displayName: 'pfSwitchValue', message: dataId });
-  return cy.pfSwitch(dataId).find('[type=checkbox]');
+  return cy.wrap(subject).pfSwitch(dataId).find('[type=checkbox]');
 });
 
 Cypress.Commands.overwriteQuery('findByTestId', function findByTestId(...args) {

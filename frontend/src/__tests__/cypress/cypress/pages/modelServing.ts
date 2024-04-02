@@ -273,6 +273,10 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
+  findKServeTableHeaderButton(name: string) {
+    return this.findKServeTable().find('thead').findByRole('button', { name });
+  }
+
   getKServeRow(name: string) {
     return new KServeRow(() =>
       this.findKServeTable().find('[data-label=Name]').contains(name).parents('tr'),
@@ -298,6 +302,10 @@ class ModelServingSection {
 
   findInferenceServiceTable() {
     return cy.findByTestId('inference-service-table');
+  }
+
+  findInferenceServiceTableHeaderButton(name: string) {
+    return this.findInferenceServiceTable().find('thead').findByRole('button', { name });
   }
 
   getInferenceServiceRow(name: string) {

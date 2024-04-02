@@ -527,6 +527,15 @@ describe('Serving Runtime List', () => {
 
       // Check API protocol in row
       inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
+
+      // sort by modelName
+      modelServingSection
+        .findInferenceServiceTableHeaderButton('Model name')
+        .should(be.sortAscending);
+      modelServingSection.findInferenceServiceTableHeaderButton('Model name').click();
+      modelServingSection
+        .findInferenceServiceTableHeaderButton('Model name')
+        .should(be.sortDescending);
     });
   });
 
@@ -740,6 +749,10 @@ describe('Serving Runtime List', () => {
         .should('exist');
       // Check for resource marked for deletion
       modelServingSection.getKServeRow('Another Inference Service').shouldBeMarkedForDeletion();
+
+      modelServingSection.findKServeTableHeaderButton('Model name').should(be.sortAscending);
+      modelServingSection.findKServeTableHeaderButton('Model name').click();
+      modelServingSection.findKServeTableHeaderButton('Model name').should(be.sortDescending);
     });
 
     it('Check number of replicas of model', () => {
