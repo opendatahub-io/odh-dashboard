@@ -63,7 +63,11 @@ const StorageList: React.FC = () => {
             imageAlt="add cluster storage"
             allowCreate={rbacLoaded && allowCreate}
             createButton={
-              <Button onClick={() => setOpen(true)} variant="primary">
+              <Button
+                data-testid="cluster-storage-button"
+                onClick={() => setOpen(true)}
+                variant="primary"
+              >
                 Add cluster storage
               </Button>
             }
