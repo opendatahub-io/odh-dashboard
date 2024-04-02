@@ -1,8 +1,6 @@
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockComponents } from '~/__mocks__/mockComponents';
-import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { globalDistributedWorkloads } from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
@@ -12,6 +10,12 @@ import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
+import {
+  ClusterQueueModel,
+  LocalQueueModel,
+  ProjectModel,
+  WorkloadModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   isKueueInstalled?: boolean;
@@ -38,25 +42,21 @@ const initIntercepts = ({
     }),
   ],
 }: HandlersProps) => {
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: { kueue: isKueueInstalled },
     }),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept(
-    '/api/config',
+  cy.interceptOdh(
+    'GET /api/config',
     mockDashboardConfig({
       disableDistributedWorkloads,
     }),
   );
-  cy.intercept('/api/components', mockComponents());
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
+  cy.interceptOdh('GET /api/components', null, mockComponents());
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList(
       hasProjects
         ? [
@@ -66,37 +66,25 @@ const initIntercepts = ({
         : [],
     ),
   );
-  cy.intercept(
+  cy.interceptK8sList(ClusterQueueModel, mockK8sResourceList(clusterQueues));
+  cy.interceptK8sList(
     {
-      method: 'GET',
-      pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/clusterqueues',
-    },
-    mockK8sResourceList(clusterQueues),
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/namespaces/*/localqueues',
+      model: LocalQueueModel,
+      ns: '*',
     },
     mockK8sResourceList(localQueues),
   );
-  cy.intercept(
+  cy.interceptK8sList(
     {
-      method: 'GET',
-      pathname: '/api/k8s/apis/kueue.x-k8s.io/v1beta1/namespaces/*/workloads',
+      model: WorkloadModel,
+      ns: '*',
     },
     mockK8sResourceList(workloads),
   );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/prometheus/query',
-    },
-    {
-      code: 200,
-      response: mockPrometheusQueryVectorResponse({ result: [] }),
-    },
-  );
+  cy.interceptOdh('POST /api/prometheus/query', {
+    code: 200,
+    response: mockPrometheusQueryVectorResponse({ result: [] }),
+  });
 };
 
 describe('Distributed Workload Metrics root page', () => {
@@ -105,11 +93,8 @@ describe('Distributed Workload Metrics root page', () => {
       isKueueInstalled: false,
       disableDistributedWorkloads: false,
     });
-
-    explorePage.visit();
-    globalDistributedWorkloads.findNavItem().should('not.exist');
-
     globalDistributedWorkloads.visit(false);
+    globalDistributedWorkloads.findNavItem().should('not.exist');
     globalDistributedWorkloads.shouldNotFoundPage();
   });
 
@@ -118,11 +103,8 @@ describe('Distributed Workload Metrics root page', () => {
       isKueueInstalled: true,
       disableDistributedWorkloads: true,
     });
-
-    explorePage.visit();
-    globalDistributedWorkloads.findNavItem().should('not.exist');
-
     globalDistributedWorkloads.visit(false);
+    globalDistributedWorkloads.findNavItem().should('not.exist');
     globalDistributedWorkloads.shouldNotFoundPage();
   });
 
@@ -131,10 +113,8 @@ describe('Distributed Workload Metrics root page', () => {
       isKueueInstalled: true,
       disableDistributedWorkloads: false,
     });
-    explorePage.visit();
-    globalDistributedWorkloads.findNavItem().should('exist');
-
     globalDistributedWorkloads.visit();
+    globalDistributedWorkloads.findNavItem().should('exist');
     globalDistributedWorkloads.shouldHavePageTitle();
   });
 

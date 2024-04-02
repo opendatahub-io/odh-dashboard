@@ -1,6 +1,4 @@
 import { mockByon } from '~/__mocks__/mockByon';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import {
@@ -14,11 +12,8 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 describe('Notebook images', () => {
   it('Table filtering, sorting, searching', () => {
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-
-    cy.intercept(
-      '/api/images/byon',
+    cy.interceptOdh(
+      'GET /api/images/byon',
       Array.from(
         { length: 1000 },
         (_, i) =>
@@ -106,16 +101,8 @@ describe('Notebook images', () => {
   });
 
   it('Import form fields', () => {
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-    cy.intercept('/api/images/byon', mockByon([{ url: 'test-image:latest' }]));
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/images',
-      },
-      {},
-    ).as('importNotebookImage');
+    cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.interceptOdh('POST /api/images', { success: true }).as('importNotebookImage');
 
     notebookImageSettings.visit();
 
@@ -223,16 +210,11 @@ describe('Notebook images', () => {
   });
 
   it('Edit form fields match', () => {
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-    cy.intercept('/api/images/byon', mockByon([{ url: 'test-image:latest' }]));
-    cy.intercept(
-      {
-        method: 'PUT',
-        pathname: '/api/images/byon-123',
-      },
-      /* eslint-disable-next-line camelcase */
-      mockByon([{ url: 'test-image:latest', display_name: 'Updated custom image' }]),
+    cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.interceptOdh(
+      'PUT /api/images/:image',
+      { path: { image: 'byon-123' } },
+      { success: true },
     ).as('editNotebookImage');
 
     notebookImageSettings.visit();
@@ -274,11 +256,13 @@ describe('Notebook images', () => {
   });
 
   it('Delete form', () => {
-    cy.intercept('DELETE', '/api/images/byon-123').as('delete');
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
+    cy.interceptOdh(
+      'DELETE /api/images/:image',
+      { path: { image: 'byon-123' } },
+      { success: true },
+    ).as('delete');
 
-    cy.intercept('/api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
 
     notebookImageSettings.visit();
 
@@ -295,25 +279,30 @@ describe('Notebook images', () => {
   });
 
   it('Error messages', () => {
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-
-    cy.intercept('/api/images', {
+    cy.interceptOdh('POST /api/images', {
       success: false,
       error: 'Testing create error message',
     }).as('createError');
 
-    cy.intercept('/api/images/byon-1', {
-      success: false,
-      error: 'Testing edit error message',
-    }).as('editError');
+    cy.interceptOdh(
+      'PUT /api/images/:image',
+      { path: { image: 'byon-1' } },
+      {
+        success: false,
+        error: 'Testing edit error message',
+      },
+    ).as('editError');
 
-    cy.intercept('DELETE', '/api/images/byon-1', {
-      statusCode: 404,
-    }).as('deleteError');
+    cy.interceptOdh(
+      'DELETE /api/images/:image',
+      { path: { image: 'byon-1' } },
+      {
+        statusCode: 404,
+      },
+    ).as('deleteError');
 
-    cy.intercept(
-      '/api/images/byon',
+    cy.interceptOdh(
+      'GET /api/images/byon',
       mockByon([
         {
           name: 'byon-1',
@@ -364,10 +353,7 @@ describe('Notebook images', () => {
   });
 
   it('Import modal opens from the empty state', () => {
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-
-    cy.intercept('/api/images/byon', mockByon([]));
+    cy.interceptOdh('GET /api/images/byon', mockByon([]));
 
     notebookImageSettings.visit();
 

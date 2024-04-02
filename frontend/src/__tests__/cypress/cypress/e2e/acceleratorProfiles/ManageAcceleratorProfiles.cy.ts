@@ -1,6 +1,3 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import {
   editTolerationModal,
@@ -11,19 +8,18 @@ import {
 } from '~/__tests__/cypress/cypress/pages/acceleratorProfile';
 import { TolerationEffect, TolerationOperator } from '~/types';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   isPresent?: boolean;
 };
 
 const initIntercepts = ({ isPresent = true }: HandlersProps) => {
-  cy.intercept('/api/dsc/status', mockDscStatus({}));
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept(
-    '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles/test-accelerator',
+  cy.interceptK8s(
+    { model: AcceleratorProfileModel, ns: 'opendatahub', name: 'test-accelerator' },
     isPresent
       ? mockAcceleratorProfile({
+          namespace: 'opendatahub',
           name: 'test-accelerator',
           displayName: 'Test Accelerator',
           description: 'Test description',
@@ -121,18 +117,7 @@ describe('Manage Accelerator Profile', () => {
     tableRow.findKebabAction('Delete').click();
     createAcceleratorProfile.getRow('toleration-key').findKebabAction('Delete').click();
     createAcceleratorProfile.shouldHaveModalEmptyState();
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/accelerator-profiles',
-      },
-      {
-        displayName: 'test-accelerator',
-        identifier: 'nvidia.com/gpu',
-        enabled: true,
-        tolerations: [],
-      },
-    ).as('createAccelerator');
+    cy.interceptOdh('POST /api/accelerator-profiles', { success: true }).as('createAccelerator');
     createAcceleratorProfile.findSubmitButton().click();
 
     cy.wait('@createAccelerator').then((interception) => {
@@ -158,25 +143,10 @@ describe('Manage Accelerator Profile', () => {
       .shouldHaveTolerationSeconds('-');
 
     //update the description
-    cy.intercept(
-      {
-        method: 'PUT',
-        pathname: '/api/accelerator-profiles/test-accelerator',
-      },
-      mockAcceleratorProfile({
-        name: 'test-accelerator',
-        displayName: 'Test Accelerator',
-        description: 'Updated description',
-        uid: 'test-12',
-        identifier: 'nvidia.com/gpu',
-        tolerations: [
-          {
-            key: 'nvidia.com/gpu',
-            operator: TolerationOperator.EXISTS,
-            effect: TolerationEffect.NO_SCHEDULE,
-          },
-        ],
-      }),
+    cy.interceptOdh(
+      'PUT /api/accelerator-profiles/:name',
+      { path: { name: 'test-accelerator' } },
+      { success: true },
     ).as('updatedAccelerator');
     editAcceleratorProfile.findDescriptionInput().fill('Updated description');
     editAcceleratorProfile.findSubmitButton().click();
@@ -195,20 +165,12 @@ describe('Manage Accelerator Profile', () => {
     initIntercepts({ isPresent: false });
     editAcceleratorProfile.visit('test-accelerator');
     editAcceleratorProfile.findErrorText().should('exist');
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname:
-          '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
-      },
-      mockK8sResourceList([mockAcceleratorProfile({ uid: 'test-12' })]),
-    ).as('editAcceleratorProfile');
+    cy.interceptK8sList(
+      AcceleratorProfileModel,
+      mockK8sResourceList([mockAcceleratorProfile({ namespace: 'opendatahub', uid: 'test-12' })]),
+    ).as('listAcceleratorProfiles');
     editAcceleratorProfile.findViewAllAcceleratorButton().click();
-    cy.wait('@editAcceleratorProfile').then((interception) => {
-      expect(interception.response?.body).to.eql(
-        mockK8sResourceList([mockAcceleratorProfile({ uid: 'test-12' })]),
-      );
-    });
+    cy.wait('@listAcceleratorProfiles');
   });
 
   it('one preset identifier is auto filled and disabled', () => {

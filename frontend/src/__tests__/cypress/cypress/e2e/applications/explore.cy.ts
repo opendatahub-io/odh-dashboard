@@ -1,16 +1,10 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { jupyterCard } from '~/__tests__/cypress/cypress/pages/components/JupyterCard';
 
 describe('Explore Page', () => {
   beforeEach(() => {
-    cy.intercept('/api/dsc/status', mockDscStatus({}));
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-    cy.intercept('/api/components', mockComponents());
+    cy.interceptOdh('GET /api/components', null, mockComponents());
     explorePage.visit();
   });
 
@@ -31,8 +25,7 @@ describe('Explore Page', () => {
     jupyterCard.findDrawerPanel().should('be.visible');
   });
 
-  it('hidden app should not exist', () => {
-    explorePage.visit();
+  it('card title should be visible', () => {
     jupyterCard.findExploreCard('rhoai').should('not.exist');
   });
 });

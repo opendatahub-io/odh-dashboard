@@ -3,7 +3,7 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -23,7 +23,6 @@ import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import {
   createServingRuntimeModal,
   editServingRuntimeModal,
@@ -38,6 +37,21 @@ import { ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '~/concepts/areas/types';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
+import {
+  AcceleratorProfileModel,
+  InferenceServiceModel,
+  NotebookModel,
+  ODHDashboardConfigModel,
+  PVCModel,
+  PodModel,
+  ProjectModel,
+  RoleBindingModel,
+  RouteModel,
+  SecretModel,
+  ServiceAccountModel,
+  ServingRuntimeModel,
+  TemplateModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -93,64 +107,44 @@ const initIntercepts = ({
   rejectDataConnection = false,
   requiredCapabilities = [],
 }: HandlersProps) => {
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: { kserve: true, 'model-mesh': true },
     }),
   );
-  cy.intercept(
-    '/api/dsci/status',
+  cy.interceptOdh(
+    'GET /api/dsci/status',
     mockDsciStatus({
       requiredCapabilities,
     }),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept(
-    '/api/config',
+  cy.interceptOdh(
+    'GET /api/config',
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
       disableKServeAuth: disableKServeAuthConfig,
     }),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
-    mockK8sResourceList([mockPodK8sResource({})]),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
-    },
-    mockRouteK8sResource({}),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks' },
-    mockK8sResourceList([mockNotebookK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
+  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8s(RouteModel, mockRouteK8sResource({}));
+  cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: projectEnableModelMesh })]),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
-    mockK8sResourceList([mockPVCK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects/test-project' },
+  cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
+  cy.interceptK8s(
+    ProjectModel,
     mockProjectK8sResource({ enableModelMesh: projectEnableModelMesh }),
   );
-  cy.intercept(
+  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+  cy.interceptK8s(
+    'POST',
     {
-      method: 'GET',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
-    },
-    mockK8sResourceList(inferenceServices),
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
+      model: InferenceServiceModel,
+      ns: 'test-project',
     },
     rejectInferenceService
       ? { statusCode: 404 }
@@ -159,31 +153,23 @@ const initIntercepts = ({
           body: mockInferenceServiceK8sResource({ name: 'test-inference' }),
         },
   ).as('createInferenceService');
-  cy.intercept(
-    {
-      method: 'PUT',
-      pathname:
-        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/llama-service',
-    },
+  cy.interceptK8s(
+    'PUT',
+    InferenceServiceModel,
     mockInferenceServiceK8sResource({ name: 'llama-service' }),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
-    mockK8sResourceList([mockSecretK8sResource({})]),
-  );
+  cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   // used by addSupportServingPlatformProject
-  cy.intercept(
-    {
-      pathname: '/api/namespaces/test-project/*',
-    },
-    rejectAddSupportServingPlatformProject
-      ? { statusCode: 401 }
-      : { statusCode: 200, body: { applied: true } },
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    rejectAddSupportServingPlatformProject ? { statusCode: 401 } : { applied: true },
   );
-  cy.intercept(
+  cy.interceptK8s(
     {
-      method: 'GET',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts/test-name-sa',
+      model: ServiceAccountModel,
+      ns: 'test-project',
+      name: 'test-name-sa',
     },
     serviceAccountAlreadyExists
       ? {
@@ -195,10 +181,11 @@ const initIntercepts = ({
         }
       : { statusCode: 404, body: mock404Error({}) },
   );
-  cy.intercept(
+  cy.interceptK8s(
+    'POST',
     {
-      method: 'POST',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts',
+      model: ServiceAccountModel,
+      ns: 'test-project',
     },
     serviceAccountAlreadyExists
       ? { statusCode: 409, body: mock409Error({}) }
@@ -210,11 +197,11 @@ const initIntercepts = ({
           }),
         },
   ).as('createServiceAccount');
-  cy.intercept(
+  cy.interceptK8s(
     {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/test-name-view',
+      model: RoleBindingModel,
+      ns: 'test-project',
+      name: 'test-name-view',
     },
     roleBindingAlreadyExists
       ? {
@@ -226,10 +213,11 @@ const initIntercepts = ({
         }
       : { statusCode: 404, body: mock404Error({}) },
   );
-  cy.intercept(
+  cy.interceptK8s(
+    'POST',
     {
-      method: 'POST',
-      pathname: '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
+      model: RoleBindingModel,
+      ns: 'test-project',
     },
     roleBindingAlreadyExists
       ? { statusCode: 409, body: mock409Error({}) }
@@ -241,17 +229,12 @@ const initIntercepts = ({
           }),
         },
   ).as('createRoleBinding');
-  cy.intercept(
+  cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+  cy.interceptK8s(
+    'POST',
     {
-      method: 'GET',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
-    },
-    mockK8sResourceList(servingRuntimes),
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
+      model: ServingRuntimeModel,
+      ns: 'test-project',
     },
     rejectServingRuntime
       ? { statusCode: 401 }
@@ -265,67 +248,41 @@ const initIntercepts = ({
           }),
         },
   ).as('createServingRuntime');
-  cy.intercept(
-    {
-      method: 'PUT',
-      pathname:
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/llama-service',
-    },
+  cy.interceptK8s(
+    'PUT',
+    ServingRuntimeModel,
     mockServingRuntimeK8sResource({
       name: 'llama-service',
       namespace: 'test-project',
     }),
   ).as('updateServingRuntime');
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    },
-    mockDashboardConfig({}),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-inference',
-    },
+  cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResourceModelServing({
       inferenceServiceName: 'test-inference',
       namespace: 'test-project',
     }),
   );
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/another-inference-service',
-    },
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResourceModelServing({
       inferenceServiceName: 'another-inference-service',
       namespace: 'test-project',
     }),
   );
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
-    },
-    mockServingRuntimeK8sResource({}),
-  );
-  cy.intercept(
-    {
-      method: 'PUT',
-      pathname:
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model-legacy',
-    },
+  cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
+  cy.interceptK8s(
+    'PUT',
+    ServingRuntimeModel,
     mockServingRuntimeK8sResource({ name: 'test-model-legacy' }),
   ).as('editModelServer');
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
-    },
+  cy.interceptK8sList(
+    AcceleratorProfileModel,
     mockK8sResourceList([
       mockAcceleratorProfile({
         name: 'migrated-gpu',
+        namespace: 'opendatahub',
         displayName: 'NVIDIA GPU',
         enabled: !disableAccelerator,
         identifier: 'nvidia.com/gpu',
@@ -333,35 +290,39 @@ const initIntercepts = ({
       }),
     ]),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates' },
-    mockK8sResourceList([
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-1',
-        displayName: 'Multi Platform',
-        platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-      }),
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-2',
-        displayName: 'Caikit',
-        platforms: [ServingRuntimePlatform.SINGLE],
-      }),
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-3',
-        displayName: 'New OVMS Server',
-        platforms: [ServingRuntimePlatform.MULTI],
-      }),
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-4',
-        displayName: 'Serving Runtime with No Annotations',
-      }),
-      mockInvalidTemplateK8sResource({}),
-    ]),
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList(
+      [
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-1',
+          displayName: 'Multi Platform',
+          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-2',
+          displayName: 'Caikit',
+          platforms: [ServingRuntimePlatform.SINGLE],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-3',
+          displayName: 'New OVMS Server',
+          platforms: [ServingRuntimePlatform.MULTI],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-4',
+          displayName: 'Serving Runtime with No Annotations',
+        }),
+        mockInvalidTemplateK8sResource({}),
+      ],
+      { namespace: 'opendatahub' },
+    ),
   );
-  cy.intercept(
+  cy.interceptK8s(
+    'POST',
     {
-      method: 'POST',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
+      model: SecretModel,
+      ns: 'test-project',
     },
     rejectDataConnection
       ? { statusCode: 401 }
@@ -846,28 +807,28 @@ describe('Serving Runtime List', () => {
           }),
         ],
       });
-      cy.intercept(
-        {
-          method: 'DELETE',
-          pathname:
-            '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model-legacy',
-        },
-        {},
+      cy.interceptK8s(
+        'DELETE',
+        { model: ServingRuntimeModel, ns: 'test-project', name: 'test-model-legacy' },
+        mock200Status({}),
       ).as('deleteServingRuntimes');
-      cy.intercept(
+      cy.interceptK8s(
+        'DELETE',
         {
-          method: 'DELETE',
-          pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts/test-model-legacy-sa',
+          model: ServiceAccountModel,
+          ns: 'test-project',
+          name: 'test-model-legacy-sa',
         },
-        {},
+        mock200Status({}),
       ).as('deleteServiceAccounts');
-      cy.intercept(
+      cy.interceptK8s(
+        'DELETE',
         {
-          method: 'DELETE',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/test-model-legacy-view',
+          model: RoleBindingModel,
+          ns: 'test-project',
+          name: 'test-model-legacy-view',
         },
-        {},
+        mock200Status({}),
       ).as('deleteRoleBindings');
       projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.getModelMeshRow('ovms').findKebabAction('Delete model server').click();

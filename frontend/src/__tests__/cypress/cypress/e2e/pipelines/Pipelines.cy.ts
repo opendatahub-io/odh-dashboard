@@ -1,5 +1,4 @@
 /* eslint-disable camelcase */
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
@@ -9,7 +8,6 @@ import {
 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import {
   pipelinesGlobal,
   pipelinesTable,
@@ -17,8 +15,13 @@ import {
   pipelineVersionImportModal,
   pipelineDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import {
+  DataSciencePipelineApplicationModel,
+  ProjectModel,
+  RouteModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -39,19 +42,15 @@ describe('Pipelines', () => {
   });
 
   it('incompatible dpsa version shows error', () => {
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
-      },
-      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' })]),
+    cy.interceptK8sList(
+      DataSciencePipelineApplicationModel,
+      mockK8sResourceList([
+        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
+      ]),
     );
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
-      },
-      mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' }),
+    cy.interceptK8s(
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
     );
 
     pipelinesGlobal.visit(projectName);
@@ -97,7 +96,7 @@ describe('Pipelines', () => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines/upload',
         method: 'POST',
-        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
         queryParams: { name: 'New pipeline', description: 'New pipeline description' },
         fileContents: 'test-yaml-pipeline-content\n',
       });
@@ -107,7 +106,7 @@ describe('Pipelines', () => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines',
         method: 'GET',
-        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
         queryParams: { sort_by: 'created_at desc', page_size: 10 },
       });
     });
@@ -198,7 +197,7 @@ describe('Pipelines', () => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines/upload_version',
         method: 'POST',
-        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
         queryParams: {
           name: 'New pipeline version',
           description: 'New pipeline version description',
@@ -212,7 +211,7 @@ describe('Pipelines', () => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines/test-pipeline/versions',
         method: 'GET',
-        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
         queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
       });
     });
@@ -322,7 +321,7 @@ describe('Pipelines', () => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines/test-pipeline/versions/8ce2d04a0-828c-45209fdf1c20',
         method: 'DELETE',
-        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
         queryParams: {},
         data: {},
       });
@@ -333,7 +332,7 @@ describe('Pipelines', () => {
       expect(interception.request.body).to.eql({
         path: '/apis/v2beta1/pipelines/test-pipeline/versions',
         method: 'GET',
-        host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
         queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
       });
       pipelinesTable.getRowByName(initialMockPipeline.display_name).shouldNotHavePipelineVersion();
@@ -473,34 +472,25 @@ describe('Pipelines', () => {
 });
 
 const initIntercepts = () => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
-    },
-    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  cy.interceptK8sList(
+    DataSciencePipelineApplicationModel,
+    mockK8sResourceList([
+      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    ]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
-    },
-    mockDataSciencePipelineApplicationK8sResource({}),
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
+    mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
   );
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-dspa`,
-    },
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResource({
-      notebookName: 'ds-pipeline-pipelines-definition',
+      notebookName: 'ds-pipeline-dspa',
       namespace: projectName,
     }),
   );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([
       mockProjectK8sResource({ k8sName: projectName }),
       mockProjectK8sResource({ k8sName: `${projectName}-2`, displayName: 'Test Project 2' }),

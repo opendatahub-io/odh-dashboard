@@ -1,11 +1,11 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 
 const addfilePath = '../../__mocks__/mock-custom-serving-runtime-add.yaml';
 const editfilePath = '../../__mocks__/mock-custom-serving-runtime-edit.yaml';
@@ -35,14 +35,12 @@ const initialMock = [
 
 describe('Custom serving runtimes', () => {
   beforeEach(() => {
-    cy.intercept('/api/status', mockStatus());
-    cy.intercept('/api/config', mockDashboardConfig({}));
-    cy.intercept('/api/dashboardConfig/opendatahub/odh-dashboard-config', mockDashboardConfig({}));
-    cy.intercept({ pathname: '/api/templates/opendatahub' }, mockK8sResourceList(initialMock));
-    cy.intercept(
-      '/api/k8s/apis/project.openshift.io/v1/projects',
-      mockK8sResourceList([mockProjectK8sResource({})]),
+    cy.interceptOdh(
+      'GET /api/templates/:namespace',
+      { path: { namespace: 'opendatahub' } },
+      mockK8sResourceList(initialMock),
     );
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
 
     servingRuntimes.visit();
   });
@@ -66,21 +64,15 @@ describe('Custom serving runtimes', () => {
   });
 
   it('should add a new single model serving runtime', () => {
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/servingRuntimes',
-      },
-      mockServingRuntimeTemplateK8sResource({}).objects,
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
     ).as('createSingleModelServingRuntime');
 
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/templates/',
-      },
-      mockServingRuntimeTemplateK8sResource({}),
-    ).as('createTemplate');
+    cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
+      'createTemplate',
+    );
 
     servingRuntimes.findAddButton().click();
     servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
@@ -139,20 +131,14 @@ describe('Custom serving runtimes', () => {
   });
 
   it('should add a new multi model serving runtime', () => {
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/servingRuntimes',
-      },
-      mockServingRuntimeTemplateK8sResource({}).objects,
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
     ).as('createMultiModelServingRuntime');
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/templates/',
-      },
-      mockServingRuntimeTemplateK8sResource({}),
-    ).as('createTemplate');
+    cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
+      'createTemplate',
+    );
 
     servingRuntimes.findAddButton().click();
     servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
@@ -205,20 +191,15 @@ describe('Custom serving runtimes', () => {
   });
 
   it('should duplicate a serving runtime', () => {
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/servingRuntimes',
-      },
-      mockServingRuntimeTemplateK8sResource({}).objects,
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
     ).as('duplicateServingRuntime');
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/templates/',
-      },
-      mockServingRuntimeTemplateK8sResource({}),
-    ).as('duplicateTemplate');
+
+    cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
+      'duplicateTemplate',
+    );
 
     const ServingRuntimeTemplateMock = mockServingRuntimeTemplateK8sResource({
       name: 'serving-runtime-template-1',
@@ -227,8 +208,9 @@ describe('Custom serving runtimes', () => {
       apiProtocol: ServingRuntimeAPIProtocol.GRPC,
     });
 
-    cy.intercept(
-      { pathname: '/api/templates/opendatahub' },
+    cy.interceptOdh(
+      'GET /api/templates/:namespace',
+      { path: { namespace: 'opendatahub' } },
       mockK8sResourceList([...initialMock, ServingRuntimeTemplateMock]),
     ).as('refreshServingRuntime');
 
@@ -278,21 +260,14 @@ describe('Custom serving runtimes', () => {
   });
 
   it('should edit a serving runtime', () => {
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/servingRuntimes',
-      },
-      {
-        delay: 500,
-        body: mockServingRuntimeTemplateK8sResource({}).objects,
-      },
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
     ).as('editServingRuntime');
-    cy.intercept(
-      {
-        method: 'PATCH',
-        pathname: '/api/templates/opendatahub/template-1',
-      },
+    cy.interceptOdh(
+      'PATCH /api/templates/:namespace/:name',
+      { path: { namespace: 'opendatahub', name: 'template-1' } },
       mockServingRuntimeTemplateK8sResource({}),
     ).as('editTemplate');
 
@@ -337,12 +312,10 @@ describe('Custom serving runtimes', () => {
   });
 
   it('delete serving runtime', () => {
-    cy.intercept(
-      {
-        method: 'DELETE',
-        pathname: '/api/templates/opendatahub/template-1',
-      },
-      {},
+    cy.interceptOdh(
+      'DELETE /api/templates/:namespace/:name',
+      { path: { namespace: 'opendatahub', name: 'template-1' } },
+      mockServingRuntimeTemplateK8sResource({}),
     ).as('deleteServingRuntime');
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').click();

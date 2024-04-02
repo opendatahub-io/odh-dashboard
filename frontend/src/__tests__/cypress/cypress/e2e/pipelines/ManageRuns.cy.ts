@@ -12,7 +12,7 @@ import {
   manageRunsPage,
   manageRunsTable,
 } from '~/__tests__/cypress/cypress/pages/pipelines/manageRuns';
-import { configIntercept, dspaIntercepts, projectsIntercept, statusIntercept } from './intercepts';
+import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 
 const projectName = 'test-project-name';
 const pipelineVersionId = 'test-version-id';
@@ -114,7 +114,6 @@ describe('Manage runs', () => {
 });
 
 const initIntercepts = () => {
-  statusIntercept();
   configIntercept();
   dspaIntercepts(projectName);
   projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);

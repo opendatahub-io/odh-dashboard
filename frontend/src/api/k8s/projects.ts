@@ -3,14 +3,13 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sListResource,
-  K8sModelCommon,
   K8sResourceCommon,
   k8sUpdateResource,
   useK8sWatchResource,
   WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, ProjectKind } from '~/k8sTypes';
-import { ProjectModel } from '~/api/models';
+import { ProjectModel, ProjectRequestModel } from '~/api/models';
 import { throwErrorFromAxios } from '~/api/errorUtils';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
@@ -47,12 +46,6 @@ export const createProject = (
   k8sName?: string,
 ): Promise<string> => {
   // Specific types and models for creating projects
-  const ProjectRequest: K8sModelCommon = {
-    apiGroup: 'project.openshift.io',
-    apiVersion: 'v1',
-    kind: 'ProjectRequest',
-    plural: 'projectrequests',
-  };
   type ProjectRequestKind = K8sResourceCommon & {
     metadata: {
       name: string;
@@ -65,7 +58,7 @@ export const createProject = (
 
   return new Promise((resolve, reject) => {
     k8sCreateResource<ProjectRequestKind, ProjectKind>({
-      model: ProjectRequest,
+      model: ProjectRequestModel,
       resource: {
         apiVersion: 'project.openshift.io/v1',
         kind: 'ProjectRequest',
