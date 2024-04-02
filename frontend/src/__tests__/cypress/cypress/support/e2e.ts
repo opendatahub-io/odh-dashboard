@@ -14,7 +14,10 @@
 // ***********************************************************
 
 import './commands';
+import chaiSubset from 'chai-subset';
 import { addCommands as webSocketsAddCommands } from './websockets';
+
+chai.use(chaiSubset);
 
 webSocketsAddCommands();
 

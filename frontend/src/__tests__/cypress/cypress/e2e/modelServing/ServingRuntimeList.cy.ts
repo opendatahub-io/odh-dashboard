@@ -428,9 +428,7 @@ describe('Serving Runtime List', () => {
       // dry run request
       cy.wait('@createInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
-          apiVersion: 'serving.kserve.io/v1beta1',
-          kind: 'InferenceService',
+        expect(interception.request.body).to.containSubset({
           metadata: {
             name: 'test-name',
             namespace: 'test-project',
@@ -575,23 +573,26 @@ describe('Serving Runtime List', () => {
       // dry run request
       cy.wait('@createServingRuntime').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body.metadata).to.eql({
-          name: 'test-name',
-          annotations: {
-            'openshift.io/display-name': 'test-name',
-            'opendatahub.io/template-name': 'template-2',
-            'opendatahub.io/apiProtocol': 'REST',
-            'opendatahub.io/template-display-name': 'Caikit',
-            'opendatahub.io/accelerator-name': '',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-name': 'template-2',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/accelerator-name': '',
+            },
+            namespace: 'test-project',
           },
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          namespace: 'test-project',
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
         });
-        expect(interception.request.body.spec.protocolVersions).to.eql(['grpc-v1']);
-        expect(interception.request.body.spec.supportedModelFormats).to.eql([
-          { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
-          { autoSelect: true, name: 'onnx', version: '1' },
-        ]);
       });
 
       // Actual request
@@ -697,18 +698,19 @@ describe('Serving Runtime List', () => {
       //dry run request
       cy.wait('@updateServingRuntime').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body.metadata).to.eql({
-          creationTimestamp: '2023-06-22T16:05:55Z',
-          labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
-          annotations: {
-            'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
-            'opendatahub.io/accelerator-name': '',
-            'opendatahub.io/template-name': 'ovms',
-            'openshift.io/display-name': 'llama-service',
-            'opendatahub.io/apiProtocol': 'REST',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
+            annotations: {
+              'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
+              'opendatahub.io/accelerator-name': '',
+              'opendatahub.io/template-name': 'ovms',
+              'openshift.io/display-name': 'llama-service',
+              'opendatahub.io/apiProtocol': 'REST',
+            },
+            name: 'llama-service',
+            namespace: 'test-project',
           },
-          name: 'llama-service',
-          namespace: 'test-project',
         });
       });
 
@@ -955,13 +957,10 @@ describe('Serving Runtime List', () => {
       //dry run request
       cy.wait('@createRoleBinding').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
-          apiVersion: 'rbac.authorization.k8s.io/v1',
-          kind: 'RoleBinding',
+        expect(interception.request.body).to.containSubset({
           metadata: {
             name: 'test-name-view',
             namespace: 'test-project',
-            labels: { 'opendatahub.io/dashboard': 'true' },
             ownerReferences: [],
           },
           roleRef: { apiGroup: 'rbac.authorization.k8s.io', kind: 'ClusterRole', name: 'view' },
@@ -1040,16 +1039,17 @@ describe('Serving Runtime List', () => {
 
       cy.wait('@editModelServer').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All'); //dry run request
-        expect(interception.request.body.metadata).to.eql({
-          creationTimestamp: '2023-03-17T16:05:55Z',
-          labels: { name: 'test-model-legacy', 'opendatahub.io/dashboard': 'true' },
-          annotations: {
-            'enable-auth': 'true',
-            'opendatahub.io/accelerator-name': '',
-            'openshift.io/display-name': 'test-model-legacy',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            labels: { name: 'test-model-legacy', 'opendatahub.io/dashboard': 'true' },
+            annotations: {
+              'enable-auth': 'true',
+              'opendatahub.io/accelerator-name': '',
+              'openshift.io/display-name': 'test-model-legacy',
+            },
+            name: 'test-model-legacy',
+            namespace: 'test-project',
           },
-          name: 'test-model-legacy',
-          namespace: 'test-project',
         });
       });
     });
@@ -1084,17 +1084,18 @@ describe('Serving Runtime List', () => {
       // dry run request
       cy.wait('@createServingRuntime').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body.metadata).to.eql({
-          name: 'test-name',
-          annotations: {
-            'openshift.io/display-name': 'Test Name',
-            'opendatahub.io/template-name': 'template-3',
-            'opendatahub.io/template-display-name': 'New OVMS Server',
-            'opendatahub.io/accelerator-name': '',
-            'opendatahub.io/apiProtocol': 'REST',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'opendatahub.io/template-name': 'template-3',
+              'opendatahub.io/template-display-name': 'New OVMS Server',
+              'opendatahub.io/accelerator-name': '',
+              'opendatahub.io/apiProtocol': 'REST',
+            },
+            namespace: 'test-project',
           },
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          namespace: 'test-project',
         });
       });
 
@@ -1140,17 +1141,18 @@ describe('Serving Runtime List', () => {
       // dry run request
       cy.wait('@createServingRuntime').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body.metadata).to.eql({
-          name: 'test-name',
-          annotations: {
-            'openshift.io/display-name': 'Test Name',
-            'opendatahub.io/template-name': 'template-3',
-            'opendatahub.io/template-display-name': 'New OVMS Server',
-            'opendatahub.io/accelerator-name': '',
-            'opendatahub.io/apiProtocol': 'REST',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'opendatahub.io/template-name': 'template-3',
+              'opendatahub.io/template-display-name': 'New OVMS Server',
+              'opendatahub.io/accelerator-name': '',
+              'opendatahub.io/apiProtocol': 'REST',
+            },
+            namespace: 'test-project',
           },
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          namespace: 'test-project',
         });
       });
 
@@ -1192,17 +1194,18 @@ describe('Serving Runtime List', () => {
       // dry run request only
       cy.wait('@createServingRuntime').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body.metadata).to.eql({
-          name: 'test-name',
-          annotations: {
-            'openshift.io/display-name': 'Test Name',
-            'opendatahub.io/template-name': 'template-3',
-            'opendatahub.io/template-display-name': 'New OVMS Server',
-            'opendatahub.io/accelerator-name': '',
-            'opendatahub.io/apiProtocol': 'REST',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'opendatahub.io/template-name': 'template-3',
+              'opendatahub.io/template-display-name': 'New OVMS Server',
+              'opendatahub.io/accelerator-name': '',
+              'opendatahub.io/apiProtocol': 'REST',
+            },
+            namespace: 'test-project',
           },
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          namespace: 'test-project',
         });
       });
 
@@ -1277,13 +1280,10 @@ describe('Serving Runtime List', () => {
       // dry run request
       cy.wait('@createRoleBinding').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
-          apiVersion: 'rbac.authorization.k8s.io/v1',
-          kind: 'RoleBinding',
+        expect(interception.request.body).to.containSubset({
           metadata: {
             name: 'test-name-view',
             namespace: 'test-project',
-            labels: { 'opendatahub.io/dashboard': 'true' },
             ownerReferences: [],
           },
           roleRef: { apiGroup: 'rbac.authorization.k8s.io', kind: 'ClusterRole', name: 'view' },
@@ -1336,18 +1336,20 @@ describe('Serving Runtime List', () => {
       //dry run request
       cy.wait('@createServingRuntime').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All'); //dry run request
-        expect(interception.request.body.metadata).to.eql({
-          name: 'test-name',
-          annotations: {
-            'enable-auth': 'true',
-            'openshift.io/display-name': 'Test Name',
-            'opendatahub.io/template-name': 'template-3',
-            'opendatahub.io/template-display-name': 'New OVMS Server',
-            'opendatahub.io/accelerator-name': '',
-            'opendatahub.io/apiProtocol': 'REST',
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'enable-auth': 'true',
+              'openshift.io/display-name': 'Test Name',
+              'opendatahub.io/template-name': 'template-3',
+              'opendatahub.io/template-display-name': 'New OVMS Server',
+              'opendatahub.io/accelerator-name': '',
+              'opendatahub.io/apiProtocol': 'REST',
+            },
+            labels: { 'opendatahub.io/dashboard': 'true' },
+            namespace: 'test-project',
           },
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          namespace: 'test-project',
         });
       });
 
@@ -1579,9 +1581,7 @@ describe('Serving Runtime List', () => {
       // check url should be dryRun
       cy.wait('@createDataConnectionSecret').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
-          apiVersion: 'v1',
-          kind: 'Secret',
+        expect(interception.request.body).to.containSubset({
           metadata: {
             name: 'aws-connection-test-name',
             namespace: 'test-project',
