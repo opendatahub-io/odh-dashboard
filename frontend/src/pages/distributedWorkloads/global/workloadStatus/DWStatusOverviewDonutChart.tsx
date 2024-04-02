@@ -18,7 +18,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
     return (
       <Card isFullHeight>
         <EmptyStateErrorMessage
-          title="Error loading workloads"
+          title="Error loading distributed workloads"
           bodyText={workloads.error.message}
         />
       </Card>
@@ -46,7 +46,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
       <CardBody style={{ maxHeight: 280 }}>
         <Bullseye>
           <ChartDonut
-            ariaDesc="Workload status overview"
+            ariaDesc="Distributed workload status overview"
             ariaTitle="Status overview donut chart"
             constrainToVisibleArea
             data={statusTypesIncludedInChart.map((statusType) => ({
@@ -79,7 +79,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
               right: 280, // Adjusted to accommodate legend
               top: 0,
             }}
-            subTitle="Workloads"
+            subTitle="Distributed Workloads"
             title={String(workloads.data.length)}
             width={450}
           />

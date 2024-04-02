@@ -11,7 +11,7 @@ import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonCo
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 
-const title = 'Workload Metrics';
+const title = 'Distributed Workload Metrics';
 const description = 'Monitor the metrics of your active resources.';
 
 type GlobalDistributedWorkloadsProps = {

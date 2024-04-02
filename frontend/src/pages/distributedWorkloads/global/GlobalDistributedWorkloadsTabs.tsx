@@ -37,7 +37,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
               navigate(`/distributedWorkloads/${tab.path}${namespaceSuffix}`);
             }
           }}
-          aria-label="Workload metrics page tabs"
+          aria-label="Distributed workload metrics page tabs"
           role="region"
         >
           {tabs

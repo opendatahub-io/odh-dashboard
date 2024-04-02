@@ -84,7 +84,7 @@ export const DistributedWorkloadsContextProvider =
     if (fetchError) {
       return (
         <Bullseye>
-          <Alert title="Workload metrics load error" variant="danger" isInline>
+          <Alert title="Distributed workload metrics load error" variant="danger" isInline>
             {fetchError.message}
           </Alert>
         </Bullseye>
