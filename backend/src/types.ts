@@ -266,7 +266,7 @@ export type KubeFastifyInstance = FastifyInstance & {
 
 // TODO: constant-ize the x-forwarded header
 export type OauthFastifyRequest<Data extends RouteGenericInterface = RouteGenericInterface> =
-  FastifyRequest<{ Headers: { 'x-forwarded-access-token': string } & Data['Headers'] } & Data>;
+  FastifyRequest<{ Headers?: { 'x-forwarded-access-token'?: string } & Data['Headers'] } & Data>;
 
 /*
  * Common types, should be kept up to date with frontend types
@@ -979,3 +979,22 @@ export type CronJobKind = {
     suspend: boolean;
   };
 } & K8sResourceCommon;
+
+export type K8sCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastProbeTime?: string | null;
+  lastTransitionTime?: string;
+  lastHeartbeatTime?: string;
+};
+
+export type DSPipelineKind = K8sResourceCommon & {
+  spec: {
+    dspVersion: string;
+  };
+  status?: {
+    conditions?: K8sCondition[];
+  };
+};
