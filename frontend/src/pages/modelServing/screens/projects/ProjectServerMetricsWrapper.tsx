@@ -19,7 +19,7 @@ const ProjectServerMetricsWrapper: React.FC = () => (
           <ModelServingMetricsProvider
             queries={queries}
             type={PerformanceMetricType.SERVER}
-            namespace={projectDisplayName}
+            namespace={currentProject.metadata.name}
           >
             <MetricsPage
               title={`${serverName} metrics`}
