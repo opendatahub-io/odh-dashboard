@@ -21,6 +21,7 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
           <Radio
             className="checkbox-radio-fix-body-width"
             name="persistent-new-storage-type-radio"
+            data-testid="persistent-new-storage-type-radio"
             id="persistent-new-storage-type-radio"
             label="Create new persistent storage"
             description="This creates storage that is retained when logged out."
@@ -42,6 +43,7 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
           <Radio
             className="checkbox-radio-fix-body-width"
             name="persistent-existing-storage-type-radio"
+            data-testid="persistent-existing-storage-type-radio"
             id="persistent-existing-storage-type-radio"
             label="Use existing persistent storage"
             description="This reuses a previously created persistent storage."

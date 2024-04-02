@@ -14,7 +14,7 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
 
   return (
     <Stack hasGutter>
-      <StackItem>
+      <StackItem data-testid="env-data-type-field">
         <Select
           isOpen={open}
           onToggle={() => setOpen(!open)}

@@ -64,6 +64,7 @@ const EditSpawnerPage: React.FC = () => {
       <Bullseye>
         <EmptyState>
           <EmptyStateHeader
+            data-testid="error-message-title"
             titleText="Unable to edit workbench"
             icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
             headingLevel="h4"
@@ -74,6 +75,7 @@ const EditSpawnerPage: React.FC = () => {
           </EmptyStateBody>
           <EmptyStateFooter>
             <Button
+              data-testid="return-to-project-button"
               variant="primary"
               onClick={() => navigate(`/projects/${currentProject.metadata.name}`)}
             >

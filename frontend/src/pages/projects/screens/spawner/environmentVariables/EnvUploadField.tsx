@@ -31,6 +31,7 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
     <FormGroup fieldId="configmap-upload">
       <FileUpload
         id="envvar-upload"
+        data-testid="configmap-upload"
         type="text"
         value={fileValue}
         filename={filename}

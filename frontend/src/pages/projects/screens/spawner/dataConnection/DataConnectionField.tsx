@@ -23,6 +23,7 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
       className="checkbox-radio-fix-body-width"
       name="enable-data-connection-checkbox"
       id="enable-data-connection-checkbox"
+      data-testid="enable-data-connection-checkbox"
       label="Use a data connection"
       isChecked={dataConnectionData.enabled}
       onChange={() => setDataConnectionData('enabled', !dataConnectionData.enabled)}
@@ -33,6 +34,7 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
               <Radio
                 className="checkbox-radio-fix-body-width"
                 name="new-data-connection-radio"
+                data-testid="new-data-connection-radio"
                 id="new-data-connection-radio"
                 label="Create new data connection"
                 isChecked={dataConnectionData.type === 'creating'}
@@ -57,6 +59,7 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
                 className="checkbox-radio-fix-body-width"
                 name="existing-data-connection-type-radio"
                 id="existing-data-connection-type-radio"
+                data-testid="existing-data-connection-type-radio"
                 label="Use existing data connection"
                 isChecked={dataConnectionData.type === 'existing'}
                 onChange={() => setDataConnectionData('type', 'existing')}

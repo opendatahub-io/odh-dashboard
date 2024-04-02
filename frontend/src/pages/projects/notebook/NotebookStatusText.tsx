@@ -29,6 +29,7 @@ const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
   return (
     <>
       <Popover
+        data-testid="notebook-status-popover"
         shouldClose={() => setPopoverVisible(false)}
         isVisible={isPopoverVisible}
         headerContent="Notebook status"
@@ -51,6 +52,7 @@ const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
         }
       >
         <Text
+          data-testid="notebook-status-text"
           onClick={() => {
             if (isStarting) {
               setPopoverVisible((visible) => !visible);

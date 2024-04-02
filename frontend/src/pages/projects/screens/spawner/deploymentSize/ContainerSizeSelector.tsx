@@ -18,9 +18,8 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
 
   return (
-    <FormGroup label="Container size" fieldId="container-size">
+    <FormGroup label="Container size" fieldId="container-size" data-testid="container-size-group">
       <Select
-        data-id="container-size-select"
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
         aria-label="Container size select"

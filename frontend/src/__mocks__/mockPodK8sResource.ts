@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   isPending?: boolean;
+  isRunning?: boolean;
 };
 
 export const mockPodK8sResource = ({
@@ -14,6 +15,7 @@ export const mockPodK8sResource = ({
   name = 'test-pod',
   namespace = 'test-project',
   isPending = false,
+  isRunning = true,
 }: MockResourceConfigType): PodKind => ({
   kind: 'Pod',
   apiVersion: 'project.openshift.io/v1',
@@ -348,9 +350,9 @@ export const mockPodK8sResource = ({
     containerStatuses: [
       {
         state: {
-          running: true,
+          running: isRunning,
         },
-        ready: true,
+        ready: isRunning,
       },
     ],
     qosClass: 'Burstable',

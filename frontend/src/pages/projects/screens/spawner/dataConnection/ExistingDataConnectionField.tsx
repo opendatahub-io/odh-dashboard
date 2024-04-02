@@ -39,7 +39,12 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
   }
 
   return (
-    <FormGroup isRequired label="Data connection" fieldId={fieldId}>
+    <FormGroup
+      isRequired
+      label="Data connection"
+      fieldId={fieldId}
+      data-testid="data-connection-group"
+    >
       <Select
         variant="typeahead"
         selections={selectedDataConnection}

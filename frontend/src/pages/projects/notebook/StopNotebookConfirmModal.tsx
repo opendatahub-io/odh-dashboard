@@ -30,10 +30,16 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
     <Modal
       variant="small"
       title="Stop workbench?"
+      data-testid="stop-workbench-modal"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       actions={[
-        <Button key="confirm-stop" variant="primary" onClick={() => onBeforeClose(true)}>
+        <Button
+          data-testid="stop-workbench-button"
+          key="confirm-stop"
+          variant="primary"
+          onClick={() => onBeforeClose(true)}
+        >
           Stop workbench
         </Button>,
         <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>

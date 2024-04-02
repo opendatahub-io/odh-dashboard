@@ -75,6 +75,7 @@ const NotebookList: React.FC = () => {
           createButton={
             <Button
               key={`action-${ProjectSectionID.WORKBENCHES}`}
+              data-testid="create-workbench-button"
               onClick={() => navigate(`/projects/${projectName}/spawner`)}
               variant="primary"
             >

@@ -208,6 +208,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
               <Alert
+                data-testid="cluster-storage-alert"
                 component="h2"
                 variant="info"
                 isPlain

@@ -61,7 +61,13 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
       isOpen={!!notebook}
       onClose={() => beforeClose(false)}
       actions={[
-        <Button key="submit" variant="primary" isDisabled={!canSubmit} onClick={submit}>
+        <Button
+          data-testid="attach-storage"
+          key="submit"
+          variant="primary"
+          isDisabled={!canSubmit}
+          onClick={submit}
+        >
           Attach storage
         </Button>,
         <Button key="cancel" variant="secondary" onClick={() => beforeClose(false)}>

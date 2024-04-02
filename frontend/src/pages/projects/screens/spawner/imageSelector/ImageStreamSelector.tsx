@@ -54,6 +54,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       <SimpleDropdownSelect
         isFullWidth
         id="workbench-image-stream-selection"
+        data-testid="workbench-image-stream-selection"
         aria-label="Select an image"
         options={options}
         placeholder="Select one"
