@@ -2,9 +2,8 @@ import * as React from 'react';
 import { Button, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '~/api';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
@@ -14,14 +13,9 @@ import DataConnectionsTable from './DataConnectionsTable';
 
 const DataConnectionsList: React.FC = () => {
   const {
-    currentProject,
     dataConnections: { data: connections, loaded, error },
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
   const [open, setOpen] = React.useState(false);
 
   const isDataConnectionsEmpty = connections.length === 0;
@@ -70,7 +64,6 @@ const DataConnectionsList: React.FC = () => {
             description="Adding a data connection to your project allows you to connect data inputs to your workbenches."
             iconImage={typedEmptyImage(ProjectObjectType.dataConnection)}
             imageAlt="add a data connection"
-            allowCreate={rbacLoaded && allowCreate}
             createButton={
               <Button
                 key={`action-${ProjectSectionID.DATA_CONNECTIONS}`}

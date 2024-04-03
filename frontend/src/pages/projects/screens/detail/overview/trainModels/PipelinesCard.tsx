@@ -15,8 +15,6 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '~/api';
-import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
 import usePipelineRunJobs from '~/concepts/pipelines/apiHooks/usePipelineRunJobs';
 import {
   usePipelineActiveRuns,
@@ -38,10 +36,6 @@ const PipelinesCard: React.FC = () => {
     currentProject,
     notebooks: { data: notebooks, loaded: notebooksLoaded, error: notebooksError },
   } = React.useContext(ProjectDetailsContext);
-  const [allowCreate] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   const [{ items: pipelines, totalSize: pipelinesCount }, pipelinesLoaded, pipelinesError] =
     usePipelines({
@@ -160,13 +154,11 @@ const PipelinesCard: React.FC = () => {
             </Stack>
           </CardBody>
           <CardFooter>
-            {allowCreate ? (
-              <CreatePipelineServerButton
-                variant={ButtonVariant.link}
-                isInline
-                title="Configure pipeline server"
-              />
-            ) : null}
+            <CreatePipelineServerButton
+              variant={ButtonVariant.link}
+              isInline
+              title="Configure pipeline server"
+            />
           </CardFooter>
         </>
       );
@@ -178,7 +170,6 @@ const PipelinesCard: React.FC = () => {
           <>
             <MetricsContents
               title="Pipelines"
-              allowCreate={allowCreate}
               createButton={<ImportPipelineButton variant="link" />}
               createText="Import pipeline"
               statistics={statistics}
@@ -202,11 +193,9 @@ const PipelinesCard: React.FC = () => {
                 </Text>
               </TextContent>
             </CardBody>
-            {allowCreate ? (
-              <CardFooter>
-                <ImportPipelineButton variant="link" isInline />
-              </CardFooter>
-            ) : null}
+            <CardFooter>
+              <ImportPipelineButton variant="link" isInline />
+            </CardFooter>
           </>
         )}
       </EnsureCompatiblePipelineServer>

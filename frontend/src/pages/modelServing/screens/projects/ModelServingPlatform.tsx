@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import {
   getSortedTemplates,
   getTemplateEnabled,
@@ -26,7 +26,6 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
 import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
-import { useAccessReview } from '~/api';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
@@ -77,11 +76,6 @@ const ModelServingPlatform: React.FC = () => {
     !currentProjectServingPlatform;
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
-
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
@@ -148,16 +142,15 @@ const ModelServingPlatform: React.FC = () => {
                   description="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
                   iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
                   imageAlt="add a model server"
-                  allowCreate={false}
                 />
               </FlexItem>
               <FlexItem flex={{ default: 'flex_1' }}>
                 <Gallery hasGutter>
                   <GalleryItem>
-                    <EmptySingleModelServingCard allowCreate={rbacLoaded && allowCreate} />
+                    <EmptySingleModelServingCard />
                   </GalleryItem>
                   <GalleryItem>
-                    <EmptyMultiModelServingCard allowCreate={rbacLoaded && allowCreate} />
+                    <EmptyMultiModelServingCard />
                   </GalleryItem>
                 </Gallery>
                 <Alert

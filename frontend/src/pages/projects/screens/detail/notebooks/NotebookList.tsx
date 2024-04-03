@@ -3,10 +3,9 @@ import { Button, Popover } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
-import { useAccessReview } from '~/api';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
@@ -22,10 +21,6 @@ const NotebookList: React.FC = () => {
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
   const isNotebooksEmpty = notebookStates.length === 0;
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   React.useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -71,7 +66,6 @@ const NotebookList: React.FC = () => {
           description="Creating a workbench allows you to add a Jupyter notebook to your project."
           iconImage={typedEmptyImage(ProjectObjectType.notebook)}
           imageAlt="create a workbench"
-          allowCreate={rbacLoaded && allowCreate}
           createButton={
             <Button
               key={`action-${ProjectSectionID.WORKBENCHES}`}

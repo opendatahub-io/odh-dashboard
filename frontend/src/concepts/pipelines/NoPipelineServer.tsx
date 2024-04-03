@@ -5,13 +5,9 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 
 type NoPipelineServerProps = {
   variant?: React.ComponentProps<typeof CreatePipelineServerButton>['variant'];
-  allowCreate?: boolean;
 };
 
-const NoPipelineServer: React.FC<NoPipelineServerProps> = ({
-  variant = 'link',
-  allowCreate = true,
-}) => {
+const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant = 'link' }) => {
   const {
     pipelinesServer: { installed },
   } = usePipelinesAPI();
@@ -22,7 +18,6 @@ const NoPipelineServer: React.FC<NoPipelineServerProps> = ({
       description="Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models."
       iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
       imageAlt=""
-      allowCreate={allowCreate}
       createButton={
         <CreatePipelineServerButton
           isInline
