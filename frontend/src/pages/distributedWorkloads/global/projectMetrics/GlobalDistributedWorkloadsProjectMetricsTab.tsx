@@ -10,14 +10,17 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
+import { useUser } from '~/redux/selectors';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { ResourceUsage } from './sections/ResourceUsage';
+import { RequestedResources } from './sections/RequestedResources';
 import { TopResourceConsumingWorkloads } from './sections/TopResourceConsumingWorkloads';
 import { WorkloadResourceMetricsTable } from './sections/WorkloadResourceMetricsTable';
 import { DWSectionCard } from './sections/DWSectionCard';
 
 const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
+  const { isAdmin } = useUser();
+
   const { clusterQueue, localQueues } = React.useContext(DistributedWorkloadsContext);
   const requiredFetches = [clusterQueue, localQueues];
   const error = requiredFetches.find((f) => !!f.error)?.error;
@@ -58,7 +61,15 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
     <>
       <Stack hasGutter>
         <StackItem>
-          <DWSectionCard title="Resource Usage" content={<ResourceUsage />} />
+          <DWSectionCard
+            title="Requested resources"
+            helpTooltip={
+              isAdmin
+                ? undefined
+                : 'In this section, all projects refers to all of the projects that share the specified resource. You might not have access to all of these projects.'
+            }
+            content={<RequestedResources />}
+          />
         </StackItem>
         <StackItem>
           <DWSectionCard
