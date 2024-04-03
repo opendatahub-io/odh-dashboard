@@ -61,7 +61,10 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
 
   return (
     <CollapsibleSection title="Serve models" data-testid="model-server-section">
-      <DeployedModelsCard isMultiPlatform={isMultiPlatform} />
+      <DeployedModelsCard
+        isMultiPlatform={isMultiPlatform}
+        namespace={currentProject.metadata.name}
+      />
     </CollapsibleSection>
   );
 };
