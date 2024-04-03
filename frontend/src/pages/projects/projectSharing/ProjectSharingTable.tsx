@@ -36,6 +36,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
     <Table
       variant="compact"
       data={permissions}
+      data-testid={`project-sharing-table ${type}`}
       columns={columnsProjectSharing}
       disableRowRenderSupport
       footerRow={() =>

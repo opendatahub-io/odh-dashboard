@@ -1,14 +1,25 @@
 import { genUID } from '~/__mocks__/mockUtils';
 import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
+import { RoleBindingSubject } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
   namespace?: string;
+  subjects?: RoleBindingSubject[];
+  roleRefName?: string;
 };
 
 export const mockRoleBindingK8sResource = ({
   name = 'test-name-view',
   namespace = 'test-project',
+  subjects = [
+    {
+      kind: 'ServiceAccount',
+      apiGroup: 'rbac.authorization.k8s.io',
+      name: 'test-name-sa',
+    },
+  ],
+  roleRefName = 'view',
 }: MockResourceConfigType): RoleBindingKind => ({
   kind: 'RoleBinding',
   apiVersion: 'rbac.authorization.k8s.io/v1',
@@ -21,15 +32,10 @@ export const mockRoleBindingK8sResource = ({
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
   },
-  subjects: [
-    {
-      kind: 'ServiceAccount',
-      name: 'test-name-sa',
-    },
-  ],
+  subjects,
   roleRef: {
     apiGroup: 'rbac.authorization.k8s.io',
     kind: 'ClusterRole',
-    name: 'view',
+    name: roleRefName,
   },
 });
