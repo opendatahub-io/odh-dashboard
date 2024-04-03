@@ -55,11 +55,14 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(runResource);
-  const { taskMap, nodes } = usePipelineTaskTopology(
-    pipelineSpec,
-    runResource?.run_details,
-    executions,
+  const nodes = usePipelineTaskTopology(pipelineSpec, runResource?.run_details, executions);
+
+  const selectedNode = React.useMemo(
+    () => nodes.find((n) => n.id === selectedId),
+    [selectedId, nodes],
   );
+
+  const getFirstNode = (firstId: string) => nodes.find((n) => n.id === firstId);
 
   const loaded = runLoaded && (versionLoaded || !!runResource?.pipeline_spec);
   const error = versionError || runError;
@@ -87,11 +90,11 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
 
   return (
     <>
-      <Drawer isExpanded={!!selectedId}>
+      <Drawer isExpanded={!!selectedNode}>
         <DrawerContent
           panelContent={
             <PipelineRunDrawerRightContent
-              task={selectedId ? taskMap[selectedId] : undefined}
+              task={selectedNode?.data.pipelineTask}
               onClose={() => setSelectedId(null)}
             />
           }
@@ -161,7 +164,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         const firstId = ids[0];
                         if (ids.length === 0) {
                           setSelectedId(null);
-                        } else if (taskMap[firstId]) {
+                        } else if (getFirstNode(firstId)) {
                           setDetailsTab(null);
                           setSelectedId(firstId);
                         }

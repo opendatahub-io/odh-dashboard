@@ -1,17 +1,9 @@
-import { PipelineNodeModel, RunStatus, WhenStatus } from '@patternfly/react-topology';
-
-export type NodeConstructDetails = {
-  id: string;
-  label?: string;
-  artifactType?: string;
-  runAfter?: string[];
-  status?: RunStatus;
-  tasks?: string[];
-};
+import { PipelineNodeModel, RunStatus } from '@patternfly/react-topology';
+import { PipelineTask } from '~/concepts/pipelines/topology';
 
 export type StandardTaskNodeData = {
-  status?: RunStatus;
-  whenStatus?: WhenStatus;
+  pipelineTask: PipelineTask;
+  runStatus?: RunStatus;
   artifactType?: string;
 };
 
