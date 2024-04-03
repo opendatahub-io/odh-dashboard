@@ -96,8 +96,6 @@ const NotebooksCard: React.FC = () => {
         objectType={ProjectObjectType.notebook}
         sectionType={SectionType.training}
         title="Workbenches"
-        popoverHeaderContent="About workbenches"
-        popoverBodyContent="Creating a workbench allows you to add a Jupyter notebook to your project."
       >
         <CardBody>
           <EnsureCompatiblePipelineServer>

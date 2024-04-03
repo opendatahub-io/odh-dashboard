@@ -210,9 +210,9 @@ const PipelinesCard: React.FC = () => {
       objectType={ProjectObjectType.pipeline}
       sectionType={pipelinesCount ? SectionType.training : SectionType.organize}
       title="Pipelines"
-      popoverHeaderContent={!pipelinesCount ? 'About pipelines' : undefined}
+      popoverHeaderContent={pipelinesCount ? 'About pipelines' : undefined}
       popoverBodyContent={
-        !pipelinesCount
+        pipelinesCount
           ? 'Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models.'
           : undefined
       }
