@@ -4,6 +4,5 @@ commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
 resources:
-- deploy-watson-model-quickstart.yaml
-- watson-docs.yaml
-- watson-studio-app.yaml
+- watson-x-docs.yaml
+- watson-x-app.yaml
