@@ -1,6 +1,7 @@
 import { PipelineRunKFv2, PipelineSpecVariable } from '~/concepts/pipelines/kfTypes';
 import { createNode } from '~/concepts/topology';
 import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
+import { createArtifactNode } from '~/concepts/topology/utils';
 import {
   composeArtifactType,
   parseComponentsForArtifactRelationship,
@@ -64,10 +65,12 @@ export const usePipelineTaskTopology = (
         const id = artifactId ?? artifactKey;
 
         nodes.push(
-          createNode({
+          createArtifactNode({
             id,
             label,
+            artifactType: data.schemaTitle,
             runAfter: [taskId],
+            status: translateStatusForNode(status?.state),
           }),
         );
 
