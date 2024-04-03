@@ -36,6 +36,16 @@ const mockRun = buildMockRunKF({
   experiment_id: mockExperiment.experiment_id,
 });
 
+const mockRun2 = buildMockRunKF({
+  display_name: 'Run 2',
+  run_id: 'run-2',
+  pipeline_version_reference: {
+    pipeline_id: initialMockPipeline.pipeline_id,
+    pipeline_version_id: initialMockPipelineVersion.pipeline_version_id,
+  },
+  experiment_id: mockExperiment.experiment_id,
+});
+
 describe('Compare runs', () => {
   beforeEach(() => {
     initIntercepts();
@@ -47,9 +57,15 @@ describe('Compare runs', () => {
   });
 
   it('valid number of runs', () => {
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [mockRun.run_id]);
+    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+      mockRun.run_id,
+      mockRun2.run_id,
+    ]);
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
+
+    compareRunsGlobal.findRunListRowByName('Run 1').should('exist');
+    compareRunsGlobal.findRunListRowByName('Run 2').should('exist');
   });
   it('valid number of runs but it is invalid', () => {
     cy.intercept(
@@ -169,4 +185,10 @@ const initIntercepts = () => {
     },
     mockRun,
   ).as('validRun');
+  cy.intercept(
+    {
+      pathname: `/api/proxy/apis/v2beta1/runs/${mockRun2.run_id}`,
+    },
+    mockRun2,
+  );
 };

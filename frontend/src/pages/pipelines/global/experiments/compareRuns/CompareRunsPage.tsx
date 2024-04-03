@@ -1,9 +1,10 @@
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { PathProps } from '~/concepts/pipelines/content/types';
 import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { CompareRunsInvalidRunCount } from '~/concepts/pipelines/content/compareRuns/CompareRunInvalidRunCount';
+import CompareRunsRunList from '~/concepts/pipelines/content/compareRuns/CompareRunsRunList';
 
 const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const { runs, loaded } = useCompareRuns();
@@ -22,10 +23,16 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
           <BreadcrumbItem isActive>Compare runs</BreadcrumbItem>
         </Breadcrumb>
       }
+      provideChildrenPadding
       loaded={loaded}
       empty={false}
+      noHeader
     >
-      {/* TODO: CompareRuns page */}
+      <Stack>
+        <StackItem>
+          <CompareRunsRunList />
+        </StackItem>
+      </Stack>
     </ApplicationsPage>
   );
 };

@@ -34,6 +34,7 @@ type ApplicationsPageProps = {
   removeChildrenTopPadding?: boolean;
   subtext?: React.ReactNode;
   loadingContent?: React.ReactNode;
+  noHeader?: boolean;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -53,6 +54,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   removeChildrenTopPadding,
   subtext,
   loadingContent,
+  noHeader,
 }) => {
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
@@ -142,7 +144,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   return (
     <>
       {breadcrumb && <PageBreadcrumb>{breadcrumb}</PageBreadcrumb>}
-      {renderHeader()}
+      {!noHeader && renderHeader()}
       {renderContents()}
     </>
   );
