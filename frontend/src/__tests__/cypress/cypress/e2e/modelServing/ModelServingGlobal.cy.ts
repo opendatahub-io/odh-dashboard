@@ -228,10 +228,6 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.shouldBeEmpty();
 
-    modelServingGlobal.findGoToProjectButton().click();
-    cy.findByTestId('kserve-inference-service-table');
-
-    // Test that the button is enabled
     modelServingGlobal.findDeployModelButton().click();
 
     // test that you can not submit on empty
@@ -271,8 +267,12 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.shouldBeEmpty();
 
-    // Test that the select a project button is shown
-    modelServingGlobal.findSelectAProjectButton().should('be.visible');
+    // Test that the button is disabled
+    modelServingGlobal.findDeployModelButton().should('have.attr', 'aria-disabled');
+
+    // Test that the tooltip appears on hover of the disabled button
+    modelServingGlobal.findDeployModelButton().trigger('mouseenter');
+    modelServingGlobal.findNoProjectSelectedTooltip().should('be.visible');
   });
 
   it('Delete model', () => {
