@@ -20,6 +20,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import {
   createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
@@ -99,7 +100,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       notebookName: name,
     });
     refreshAllProjectData();
-    navigate(`/projects/${projectName}`);
+    navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
   };
   const handleError = (e: Error) => {
     setErrorMessage(e.message || 'Error creating workbench');
@@ -266,7 +267,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
             <Button
               variant="link"
               id="cancel-button"
-              onClick={() => navigate(`/projects/${projectName}`)}
+              onClick={() =>
+                navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`)
+              }
             >
               Cancel
             </Button>
