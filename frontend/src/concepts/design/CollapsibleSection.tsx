@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
-import { SectionType, sectionTypeBorderColor } from './utils';
 
 interface CollapsibleSectionProps {
-  sectionType: SectionType;
   initialOpen?: boolean;
   title: string;
   children?: React.ReactNode;
@@ -14,7 +12,6 @@ interface CollapsibleSectionProps {
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
-  sectionType,
   initialOpen = true,
   title,
   children,

@@ -19,7 +19,6 @@ const ConfigurationSection: React.FC = () => {
 
   return (
     <CollapsibleSection
-      sectionType={SectionType.setup}
       title="Project configuration"
       data-testid="section-config"
       onOpenChange={setOpen}

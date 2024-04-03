@@ -4,7 +4,6 @@ import { CreatePipelineServerButton, usePipelinesAPI } from '~/concepts/pipeline
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '~/api';
 import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
-import { SectionType } from '~/concepts/design/utils';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PipelinesCard from './PipelinesCard';
@@ -50,7 +49,7 @@ const TrainModelsSection: React.FC = () => {
   }, [pipelinesEnabled, pipelinesServer.initializing, pipelinesServer.installed, allowCreate]);
 
   return (
-    <CollapsibleSection sectionType={SectionType.training} title="Train models">
+    <CollapsibleSection title="Train models">
       {!pipelinesServer.installed && !alertClosed ? alert : null}
       <Gallery
         hasGutter
