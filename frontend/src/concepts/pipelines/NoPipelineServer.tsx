@@ -18,7 +18,7 @@ const NoPipelineServer: React.FC<NoPipelineServerProps> = ({
 
   return (
     <EmptyDetailsView
-      title="Start by creating a pipeline server"
+      title="Start by creating a pipeline"
       description="Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models."
       iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
       imageAlt=""
