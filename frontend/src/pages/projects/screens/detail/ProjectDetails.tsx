@@ -41,16 +41,6 @@ const ProjectDetails: React.FC = () => {
       sections={[
         { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
         { id: ProjectSectionID.WORKBENCHES, title: 'Workbenches', component: <NotebookList /> },
-        {
-          id: ProjectSectionID.CLUSTER_STORAGES,
-          title: 'Cluster storage',
-          component: <StorageList />,
-        },
-        {
-          id: ProjectSectionID.DATA_CONNECTIONS,
-          title: 'Data connections',
-          component: <DataConnectionsList />,
-        },
         ...(pipelinesEnabled
           ? [
               {
@@ -69,6 +59,16 @@ const ProjectDetails: React.FC = () => {
               },
             ]
           : []),
+        {
+          id: ProjectSectionID.CLUSTER_STORAGES,
+          title: 'Cluster storage',
+          component: <StorageList />,
+        },
+        {
+          id: ProjectSectionID.DATA_CONNECTIONS,
+          title: 'Data connections',
+          component: <DataConnectionsList />,
+        },
         ...(projectSharingEnabled
           ? [
               {

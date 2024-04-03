@@ -35,13 +35,13 @@ const ConfigurationSection: React.FC = () => {
       >
         <InfoGalleryItem
           sectionType={SectionType.setup}
-          title="Permissions"
-          imgSrc={typedObjectImage(ProjectObjectType.group)}
-          description="Add users and groups to share access to your project."
+          imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
+          title="Cluster storage"
+          description="To save your project data, you can add cluster storage and optionally connect the storage to a workbench."
           isOpen={open}
           onClick={() =>
             navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PERMISSIONS}`,
+              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CLUSTER_STORAGES}`,
             )
           }
         />
@@ -59,13 +59,13 @@ const ConfigurationSection: React.FC = () => {
         />
         <InfoGalleryItem
           sectionType={SectionType.setup}
-          imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
-          title="Cluster storage"
-          description="To save your project data, you can add cluster storage and optionally connect the storage to a workbench."
+          title="Permissions"
+          imgSrc={typedObjectImage(ProjectObjectType.group)}
+          description="Add users and groups to share access to your project."
           isOpen={open}
           onClick={() =>
             navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CLUSTER_STORAGES}`,
+              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PERMISSIONS}`,
             )
           }
         />
