@@ -19,13 +19,7 @@ import {
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
-type EmptySingleModelServingCardProps = {
-  allowCreate: boolean;
-};
-
-const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = ({
-  allowCreate,
-}) => {
+const EmptySingleModelServingCard: React.FC = () => {
   const {
     dataConnections: { data: dataConnections },
   } = React.useContext(ProjectDetailsContext);
@@ -70,19 +64,17 @@ const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = 
           Each model is deployed on its own model server. Choose this option when you want to deploy
           a large model such as a large language model (LLM).
         </CardBody>
-        {allowCreate ? (
-          <CardFooter>
-            <Bullseye>
-              <ModelServingPlatformButtonAction
-                isProjectModelMesh={false}
-                emptyTemplates={emptyTemplates}
-                onClick={() => setOpen(true)}
-                variant="secondary"
-                testId="single-serving-deploy-button"
-              />
-            </Bullseye>
-          </CardFooter>
-        ) : null}
+        <CardFooter>
+          <Bullseye>
+            <ModelServingPlatformButtonAction
+              isProjectModelMesh={false}
+              emptyTemplates={emptyTemplates}
+              onClick={() => setOpen(true)}
+              variant="secondary"
+              testId="single-serving-deploy-button"
+            />
+          </Bullseye>
+        </CardFooter>
       </Card>
       <ManageKServeModal
         isOpen={open}

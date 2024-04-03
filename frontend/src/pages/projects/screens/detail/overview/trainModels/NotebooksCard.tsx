@@ -16,8 +16,6 @@ import {
 } from '@patternfly/react-core';
 import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '~/api';
-import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '~/concepts/design/utils';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
 import NotebooksCardItems from './NotebooksCardItems';
@@ -29,10 +27,6 @@ const NotebooksCard: React.FC = () => {
     currentProject,
     notebooks: { data: notebooks, loaded, error },
   } = React.useContext(ProjectDetailsContext);
-  const [allowCreate] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   const statistics = React.useMemo(
     () => [
@@ -146,7 +140,6 @@ const NotebooksCard: React.FC = () => {
     >
       <MetricsContents
         title="Workbenches"
-        allowCreate={allowCreate}
         onCreate={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
         createText="Create workbench"
         statistics={statistics}
