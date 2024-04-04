@@ -613,7 +613,19 @@ export type DSPipelineKind = K8sResourceCommon & {
   };
 };
 
+type ClusterQueueFlavorUsage = {
+  name: string;
+  resources: {
+    name: string;
+    borrowed?: string | number;
+    total?: string | number;
+  }[];
+};
+
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-ClusterQueue
 export type ClusterQueueKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  kind: 'ClusterQueue';
   spec: {
     admissionChecks?: string[];
     cohort?: string;
@@ -647,6 +659,10 @@ export type ClusterQueueKind = K8sResourceCommon & {
     stopPolicy?: 'None' | 'Hold' | 'HoldAndDrain';
   };
   status?: {
+    flavorsReservation?: ClusterQueueFlavorUsage[];
+    flavorsUsage?: ClusterQueueFlavorUsage[];
+    pendingWorkloads?: number;
+    reservingWorkloads?: number;
     admittedWorkloads?: number;
     conditions?: {
       lastTransitionTime: string;
@@ -656,23 +672,6 @@ export type ClusterQueueKind = K8sResourceCommon & {
       status: 'True' | 'False' | 'Unknown';
       type: string;
     }[];
-    flavorsReservation?: {
-      name: string;
-      resources: {
-        name: string;
-        borrowed?: string | number;
-        total?: string | number;
-      }[];
-    }[];
-    flavorsUsage?: {
-      name: string;
-      resources: {
-        name: string;
-        borrowed?: string | number;
-        total?: string | number;
-      }[];
-    }[];
-    pendingWorkloads?: number;
     pendingWorkloadsStatus?: {
       clusterQueuePendingWorkload?: {
         name: string;
@@ -680,7 +679,38 @@ export type ClusterQueueKind = K8sResourceCommon & {
       }[];
       lastChangeTime: string;
     };
+  };
+};
+
+type LocalQueueFlavorUsage = {
+  name: string;
+  resources: {
+    name: string;
+    total?: string | number;
+  }[];
+};
+
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-LocalQueue
+export type LocalQueueKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  kind: 'LocalQueue';
+  spec: {
+    clusterQueue: string;
+  };
+  status?: {
+    flavorsReservation?: LocalQueueFlavorUsage[];
+    flavorUsage?: LocalQueueFlavorUsage[];
+    pendingWorkloads?: number;
     reservingWorkloads?: number;
+    admittedWorkloads?: number;
+    conditions?: {
+      lastTransitionTime: string;
+      message: string;
+      observedGeneration?: number;
+      reason: string;
+      status: 'True' | 'False' | 'Unknown';
+      type: string;
+    }[];
   };
 };
 
@@ -699,7 +729,10 @@ type WorkloadPodAffinityTerm = {
   topologyKey: string;
 };
 
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-Workload
 export type WorkloadKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  kind: 'Workload';
   spec: {
     active?: boolean;
     podSets: {

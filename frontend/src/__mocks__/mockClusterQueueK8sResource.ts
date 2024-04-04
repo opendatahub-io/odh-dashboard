@@ -3,10 +3,12 @@ import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;
+  hasResourceGroups?: boolean;
 };
 
 export const mockClusterQueueK8sResource = ({
   name = 'test-cluster-queue',
+  hasResourceGroups = true,
 }: MockResourceConfigType): ClusterQueueKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta1',
   kind: 'ClusterQueue',
@@ -18,39 +20,30 @@ export const mockClusterQueueK8sResource = ({
     uid: genUID('clusterqueue'),
   },
   spec: {
-    flavorFungibility: {
-      whenCanBorrow: 'Borrow',
-      whenCanPreempt: 'TryNextFlavor',
-    },
+    flavorFungibility: { whenCanBorrow: 'Borrow', whenCanPreempt: 'TryNextFlavor' },
     namespaceSelector: {},
     preemption: {
-      borrowWithinCohort: {
-        policy: 'Never',
-      },
+      borrowWithinCohort: { policy: 'Never' },
       reclaimWithinCohort: 'Never',
       withinClusterQueue: 'Never',
     },
     queueingStrategy: 'BestEffortFIFO',
-    resourceGroups: [
-      {
-        coveredResources: ['cpu', 'memory'],
-        flavors: [
+    resourceGroups: hasResourceGroups
+      ? [
           {
-            name: 'test-flavor',
-            resources: [
+            coveredResources: ['cpu', 'memory'],
+            flavors: [
               {
-                name: 'cpu',
-                nominalQuota: '20',
-              },
-              {
-                name: 'memory',
-                nominalQuota: '36Gi',
+                name: 'test-flavor',
+                resources: [
+                  { name: 'cpu', nominalQuota: '20' },
+                  { name: 'memory', nominalQuota: '36Gi' },
+                ],
               },
             ],
           },
-        ],
-      },
-    ],
+        ]
+      : [],
     stopPolicy: 'None',
   },
   status: {
@@ -68,16 +61,8 @@ export const mockClusterQueueK8sResource = ({
       {
         name: 'test-flavor',
         resources: [
-          {
-            borrowed: '0',
-            name: 'cpu',
-            total: '0',
-          },
-          {
-            borrowed: '0',
-            name: 'memory',
-            total: '0',
-          },
+          { borrowed: '0', name: 'cpu', total: '0' },
+          { borrowed: '0', name: 'memory', total: '0' },
         ],
       },
     ],
@@ -85,16 +70,8 @@ export const mockClusterQueueK8sResource = ({
       {
         name: 'test-flavor',
         resources: [
-          {
-            borrowed: '0',
-            name: 'cpu',
-            total: '0',
-          },
-          {
-            borrowed: '0',
-            name: 'memory',
-            total: '0',
-          },
+          { borrowed: '0', name: 'cpu', total: '0' },
+          { borrowed: '0', name: 'memory', total: '0' },
         ],
       },
     ],

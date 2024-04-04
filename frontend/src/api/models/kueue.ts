@@ -7,6 +7,13 @@ export const ClusterQueueModel: K8sModelCommon = {
   plural: 'clusterqueues',
 };
 
+export const LocalQueueModel: K8sModelCommon = {
+  apiVersion: 'v1beta1',
+  apiGroup: 'kueue.x-k8s.io',
+  kind: 'LocalQueue',
+  plural: 'localqueues',
+};
+
 export const WorkloadModel: K8sModelCommon = {
   apiVersion: 'v1beta1',
   apiGroup: 'kueue.x-k8s.io',
