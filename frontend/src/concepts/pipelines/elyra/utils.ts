@@ -1,6 +1,7 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   DSPipelineExternalStorageKind,
+  ImageStreamSpecTagType,
   KnownLabels,
   NotebookKind,
   RoleBindingKind,
@@ -17,6 +18,7 @@ import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
 import { routePipelineRunDetailsNamespace } from '~/routes';
+import { getImageVersionDependencies } from '~/pages/projects/screens/spawner/spawnerUtils';
 
 type ElyraRoleBindingOwnerRef = {
   apiVersion: string;
@@ -201,4 +203,16 @@ export const createElyraServiceAccountRoleBinding = async (
   }
 
   return undefined;
+};
+
+// V2 -> odh-elyra: 3.16
+export const isElyraVersionUpToDate = (imageVersion: ImageStreamSpecTagType): boolean => {
+  const deps = getImageVersionDependencies(imageVersion);
+  return deps.some((dep) => dep.name.toLowerCase() === 'odh-elyra');
+};
+
+// V1 -> elyra: 3.15
+export const isElyraVersionOutOfDate = (imageVersion: ImageStreamSpecTagType): boolean => {
+  const deps = getImageVersionDependencies(imageVersion);
+  return deps.some((dep) => dep.name.toLowerCase() === 'elyra');
 };
