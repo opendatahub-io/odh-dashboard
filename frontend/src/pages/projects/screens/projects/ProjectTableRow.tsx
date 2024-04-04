@@ -88,7 +88,10 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
               {loaded ? (
                 <>
                   {notebookState ? (
-                    <Td dataLabel="workbenchName" className="odh-project-table__workbench-column">
+                    <Td
+                      dataLabel="workbenchName"
+                      style={{ paddingLeft: 'var(--pf-v5-global--spacer--sm)' }}
+                    >
                       <NotebookRouteLink
                         label={getNotebookDisplayName(notebookState.notebook)}
                         notebook={notebookState.notebook}
