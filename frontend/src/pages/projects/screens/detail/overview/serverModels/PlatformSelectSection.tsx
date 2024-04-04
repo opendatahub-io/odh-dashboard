@@ -1,16 +1,11 @@
 import * as React from 'react';
 import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core';
-import { SectionType } from '~/concepts/design/utils';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => (
-  <CollapsibleSection
-    sectionType={SectionType.training}
-    title="Serve models"
-    data-testid="section-model-server"
-  >
+  <CollapsibleSection title="Serve models" data-testid="section-model-server">
     <Stack hasGutter>
       <TextContent
         data-testid="no-model-serving-platform-selected"

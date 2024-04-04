@@ -32,11 +32,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
 
   if (inferenceServices.length === 0) {
     return (
-      <CollapsibleSection
-        sectionType={isMultiPlatform ? SectionType.setup : SectionType.training}
-        title="Serve models"
-        data-testid="section-model-server"
-      >
+      <CollapsibleSection title="Serve models" data-testid="section-model-server">
         <OverviewCard
           objectType={ProjectObjectType.modelServer}
           sectionType={SectionType.setup}
@@ -64,11 +60,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   }
 
   return (
-    <CollapsibleSection
-      sectionType={SectionType.training}
-      title="Serve models"
-      data-testid="model-server-section"
-    >
+    <CollapsibleSection title="Serve models" data-testid="model-server-section">
       <DeployedModelsCard isMultiPlatform={isMultiPlatform} />
     </CollapsibleSection>
   );
