@@ -17,7 +17,6 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
@@ -30,10 +29,10 @@ enum FilterStates {
 
 interface DeployedModelsCardProps {
   isMultiPlatform: boolean;
+  namespace?: string;
 }
 
-const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({ isMultiPlatform }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({ isMultiPlatform, namespace }) => {
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
 
   const renderError = (message?: string): React.ReactElement => (
@@ -92,10 +91,7 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({ isMultiPlatform
         </Flex>
       </CardHeader>
       <CardBody>
-        <ModelServingContextProvider
-          namespace={currentProject.metadata.namespace}
-          getErrorComponent={renderError}
-        >
+        <ModelServingContextProvider namespace={namespace} getErrorComponent={renderError}>
           <DeployedModelsGallery
             showSuccessful={!filteredState || filteredState === FilterStates.success}
             showFailed={!filteredState || filteredState === FilterStates.failed}
