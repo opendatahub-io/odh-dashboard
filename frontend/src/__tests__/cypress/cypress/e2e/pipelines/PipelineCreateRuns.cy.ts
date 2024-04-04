@@ -87,6 +87,20 @@ describe('Pipeline create runs', () => {
       });
     });
 
+    it('switches to scheduled runs from triggered', () => {
+      // Mock experiments, pipelines & versions for form select dropdowns
+      createRunPage.mockGetExperiments(mockExperiments);
+      createRunPage.mockGetPipelines([mockPipeline]);
+      createRunPage.mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id);
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create`);
+      createRunPage.find();
+      createRunPage.findRunTypeSwitchLink().click();
+      cy.url().should('include', '?runType=scheduled');
+    });
+
     it('creates an active run', () => {
       const createRunParams: Partial<PipelineRunKFv2> = {
         display_name: 'New run',
@@ -475,6 +489,23 @@ describe('Pipeline create runs', () => {
       });
 
       pipelineRunsGlobal.findSchedulesTab().click();
+    });
+
+    it('switches to scheduled runs from triggered', () => {
+      // Mock experiments, pipelines & versions for form select dropdowns
+      createSchedulePage.mockGetExperiments(mockExperiments);
+      createSchedulePage.mockGetPipelines([mockPipeline]);
+      createSchedulePage.mockGetPipelineVersions(
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findScheduleRunButton().click();
+      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
+      createSchedulePage.find();
+      createSchedulePage.findRunTypeSwitchLink().click();
+      cy.url().should('include', '?runType=active');
     });
 
     it('creates a schedule', () => {

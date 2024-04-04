@@ -1,11 +1,7 @@
 import * as React from 'react';
 import { Form, FormSection, Text } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import {
-  RunFormData,
-  RunTypeOption,
-  ScheduledRunType,
-} from '~/concepts/pipelines/content/createRun/types';
+import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import { getProjectDisplayName } from '~/pages/projects/utils';
@@ -102,13 +98,13 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
         }}
       />
 
-      {runType === PipelineRunType.Scheduled && (
+      {runType === PipelineRunType.Scheduled && data.runType.type === RunTypeOption.SCHEDULED && (
         <FormSection
           id={CreateRunPageSections.SCHEDULE_SETTINGS}
           title={runPageSectionTitles[CreateRunPageSections.SCHEDULE_SETTINGS]}
         >
           <RunTypeSectionScheduled
-            data={(data.runType as ScheduledRunType).data}
+            data={data.runType.data}
             onChange={(scheduleData) =>
               onValueChange('runType', { type: RunTypeOption.SCHEDULED, data: scheduleData })
             }
