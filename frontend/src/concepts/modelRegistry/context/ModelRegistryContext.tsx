@@ -2,6 +2,8 @@ import * as React from 'react';
 import { Alert, Bullseye } from '@patternfly/react-core';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import { MODEL_REGISTRY_DEFINITION_NAME } from '~/concepts/modelRegistry/const';
+import { ModelRegistryKind } from '~/k8sTypes';
+import useModelRegistries from '~/concepts/modelRegistry/apiHooks/useModelRegistries';
 import useModelRegistryAPIState, { ModelRegistryAPIState } from './useModelRegistryAPIState';
 import useModelRegistryAPIRoute from './useModelRegistryAPIRoute';
 import {
@@ -10,7 +12,7 @@ import {
   useModelRegistryNamespaceCR,
 } from './useModelRegistryNamespaceCR';
 
-type ModelRegistryContextType = {
+export type ModelRegistryContextType = {
   hasCR: boolean;
   crInitializing: boolean;
   serverTimedOut: boolean;
@@ -18,9 +20,9 @@ type ModelRegistryContextType = {
   ignoreTimedOut: () => void;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
-  // TODO dpanshug: add model registry when it's available from backend
-  // modelRegistry: any;
-  // preferredModelRegistry: any;
+  modelRegistries: ModelRegistryKind[];
+  preferredModelRegistry: ModelRegistryKind | undefined;
+  updatePreferredModelRegistry: (modelRegistry: ModelRegistryKind | undefined) => void;
 };
 
 type ModelRegistryContextProviderProps = {
@@ -36,12 +38,19 @@ export const ModelRegistryContext = React.createContext<ModelRegistryContextType
   ignoreTimedOut: () => undefined,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
+  modelRegistries: [],
+  preferredModelRegistry: undefined,
+  updatePreferredModelRegistry: () => undefined,
 });
 
 export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContextProviderProps>(
   SupportedArea.MODEL_REGISTRY,
   true,
 )(({ children, namespace }) => {
+  const [modelRegistries] = useModelRegistries();
+  const [preferredModelRegistry, setPreferredModelRegistry] =
+    React.useState<ModelRegistryContextType['preferredModelRegistry']>(undefined);
+
   const crState = useModelRegistryNamespaceCR(namespace, MODEL_REGISTRY_DEFINITION_NAME); // TODO: dynamially change the model registry name
   const [modelRegistryNamespaceCR, crLoaded, crLoadError, refreshCR] = crState;
   const isCRReady = isModelRegistryAvailable(crState);
@@ -62,10 +71,22 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
 
   const [apiState, refreshAPIState] = useModelRegistryAPIState(hostPath);
 
+  React.useEffect(() => {
+    if (modelRegistries.length > 0 && !preferredModelRegistry) {
+      setPreferredModelRegistry(modelRegistries[0]);
+    }
+  }, [modelRegistries, preferredModelRegistry]);
+
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
     [refreshRoute, refreshCR],
   );
+
+  const updatePreferredModelRegistry = React.useCallback<
+    ModelRegistryContextType['updatePreferredModelRegistry']
+  >((modelRegistry) => {
+    setPreferredModelRegistry(modelRegistry);
+  }, []);
 
   const error = crLoadError || routeLoadError;
   if (error) {
@@ -88,6 +109,9 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
         ignoreTimedOut,
         refreshState,
         refreshAPIState,
+        modelRegistries,
+        preferredModelRegistry,
+        updatePreferredModelRegistry,
       }}
     >
       {children}
