@@ -16,7 +16,7 @@ const useCheckboxTableBase = <T>(
   selectedData: T[],
   setSelectedData: React.Dispatch<React.SetStateAction<T[]>>,
   dataMappingHelper: (selectData: T) => string,
-  selectAll?: { selected?: boolean; disabled?: boolean },
+  options?: { selectAll?: { selected?: boolean; disabled?: boolean }; persistSelections?: boolean },
 ): UseCheckboxTableBaseProps<T> => {
   const dataIds = React.useMemo(() => data.map(dataMappingHelper), [data, dataMappingHelper]);
 
@@ -29,6 +29,10 @@ const useCheckboxTableBase = <T>(
 
   // remove selected ids that are no longer present in the provided dataIds
   React.useEffect(() => {
+    if (options?.persistSelections) {
+      return;
+    }
+
     const newSelectedIds = intersection(selectedDataIds, dataIds);
     const newSelectedData = newSelectedIds
       .map((id) => data.find((d) => dataMappingHelper(d) === id))
@@ -36,7 +40,15 @@ const useCheckboxTableBase = <T>(
     if (selectedData.length !== newSelectedData.length) {
       setSelectedData(newSelectedData);
     }
-  }, [data, dataIds, dataMappingHelper, selectedData, selectedDataIds, setSelectedData]);
+  }, [
+    data,
+    dataIds,
+    dataMappingHelper,
+    options?.persistSelections,
+    selectedData,
+    selectedDataIds,
+    setSelectedData,
+  ]);
 
   const disableCheck = React.useCallback<UseCheckboxTableBaseProps<T>['disableCheck']>(
     (item, disabled) =>
@@ -74,7 +86,7 @@ const useCheckboxTableBase = <T>(
             setSelectedData(value ? checkable : []);
           },
           selected: headerSelected,
-          ...selectAll,
+          ...options?.selectAll,
         },
       },
       disableCheck,
@@ -95,10 +107,10 @@ const useCheckboxTableBase = <T>(
     selectedDataIds,
     dataMappingHelper,
     selectedData,
-    selectAll,
-    disableCheck,
     disabledData,
     setSelectedData,
+    options?.selectAll,
+    disableCheck,
   ]);
 };
 

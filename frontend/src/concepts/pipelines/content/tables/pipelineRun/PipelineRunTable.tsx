@@ -185,13 +185,16 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         rowRenderer={(run) => (
           <PipelineRunTableRow
             key={run.run_id}
-            isChecked={isSelected(run.run_id)}
-            onToggleCheck={() => toggleSelection(run.run_id)}
+            checkboxProps={{
+              isChecked: isSelected(run.run_id),
+              onToggle: () => toggleSelection(run.run_id),
+            }}
             onDelete={() => {
               setSelectedIds([run.run_id]);
               setIsDeleteModalOpen(true);
             }}
             run={run}
+            hasExperiments={!(isExperimentsAvailable && experimentId)}
           />
         )}
         variant={TableVariant.compact}

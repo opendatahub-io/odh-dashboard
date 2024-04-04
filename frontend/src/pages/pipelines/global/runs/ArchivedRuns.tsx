@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Bullseye,
   EmptyState,
@@ -13,8 +14,9 @@ import { usePipelineArchivedRunsTable } from '~/concepts/pipelines/content/table
 import { PipelineRunType } from './types';
 
 export const ArchivedRuns: React.FC = () => {
+  const { experimentId } = useParams();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineArchivedRunsTable();
+    usePipelineArchivedRunsTable({ experimentId });
 
   if (error) {
     return (

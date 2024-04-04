@@ -18,6 +18,7 @@ import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 import { ExperimentRunsListBreadcrumb } from './global/experiments/ExperimentRunsListBreadcrumb';
 import GlobalComparePipelineRunsLoader from './global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
 import CompareRunsPage from './global/experiments/compareRuns/CompareRunsPage';
+import { ManageRunsPage } from './global/experiments/compareRuns/ManageRunsPage';
 
 const GlobalPipelineExperimentsRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -75,11 +76,11 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
           index
           element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CompareRunsPage} />}
         />
-        {/* <Route
-          path="add"
-          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={TODO} />}
-        /> */}
       </Route>
+      <Route
+        path=":experimentId/compareRuns/add"
+        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={ManageRunsPage} />}
+      />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </ProjectsRoutes>

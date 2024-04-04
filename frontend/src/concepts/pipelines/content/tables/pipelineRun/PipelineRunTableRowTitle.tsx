@@ -39,7 +39,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run
       }
       description={run.description}
       descriptionAsMarkdown
-      label={<PipelineRunTypeLabel run={run} />}
+      label={<PipelineRunTypeLabel run={run} isCompact />}
     />
   );
 };

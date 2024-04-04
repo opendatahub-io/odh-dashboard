@@ -65,7 +65,8 @@ export const experimentScheduleDetailsRoute = (
     ? experimentsBaseRoute(namespace)
     : `${experimentSchedulesRoute(namespace, experimentId)}/${recurringRunId}`;
 
-const generateCompareRunsQueryString = (runIds: string[]) => `?runs=${runIds.join(',')}`;
+const generateCompareRunsQueryString = (runIds: string[]) =>
+  runIds.length > 0 ? `?runs=${runIds.join(',')}` : '';
 
 export const experimentsCompareRunsRoute = (
   namespace: string,

@@ -10,14 +10,19 @@ type UseCheckboxTable = {
   setSelections: (selections: string[]) => void;
 };
 
-const useCheckboxTable = (dataIds: string[]): UseCheckboxTable => {
-  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+const useCheckboxTable = (
+  dataIds: string[],
+  defaultSelectedIds?: string[],
+  persistSelections?: boolean,
+): UseCheckboxTable => {
+  const [selectedIds, setSelectedIds] = React.useState<string[]>(defaultSelectedIds ?? []);
 
   return useCheckboxTableBase<string>(
     dataIds,
     selectedIds,
     setSelectedIds,
     React.useCallback((d) => d, []),
+    { persistSelections },
   );
 };
 

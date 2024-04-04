@@ -599,7 +599,7 @@ const initIntercepts = () => {
       pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
     },
     mockK8sResourceList([
-      mockProjectK8sResource({ k8sName: projectName, displayName: 'Test project filters' }),
+      mockProjectK8sResource({ k8sName: projectName, displayName: 'Test project' }),
     ]),
   );
 
