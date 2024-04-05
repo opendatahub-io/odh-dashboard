@@ -25,6 +25,9 @@ type HandlersProps = {
   isEnabled?: string;
   isUnknown?: boolean;
   templates?: boolean;
+  imageStreamPythonDependencies?: string;
+  v1PipelineServer?: boolean;
+  pipelineServerInstalled?: boolean;
 };
 
 const initIntercepts = ({
@@ -32,9 +35,12 @@ const initIntercepts = ({
   disableModelConfig,
   isEmpty = false,
   imageStreamName = 'test-image',
+  imageStreamPythonDependencies,
   isEnabled = 'true',
   isUnknown = false,
   templates = false,
+  v1PipelineServer = false,
+  pipelineServerInstalled = true,
 }: HandlersProps) => {
   cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
@@ -87,6 +93,34 @@ const initIntercepts = ({
       disableModelMesh: disableModelConfig,
     }),
   );
+  if (pipelineServerInstalled) {
+    cy.intercept(
+      {
+        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications`,
+      },
+      mockK8sResourceList([
+        mockDataSciencePipelineApplicationK8sResource({
+          dspVersion: v1PipelineServer ? 'v1' : 'v2',
+        }),
+      ]),
+    );
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa`,
+      },
+      mockDataSciencePipelineApplicationK8sResource({ dspVersion: v1PipelineServer ? 'v1' : 'v2' }),
+    );
+    cy.intercept(
+      {
+        pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa`,
+      },
+      mockRouteK8sResource({
+        notebookName: 'ds-pipeline-pipelines-definition',
+        namespace: 'test-project',
+      }),
+    );
+  }
   cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
     mockK8sResourceList([mockPodK8sResource({})]),
@@ -150,6 +184,10 @@ const initIntercepts = ({
                   tags: [
                     {
                       name: 'latest',
+                      annotations: {
+                        'opendatahub.io/notebook-python-dependencies':
+                          imageStreamPythonDependencies ?? '[]',
+                      },
                     },
                   ],
                 },
@@ -284,6 +322,44 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', false);
       projectDetails.shouldBeEmptyState('Data connections', 'data-connections', false);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', false);
+    });
+
+    it('Notebook with outdated Elyra image shows alert and v2 pipeline server', () => {
+      initIntercepts({ imageStreamPythonDependencies: '[{"name":"Elyra","version":"3.15"}]' });
+      projectDetails.visitSection('test-project', 'workbenches');
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.findOutdatedElyraInfo().should('be.visible');
+      projectDetails.findElyraInvalidVersionAlert().should('be.visible');
+    });
+
+    it('Notebook with updated Elyra image and v1 pipeline server', () => {
+      initIntercepts({
+        imageStreamPythonDependencies: '[{"name":"odh-elyra","version":"3.16"}]',
+        v1PipelineServer: true,
+      });
+
+      projectDetails.visitSection('test-project', 'workbenches');
+      projectDetails.findUnsupportedPipelineVersionAlert().should('be.visible');
+    });
+
+    it('Notebooks with outdated Elyra image and no pipeline server', () => {
+      initIntercepts({
+        imageStreamPythonDependencies: '[{"name":"Elyra","version":"3.15"}]',
+        pipelineServerInstalled: false,
+      });
+      projectDetails.visitSection('test-project', 'workbenches');
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.findOutdatedElyraInfo().should('not.exist');
+      projectDetails.findElyraInvalidVersionAlert().should('not.exist');
+    });
+    it('Notebook with updated Elyra image and no pipeline server', () => {
+      initIntercepts({
+        imageStreamPythonDependencies: '[{"name":"odh-elyra","version":"3.16"}]',
+        pipelineServerInstalled: false,
+      });
+
+      projectDetails.visitSection('test-project', 'workbenches');
+      projectDetails.findUnsupportedPipelineVersionAlert().should('not.exist');
     });
 
     it('Notebook with deleted image', () => {
