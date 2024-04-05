@@ -2,7 +2,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class GlobalDistributedWorkloads {
   visit(wait = true) {
-    cy.visitWithLogin(`/distributedWorkloads`);
+    cy.visit(`/distributedWorkloads`);
     if (wait) {
       this.wait();
     }

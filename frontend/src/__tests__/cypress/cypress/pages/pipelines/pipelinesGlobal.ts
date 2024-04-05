@@ -2,7 +2,7 @@ import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 
 class PipelinesGlobal {
   visit(projectName: string) {
-    cy.visitWithLogin(`/pipelines/${projectName}`);
+    cy.visit(`/pipelines/${projectName}`);
     this.wait();
   }
 

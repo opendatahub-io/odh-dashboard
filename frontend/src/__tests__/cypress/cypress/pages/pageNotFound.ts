@@ -1,6 +1,6 @@
 class PageNotFound {
   visit(name: string) {
-    cy.visitWithLogin(`/${name}`);
+    cy.visit(`/${name}`);
     this.wait();
   }
 
