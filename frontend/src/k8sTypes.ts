@@ -13,6 +13,7 @@ import {
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
   VolumeMount,
+  ContainerResourceAttributes,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
@@ -616,7 +617,7 @@ export type DSPipelineKind = K8sResourceCommon & {
 type ClusterQueueFlavorUsage = {
   name: string;
   resources: {
-    name: string;
+    name: ContainerResourceAttributes;
     borrowed?: string | number;
     total?: string | number;
   }[];
@@ -647,11 +648,11 @@ export type ClusterQueueKind = K8sResourceCommon & {
     };
     queueingStrategy?: 'StrictFIFO' | 'BestEffortFIFO';
     resourceGroups?: {
-      coveredResources: string[];
+      coveredResources: ContainerResourceAttributes[];
       flavors: {
         name: string;
         resources: {
-          name: string;
+          name: ContainerResourceAttributes;
           nominalQuota: string | number; // e.g. 9 for cpu/pods, "36Gi" for memory
         }[];
       }[];
@@ -685,7 +686,7 @@ export type ClusterQueueKind = K8sResourceCommon & {
 type LocalQueueFlavorUsage = {
   name: string;
   resources: {
-    name: string;
+    name: ContainerResourceAttributes;
     total?: string | number;
   }[];
 };

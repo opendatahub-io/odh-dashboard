@@ -1,14 +1,19 @@
 import { LocalQueueKind } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
+import { ContainerResourceAttributes } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
   namespace?: string;
+  isCpuOverQuota?: boolean;
+  isMemoryOverQuota?: boolean;
 };
 
 export const mockLocalQueueK8sResource = ({
   name = 'test-local-queue',
   namespace = 'test-project',
+  isCpuOverQuota = false,
+  isMemoryOverQuota = false,
 }: MockResourceConfigType): LocalQueueKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta1',
   kind: 'LocalQueue',
@@ -39,9 +44,14 @@ export const mockLocalQueueK8sResource = ({
       {
         name: 'test-flavor',
         resources: [
-          { name: 'cpu', total: '0' },
-          { name: 'memory', total: '0' },
-          { name: 'nvidia.com/gpu', total: '0' },
+          {
+            name: ContainerResourceAttributes.CPU,
+            total: isCpuOverQuota ? '180' : '20',
+          },
+          {
+            name: ContainerResourceAttributes.MEMORY,
+            total: isMemoryOverQuota ? '100Gi' : '10Gi',
+          },
         ],
       },
     ],
@@ -49,9 +59,14 @@ export const mockLocalQueueK8sResource = ({
       {
         name: 'test-flavor',
         resources: [
-          { name: 'cpu', total: '0' },
-          { name: 'memory', total: '0' },
-          { name: 'nvidia.com/gpu', total: '0' },
+          {
+            name: ContainerResourceAttributes.CPU,
+            total: isCpuOverQuota ? '180' : '20',
+          },
+          {
+            name: ContainerResourceAttributes.MEMORY,
+            total: isMemoryOverQuota ? '100Gi' : '10Gi',
+          },
         ],
       },
     ],
