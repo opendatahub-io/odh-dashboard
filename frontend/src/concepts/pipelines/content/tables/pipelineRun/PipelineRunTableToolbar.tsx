@@ -17,11 +17,13 @@ export type FilterProps = Pick<
 >;
 
 interface PipelineRunTableToolbarProps extends FilterProps {
-  actions: React.ReactNode[];
+  actions?: React.ReactNode[];
+  filterOptions?: React.ComponentProps<typeof PipelineFilterBar>['filterOptions'];
 }
 
 const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   actions,
+  filterOptions,
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
@@ -31,7 +33,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
     runtimeStateLabels;
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
-  const options = React.useMemo(
+  const defaultFilterOptions = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Run',
       ...(!(isExperimentsAvailable && experimentId) && {
@@ -47,7 +49,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   return (
     <PipelineFilterBar
       {...toolbarProps}
-      filterOptions={options}
+      filterOptions={filterOptions || defaultFilterOptions}
       filterOptionRenders={{
         [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
@@ -98,7 +100,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
         ),
       }}
     >
-      {actions.map((action, index) => (
+      {actions?.map((action, index) => (
         <ToolbarItem key={index}>{action}</ToolbarItem>
       ))}
     </PipelineFilterBar>

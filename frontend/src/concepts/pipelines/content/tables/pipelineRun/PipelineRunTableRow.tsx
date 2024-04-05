@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { Skeleton } from '@patternfly/react-core';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
@@ -18,20 +19,22 @@ import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { cloneRunRoute } from '~/routes';
+import { cloneRunRoute, experimentRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 
 type PipelineRunTableRowProps = {
-  isChecked: boolean;
-  onToggleCheck: () => void;
-  onDelete: () => void;
+  checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
+  onDelete?: () => void;
   run: PipelineRunKFv2;
+  hasExperiments?: boolean;
+  hasRowActions?: boolean;
 };
 
 const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
-  isChecked,
-  onToggleCheck,
+  hasRowActions = true,
+  hasExperiments = true,
+  checkboxProps,
   onDelete,
   run,
 }) => {
@@ -40,7 +43,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
-  const [experiment] = useExperimentById(run.experiment_id);
+  const [experiment, isExperimentLoaded] = useExperimentById(run.experiment_id);
   const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
@@ -69,7 +72,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         {
           title: 'Delete',
           onClick: () => {
-            onDelete();
+            onDelete?.();
           },
         },
       ];
@@ -111,12 +114,22 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
 
   return (
     <Tr>
-      <CheckboxTd id={run.run_id} isChecked={isChecked} onToggle={onToggleCheck} />
+      <CheckboxTd id={run.run_id} {...checkboxProps} />
       <Td dataLabel="Name">
         <PipelineRunTableRowTitle run={run} />
       </Td>
-      {!(isExperimentsAvailable && experimentId) && (
-        <Td dataLabel="Experiment">{experiment?.display_name || 'Default'}</Td>
+      {hasExperiments && (
+        <Td dataLabel="Experiment">
+          {!isExperimentLoaded ? (
+            <Skeleton />
+          ) : isExperimentsAvailable && experimentId ? (
+            <Link to={experimentRunsRoute(namespace, experiment?.experiment_id)}>
+              {experiment?.display_name}
+            </Link>
+          ) : (
+            experiment?.display_name
+          )}
+        </Td>
       )}
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink
@@ -135,19 +148,21 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td dataLabel="Status">
         <RunStatus justIcon run={run} />
       </Td>
-      <Td isActionCell dataLabel="Kebab">
-        <ActionsColumn items={actions} />
-        <RestoreRunModal
-          isOpen={isRestoreModalOpen}
-          runs={[run]}
-          onCancel={() => setIsRestoreModalOpen(false)}
-        />
-        <ArchiveRunModal
-          isOpen={isArchiveModalOpen}
-          runs={[run]}
-          onCancel={() => setIsArchiveModalOpen(false)}
-        />
-      </Td>
+      {hasRowActions && (
+        <Td isActionCell dataLabel="Kebab">
+          <ActionsColumn items={actions} />
+          <RestoreRunModal
+            isOpen={isRestoreModalOpen}
+            runs={[run]}
+            onCancel={() => setIsRestoreModalOpen(false)}
+          />
+          <ArchiveRunModal
+            isOpen={isArchiveModalOpen}
+            runs={[run]}
+            onCancel={() => setIsArchiveModalOpen(false)}
+          />
+        </Td>
+      )}
     </Tr>
   );
 };

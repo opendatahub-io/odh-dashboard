@@ -35,6 +35,7 @@ type Props<DataType> = {
   enablePagination?: boolean | 'compact';
   truncateRenderingAt?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
+  bottomToolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
   emptyTableView?: React.ReactNode;
   caption?: string;
   footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
@@ -77,6 +78,7 @@ const TableBase = <T,>({
   rowRenderer,
   enablePagination,
   toolbarContent,
+  bottomToolbarContent,
   emptyTableView,
   caption,
   disableRowRenderSupport,
@@ -222,7 +224,11 @@ const TableBase = <T,>({
   return (
     <>
       {(toolbarContent || showPagination) && (
-        <Toolbar inset={{ default: 'insetNone' }} customChipGroupContent={<></>}>
+        <Toolbar
+          inset={{ default: 'insetNone' }}
+          className="pf-v5-u-w-100"
+          customChipGroupContent={<></>}
+        >
           <ToolbarContent>
             {toolbarContent}
             {showPagination && (
@@ -249,15 +255,17 @@ const TableBase = <T,>({
           {emptyTableView}
         </div>
       )}
-      {showPagination && (
-        <Toolbar>
-          <ToolbarContent>
+
+      <Toolbar inset={{ default: 'insetNone' }} className="pf-v5-u-w-100">
+        <ToolbarContent alignItems="center">
+          {bottomToolbarContent}
+          {showPagination && (
             <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
               {pagination('bottom')}
             </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-      )}
+          )}
+        </ToolbarContent>
+      </Toolbar>
     </>
   );
 };
