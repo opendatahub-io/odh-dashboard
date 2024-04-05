@@ -42,6 +42,10 @@ export class CreateRunPage {
     return cy.findByTestId('run-description');
   }
 
+  findRunTypeSwitchLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('run-type-section-alert-link');
+  }
+
   findExperimentSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('experiment-toggle-button');
   }

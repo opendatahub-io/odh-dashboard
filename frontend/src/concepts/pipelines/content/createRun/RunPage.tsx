@@ -17,6 +17,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import {
   RunFormData,
+  RunType,
   RunTypeOption,
   ScheduledType,
 } from '~/concepts/pipelines/content/createRun/types';
@@ -63,9 +64,9 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
       ),
   );
 
-  const [formData, setFormDataValue] = useRunFormData(cloneRun, {
-    runType: {
-      ...(runType === PipelineRunType.Scheduled
+  const runTypeData: RunType = React.useMemo(
+    () =>
+      runType === PipelineRunType.Scheduled
         ? {
             type: RunTypeOption.SCHEDULED,
             data: {
@@ -73,12 +74,28 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
               triggerType: triggerType || ScheduledType.PERIODIC,
             },
           }
-        : { type: RunTypeOption.ONE_TRIGGER }),
-    },
+        : { type: RunTypeOption.ONE_TRIGGER },
+    [runType, triggerType],
+  );
+
+  const [formData, setFormDataValue] = useRunFormData(cloneRun, {
+    runType: runTypeData,
     pipeline: location.state?.lastPipeline || cloneRunPipeline,
     version: location.state?.lastVersion || cloneRunPipelineVersion,
     experiment: runExperiment,
   });
+
+  // need to correctly set runType after switching between run types as the form data is not updated automatically
+  React.useEffect(() => {
+    // set the data if the url run type is different from the form data run type
+    if (
+      (runType === PipelineRunType.Scheduled &&
+        formData.runType.type === RunTypeOption.ONE_TRIGGER) ||
+      (runType !== PipelineRunType.Scheduled && formData.runType.type === RunTypeOption.SCHEDULED)
+    ) {
+      setFormDataValue('runType', runTypeData);
+    }
+  }, [formData.runType.type, runType, runTypeData, setFormDataValue]);
 
   const onValueChange = React.useCallback(
     (key: keyof RunFormData, value: ValueOf<RunFormData>) => setFormDataValue(key, value),
