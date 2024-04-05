@@ -5,7 +5,11 @@ import {
   WorkloadStatusType,
   getStatusCounts,
   getStatusInfo,
+  getWorkloadRequestedResources,
+  WorkloadRequestedResources,
 } from '~/concepts/distributedWorkloads/utils';
+import { WorkloadPodSet } from '~/k8sTypes';
+import { PodContainer } from '~/types';
 
 describe('getStatusInfo', () => {
   const testWorkloadStatus = (statusType: WorkloadStatusType | null, expectedMessage: string) => {
@@ -104,5 +108,49 @@ describe('getWorkloadOwnerJobName', () => {
       namespace: 'test-project',
     });
     expect(getWorkloadOwnerJobName(mockWorkload)).toBe(undefined);
+  });
+});
+
+describe('getWorkloadRequestedResources', () => {
+  it('correctly parses and adds up requested resources from workload podSets', () => {
+    const mockContainer: PodContainer = {
+      env: [],
+      image: 'perl:5.34.0',
+      imagePullPolicy: 'IfNotPresent',
+      name: 'pi',
+      resources: {
+        requests: {
+          cpu: '2',
+          memory: '200Mi',
+        },
+      },
+      terminationMessagePath: '/dev/termination-log',
+      terminationMessagePolicy: 'File',
+    };
+    const mockPodset: WorkloadPodSet = {
+      count: 5,
+      minCount: 4,
+      name: 'main',
+      template: {
+        metadata: {},
+        spec: {
+          containers: [mockContainer, mockContainer],
+          dnsPolicy: 'ClusterFirst',
+          restartPolicy: 'Never',
+          schedulerName: 'default-scheduler',
+          securityContext: {},
+          terminationGracePeriodSeconds: 30,
+        },
+      },
+    };
+    const mockWorkload = mockWorkloadK8sResource({
+      podSets: [mockPodset, mockPodset],
+    });
+
+    // 2 podsets, each with 5 pods, each with 2 containers, each requesting 2 CPUs and 200Mi memory
+    expect(getWorkloadRequestedResources(mockWorkload)).toEqual({
+      cpuCoresRequested: 2 * 5 * 2 * 2,
+      memoryBytesRequested: 2 * 5 * 2 * 200 * 1024 * 1024,
+    } satisfies WorkloadRequestedResources);
   });
 });

@@ -1,6 +1,6 @@
 import { genUID } from '~/__mocks__/mockUtils';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
-import { WorkloadCondition, WorkloadKind } from '~/k8sTypes';
+import { WorkloadCondition, WorkloadKind, WorkloadPodSet } from '~/k8sTypes';
 
 const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition[]> = {
   Pending: [
@@ -129,12 +129,14 @@ type MockResourceConfigType = {
   namespace?: string;
   ownerJobName?: string;
   mockStatus?: WorkloadStatusType | null;
+  podSets?: WorkloadPodSet[];
 };
 export const mockWorkloadK8sResource = ({
   k8sName = 'test-workload',
   namespace = 'test-project',
   ownerJobName,
   mockStatus = WorkloadStatusType.Succeeded,
+  podSets = [],
 }: MockResourceConfigType): WorkloadKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta1',
   kind: 'Workload',
@@ -165,7 +167,7 @@ export const mockWorkloadK8sResource = ({
   },
   spec: {
     active: true,
-    podSets: [],
+    podSets,
     priority: 0,
     queueName: 'user-queue',
   },

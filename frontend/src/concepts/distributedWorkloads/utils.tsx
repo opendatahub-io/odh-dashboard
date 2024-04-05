@@ -19,8 +19,14 @@ import {
   chart_color_green_300 as chartColorGreen,
   chart_color_red_100 as chartColorRed,
 } from '@patternfly/react-tokens';
-
 import { WorkloadCondition, WorkloadKind } from '~/k8sTypes';
+import { ContainerResourceAttributes } from '~/types';
+import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_PARSING,
+  UnitOption,
+  convertToUnit,
+} from '~/utilities/valueUnits';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',
@@ -145,3 +151,35 @@ export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts
 
 export const getWorkloadOwnerJobName = (workload: WorkloadKind): string | undefined =>
   workload.metadata?.ownerReferences?.find((ref) => ref.kind === 'Job')?.name;
+
+export type WorkloadRequestedResources = {
+  cpuCoresRequested: number;
+  memoryBytesRequested: number;
+};
+
+export const getWorkloadRequestedResources = (
+  workload: WorkloadKind,
+): WorkloadRequestedResources => {
+  const sumFromPodsets = (units: UnitOption[], attribute: ContainerResourceAttributes) =>
+    workload.spec.podSets.reduce((podSetsTotal, podSet) => {
+      const requestedPerPod = podSet.template.spec.containers.reduce(
+        (containersTotal, container) => {
+          const [value, unit] = convertToUnit(
+            String(container.resources?.requests?.[attribute] || 0),
+            units,
+            '',
+          );
+          return unit.unit === '' ? containersTotal + value : containersTotal;
+        },
+        0,
+      );
+      return podSetsTotal + requestedPerPod * podSet.count;
+    }, 0);
+  return {
+    cpuCoresRequested: sumFromPodsets(CPU_UNITS, ContainerResourceAttributes.CPU),
+    memoryBytesRequested: sumFromPodsets(
+      MEMORY_UNITS_FOR_PARSING,
+      ContainerResourceAttributes.MEMORY,
+    ),
+  };
+};

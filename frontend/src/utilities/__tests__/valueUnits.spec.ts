@@ -6,6 +6,8 @@ import {
   isCpuLimitLarger,
   isMemoryLimitLarger,
   isLarger,
+  convertToUnit,
+  MEMORY_UNITS_FOR_PARSING,
 } from '~/utilities/valueUnits';
 
 describe('splitValueUnit', () => {
@@ -26,6 +28,40 @@ describe('splitValueUnit', () => {
     expect(splitValueUnit('1.5unit', options)).toEqual([1.5, options[0]]);
     expect(splitValueUnit('1.5name', options)).toEqual([1.5, options[0]]);
     expect(splitValueUnit('1.5', options)).toEqual([1.5, options[0]]);
+  });
+});
+
+describe('convertToUnit', () => {
+  const options = MEMORY_UNITS_FOR_PARSING;
+  it('should correctly convert a number without units', () => {
+    expect(convertToUnit('42493440', options, 'Gi')).toEqual([
+      0.03957509994506836,
+      { name: 'GiB', unit: 'Gi', weight: 1024 ** 3 },
+    ]);
+  });
+  it('should correctly convert a number with units to a higher unit', () => {
+    expect(convertToUnit('500Mi', options, 'Gi')).toEqual([
+      0.48828125,
+      { name: 'GiB', unit: 'Gi', weight: 1024 ** 3 },
+    ]);
+  });
+  it('should correctly convert a number with units to the base unit', () => {
+    expect(convertToUnit('500Mi', options, '')).toEqual([
+      524288000,
+      { name: 'B', unit: '', weight: 1 },
+    ]);
+  });
+  it('should fall back to the parsed unit when target unit is invalid', () => {
+    expect(convertToUnit('500Mi', options, 'bogus')).toEqual([
+      500,
+      { name: 'MiB', unit: 'Mi', weight: 1024 ** 2 },
+    ]);
+  });
+  it('should fall back to the parsed unit when there is no weight-1 unit', () => {
+    expect(convertToUnit('500Mi', options.slice(0, -1), 'Gi')).toEqual([
+      500,
+      { name: 'MiB', unit: 'Mi', weight: 1024 ** 2 },
+    ]);
   });
 });
 
