@@ -4,7 +4,7 @@ import {
   GRAPH_LAYOUT_END_EVENT,
   Layout,
   NODE_SEPARATION_HORIZONTAL,
-  PipelineDagreLayout,
+  PipelineDagreGroupsLayout,
   Visualization,
 } from '@patternfly/react-topology';
 import { pipelineComponentFactory } from '~/concepts/topology/factories';
@@ -19,10 +19,11 @@ const useTopologyController = (graphId: string): Visualization | null => {
     visualizationController.registerComponentFactory(pipelineComponentFactory);
     visualizationController.registerLayoutFactory(
       (type: string, graph: Graph): Layout | undefined =>
-        new PipelineDagreLayout(graph, {
+        new PipelineDagreGroupsLayout(graph, {
           nodesep: PIPELINE_NODE_SEPARATION_VERTICAL,
           ranksep: NODE_SEPARATION_HORIZONTAL,
           ignoreGroups: true,
+          rankdir: 'TB',
         }),
     );
     visualizationController.fromModel(

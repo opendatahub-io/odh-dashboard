@@ -31,10 +31,13 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   const controller = useVisualizationController();
   const [error, setError] = React.useState<Error | null>();
   React.useEffect(() => {
-    // PF Bug
-    // TODO: Pipeline Topology weirdly doesn't set a width and height on spacer nodes -- but they do when using finally spacer nodes
-    const spacerNodes = getSpacerNodes(nodes).map((s) => ({ ...s, width: 1, height: 1 }));
-    const renderNodes = [...spacerNodes, ...nodes];
+    const spacerNodes = getSpacerNodes(nodes);
+
+    // Dagre likes the root nodes to be first in the order
+    const renderNodes = [...spacerNodes, ...nodes].sort(
+      (a, b) => (a.runAfterTasks?.length ?? 0) - (b.runAfterTasks?.length ?? 0),
+    );
+
     // TODO: We can have a weird edge issue if the node is off by a few pixels vertically from the center
     const edges = getEdgesFromNodes(renderNodes);
     try {

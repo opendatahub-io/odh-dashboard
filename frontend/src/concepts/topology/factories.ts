@@ -10,23 +10,23 @@ import {
   withSelection,
 } from '@patternfly/react-topology';
 import StandardTaskNode from '~/concepts/topology/customNodes/StandardTaskNode';
-import TaskEdge from './TaskEdge';
-// Topology gap... their types have issues with Strict TS mode
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import { ICON_TASK_NODE_TYPE } from './utils';
+import ArtifactTaskNode from './customNodes/ArtifactTaskNode';
+import PipelineTaskEdge from './PipelineTaskEdge';
+
 export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
   if (kind === ModelKind.graph) {
     return withPanZoom()(GraphComponent);
   }
   switch (type) {
     case DEFAULT_TASK_NODE_TYPE:
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       return withSelection()(StandardTaskNode);
+    case ICON_TASK_NODE_TYPE:
+      return withSelection()(ArtifactTaskNode);
     case DEFAULT_SPACER_NODE_TYPE:
       return SpacerNode;
     case DEFAULT_EDGE_TYPE:
-      return TaskEdge;
+      return PipelineTaskEdge;
     default:
       return undefined;
   }
