@@ -28,6 +28,7 @@ import {
   bulkArchiveRunModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -136,10 +137,10 @@ const mockArchivedRuns = [
     run_id: 'archived-run-2',
     pipeline_version_reference: {
       pipeline_id: pipelineId,
-      pipeline_version_id: 'test-version-1',
+      pipeline_version_id: 'test-version-2',
     },
     experiment_id: 'test-experiment-1',
-    created_at: '2024-02-05T00:00:00Z',
+    created_at: '2024-02-20T00:00:00Z',
     state: RuntimeStateKF.SUCCEEDED,
   }),
 ];
@@ -173,7 +174,7 @@ describe('Pipeline runs', () => {
       });
 
       it('renders the page with table data', () => {
-        activeRunsTable.getRowByName('Test active run 1');
+        activeRunsTable.getRowByName('Test active run 1').find().should('exist');
       });
 
       it('archive a single run', () => {
@@ -281,7 +282,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the typed run name exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
         });
 
         it('filter by experiment', () => {
@@ -310,8 +311,8 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 2);
-          activeRunsTable.getRowByName('Test active run 1');
-          activeRunsTable.getRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
+          activeRunsTable.getRowByName('Test active run 3').find().should('exist');
         });
 
         it('filter by pipeline version', () => {
@@ -337,7 +338,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
         });
 
         it('filter by started', () => {
@@ -360,7 +361,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected start date exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 3').find().should('exist');
 
           // Mock runs with a cleared filter before updating again
           activeRunsTable.mockGetRuns(mockActiveRuns, [], 1);
@@ -404,7 +405,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
 
           // Mock runs (filtered by a status of 'SUCCEEDED')
           activeRunsTable.mockGetActiveRuns(
@@ -420,7 +421,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 2');
+          activeRunsTable.getRowByName('Test active run 2').find().should('exist');
 
           // Mock runs (filtered by a status of 'CANCELED')
           activeRunsTable.mockGetActiveRuns(
@@ -436,7 +437,14 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 3').find().should('exist');
+        });
+
+        it('Sort by Name', () => {
+          pipelineRunFilterBar.findSortButtonForActive('Run').click();
+          pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortAscending);
+          pipelineRunFilterBar.findSortButtonForActive('Run').click();
+          pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortDescending);
         });
       });
     });
@@ -492,6 +500,174 @@ describe('Pipeline runs', () => {
         mockArchivedRuns.forEach((run) =>
           activeRunsTable.getRowByName(run.display_name).find().should('exist'),
         );
+      });
+
+      describe('Table filter', () => {
+        it('filter by run name', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Name" filter, enter a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Run'));
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findNameInput().type('run 1'));
+
+          // Mock runs (filtered by typed run name)
+          archivedRunsTable.mockGetArchivedRuns(
+            mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
+            1,
+          );
+
+          // Verify only rows with the typed run name exist
+          archivedRunsTable.findRows().should('have.length', 1);
+          archivedRunsTable.getRowByName('Test active run 1').find().should('exist');
+        });
+
+        it('filter by experiment', () => {
+          // Mock initial list of experiments
+          pipelineRunFilterBar.mockExperiments(mockExperiments);
+
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Experiment" filter, enter a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findExperimentInput().type('Test Experiment 1'));
+
+          // Mock runs (filtered by selected experiment)
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
+            1,
+          );
+
+          // Select an experiment to filter by
+          pipelineRunFilterBar.selectExperimentByName('Test Experiment 1');
+
+          // Verify only rows with selected experiment exist
+          archivedRunsTable.findRows().should('have.length', 2);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+          archivedRunsTable.getRowByName('Test archived run 2').find().should('exist');
+        });
+
+        it('filter by pipeline version', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Pipeline version" filter, select a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Pipeline version'));
+
+          // Mock runs (filtered by selected version)
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter(
+              (mockRun) =>
+                mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
+            ),
+            1,
+          );
+
+          // Select version to filter by
+          pipelineRunFilterBar.selectPipelineVersionByName('Test Version 1');
+
+          // Verify only rows with selected experiment exist
+          archivedRunsTable.findRows().should('have.length', 1);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+        });
+
+        it('filter by started', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Started" filter, select a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Started'));
+
+          // Mock runs (filtered by start date), type a start date
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-05')),
+            1,
+          );
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findStartDateInput().type('2024-02-05'));
+
+          // Verify only rows with selected start date exist
+          archivedRunsTable.findRows().should('have.length', 1);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findStartDateInput().clear());
+
+          // Mock runs with a start date not associated with those runs
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
+            1,
+          );
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findStartDateInput().type('2024-02-15'));
+
+          // Verify no results were found
+          archivedRunsTable.findEmptyResults().should('exist');
+        });
+
+        it('filter by status', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Status" filter
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Status'));
+
+          // Mock runs (filtered by a status of 'SUCCEEDED')
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
+            1,
+          );
+          // Select a filter value of 'SUCCEEDED'
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() =>
+              pipelineRunFilterBar.selectStatusByName(runtimeStateLabels[RuntimeStateKF.SUCCEEDED]),
+            );
+
+          // Verify only rows with the selected status exist
+          archivedRunsTable.findRows().should('have.length', 2);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+          archivedRunsTable.getRowByName('Test archived run 2').find().should('exist');
+
+          // Mock runs (filtered by a status of 'RUNNING')
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
+            1,
+          );
+          // Select a filter value of 'RUNNING'
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() =>
+              pipelineRunFilterBar.selectStatusByName(runtimeStateLabels[RuntimeStateKF.RUNNING]),
+            );
+
+          // Verify no results were found
+          archivedRunsTable.findEmptyResults().should('exist');
+        });
+
+        it('Sort by Name', () => {
+          pipelineRunFilterBar.findSortButtonForArchive('Run').click();
+          pipelineRunFilterBar.findSortButtonForArchive('Run').should(be.sortAscending);
+          pipelineRunFilterBar.findSortButtonForArchive('Run').click();
+          pipelineRunFilterBar.findSortButtonForArchive('Run').should(be.sortDescending);
+        });
       });
     });
   });
@@ -582,7 +758,14 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the typed job name exist
           pipelineRunJobTable.findRows().should('have.length', 1);
-          pipelineRunJobTable.getRowByName('test-pipeline');
+          pipelineRunJobTable.getRowByName('test-pipeline').find().should('exist');
+        });
+
+        it('Sort by Name', () => {
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').should(be.sortAscending);
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').should(be.sortDescending);
         });
       });
     });

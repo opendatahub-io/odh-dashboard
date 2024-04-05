@@ -68,10 +68,10 @@ describe('Pipeline create runs', () => {
 
   it('renders the page with scheduled and active runs table data', () => {
     pipelineRunsGlobal.findSchedulesTab().click();
-    pipelineRunJobTable.getRowByName('Test job');
+    pipelineRunJobTable.getRowByName('Test job').find().should('exist');
 
     pipelineRunsGlobal.findActiveRunsTab().click();
-    activeRunsTable.getRowByName('Test run');
+    activeRunsTable.getRowByName('Test run').find().should('exist');
   });
 
   describe('Runs', () => {
