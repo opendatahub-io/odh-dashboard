@@ -7,14 +7,15 @@ import { isAreaAvailable } from './utils';
 
 const useIsAreaAvailable = (area: SupportedArea): IsAreaAvailableStatus => {
   const { dashboardConfig } = useAppContext();
-  const { dscStatus } = React.useContext(AreaContext);
+  const { dscStatus, dsciStatus } = React.useContext(AreaContext);
 
   const dashboardConfigSpecSafe = useDeepCompareMemoize(dashboardConfig.spec);
   const dscStatusSafe = useDeepCompareMemoize(dscStatus);
+  const dsciStatusSafe = useDeepCompareMemoize(dsciStatus);
 
   return React.useMemo(
-    () => isAreaAvailable(area, dashboardConfigSpecSafe, dscStatusSafe),
-    [area, dashboardConfigSpecSafe, dscStatusSafe],
+    () => isAreaAvailable(area, dashboardConfigSpecSafe, dscStatusSafe, dsciStatusSafe),
+    [area, dashboardConfigSpecSafe, dscStatusSafe, dsciStatusSafe],
   );
 };
 

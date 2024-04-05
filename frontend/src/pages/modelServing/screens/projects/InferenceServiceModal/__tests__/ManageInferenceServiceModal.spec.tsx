@@ -13,7 +13,7 @@ jest.mock('~/pages/modelServing/useServingRuntimes', () => ({
 const useServingRuntimesMock = jest.mocked(useServingRuntimes);
 
 describe('ManageInferenceServiceModal', () => {
-  it('should not rerender serving runtime selection', async () => {
+  it('should not re-render serving runtime selection', async () => {
     useServingRuntimesMock.mockReturnValue([
       [
         mockServingRuntimeK8sResource({ name: 'runtime1', displayName: 'Runtime 1' }),

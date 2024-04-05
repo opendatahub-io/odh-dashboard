@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Form,
+  FormSection,
+  Modal,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getSubmitInferenceServiceResourceFn,
@@ -7,7 +15,13 @@ import {
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
-import { TemplateKind, ProjectKind, InferenceServiceKind } from '~/k8sTypes';
+import {
+  TemplateKind,
+  ProjectKind,
+  InferenceServiceKind,
+  AccessReviewResourceAttributes,
+  SecretKind,
+} from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
@@ -28,7 +42,16 @@ import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/proje
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
+import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
+import { useAccessReview } from '~/api';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
+
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'create',
+};
 
 type ManageKServeModalProps = {
   isOpen: boolean;
@@ -45,6 +68,7 @@ type ManageKServeModalProps = {
     editInfo?: {
       servingRuntimeEditInfo?: ServingRuntimeEditInfo;
       inferenceServiceEditInfo?: InferenceServiceKind;
+      secrets?: SecretKind[];
     };
   }
 >;
@@ -59,28 +83,38 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
-    useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
+    useCreateInferenceServiceObject(
+      editInfo?.inferenceServiceEditInfo,
+      editInfo?.servingRuntimeEditInfo?.servingRuntime,
+      editInfo?.secrets,
+    );
+
+  const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
+  const currentProjectName = projectContext?.currentProject.metadata.name;
+  const namespace = currentProjectName || createDataInferenceService.project;
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
+
   const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
     useServingAcceleratorProfile(
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
       editInfo?.inferenceServiceEditInfo,
     );
+  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
+  const [allowCreate] = useAccessReview({
+    ...accessReviewResource,
+    namespace,
+  });
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const isInferenceServiceNameWithinLimit =
-    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
+  const [alertVisible, setAlertVisible] = React.useState(true);
 
   React.useEffect(() => {
-    if (projectContext?.currentProject) {
-      setCreateDataInferenceService('project', projectContext.currentProject.metadata.name);
+    if (currentProjectName && isOpen) {
+      setCreateDataInferenceService('project', currentProjectName);
     }
-  }, [projectContext, setCreateDataInferenceService]);
-
-  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
-
-  const namespace =
-    projectContext?.currentProject.metadata.name || createDataInferenceService.project;
+  }, [currentProjectName, setCreateDataInferenceService, isOpen]);
 
   // Serving Runtime Validation
   const baseInputValueValid =
@@ -126,6 +160,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     resetDataServingRuntime();
     resetDataInferenceService();
     resetAcceleratorProfileData();
+    setAlertVisible(true);
   };
 
   const setErrorModal = (e: Error) => {
@@ -152,7 +187,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       customServingRuntimesEnabled,
       namespace,
       editInfo?.servingRuntimeEditInfo,
-      true,
+      false,
       acceleratorProfileState,
       NamespaceApplicationCase.KSERVE_PROMOTION,
       projectContext?.currentProject,
@@ -166,6 +201,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       servingRuntimeName,
       false,
       acceleratorProfileState,
+      allowCreate,
+      editInfo?.secrets,
     );
 
     Promise.all([
@@ -210,6 +247,27 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         }}
       >
         <Stack hasGutter>
+          {!isAuthorinoEnabled && alertVisible && (
+            <StackItem>
+              <Alert
+                id="no-authorino-installed-alert"
+                data-testid="no-authorino-installed-alert"
+                isExpandable
+                isInline
+                variant="warning"
+                title="Token authorization service not installed"
+                actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
+              >
+                <p>
+                  The single model serving platform used by this project allows deployed models to
+                  be accessible via external routes. It is recommended that token authorization be
+                  enabled to protect these routes. The serving platform requires the Authorino
+                  operator be installed on the cluster for token authorization. Contact a cluster
+                  administrator to install the operator.
+                </p>
+              </Alert>
+            </StackItem>
+          )}
           <StackItem>
             <ProjectSection
               projectName={
@@ -264,6 +322,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
+          {isAuthorinoEnabled && (
+            <StackItem>
+              <AuthServingRuntimeSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                allowCreate={allowCreate}
+              />
+            </StackItem>
+          )}
           <StackItem>
             <FormSection title="Model location" id="model-location">
               <DataConnectionSection

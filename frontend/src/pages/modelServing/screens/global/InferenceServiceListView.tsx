@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { ToolbarItem } from '@patternfly/react-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { getInferenceServiceDisplayName, getInferenceServiceProjectDisplayName } from './utils';
@@ -11,15 +10,16 @@ import ServeModelButton from './ServeModelButton';
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];
   servingRuntimes: ServingRuntimeKind[];
+  refresh: () => void;
+  filterTokens: (servingRuntime?: string | undefined) => SecretKind[];
 };
 
 const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   inferenceServices: unfilteredInferenceServices,
   servingRuntimes,
+  refresh,
+  filterTokens,
 }) => {
-  const {
-    inferenceServices: { refresh },
-  } = React.useContext(ModelServingContext);
   const { projects } = React.useContext(ProjectsContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -52,7 +52,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       clearFilters={resetFilters}
       servingRuntimes={servingRuntimes}
       inferenceServices={filteredInferenceServices}
-      refresh={refresh}
+      refresh={() => {
+        refresh();
+      }}
+      filterTokens={filterTokens}
       enablePagination
       toolbarContent={
         <>

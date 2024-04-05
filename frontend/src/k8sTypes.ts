@@ -385,11 +385,16 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
+export type InferenceServiceAnnotations = Partial<{
+  'security.opendatahub.io/enable-auth': string;
+}>;
+
 export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: DisplayNameAnnotations &
+    annotations?: InferenceServiceAnnotations &
+      DisplayNameAnnotations &
       EitherOrNone<
         {
           'serving.kserve.io/deploymentMode': 'ModelMesh';
@@ -1167,6 +1172,7 @@ export type DashboardCommonConfig = {
   disableBiasMetrics: boolean;
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
+  disableKServeAuth: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
@@ -1234,6 +1240,11 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in StackComponent]?: boolean };
+  phase?: string;
+};
+
+export type DataScienceClusterInitializationKindStatus = {
+  conditions: K8sCondition[];
   phase?: string;
 };
 

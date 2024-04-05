@@ -85,6 +85,14 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('existing-data-connection-radio');
   }
 
+  findExternalRouteError() {
+    return this.find().findByTestId('external-route-no-token-alert');
+  }
+
+  findServiceAccountNameInput() {
+    return this.find().findByTestId('service-account-form-name');
+  }
+
   findNewDataConnectionOption() {
     return this.find().findByTestId('new-data-connection-radio');
   }

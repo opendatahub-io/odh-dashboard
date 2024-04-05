@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
-import { DataScienceClusterKindStatus } from '~/k8sTypes';
+import useFetchDsciStatus from '~/concepts/areas/useFetchDsciStatus';
+import {
+  DataScienceClusterInitializationKindStatus,
+  DataScienceClusterKindStatus,
+} from '~/k8sTypes';
 
 type AreaContextState = {
   /**
@@ -10,10 +14,12 @@ type AreaContextState = {
    *   TODO: Remove when we no longer want to support v1
    */
   dscStatus: DataScienceClusterKindStatus | null;
+  dsciStatus: DataScienceClusterInitializationKindStatus | null;
 };
 
 export const AreaContext = React.createContext<AreaContextState>({
   dscStatus: null,
+  dsciStatus: null,
 });
 
 type AreaContextProps = {
@@ -21,9 +27,13 @@ type AreaContextProps = {
 };
 
 const AreaContextProvider: React.FC<AreaContextProps> = ({ children }) => {
-  const [dscStatus, loaded, error] = useFetchDscStatus();
+  const [dscStatus, loadedDsc, errorDsc] = useFetchDscStatus();
+  const [dsciStatus, loadedDsci, errorDsci] = useFetchDsciStatus();
 
-  const contextValue = React.useMemo(() => ({ dscStatus }), [dscStatus]);
+  const error = errorDsc || errorDsci;
+  const loaded = loadedDsc && loadedDsci;
+
+  const contextValue = React.useMemo(() => ({ dscStatus, dsciStatus }), [dscStatus, dsciStatus]);
   if (error) {
     return (
       <Alert isInline variant="danger" title="Problem loading component state">

@@ -36,9 +36,12 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { StackCapability } from '~/concepts/areas/types';
+import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
+  disableKServeAuthConfig?: boolean;
   disableModelMeshConfig?: boolean;
   disableAccelerator?: boolean;
   projectEnableModelMesh?: boolean;
@@ -50,10 +53,12 @@ type HandlersProps = {
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
   rejectDataConnection?: boolean;
+  requiredCapabilities?: StackCapability[];
 };
 
 const initIntercepts = ({
   disableKServeConfig,
+  disableKServeAuthConfig,
   disableModelMeshConfig,
   disableAccelerator,
   projectEnableModelMesh,
@@ -86,11 +91,18 @@ const initIntercepts = ({
   rejectInferenceService = false,
   rejectServingRuntime = false,
   rejectDataConnection = false,
+  requiredCapabilities = [],
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
     mockDscStatus({
       installedComponents: { kserve: true, 'model-mesh': true },
+    }),
+  );
+  cy.intercept(
+    '/api/dsci/status',
+    mockDsciStatus({
+      requiredCapabilities,
     }),
   );
   cy.intercept('/api/status', mockStatus());
@@ -99,6 +111,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
+      disableKServeAuth: disableKServeAuthConfig,
     }),
   );
   cy.intercept(
@@ -545,6 +558,7 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: false,
         disableKServeConfig: false,
         servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
       });
 
       projectDetails.visitSection('test-project', 'model-server');
@@ -561,6 +575,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
+      // check external route, token should be checked and no alert
+      kserveModal.findAuthenticationCheckbox().check();
+      kserveModal.findExternalRouteError().should('not.exist');
+      kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
       kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
@@ -613,6 +631,31 @@ describe('Serving Runtime List', () => {
       cy.get('@createServingRuntime.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+    });
+
+    it('Kserve auth should be hidden when auth is disabled', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // check external route, token should be checked and no alert
+      kserveModal.findAuthenticationCheckbox().should('not.exist');
     });
 
     it('Do not deploy KServe model when user cannot edit namespace', () => {
@@ -1492,6 +1535,37 @@ describe('Serving Runtime List', () => {
       kserveRow.findToggleButton().click();
       kserveRow.findDescriptionListItem('Accelerator').next('dd').should('have.text', 'NVIDIA GPU');
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+  });
+
+  describe('Check token section in serving runtime details', () => {
+    it('Check token section is enabled if capability is enabled', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow.findDescriptionListItem('Token authorization').should('exist');
+    });
+
+    it('Check token section is disabled if capability is disabled', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow.findDescriptionListItem('Token authorization').should('not.exist');
     });
   });
 
