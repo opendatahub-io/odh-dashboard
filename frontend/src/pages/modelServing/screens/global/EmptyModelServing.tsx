@@ -8,6 +8,8 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import ServeModelButton from '~/pages/modelServing/screens/global/ServeModelButton';
 
 const EmptyModelServing: React.FC = () => {
   const navigate = useNavigate();
@@ -24,9 +26,9 @@ const EmptyModelServing: React.FC = () => {
   ) {
     return (
       <EmptyDetailsView
-        title="No deployed models yet"
-        description="To get started, deploy a model from the Model servers section of a project."
-        iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
+        title="No deployed models"
+        description="To get started, deploy a model from the Models section of a project."
+        iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
         imageAlt="deploy a model"
         allowCreate
         createButton={
@@ -35,7 +37,9 @@ const EmptyModelServing: React.FC = () => {
             variant="link"
             onClick={() =>
               navigate(
-                project ? `/projects/${project.metadata.name}?section=model-servers` : '/projects',
+                project
+                  ? `/projects/${project.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`
+                  : '/projects',
               )
             }
           >
@@ -49,23 +53,11 @@ const EmptyModelServing: React.FC = () => {
   return (
     <EmptyDetailsView
       title="No deployed models"
-      description="To get started, deploy a model from the Model servers section of a project."
+      description="To get started, deploy a model."
       iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
       imageAlt="deploy a model"
       allowCreate
-      createButton={
-        <Button
-          data-testid="empty-state-action-button"
-          variant="link"
-          onClick={() =>
-            navigate(
-              project ? `/projects/${project.metadata.name}?section=model-server` : '/projects',
-            )
-          }
-        >
-          {project ? `Go to ${getProjectDisplayName(project)}` : 'Select a project'}
-        </Button>
-      }
+      createButton={<ServeModelButton />}
     />
   );
 };
