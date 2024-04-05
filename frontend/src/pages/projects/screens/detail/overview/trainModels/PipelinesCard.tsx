@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Button,
   ButtonVariant,
   CardBody,
   CardFooter,
@@ -33,7 +31,6 @@ import PipelinesCardItems from '~/pages/projects/screens/detail/overview/trainMo
 import MetricsContents from './MetricsContents';
 
 const PipelinesCard: React.FC = () => {
-  const navigate = useNavigate();
   const { pipelinesServer } = usePipelinesAPI();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const [allowCreate] = useAccessReview({
@@ -189,13 +186,7 @@ const PipelinesCard: React.FC = () => {
             </CardBody>
             {allowCreate ? (
               <CardFooter>
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
-                >
-                  Import pipeline
-                </Button>
+                <ImportPipelineButton variant="link" isInline />
               </CardFooter>
             ) : null}
           </>
