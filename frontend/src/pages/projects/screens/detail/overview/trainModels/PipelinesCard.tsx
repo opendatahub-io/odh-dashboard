@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   ButtonVariant,
   CardBody,
   CardFooter,
@@ -8,6 +9,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   Spinner,
+  Stack,
   Text,
   TextContent,
 } from '@patternfly/react-core';
@@ -32,7 +34,10 @@ import MetricsContents from './MetricsContents';
 
 const PipelinesCard: React.FC = () => {
   const { pipelinesServer } = usePipelinesAPI();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject,
+    notebooks: { data: notebooks, loaded: notebooksLoaded, error: notebooksError },
+  } = React.useContext(ProjectDetailsContext);
   const [allowCreate] = useAccessReview({
     ...AccessReviewResource,
     namespace: currentProject.metadata.name,
@@ -134,12 +139,25 @@ const PipelinesCard: React.FC = () => {
       return (
         <>
           <CardBody>
-            <TextContent>
-              <Text component="small">
-                Pipelines are machine-learning workflows that you can use to train your model. To
-                create or import pipelines, you must first configure a pipeline server.
-              </Text>
-            </TextContent>
+            <Stack hasGutter>
+              <TextContent>
+                <Text component="small">
+                  Pipelines are machine-learning workflows that you can use to train your model. To
+                  create or import pipelines, you must first configure a pipeline server.
+                </Text>
+              </TextContent>
+              {notebooksLoaded && !notebooksError && notebooks.length > 0 ? (
+                <Alert
+                  isInline
+                  isPlain
+                  variant="warning"
+                  title="Restart running workbenches after configuring the pipeline server"
+                >
+                  If you’ve already created pipelines in a workbench, restart the workbench after
+                  configuring the pipeline server to view your pipelines here.
+                </Alert>
+              ) : null}
+            </Stack>
           </CardBody>
           <CardFooter>
             {allowCreate ? (

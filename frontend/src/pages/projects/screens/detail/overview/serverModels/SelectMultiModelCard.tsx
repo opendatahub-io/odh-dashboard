@@ -18,7 +18,7 @@ const SelectMultiModelCard: React.FC = () => {
     <OverviewCard
       objectType={ProjectObjectType.modelServer}
       sectionType={SectionType.serving}
-      title="Mult-model serving platform"
+      title="Multi-model serving platform"
       data-testid="multi-serving-platform-card"
     >
       <CardBody>
