@@ -6,7 +6,7 @@ import { Contextual } from './components/Contextual';
 
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visit(`/modelServing${project ? `/${project}` : ''}`);
     this.wait();
   }
 

@@ -1,6 +1,6 @@
 class ExplorePage {
   visit() {
-    cy.visitWithLogin('/explore');
+    cy.visit('/explore');
     this.wait();
   }
 

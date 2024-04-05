@@ -33,7 +33,7 @@ class ServingRuntimeRow {
 
 class ServingRuntimes {
   visit() {
-    cy.visitWithLogin('/servingRuntimes');
+    cy.visit('/servingRuntimes');
     this.wait();
   }
 

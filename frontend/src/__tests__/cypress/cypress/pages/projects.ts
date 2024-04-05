@@ -21,7 +21,7 @@ class ProjectRow extends TableRow {
 
 class ProjectListPage {
   visit() {
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
     this.wait();
   }
 

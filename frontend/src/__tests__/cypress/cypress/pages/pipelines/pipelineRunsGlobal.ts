@@ -3,7 +3,7 @@ import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 
 class PipelineRunsGlobal {
   visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
-    cy.visitWithLogin(
+    cy.visit(
       `/pipelineRuns/${projectName}${
         runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : ''
       }`,

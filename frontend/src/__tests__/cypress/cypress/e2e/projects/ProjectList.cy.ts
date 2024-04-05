@@ -11,13 +11,13 @@ import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
 describe('Data science projects details', () => {
   it('should start with an empty project list', () => {
     initIntercepts();
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
     projectListPage.shouldBeEmpty();
   });
 
   it('should open a modal to create a project', () => {
     initIntercepts();
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
     projectListPage.findCreateProjectButton().click();
     createProjectModal.shouldBeOpen();
     createProjectModal.findCancelButton().click();
@@ -110,7 +110,7 @@ describe('Data science projects details', () => {
     };
 
     cy.intercept({ pathname: '/api/k8s/apis/project.openshift.io/v1/projects' }, projectsMock);
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
 
     projectListPage.shouldHaveProjects();
     projectListPage.findProjectLink('DS Project 1').should('exist');

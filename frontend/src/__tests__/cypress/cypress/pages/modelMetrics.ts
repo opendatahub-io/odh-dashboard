@@ -28,7 +28,7 @@ class ModelMetricsChart extends Contextual<HTMLTableRowElement> {
 
 class ModelMetricsPerformance extends ModelMetricsGlobal {
   visit(project: string, model: string) {
-    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/performance`);
+    cy.visit(`/modelServing/${project}/metrics/${model}/performance`);
     this.wait();
   }
 
@@ -44,7 +44,7 @@ class ModelMetricsPerformance extends ModelMetricsGlobal {
 
 class ModelMetricsBias extends ModelMetricsGlobal {
   visit(project: string, model: string, disableA11y = false) {
-    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/bias`);
+    cy.visit(`/modelServing/${project}/metrics/${model}/bias`);
 
     // TODO: disableA11y should be removed once this PF bug is resolved: https://github.com/patternfly/patternfly-react/issues/9968
     this.wait(disableA11y);
@@ -85,7 +85,7 @@ class ModelMetricsBias extends ModelMetricsGlobal {
 
 class ServerMetrics extends ModelMetricsGlobal {
   visit(project: string, server: string) {
-    cy.visitWithLogin(`/projects/${project}/metrics/server/${server}`);
+    cy.visit(`/projects/${project}/metrics/server/${server}`);
     this.wait();
   }
 
@@ -97,7 +97,7 @@ class ServerMetrics extends ModelMetricsGlobal {
 
 class ModelMetricsConfigureSection {
   visit(project: string, model: string) {
-    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/configure`);
+    cy.visit(`/modelServing/${project}/metrics/${model}/configure`);
     this.wait();
   }
 

@@ -41,7 +41,7 @@ class TolerationRow extends TableRow {
 
 class AcceleratorProfile {
   visit() {
-    cy.visitWithLogin('/acceleratorProfiles');
+    cy.visit('/acceleratorProfiles');
     this.wait();
   }
 
@@ -198,7 +198,7 @@ class TolerationsModal extends Modal {
 
 class CreateAcceleratorProfile extends ManageAcceleratorProfile {
   visit() {
-    cy.visitWithLogin('/acceleratorProfiles/Create');
+    cy.visit('/acceleratorProfiles/Create');
     this.wait();
   }
 
@@ -210,7 +210,7 @@ class CreateAcceleratorProfile extends ManageAcceleratorProfile {
 
 class EditAcceleratorProfile extends ManageAcceleratorProfile {
   visit(name: string) {
-    cy.visitWithLogin(`/acceleratorProfiles/edit/${name}`);
+    cy.visit(`/acceleratorProfiles/edit/${name}`);
     cy.testA11y();
   }
 
@@ -225,7 +225,7 @@ class EditAcceleratorProfile extends ManageAcceleratorProfile {
 
 class IdentifierAcceleratorProfile extends ManageAcceleratorProfile {
   visit(multiple = false) {
-    cy.visitWithLogin(
+    cy.visit(
       multiple
         ? `/acceleratorProfiles/create?identifiers=test-identifier%2Ctest-identifier2`
         : `/acceleratorProfiles/create?identifiers=test-identifier`,

@@ -1,8 +1,6 @@
 class CompareRunsGlobal {
   visit(projectName: string, experimentId: string, runIds: string[] = []) {
-    cy.visitWithLogin(
-      `/experiments/${projectName}/${experimentId}/compareRuns?runs=${runIds.join(',')}`,
-    );
+    cy.visit(`/experiments/${projectName}/${experimentId}/compareRuns?runs=${runIds.join(',')}`);
   }
 
   findInvalidRunsError() {
