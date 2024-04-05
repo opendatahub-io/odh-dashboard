@@ -6,6 +6,14 @@ class CompareRunsGlobal {
   findInvalidRunsError() {
     return cy.findByTestId('compare-runs-invalid-number-runs');
   }
+
+  findRunList() {
+    return cy.findByTestId('compare-runs-table');
+  }
+
+  findRunListRowByName(name: string) {
+    return this.findRunList().findByText(name);
+  }
 }
 
 export const compareRunsGlobal = new CompareRunsGlobal();
