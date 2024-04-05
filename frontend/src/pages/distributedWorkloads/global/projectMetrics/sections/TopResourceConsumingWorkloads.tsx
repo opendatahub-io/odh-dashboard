@@ -3,7 +3,9 @@ import { Card, CardBody, CardTitle, Gallery, GalleryItem } from '@patternfly/rea
 import { ChartLegend, ChartLabel, ChartDonut, ChartThemeColor } from '@patternfly/react-charts';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import { WorkloadStatusType, getStatusInfo } from '~/concepts/distributedWorkloads/utils';
-import { ErrorWorkloadState, LoadingWorkloadState, NoWorkloadState } from './SharedStates';
+import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
+import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
+import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 
 //TODO: next 4 utility functions to be replaced or moved into a utility class
 const memoryBytesToGibStr = (bytes: number, excludeUnit = false): string => {
@@ -86,11 +88,11 @@ export const TopResourceConsumingWorkloads: React.FC = () => {
   const loaded = requiredFetches.every((f) => f.loaded);
 
   if (error) {
-    return <ErrorWorkloadState message={error.message} />;
+    return <EmptyStateErrorMessage title="Error loading workloads" bodyText={error.message} />;
   }
 
   if (!loaded) {
-    return <LoadingWorkloadState />;
+    return <LoadingState />;
   }
 
   if (

@@ -1,17 +1,25 @@
 import * as React from 'react';
-import { Grid, GridItem } from '@patternfly/react-core';
+import { Card, CardBody, CardTitle, Stack, StackItem } from '@patternfly/react-core';
 import { DWStatusOverviewDonutChart } from './DWStatusOverviewDonutChart';
 import { DWWorkloadsTable } from './DWWorkloadsTable';
 
 const GlobalDistributedWorkloadsWorkloadStatusTab: React.FC = () => (
-  <Grid hasGutter>
-    <GridItem span={12}>
-      <DWStatusOverviewDonutChart />
-    </GridItem>
-    <GridItem span={12}>
-      <DWWorkloadsTable />
-    </GridItem>
-  </Grid>
+  <Stack hasGutter>
+    <StackItem>
+      <Card isFullHeight data-testid="dw-status-overview-card">
+        <CardTitle>Status overview</CardTitle>
+        <CardBody style={{ height: 250 }}>
+          <DWStatusOverviewDonutChart />
+        </CardBody>
+      </Card>
+    </StackItem>
+    <StackItem>
+      <Card>
+        <CardTitle>Distributed Workloads</CardTitle>
+        <DWWorkloadsTable />
+      </Card>
+    </StackItem>
+  </Stack>
 );
 
 export default GlobalDistributedWorkloadsWorkloadStatusTab;
