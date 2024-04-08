@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CardBody, Gallery, GalleryItem } from '@patternfly/react-core';
+import { CardBody, Gallery, GalleryItem, capitalize } from '@patternfly/react-core';
 import { ChartBullet, ChartLegend } from '@patternfly/react-charts';
 import {
   chart_color_blue_300 as chartColorBlue300,
@@ -17,16 +17,16 @@ import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 
 type RequestedResourcesBulletChartProps = {
-  title: string;
-  subTitle: string;
+  metricLabel: string;
+  unitLabel: string;
   numRequestedByThisProject: number;
   numRequestedByAllProjects: number;
   numTotalSharedQuota: number;
 };
 
 const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletChartProps> = ({
-  title,
-  subTitle,
+  metricLabel,
+  unitLabel,
   numRequestedByThisProject,
   numRequestedByAllProjects,
   numTotalSharedQuota,
@@ -44,14 +44,16 @@ const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletChartProps
     tooltip?: string; // Falls back to `name: preciseValue` if omitted
     hideValueInLegend?: boolean;
     preciseValue: number;
-    roundedValue: number;
+    legendValue: number;
+    tooltipValue: number;
     cappedValue: number;
   };
   const getDataItem = (
-    args: Omit<CappedBulletChartDataItem, 'roundedValue' | 'cappedValue'>,
+    args: Omit<CappedBulletChartDataItem, 'legendValue' | 'tooltipValue' | 'cappedValue'>,
   ): CappedBulletChartDataItem => ({
     ...args,
-    roundedValue: roundNumber(args.preciseValue),
+    legendValue: roundNumber(args.preciseValue),
+    tooltipValue: roundNumber(args.preciseValue, 3),
     cappedValue: roundNumber(Math.min(args.preciseValue, maxDomain)),
   });
 
@@ -89,17 +91,15 @@ const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletChartProps
   const allData = [...segmentedMeasureData, ...qualitativeRangeData, ...warningMeasureData];
   return (
     <ChartBullet
-      title={title}
-      subTitle={subTitle}
-      ariaTitle={`Requested ${title} ${subTitle}`}
+      title={metricLabel}
+      subTitle={capitalize(unitLabel)}
+      ariaTitle={`Requested ${metricLabel} ${unitLabel}`}
       ariaDesc="Bullet chart"
-      name={`requested-resources-chart-${title}`}
+      name={`requested-resources-chart-${metricLabel}`}
       labels={({ datum }) => {
         const matchingDataItem = allData.find(({ name }) => name === datum.name);
-        return (
-          matchingDataItem?.tooltip ||
-          `${matchingDataItem?.name}: ${matchingDataItem?.preciseValue}`
-        );
+        const { tooltip, name, tooltipValue } = matchingDataItem || {};
+        return tooltip || `${name}: ${tooltipValue} ${unitLabel}`;
       }}
       primarySegmentedMeasureData={segmentedMeasureData.map(({ name, cappedValue }) => ({
         name,
@@ -119,8 +119,8 @@ const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletChartProps
       legendOrientation="vertical"
       legendComponent={
         <ChartLegend
-          data={allData.map(({ name, hideValueInLegend, roundedValue }) => ({
-            name: hideValueInLegend ? name : `${name}: ${roundedValue}`,
+          data={allData.map(({ name, hideValueInLegend, legendValue }) => ({
+            name: hideValueInLegend ? name : `${name}: ${legendValue}`,
           }))}
           colorScale={allData.map(({ color }) => color)}
           gutter={30}
@@ -164,8 +164,8 @@ export const RequestedResources: React.FC = () => {
       <Gallery minWidths={{ default: '100%', md: '50%' }}>
         <GalleryItem data-testid="requested-resources-cpu-chart-container">
           <RequestedResourcesBulletChart
-            title="CPU"
-            subTitle="Cores"
+            metricLabel="CPU"
+            unitLabel="cores"
             numRequestedByThisProject={requestedByThisProject.cpuCoresRequested}
             numRequestedByAllProjects={requestedByAllProjects.cpuCoresRequested}
             numTotalSharedQuota={totalSharedQuota.cpuCoresRequested}
@@ -173,8 +173,8 @@ export const RequestedResources: React.FC = () => {
         </GalleryItem>
         <GalleryItem data-testid="requested-resources-memory-chart-container">
           <RequestedResourcesBulletChart
-            title="Memory"
-            subTitle="GiB"
+            metricLabel="Memory"
+            unitLabel="GiB"
             numRequestedByThisProject={bytesAsPreciseGiB(
               requestedByThisProject.memoryBytesRequested,
             )}

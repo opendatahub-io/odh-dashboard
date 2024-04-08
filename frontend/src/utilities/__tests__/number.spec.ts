@@ -15,6 +15,13 @@ describe('roundNumber', () => {
     expect(roundNumber(0.09765625)).toBe(0.1);
     expect(roundNumber(0.048828125)).toBe(0.05);
   });
+
+  it('should round to custom precision if specified', () => {
+    expect(roundNumber(1, 3)).toBe(1);
+    expect(roundNumber(0.16, 3)).toBe(0.16);
+    expect(roundNumber(0.09765625, 3)).toBe(0.098);
+    expect(roundNumber(0.048828125, 3)).toBe(0.049);
+  });
 });
 
 describe('bytesAsPreciseGiB', () => {
