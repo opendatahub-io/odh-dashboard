@@ -9,5 +9,5 @@ resources:
   - ./anaconda-ce
   - ./openvino
   - ./pachyderm
-  - ./watson
+  - ./watson-x
   - ./rhoai
