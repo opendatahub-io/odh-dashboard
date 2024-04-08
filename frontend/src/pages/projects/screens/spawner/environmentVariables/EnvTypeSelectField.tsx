@@ -20,10 +20,10 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   const [open, setOpen] = React.useState(false);
 
   return (
-    <Split>
+    <Split data-testid="environment-variable-field">
       <SplitItem isFilled>
         <Stack hasGutter>
-          <StackItem>
+          <StackItem data-testid="environment-variable-type-select">
             <Select
               isOpen={open}
               onToggle={() => setOpen(!open)}
@@ -61,6 +61,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
       <SplitItem>
         <Button
           variant="plain"
+          data-testid="remove-environment-variable-button"
           aria-label="Remove environment variable"
           icon={<MinusCircleIcon />}
           onClick={() => onRemove()}

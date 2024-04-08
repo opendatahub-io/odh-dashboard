@@ -33,6 +33,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
     ))}
     <Button
       variant="link"
+      data-testid="add-variable-button"
       isInline
       icon={<PlusCircleIcon />}
       iconPosition="left"

@@ -46,7 +46,12 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
   }
 
   return (
-    <FormGroup isRequired label="Persistent storage" fieldId={fieldId}>
+    <FormGroup
+      isRequired
+      label="Persistent storage"
+      fieldId={fieldId}
+      data-testid="persistent-storage-group"
+    >
       <Select
         variant="typeahead"
         aria-label="Persistent storage select"

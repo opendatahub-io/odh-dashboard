@@ -98,8 +98,7 @@ export const mockNotebookK8sResource = ({
                     },
                   },
                 ],
-                image:
-                  'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-v1',
+                image: 'test-imagestream:1.2',
                 imagePullPolicy: 'Always',
                 livenessProbe: {
                   failureThreshold: 3,

@@ -87,6 +87,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <Switch
         aria-label={label}
+        data-testid="notebook-status-switch"
         isDisabled={inProgress || isStopping || isDisabled}
         id={`${notebookName}-${notebookNamespace}`}
         isChecked={isChecked}

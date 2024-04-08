@@ -61,6 +61,7 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook, onA
             ))}
             <ListItem>
               <Button
+                data-testid="add-storage-button"
                 variant="link"
                 isInline
                 icon={<PlusCircleIcon />}

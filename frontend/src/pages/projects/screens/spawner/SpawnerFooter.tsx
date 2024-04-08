@@ -271,6 +271,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
             <Button
               isDisabled={isButtonDisabled}
               variant="primary"
+              data-testid="submit-button"
               id="create-button"
               onClick={editNotebook ? onUpdateNotebook : onCreateNotebook}
             >
