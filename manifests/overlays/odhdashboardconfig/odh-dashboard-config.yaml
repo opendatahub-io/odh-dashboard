@@ -25,7 +25,7 @@ spec:
     disableKServe: false
     disableKServeAuth: false
     disableModelMesh: false
-    disableDistributedWorkloads: true
+    disableDistributedWorkloads: false
   notebookController:
     enabled: true
   notebookSizes:
