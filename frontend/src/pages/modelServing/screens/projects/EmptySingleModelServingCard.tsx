@@ -67,8 +67,8 @@ const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = 
           </TextContent>
         </CardTitle>
         <CardBody>
-          Each model is deployed from its own model server. Choose this option when you have a small
-          number of large models to deploy.
+          Each model is deployed on its own model server. Choose this option when you want to deploy
+          a large model such as a large language model (LLM).
         </CardBody>
         {allowCreate ? (
           <CardFooter>

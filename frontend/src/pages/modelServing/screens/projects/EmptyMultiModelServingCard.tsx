@@ -61,8 +61,9 @@ const EmptyMultiModelServingCard: React.FC<DataConnectionCardProps> = ({ allowCr
           </TextContent>
         </CardTitle>
         <CardBody>
-          Multiple models can be deployed from a single model server. Choose this option when you
-          have a large number of small models to deploy that can share server resources.
+          Multiple models can be deployed on one shared model server. Choose this option when you
+          want to deploy a number of small or medium-sized models that can share the server
+          resources.
         </CardBody>
         {allowCreate ? (
           <CardFooter>

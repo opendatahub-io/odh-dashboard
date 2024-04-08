@@ -31,7 +31,7 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        Select the type of model serving platform to be used when deploying models in this project.
+        Select the model serving type to be used when deploying models from this project.
       </StackItem>
       <StackItem>
         <Gallery hasGutter maxWidths={{ default: '400px' }}>
@@ -47,7 +47,7 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
                 />
               }
               title="Single-model serving platform"
-              description="Each model is deployed on its own model server. This platform works well for large models or models that need dedicated resources."
+              description="Each model is deployed on its own model server. Choose this option when you want to deploy a large model such as a large language model (LLM)."
             />
           </GalleryItem>
           <GalleryItem>
@@ -62,7 +62,7 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
                 />
               }
               title="Multi-model serving platform"
-              description="Multiple models can be deployed on a single-model server. This platform works well for sharing resources amongst deployed models"
+              description="Multiple models can be deployed on one shared model server. Choose this option when you want to deploy a number of small or medium-sized models that can share the server resources."
             />
           </GalleryItem>
         </Gallery>
@@ -70,8 +70,8 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
       {alertShown && (
         <StackItem>
           <Alert
-            variant="warning"
-            title="The model serving type can be changed until the first model is deployed on this project. After that, you will need to create a new project in order to use a different model serving type."
+            variant="info"
+            title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
             isInline
             actionClose={<AlertActionCloseButton onClose={() => setAlertShown(false)} />}
           />

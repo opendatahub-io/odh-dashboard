@@ -142,8 +142,10 @@ const PipelinesCard: React.FC = () => {
             <Stack hasGutter>
               <TextContent>
                 <Text component="small">
-                  Pipelines are machine-learning workflows that you can use to train your model. To
-                  create or import pipelines, you must first configure a pipeline server.
+                  Pipelines are platforms for building and deploying portable and scalable
+                  machine-learning (ML) workflows. You can import a pipeline or create one in a
+                  workbench. Before you can work with pipelines, you must first configure a pipeline
+                  server in your project.
                 </Text>
               </TextContent>
               {notebooksLoaded && !notebooksError && notebooks.length > 0 ? (
@@ -153,8 +155,8 @@ const PipelinesCard: React.FC = () => {
                   variant="warning"
                   title="Restart running workbenches after configuring the pipeline server"
                 >
-                  If you’ve already created pipelines in a workbench, restart the workbench after
-                  configuring the pipeline server to view your pipelines here.
+                  If you&apos;ve already created pipelines in a workbench, restart the workbench
+                  after configuring the pipeline server to view your pipelines here.
                 </Alert>
               ) : null}
             </Stack>
@@ -198,7 +200,9 @@ const PipelinesCard: React.FC = () => {
             <CardBody>
               <TextContent>
                 <Text component="small">
-                  Pipelines are machine-learning workflows that you can use to train your model.
+                  Pipelines are platforms for building and deploying portable and scalable
+                  machine-learning (ML) workflows. You can import a pipeline or create one in a
+                  workbench.
                 </Text>
               </TextContent>
             </CardBody>
@@ -221,8 +225,8 @@ const PipelinesCard: React.FC = () => {
       title="Pipelines"
       popoverHeaderContent={pipelinesCount ? 'About pipelines' : undefined}
       popoverBodyContent={
-        pipelinesCount
-          ? 'Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models.'
+        !pipelinesCount
+          ? 'Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench.'
           : undefined
       }
       data-testid="section-pipelines"
