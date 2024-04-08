@@ -183,14 +183,11 @@ describe('Distributed Workload Metrics root page', () => {
 
     cy.findByText('No data science projects').should('exist');
   });
-});
 
-describe('Project Metrics tab', () => {
   it('Should render with no quota state when there is no clusterqueue', () => {
     initIntercepts({ clusterQueues: [] });
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Project metrics tab').click();
-    cy.findByText('Quota is not set').should('exist');
+    cy.findByText('Configure the cluster queue').should('exist');
   });
 
   it('Should render with no quota state when the clusterqueue has no resourceGroups', () => {
@@ -200,17 +197,17 @@ describe('Project Metrics tab', () => {
       ],
     });
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Project metrics tab').click();
-    cy.findByText('Quota is not set').should('exist');
+    cy.findByText('Configure the cluster queue').should('exist');
   });
 
   it('Should render with no quota state when there are no localqueues', () => {
     initIntercepts({ localQueues: [] });
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Project metrics tab').click();
-    cy.findByText('Quota is not set').should('exist');
+    cy.findByText('Configure the project queue').should('exist');
   });
+});
 
+describe('Project Metrics tab', () => {
   it('Should render with no workloads empty state', () => {
     initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
