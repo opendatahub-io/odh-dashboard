@@ -14,7 +14,7 @@ const GlobalDistributedWorkloadsWorkloadStatusTab: React.FC = () => (
       </Card>
     </StackItem>
     <StackItem>
-      <Card>
+      <Card data-testid="dw-workloads-table-card">
         <CardTitle>Distributed Workloads</CardTitle>
         <DWWorkloadsTable />
       </Card>

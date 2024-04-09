@@ -30,12 +30,20 @@ const TopResourceConsumingWorkloadsChart: React.FC<TopResourceConsumingWorkloads
   <ChartDonut
     ariaTitle={`${metricLabel} chart`}
     constrainToVisibleArea
-    data={data.topWorkloads.map(({ workload, usage }) => ({
-      x: getWorkloadName(workload),
-      y: roundNumber(convertUnits(usage), 3),
-    }))}
+    data={
+      data.topWorkloads.length
+        ? data.topWorkloads.map(({ workload, usage }) => ({
+            x: getWorkloadName(workload),
+            y: roundNumber(convertUnits(usage), 3),
+          }))
+        : [{ x: `No workload is consuming ${unitLabel}`, y: 1 }]
+    }
     height={150}
-    labels={({ datum }) => `${datum.x}: ${datum.y} ${unitLabel}`}
+    labels={
+      data.topWorkloads.length
+        ? ({ datum }) => `${datum.x}: ${datum.y} ${unitLabel}`
+        : ({ datum }) => datum.x
+    }
     legendComponent={
       <ChartLegend
         data={data.topWorkloads.map(({ workload }) => ({
@@ -57,7 +65,7 @@ const TopResourceConsumingWorkloadsChart: React.FC<TopResourceConsumingWorkloads
     }}
     subTitle={unitLabel}
     title={String(roundNumber(convertUnits(data.totalUsage)))}
-    themeColor={ChartThemeColor.multi}
+    themeColor={data.topWorkloads.length ? ChartThemeColor.multi : ChartThemeColor.gray}
     width={375}
   />
 );

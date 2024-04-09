@@ -8,6 +8,7 @@ import {
   getStatusCounts,
 } from '~/concepts/distributedWorkloads/utils';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
+import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 
 export const DWStatusOverviewDonutChart: React.FC = () => {
   const { workloads } = React.useContext(DistributedWorkloadsContext);
@@ -32,6 +33,11 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
     (statusType) => statusCounts[statusType] > 0,
   );
 
+  if (!workloads.data.length) {
+    return (
+      <NoWorkloadState subTitle="Select another project or create a distributed workload in the selected project." />
+    );
+  }
   return (
     <ChartDonut
       ariaDesc="Distributed workload status overview"
