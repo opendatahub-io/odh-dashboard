@@ -45,6 +45,7 @@ const FilterSidePanelCategoryItem: React.FunctionComponent<FilterSidePanelCatego
       <Checkbox
         onClick={onClick}
         checked={checked}
+        data-testid={id}
         id={`${id}--check-box`}
         label={label}
         title={title}

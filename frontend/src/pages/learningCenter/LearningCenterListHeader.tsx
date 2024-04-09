@@ -32,15 +32,26 @@ const LearningCenterListHeaders: React.FC = () => {
     if (sortType !== field) {
       return (
         <ArrowsAltVIcon
+          data-testid={`sort-icon ${field}`}
           className="odh-learning-paths__list-view__header__no-sort"
           onClick={() => onSortSelect(field, true)}
         />
       );
     }
     if (sortOrder === SORT_ASC) {
-      return <LongArrowAltDownIcon onClick={() => onSortSelect(field, false)} />;
+      return (
+        <LongArrowAltDownIcon
+          onClick={() => onSortSelect(field, false)}
+          data-testid={`sort-down-icon ${field}`}
+        />
+      );
     }
-    return <LongArrowAltUpIcon onClick={() => onSortSelect(field, true)} />;
+    return (
+      <LongArrowAltUpIcon
+        onClick={() => onSortSelect(field, true)}
+        data-testid={`sort-up-icon ${field}`}
+      />
+    );
   };
 
   return (

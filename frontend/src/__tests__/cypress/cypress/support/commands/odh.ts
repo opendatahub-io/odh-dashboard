@@ -5,6 +5,7 @@ import type {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  OdhQuickStart,
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
@@ -14,6 +15,7 @@ import type {
   ClusterSettingsType,
   ImageInfo,
   OdhApplication,
+  OdhDocument,
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
 } from '~/types';
@@ -62,6 +64,16 @@ declare global {
           };
         } | null,
         response: OdhResponse<OdhApplication[]>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/docs',
+        response: OdhResponse<OdhDocument[]>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/quickstarts',
+        response: OdhResponse<OdhQuickStart[]>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
