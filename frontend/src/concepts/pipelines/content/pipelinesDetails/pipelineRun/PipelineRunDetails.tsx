@@ -43,20 +43,18 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   const { namespace } = usePipelinesAPI();
   const [runResource, runLoaded, runError] = usePipelineRunById(runId, true);
   const [version, versionLoaded, versionError] = usePipelineVersionById(
-    runResource?.pipeline_version_reference.pipeline_id,
-    runResource?.pipeline_version_reference.pipeline_version_id,
+    runResource?.pipeline_version_reference?.pipeline_id,
+    runResource?.pipeline_version_reference?.pipeline_version_id,
   );
+  const pipelineSpec = version?.pipeline_spec ?? runResource?.pipeline_spec;
   const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const { taskMap, nodes } = usePipelineTaskTopology(
-    version?.pipeline_spec,
-    runResource ?? undefined,
-  );
+  const { taskMap, nodes } = usePipelineTaskTopology(pipelineSpec, runResource ?? undefined);
 
-  const loaded = versionLoaded && runLoaded;
+  const loaded = runLoaded && (versionLoaded || !!runResource?.pipeline_spec);
   const error = versionError || runError;
   if (!loaded && !error) {
     return (
@@ -100,9 +98,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                       setDetailsTab(selection);
                       setSelectedId(null);
                     }}
-                    pipelineRunDetails={
-                      runResource && version?.pipeline_spec ? runResource : undefined
-                    }
+                    pipelineRunDetails={runResource && pipelineSpec ? runResource : undefined}
                   />
                 }
               >
