@@ -2,6 +2,7 @@ import * as React from 'react';
 import { CreatePipelineServerButton, usePipelinesAPI } from '~/concepts/pipelines/context';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import ImportPipelineButton from './content/import/ImportPipelineButton';
 
 type NoPipelineServerProps = {
   variant?: React.ComponentProps<typeof CreatePipelineServerButton>['variant'];
@@ -23,11 +24,11 @@ const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant = 'link' })
       iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
       imageAlt=""
       createButton={
-        <CreatePipelineServerButton
-          isInline
-          variant={variant}
-          title={installed ? 'Import pipeline' : undefined}
-        />
+        installed ? (
+          <ImportPipelineButton variant={variant} isInline />
+        ) : (
+          <CreatePipelineServerButton isInline variant={variant} />
+        )
       }
     />
   );
