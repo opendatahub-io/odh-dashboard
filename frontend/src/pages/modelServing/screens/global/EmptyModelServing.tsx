@@ -30,7 +30,6 @@ const EmptyModelServing: React.FC = () => {
         description="To get started, deploy a model from the Models section of a project."
         iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
         imageAlt="deploy a model"
-        allowCreate
         createButton={
           <Button
             data-testid="empty-state-action-button"
@@ -56,7 +55,6 @@ const EmptyModelServing: React.FC = () => {
       description="To get started, deploy a model."
       iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
       imageAlt="deploy a model"
-      allowCreate
       createButton={<ServeModelButton />}
     />
   );

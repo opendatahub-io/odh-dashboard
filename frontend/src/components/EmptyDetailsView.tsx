@@ -13,7 +13,7 @@ type EmptyDetailsViewProps = {
   description?: string;
   iconImage?: string;
   imageAlt?: string;
-  allowCreate: boolean;
+  allowCreate?: boolean;
   createButton?: React.ReactNode;
   imageSize?: string;
 };
@@ -23,7 +23,7 @@ const EmptyDetailsView: React.FC<EmptyDetailsViewProps> = ({
   description,
   iconImage,
   imageAlt,
-  allowCreate,
+  allowCreate = true,
   createButton,
   imageSize = '320px',
 }) => (
@@ -41,7 +41,7 @@ const EmptyDetailsView: React.FC<EmptyDetailsViewProps> = ({
       headingLevel="h3"
     />
     <EmptyStateBody>{description}</EmptyStateBody>
-    {allowCreate ? (
+    {allowCreate && createButton ? (
       <EmptyStateFooter>
         <EmptyStateActions>{createButton}</EmptyStateActions>
       </EmptyStateFooter>

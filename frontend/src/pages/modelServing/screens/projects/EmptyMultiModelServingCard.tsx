@@ -19,10 +19,7 @@ import {
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 
-type DataConnectionCardProps = {
-  allowCreate: boolean;
-};
-const EmptyMultiModelServingCard: React.FC<DataConnectionCardProps> = ({ allowCreate }) => {
+const EmptyMultiModelServingCard: React.FC = () => {
   const [open, setOpen] = React.useState(false);
 
   const {
@@ -65,19 +62,17 @@ const EmptyMultiModelServingCard: React.FC<DataConnectionCardProps> = ({ allowCr
           want to deploy a number of small or medium-sized models that can share the server
           resources.
         </CardBody>
-        {allowCreate ? (
-          <CardFooter>
-            <Bullseye>
-              <ModelServingPlatformButtonAction
-                isProjectModelMesh
-                emptyTemplates={emptyTemplates}
-                onClick={() => setOpen(true)}
-                variant="secondary"
-                testId="multi-serving-add-server-button"
-              />
-            </Bullseye>
-          </CardFooter>
-        ) : null}
+        <CardFooter>
+          <Bullseye>
+            <ModelServingPlatformButtonAction
+              isProjectModelMesh
+              emptyTemplates={emptyTemplates}
+              onClick={() => setOpen(true)}
+              variant="secondary"
+              testId="multi-serving-add-server-button"
+            />
+          </Bullseye>
+        </CardFooter>
       </Card>
       <ManageServingRuntimeModal
         isOpen={open}

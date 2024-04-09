@@ -4,8 +4,6 @@ import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { useAccessReview } from '~/api';
-import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
 import AddModelFooter from '~/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
@@ -25,10 +23,6 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
     currentProject,
     servingPlatformStatuses,
   );
-  const [allowCreate] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   if (inferenceServices.length === 0) {
     return (
@@ -53,7 +47,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
               </TextContent>
             )}
           </CardBody>
-          {allowCreate && !platformError ? <AddModelFooter /> : null}
+          {!platformError ? <AddModelFooter /> : null}
         </OverviewCard>
       </CollapsibleSection>
     );

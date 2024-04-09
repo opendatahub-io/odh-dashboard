@@ -1,4 +1,3 @@
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { ProjectSectionID, ProjectSectionTitlesType } from './types';
 
 export const ProjectSectionTitles: ProjectSectionTitlesType = {
@@ -10,10 +9,4 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
   [ProjectSectionID.PIPELINES]: 'Pipelines',
   [ProjectSectionID.PERMISSIONS]: 'Permissions',
   [ProjectSectionID.SETTINGS]: 'Settings',
-};
-
-export const AccessReviewResource: AccessReviewResourceAttributes = {
-  group: 'rbac.authorization.k8s.io',
-  resource: 'rolebindings',
-  verb: 'create',
 };
