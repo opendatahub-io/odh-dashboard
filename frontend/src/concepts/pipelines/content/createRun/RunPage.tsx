@@ -45,8 +45,8 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
 
-  const cloneRunPipelineId = cloneRun?.pipeline_version_reference.pipeline_id || '';
-  const cloneRunVersionId = cloneRun?.pipeline_version_reference.pipeline_version_id || '';
+  const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
+  const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
   const cloneRunExperimentId = cloneRun?.experiment_id || '';
 
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);

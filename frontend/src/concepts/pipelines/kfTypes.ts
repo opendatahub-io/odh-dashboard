@@ -527,8 +527,10 @@ export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
   experiment_id: string;
   run_id: string;
   storage_state: StorageStateKF;
-  pipeline_version_id?: string;
-  pipeline_version_reference: PipelineVersionReferenceKF;
+  // run might not have a parent pipeline/version
+  pipeline_version_reference?: PipelineVersionReferenceKF;
+  // in lue of pipeline_version_reference, the pipeline spec is included
+  pipeline_spec?: PipelineSpecVariable;
   runtime_config: PipelineSpecRuntimeConfig;
   service_account: string;
   scheduled_at: string;

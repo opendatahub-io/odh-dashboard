@@ -33,8 +33,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
 }) => {
   const { namespace, project } = usePipelinesAPI();
   const [version, loaded, error] = usePipelineVersionById(
-    pipelineRunKF?.pipeline_version_reference.pipeline_id,
-    pipelineRunKF?.pipeline_version_reference.pipeline_version_id,
+    pipelineRunKF?.pipeline_version_reference?.pipeline_id,
+    pipelineRunKF?.pipeline_version_reference?.pipeline_version_id,
   );
 
   if (!pipelineRunKF || !workflowName) {

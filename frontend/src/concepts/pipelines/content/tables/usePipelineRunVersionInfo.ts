@@ -15,7 +15,7 @@ const usePipelineRunVersionInfo = (
 } => {
   const { versions, loaded, error } = React.useContext(PipelineRunVersionsContext);
   const version = versions.find(
-    (v) => v.pipeline_version_id === run?.pipeline_version_reference.pipeline_version_id,
+    (v) => v.pipeline_version_id === run?.pipeline_version_reference?.pipeline_version_id,
   );
 
   return { version, loaded, error };

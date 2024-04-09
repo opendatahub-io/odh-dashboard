@@ -40,7 +40,7 @@ const CompareRunsRunList: React.FC = () => {
       const experimentIdMatch = !experimentId || run.experiment_id === experimentId;
       const pipelineVersionIdMatch =
         !pipelineVersionId ||
-        run.pipeline_version_reference.pipeline_version_id === pipelineVersionId;
+        run.pipeline_version_reference?.pipeline_version_id === pipelineVersionId;
 
       return (
         nameMatch && dateTimeMatch && stateMatch && experimentIdMatch && pipelineVersionIdMatch
