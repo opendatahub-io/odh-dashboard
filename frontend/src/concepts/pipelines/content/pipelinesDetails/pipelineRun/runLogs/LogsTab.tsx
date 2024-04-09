@@ -40,12 +40,12 @@ import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipe
 import { PodStepStateType } from '~/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelineTask } from '~/concepts/pipelines/topology';
-import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 
 // TODO: If this gets large enough we should look to make this its own component file
 const LogsTab: React.FC<{ task: PipelineTask }> = ({ task }) => {
   const podName = task.status?.podName;
-  const isFailedPod = task.status?.state === RuntimeStateKF.FAILED;
+  const isFailedPod = task.status?.state === ExecutionStateKF.FAILED;
 
   if (!podName) {
     return <>No content</>;
