@@ -11,7 +11,9 @@ import {
 } from '~/concepts/distributedWorkloads/utils';
 import { bytesAsPreciseGiB } from '~/utilities/number';
 import { WorkloadKind } from '~/k8sTypes';
-import { ErrorWorkloadState, LoadingWorkloadState, NoWorkloadState } from './SharedStates';
+import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
+import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
+import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 
 export const WorkloadResourceMetricsTable: React.FC = () => {
   const { workloads, projectCurrentMetrics } = React.useContext(DistributedWorkloadsContext);
@@ -20,11 +22,11 @@ export const WorkloadResourceMetricsTable: React.FC = () => {
   const loaded = requiredFetches.every((f) => f.loaded);
 
   if (error) {
-    return <ErrorWorkloadState message={error.message} />;
+    return <EmptyStateErrorMessage title="Error loading workloads" bodyText={error.message} />;
   }
 
   if (!loaded) {
-    return <LoadingWorkloadState />;
+    return <LoadingState />;
   }
 
   if (!workloads.data.length) {

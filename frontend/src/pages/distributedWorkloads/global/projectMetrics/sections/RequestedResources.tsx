@@ -13,7 +13,8 @@ import {
   getTotalSharedQuota,
 } from '~/concepts/distributedWorkloads/utils';
 import { bytesAsPreciseGiB, roundNumber } from '~/utilities/number';
-import { ErrorWorkloadState, LoadingWorkloadState } from './SharedStates';
+import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
+import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 
 type RequestedResourcesBulletChartProps = {
   title: string;
@@ -147,11 +148,11 @@ export const RequestedResources: React.FC = () => {
   const loaded = requiredFetches.every((f) => f.loaded);
 
   if (error) {
-    return <ErrorWorkloadState message={error.message} />;
+    return <EmptyStateErrorMessage title="Error loading workloads" bodyText={error.message} />;
   }
 
   if (!loaded) {
-    return <LoadingWorkloadState />;
+    return <LoadingState />;
   }
 
   const requestedByThisProject = getQueueRequestedResources(localQueues.data);

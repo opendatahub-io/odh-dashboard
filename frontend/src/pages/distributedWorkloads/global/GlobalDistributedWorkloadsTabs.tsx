@@ -16,11 +16,11 @@ import { WrenchIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
+import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
 } from './useDistributedWorkloadsTabs';
-import { LoadingWorkloadState } from './projectMetrics/sections/SharedStates';
 
 type GlobalDistributedWorkloadsTabsProps = {
   activeTabId: DistributedWorkloadsTabId;
@@ -48,7 +48,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   }
 
   if (!loaded) {
-    return <LoadingWorkloadState />;
+    return <LoadingState />;
   }
 
   if (!clusterQueue.data || localQueues.data.length === 0) {

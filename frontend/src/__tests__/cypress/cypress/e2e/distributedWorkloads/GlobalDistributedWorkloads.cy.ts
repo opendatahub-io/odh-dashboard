@@ -285,11 +285,11 @@ describe('Workload Status tab', () => {
     cy.findByText('test-workload').should('exist');
   });
 
-  it('Should render the workloads table with empty state', () => {
+  it('Should render an empty state for the dw table if no workloads', () => {
     initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
 
     cy.findByLabelText('Distributed workload status tab').click();
-    cy.findByText('No distributed workloads match your filters').should('exist');
+    cy.findByText('No distributed workloads').should('exist');
   });
 });
