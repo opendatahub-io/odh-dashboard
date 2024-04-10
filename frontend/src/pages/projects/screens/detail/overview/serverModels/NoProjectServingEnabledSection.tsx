@@ -9,7 +9,7 @@ const NoProjectServingEnabledSection: React.FC = () => (
     <FlexItem data-testid="no-model-serving-platform-selected">
       <OverviewCard
         objectType={ProjectObjectType.modelServer}
-        sectionType={SectionType.serving}
+        sectionType={SectionType.setup}
         title="No model serving platform selected"
       >
         <CardBody>
