@@ -104,7 +104,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
   const compareRunsAction =
     isExperimentsAvailable && experimentId ? (
-      <Tooltip content="Select up to 10 runs to compare">
+      <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"
           data-testid="compare-runs-button"

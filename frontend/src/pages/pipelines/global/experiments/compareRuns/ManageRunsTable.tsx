@@ -106,7 +106,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
         bottomToolbarContent={
           <ToolbarGroup>
             <ToolbarItem>
-              <Tooltip content="Select up to 10 runs to compare">
+              <Tooltip content="Select up to 10 runs to compare.">
                 <Button
                   data-testid="manage-runs-update-button"
                   onClick={() =>

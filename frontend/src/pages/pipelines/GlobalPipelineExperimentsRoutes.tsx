@@ -40,7 +40,7 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
         element={
           <GlobalPipelineRuns
             breadcrumb={<ExperimentRunsListBreadcrumb />}
-            description="Manage and view your experiment and runs."
+            description="Manage your experiment runs and schedules."
             getRedirectPath={experimentsBaseRoute}
           />
         }

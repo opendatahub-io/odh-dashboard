@@ -34,7 +34,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
-          {task.name} {task.type === 'artifact' ? 'artifact details' : ''}
+          {task.name} {task.type === 'artifact' ? 'Artifact details' : ''}
         </Title>
         {task.status?.podName && <Text component="small">{task.status.podName}</Text>}
         <DrawerActions>

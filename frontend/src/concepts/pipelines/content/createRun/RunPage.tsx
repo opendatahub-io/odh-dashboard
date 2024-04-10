@@ -44,6 +44,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     PipelineRunSearchParam.TriggerType,
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
+  const isSchedule = runType === PipelineRunType.Scheduled;
 
   const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
   const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
@@ -59,8 +60,8 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     (section) =>
       !(
         (section === CreateRunPageSections.EXPERIMENT && !isExperimentsAvailable) ||
-        (section === CreateRunPageSections.SCHEDULE_SETTINGS &&
-          runType !== PipelineRunType.Scheduled)
+        (section === CreateRunPageSections.SCHEDULE_DETAILS && !isSchedule) ||
+        (section === CreateRunPageSections.RUN_DETAILS && isSchedule)
       ),
   );
 

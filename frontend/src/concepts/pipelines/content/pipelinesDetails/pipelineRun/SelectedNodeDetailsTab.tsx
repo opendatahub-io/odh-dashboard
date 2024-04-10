@@ -7,6 +7,7 @@ import {
 import { relativeDuration } from '~/utilities/time';
 import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineTask } from '~/concepts/pipelines/topology';
+import { translateStatusForNode } from '~/concepts/pipelines/topology/parseUtils';
 
 type SelectedNodeDetailsTabProps = {
   task: PipelineTask;
@@ -35,14 +36,14 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
         taskName,
         {
           key: 'Status',
-          value: state ?? '-',
+          value: translateStatusForNode(state) ?? '-',
         },
         {
-          key: 'Started at',
+          key: 'Started',
           value: startDate ? asTimestamp(startDate) : '-',
         },
         {
-          key: 'Finished at',
+          key: 'Finished',
           value: endDate ? asTimestamp(endDate) : '-',
         },
         {
