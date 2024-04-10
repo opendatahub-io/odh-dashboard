@@ -243,7 +243,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                       {!showSearchbar && (
                         <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
                           <SimpleDropdownSelect
-                            data-testid="logs-step-select"
+                            dataTestId="logs-step-select"
                             isDisabled={podStepStates.length <= 1}
                             options={podStepStates.map((podStepState) => ({
                               key: podStepState.stepName,

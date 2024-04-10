@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Truncate } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import { Truncate, Dropdown, MenuToggle, DropdownList, DropdownItem } from '@patternfly/react-core';
 import './SimpleDropdownSelect.scss';
 
 export type SimpleDropdownOption = {
@@ -19,6 +18,7 @@ type SimpleDropdownProps = {
   isFullWidth?: boolean;
   isDisabled?: boolean;
   icon?: React.ReactNode;
+  dataTestId?: string;
 } & Omit<React.ComponentProps<typeof Dropdown>, 'isOpen' | 'toggle' | 'dropdownItems' | 'onChange'>;
 
 const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
@@ -29,6 +29,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
   value,
   isFullWidth,
   icon,
+  dataTestId,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -39,32 +40,41 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
     <Dropdown
       {...props}
       isOpen={open}
-      className={isFullWidth ? 'full-width' : undefined}
-      toggle={
-        <DropdownToggle
+      onSelect={() => setOpen(false)}
+      onOpenChange={(isOpen: boolean) => setOpen(isOpen)}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          data-testid={dataTestId}
+          ref={toggleRef}
           isDisabled={isDisabled}
-          className={isFullWidth ? 'full-width' : undefined}
-          onToggle={() => setOpen(!open)}
           icon={icon}
+          isFullWidth={isFullWidth}
+          onClick={() => setOpen(!open)}
+          isExpanded={open}
         >
           <Truncate content={selectedLabel} className="truncate-no-min-width" />
-        </DropdownToggle>
-      }
-      dropdownItems={[...options]
-        .sort((a, b) => (a.isPlaceholder === b.isPlaceholder ? 0 : a.isPlaceholder ? -1 : 1))
-        .map(({ key, dropdownLabel, label, description, isPlaceholder }) => (
-          <DropdownItem
-            key={key}
-            description={description}
-            onClick={() => {
-              onChange(key, !!isPlaceholder);
-              setOpen(false);
-            }}
-          >
-            {dropdownLabel ?? label}
-          </DropdownItem>
-        ))}
-    />
+        </MenuToggle>
+      )}
+      shouldFocusToggleOnSelect
+    >
+      <DropdownList>
+        {[...options]
+          .sort((a, b) => (a.isPlaceholder === b.isPlaceholder ? 0 : a.isPlaceholder ? -1 : 1))
+          .map(({ key, dropdownLabel, label, description, isPlaceholder }) => (
+            <DropdownItem
+              data-testid={`dropdown-item ${key}`}
+              key={key}
+              description={description}
+              onClick={() => {
+                onChange(key, !!isPlaceholder);
+                setOpen(false);
+              }}
+            >
+              {dropdownLabel ?? label}
+            </DropdownItem>
+          ))}
+      </DropdownList>
+    </Dropdown>
   );
 };
 

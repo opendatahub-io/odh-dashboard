@@ -1,6 +1,5 @@
 import { MatcherOptions } from '@testing-library/cypress';
 import { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
-
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
@@ -27,6 +26,12 @@ declare global {
        */
       findDropdownItem(name: string | RegExp): Cypress.Chainable<JQuery>;
 
+      /**
+       * Finds a patternfly dropdown item by data-testid, first opening the dropdown if not already opened.
+       *
+       * @param testId the name of the item
+       */
+      findDropdownItemByTestId(testId: string): Cypress.Chainable<JQuery>;
       /**
        * Finds a patternfly select option by first opening the select menu if not already opened.
        *
@@ -115,7 +120,17 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
     if ($el.find('[aria-expanded=false]').addBack().length) {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).findByRole('menuitem', { name });
+    return cy.wrap($el).parent().findByRole('menuitem', { name });
+  });
+});
+
+Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
+  Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
+  return cy.wrap(subject).then(($el) => {
+    if ($el.find('[aria-expanded=false]').addBack().length) {
+      cy.wrap($el).click();
+    }
+    return cy.wrap($el).parent().findByTestId(testId);
   });
 });
 

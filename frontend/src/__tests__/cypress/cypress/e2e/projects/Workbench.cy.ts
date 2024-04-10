@@ -53,7 +53,56 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8sList(
     ImageStreamModel,
-    mockK8sResourceList([mockImageStreamK8sResource({ namespace: 'opendatahub' })]),
+    mockK8sResourceList([
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-1',
+        displayName: 'Test image 1',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-2',
+        displayName: 'Test image 2',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-3',
+        displayName: 'Test image 3',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-4',
+        displayName: 'Test image 4',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-5',
+        displayName: 'Test image 5',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-6',
+        displayName: 'Test image 6',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-7',
+        displayName: 'Test image 7',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-8',
+        displayName: 'Test image 8',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-9',
+        displayName: 'Test image 9',
+      }),
+    ]),
   );
   cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'aws-connection-db-1' }));
   cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
@@ -107,7 +156,8 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project/spawner');
     createSpawnerPage.findNameInput().fill('test-project');
     createSpawnerPage.findDescriptionInput().fill('test-description');
-    createSpawnerPage.selectNotebookImage('Test Image Python v3.8');
+    //to check scrollable dropdown selection
+    createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
       'XSmall Limits: 0.5 CPU, 500Mi Memory Requests: 0.1 CPU, 100Mi Memory',
     );
