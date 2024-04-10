@@ -7,12 +7,20 @@ import {
   PageSection,
   TabContent,
   TabContentBody,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateHeader,
+  EmptyStateIcon,
 } from '@patternfly/react-core';
+import { WrenchIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
+import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
 } from './useDistributedWorkloadsTabs';
+import { LoadingWorkloadState } from './projectMetrics/sections/SharedStates';
 
 type GlobalDistributedWorkloadsTabsProps = {
   activeTabId: DistributedWorkloadsTabId;
@@ -25,6 +33,42 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   const tabs = useDistributedWorkloadsTabs();
   const activeTab = tabs.find(({ id }) => id === activeTabId);
   const { namespace } = useParams<{ namespace: string }>();
+  const { clusterQueue, localQueues } = React.useContext(DistributedWorkloadsContext);
+  const requiredFetches = [clusterQueue, localQueues];
+  const error = requiredFetches.find((f) => !!f.error)?.error;
+  const loaded = requiredFetches.every((f) => f.loaded);
+
+  if (error) {
+    return (
+      <EmptyStateErrorMessage
+        title="Error loading distributed workload metrics"
+        bodyText={error.message}
+      />
+    );
+  }
+
+  if (!loaded) {
+    return <LoadingWorkloadState />;
+  }
+
+  if (!clusterQueue.data || localQueues.data.length === 0) {
+    const title = `Configure the ${!clusterQueue.data ? 'cluster queue' : 'project queue'}`;
+    const message = !clusterQueue.data
+      ? 'Ask your cluster admin to configure the cluster queue.'
+      : 'Configure the queue for this project, or select a different project.';
+
+    return (
+      <EmptyState>
+        <EmptyStateHeader
+          titleText={title}
+          headingLevel="h4"
+          icon={<EmptyStateIcon icon={WrenchIcon} />}
+        />
+        <EmptyStateBody>{message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
   return (
     <>
       <PageSection variant="light" type="tabs">
