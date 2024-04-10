@@ -3,12 +3,16 @@ import { convertToUnit, MEMORY_UNITS_FOR_PARSING } from './valueUnits';
 /**
  * Returns the given number rounded to 1 decimal point, unless it is less than 0.1,
  * then it will return 2 decimal points so the value is not rounded to zero.
+ * If precision is passed, the above logic is ignored and the specified precision is used.
  */
-export const roundNumber = (value: number | typeof NaN): number => {
+export const roundNumber = (
+  value: number | typeof NaN,
+  precision = value < 0.1 ? 2 : 1,
+): number => {
   if (Number.isNaN(value)) {
     return 0;
   }
-  return parseFloat(value.toFixed(value < 0.1 ? 2 : 1));
+  return parseFloat(value.toFixed(precision));
 };
 
 /**

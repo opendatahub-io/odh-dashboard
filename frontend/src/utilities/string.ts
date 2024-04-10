@@ -93,3 +93,13 @@ export const isS3PathValid = (path: string): boolean => {
   const pattern = /^[a-zA-Z0-9\-_./]+$/;
   return pattern.test(path) && !containsMultipleSlashesPattern(path);
 };
+
+/*
+ * Truncates a string to a specified number of characters with ellipses
+ */
+export const truncateString = (str: string, length: number): string => {
+  if (str.length <= length) {
+    return str;
+  }
+  return `${str.substring(0, length)}…`;
+};

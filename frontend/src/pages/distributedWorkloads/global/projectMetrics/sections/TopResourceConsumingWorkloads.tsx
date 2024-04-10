@@ -6,75 +6,57 @@ import { WorkloadStatusType, getStatusInfo } from '~/concepts/distributedWorkloa
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
-
-//TODO: next 4 utility functions to be replaced or moved into a utility class
-const memoryBytesToGibStr = (bytes: number, excludeUnit = false): string => {
-  const gib = bytes / 1073741824;
-  return `${truncateNumberToStr(gib)}${excludeUnit ? '' : 'GiB'}`;
-};
-
-const numberToCoreStr = (num: number): string => `${truncateNumberToStr(num)} cores`;
-
-const truncateNumberToStr = (num: number): string => {
-  if (num > 0.001) {
-    return String(parseFloat(num.toFixed(3)));
-  }
-  if (num === 0) {
-    return '0';
-  }
-  return '< 0.001';
-};
-
-const truncateStr = (str: string, length: number): string => {
-  if (str.length <= length) {
-    return str;
-  }
-  return `${str.substring(0, length)}...`;
-};
+import { truncateString } from '~/utilities/string';
+import { bytesAsPreciseGiB, roundNumber } from '~/utilities/number';
+import { WorkloadWithUsage } from '~/api';
+import { WorkloadKind } from '~/k8sTypes';
 
 interface TopResourceConsumingWorkloadsChartProps {
-  label: string;
-  title: string;
-  subTitle?: string;
-  data: Array<{ name: string; usage: number }>;
-  dataStrConverter: (num: number) => string;
+  metricLabel: string;
+  unitLabel: string;
+  data: { totalUsage: number; topWorkloads: WorkloadWithUsage[] };
+  convertUnits?: (num?: number) => number;
 }
 
+const getWorkloadName = (workload: WorkloadKind | 'other') =>
+  workload === 'other' ? 'Other' : workload.metadata?.name || 'Unnamed';
+
 const TopResourceConsumingWorkloadsChart: React.FC<TopResourceConsumingWorkloadsChartProps> = ({
-  label,
-  title,
-  subTitle = '',
-  data = [],
-  dataStrConverter,
+  metricLabel,
+  unitLabel,
+  data,
+  convertUnits = (num) => num || 0,
 }) => (
   <ChartDonut
-    ariaTitle={`${label} chart`}
+    ariaTitle={`${metricLabel} chart`}
     constrainToVisibleArea
-    data={data.map((d: { name: string; usage: number }) => ({ x: d.name, y: d.usage }))}
+    data={data.topWorkloads.map(({ workload, usage }) => ({
+      x: getWorkloadName(workload),
+      y: roundNumber(convertUnits(usage), 3),
+    }))}
     height={150}
-    labels={({ datum }) => `${datum.x}: ${dataStrConverter(0 + datum.y)}`}
+    labels={({ datum }) => `${datum.x}: ${datum.y} ${unitLabel}`}
     legendComponent={
       <ChartLegend
-        data={data.map((d: { name: string; usage: number }) => ({
-          ...d,
-          name: truncateStr(d.name, 16),
+        data={data.topWorkloads.map(({ workload }) => ({
+          name: truncateString(getWorkloadName(workload), 16),
         }))}
         gutter={5}
         labelComponent={<ChartLabel style={{ fontSize: 10 }} />}
-        itemsPerRow={Math.ceil(data.length / 2)}
+        itemsPerRow={Math.ceil(data.topWorkloads.length / 2)}
       />
     }
     legendOrientation="vertical"
     legendPosition="right"
-    name={`topResourceConsuming${label}`}
+    name={`topResourceConsuming${metricLabel}`}
     padding={{
       bottom: 0,
       left: 0,
       right: 260, // Adjusted to accommodate legend
       top: 0,
     }}
-    subTitle={subTitle}
-    title={title}
+    subTitle={unitLabel}
+    title={String(roundNumber(convertUnits(data.totalUsage)))}
     themeColor={ChartThemeColor.multi}
     width={375}
   />
@@ -125,15 +107,9 @@ export const TopResourceConsumingWorkloads: React.FC = () => {
           <CardTitle>CPU</CardTitle>
           <CardBody>
             <TopResourceConsumingWorkloadsChart
-              label="CPU"
-              title={truncateNumberToStr(topWorkloadsByUsage.cpuCoresUsed.totalUsage)}
-              subTitle="cores"
-              data={topWorkloadsByUsage.cpuCoresUsed.topWorkloads.map((data) => ({
-                name:
-                  data.workload === 'other' ? 'other' : data.workload.metadata?.name || 'unnamed',
-                usage: data.usage || 0,
-              }))}
-              dataStrConverter={numberToCoreStr}
+              metricLabel="CPU"
+              unitLabel="cores"
+              data={topWorkloadsByUsage.cpuCoresUsed}
             />
           </CardBody>
         </Card>
@@ -143,15 +119,10 @@ export const TopResourceConsumingWorkloads: React.FC = () => {
           <CardTitle>Memory</CardTitle>
           <CardBody>
             <TopResourceConsumingWorkloadsChart
-              label="Memory"
-              title={memoryBytesToGibStr(topWorkloadsByUsage.memoryBytesUsed.totalUsage, true)}
-              subTitle="GiB"
-              data={topWorkloadsByUsage.memoryBytesUsed.topWorkloads.map((data) => ({
-                name:
-                  data.workload === 'other' ? 'other' : data.workload.metadata?.name || 'unnamed',
-                usage: data.usage || 0,
-              }))}
-              dataStrConverter={memoryBytesToGibStr}
+              metricLabel="Memory"
+              unitLabel="GiB"
+              data={topWorkloadsByUsage.memoryBytesUsed}
+              convertUnits={bytesAsPreciseGiB}
             />
           </CardBody>
         </Card>

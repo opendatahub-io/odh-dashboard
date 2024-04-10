@@ -33,10 +33,11 @@ export const WorkloadResourceUsageBar: React.FC<WorkloadResourceUsageBarProps> =
       content={
         <Stack>
           <StackItem>
-            {getColorSwatch('used')} {metricLabel} usage: {used} {unitLabel}
+            {getColorSwatch('used')} {metricLabel} usage: {roundNumber(used, 3)} {unitLabel}
           </StackItem>
           <StackItem>
-            {getColorSwatch('requested')} {metricLabel} requested: {requested} {unitLabel}
+            {getColorSwatch('requested')} {metricLabel} requested: {roundNumber(requested, 3)}{' '}
+            {unitLabel}
           </StackItem>
         </Stack>
       }
