@@ -12,13 +12,17 @@ import {
   mockRouteK8sResource,
   buildMockRunKF,
 } from '~/__mocks__';
-import { compareRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  compareRunsGlobal,
+  compareRunsListTable,
+  compareRunParamsTable,
+} from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -38,6 +42,12 @@ const mockRun = buildMockRunKF({
     pipeline_version_id: initialMockPipelineVersion.pipeline_version_id,
   },
   experiment_id: mockExperiment.experiment_id,
+  runtime_config: {
+    parameters: {
+      paramOne: true,
+      paramTwo: false,
+    },
+  },
 });
 
 const mockRun2 = buildMockRunKF({
@@ -48,6 +58,13 @@ const mockRun2 = buildMockRunKF({
     pipeline_version_id: initialMockPipelineVersion.pipeline_version_id,
   },
   experiment_id: mockExperiment.experiment_id,
+  runtime_config: {
+    parameters: {
+      paramOne: false,
+      paramTwo: false,
+      paramThree: 'Threeseretops',
+    },
+  },
 });
 
 describe('Compare runs', () => {
@@ -68,8 +85,8 @@ describe('Compare runs', () => {
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
 
-    compareRunsGlobal.findRunListRowByName('Run 1').should('exist');
-    compareRunsGlobal.findRunListRowByName('Run 2').should('exist');
+    compareRunsListTable.findRowByName('Run 1').should('exist');
+    compareRunsListTable.findRowByName('Run 2').should('exist');
   });
 
   it('valid number of runs but it is invalid', () => {
@@ -127,6 +144,58 @@ describe('Compare runs', () => {
     verifyRelativeURL(
       `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?runs=invalid_run_id,${mockRun.run_id}`,
     );
+  });
+
+  describe('Parameters', () => {
+    beforeEach(() => {
+      cy.visit(
+        `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?runs=${mockRun.run_id},${mockRun2.run_id}`,
+      );
+    });
+
+    it('shows empty state when the Runs list has no selections', () => {
+      compareRunsListTable.findSelectAllCheckbox().click();
+      compareRunParamsTable.findEmptyState().should('exist');
+    });
+
+    it('displays table data based on selections from Run list', () => {
+      compareRunsListTable.findRowByName('Run 1').should('exist');
+      compareRunsListTable.findRowByName('Run 2').should('exist');
+
+      compareRunParamsTable.findColumnByName('Run 1').should('exist');
+      compareRunParamsTable.findColumnByName('Run 2').should('exist');
+
+      compareRunParamsTable.findParamName('paramOne').should('exist');
+      compareRunParamsTable.findParamName('paramTwo').should('exist');
+      compareRunParamsTable.findParamName('paramThree').should('exist');
+    });
+
+    it('removes run column from params table when run list selection is removed', () => {
+      compareRunsListTable.findRowByName('Run 1').should('exist');
+      compareRunsListTable.findRowByName('Run 2').should('exist');
+
+      compareRunParamsTable.findColumnByName('Run 1').should('exist');
+      compareRunParamsTable.findColumnByName('Run 2').should('exist');
+
+      compareRunsListTable.getRowByName('Run 2').findCheckbox().click();
+      compareRunParamsTable.findColumnByName('Run 1').should('exist');
+      compareRunParamsTable.findColumnByName('Run 2').should('not.exist');
+    });
+
+    it('only shows parameters with differences when "Hide parameters with no differences" switch is on', () => {
+      compareRunsListTable.findRowByName('Run 1').should('exist');
+      compareRunsListTable.findRowByName('Run 2').should('exist');
+
+      compareRunParamsTable.findParamName('paramOne').should('exist');
+      compareRunParamsTable.findParamName('paramTwo').should('exist');
+      compareRunParamsTable.findParamName('paramThree').should('exist');
+
+      cy.pfSwitch('hide-same-params-switch').click();
+
+      compareRunParamsTable.findParamName('paramOne').should('exist');
+      compareRunParamsTable.findParamName('paramTwo').should('not.exist');
+      compareRunParamsTable.findParamName('paramThree').should('exist');
+    });
   });
 });
 
