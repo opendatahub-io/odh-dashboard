@@ -1,6 +1,22 @@
+import { ApplicationLauncher } from './appLauncher';
+
 class AppChrome {
+  visit() {
+    cy.visit('/');
+    this.wait();
+  }
+
+  private wait() {
+    this.findSideBar();
+    cy.testA11y();
+  }
+
   findSideBar() {
     return cy.get('#page-sidebar');
+  }
+
+  getApplicationLauncher() {
+    return new ApplicationLauncher(() => cy.findByTestId('application-launcher'));
   }
 
   findNavItem(name: string, section?: string) {

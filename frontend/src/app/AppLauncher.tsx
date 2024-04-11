@@ -130,6 +130,7 @@ const AppLauncher: React.FC = () => {
   const renderApplicationLauncherGroup = (section: Section, sectionIndex: number) => {
     const appItems = section.actions.map((action) => (
       <ApplicationLauncherItem
+        data-testid="application-launcher-item"
         key={action.label}
         href={action.href}
         isExternal
@@ -144,13 +145,18 @@ const AppLauncher: React.FC = () => {
       appItems.push(<ApplicationLauncherSeparator key={`separator-${sectionIndex}`} />);
     }
     return (
-      <ApplicationLauncherGroup key={section.label} label={section.label}>
+      <ApplicationLauncherGroup
+        key={section.label}
+        label={section.label}
+        data-testid="application-launcher-group"
+      >
         {appItems}
       </ApplicationLauncherGroup>
     );
   };
   return (
     <ApplicationLauncher
+      data-testid="application-launcher"
       aria-label="Application launcher"
       onSelect={onSelect}
       onToggle={onToggle}
