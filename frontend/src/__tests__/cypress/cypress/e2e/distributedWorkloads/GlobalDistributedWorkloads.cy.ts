@@ -270,6 +270,8 @@ describe('Workload Status tab', () => {
     globalDistributedWorkloads.visit();
 
     cy.findByLabelText('Distributed workload status tab').click();
-    cy.findByText('No distributed workloads').should('exist');
+    cy.findByTestId('dw-workloads-table-card').within(() => {
+      cy.findByText('No distributed workloads').should('exist');
+    });
   });
 });
