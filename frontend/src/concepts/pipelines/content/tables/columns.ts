@@ -22,7 +22,7 @@ export const pipelineColumns: SortableData<PipelineKFv2>[] = [
     width: 40,
   },
   {
-    label: 'Versions',
+    label: 'Total versions',
     field: 'versions',
     sortable: false,
     width: 20,

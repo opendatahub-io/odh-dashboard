@@ -102,8 +102,10 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
       }
       testId={`delete-${typeCategory}-modal`}
     >
-      {resourceCount <= 1 ? (
-        <>This action cannot be undone.</>
+      {resourceCount === 1 ? (
+        <>
+          <b>{toDeleteResources[0].display_name}</b> and all of its resources will be deleted.
+        </>
       ) : (
         <Stack hasGutter>
           <StackItem>

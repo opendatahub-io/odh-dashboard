@@ -76,9 +76,9 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     { key: 'Workflow name', value: workflowName },
     ...(!isPipelineRunJob(pipelineRunKF)
       ? [
-          { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
+          { key: 'Started', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
           {
-            key: 'Finished at',
+            key: 'Finished',
             value: isEmptyDateKF(pipelineRunKF.finished_at)
               ? 'N/A'
               : asTimestamp(new Date(pipelineRunKF.finished_at)),
