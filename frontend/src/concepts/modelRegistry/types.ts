@@ -36,13 +36,13 @@ export enum ModelArtifactState {
 }
 
 export type ModelRegistryBase = {
-  id?: string;
-  name?: string;
+  id: string;
+  name: string;
   externalID?: string;
   description?: string;
   createTimeSinceEpoch?: string;
-  lastUpdateTimeSinceEpoch?: string;
-  customProperties?: Record<string, unknown>;
+  lastUpdateTimeSinceEpoch: string;
+  customProperties: Record<string, Record<string, string>>;
 };
 
 export type ModelArtifact = ModelRegistryBase & {
@@ -183,6 +183,7 @@ export type ModelRegistryAPIs = {
   listModelArtifacts: GetListModelArtifacts;
   listModelVersions: GetListModelVersions;
   listRegisteredModels: GetListRegisteredModels;
+  getModelVersionsByRegisteredModel: GetModelVersionsByRegisteredModel;
   patchRegisteredModel: PatchRegisteredModel;
   patchModelVersion: PatchModelVersion;
   patchModelArtifact: PatchModelArtifact;

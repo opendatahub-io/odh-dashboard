@@ -33,6 +33,7 @@ export enum ProjectObjectType {
   pipelineRun = 'pipeline-run',
   clusterStorage = 'cluster-storage',
   modelServer = 'model-server',
+  registeredModels = 'registered-models',
   deployedModels = 'deployed-models',
   deployingModels = 'deploying-models',
   dataConnection = 'data-connection',
@@ -54,6 +55,7 @@ export const typedBorderColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.clusterStorage:
       return 'var(--ai-cluster-storage--BorderColor)';
     case ProjectObjectType.modelServer:
+    case ProjectObjectType.registeredModels:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--BorderColor)';
@@ -82,6 +84,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.clusterStorage:
       return 'var(--ai-cluster-storage--BackgroundColor)';
     case ProjectObjectType.modelServer:
+    case ProjectObjectType.registeredModels:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--BackgroundColor)';
@@ -111,6 +114,7 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
       return clusterStorageImg;
     case ProjectObjectType.modelServer:
       return modelServerImg;
+    case ProjectObjectType.registeredModels:
     case ProjectObjectType.deployedModels:
       return deployedModelsImg;
     case ProjectObjectType.deployingModels:
@@ -139,6 +143,7 @@ export const typedEmptyImage = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.clusterStorage:
       return clusterStorageEmptyStateImg;
     case ProjectObjectType.modelServer:
+    case ProjectObjectType.registeredModels:
       return modelServerEmptyStateImg;
     case ProjectObjectType.dataConnection:
       return dataConnectionEmptyStateImg;

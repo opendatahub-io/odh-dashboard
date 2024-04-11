@@ -18,6 +18,7 @@ type SimpleDropdownProps = {
   onChange: (key: string, isPlaceholder: boolean) => void;
   isFullWidth?: boolean;
   isDisabled?: boolean;
+  icon?: React.ReactNode;
 } & Omit<React.ComponentProps<typeof Dropdown>, 'isOpen' | 'toggle' | 'dropdownItems' | 'onChange'>;
 
 const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
@@ -27,6 +28,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
   placeholder = 'Select...',
   value,
   isFullWidth,
+  icon,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -43,6 +45,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
           isDisabled={isDisabled}
           className={isFullWidth ? 'full-width' : undefined}
           onToggle={() => setOpen(!open)}
+          icon={icon}
         >
           <Truncate content={selectedLabel} className="truncate-no-min-width" />
         </DropdownToggle>

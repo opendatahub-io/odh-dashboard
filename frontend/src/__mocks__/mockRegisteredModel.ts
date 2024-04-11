@@ -13,4 +13,5 @@ export const mockRegisteredModel = ({
   lastUpdateTimeSinceEpoch: '1710404288975',
   name,
   state,
+  customProperties: {},
 });
