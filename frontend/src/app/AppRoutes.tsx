@@ -1,5 +1,6 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { InvalidArgoDeploymentAlert } from '~/concepts/pipelines/content/InvalidArgoDeploymentAlert';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
@@ -66,6 +67,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
+      <InvalidArgoDeploymentAlert />
       <Routes>
         <Route path="/" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
