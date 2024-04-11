@@ -16,14 +16,13 @@ export const indexNumericValuesByJobName = (
   if (!promResponse) {
     return {};
   }
-  const valuesByJobName: Record<string, number> = {};
-  promResponse.data.result.forEach(({ metric, value }) => {
-    const valueStr = value[1]; // value[0] is a timestamp, value[1] is the actual measured value
+  return promResponse.data.result.reduce((acc, { metric, value }) => {
+    const valueStr = value[1];
     if (valueStr && !Number.isNaN(Number(valueStr))) {
-      valuesByJobName[metric.workload] = Number(valueStr);
+      acc[metric.workload] = Number(valueStr);
     }
-  });
-  return valuesByJobName;
+    return acc;
+  }, {} as Record<string, number>);
 };
 
 const useWorkloadMetricIndexedByJobName = (
@@ -136,17 +135,17 @@ const getDWProjectCurrentMetricsQueries = (
 
 export const useDWProjectCurrentMetrics = (
   workloads: WorkloadKind[],
-  namespace?: string,
+  namespace: string,
   refreshRate = 0,
 ): DWProjectCurrentMetrics => {
-  const queries = namespace ? getDWProjectCurrentMetricsQueries(namespace) : undefined;
+  const queries = getDWProjectCurrentMetricsQueries(namespace);
   const data: DWProjectCurrentMetrics['data'] = {
     cpuCoresUsedByJobName: useWorkloadMetricIndexedByJobName(
-      queries?.cpuCoresUsedByJobName,
+      queries.cpuCoresUsedByJobName,
       refreshRate,
     ),
     memoryBytesUsedByJobName: useWorkloadMetricIndexedByJobName(
-      queries?.memoryBytesUsedByJobName,
+      queries.memoryBytesUsedByJobName,
       refreshRate,
     ),
   };
