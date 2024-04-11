@@ -88,6 +88,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionAltProps> =
       )}
       <StackItem>
         <Button
+          data-testid={`add-button ${projectSharingTableType}`}
           variant="link"
           isInline
           icon={<PlusCircleIcon />}
