@@ -26,6 +26,10 @@ import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipelineV2();
+const mockNoVersionPipeline = buildMockPipelineV2({
+  pipeline_id: 'no-version-pipeline',
+  display_name: 'No version pipeline',
+});
 const mockPipelineVersion = buildMockPipelineVersionV2({ pipeline_id: mockPipeline.pipeline_id });
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -173,8 +177,9 @@ describe('Pipeline create runs', () => {
 
       // Mock experiments, pipelines & versions for form select dropdowns
       cloneRunPage.mockGetExperiments(mockExperiments);
-      cloneRunPage.mockGetPipelines([mockPipeline]);
+      cloneRunPage.mockGetPipelines([mockPipeline, mockNoVersionPipeline]);
       cloneRunPage.mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id);
+      cloneRunPage.mockGetPipelineVersions([], mockNoVersionPipeline.pipeline_id);
       cloneRunPage.mockGetRun(mockRun);
       cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
       cloneRunPage.mockGetPipeline(mockPipeline);
@@ -199,6 +204,13 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
       paramsSection.findParamById('standard_scaler').should('have.value', 'false');
 
+      // Verify switch to a no-version pipeline will show the correct result
+      cloneRunPage.findPipelineSelect().click();
+      cloneRunPage.selectPipelineByName(mockNoVersionPipeline.display_name);
+      cloneRunPage.findPipelineVersionSelect().should('be.disabled');
+
+      cloneRunPage.findPipelineSelect().click();
+      cloneRunPage.selectPipelineByName(mockPipeline.display_name);
       cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('duplicateRun');
       cloneRunPage.submit();
 
