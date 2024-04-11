@@ -1,13 +1,9 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockStatus,
-} from '~/__mocks__';
+import { mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
+import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
 import { RoleBindingSubject } from '~/types';
 
 const userSubjects: RoleBindingSubject[] = [
@@ -31,37 +27,28 @@ type HandlersProps = {
 };
 
 const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept('/api/dsc/status', mockDscStatus({}));
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
-    },
-    {
-      statusCode: 200,
-      body: mockK8sResourceList(
-        isEmpty
-          ? []
-          : [
-              mockRoleBindingK8sResource({
-                name: 'user-1',
-                subjects: userSubjects,
-                roleRefName: 'edit',
-              }),
-              mockRoleBindingK8sResource({
-                name: 'group-1',
-                subjects: groupSubjects,
-                roleRefName: 'edit',
-              }),
-            ],
-      ),
-    },
+  cy.interceptK8sList(
+    { model: RoleBindingModel, ns: 'test-project' },
+    mockK8sResourceList(
+      isEmpty
+        ? []
+        : [
+            mockRoleBindingK8sResource({
+              name: 'user-1',
+              subjects: userSubjects,
+              roleRefName: 'edit',
+            }),
+            mockRoleBindingK8sResource({
+              name: 'group-1',
+              subjects: groupSubjects,
+              roleRefName: 'edit',
+            }),
+          ],
+    ),
   );
 };
 
@@ -107,14 +94,7 @@ describe('Permissions tab', () => {
 
     it('Add user', () => {
       initIntercepts({ isEmpty: true });
-      cy.intercept(
-        {
-          method: 'POST',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
-        },
-        mockRoleBindingK8sResource({}),
-      ).as('addUser');
+      cy.interceptK8s('POST', RoleBindingModel, mockRoleBindingK8sResource({})).as('addUser');
       permissions.visit('test-project');
 
       permissions.findAddUserButton().click();
@@ -139,21 +119,11 @@ describe('Permissions tab', () => {
 
     it('Edit user', () => {
       initIntercepts({ isEmpty: false });
-      cy.intercept(
-        {
-          method: 'POST',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
-        },
-        mockRoleBindingK8sResource({}),
-      ).as('editUser');
-      cy.intercept(
-        {
-          method: 'DELETE',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/user-1',
-        },
-        { kind: 'Status', apiVersion: 'v1', metadata: {}, status: 'Success' },
+      cy.interceptK8s('POST', RoleBindingModel, mockRoleBindingK8sResource({})).as('editUser');
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'user-1' },
+        mock200Status({}),
       ).as('deleteUser');
 
       permissions.visit('test-project');
@@ -181,13 +151,10 @@ describe('Permissions tab', () => {
     it('Delete user', () => {
       initIntercepts({ isEmpty: false });
 
-      cy.intercept(
-        {
-          method: 'DELETE',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/user-1',
-        },
-        { kind: 'Status', apiVersion: 'v1', metadata: {}, status: 'Success' },
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'user-1' },
+        mock200Status({}),
       ).as('deleteUser');
       permissions.visit('test-project');
 
@@ -221,14 +188,7 @@ describe('Permissions tab', () => {
 
     it('Add group', () => {
       initIntercepts({ isEmpty: true });
-      cy.intercept(
-        {
-          method: 'POST',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
-        },
-        mockRoleBindingK8sResource({}),
-      ).as('addGroup');
+      cy.interceptK8s('POST', RoleBindingModel, mockRoleBindingK8sResource({})).as('addGroup');
       permissions.visit('test-project');
 
       permissions.findAddGroupButton().click();
@@ -253,21 +213,11 @@ describe('Permissions tab', () => {
     it('Edit group', () => {
       initIntercepts({ isEmpty: false });
 
-      cy.intercept(
-        {
-          method: 'POST',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings',
-        },
-        mockRoleBindingK8sResource({}),
-      ).as('editGroup');
-      cy.intercept(
-        {
-          method: 'DELETE',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/group-1',
-        },
-        { kind: 'Status', apiVersion: 'v1', metadata: {}, status: 'Success' },
+      cy.interceptK8s('POST', RoleBindingModel, mockRoleBindingK8sResource({})).as('editGroup');
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'group-1' },
+        mock200Status({}),
       ).as('deleteGroup');
 
       permissions.visit('test-project');
@@ -295,13 +245,10 @@ describe('Permissions tab', () => {
     it('Delete group', () => {
       initIntercepts({ isEmpty: false });
 
-      cy.intercept(
-        {
-          method: 'DELETE',
-          pathname:
-            '/api/k8s/apis/rbac.authorization.k8s.io/v1/namespaces/test-project/rolebindings/group-1',
-        },
-        { kind: 'Status', apiVersion: 'v1', metadata: {}, status: 'Success' },
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'group-1' },
+        mock200Status({}),
       ).as('deleteGroup');
 
       permissions.visit('test-project');

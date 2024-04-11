@@ -1,11 +1,4 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockNotebookK8sResource,
-  mockProjectK8sResource,
-  mockStatus,
-} from '~/__mocks__';
+import { mockK8sResourceList, mockNotebookK8sResource, mockProjectK8sResource } from '~/__mocks__';
 import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -16,39 +9,30 @@ import {
 } from '~/__tests__/cypress/cypress/pages/clusterStorage';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
+import {
+  NotebookModel,
+  PVCModel,
+  PodModel,
+  ProjectModel,
+} from '~/__tests__/cypress/cypress/utils/models';
+import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';
 
 type HandlersProps = {
   isEmpty?: boolean;
 };
 
 const initInterceptors = ({ isEmpty = false }: HandlersProps) => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept('/api/cluster-settings', mockClusterSettings({}));
-  cy.intercept('/api/dsc/status', mockDscStatus({}));
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
-    mockK8sResourceList([mockPodK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
-    mockK8sResourceList([mockProjectK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects/test-project' },
-    mockProjectK8sResource({}),
-  );
-  cy.intercept({ pathname: '/api/prometheus/pvc' }, mockPVCK8sResource({}));
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    },
-    mockDashboardConfig({}),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
+  cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
+  cy.interceptOdh('POST /api/prometheus/pvc', {
+    code: 200,
+    response: mockPrometheusQueryResponse({}),
+  });
+  cy.interceptK8sList(
+    { model: PVCModel, ns: 'test-project' },
     mockK8sResourceList(
       isEmpty
         ? []
@@ -58,12 +42,7 @@ const initInterceptors = ({ isEmpty = false }: HandlersProps) => {
           ],
     ),
   );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
-    },
-    mockK8sResourceList([mockNotebookK8sResource({})]),
-  );
+  cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
 };
 
 describe('ClusterStorage', () => {
@@ -96,18 +75,9 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.findMountField().fill('data');
     addClusterStorageModal.findWorkbenchRestartAlert().should('exist');
 
-    cy.intercept(
-      {
-        method: 'PATCH',
-        pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks/test-notebook',
-      },
-      mockNotebookK8sResource({}),
-    ).as('addClusterStorage');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('addClusterStorage');
 
-    cy.intercept(
-      { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
-      mockK8sResourceList([mockPVCK8sResource({})]),
-    );
+    cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
 
     addClusterStorageModal.findSubmitButton().click();
     cy.wait('@addClusterStorage').then((interception) => {
@@ -138,7 +108,7 @@ describe('ClusterStorage', () => {
     clusterStorageRow.shouldHaveStorageTypeValue('Persistent storage');
     clusterStorageRow.findConnectedWorkbenches().should('have.text', 'No connections');
     clusterStorageRow.toggleExpandableContent();
-    clusterStorageRow.shouldHaveStorageSize('Max 5Gi');
+    clusterStorageRow.shouldHaveStorageSize('5Gi');
 
     //sort by Name
     clusterStorage.findClusterStorageTableHeaderButton('Name').click();
@@ -159,13 +129,7 @@ describe('ClusterStorage', () => {
     updateClusterStorageModal.findSubmitButton().should('be.enabled');
     updateClusterStorageModal.findNameInput().fill('test-updated');
 
-    cy.intercept(
-      {
-        method: 'PUT',
-        pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims/test-storage',
-      },
-      mockPVCK8sResource({}),
-    ).as('editClusterStorage');
+    cy.interceptK8s('PUT', PVCModel, mockPVCK8sResource({})).as('editClusterStorage');
 
     updateClusterStorageModal.findSubmitButton().click();
     cy.wait('@editClusterStorage').then((interception) => {
@@ -202,12 +166,10 @@ describe('ClusterStorage', () => {
     clusterStorageRow.findKebabAction('Delete storage').click();
     deleteModal.findInput().fill('Test Storage');
 
-    cy.intercept(
-      {
-        method: 'DELETE',
-        pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims/test-storage',
-      },
-      { kind: 'Status', apiVersion: 'v1', metadata: {}, status: 'Success' },
+    cy.interceptK8s(
+      'DELETE',
+      { model: PVCModel, ns: 'test-project', name: 'test-storage' },
+      mock200Status({}),
     ).as('deleteClusterStorage');
 
     deleteModal.findSubmitButton().click();

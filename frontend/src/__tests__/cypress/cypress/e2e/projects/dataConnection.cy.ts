@@ -1,5 +1,3 @@
-import { mockStatus } from '~/__mocks__/mockStatus';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
@@ -16,71 +14,57 @@ import {
   editDataConnectionModal,
 } from '~/__tests__/cypress/cypress/pages/dataConnection';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import {
+  NotebookModel,
+  PVCModel,
+  PodModel,
+  ProjectModel,
+  RouteModel,
+  SecretModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   isEmpty?: boolean;
 };
 
 const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
         workbenches: true,
       },
     }),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
-    mockK8sResourceList([mockPVCK8sResource({})]),
+  cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    { applied: true },
   );
-  cy.intercept(
+  cy.interceptK8s(
+    'PATCH',
     {
-      pathname: '/api/namespaces/test-project/*',
-    },
-    { statusCode: 200, body: { applied: true } },
-  );
-  cy.intercept(
-    {
-      method: 'PATCH',
-      pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks/test-notebook',
+      model: NotebookModel,
+      ns: 'test-project',
+      name: 'test-notebook',
     },
     [],
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
-    mockK8sResourceList([mockPodK8sResource({})]),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
-    },
+  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8sList(
+    NotebookModel,
     mockK8sResourceList([mockNotebookK8sResource({ envFromName: '' })]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    },
-    mockDashboardConfig({}),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
   );
-  cy.intercept(
+  cy.interceptK8s(RouteModel, mockRouteK8sResource({}));
+  cy.interceptK8sList(
     {
-      pathname: '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
-    },
-    mockRouteK8sResource({}),
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
+      model: SecretModel,
+      ns: 'test-project',
     },
     mockK8sResourceList(
       isEmpty
@@ -91,10 +75,11 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
           ],
     ),
   );
-  cy.intercept(
+  cy.interceptK8s(
+    'POST',
     {
-      method: 'POST',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
+      model: SecretModel,
+      ns: 'test-project',
     },
     mockSecretK8sResource({}),
   ).as('createDataConnection');
@@ -122,13 +107,9 @@ describe('Data connections', () => {
     addDataConnectionModal.findRegionInput().type('us-east-1');
     addDataConnectionModal.findBucketInput().type('test-bucket');
 
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
-      },
-      mockK8sResourceList([mockSecretK8sResource({})]),
-    ).as('refreshSecrets');
+    cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})])).as(
+      'refreshSecrets',
+    );
 
     addDataConnectionModal.findSubmitButton().click();
 
@@ -190,19 +171,11 @@ describe('Data connections', () => {
       .findSelectOption('Test Notebook')
       .click();
     editDataConnectionModal.findNotebookRestartAlert().should('exist');
-    cy.intercept(
-      {
-        pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
-      },
+    cy.interceptK8sList(
+      NotebookModel,
       mockK8sResourceList([mockNotebookK8sResource({ envFromName: 'test-secret' })]),
     ).as('addConnectedWorkbench');
-    cy.intercept(
-      {
-        method: 'PUT',
-        pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/test-secret',
-      },
-      mockSecretK8sResource({}),
-    ).as('editDataConnection');
+    cy.interceptK8s('PUT', SecretModel, mockSecretK8sResource({})).as('editDataConnection');
 
     editDataConnectionModal.findSubmitButton().click();
     cy.wait('@editDataConnection').then((interception) => {
@@ -251,10 +224,12 @@ describe('Data connections', () => {
     const dataConnectionRow = projectDetails.getDataConnectionRow('Test Secret');
     dataConnectionRow.findKebabAction('Delete data connection').click();
     deleteModal.findInput().type('Test Secret');
-    cy.intercept(
+    cy.interceptK8s(
+      'DELETE',
       {
-        method: 'DELETE',
-        pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/test-secret',
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'test-secret',
       },
       mock200Status({}),
     ).as('deleteDataConnection');

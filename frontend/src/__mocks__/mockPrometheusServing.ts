@@ -7,7 +7,7 @@ type MockPrometheusServingType = {
 export const mockPrometheusServing = ({
   result,
 }: MockPrometheusServingType): {
-  code?: number;
+  code: number;
   response: PrometheusQueryRangeResponse;
 } => ({
   code: 200,

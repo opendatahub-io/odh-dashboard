@@ -1,6 +1,5 @@
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
 
 type HandlersProps = {
@@ -8,14 +7,13 @@ type HandlersProps = {
 };
 
 const initIntercepts = ({ disableModelRegistryFeature = false }: HandlersProps) => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept(
-    '/api/config',
+  cy.interceptOdh(
+    'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: disableModelRegistryFeature,
     }),
   );
-  cy.intercept('/api/components?installed=true', mockComponents());
+  cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 };
 describe('Model Registry Global', () => {
   it('Model Registry Disabled in the cluster', () => {

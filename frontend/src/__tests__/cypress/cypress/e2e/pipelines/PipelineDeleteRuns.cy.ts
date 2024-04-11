@@ -18,12 +18,19 @@ import {
   runsDeleteModal,
   schedulesDeleteModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
+import {
+  DataSciencePipelineApplicationModel,
+  NotebookModel,
+  ProjectModel,
+  RouteModel,
+  SecretModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 const initIntercepts = () => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh('GET /api/status', mockStatus());
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: { 'data-science-pipelines-operator': true },
     }),
@@ -66,58 +73,20 @@ const initIntercepts = () => {
     },
     mockPipelineKFv2({}),
   );
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa',
-    },
-    mockRouteK8sResource({ notebookName: 'ds-pipeline-pipelines-definition' }),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/ds-pipeline-config',
-    },
-    mockSecretK8sResource({ name: 'ds-pipeline-config' }),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/pipelines-db-password',
-    },
-    mockSecretK8sResource({ name: 'pipelines-db-password' }),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/aws-connection-testdb',
-    },
-    mockSecretK8sResource({ name: 'aws-connection-testdb' }),
-  );
-  cy.intercept(
-    {
-      pathname:
-        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
-    },
+  cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'ds-pipeline-dspa' }));
+  cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'ds-pipeline-config' }));
+  cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'pipelines-db-password' }));
+  cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'aws-connection-testdb' }));
+  cy.interceptK8sList(
+    DataSciencePipelineApplicationModel,
     mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa',
-    },
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
     mockDataSciencePipelineApplicationK8sResource({}),
   );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
-    },
-    mockK8sResourceList([mockNotebookK8sResource({})]),
-  );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
-    mockK8sResourceList([mockProjectK8sResource({})]),
-  );
+  cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
 };
 
 describe('Pipeline runs', () => {
@@ -162,7 +131,7 @@ describe('Pipeline runs', () => {
         expect(intercept.request.body).to.eql({
           path: '/apis/v2beta1/recurringruns/test-pipeline',
           method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
@@ -171,7 +140,7 @@ describe('Pipeline runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/recurringruns',
           method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: { sort_by: 'created_at desc', page_size: 10 },
         });
         pipelineRunJobTable.findEmptyState().should('not.exist');
@@ -225,7 +194,7 @@ describe('Pipeline runs', () => {
         expect(intercept.request.body).to.eql({
           path: '/apis/v2beta1/recurringruns/test-pipeline',
           method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
@@ -235,7 +204,7 @@ describe('Pipeline runs', () => {
         expect(intercept.request.body).to.eql({
           path: '/apis/v2beta1/recurringruns/other-pipeline',
           method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
@@ -245,7 +214,7 @@ describe('Pipeline runs', () => {
         expect(interception.request.body).of.eql({
           path: '/apis/v2beta1/recurringruns',
           method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: { sort_by: 'created_at desc', page_size: 10 },
         });
 
@@ -289,7 +258,7 @@ describe('Pipeline runs', () => {
         expect(intercept.request.body).to.eql({
           path: '/apis/v2beta1/runs/test-pipeline',
           method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
@@ -299,7 +268,7 @@ describe('Pipeline runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/runs',
           method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {
             sort_by: 'created_at desc',
             page_size: 10,
@@ -357,7 +326,7 @@ describe('Pipeline runs', () => {
         expect(intercept.request.body).to.eql({
           path: '/apis/v2beta1/runs/test-pipeline',
           method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
@@ -367,7 +336,7 @@ describe('Pipeline runs', () => {
         expect(intercept.request.body).to.eql({
           path: '/apis/v2beta1/runs/other-pipeline',
           method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {},
           data: {},
         });
@@ -376,7 +345,7 @@ describe('Pipeline runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/runs',
           method: 'GET',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
           queryParams: {
             sort_by: 'created_at desc',
             page_size: 10,

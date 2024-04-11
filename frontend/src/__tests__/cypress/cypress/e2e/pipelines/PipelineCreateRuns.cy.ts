@@ -20,10 +20,9 @@ import {
   createSchedulePage,
   cloneSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
-
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
-import { configIntercept, dspaIntercepts, projectsIntercept, statusIntercept } from './intercepts';
+import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipelineV2();
@@ -141,7 +140,7 @@ describe('Pipeline create runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/runs',
           method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
           queryParams: {},
           data: {
             display_name: 'New run',
@@ -207,7 +206,7 @@ describe('Pipeline create runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/runs',
           method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
           queryParams: {},
           data: {
             display_name: 'Duplicate of Test run',
@@ -335,7 +334,7 @@ describe('Pipeline create runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/runs',
           method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
           queryParams: {},
           data: {
             display_name: 'New run',
@@ -451,7 +450,7 @@ describe('Pipeline create runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/runs',
           method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
           queryParams: {},
           data: {
             display_name: 'New run',
@@ -553,7 +552,7 @@ describe('Pipeline create runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/recurringruns',
           method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
           queryParams: {},
           data: {
             display_name: 'New job',
@@ -630,7 +629,7 @@ describe('Pipeline create runs', () => {
         expect(interception.request.body).to.eql({
           path: '/apis/v2beta1/recurringruns',
           method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
+          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
           queryParams: {},
           data: {
             display_name: 'Duplicate of Test job',
@@ -734,7 +733,6 @@ describe('Pipeline create runs', () => {
 });
 
 const initIntercepts = () => {
-  statusIntercept();
   configIntercept();
   dspaIntercepts(projectName);
   projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);

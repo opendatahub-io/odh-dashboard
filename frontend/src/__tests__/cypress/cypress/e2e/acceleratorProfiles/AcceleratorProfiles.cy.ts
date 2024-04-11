@@ -1,13 +1,11 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import {
   acceleratorProfile,
   disableAcceleratorProfileModal,
 } from '~/__tests__/cypress/cypress/pages/acceleratorProfile';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 type HandlersProps = {
@@ -15,11 +13,8 @@ type HandlersProps = {
 };
 
 const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
-  cy.intercept('/api/dsc/status', mockDscStatus({}));
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept(
-    '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(
       isEmpty
         ? []
@@ -93,12 +88,12 @@ describe('Accelerator Profile', () => {
 
   it('delete accelerator profile', () => {
     initIntercepts({});
-    cy.intercept(
+    cy.interceptOdh(
+      'DELETE /api/accelerator-profiles/:name',
       {
-        method: 'DELETE',
-        pathname: '/api/accelerator-profiles/some-other-gpu',
+        path: { name: 'some-other-gpu' },
       },
-      {},
+      { success: true },
     ).as('delete');
     acceleratorProfile.visit();
     acceleratorProfile.getRow('TensorRT').findKebabAction('Delete').click();
@@ -110,12 +105,12 @@ describe('Accelerator Profile', () => {
 
   it('disable accelerator profile', () => {
     initIntercepts({});
-    cy.intercept(
+    cy.interceptOdh(
+      'PUT /api/accelerator-profiles/:name',
       {
-        method: 'PUT',
-        pathname: '/api/accelerator-profiles/migrated-gpu',
+        path: { name: 'migrated-gpu' },
       },
-      {},
+      { success: true },
     ).as('disableAcceleratorProfile');
     acceleratorProfile.visit();
     acceleratorProfile.getRow('TensorRT').findEnabled().should('not.be.checked');

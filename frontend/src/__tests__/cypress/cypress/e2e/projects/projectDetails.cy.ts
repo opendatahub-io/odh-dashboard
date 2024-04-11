@@ -13,9 +13,20 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { ServingRuntimePlatform } from '~/types';
+import {
+  DataSciencePipelineApplicationModel,
+  ImageStreamModel,
+  NotebookModel,
+  PVCModel,
+  PodModel,
+  ProjectModel,
+  RouteModel,
+  SecretModel,
+  ServiceAccountModel,
+  TemplateModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -42,25 +53,20 @@ const initIntercepts = ({
   v1PipelineServer = false,
   pipelineServerInstalled = true,
 }: HandlersProps) => {
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
     mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]),
   );
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications`,
-    },
+  cy.interceptK8sList(
+    DataSciencePipelineApplicationModel,
     mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa`,
-    },
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
     mockDataSciencePipelineApplicationK8sResource({}),
   );
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
         workbenches: true,
@@ -71,8 +77,8 @@ const initIntercepts = ({
     }),
   );
 
-  cy.intercept(
-    { pathname: '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates' },
+  cy.interceptK8sList(
+    { model: TemplateModel, ns: 'opendatahub' },
     mockK8sResourceList(
       templates
         ? [
@@ -85,71 +91,44 @@ const initIntercepts = ({
         : [],
     ),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept(
-    '/api/config',
+  cy.interceptOdh(
+    'GET /api/config',
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelConfig,
     }),
   );
   if (pipelineServerInstalled) {
-    cy.intercept(
-      {
-        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications`,
-      },
+    cy.interceptK8sList(
+      DataSciencePipelineApplicationModel,
       mockK8sResourceList([
         mockDataSciencePipelineApplicationK8sResource({
           dspVersion: v1PipelineServer ? 'v1' : 'v2',
         }),
       ]),
     );
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa`,
-      },
+    cy.interceptK8s(
+      DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({ dspVersion: v1PipelineServer ? 'v1' : 'v2' }),
     );
-    cy.intercept(
-      {
-        pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa`,
-      },
-      mockRouteK8sResource({
-        notebookName: 'ds-pipeline-pipelines-definition',
-        namespace: 'test-project',
-      }),
-    );
   }
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
-    mockK8sResourceList([mockPodK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
-    mockK8sResourceList([mockProjectK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects/test-project' },
-    mockProjectK8sResource({}),
-  );
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa`,
-    },
+  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResource({
       notebookName: 'ds-pipeline-dspa',
     }),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
+  cy.interceptK8sList(
+    { model: PVCModel, ns: 'test-project' },
     mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]),
   );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts',
-    },
+  cy.interceptK8s(
+    'POST',
+    ServiceAccountModel,
+
     {
       statusCode: 200,
       body: mockServiceAccountK8sResource({
@@ -158,14 +137,15 @@ const initIntercepts = ({
       }),
     },
   );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: undefined })]),
   );
 
-  cy.intercept(
+  cy.interceptK8sList(
     {
-      pathname: '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+      model: ImageStreamModel,
+      ns: 'opendatahub',
     },
     mockK8sResourceList(
       isEmpty || isUnknown
@@ -203,22 +183,13 @@ const initIntercepts = ({
           ],
     ),
   );
-  cy.intercept(
-    {
-      pathname: '/api/namespaces/test-project/*',
-    },
-    { statusCode: 200, body: { applied: true } },
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    { applied: true },
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    },
-    mockDashboardConfig({}),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks' },
+  cy.interceptK8sList(
+    { model: NotebookModel, ns: 'test-project' },
     mockK8sResourceList(
       isEmpty
         ? []
@@ -251,12 +222,7 @@ const initIntercepts = ({
           ],
     ),
   );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
-    },
-    mockRouteK8sResource({ notebookName: 'test-notebook' }),
-  );
+  cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
   cy.intercept(
     {
       method: 'POST',
