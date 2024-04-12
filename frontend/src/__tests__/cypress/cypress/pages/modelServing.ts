@@ -3,7 +3,9 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
 import { Contextual } from './components/Contextual';
+import { TableToolbar } from './components/TableToolbar';
 
+class ModelServingToolbar extends TableToolbar {}
 class ModelServingGlobal {
   visit(project?: string) {
     cy.visit(`/modelServing${project ? `/${project}` : ''}`);
@@ -57,6 +59,18 @@ class ModelServingGlobal {
 
   getModelRow(name: string) {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
+  }
+
+  findEmptyResults() {
+    return cy.findByTestId('no-result-found-title');
+  }
+
+  findSortButton(name: string) {
+    return this.findModelsTable().find('thead').findByRole('button', { name });
+  }
+
+  getTableToolbar() {
+    return new ModelServingToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
   }
 }
 

@@ -2,7 +2,7 @@ import { Contextual } from './Contextual';
 
 export class TableToolbar extends Contextual<HTMLElement> {
   private findToggleButton(id: string) {
-    return cy.pfSwitch(id).click();
+    return this.find().pfSwitch(id).click();
   }
 
   findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -10,10 +10,10 @@ export class TableToolbar extends Contextual<HTMLElement> {
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByLabelText('Search input');
+    return this.find().findByLabelText('Search input');
   }
 
   findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: 'Reset' });
+    return this.find().findByRole('button', { name: 'Reset' });
   }
 }

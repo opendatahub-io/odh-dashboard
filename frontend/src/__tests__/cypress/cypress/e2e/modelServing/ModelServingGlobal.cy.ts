@@ -26,6 +26,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -491,5 +492,61 @@ describe('Model Serving Global', () => {
     // Check that the error message is gone
     modelServingGlobal.findDeployModelButton().click();
     cy.findByText('Error creating model server').should('not.exist');
+  });
+
+  describe('Table filter', () => {
+    it('filter by name', () => {
+      initIntercepts({});
+      modelServingGlobal.visit('test-project');
+
+      // Verify initial run rows exist
+      modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
+
+      // Select the "Name" filter
+      const modelServingGlobalToolbar = modelServingGlobal.getTableToolbar();
+      modelServingGlobalToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+      modelServingGlobalToolbar.findSearchInput().type('Test Inference Service');
+      // Verify only rows with the typed run name exist
+      modelServingGlobal.getModelRow('Test Inference Service').should('exist');
+      // Verify sort button works
+      modelServingGlobal.findSortButton('Model name').click();
+      modelServingGlobal.findSortButton('Model name').should(be.sortDescending);
+      modelServingGlobal.findSortButton('Model name').click();
+      modelServingGlobal.findSortButton('Model name').should(be.sortAscending);
+
+      // Search for non-existent run name
+      modelServingGlobalToolbar.findSearchInput().clear().type('Test Service');
+
+      // Verify no results were found
+      modelServingGlobal.findEmptyResults().should('exist');
+    });
+
+    it('filter by project', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+      });
+      modelServingGlobal.visit('test-project');
+
+      // Verify initial run rows exist
+      modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
+
+      // Select the "Project" filter
+      const modelServingGlobalToolbar = modelServingGlobal.getTableToolbar();
+      modelServingGlobalToolbar.findFilterMenuOption('filter-dropdown-select', 'Project').click();
+      modelServingGlobalToolbar.findSearchInput().type('test project');
+      // Verify only rows with the typed run name exist
+      modelServingGlobal.getModelRow('Test Inference Service').should('exist');
+      // Verify sort button works
+      modelServingGlobal.findSortButton('Project').click();
+      modelServingGlobal.findSortButton('Project').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Project').click();
+      modelServingGlobal.findSortButton('Project').should(be.sortDescending);
+
+      // Search for non-existent run name
+      modelServingGlobalToolbar.findSearchInput().clear().type('Test Service');
+
+      // Verify no results were found
+      modelServingGlobal.findEmptyResults().should('exist');
+    });
   });
 });
