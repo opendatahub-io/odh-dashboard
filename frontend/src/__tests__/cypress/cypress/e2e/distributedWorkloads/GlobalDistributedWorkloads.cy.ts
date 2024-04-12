@@ -196,22 +196,16 @@ describe('Project Metrics tab', () => {
 
     cy.findByText('Requested resources').should('exist');
 
-    cy.findByText('Top resource-consuming distributed workloads')
-      .closest('.dw-section-card')
-      .within(() => {
-        cy.findByText('No distributed workloads').should('exist');
-      });
-    cy.findByText('Distributed workload resource metrics')
-      .closest('.dw-section-card')
-      .within(() => {
-        cy.findByText('No distributed workloads').should('exist');
-      });
-    cy.findByText('Requested resources')
-      .closest('.dw-section-card')
-      .within(() => {
-        // Requested resources shows chart even if empty workload
-        cy.findByTestId('requested-resources-cpu-chart-container').should('exist');
-      });
+    cy.findByTestId('dw-top-consuming-workloads').within(() => {
+      cy.findByText('No distributed workloads').should('exist');
+    });
+    cy.findByTestId('dw-workloada-resource-metrics').within(() => {
+      cy.findByText('No distributed workloads').should('exist');
+    });
+    cy.findByTestId('dw-requested-resources').within(() => {
+      // Requested resources shows chart even if empty workload
+      cy.findByTestId('requested-resources-cpu-chart-container').should('exist');
+    });
   });
 
   it('Should render the workload resource metrics table', () => {

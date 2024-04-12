@@ -11,7 +11,7 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
 
   return (
     <Stack hasGutter>
-      <StackItem>
+      <StackItem data-testid="dw-requested-resources">
         <DWSectionCard
           title="Requested resources"
           helpTooltip={
@@ -22,13 +22,13 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => {
           content={<RequestedResources />}
         />
       </StackItem>
-      <StackItem>
+      <StackItem data-testid="dw-top-consuming-workloads">
         <DWSectionCard
           title="Top resource-consuming distributed workloads"
           content={<TopResourceConsumingWorkloads />}
         />
       </StackItem>
-      <StackItem>
+      <StackItem data-testid="dw-workloada-resource-metrics">
         <DWSectionCard
           title="Distributed workload resource metrics"
           hasDivider={false}

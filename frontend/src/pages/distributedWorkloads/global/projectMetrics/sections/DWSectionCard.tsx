@@ -8,7 +8,7 @@ export const DWSectionCard: React.FC<{
   hasDivider?: boolean;
   content: React.ReactNode;
 }> = ({ title, hasDivider = true, helpTooltip, content }) => (
-  <Card isFullHeight className="dw-section-card">
+  <Card isFullHeight>
     <CardHeader>
       <CardTitle>
         {title} {helpTooltip ? <DashboardHelpTooltip content={helpTooltip} /> : null}
