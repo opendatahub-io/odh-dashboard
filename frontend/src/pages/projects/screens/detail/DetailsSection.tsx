@@ -20,8 +20,8 @@ import { ProjectSectionID } from './types';
 type DetailsSectionProps = {
   id: ProjectSectionID;
   actions?: React.ReactNode[];
-  objectType: ProjectObjectType;
-  title: string;
+  objectType?: ProjectObjectType;
+  title?: string;
   description?: string;
   popover?: React.ReactNode;
   isLoading: boolean;
@@ -95,13 +95,19 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
                     gap={{ default: 'gapSm' }}
                     alignItems={{ default: 'alignItemsCenter' }}
                   >
-                    <HeaderIcon type={objectType} />
-                    <FlexItem>
-                      <Title id={`${id}-title`} headingLevel="h2" size="xl">
-                        {title}
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>{popover}</FlexItem>
+                    {objectType ? (
+                      <FlexItem>
+                        <HeaderIcon type={objectType} />
+                      </FlexItem>
+                    ) : null}
+                    {title ? (
+                      <FlexItem>
+                        <Title id={`${id}-title`} headingLevel="h2" size="xl">
+                          {title}
+                        </Title>
+                      </FlexItem>
+                    ) : null}
+                    {popover ? <FlexItem>{popover}</FlexItem> : null}
                   </Flex>
                 </FlexItem>
                 <FlexItem>

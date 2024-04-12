@@ -18,70 +18,21 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceStatus from '~/pages/modelServing/screens/global/InferenceServiceStatus';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import {
-  getInferenceServiceActiveModelState,
-  getInferenceServiceDisplayName,
-} from '~/pages/modelServing/screens/global/utils';
+import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import InferenceServiceServingRuntime from '~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '~/pages/modelServing/screens/global/InferenceServiceEndpoint';
-import { useModelStatus } from '~/pages/modelServing/screens/global/useModelStatus';
-import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
-
-const SUCCESS_STATUSES = [InferenceServiceModelState.LOADED, InferenceServiceModelState.STANDBY];
-const FAILED_STATUSES = [InferenceServiceModelState.FAILED_TO_LOAD];
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
   servingRuntime?: ServingRuntimeKind;
-  onStatus: (service: InferenceServiceKind, isMatch: boolean) => void;
-  showSuccessful: boolean;
-  showFailed: boolean;
-  display: boolean;
 }
 const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   inferenceService,
   servingRuntime,
-  onStatus,
-  showFailed,
-  showSuccessful,
-  display,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const [modelStatus, statusLoaded, statusError] = useModelStatus(
-    inferenceService.metadata.namespace,
-    inferenceService.spec.predictor.model.runtime ?? '',
-    !isModelMesh(inferenceService),
-  );
-
-  React.useEffect(() => {
-    if (!statusLoaded && !statusError) {
-      return;
-    }
-    const state = modelStatus?.failedToSchedule
-      ? InferenceServiceModelState.FAILED_TO_LOAD
-      : getInferenceServiceActiveModelState(inferenceService);
-
-    onStatus(
-      inferenceService,
-      showFailed === showSuccessful ||
-        (showSuccessful && SUCCESS_STATUSES.includes(state)) ||
-        (showFailed && FAILED_STATUSES.includes(state)),
-    );
-  }, [
-    inferenceService,
-    modelStatus,
-    statusLoaded,
-    statusError,
-    showFailed,
-    showSuccessful,
-    onStatus,
-  ]);
-
-  if (!display) {
-    return null;
-  }
 
   const modelMetricsSupported =
     modelMetricsEnabled &&

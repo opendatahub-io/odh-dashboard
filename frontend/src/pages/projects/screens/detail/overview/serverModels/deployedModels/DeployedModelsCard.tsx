@@ -1,12 +1,7 @@
 import * as React from 'react';
 import {
-  Bullseye,
   CardBody,
   CardHeader,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Flex,
   FlexItem,
   Label,
@@ -15,11 +10,10 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
-import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import DeployedModelsGallery from './DeployedModelsGallery';
 
 enum FilterStates {
@@ -28,25 +22,17 @@ enum FilterStates {
 }
 
 interface DeployedModelsCardProps {
+  deployedModels: InferenceServiceKind[];
+  servingRuntimes: ServingRuntimeKind[];
   isMultiPlatform: boolean;
-  namespace?: string;
 }
 
-const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({ isMultiPlatform, namespace }) => {
+const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
+  deployedModels,
+  servingRuntimes,
+  isMultiPlatform,
+}) => {
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
-
-  const renderError = (message?: string): React.ReactElement => (
-    <Bullseye>
-      <EmptyState>
-        <EmptyStateHeader
-          titleText="Problem loading deployed models"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h2"
-        />
-        <EmptyStateBody>{message}</EmptyStateBody>
-      </EmptyState>
-    </Bullseye>
-  );
 
   return (
     <TypeBorderedCard objectType={ProjectObjectType.deployedModels}>
@@ -91,12 +77,13 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({ isMultiPlatform
         </Flex>
       </CardHeader>
       <CardBody>
-        <ModelServingContextProvider namespace={namespace} getErrorComponent={renderError}>
-          <DeployedModelsGallery
-            showSuccessful={!filteredState || filteredState === FilterStates.success}
-            showFailed={!filteredState || filteredState === FilterStates.failed}
-          />
-        </ModelServingContextProvider>
+        <DeployedModelsGallery
+          deployedModels={deployedModels}
+          servingRuntimes={servingRuntimes}
+          showSuccessful={!filteredState || filteredState === FilterStates.success}
+          showFailed={!filteredState || filteredState === FilterStates.failed}
+          onClearFilters={() => setFilteredState(undefined)}
+        />
       </CardBody>
     </TypeBorderedCard>
   );

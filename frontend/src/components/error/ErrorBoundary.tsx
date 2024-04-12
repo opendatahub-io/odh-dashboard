@@ -62,7 +62,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           <ErrorDetails
             title={error.name}
             errorMessage={error.message}
-            componentStack={errorInfo.componentStack}
+            componentStack={errorInfo.componentStack || ''}
             stack={error.stack}
           />
         </div>

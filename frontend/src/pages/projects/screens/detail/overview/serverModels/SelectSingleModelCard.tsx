@@ -2,6 +2,7 @@ import * as React from 'react';
 import { CardBody, Text, TextContent } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
+import { ServingRuntimePlatform } from '~/types';
 import AddModelFooter from './AddModelFooter';
 
 const SelectSingleModelCard: React.FC = () => (
@@ -19,7 +20,7 @@ const SelectSingleModelCard: React.FC = () => (
         </Text>
       </TextContent>
     </CardBody>
-    <AddModelFooter />
+    <AddModelFooter selectedPlatform={ServingRuntimePlatform.SINGLE} />
   </OverviewCard>
 );
 
