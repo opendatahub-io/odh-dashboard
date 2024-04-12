@@ -110,7 +110,8 @@ const initIntercepts = ({
     }
   });
   cy.interceptOdh(
-    'POST /api/proxy/metrics/all/requests',
+    'GET /api/service/trustyai/:namespace/trustyai-service/metrics/all/requests',
+    { path: { namespace: 'test-project' } },
     mockMetricsRequest({ modelName: 'test-inference-service' }),
   );
   cy.interceptK8sList(
@@ -590,27 +591,25 @@ describe('Model Metrics', () => {
     configureBiasMetricModal.findSubmitButton().should('be.disabled');
     configureBiasMetricModal.findMetricBatchSizeInput().clear().type('2');
 
-    cy.interceptOdh('POST /api/proxy/metrics/dir/request', undefined).as('configureBiasMetric');
+    cy.interceptOdh(
+      'POST /api/service/trustyai/:namespace/trustyai-service/metrics/dir/request',
+      { path: { namespace: 'test-project' } },
+      {},
+    ).as('configureBiasMetric');
 
     configureBiasMetricModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@configureBiasMetric').then((interception) => {
       expect(interception.request.body).to.eql({
-        path: '/metrics/dir/request',
-        method: 'POST',
-        host: 'https://test-notebook-test-project.apps.user.com',
-        queryParams: {},
-        data: {
-          modelId: 'test-inference-service',
-          requestName: 'Test Metric',
-          protectedAttribute: 'customer_data_input-3',
-          privilegedAttribute: 1,
-          unprivilegedAttribute: 0,
-          outcomeName: 'predict',
-          favorableOutcome: 1,
-          thresholdDelta: 0.1,
-          batchSize: 20,
-        },
+        modelId: 'test-inference-service',
+        requestName: 'Test Metric',
+        protectedAttribute: 'customer_data_input-3',
+        privilegedAttribute: 1,
+        unprivilegedAttribute: 0,
+        outcomeName: 'predict',
+        favorableOutcome: 1,
+        thresholdDelta: 0.1,
+        batchSize: 20,
       });
     });
   });

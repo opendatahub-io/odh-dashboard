@@ -156,7 +156,7 @@ describe('Pipeline runs', () => {
   describe('Active runs', () => {
     describe('empty state', () => {
       beforeEach(() => {
-        activeRunsTable.mockGetActiveRuns([]);
+        activeRunsTable.mockGetActiveRuns([], projectName);
         pipelineRunsGlobal.visit(projectName, 'active');
       });
 
@@ -172,7 +172,7 @@ describe('Pipeline runs', () => {
 
     describe('with data', () => {
       beforeEach(() => {
-        activeRunsTable.mockGetActiveRuns(mockActiveRuns);
+        activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
         pipelineRunsGlobal.visit(projectName, 'active');
       });
 
@@ -183,10 +183,10 @@ describe('Pipeline runs', () => {
       it('archive a single run', () => {
         const [runToArchive] = mockActiveRuns;
 
-        activeRunsTable.mockArchiveRun(runToArchive.run_id);
+        activeRunsTable.mockArchiveRun(runToArchive.run_id, projectName);
         activeRunsTable.getRowByName(runToArchive.display_name).findKebabAction('Archive').click();
 
-        activeRunsTable.mockGetRuns([mockActiveRuns[1]], [runToArchive]);
+        activeRunsTable.mockGetRuns([mockActiveRuns[1]], [runToArchive], projectName);
         archiveRunModal.findConfirmInput().type(runToArchive.display_name);
         archiveRunModal.findSubmitButton().click();
         activeRunsTable.shouldRowNotBeVisible(runToArchive.display_name);
@@ -197,12 +197,12 @@ describe('Pipeline runs', () => {
 
       it('archive multiple runs', () => {
         mockActiveRuns.forEach((activeRun) => {
-          activeRunsTable.mockArchiveRun(activeRun.run_id);
+          activeRunsTable.mockArchiveRun(activeRun.run_id, projectName);
           activeRunsTable.getRowByName(activeRun.display_name).findCheckbox().click();
         });
 
         activeRunsTable.findActionsKebab().findDropdownItem('Archive').click();
-        activeRunsTable.mockGetRuns([], mockActiveRuns);
+        activeRunsTable.mockGetRuns([], mockActiveRuns, projectName);
         bulkArchiveRunModal.findConfirmInput().type('Archive 3 runs');
         bulkArchiveRunModal.findSubmitButton().click();
         activeRunsTable.findEmptyState().should('exist');
@@ -280,6 +280,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by typed run name)
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
+            projectName,
             1,
           );
 
@@ -290,7 +291,7 @@ describe('Pipeline runs', () => {
 
         it('filter by experiment', () => {
           // Mock initial list of experiments
-          pipelineRunFilterBar.mockExperiments(mockExperiments);
+          pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
 
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
@@ -306,6 +307,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by selected experiment)
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
+            projectName,
             1,
           );
 
@@ -333,6 +335,7 @@ describe('Pipeline runs', () => {
               (mockRun) =>
                 mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
             ),
+            projectName,
             1,
           );
 
@@ -356,6 +359,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by start date), type a start date
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-10')),
+            projectName,
             1,
           );
           pipelineRunsGlobal
@@ -367,7 +371,7 @@ describe('Pipeline runs', () => {
           activeRunsTable.getRowByName('Test active run 3').find().should('exist');
 
           // Mock runs with a cleared filter before updating again
-          activeRunsTable.mockGetRuns(mockActiveRuns, [], 1);
+          activeRunsTable.mockGetRuns(mockActiveRuns, [], projectName, 1);
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunFilterBar.findStartDateInput().clear());
@@ -375,6 +379,7 @@ describe('Pipeline runs', () => {
           // Mock runs with a start date not associated with those runs
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
+            projectName,
             1,
           );
           pipelineRunsGlobal
@@ -397,6 +402,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by a status of 'RUNNING')
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
+            projectName,
             1,
           );
           // Select a filter value of 'RUNNING'
@@ -413,6 +419,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by a status of 'SUCCEEDED')
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
+            projectName,
             1,
           );
           // Select a filter value of 'SUCCEEDED'
@@ -429,6 +436,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by a status of 'CANCELED')
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.CANCELED),
+            projectName,
             1,
           );
           // Select a filter value of 'CANCELED'
@@ -455,14 +463,14 @@ describe('Pipeline runs', () => {
 
   describe('Archived runs', () => {
     it('shows empty state', () => {
-      archivedRunsTable.mockGetArchivedRuns([]);
+      archivedRunsTable.mockGetArchivedRuns([], projectName);
       pipelineRunsGlobal.visit(projectName, 'archived');
       archivedRunsTable.findEmptyState().should('exist');
     });
 
     describe('with data', () => {
       beforeEach(() => {
-        archivedRunsTable.mockGetArchivedRuns(mockArchivedRuns);
+        archivedRunsTable.mockGetArchivedRuns(mockArchivedRuns, projectName);
         pipelineRunsGlobal.visit(projectName, 'archived');
       });
 
@@ -475,13 +483,13 @@ describe('Pipeline runs', () => {
       it('restore a single run', () => {
         const [runToRestore] = mockArchivedRuns;
 
-        archivedRunsTable.mockRestoreRun(runToRestore.run_id);
+        archivedRunsTable.mockRestoreRun(runToRestore.run_id, projectName);
         archivedRunsTable
           .getRowByName(runToRestore.display_name)
           .findKebabAction('Restore')
           .click();
 
-        archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]]);
+        archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]], projectName);
         restoreRunModal.findSubmitButton().click();
         archivedRunsTable.shouldRowNotBeVisible(runToRestore.display_name);
 
@@ -491,11 +499,11 @@ describe('Pipeline runs', () => {
 
       it('restore multiple runs', () => {
         mockArchivedRuns.forEach((archivedRun) => {
-          archivedRunsTable.mockRestoreRun(archivedRun.run_id);
+          archivedRunsTable.mockRestoreRun(archivedRun.run_id, projectName);
           archivedRunsTable.getRowByName(archivedRun.display_name).findCheckbox().click();
         });
         pipelineRunsGlobal.findRestoreRunButton().click();
-        archivedRunsTable.mockGetRuns(mockArchivedRuns, []);
+        archivedRunsTable.mockGetRuns(mockArchivedRuns, [], projectName);
         bulkRestoreRunModal.findSubmitButton().click();
         archivedRunsTable.findEmptyState().should('exist');
 
@@ -521,6 +529,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by typed run name)
           archivedRunsTable.mockGetArchivedRuns(
             mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
+            projectName,
             1,
           );
 
@@ -531,7 +540,7 @@ describe('Pipeline runs', () => {
 
         it('filter by experiment', () => {
           // Mock initial list of experiments
-          pipelineRunFilterBar.mockExperiments(mockExperiments);
+          pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
 
           // Verify initial run rows exist
           archivedRunsTable.findRows().should('have.length', 2);
@@ -547,6 +556,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by selected experiment)
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
+            projectName,
             1,
           );
 
@@ -574,6 +584,7 @@ describe('Pipeline runs', () => {
               (mockRun) =>
                 mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
             ),
+            projectName,
             1,
           );
 
@@ -597,6 +608,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by start date), type a start date
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-05')),
+            projectName,
             1,
           );
           pipelineRunsGlobal
@@ -613,6 +625,7 @@ describe('Pipeline runs', () => {
           // Mock runs with a start date not associated with those runs
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
+            projectName,
             1,
           );
           pipelineRunsGlobal
@@ -635,6 +648,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by a status of 'SUCCEEDED')
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
+            projectName,
             1,
           );
           // Select a filter value of 'SUCCEEDED'
@@ -652,6 +666,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by a status of 'RUNNING')
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
+            projectName,
             1,
           );
           // Select a filter value of 'RUNNING'
@@ -678,7 +693,7 @@ describe('Pipeline runs', () => {
   describe('Schedules', () => {
     describe('empty state', () => {
       beforeEach(() => {
-        pipelineRunJobTable.mockGetJobs([]);
+        pipelineRunJobTable.mockGetJobs([], projectName);
         pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
@@ -693,14 +708,14 @@ describe('Pipeline runs', () => {
     });
 
     it('shows empty state', () => {
-      pipelineRunJobTable.mockGetJobs([]);
+      pipelineRunJobTable.mockGetJobs([], projectName);
       pipelineRunsGlobal.visit(projectName, 'scheduled');
       pipelineRunJobTable.findEmptyState().should('exist');
     });
 
     describe('with data', () => {
       beforeEach(() => {
-        pipelineRunJobTable.mockGetJobs(mockJobs);
+        pipelineRunJobTable.mockGetJobs(mockJobs, projectName);
         pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
@@ -712,7 +727,7 @@ describe('Pipeline runs', () => {
       });
 
       it('can disable a job', () => {
-        pipelineRunJobTable.mockDisableJob(mockJobs[0]).as('disableJob');
+        pipelineRunJobTable.mockDisableJob(mockJobs[0], projectName).as('disableJob');
         pipelineRunJobTable
           .getRowByName(mockJobs[0].display_name)
           .findStatusSwitchByRowName()
@@ -757,6 +772,7 @@ describe('Pipeline runs', () => {
           // Mock jobs (filtered by typed job name)
           pipelineRunJobTable.mockGetJobs(
             mockJobs.filter((mockJob) => mockJob.display_name.includes('test-pipeline')),
+            projectName,
           );
 
           // Verify only rows with the typed job name exist
@@ -787,16 +803,16 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
     },
     buildMockPipelineVersionsV2(mockVersions),
   );

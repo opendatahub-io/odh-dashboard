@@ -158,43 +158,45 @@ export class CreateRunPage {
     cy.findByTestId('pipeline-selector-table-list').find('td').contains(name).click();
   }
 
-  mockGetExperiments(experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
+  mockGetExperiments(namespace: string, experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
     return cy.intercept(
-      { pathname: '/api/proxy/apis/v2beta1/experiments' },
+      { pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments` },
       buildMockExperiments(experiments),
     );
   }
 
-  mockGetPipelines(pipelines: PipelineKFv2[]): Cypress.Chainable<null> {
+  mockGetPipelines(namespace: string, pipelines: PipelineKFv2[]): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        pathname: '/api/proxy/apis/v2beta1/pipelines',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines`,
       },
       buildMockPipelines(pipelines),
     );
   }
 
   mockGetPipelineVersions(
+    namespace: string,
     versions: PipelineVersionKFv2[],
     pipelineId: string,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
       },
       buildMockPipelineVersionsV2(versions),
     );
   }
 
   mockCreateRun(
+    namespace: string,
     pipelineVersion: PipelineVersionKFv2,
     { run_id, ...run }: Partial<PipelineRunKFv2>,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/runs',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs`,
         times: 1,
       },
       (req) => {
@@ -206,8 +208,8 @@ export class CreateRunPage {
           ...run,
         };
 
-        expect(req.body.data.display_name).to.equal(run.display_name);
-        expect(JSON.stringify(req.body.data.runtime_config)).to.equal(
+        expect(req.body.display_name).to.equal(run.display_name);
+        expect(JSON.stringify(req.body.runtime_config)).to.equal(
           JSON.stringify(run.runtime_config),
         );
         req.reply(buildMockRunKF({ ...data, run_id }));
@@ -216,13 +218,14 @@ export class CreateRunPage {
   }
 
   mockCreateRecurringRun(
+    namespace: string,
     pipelineVersion: PipelineVersionKFv2,
     { recurring_run_id, ...recurringRun }: Partial<PipelineRunJobKFv2>,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/recurringruns',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns`,
         times: 1,
       },
       (req) => {
@@ -236,8 +239,8 @@ export class CreateRunPage {
           ...recurringRun,
         };
 
-        expect(req.body.data.display_name).to.equal(recurringRun.display_name);
-        expect(JSON.stringify(req.body.data.runtime_config)).to.equal(
+        expect(req.body.display_name).to.equal(recurringRun.display_name);
+        expect(JSON.stringify(req.body.runtime_config)).to.equal(
           JSON.stringify(recurringRun.runtime_config),
         );
         req.reply(buildMockJobKF({ ...data, recurring_run_id }));

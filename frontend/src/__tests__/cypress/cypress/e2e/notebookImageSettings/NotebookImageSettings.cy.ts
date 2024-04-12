@@ -319,9 +319,7 @@ describe('Notebook images', () => {
     importNotebookImageModal.findNameInput().type('test name');
     importNotebookImageModal.findSubmitButton().click();
 
-    cy.wait('@createError').then((interception) => {
-      expect(interception.request.method).to.eql('POST');
-    });
+    cy.wait('@createError');
 
     importNotebookImageModal.findErrorMessageAlert().should('exist');
     importNotebookImageModal.findCloseButton().click();
@@ -330,9 +328,7 @@ describe('Notebook images', () => {
     notebookImageSettings.getRow('Testing Custom Image').find().findKebabAction('Edit').click();
     updateNotebookImageModal.findSubmitButton().click();
 
-    cy.wait('@editError').then((interception) => {
-      expect(interception.request.method).to.eql('PUT');
-    });
+    cy.wait('@editError');
 
     updateNotebookImageModal.findErrorMessageAlert().should('exist');
     updateNotebookImageModal.findCloseButton().click();

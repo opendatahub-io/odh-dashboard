@@ -1,5 +1,4 @@
 import React from 'react';
-import useTrustyAIAPIRoute from '~/concepts/trustyai/useTrustyAIAPIRoute';
 import useTrustyAINamespaceCR, {
   isTrustyAIAvailable,
   taiHasServerTimedOut,
@@ -43,7 +42,7 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   namespace,
 }) => {
   const crState = useTrustyAINamespaceCR(namespace);
-  const [explainabilityNamespaceCR, crLoaded, crLoadError, refreshCR] = crState;
+  const [trustyNamespaceCR, crLoaded, crLoadError, refreshCR] = crState;
   const isCRReady = isTrustyAIAvailable(crState);
   const [disableTimeout, setDisableTimeout] = React.useState(false);
   const serverTimedOut = !disableTimeout && taiHasServerTimedOut(crState, isCRReady);
@@ -51,19 +50,11 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
     setDisableTimeout(true);
   }, []);
 
-  const [routeHost, routeLoaded, routeLoadError, refreshRoute] = useTrustyAIAPIRoute(
-    isCRReady,
-    namespace,
-  );
+  const taisName = trustyNamespaceCR?.metadata.name;
 
-  const hostPath = routeLoaded && routeHost ? routeHost : null;
+  const hostPath = namespace && taisName ? `/api/service/trustyai/${namespace}/${taisName}` : null;
 
-  const refreshState = React.useCallback(
-    () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
-    [refreshRoute, refreshCR],
-  );
-
-  const serviceLoadError = crLoadError || routeLoadError;
+  const refreshState = React.useCallback(() => refreshCR().then(() => undefined), [refreshCR]);
 
   const [apiState, refreshAPIState] = useTrustyAIAPIState(hostPath);
 
@@ -72,11 +63,11 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   const contextValue = React.useMemo(
     () => ({
       namespace,
-      hasCR: !!explainabilityNamespaceCR,
+      hasCR: !!trustyNamespaceCR,
       crInitializing: !crLoaded,
       serverTimedOut,
       ignoreTimedOut,
-      serviceLoadError,
+      crLoadError,
       refreshState,
       refreshAPIState,
       apiState,
@@ -84,11 +75,11 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
     }),
     [
       namespace,
-      explainabilityNamespaceCR,
+      trustyNamespaceCR,
       crLoaded,
       serverTimedOut,
       ignoreTimedOut,
-      serviceLoadError,
+      crLoadError,
       refreshState,
       refreshAPIState,
       apiState,

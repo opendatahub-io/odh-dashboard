@@ -1015,3 +1015,9 @@ export type DSPipelineKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+export type TrustyAIKind = K8sResourceCommon & {
+  status?: {
+    conditions?: K8sCondition[];
+  };
+};

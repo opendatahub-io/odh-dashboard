@@ -50,12 +50,12 @@ describe('Experiments', () => {
   describe('Active experiments', () => {
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments(mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       experimentsTabs.visit(projectName);
     });
 
     it('shows empty states', () => {
-      experimentsTabs.mockGetExperiments([]);
+      experimentsTabs.mockGetExperiments(projectName, []);
       experimentsTabs.visit(projectName);
       experimentsTabs.findActiveTab().click();
       experimentsTabs.getActiveExperimentsTable().findEmptyState().should('exist');
@@ -74,6 +74,7 @@ describe('Experiments', () => {
 
       // Mock experiments (filtered by typed experiment name)
       experimentsTabs.mockGetExperiments(
+        projectName,
         mockExperiments.filter((exp) => exp.display_name.includes('Test experiment 2')),
       );
 
@@ -91,13 +92,14 @@ describe('Experiments', () => {
 
       const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
 
-      activeExperimentsTable.mockArchiveExperiment(experimentToArchive.experiment_id);
+      activeExperimentsTable.mockArchiveExperiment(experimentToArchive.experiment_id, projectName);
       activeExperimentsTable
         .getRowByName(experimentToArchive.display_name)
         .findKebabAction('Archive')
         .click();
 
       experimentsTabs.mockGetExperiments(
+        projectName,
         [mockExperiments[1], mockExperiments[2]],
         [experimentToArchive],
       );
@@ -116,12 +118,12 @@ describe('Experiments', () => {
     it('archive multiple experiments', () => {
       const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
       mockExperiments.forEach((activeExperiment) => {
-        activeExperimentsTable.mockArchiveExperiment(activeExperiment.experiment_id);
+        activeExperimentsTable.mockArchiveExperiment(activeExperiment.experiment_id, projectName);
         activeExperimentsTable.getRowByName(activeExperiment.display_name).findCheckbox().click();
       });
 
       activeExperimentsTable.findActionsKebab().findDropdownItem('Archive').click();
-      experimentsTabs.mockGetExperiments([], mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
       bulkArchiveExperimentModal.findConfirmInput().type('Archive 3 experiments');
       bulkArchiveExperimentModal.findSubmitButton().click();
       activeExperimentsTable.findEmptyState().should('exist');
@@ -140,7 +142,7 @@ describe('Experiments', () => {
   describe('Archived experiments', () => {
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments([], mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
       experimentsTabs.visit(projectName);
       experimentsTabs.findArchivedTab().click();
     });
@@ -149,13 +151,17 @@ describe('Experiments', () => {
 
       const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
 
-      archivedExperimentsTable.mockRestoreExperiment(experimentToRestore.experiment_id);
+      archivedExperimentsTable.mockRestoreExperiment(
+        experimentToRestore.experiment_id,
+        projectName,
+      );
       archivedExperimentsTable
         .getRowByName(experimentToRestore.display_name)
         .findKebabAction('Restore')
         .click();
 
       experimentsTabs.mockGetExperiments(
+        projectName,
         [experimentToRestore],
         [mockExperiments[1], mockExperiments[2]],
       );
@@ -173,14 +179,17 @@ describe('Experiments', () => {
     it('restore multiple experiments', () => {
       const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
       mockExperiments.forEach((archivedExperiment) => {
-        archivedExperimentsTable.mockRestoreExperiment(archivedExperiment.experiment_id);
+        archivedExperimentsTable.mockRestoreExperiment(
+          archivedExperiment.experiment_id,
+          projectName,
+        );
         archivedExperimentsTable
           .getRowByName(archivedExperiment.display_name)
           .findCheckbox()
           .click();
       });
       archivedExperimentsTable.findRestoreExperimentButton().click();
-      experimentsTabs.mockGetExperiments(mockExperiments, []);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments, []);
       bulkRestoreExperimentModal.findSubmitButton().click();
       archivedExperimentsTable.findEmptyState().should('exist');
 
@@ -201,7 +210,7 @@ describe('Experiments', () => {
 
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments(mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       experimentsTabs.visit(projectName);
       activeExperimentsTable.getRowByName(mockExperiment.display_name).find().find('a').click();
     });
@@ -264,7 +273,7 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([initialMockPipeline]),
   );
@@ -272,20 +281,20 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipeline_versions',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipeline_versions`,
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/runs',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
     },
     { runs: [] },
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/recurringruns',
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
     },
     {
       recurringRuns: [],
@@ -293,7 +302,7 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/experiments/${mockExperiments[0].experiment_id}`,
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${mockExperiments[0].experiment_id}`,
     },
     mockExperiments[0],
   );

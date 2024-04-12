@@ -48,41 +48,41 @@ class PipelinesTable {
     return cy.findByTestId('global-no-pipelines').should('exist');
   }
 
-  mockDeletePipeline(pipeline: PipelineKFv2) {
+  mockDeletePipeline(pipeline: PipelineKFv2, namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipeline.pipeline_id}`,
+        method: 'DELETE',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipeline.pipeline_id}`,
       },
       {},
     );
   }
 
-  mockDeletePipelineVersion(version: PipelineVersionKFv2) {
+  mockDeletePipelineVersion(version: PipelineVersionKFv2, namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines/${version.pipeline_id}/versions/${version.pipeline_version_id}`,
+        method: 'DELETE',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${version.pipeline_id}/versions/${version.pipeline_version_id}`,
       },
       {},
     );
   }
 
-  mockGetPipelines(pipelines: PipelineKFv2[]) {
+  mockGetPipelines(pipelines: PipelineKFv2[], namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/pipelines',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines`,
       },
       buildMockPipelines(pipelines),
     );
   }
 
-  mockGetPipelineVersions(versions: PipelineVersionKFv2[], pipelineId: string) {
+  mockGetPipelineVersions(versions: PipelineVersionKFv2[], pipelineId: string, namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
       },
       buildMockPipelineVersionsV2(versions),
     );

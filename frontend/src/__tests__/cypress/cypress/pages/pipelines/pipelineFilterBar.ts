@@ -69,11 +69,11 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     cy.findByTestId('experiment-search-select').findSelectOption(name).click();
   }
 
-  mockExperiments(experiments: ExperimentKFv2[]) {
+  mockExperiments(experiments: ExperimentKFv2[], namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/experiments',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments`,
       },
       {
         experiments,

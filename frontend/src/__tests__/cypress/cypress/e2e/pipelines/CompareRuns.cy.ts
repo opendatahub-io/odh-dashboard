@@ -75,7 +75,7 @@ describe('Compare runs', () => {
   it('valid number of runs but it is invalid', () => {
     cy.intercept(
       {
-        pathname: `/api/proxy/apis/v2beta1/runs/invalid_run_id`,
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/invalid_run_id`,
       },
       { statusCode: 404 },
     ).as('invalidRun');
@@ -87,7 +87,7 @@ describe('Compare runs', () => {
   it('invalid runs are removed from url', () => {
     cy.intercept(
       {
-        pathname: `/api/proxy/apis/v2beta1/runs/invalid_run_id`,
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/invalid_run_id`,
       },
       { statusCode: 404 },
     ).as('invalidRun');
@@ -113,7 +113,7 @@ describe('Compare runs', () => {
     };
     cy.intercept(
       {
-        pathname: `/api/proxy/apis/v2beta1/runs/invalid_run_id`,
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/invalid_run_id`,
       },
       errorRun,
     ).as('invalidRun');
@@ -158,7 +158,7 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([initialMockPipeline]),
   );
@@ -166,25 +166,25 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipeline_versions',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipeline_versions`,
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/experiments/${mockExperiment.experiment_id}`,
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${mockExperiment.experiment_id}`,
     },
     mockExperiment,
   );
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/runs/${mockRun.run_id}`,
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${mockRun.run_id}`,
     },
     mockRun,
   ).as('validRun');
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/runs/${mockRun2.run_id}`,
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${mockRun2.run_id}`,
     },
     mockRun2,
   );

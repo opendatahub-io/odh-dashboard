@@ -192,34 +192,60 @@ declare global {
         response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
       ): Cypress.Chainable<null>;
 
-      // proxied GET<BaseMetricListResponse>
       interceptOdh(
-        type: 'POST /api/proxy/metrics/all/requests',
+        type: 'GET /api/service/trustyai/:namespace/trustyai-service/metrics/all/requests',
+        options: {
+          path: { namespace: string };
+        },
         response: OdhResponse<BaseMetricListResponse>,
       ): Cypress.Chainable<null>;
 
-      // proxied GET<BaseMetricListResponse>
       interceptOdh(
-        type: 'POST /api/proxy/metrics/spd/requests',
+        type: 'GET /api/service/trustyai/:namespace/trustyai-service/metrics/spd/requests',
+        options: {
+          path: { namespace: string };
+        },
         response: OdhResponse<BaseMetricListResponse>,
       ): Cypress.Chainable<null>;
 
-      // proxied POST<BaseMetricListResponse> DELETE<undefined>
       interceptOdh(
-        type: 'POST /api/proxy/metrics/spd/request',
-        response: OdhResponse<BaseMetricListResponse | undefined>,
-      ): Cypress.Chainable<null>;
-
-      // proxied GET<BaseMetricListResponse>
-      interceptOdh(
-        type: 'POST /api/proxy/metrics/dir/requests',
+        type: 'POST /api/service/trustyai/:namespace/trustyai-service/metrics/spd/request',
+        options: {
+          path: { namespace: string };
+        },
         response: OdhResponse<BaseMetricListResponse>,
       ): Cypress.Chainable<null>;
 
-      // proxied POST<BaseMetricCreationResponse> DELETE<undefined>
       interceptOdh(
-        type: 'POST /api/proxy/metrics/dir/request',
-        response: OdhResponse<BaseMetricCreationResponse | undefined>,
+        type: 'DELETE /api/service/trustyai/:namespace/trustyai-service/metrics/spd/request',
+        options: {
+          path: { namespace: string };
+        },
+        response: OdhResponse<undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/service/trustyai/:namespace/trustyai-service/metrics/dir/requests',
+        options: {
+          path: { namespace: string };
+        },
+        response: OdhResponse<BaseMetricListResponse>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'POST /api/service/trustyai/:namespace/trustyai-service/metrics/dir/request',
+        options: {
+          path: { namespace: string };
+        },
+        response: OdhResponse<BaseMetricCreationResponse>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'DELETE /api/service/trustyai/:namespace/trustyai-service/metrics/dir/request',
+        options: {
+          path: { namespace: string };
+        },
+        response: OdhResponse<undefined>,
       ): Cypress.Chainable<null>;
     }
   }
