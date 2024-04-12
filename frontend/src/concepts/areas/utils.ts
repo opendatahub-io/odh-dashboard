@@ -99,5 +99,7 @@ export const isAreaAvailable = (
     featureFlags: featureFlagState,
     requiredComponents: requiredComponentsState,
     requiredCapabilities: requiredCapabilitiesState,
+    customCondition: (conditionFunc) =>
+      conditionFunc({ dashboardConfigSpec, dscStatus, dsciStatus }),
   };
 };

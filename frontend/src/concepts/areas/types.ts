@@ -1,5 +1,10 @@
 import { EitherOrBoth } from '~/typeHelpers';
-import { DashboardCommonConfig } from '~/k8sTypes';
+import {
+  DashboardCommonConfig,
+  DashboardConfigKind,
+  DataScienceClusterInitializationKindStatus,
+  DataScienceClusterKindStatus,
+} from '~/k8sTypes';
 
 // TODO: clean up this definition / update the DashboardConfig to a better state
 export type FeatureFlag = keyof Omit<DashboardCommonConfig, 'modelMetricsNamespace'>;
@@ -12,6 +17,7 @@ export type IsAreaAvailableStatus = {
   reliantAreas: { [key in SupportedArea]?: boolean } | null; // only needs 1 to be true
   requiredComponents: { [key in StackComponent]?: boolean } | null;
   requiredCapabilities: { [key in StackCapability]?: boolean } | null;
+  customCondition: (conditionFunc: CustomConditionFunction) => boolean;
 };
 
 /** All areas that we need to support in some fashion or another */
@@ -71,6 +77,22 @@ export enum StackCapability {
   SERVICE_MESH = 'CapabilityServiceMesh',
   SERVICE_MESH_AUTHZ = 'CapabilityServiceMeshAuthorization',
 }
+
+/**
+ * Optional function to check for a condition that is not covered by other checks.
+ *
+ * Example, checking there exists a specific condition in the DSC status.
+ *
+ * @param state.dashboardConfigSpec The dashboard config spec
+ * @param state.dscStatus The data science cluster status
+ * @param state.dsciStatus The data science cluster initialization status
+ * @returns True if the condition is met, false otherwise
+ */
+export type CustomConditionFunction = (state: {
+  dashboardConfigSpec: DashboardConfigKind['spec'];
+  dscStatus: DataScienceClusterKindStatus | null;
+  dsciStatus: DataScienceClusterInitializationKindStatus | null;
+}) => boolean;
 
 // TODO: Support extra operators, like the pipelines operator -- maybe as a "external dependency need?"
 type SupportedComponentFlagValue = {
