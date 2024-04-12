@@ -52,9 +52,10 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   return (
     <FormGroup isRequired label="Image selection" fieldId="workbench-image-stream-selection">
       <SimpleDropdownSelect
+        isScrollable
         isFullWidth
         id="workbench-image-stream-selection"
-        data-testid="workbench-image-stream-selection"
+        dataTestId="workbench-image-stream-selection"
         aria-label="Select an image"
         options={options}
         placeholder="Select one"

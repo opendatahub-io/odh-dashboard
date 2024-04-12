@@ -234,8 +234,11 @@ class CreateSpawnerPage {
     );
   }
 
-  selectNotebookImage(name: string) {
-    cy.findByTestId('workbench-image-stream-selection').findDropdownItem(name).click();
+  findNotebookImage(name: string) {
+    return cy
+      .findByTestId('workbench-image-stream-selection')
+      .findDropdownItemByTestId(`dropdown-item ${name}`)
+      .scrollIntoView();
   }
 
   selectContainerSize(name: string) {

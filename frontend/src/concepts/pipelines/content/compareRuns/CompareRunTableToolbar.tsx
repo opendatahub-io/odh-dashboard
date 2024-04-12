@@ -91,7 +91,7 @@ const CompareRunTableToolbar: React.FC<FilterProps> = ({ ...toolbarProps }) => {
               label: v,
             }))}
             onChange={(v) => onChange(v)}
-            data-testid="runtime-status-dropdown"
+            dataTestId="runtime-status-dropdown"
           />
         ),
       }}

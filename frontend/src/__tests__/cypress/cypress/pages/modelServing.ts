@@ -160,7 +160,7 @@ class ServingRuntimeModal extends Modal {
   }
 
   findServingRuntimeTemplateDropdown() {
-    return this.find().find('#serving-runtime-template-selection');
+    return this.find().findByTestId('serving-runtime-template-selection');
   }
 
   findModelRouteCheckbox() {
