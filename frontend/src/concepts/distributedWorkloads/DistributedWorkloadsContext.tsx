@@ -29,7 +29,7 @@ type DistributedWorkloadsContextType = {
 
 type DistributedWorkloadsContextProviderProps = {
   children: React.ReactNode;
-  namespace?: string;
+  namespace: string;
 };
 
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
