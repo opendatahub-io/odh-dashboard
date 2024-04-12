@@ -26,10 +26,6 @@ import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipelineV2();
-const mockNoVersionPipeline = buildMockPipelineV2({
-  pipeline_id: 'no-version-pipeline',
-  display_name: 'No version pipeline',
-});
 const mockPipelineVersion = buildMockPipelineVersionV2({ pipeline_id: mockPipeline.pipeline_id });
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -78,7 +74,7 @@ describe('Pipeline create runs', () => {
         cy.intercept(
           {
             method: 'POST',
-            pathname: `/api/proxy/apis/v2beta1/experiments/${experiment.experiment_id}`,
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${experiment.experiment_id}`,
           },
           experiment,
         );
@@ -87,9 +83,13 @@ describe('Pipeline create runs', () => {
 
     it('switches to scheduled runs from triggered', () => {
       // Mock experiments, pipelines & versions for form select dropdowns
-      createRunPage.mockGetExperiments(mockExperiments);
-      createRunPage.mockGetPipelines([mockPipeline]);
-      createRunPage.mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id);
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
@@ -114,9 +114,13 @@ describe('Pipeline create runs', () => {
       };
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      createRunPage.mockGetExperiments(mockExperiments);
-      createRunPage.mockGetPipelines([mockPipeline]);
-      createRunPage.mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id);
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
@@ -137,28 +141,24 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('radio-min_max_scaler-false').click();
       paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
       paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
-      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRun');
+      createRunPage
+        .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+        .as('createRun');
       createRunPage.submit();
 
       cy.wait('@createRun').then((interception) => {
         expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/runs',
-          method: 'POST',
-          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-          queryParams: {},
-          data: {
-            display_name: 'New run',
-            description: 'New run description',
-            pipeline_version_reference: {
-              pipeline_id: 'test-pipeline',
-              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
-            },
-            runtime_config: {
-              parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'yes' },
-            },
-            service_account: '',
-            experiment_id: 'experiment-1',
+          display_name: 'New run',
+          description: 'New run description',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
           },
+          runtime_config: {
+            parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'yes' },
+          },
+          service_account: '',
+          experiment_id: 'experiment-1',
         });
       });
 
@@ -176,17 +176,20 @@ describe('Pipeline create runs', () => {
       });
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      cloneRunPage.mockGetExperiments(mockExperiments);
-      cloneRunPage.mockGetPipelines([mockPipeline, mockNoVersionPipeline]);
-      cloneRunPage.mockGetPipelineVersions([mockPipelineVersion], mockPipelineVersion.pipeline_id);
-      cloneRunPage.mockGetPipelineVersions([], mockNoVersionPipeline.pipeline_id);
-      cloneRunPage.mockGetRun(mockRun);
-      cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
-      cloneRunPage.mockGetPipeline(mockPipeline);
-      cloneRunPage.mockGetExperiment(mockExperiment);
+      cloneRunPage.mockGetExperiments(projectName, mockExperiments);
+      cloneRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      cloneRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+      cloneRunPage.mockGetRun(projectName, mockRun);
+      cloneRunPage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      cloneRunPage.mockGetPipeline(projectName, mockPipeline);
+      cloneRunPage.mockGetExperiment(projectName, mockExperiment);
 
       // Mock runs list with newly cloned run
-      activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun]);
+      activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun], projectName);
 
       // Navigate to clone run page for a given active run
       pipelineRunsGlobal.findActiveRunsTab().click();
@@ -204,35 +207,24 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
       paramsSection.findParamById('standard_scaler').should('have.value', 'false');
 
-      // Verify switch to a no-version pipeline will show the correct result
-      cloneRunPage.findPipelineSelect().click();
-      cloneRunPage.selectPipelineByName(mockNoVersionPipeline.display_name);
-      cloneRunPage.findPipelineVersionSelect().should('be.disabled');
-
-      cloneRunPage.findPipelineSelect().click();
-      cloneRunPage.selectPipelineByName(mockPipeline.display_name);
-      cloneRunPage.mockCreateRun(mockPipelineVersion, mockDuplicateRun).as('duplicateRun');
+      cloneRunPage
+        .mockCreateRun(projectName, mockPipelineVersion, mockDuplicateRun)
+        .as('duplicateRun');
       cloneRunPage.submit();
 
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/runs',
-          method: 'POST',
-          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-          queryParams: {},
-          data: {
-            display_name: 'Duplicate of Test run',
-            description: '',
-            pipeline_version_reference: {
-              pipeline_id: 'test-pipeline',
-              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
-            },
-            runtime_config: {
-              parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: false },
-            },
-            service_account: '',
-            experiment_id: 'experiment-1',
+          display_name: 'Duplicate of Test run',
+          description: '',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
           },
+          runtime_config: {
+            parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: false },
+          },
+          service_account: '',
+          experiment_id: 'experiment-1',
         });
       });
 
@@ -258,9 +250,10 @@ describe('Pipeline create runs', () => {
       };
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      createRunPage.mockGetExperiments(mockExperiments);
-      createRunPage.mockGetPipelines([mockPipeline]);
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
       createRunPage.mockGetPipelineVersions(
+        projectName,
         [
           {
             ...mockPipelineVersion,
@@ -339,26 +332,22 @@ describe('Pipeline create runs', () => {
 
       // Clear optional parameter then submit
       paramsSection.findParamById('double_param').clear();
-      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRuns');
+      createRunPage
+        .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+        .as('createRuns');
       createRunPage.submit();
 
       cy.wait('@createRuns').then((interception) => {
         expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/runs',
-          method: 'POST',
-          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-          queryParams: {},
-          data: {
-            display_name: 'New run',
-            description: '',
-            pipeline_version_reference: {
-              pipeline_id: 'test-pipeline',
-              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
-            },
-            runtime_config: createRunParams.runtime_config,
-            service_account: '',
-            experiment_id: 'experiment-1',
+          display_name: 'New run',
+          description: '',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
           },
+          runtime_config: createRunParams.runtime_config,
+          service_account: '',
+          experiment_id: 'experiment-1',
         });
       });
 
@@ -384,9 +373,10 @@ describe('Pipeline create runs', () => {
       };
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      createRunPage.mockGetExperiments(mockExperiments);
-      createRunPage.mockGetPipelines([mockPipeline]);
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
       createRunPage.mockGetPipelineVersions(
+        projectName,
         [
           {
             ...mockPipelineVersion,
@@ -455,26 +445,22 @@ describe('Pipeline create runs', () => {
       paramsSection.fillParamInputById('list_param', JSON.stringify(parameters.list_param));
       paramsSection.findParamById('radio-bool_param-false').click();
 
-      createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRuns');
+      createRunPage
+        .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+        .as('createRuns');
       createRunPage.submit();
 
       cy.wait('@createRuns').then((interception) => {
         expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/runs',
-          method: 'POST',
-          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-          queryParams: {},
-          data: {
-            display_name: 'New run',
-            description: '',
-            pipeline_version_reference: {
-              pipeline_id: 'test-pipeline',
-              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
-            },
-            runtime_config: createRunParams.runtime_config,
-            service_account: '',
-            experiment_id: 'experiment-1',
+          display_name: 'New run',
+          description: '',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
           },
+          runtime_config: createRunParams.runtime_config,
+          service_account: '',
+          experiment_id: 'experiment-1',
         });
       });
       // Should be redirected to the run details page
@@ -487,8 +473,8 @@ describe('Pipeline create runs', () => {
       mockExperiments.forEach((experiment) => {
         cy.intercept(
           {
-            method: 'POST',
-            pathname: `/api/proxy/apis/v2beta1/experiments/${experiment.experiment_id}`,
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${experiment.experiment_id}`,
           },
           experiment,
         );
@@ -499,9 +485,10 @@ describe('Pipeline create runs', () => {
 
     it('switches to scheduled runs from triggered', () => {
       // Mock experiments, pipelines & versions for form select dropdowns
-      createSchedulePage.mockGetExperiments(mockExperiments);
-      createSchedulePage.mockGetPipelines([mockPipeline]);
+      createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
       createSchedulePage.mockGetPipelineVersions(
+        projectName,
         [mockPipelineVersion],
         mockPipelineVersion.pipeline_id,
       );
@@ -529,9 +516,10 @@ describe('Pipeline create runs', () => {
       };
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      createSchedulePage.mockGetExperiments(mockExperiments);
-      createSchedulePage.mockGetPipelines([mockPipeline]);
+      createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
       createSchedulePage.mockGetPipelineVersions(
+        projectName,
         [mockPipelineVersion],
         mockPipelineVersion.pipeline_id,
       );
@@ -556,33 +544,27 @@ describe('Pipeline create runs', () => {
       paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
       paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
       createSchedulePage
-        .mockCreateRecurringRun(mockPipelineVersion, createRecurringRunParams)
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
         .as('createSchedule');
       createSchedulePage.submit();
 
       cy.wait('@createSchedule').then((interception) => {
         expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/recurringruns',
-          method: 'POST',
-          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-          queryParams: {},
-          data: {
-            display_name: 'New job',
-            description: 'New job description',
-            pipeline_version_reference: {
-              pipeline_id: 'test-pipeline',
-              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
-            },
-            runtime_config: {
-              parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'no' },
-            },
-            trigger: { periodic_schedule: { interval_second: '604800' } },
-            max_concurrency: '10',
-            mode: 'ENABLE',
-            no_catchup: false,
-            service_account: '',
-            experiment_id: 'experiment-1',
+          display_name: 'New job',
+          description: 'New job description',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
           },
+          runtime_config: {
+            parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'no' },
+          },
+          trigger: { periodic_schedule: { interval_second: '604800' } },
+          max_concurrency: '10',
+          mode: 'ENABLE',
+          no_catchup: false,
+          service_account: '',
+          experiment_id: 'experiment-1',
         });
       });
 
@@ -602,16 +584,17 @@ describe('Pipeline create runs', () => {
       });
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      cloneSchedulePage.mockGetExperiments(mockExperiments);
-      cloneSchedulePage.mockGetPipelines([mockPipeline]);
+      cloneSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      cloneSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
       cloneSchedulePage.mockGetPipelineVersions(
+        projectName,
         [mockPipelineVersion],
         mockPipelineVersion.pipeline_id,
       );
-      cloneSchedulePage.mockGetRecurringRun(mockRecurringRun);
-      cloneSchedulePage.mockGetPipelineVersion(mockPipelineVersion);
-      cloneSchedulePage.mockGetPipeline(mockPipeline);
-      cloneSchedulePage.mockGetExperiment(mockExperiment);
+      cloneSchedulePage.mockGetRecurringRun(projectName, mockRecurringRun);
+      cloneSchedulePage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      cloneSchedulePage.mockGetPipeline(projectName, mockPipeline);
+      cloneSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
       // Navigate to clone run page for a given schedule
       pipelineRunJobTable
@@ -633,39 +616,33 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('neighbors').find('input').should('have.value', '0');
       paramsSection.findParamById('standard_scaler').should('have.value', 'yes');
       cloneSchedulePage
-        .mockCreateRecurringRun(mockPipelineVersion, mockDuplicateRecurringRun)
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, mockDuplicateRecurringRun)
         .as('duplicateSchedule');
       cloneSchedulePage.submit();
 
       cy.wait('@duplicateSchedule').then((interception) => {
         expect(interception.request.body).to.eql({
-          path: '/apis/v2beta1/recurringruns',
-          method: 'POST',
-          host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-          queryParams: {},
-          data: {
-            display_name: 'Duplicate of Test job',
-            description: '',
-            pipeline_version_reference: {
-              pipeline_id: 'test-pipeline',
-              pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
-            },
-            runtime_config: {
-              parameters: { min_max_scaler: false, neighbors: 0, standard_scaler: 'yes' },
-            },
-            trigger: {
-              periodic_schedule: {
-                interval_second: '60',
-                start_time: '2024-02-08T14:56:00.000Z',
-                end_time: '2024-02-08T15:00:00.000Z',
-              },
-            },
-            max_concurrency: '10',
-            mode: 'ENABLE',
-            no_catchup: false,
-            service_account: '',
-            experiment_id: 'experiment-1',
+          display_name: 'Duplicate of Test job',
+          description: '',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
           },
+          runtime_config: {
+            parameters: { min_max_scaler: false, neighbors: 0, standard_scaler: 'yes' },
+          },
+          trigger: {
+            periodic_schedule: {
+              interval_second: '60',
+              start_time: '2024-02-08T14:56:00.000Z',
+              end_time: '2024-02-08T15:00:00.000Z',
+            },
+          },
+          max_concurrency: '10',
+          mode: 'ENABLE',
+          no_catchup: false,
+          service_account: '',
+          experiment_id: 'experiment-1',
         });
       });
 
@@ -751,16 +728,16 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/recurringruns',
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
     },
     { recurringRuns: initialMockRecurringRuns, total_size: initialMockRecurringRuns.length },
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/runs',
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
     },
     { runs: initialMockRuns, total_size: initialMockRuns.length },
   );

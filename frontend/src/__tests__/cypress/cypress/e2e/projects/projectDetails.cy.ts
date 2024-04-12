@@ -225,8 +225,8 @@ const initIntercepts = ({
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      method: 'GET',
+      pathname: `/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines(isEmpty ? [] : [mockPipelineKFv2({})]),
   );

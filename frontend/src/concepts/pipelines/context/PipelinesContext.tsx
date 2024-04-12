@@ -83,15 +83,15 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     setDisableTimeout(true);
   }, []);
   const dspaName = pipelineNamespaceCR?.metadata.name;
-
   const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
     dspaName ?? '',
     namespace,
   );
 
-  const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
-  useManageElyraSecret(namespace, pipelineNamespaceCR, hostPath);
+  const routeHost = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
+  const hostPath = namespace && dspaName ? `/api/service/pipelines/${namespace}/${dspaName}` : null;
+  useManageElyraSecret(namespace, pipelineNamespaceCR, routeHost);
 
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
@@ -99,7 +99,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 
   const metadataStoreServiceClient = React.useMemo(
-    () => new MetadataStoreServicePromiseClient(`/api/mlmd/${namespace}/${dspaName}`),
+    () => new MetadataStoreServicePromiseClient(`/api/service/mlmd/${namespace}/${dspaName}`),
     [namespace, dspaName],
   );
 

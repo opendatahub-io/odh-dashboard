@@ -83,8 +83,8 @@ describe('PipelinesList', () => {
     );
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/pipelines',
+        method: 'GET',
+        pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines',
       },
       buildMockPipelines([]),
     ).as('pipelines');
@@ -93,11 +93,9 @@ describe('PipelinesList', () => {
     pipelinesSection.findImportPipelineSplitButton().should('be.enabled').click();
 
     cy.wait('@pipelines').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines',
-        method: 'GET',
-        host: 'https://ds-pipeline-dspa-test-project.apps.user.com',
-        queryParams: { sort_by: 'created_at desc', page_size: 5 },
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '5',
       });
     });
 
@@ -134,15 +132,15 @@ describe('PipelinesList', () => {
     );
     cy.intercept(
       {
-        pathname: '/api/proxy/apis/v2beta1/pipelines',
+        pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines',
       },
       buildMockPipelines([initialMockPipeline]),
     );
 
     cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
       },
       buildMockPipelineVersionsV2([initialMockPipelineVersion]),
     );

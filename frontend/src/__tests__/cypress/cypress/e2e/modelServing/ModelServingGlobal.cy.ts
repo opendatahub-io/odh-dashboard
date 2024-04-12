@@ -314,7 +314,6 @@ describe('Model Serving Global', () => {
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
       delete servingRuntimeMock.spec.replicas;
       expect(interception.request.url).to.include('?dryRun=All'); //dry run request
-      expect(interception.request.method).to.eql('PUT');
       expect(interception.request.body).to.eql(servingRuntimeMock);
     });
   });

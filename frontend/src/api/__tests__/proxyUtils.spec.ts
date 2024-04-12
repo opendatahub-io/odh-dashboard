@@ -24,10 +24,9 @@ describe('proxyGET', () => {
     const result = await proxyGET(host, path);
     expect(result).toStrictEqual(JSON.parse(textValue));
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"GET","host":"test","queryParams":{}}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: undefined,
+      method: 'GET',
     });
   });
 
@@ -40,10 +39,9 @@ describe('proxyGET', () => {
     const result = await proxyGET(host, path, { dryRun: true }, { parseJSON: false });
     expect(result).toStrictEqual(textValue);
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"GET","host":"test","queryParams":{"dryRun":true}}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+    expect(mockFetch).toHaveBeenCalledWith('test/test?dryRun=true', {
+      body: undefined,
+      method: 'GET',
     });
   });
 
@@ -52,10 +50,9 @@ describe('proxyGET', () => {
 
     await expect(proxyGET(host, path)).rejects.toThrow('error');
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"GET","host":"test","queryParams":{}}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: undefined,
+      method: 'GET',
     });
   });
 });
@@ -70,19 +67,20 @@ describe('proxyCREATE', () => {
     const result = await proxyCREATE(host, path, data);
     expect(result).toStrictEqual(JSON.parse(textValue));
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"POST","host":"test","queryParams":{},"data":{"key":"value"}}',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: '{"key":"value"}',
       headers: { 'Content-Type': 'application/json;charset=UTF-8' },
       method: 'POST',
     });
   });
+
   it('should handle errors and rethrows', async () => {
     mockFetch.mockRejectedValue(new Error('error'));
 
     await expect(proxyCREATE(host, path, data)).rejects.toThrow('error');
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"POST","host":"test","queryParams":{},"data":{"key":"value"}}',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: '{"key":"value"}',
       headers: { 'Content-Type': 'application/json;charset=UTF-8' },
       method: 'POST',
     });
@@ -91,6 +89,13 @@ describe('proxyCREATE', () => {
 
 describe('proxyFILE', () => {
   const fileContents = 'test';
+  const formData = new FormData();
+  formData.append(
+    'uploadfile',
+    new Blob(['test'], { type: 'application/x-yaml' }),
+    'uploadedFile.yml',
+  );
+
   it('should call callProxyJSON with file contents', async () => {
     mockFetch.mockResolvedValue({
       status: 200,
@@ -100,9 +105,8 @@ describe('proxyFILE', () => {
     const result = await proxyFILE(host, path, fileContents);
     expect(result).toStrictEqual(JSON.parse(textValue));
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"POST","host":"test","queryParams":{},"fileContents":"test"}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: formData,
       method: 'POST',
     });
   });
@@ -112,9 +116,8 @@ describe('proxyFILE', () => {
 
     await expect(proxyFILE(host, path, fileContents)).rejects.toThrow('error');
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"POST","host":"test","queryParams":{},"fileContents":"test"}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: formData,
       method: 'POST',
     });
   });
@@ -130,9 +133,8 @@ describe('proxyENDPOINT', () => {
     const result = await proxyENDPOINT(host, path);
     expect(result).toStrictEqual(JSON.parse(textValue));
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"POST","host":"test","queryParams":{}}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: undefined,
       method: 'POST',
     });
   });
@@ -142,9 +144,8 @@ describe('proxyENDPOINT', () => {
 
     await expect(proxyENDPOINT(host, path)).rejects.toThrow('error');
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"POST","host":"test","queryParams":{}}',
-      headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: undefined,
       method: 'POST',
     });
   });
@@ -160,10 +161,10 @@ describe('proxyUPDATE', () => {
     const result = await proxyUPDATE(host, path, data);
     expect(result).toStrictEqual(JSON.parse(textValue));
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"PUT","host":"test","queryParams":{},"data":{"key":"value"}}',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: '{"key":"value"}',
       headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+      method: 'PUT',
     });
   });
 
@@ -172,10 +173,10 @@ describe('proxyUPDATE', () => {
 
     await expect(proxyUPDATE(host, path, data)).rejects.toThrow('error');
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"PUT","host":"test","queryParams":{},"data":{"key":"value"}}',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: '{"key":"value"}',
       headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+      method: 'PUT',
     });
   });
 });
@@ -190,10 +191,10 @@ describe('proxyDELETE', () => {
     const result = await proxyDELETE(host, path, data);
     expect(result).toStrictEqual(JSON.parse(textValue));
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"DELETE","host":"test","queryParams":{},"data":{"key":"value"}}',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: '{"key":"value"}',
       headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+      method: 'DELETE',
     });
   });
 
@@ -202,10 +203,10 @@ describe('proxyDELETE', () => {
 
     await expect(proxyDELETE(host, path, data)).rejects.toThrow('error');
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith('/api/proxy/test', {
-      body: '{"path":"/test","method":"DELETE","host":"test","queryParams":{},"data":{"key":"value"}}',
+    expect(mockFetch).toHaveBeenCalledWith('test/test', {
+      body: '{"key":"value"}',
       headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-      method: 'POST',
+      method: 'DELETE',
     });
   });
 });

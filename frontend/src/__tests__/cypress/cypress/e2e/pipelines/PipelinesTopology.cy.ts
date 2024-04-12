@@ -98,57 +98,57 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines`,
     },
     { pipelines: [mockPipeline] },
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}`,
     },
     mockPipeline,
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/recurringruns/${mockJob.recurring_run_id}`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/recurringruns/${mockJob.recurring_run_id}`,
     },
     mockJob,
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/recurringruns`,
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/recurringruns`,
     },
     { recurringRuns: [mockJob] },
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/runs/${mockRun.run_id}`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/runs/${mockRun.run_id}`,
     },
     mockRun,
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/runs',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/runs`,
     },
     { runs: [mockRun] },
   );
   cy.intercept(
     {
       method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
     },
     [mockVersion],
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
     },
     mockVersion,
   );

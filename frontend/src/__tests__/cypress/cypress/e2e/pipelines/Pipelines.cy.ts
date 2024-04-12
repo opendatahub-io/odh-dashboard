@@ -73,9 +73,9 @@ describe('Pipelines', () => {
     const uploadedMockPipeline = buildMockPipelineV2(uploadPipelineParams);
 
     // Intercept upload/re-fetch of pipelines
-    pipelineImportModal.mockUploadPipeline(uploadPipelineParams).as('uploadPipeline');
+    pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
     pipelinesTable
-      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline])
+      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
       .as('refreshPipelines');
 
     // Wait for the pipelines table to load
@@ -93,22 +93,22 @@ describe('Pipelines', () => {
 
     // Wait for upload/fetch requests
     cy.wait('@uploadPipeline').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines/upload',
-        method: 'POST',
-        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-        queryParams: { name: 'New pipeline', description: 'New pipeline description' },
-        fileContents: 'test-yaml-pipeline-content\n',
+      // Note: contain is used instead of equals as different browser engines will add a different boundary
+      // to the body - the aim is to not limit these tests to working with one specific engine.
+      expect(interception.request.body).to.contain(
+        'Content-Disposition: form-data; name="uploadfile"; filename="uploadedFile.yml"',
+      );
+      expect(interception.request.body).to.contain('Content-Type: application/x-yaml');
+      expect(interception.request.body).to.contain('test-yaml-pipeline-content');
+
+      expect(interception.request.query).to.eql({
+        name: 'New pipeline',
+        description: 'New pipeline description',
       });
     });
 
     cy.wait('@refreshPipelines').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines',
-        method: 'GET',
-        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-        queryParams: { sort_by: 'created_at desc', page_size: 10 },
-      });
+      expect(interception.request.query).to.eql({ sort_by: 'created_at desc', page_size: '10' });
     });
 
     // Verify the uploaded pipeline is in the table
@@ -131,14 +131,15 @@ describe('Pipelines', () => {
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal
-      .mockCreatePipelineAndVersion(createPipelineAndVersionParams)
+      .mockCreatePipelineAndVersion(createPipelineAndVersionParams, projectName)
       .as('createPipelineAndVersion');
     pipelinesTable
-      .mockGetPipelines([initialMockPipeline, createdMockPipeline])
+      .mockGetPipelines([initialMockPipeline, createdMockPipeline], projectName)
       .as('refreshPipelines');
     pipelinesTable.mockGetPipelineVersions(
       [buildMockPipelineVersionV2(createPipelineAndVersionParams.pipeline_version)],
       'new-pipeline',
+      projectName,
     );
 
     // Wait for the pipelines table to load
@@ -176,11 +177,14 @@ describe('Pipelines', () => {
     pipelinesGlobal.findUploadVersionButton().click();
 
     // Intercept upload/re-fetch of pipeline versions
-    pipelineVersionImportModal.mockUploadVersion(uploadVersionParams).as('uploadVersion');
+    pipelineVersionImportModal
+      .mockUploadVersion(uploadVersionParams, projectName)
+      .as('uploadVersion');
     pipelinesTable
       .mockGetPipelineVersions(
         [initialMockPipelineVersion, buildMockPipelineVersionV2(uploadVersionParams)],
         initialMockPipeline.pipeline_id,
+        projectName,
       )
       .as('refreshVersions');
 
@@ -194,25 +198,26 @@ describe('Pipelines', () => {
 
     // Wait for upload/fetch requests
     cy.wait('@uploadVersion').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines/upload_version',
-        method: 'POST',
-        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-        queryParams: {
-          name: 'New pipeline version',
-          description: 'New pipeline version description',
-          pipelineid: 'test-pipeline',
-        },
-        fileContents: 'test-yaml-pipeline-content\n',
+      // Note: contain is used instead of equals as different browser engines will add a different boundary
+      // to the body - the aim is to not limit these tests to working with one specific engine.
+      expect(interception.request.body).to.contain(
+        'Content-Disposition: form-data; name="uploadfile"; filename="uploadedFile.yml"',
+      );
+      expect(interception.request.body).to.contain('Content-Type: application/x-yaml');
+      expect(interception.request.body).to.contain('test-yaml-pipeline-content');
+
+      expect(interception.request.query).to.eql({
+        name: 'New pipeline version',
+        description: 'New pipeline version description',
+        pipelineid: 'test-pipeline',
       });
     });
 
     cy.wait('@refreshVersions').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines/test-pipeline/versions',
-        method: 'GET',
-        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-        queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '1',
+        pipeline_id: 'test-pipeline',
       });
     });
 
@@ -241,11 +246,12 @@ describe('Pipelines', () => {
       .mockGetPipelineVersions(
         [initialMockPipelineVersion, buildMockPipelineVersionV2(createPipelineVersionParams)],
         initialMockPipeline.pipeline_id,
+        projectName,
       )
       .as('refreshVersions');
 
     pipelineVersionImportModal
-      .mockCreatePipelineVersion(createPipelineVersionParams)
+      .mockCreatePipelineVersion(createPipelineVersionParams, projectName)
       .as('createVersion');
 
     // Fill out the "Upload new version" modal and submit
@@ -267,7 +273,7 @@ describe('Pipelines', () => {
 
   it('delete a single pipeline', () => {
     createDeletePipelineIntercept(initialMockPipeline.pipeline_id).as('deletePipeline');
-    pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id);
+    pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id, projectName);
     pipelinesGlobal.visit(projectName);
 
     // Check pipeline
@@ -279,8 +285,8 @@ describe('Pipelines', () => {
     pipelineDeleteModal.findInput().type(initialMockPipeline.display_name);
     cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
       },
       buildMockPipelines([]),
     ).as('refreshPipelines');
@@ -310,33 +316,24 @@ describe('Pipelines', () => {
     pipelineDeleteModal.findInput().type(initialMockPipelineVersion.display_name);
     cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
       },
       buildMockPipelineVersionsV2([]),
     ).as('refreshVersions');
     pipelineDeleteModal.findSubmitButton().click();
 
-    cy.wait('@deleteVersion').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines/test-pipeline/versions/8ce2d04a0-828c-45209fdf1c20',
-        method: 'DELETE',
-        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-        queryParams: {},
-        data: {},
-      });
-    });
-
+    cy.wait('@deleteVersion');
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
+
     cy.wait('@refreshVersions').then((interception) => {
-      expect(interception.request.body).to.eql({
-        path: '/apis/v2beta1/pipelines/test-pipeline/versions',
-        method: 'GET',
-        host: 'https://ds-pipeline-dspa-test-project-name.apps.user.com',
-        queryParams: { sort_by: 'created_at desc', page_size: 1, pipeline_id: 'test-pipeline' },
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '1',
+        pipeline_id: 'test-pipeline',
       });
-      pipelinesTable.getRowByName(initialMockPipeline.display_name).shouldNotHavePipelineVersion();
     });
+    pipelinesTable.getRowByName(initialMockPipeline.display_name).shouldNotHavePipelineVersion();
   });
 
   it('navigate to pipeline version details page', () => {
@@ -368,12 +365,18 @@ describe('Pipelines', () => {
       display_name: `${mockPipeline1.display_name} version 1`,
     });
 
-    pipelinesTable.mockGetPipelines([mockPipeline1, mockPipeline2]);
-    pipelinesTable.mockGetPipelineVersions([mockPipeline1Version1], mockPipeline1.pipeline_id);
-    pipelinesTable.mockGetPipelineVersions([], mockPipeline2.pipeline_id);
+    pipelinesTable.mockGetPipelines([mockPipeline1, mockPipeline2], projectName);
+    pipelinesTable.mockGetPipelineVersions(
+      [mockPipeline1Version1],
+      mockPipeline1.pipeline_id,
+      projectName,
+    );
+    pipelinesTable.mockGetPipelineVersions([], mockPipeline2.pipeline_id, projectName);
 
-    pipelinesTable.mockDeletePipeline(mockPipeline2).as('deletePipeline');
-    pipelinesTable.mockDeletePipelineVersion(mockPipeline1Version1).as('deleteVersion');
+    pipelinesTable.mockDeletePipeline(mockPipeline2, projectName).as('deletePipeline');
+    pipelinesTable
+      .mockDeletePipelineVersion(mockPipeline1Version1, projectName)
+      .as('deleteVersion');
 
     pipelinesGlobal.visit(projectName);
 
@@ -389,8 +392,10 @@ describe('Pipelines', () => {
     deleteModal.shouldBeOpen();
     deleteModal.findInput().type('Delete 1 pipeline and 1 version');
 
-    pipelinesTable.mockGetPipelines([mockPipeline1]).as('refreshPipelines');
-    pipelinesTable.mockGetPipelineVersions([], mockPipeline1.pipeline_id).as('refreshVersions');
+    pipelinesTable.mockGetPipelines([mockPipeline1], projectName).as('refreshPipelines');
+    pipelinesTable
+      .mockGetPipelineVersions([], mockPipeline1.pipeline_id, projectName)
+      .as('refreshVersions');
     deleteModal.findSubmitButton().click();
 
     // Wait for deletion
@@ -499,15 +504,15 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([initialMockPipeline]),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
@@ -516,25 +521,23 @@ const initIntercepts = () => {
 const createDeleteVersionIntercept = (pipelineId: string, pipelineVersionId: string) =>
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions/${pipelineVersionId}`,
-      method: 'POST',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions/${pipelineVersionId}`,
+      method: 'DELETE',
       times: 1,
     },
-    (req) => {
-      expect(req.body.method).eq('DELETE');
-      req.reply({ body: {} });
+    {
+      body: {},
     },
   );
 
 const createDeletePipelineIntercept = (pipelineId: string) =>
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}`,
-      method: 'POST',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}`,
+      method: 'DELETE',
       times: 1,
     },
-    (req) => {
-      expect(req.body.method).eq('DELETE');
-      req.reply({ body: {} });
+    {
+      body: {},
     },
   );

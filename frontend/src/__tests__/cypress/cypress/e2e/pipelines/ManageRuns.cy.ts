@@ -97,8 +97,8 @@ describe('Manage runs', () => {
   it('navigates to "Compare runs" page with updated run IDs when "Update" toolbar action is clicked', () => {
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/runs/test-run-3',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/test-run-3`,
       },
       mockRuns[2],
     );
@@ -120,7 +120,7 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
   );
@@ -132,16 +132,16 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
     },
     buildMockPipelineVersionsV2([mockPipelineVersion]),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/experiments/${experimentId}`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${experimentId}`,
     },
     buildMockExperimentKF({ experiment_id: experimentId }),
   );
@@ -149,8 +149,8 @@ const initIntercepts = () => {
   initialRunIds.forEach((selectedRunId) => {
     cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/runs/${selectedRunId}`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${selectedRunId}`,
       },
       mockRuns.find((mockRun) => mockRun.run_id === selectedRunId),
     );
@@ -158,8 +158,8 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/runs',
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
     },
     {
       runs: mockRuns,
