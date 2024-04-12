@@ -140,7 +140,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   );
 
   const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => (
-    <SelectOption key={key} data-key={key} value={val}>
+    <SelectOption key={key} data-key={key} value={val} data-testid={key}>
       <CheckIcon
         className={`odh-learning-paths__toolbar__filter-check ${
           sortOrder === key ? 'odh-m-filtered' : ''
@@ -167,7 +167,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   const isFiltered = categoryQuery || enabled || docTypes || applications;
 
   return (
-    <Toolbar className="odh-learning-paths__toolbar">
+    <Toolbar className="odh-learning-paths__toolbar" data-testid="learning-center-toolbar">
       <div className="odh-learning-paths__toolbar__view-filter">
         <Flex spaceItems={{ default: 'spaceItemsNone' }}>
           <FlexItem>{categoryQuery || 'All Items'}</FlexItem>
@@ -189,6 +189,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
             icon={<ThIcon />}
             aria-label="card view"
             buttonId="card-view"
+            data-testid="card-view-toggle-button"
             isSelected={viewType === CARD_VIEW}
             onChange={() => updateViewType(CARD_VIEW)}
           />
@@ -196,6 +197,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
             icon={<ListIcon />}
             aria-label="listview"
             buttonId="list-view"
+            data-testid="list-view-toggle-button"
             isSelected={viewType === LIST_VIEW}
             onChange={() => updateViewType(LIST_VIEW)}
           />
@@ -212,7 +214,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
         </ToolbarItem>
         {viewType === CARD_VIEW ? (
           <>
-            <ToolbarItem>
+            <ToolbarItem data-testid="resources-select-type">
               <Select
                 variant={SelectVariant.single}
                 aria-label="Select sort type"
@@ -224,7 +226,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
                 {sortTypeDropdownItems}
               </Select>
             </ToolbarItem>
-            <ToolbarItem>
+            <ToolbarItem data-testid="resources-order-type">
               <Select
                 variant={SelectVariant.single}
                 aria-label="Select sort order"

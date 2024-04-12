@@ -35,7 +35,7 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
     'm-is-collapsed': collapsed,
   });
   return (
-    <div className={classes}>
+    <div className={classes} data-testid="learning-center-filters">
       {collapsible ? (
         <Button
           className="odh-learning-paths__filter-panel__collapse-button"

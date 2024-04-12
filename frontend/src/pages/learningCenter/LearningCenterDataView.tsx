@@ -61,6 +61,7 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
         return (
           <EmptyState variant={EmptyStateVariant.full}>
             <EmptyStateHeader
+              data-testid="empty-state-title"
               titleText="No results match the filter criteria"
               icon={<EmptyStateIcon icon={SearchIcon} />}
               headingLevel="h2"
@@ -70,7 +71,7 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
             </EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
-                <Button variant="link" onClick={onClearFilters}>
+                <Button variant="link" onClick={onClearFilters} data-testid="clear-all-filters">
                   Clear all filters
                 </Button>
               </EmptyStateActions>
@@ -82,6 +83,7 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
       if (viewType !== LIST_VIEW) {
         return (
           <Gallery
+            data-testid="learning-center-card-view"
             maxWidths={{ default: '330px' }}
             aria-label="Favoritable card container"
             hasGutter
@@ -100,7 +102,11 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
 
       const listViewClasses = classNames('odh-learning-paths__list-view', sizeClass);
       return (
-        <div className={listViewClasses} aria-label="Simple data list example">
+        <div
+          className={listViewClasses}
+          aria-label="Simple data list example"
+          data-testid="learning-center-list-view"
+        >
           <LearningCenterListHeader />
           {filteredDocApps.map((doc) => (
             <OdhDocListItem

@@ -87,6 +87,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
           target="_blank"
           rel="noopener noreferrer"
+          data-testid="view-documentation"
         >
           View documentation
           <ExternalLinkAltIcon />
@@ -111,7 +112,12 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     }
     if (odhDoc.spec.type === OdhDocumentType.QuickStart) {
       return (
-        <Button variant="link" className="odh-card__footer__link" onClick={onQuickStart}>
+        <Button
+          variant="link"
+          className="odh-card__footer__link"
+          onClick={onQuickStart}
+          data-testid="quick-start-button"
+        >
           {getQuickStartLabel(odhDoc.metadata.name, qsContext)}
         </Button>
       );
@@ -126,6 +132,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
           target="_blank"
           rel="noopener noreferrer"
+          data-testid="read-how-to-article"
         >
           Read how-to article
           <ExternalLinkAltIcon />
@@ -138,6 +145,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
   return (
     <Card
       data-id={odhDoc.metadata.name}
+      data-testid={`card ${odhDoc.metadata.name}`}
       id={odhDoc.metadata.name}
       className="odh-card odh-tourable-card"
       isSelected={selected}

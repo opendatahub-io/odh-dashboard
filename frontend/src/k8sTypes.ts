@@ -238,6 +238,38 @@ export type K8sAPIOptions = {
   parseJSON?: boolean;
 };
 
+export type QuickStartTask = {
+  description: string;
+  review: {
+    failedTaskHelp: string;
+    instructions: string;
+  };
+  summary: {
+    failed: string;
+    success: string;
+  };
+  title: string;
+};
+
+export type OdhQuickStart = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    appName: string;
+    conclusion: string;
+    description: string;
+    displayName: string;
+    durationMinutes?: number;
+    icon?: string;
+    introduction: string;
+    nextQuickStart: string[];
+    prerequisites?: string[];
+    tasks: QuickStartTask[];
+  };
+};
+
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
