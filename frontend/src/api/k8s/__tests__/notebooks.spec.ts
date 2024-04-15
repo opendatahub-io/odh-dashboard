@@ -433,6 +433,7 @@ describe('startNotebook', () => {
   });
 });
 describe('stopNotebook', () => {
+  beforeEach(() => jest.useFakeTimers().setSystemTime(new Date('2024-04-15T19:38:21Z')));
   it('should stop a notebook', async () => {
     const name = 'test-notebook';
     const namespace = 'test-project';
