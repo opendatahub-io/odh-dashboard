@@ -96,7 +96,9 @@ export const initSegment = async (props: {
       const t = document.createElement('script');
       t.type = 'text/javascript';
       t.async = true;
-      t.src = `https://cdn.segment.com/analytics.js/v1/${encodeURIComponent(key)}/analytics.min.js`;
+      t.src = `https://console.redhat.com/connections/cdn/analytics.js/v1/${encodeURIComponent(
+        key,
+      )}/analytics.min.js`;
       const n = document.getElementsByTagName('script')[0];
       if (n.parentNode) {
         n.parentNode.insertBefore(t, n);
@@ -106,7 +108,6 @@ export const initSegment = async (props: {
     analytics.SNIPPET_VERSION = '4.13.1';
     if (segmentKey && enabled) {
       analytics.load(segmentKey, {
-        cdnURL: 'console.redhat.com/connections/cdn',
         integrations: {
           'Segment.io': {
             apiHost: 'console.redhat.com/connections/api/v1',
