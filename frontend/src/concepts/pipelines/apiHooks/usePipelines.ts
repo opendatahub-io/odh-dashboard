@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FetchState } from '~/utilities/useFetchState';
+import { FetchState, NotReadyError } from '~/utilities/useFetchState';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
@@ -15,6 +15,28 @@ const usePipelines = (
       (opts, params) =>
         api.listPipelines(opts, params).then((result) => ({ ...result, items: result.pipelines })),
       [api],
+    ),
+    options,
+    refreshRate,
+  );
+};
+
+export const useSafePipelines = (
+  options?: PipelineOptions,
+  refreshRate?: number,
+): FetchState<PipelineListPaged<PipelineKFv2>> => {
+  const { api, pipelinesServer, apiAvailable } = usePipelinesAPI();
+  return usePipelineQuery<PipelineKFv2>(
+    React.useCallback(
+      (opts, params) => {
+        if (!apiAvailable || !pipelinesServer.compatible) {
+          throw new NotReadyError('Pipelines is not available');
+        }
+        return api
+          .listPipelines(opts, params)
+          .then((result) => ({ ...result, items: result.pipelines }));
+      },
+      [api, apiAvailable, pipelinesServer.compatible],
     ),
     options,
     refreshRate,
