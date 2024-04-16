@@ -1,4 +1,8 @@
-import { DashboardConfigKind, DataScienceClusterKindStatus } from '~/k8sTypes';
+import {
+  DashboardConfigKind,
+  DataScienceClusterInitializationKindStatus,
+  DataScienceClusterKindStatus,
+} from '~/k8sTypes';
 import { IsAreaAvailableStatus, FeatureFlag, SupportedArea } from './types';
 import { SupportedAreasStateMap } from './const';
 
@@ -27,14 +31,17 @@ export const isAreaAvailable = (
   area: SupportedArea,
   dashboardConfigSpec: DashboardConfigKind['spec'],
   dscStatus: DataScienceClusterKindStatus | null,
+  dsciStatus: DataScienceClusterInitializationKindStatus | null,
 ): IsAreaAvailableStatus => {
-  const { featureFlags, requiredComponents, reliantAreas } = SupportedAreasStateMap[area];
+  const { featureFlags, requiredComponents, reliantAreas, requiredCapabilities } =
+    SupportedAreasStateMap[area];
 
   const reliantAreasState = reliantAreas
     ? reliantAreas.reduce<IsAreaAvailableStatus['reliantAreas']>(
         (areaStates, currentArea) => ({
           ...areaStates,
-          [currentArea]: isAreaAvailable(currentArea, dashboardConfigSpec, dscStatus).status,
+          [currentArea]: isAreaAvailable(currentArea, dashboardConfigSpec, dscStatus, dsciStatus)
+            .status,
         }),
         {},
       )
@@ -65,10 +72,34 @@ export const isAreaAvailable = (
     ? Object.values(requiredComponentsState).every((v) => v)
     : true;
 
+  const requiredCapabilitiesState =
+    requiredCapabilities && dsciStatus
+      ? requiredCapabilities.reduce<IsAreaAvailableStatus['requiredCapabilities']>(
+          (acc, capability) => ({
+            ...acc,
+            [capability]: dsciStatus.conditions.some(
+              (c) => c.type === capability && c.status === 'True',
+            ),
+          }),
+          {},
+        )
+      : null;
+
+  const hasMetRequiredCapabilities = requiredCapabilitiesState
+    ? Object.values(requiredCapabilitiesState).every((v) => v)
+    : true;
+
   return {
-    status: hasMetReliantAreas && hasMetFeatureFlags && hasMetRequiredComponents,
+    status:
+      hasMetReliantAreas &&
+      hasMetFeatureFlags &&
+      hasMetRequiredComponents &&
+      hasMetRequiredCapabilities,
     reliantAreas: reliantAreasState,
     featureFlags: featureFlagState,
     requiredComponents: requiredComponentsState,
+    requiredCapabilities: requiredCapabilitiesState,
+    customCondition: (conditionFunc) =>
+      conditionFunc({ dashboardConfigSpec, dscStatus, dsciStatus }),
   };
 };

@@ -43,6 +43,7 @@ const AcceleratorProfileEnableToggle: React.FC<AcceleratorProfileEnableTogglePro
     <>
       <Switch
         aria-label={label}
+        data-testid="enable-switch"
         id={`${name}-enable-switch`}
         isChecked={isEnabled}
         isDisabled={isLoading}
@@ -55,6 +56,7 @@ const AcceleratorProfileEnableToggle: React.FC<AcceleratorProfileEnableTogglePro
         }}
       />
       <DisableAcceleratorProfileModal
+        data-testid="disable-accelerator-profile-modal"
         isOpen={isModalOpen}
         onClose={(confirmStatus) => {
           if (confirmStatus) {

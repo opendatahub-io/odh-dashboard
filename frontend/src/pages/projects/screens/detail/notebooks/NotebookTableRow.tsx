@@ -1,8 +1,17 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Flex, FlexItem, Icon, Tooltip } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Icon,
+  Popover,
+  Split,
+  SplitItem,
+  Tooltip,
+} from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import { getNotebookDescription, getNotebookDisplayName } from '~/pages/projects/utils';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
@@ -12,6 +21,7 @@ import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImage
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '~/components/table';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -26,6 +36,7 @@ type NotebookTableRowProps = {
   onNotebookAddStorage: (notebook: NotebookKind) => void;
   canEnablePipelines: boolean;
   compact?: boolean;
+  showOutOfDateElyraInfo: boolean;
 };
 
 const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
@@ -35,6 +46,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   onNotebookAddStorage,
   canEnablePipelines,
   compact,
+  showOutOfDateElyraInfo,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
@@ -81,12 +93,47 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Notebook image">
-          <NotebookImageDisplayName
-            notebookImage={notebookImage}
-            loaded={loaded}
-            loadError={loadError}
-            isExpanded
-          />
+          <Split>
+            <SplitItem>
+              <NotebookImageDisplayName
+                notebookImage={notebookImage}
+                loaded={loaded}
+                loadError={loadError}
+                isExpanded
+              />
+            </SplitItem>
+            {showOutOfDateElyraInfo && (
+              <SplitItem>
+                <Popover
+                  alertSeverityVariant="info"
+                  headerIcon={<InfoCircleIcon />}
+                  headerContent="Update image to the latest version"
+                  bodyContent="The selected image version does not support the latest pipeline version. To use Elyra for pipelines, update the image to the latest version by editing the workbench."
+                  footerContent={
+                    <Button
+                      onClick={() => {
+                        navigate(
+                          `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
+                        );
+                      }}
+                    >
+                      Edit workbench
+                    </Button>
+                  }
+                >
+                  <DashboardPopupIconButton
+                    aria-label="Notebook image has out of date Elrya version"
+                    data-testid="outdated-elyra-info"
+                    icon={
+                      <Icon status="info">
+                        <InfoCircleIcon />
+                      </Icon>
+                    }
+                  />
+                </Popover>
+              </SplitItem>
+            )}
+          </Split>
         </Td>
         {!compact ? (
           <Td dataLabel="Container size">

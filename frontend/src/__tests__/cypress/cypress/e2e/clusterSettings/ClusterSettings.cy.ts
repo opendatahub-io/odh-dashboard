@@ -1,7 +1,5 @@
 import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import {
   clusterSettings,
   cullerSettings,
@@ -14,26 +12,14 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { StackComponent } from '~/concepts/areas/types';
 
 it('Cluster Settings', () => {
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
     }),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept('/api/cluster-settings', mockClusterSettings({}));
-  cy.intercept(
-    {
-      method: 'PUT',
-      path: '/api/cluster-settings',
-    },
-    mockClusterSettings({
-      pvcSize: 20,
-      cullerTimeout: 31536000,
-      notebookTolerationSettings: { enabled: false, key: 'NotebooksOnlyChange' },
-    }),
-  ).as('clusterSettings');
+  cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+  cy.interceptOdh('PUT /api/cluster-settings', { success: true }).as('clusterSettings');
 
   clusterSettings.visit();
 

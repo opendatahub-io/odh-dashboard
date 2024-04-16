@@ -5,15 +5,11 @@ import OverviewCard from '~/pages/projects/screens/detail/overview/components/Ov
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 
 const NoProjectServingEnabledSection: React.FC = () => (
-  <CollapsibleSection
-    sectionType={SectionType.training}
-    title="Serve models"
-    data-testid="section-model-server"
-  >
+  <CollapsibleSection title="Serve models" data-testid="section-model-server">
     <FlexItem data-testid="no-model-serving-platform-selected">
       <OverviewCard
         objectType={ProjectObjectType.modelServer}
-        sectionType={SectionType.serving}
+        sectionType={SectionType.setup}
         title="No model serving platform selected"
       >
         <CardBody>

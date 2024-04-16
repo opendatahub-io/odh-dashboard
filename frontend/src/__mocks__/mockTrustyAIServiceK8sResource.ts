@@ -3,17 +3,19 @@ import { TrustyAIKind } from '~/k8sTypes';
 type MockTrustyAIServiceK8sResourceOptions = {
   isAvailable?: boolean;
   creationTimestamp?: string;
+  namespace?: string;
 };
 
 export const mockTrustyAIServiceK8sResource = ({
   isAvailable = true,
   creationTimestamp = new Date().toISOString(),
+  namespace = 'test-project',
 }: MockTrustyAIServiceK8sResourceOptions): TrustyAIKind => ({
   apiVersion: 'trustyai.opendatahub.io.trustyai.opendatahub.io/v1alpha1',
   kind: 'TrustyAIService',
   metadata: {
     name: 'trustyai-service',
-    namespace: 'model-namespace',
+    namespace,
     creationTimestamp,
   },
   spec: {

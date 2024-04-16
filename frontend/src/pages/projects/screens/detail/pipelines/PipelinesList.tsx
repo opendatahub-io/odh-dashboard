@@ -10,8 +10,6 @@ import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import { routePipelinesNamespace, routeProjectPipelineDetailsNamespace } from '~/routes';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import { useAccessReview } from '~/api';
-import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
 
 type PipelinesListProps = {
   setIsPipelinesEmpty: (isEmpty: boolean) => void;
@@ -24,10 +22,6 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable(TABLE_CONTENT_LIMIT);
   const navigate = useNavigate();
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace,
-  });
 
   const isPipelinesEmpty = pipelines.length === 0;
 
@@ -50,9 +44,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
   }
 
   if (loaded && pipelines.length === 0 && !tableProps.filter) {
-    return (
-      <NoPipelineServer variant={ButtonVariant.primary} allowCreate={rbacLoaded && allowCreate} />
-    );
+    return <NoPipelineServer variant={ButtonVariant.primary} />;
   }
 
   return (

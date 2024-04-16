@@ -7,11 +7,16 @@ import {
   PageSection,
   TabContent,
   TabContentBody,
-  ToolbarItem,
-  ToolbarGroup,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateHeader,
+  EmptyStateIcon,
 } from '@patternfly/react-core';
+import { WrenchIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
-import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
+import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
+import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
@@ -28,6 +33,42 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   const tabs = useDistributedWorkloadsTabs();
   const activeTab = tabs.find(({ id }) => id === activeTabId);
   const { namespace } = useParams<{ namespace: string }>();
+  const { clusterQueue, localQueues } = React.useContext(DistributedWorkloadsContext);
+  const requiredFetches = [clusterQueue, localQueues];
+  const error = requiredFetches.find((f) => !!f.error)?.error;
+  const loaded = requiredFetches.every((f) => f.loaded);
+
+  if (error) {
+    return (
+      <EmptyStateErrorMessage
+        title="Error loading distributed workload metrics"
+        bodyText={error.message}
+      />
+    );
+  }
+
+  if (!loaded) {
+    return <LoadingState />;
+  }
+
+  if (!clusterQueue.data || localQueues.data.length === 0) {
+    const title = `Configure the ${!clusterQueue.data ? 'cluster queue' : 'project queue'}`;
+    const message = !clusterQueue.data
+      ? 'Ask your cluster admin to configure the cluster queue.'
+      : 'Configure the queue for this project, or select a different project.';
+
+    return (
+      <EmptyState>
+        <EmptyStateHeader
+          titleText={title}
+          headingLevel="h4"
+          icon={<EmptyStateIcon icon={WrenchIcon} />}
+        />
+        <EmptyStateBody>{message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
   return (
     <>
       <PageSection variant="light" type="tabs">
@@ -36,11 +77,11 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
           onSelect={(_, tabId) => {
             const tab = tabs.find(({ id }) => id === tabId);
             if (tab) {
-              const namespaceSuffix = tab.projectSelectorMode && !!namespace ? `/${namespace}` : '';
+              const namespaceSuffix = namespace ? `/${namespace}` : '';
               navigate(`/distributedWorkloads/${tab.path}${namespaceSuffix}`);
             }
           }}
-          aria-label="Workload metrics page tabs"
+          aria-label="Distributed workload metrics page tabs"
           role="region"
         >
           {tabs
@@ -56,22 +97,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
             ))}
         </Tabs>
       </PageSection>
-      {activeTab ? (
-        <MetricsPageToolbar
-          leftToolbarItem={
-            <ToolbarGroup>
-              <ToolbarItem variant="label">Project</ToolbarItem>
-              <ToolbarItem spacer={{ default: 'spacerMd' }}>
-                <ProjectSelectorNavigator
-                  getRedirectPath={(newNamespace) =>
-                    `/distributedWorkloads/${activeTab.path}/${newNamespace}`
-                  }
-                />
-              </ToolbarItem>
-            </ToolbarGroup>
-          }
-        />
-      ) : null}
+      {activeTab ? <MetricsPageToolbar hasTimeRangeSelect={false} /> : null}
       <PageSection isFilled>
         {tabs
           .filter((tab) => tab.isAvailable)

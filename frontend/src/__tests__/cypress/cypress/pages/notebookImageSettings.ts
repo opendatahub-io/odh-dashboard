@@ -2,16 +2,18 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { DeleteModal } from './components/DeleteModal';
+import { TableToolbar } from './components/TableToolbar';
 
 class NotebookRow extends TableRow {
   findDisplayedSoftware() {
     return this.find().findByTestId('displayed-software');
   }
 }
+class NotebookImageSettingsTableToolbar extends TableToolbar {}
 
 class NotebookImageSettings {
   visit() {
-    cy.visitWithLogin('/notebookImages');
+    cy.visit('/notebookImages');
     this.wait();
   }
 
@@ -33,22 +35,8 @@ class NotebookImageSettings {
     return cy.findByTestId('import-new-image');
   }
 
-  // table tool bar
-  findFilterMenuOption(itemLabel: string) {
-    cy.findByTestId('filter-dropdown-select').click();
-    return cy.findByRole('menuitem', { name: itemLabel });
-  }
-
-  findSearchInput() {
-    return cy.findByRole('textbox', { name: 'Search input' });
-  }
-
   findErrorButton() {
     return cy.findByRole('button', { name: 'error icon' });
-  }
-
-  findResetButton() {
-    return cy.findByRole('button', { name: 'Reset' });
   }
 
   findEmptyResults() {
@@ -67,6 +55,10 @@ class NotebookImageSettings {
     return new NotebookRow(() =>
       this.findTable().find('[data-label=Name]').contains(name).parents('tr'),
     );
+  }
+
+  getTableToolbar() {
+    return new NotebookImageSettingsTableToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
   }
 }
 
@@ -109,7 +101,6 @@ class ImportUpdateNotebookImageModal extends Modal {
   }
 
   // Software tab
-
   findSoftwareTab() {
     return this.find().findByTestId('displayed-content-software-tab');
   }

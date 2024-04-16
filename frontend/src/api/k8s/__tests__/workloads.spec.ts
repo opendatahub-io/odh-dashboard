@@ -14,8 +14,8 @@ const mockedWorkload = mockWorkloadK8sResource({
   namespace: 'test-project',
 });
 
-describe('listClusterQueues', () => {
-  it('should fetch and return clusterqueues', async () => {
+describe('listWorkloads', () => {
+  it('should fetch and return workloads', async () => {
     k8sListResourceItemsMock.mockResolvedValue([mockedWorkload]);
     const result = await listWorkloads('test-project');
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({

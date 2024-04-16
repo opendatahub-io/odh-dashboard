@@ -13,8 +13,13 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
+import chaiSubset from 'chai-subset';
+import { mockDashboardConfig, mockStatus } from '~/__mocks__';
+import { ODHDashboardConfigModel } from '~/__tests__/cypress/cypress/utils/models';
 import './commands';
 import { addCommands as webSocketsAddCommands } from './websockets';
+
+chai.use(chaiSubset);
 
 webSocketsAddCommands();
 
@@ -29,6 +34,17 @@ beforeEach(() => {
 
     // return empty k8s resource list
     cy.intercept(
+      { pathname: '/api/k8s/api/*/*' },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'unknown',
+          metadata: {},
+          items: [],
+        },
+      },
+    );
+    cy.intercept(
       { pathname: '/api/k8s/apis/*/*/*' },
       {
         statusCode: 200,
@@ -42,6 +58,17 @@ beforeEach(() => {
 
     // return empty k8s resource list for namespaced requests
     cy.intercept(
+      { pathname: '/api/k8s/api/*/namespaces/*/*' },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'unknown',
+          metadata: {},
+          items: [],
+        },
+      },
+    );
+    cy.intercept(
       { pathname: '/api/k8s/apis/*/*/namespaces/*/*' },
       {
         statusCode: 200,
@@ -53,4 +80,13 @@ beforeEach(() => {
       },
     );
   }
+
+  // default intercepts
+  cy.interceptOdh('GET /api/status', mockStatus());
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+  cy.interceptOdh(
+    'GET /api/dashboardConfig/opendatahub/odh-dashboard-config',
+    mockDashboardConfig({}),
+  );
+  cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
 });

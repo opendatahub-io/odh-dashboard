@@ -33,13 +33,14 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
       <StackItem>
         <Stack hasGutter>
           {values.map(({ key, value }, i) => (
-            <StackItem key={i}>
+            <StackItem key={i} data-testid="key-value-pair">
               <Split>
                 <SplitItem isFilled>
                   <Stack hasGutter>
                     <StackItem>
                       <FormGroup isRequired label="Key" fieldId="label">
                         <TextInput
+                          data-testid="key-input"
                           isRequired
                           aria-label={`key of item ${i}`}
                           value={key}
@@ -52,6 +53,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                     <StackItem>
                       <FormGroup isRequired label="Value" fieldId="label">
                         <ValueComponent
+                          data-testid="value-input"
                           isRequired
                           aria-label={`value of item ${i}`}
                           value={value}
@@ -71,6 +73,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                 <SplitItem style={{ paddingTop: 'var(--pf-v5-global--spacer--xl)' }}>
                   <Button
                     isDisabled={values.length === 1}
+                    data-testid="remove-key-value-pair"
                     aria-label="Remove key-value pair"
                     variant="plain"
                     icon={<MinusCircleIcon />}
@@ -85,6 +88,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
       <StackItem>
         <Button
           variant="link"
+          data-testid="another-key-value-pair-button"
           isInline
           icon={<PlusCircleIcon />}
           iconPosition="left"

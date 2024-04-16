@@ -87,7 +87,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
   return (
     <>
       <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
-      <div className="odh-list-item__doc-text">
+      <div className="odh-list-item__doc-text" data-testid={`list ${odhDoc.metadata.name}`}>
         <div id={odhDoc.metadata.name} className="odh-list-item__doc-title">
           <Tooltip content={odhDoc.spec.displayName}>
             <span>{odhDoc.spec.displayName}</span>

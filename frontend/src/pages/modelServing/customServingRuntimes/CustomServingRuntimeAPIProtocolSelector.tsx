@@ -44,7 +44,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
       isRequired
     >
       <SimpleDropdownSelect
-        data-testid="custom-serving-api-protocol-selection"
+        dataTestId="custom-serving-api-protocol-selection"
         aria-label="Select a model serving api protocol"
         placeholder="Select a value"
         isDisabled={isOnlyModelMesh}

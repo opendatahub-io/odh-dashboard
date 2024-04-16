@@ -2,12 +2,10 @@
 import startCase from 'lodash-es/startCase';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import {
-  mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
   mockProjectK8sResource,
   mockRouteK8sResource,
-  mockStatus,
   buildMockRunKF,
   buildMockJobKF,
   buildMockPipelineVersionsV2,
@@ -27,7 +25,13 @@ import {
   archiveRunModal,
   bulkArchiveRunModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
+import {
+  DataSciencePipelineApplicationModel,
+  ProjectModel,
+  RouteModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -136,10 +140,10 @@ const mockArchivedRuns = [
     run_id: 'archived-run-2',
     pipeline_version_reference: {
       pipeline_id: pipelineId,
-      pipeline_version_id: 'test-version-1',
+      pipeline_version_id: 'test-version-2',
     },
     experiment_id: 'test-experiment-1',
-    created_at: '2024-02-05T00:00:00Z',
+    created_at: '2024-02-20T00:00:00Z',
     state: RuntimeStateKF.SUCCEEDED,
   }),
 ];
@@ -152,7 +156,7 @@ describe('Pipeline runs', () => {
   describe('Active runs', () => {
     describe('empty state', () => {
       beforeEach(() => {
-        activeRunsTable.mockGetActiveRuns([]);
+        activeRunsTable.mockGetActiveRuns([], projectName);
         pipelineRunsGlobal.visit(projectName, 'active');
       });
 
@@ -168,21 +172,21 @@ describe('Pipeline runs', () => {
 
     describe('with data', () => {
       beforeEach(() => {
-        activeRunsTable.mockGetActiveRuns(mockActiveRuns);
+        activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
         pipelineRunsGlobal.visit(projectName, 'active');
       });
 
       it('renders the page with table data', () => {
-        activeRunsTable.getRowByName('Test active run 1');
+        activeRunsTable.getRowByName('Test active run 1').find().should('exist');
       });
 
       it('archive a single run', () => {
         const [runToArchive] = mockActiveRuns;
 
-        activeRunsTable.mockArchiveRun(runToArchive.run_id);
+        activeRunsTable.mockArchiveRun(runToArchive.run_id, projectName);
         activeRunsTable.getRowByName(runToArchive.display_name).findKebabAction('Archive').click();
 
-        activeRunsTable.mockGetRuns([mockActiveRuns[1]], [runToArchive]);
+        activeRunsTable.mockGetRuns([mockActiveRuns[1]], [runToArchive], projectName);
         archiveRunModal.findConfirmInput().type(runToArchive.display_name);
         archiveRunModal.findSubmitButton().click();
         activeRunsTable.shouldRowNotBeVisible(runToArchive.display_name);
@@ -193,12 +197,12 @@ describe('Pipeline runs', () => {
 
       it('archive multiple runs', () => {
         mockActiveRuns.forEach((activeRun) => {
-          activeRunsTable.mockArchiveRun(activeRun.run_id);
+          activeRunsTable.mockArchiveRun(activeRun.run_id, projectName);
           activeRunsTable.getRowByName(activeRun.display_name).findCheckbox().click();
         });
 
         activeRunsTable.findActionsKebab().findDropdownItem('Archive').click();
-        activeRunsTable.mockGetRuns([], mockActiveRuns);
+        activeRunsTable.mockGetRuns([], mockActiveRuns, projectName);
         bulkArchiveRunModal.findConfirmInput().type('Archive 3 runs');
         bulkArchiveRunModal.findSubmitButton().click();
         activeRunsTable.findEmptyState().should('exist');
@@ -276,17 +280,18 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by typed run name)
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
+            projectName,
             1,
           );
 
           // Verify only rows with the typed run name exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
         });
 
         it('filter by experiment', () => {
           // Mock initial list of experiments
-          pipelineRunFilterBar.mockExperiments(mockExperiments);
+          pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
 
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
@@ -302,6 +307,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by selected experiment)
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
+            projectName,
             1,
           );
 
@@ -310,8 +316,8 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 2);
-          activeRunsTable.getRowByName('Test active run 1');
-          activeRunsTable.getRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
+          activeRunsTable.getRowByName('Test active run 3').find().should('exist');
         });
 
         it('filter by pipeline version', () => {
@@ -329,6 +335,7 @@ describe('Pipeline runs', () => {
               (mockRun) =>
                 mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
             ),
+            projectName,
             1,
           );
 
@@ -337,7 +344,7 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
         });
 
         it('filter by started', () => {
@@ -352,6 +359,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by start date), type a start date
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-10')),
+            projectName,
             1,
           );
           pipelineRunsGlobal
@@ -360,10 +368,10 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with selected start date exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 3').find().should('exist');
 
           // Mock runs with a cleared filter before updating again
-          activeRunsTable.mockGetRuns(mockActiveRuns, [], 1);
+          activeRunsTable.mockGetRuns(mockActiveRuns, [], projectName, 1);
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunFilterBar.findStartDateInput().clear());
@@ -371,6 +379,7 @@ describe('Pipeline runs', () => {
           // Mock runs with a start date not associated with those runs
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
+            projectName,
             1,
           );
           pipelineRunsGlobal
@@ -393,6 +402,7 @@ describe('Pipeline runs', () => {
           // Mock runs (filtered by a status of 'RUNNING')
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
+            projectName,
             1,
           );
           // Select a filter value of 'RUNNING'
@@ -404,11 +414,12 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 1');
+          activeRunsTable.getRowByName('Test active run 1').find().should('exist');
 
           // Mock runs (filtered by a status of 'SUCCEEDED')
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
+            projectName,
             1,
           );
           // Select a filter value of 'SUCCEEDED'
@@ -420,11 +431,12 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 2');
+          activeRunsTable.getRowByName('Test active run 2').find().should('exist');
 
           // Mock runs (filtered by a status of 'CANCELED')
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.CANCELED),
+            projectName,
             1,
           );
           // Select a filter value of 'CANCELED'
@@ -436,7 +448,14 @@ describe('Pipeline runs', () => {
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
-          activeRunsTable.getRowByName('Test active run 3');
+          activeRunsTable.getRowByName('Test active run 3').find().should('exist');
+        });
+
+        it('Sort by Name', () => {
+          pipelineRunFilterBar.findSortButtonForActive('Run').click();
+          pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortAscending);
+          pipelineRunFilterBar.findSortButtonForActive('Run').click();
+          pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortDescending);
         });
       });
     });
@@ -444,14 +463,14 @@ describe('Pipeline runs', () => {
 
   describe('Archived runs', () => {
     it('shows empty state', () => {
-      archivedRunsTable.mockGetArchivedRuns([]);
+      archivedRunsTable.mockGetArchivedRuns([], projectName);
       pipelineRunsGlobal.visit(projectName, 'archived');
       archivedRunsTable.findEmptyState().should('exist');
     });
 
     describe('with data', () => {
       beforeEach(() => {
-        archivedRunsTable.mockGetArchivedRuns(mockArchivedRuns);
+        archivedRunsTable.mockGetArchivedRuns(mockArchivedRuns, projectName);
         pipelineRunsGlobal.visit(projectName, 'archived');
       });
 
@@ -464,13 +483,13 @@ describe('Pipeline runs', () => {
       it('restore a single run', () => {
         const [runToRestore] = mockArchivedRuns;
 
-        archivedRunsTable.mockRestoreRun(runToRestore.run_id);
+        archivedRunsTable.mockRestoreRun(runToRestore.run_id, projectName);
         archivedRunsTable
           .getRowByName(runToRestore.display_name)
           .findKebabAction('Restore')
           .click();
 
-        archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]]);
+        archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]], projectName);
         restoreRunModal.findSubmitButton().click();
         archivedRunsTable.shouldRowNotBeVisible(runToRestore.display_name);
 
@@ -480,11 +499,11 @@ describe('Pipeline runs', () => {
 
       it('restore multiple runs', () => {
         mockArchivedRuns.forEach((archivedRun) => {
-          archivedRunsTable.mockRestoreRun(archivedRun.run_id);
+          archivedRunsTable.mockRestoreRun(archivedRun.run_id, projectName);
           archivedRunsTable.getRowByName(archivedRun.display_name).findCheckbox().click();
         });
         pipelineRunsGlobal.findRestoreRunButton().click();
-        archivedRunsTable.mockGetRuns(mockArchivedRuns, []);
+        archivedRunsTable.mockGetRuns(mockArchivedRuns, [], projectName);
         bulkRestoreRunModal.findSubmitButton().click();
         archivedRunsTable.findEmptyState().should('exist');
 
@@ -493,13 +512,188 @@ describe('Pipeline runs', () => {
           activeRunsTable.getRowByName(run.display_name).find().should('exist'),
         );
       });
+
+      describe('Table filter', () => {
+        it('filter by run name', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Name" filter, enter a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Run'));
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findNameInput().type('run 1'));
+
+          // Mock runs (filtered by typed run name)
+          archivedRunsTable.mockGetArchivedRuns(
+            mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
+            projectName,
+            1,
+          );
+
+          // Verify only rows with the typed run name exist
+          archivedRunsTable.findRows().should('have.length', 1);
+          archivedRunsTable.getRowByName('Test active run 1').find().should('exist');
+        });
+
+        it('filter by experiment', () => {
+          // Mock initial list of experiments
+          pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
+
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Experiment" filter, enter a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findExperimentInput().type('Test Experiment 1'));
+
+          // Mock runs (filtered by selected experiment)
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
+            projectName,
+            1,
+          );
+
+          // Select an experiment to filter by
+          pipelineRunFilterBar.selectExperimentByName('Test Experiment 1');
+
+          // Verify only rows with selected experiment exist
+          archivedRunsTable.findRows().should('have.length', 2);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+          archivedRunsTable.getRowByName('Test archived run 2').find().should('exist');
+        });
+
+        it('filter by pipeline version', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Pipeline version" filter, select a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Pipeline version'));
+
+          // Mock runs (filtered by selected version)
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter(
+              (mockRun) =>
+                mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
+            ),
+            projectName,
+            1,
+          );
+
+          // Select version to filter by
+          pipelineRunFilterBar.selectPipelineVersionByName('Test Version 1');
+
+          // Verify only rows with selected experiment exist
+          archivedRunsTable.findRows().should('have.length', 1);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+        });
+
+        it('filter by started', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Started" filter, select a value to filter by
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Started'));
+
+          // Mock runs (filtered by start date), type a start date
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-05')),
+            projectName,
+            1,
+          );
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findStartDateInput().type('2024-02-05'));
+
+          // Verify only rows with selected start date exist
+          archivedRunsTable.findRows().should('have.length', 1);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findStartDateInput().clear());
+
+          // Mock runs with a start date not associated with those runs
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
+            projectName,
+            1,
+          );
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunFilterBar.findStartDateInput().type('2024-02-15'));
+
+          // Verify no results were found
+          archivedRunsTable.findEmptyResults().should('exist');
+        });
+
+        it('filter by status', () => {
+          // Verify initial run rows exist
+          archivedRunsTable.findRows().should('have.length', 2);
+
+          // Select the "Status" filter
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() => pipelineRunsGlobal.selectFilterByName('Status'));
+
+          // Mock runs (filtered by a status of 'SUCCEEDED')
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
+            projectName,
+            1,
+          );
+          // Select a filter value of 'SUCCEEDED'
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() =>
+              pipelineRunFilterBar.selectStatusByName(runtimeStateLabels[RuntimeStateKF.SUCCEEDED]),
+            );
+
+          // Verify only rows with the selected status exist
+          archivedRunsTable.findRows().should('have.length', 2);
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
+          archivedRunsTable.getRowByName('Test archived run 2').find().should('exist');
+
+          // Mock runs (filtered by a status of 'RUNNING')
+          archivedRunsTable.mockGetArchivedRuns(
+            mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
+            projectName,
+            1,
+          );
+          // Select a filter value of 'RUNNING'
+          pipelineRunsGlobal
+            .findArchivedRunsToolbar()
+            .within(() =>
+              pipelineRunFilterBar.selectStatusByName(runtimeStateLabels[RuntimeStateKF.RUNNING]),
+            );
+
+          // Verify no results were found
+          archivedRunsTable.findEmptyResults().should('exist');
+        });
+
+        it('Sort by Name', () => {
+          pipelineRunFilterBar.findSortButtonForArchive('Run').click();
+          pipelineRunFilterBar.findSortButtonForArchive('Run').should(be.sortAscending);
+          pipelineRunFilterBar.findSortButtonForArchive('Run').click();
+          pipelineRunFilterBar.findSortButtonForArchive('Run').should(be.sortDescending);
+        });
+      });
     });
   });
 
   describe('Schedules', () => {
     describe('empty state', () => {
       beforeEach(() => {
-        pipelineRunJobTable.mockGetJobs([]);
+        pipelineRunJobTable.mockGetJobs([], projectName);
         pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
@@ -514,14 +708,14 @@ describe('Pipeline runs', () => {
     });
 
     it('shows empty state', () => {
-      pipelineRunJobTable.mockGetJobs([]);
+      pipelineRunJobTable.mockGetJobs([], projectName);
       pipelineRunsGlobal.visit(projectName, 'scheduled');
       pipelineRunJobTable.findEmptyState().should('exist');
     });
 
     describe('with data', () => {
       beforeEach(() => {
-        pipelineRunJobTable.mockGetJobs(mockJobs);
+        pipelineRunJobTable.mockGetJobs(mockJobs, projectName);
         pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
@@ -533,7 +727,7 @@ describe('Pipeline runs', () => {
       });
 
       it('can disable a job', () => {
-        pipelineRunJobTable.mockDisableJob(mockJobs[0]).as('disableJob');
+        pipelineRunJobTable.mockDisableJob(mockJobs[0], projectName).as('disableJob');
         pipelineRunJobTable
           .getRowByName(mockJobs[0].display_name)
           .findStatusSwitchByRowName()
@@ -578,11 +772,19 @@ describe('Pipeline runs', () => {
           // Mock jobs (filtered by typed job name)
           pipelineRunJobTable.mockGetJobs(
             mockJobs.filter((mockJob) => mockJob.display_name.includes('test-pipeline')),
+            projectName,
           );
 
           // Verify only rows with the typed job name exist
           pipelineRunJobTable.findRows().should('have.length', 1);
-          pipelineRunJobTable.getRowByName('test-pipeline');
+          pipelineRunJobTable.getRowByName('test-pipeline').find().should('exist');
+        });
+
+        it('Sort by Name', () => {
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').should(be.sortAscending);
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();
+          pipelineRunFilterBar.findSortButtonforSchedules('Schedule').should(be.sortDescending);
         });
       });
     });
@@ -590,65 +792,59 @@ describe('Pipeline runs', () => {
 });
 
 const initIntercepts = () => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({}));
   mockDspaIntercepts();
 
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([
-      mockProjectK8sResource({ k8sName: projectName, displayName: 'Test project filters' }),
+      mockProjectK8sResource({ k8sName: projectName, displayName: 'Test project' }),
     ]),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
     },
     buildMockPipelineVersionsV2(mockVersions),
   );
 };
 
 const mockDspaIntercepts = () => {
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/pipelines-definition`,
-    },
-    mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
+    mockDataSciencePipelineApplicationK8sResource({
+      name: 'pipelines-definition',
+      namespace: projectName,
+    }),
   );
 
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
-    },
-    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  cy.interceptK8sList(
+    DataSciencePipelineApplicationModel,
+    mockK8sResourceList([
+      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    ]),
   );
 
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
-    },
-    mockDataSciencePipelineApplicationK8sResource({}),
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
+    mockDataSciencePipelineApplicationK8sResource({
+      namespace: projectName,
+    }),
   );
 
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-dspa`,
-    },
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResource({
-      notebookName: 'ds-pipeline-pipelines-definition',
+      notebookName: 'ds-pipeline-dspa',
       namespace: projectName,
     }),
   );

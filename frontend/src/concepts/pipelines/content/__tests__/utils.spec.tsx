@@ -19,7 +19,6 @@ import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 const run: PipelineRunKFv2 = {
   created_at: '2023-09-05T16:23:25Z',
   storage_state: StorageStateKF.AVAILABLE,
-  pipeline_version_id: 'version-id',
   finished_at: '2023-09-05T16:24:34Z',
   run_id: 'dc66a214-4df2-4d4d-a302-0d02d8bba0e7',
   display_name: 'flip-coin',

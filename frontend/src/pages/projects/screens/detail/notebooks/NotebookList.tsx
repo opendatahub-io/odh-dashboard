@@ -3,10 +3,9 @@ import { Button, Popover } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
-import { useAccessReview } from '~/api';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
@@ -22,10 +21,6 @@ const NotebookList: React.FC = () => {
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
   const isNotebooksEmpty = notebookStates.length === 0;
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   React.useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -44,7 +39,7 @@ const NotebookList: React.FC = () => {
         !isNotebooksEmpty && (
           <Popover
             headerContent="About workbenches"
-            bodyContent="Creating a workbench allows you to add a Jupyter notebook to your project."
+            bodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
           >
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
@@ -68,13 +63,13 @@ const NotebookList: React.FC = () => {
       emptyState={
         <EmptyDetailsView
           title="Start by creating a workbench"
-          description="Creating a workbench allows you to add a Jupyter notebook to your project."
+          description="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
           iconImage={typedEmptyImage(ProjectObjectType.notebook)}
           imageAlt="create a workbench"
-          allowCreate={rbacLoaded && allowCreate}
           createButton={
             <Button
               key={`action-${ProjectSectionID.WORKBENCHES}`}
+              data-testid="create-workbench-button"
               onClick={() => navigate(`/projects/${projectName}/spawner`)}
               variant="primary"
             >

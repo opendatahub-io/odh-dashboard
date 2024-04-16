@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
   Flex,
@@ -8,10 +8,14 @@ import {
   GalleryItem,
   Label,
   Popover,
+  Stack,
+  StackItem,
+  Text,
+  TextContent,
 } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import {
   getSortedTemplates,
   getTemplateEnabled,
@@ -26,9 +30,7 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
 import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
-import { useAccessReview } from '~/api';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
@@ -78,11 +80,6 @@ const ModelServingPlatform: React.FC = () => {
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
-
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
     if (submit) {
@@ -92,14 +89,47 @@ const ModelServingPlatform: React.FC = () => {
     }
   };
 
+  const renderPlatformEmptyState = () => {
+    if (kServeEnabled || modelMeshEnabled) {
+      return (
+        <EmptyDetailsView
+          allowCreate
+          iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
+          imageAlt={modelMeshEnabled ? 'No model servers' : 'No deployed models'}
+          title={modelMeshEnabled ? 'Start by adding a model server' : 'Start by deploying a model'}
+          description={
+            modelMeshEnabled
+              ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authorization, the serving runtime, and how the project that the model server belongs to is accessed.\n'
+              : 'Each model is deployed on its own model server.'
+          }
+          createButton={
+            <ModelServingPlatformButtonAction
+              isProjectModelMesh={isProjectModelMesh}
+              testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
+              emptyTemplates={emptyTemplates}
+              variant="primary"
+              onClick={() => {
+                setPlatformSelected(
+                  isProjectModelMesh ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE,
+                );
+              }}
+            />
+          }
+        />
+      );
+    }
+
+    return <EmptyModelServingPlatform />;
+  };
+
   return (
     <>
       <DetailsSection
-        objectType={ProjectObjectType.deployedModels}
+        objectType={!emptyModelServer ? ProjectObjectType.deployedModels : undefined}
         id={ProjectSectionID.MODEL_SERVER}
-        title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
+        title={!emptyModelServer ? ProjectSectionTitles[ProjectSectionID.MODEL_SERVER] : undefined}
         actions={
-          shouldShowPlatformSelection || platformError
+          shouldShowPlatformSelection || platformError || emptyModelServer
             ? undefined
             : [
                 <ModelServingPlatformButtonAction
@@ -119,59 +149,65 @@ const ModelServingPlatform: React.FC = () => {
         }
         description={
           shouldShowPlatformSelection && emptyModelServer
-            ? 'Select the type of model serving platform to be used when deploying models in this project.'
+            ? 'Select the model serving type to be used when deploying models from this project.'
             : undefined
         }
         popover={
-          <Popover
-            headerContent="About model serving"
-            bodyContent="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
-          >
-            <DashboardPopupIconButton
-              icon={<OutlinedQuestionCircleIcon />}
-              aria-label="More info"
-            />
-          </Popover>
+          !emptyModelServer ? (
+            <Popover
+              headerContent="About models"
+              bodyContent="Deploy models to test them and integrate them into applications. Deploying a model makes it accessible via an API, enabling you to return predictions based on data inputs."
+            >
+              <DashboardPopupIconButton
+                icon={<OutlinedQuestionCircleIcon />}
+                aria-label="More info"
+              />
+            </Popover>
+          ) : null
         }
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={shouldShowPlatformSelection}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
-          kServeEnabled || modelMeshEnabled ? (
+          kServeEnabled && modelMeshEnabled ? (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
                 style={{ borderRight: '1px solid var(--pf-v5-global--BorderColor--100)' }}
               >
                 <EmptyDetailsView
-                  title="Start by adding a model server"
-                  description="Deploy a trained data science model to serve intelligent applications with an endpoint that allows apps to send requests to the model."
                   iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
                   imageAlt="add a model server"
-                  allowCreate={false}
                 />
               </FlexItem>
               <FlexItem flex={{ default: 'flex_1' }}>
-                <Gallery hasGutter>
-                  <GalleryItem>
-                    <EmptySingleModelServingCard allowCreate={rbacLoaded && allowCreate} />
-                  </GalleryItem>
-                  <GalleryItem>
-                    <EmptyMultiModelServingCard allowCreate={rbacLoaded && allowCreate} />
-                  </GalleryItem>
-                </Gallery>
-                <Alert
-                  style={{ marginTop: 'var(--pf-v5-global--spacer--md)' }}
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Your project can only support one platform"
-                >
-                  <p>
-                    Choose a platform that best fits your needs. Changes cannot be made once a model
-                    has deployed.
-                  </p>
-                </Alert>
+                <Stack hasGutter>
+                  <StackItem>
+                    <TextContent>
+                      <Text>
+                        Select the model serving type to be used when deploying from this project.
+                      </Text>
+                    </TextContent>
+                  </StackItem>
+                  <StackItem>
+                    <Gallery hasGutter>
+                      <GalleryItem>
+                        <EmptySingleModelServingCard />
+                      </GalleryItem>
+                      <GalleryItem>
+                        <EmptyMultiModelServingCard />
+                      </GalleryItem>
+                    </Gallery>
+                  </StackItem>
+                  <StackItem>
+                    <Alert
+                      variant="info"
+                      isInline
+                      isPlain
+                      title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
+                    />
+                  </StackItem>
+                </Stack>
               </FlexItem>
             </Flex>
           ) : (
@@ -179,18 +215,19 @@ const ModelServingPlatform: React.FC = () => {
           )
         }
         labels={
-          currentProjectServingPlatform && [
-            <Label key="serving-platform-label" data-testid="serving-platform-label">
-              {isProjectModelMesh ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
-            </Label>,
-          ]
+          currentProjectServingPlatform
+            ? [
+                <Label key="serving-platform-label" data-testid="serving-platform-label">
+                  {isProjectModelMesh
+                    ? 'Multi-model serving enabled'
+                    : 'Single-model serving enabled'}
+                </Label>,
+              ]
+            : undefined
         }
       >
         {emptyModelServer ? (
-          <EmptyDetailsList
-            title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-            icon={PlusCircleIcon}
-          />
+          renderPlatformEmptyState()
         ) : isProjectModelMesh ? (
           <ModelMeshServingRuntimeTable />
         ) : (

@@ -13,6 +13,8 @@ import { useQueryParams } from '~/utilities/useQueryParams';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { typedObjectImage, ProjectObjectType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { useAccessReview } from '~/api';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -21,6 +23,12 @@ import DataConnectionsList from './data-connections/DataConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 
 import './ProjectDetails.scss';
+
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'create',
+};
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -32,6 +40,10 @@ const ProjectDetails: React.FC = () => {
   const modelServingEnabled = useModelServingEnabled();
   const queryParams = useQueryParams();
   const state = queryParams.get('section');
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...accessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
 
   useCheckLogoutParams();
 
@@ -41,16 +53,6 @@ const ProjectDetails: React.FC = () => {
       sections={[
         { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
         { id: ProjectSectionID.WORKBENCHES, title: 'Workbenches', component: <NotebookList /> },
-        {
-          id: ProjectSectionID.CLUSTER_STORAGES,
-          title: 'Cluster storage',
-          component: <StorageList />,
-        },
-        {
-          id: ProjectSectionID.DATA_CONNECTIONS,
-          title: 'Data connections',
-          component: <DataConnectionsList />,
-        },
         ...(pipelinesEnabled
           ? [
               {
@@ -69,7 +71,17 @@ const ProjectDetails: React.FC = () => {
               },
             ]
           : []),
-        ...(projectSharingEnabled
+        {
+          id: ProjectSectionID.CLUSTER_STORAGES,
+          title: 'Cluster storage',
+          component: <StorageList />,
+        },
+        {
+          id: ProjectSectionID.DATA_CONNECTIONS,
+          title: 'Data connections',
+          component: <DataConnectionsList />,
+        },
+        ...(projectSharingEnabled && allowCreate
           ? [
               {
                 id: ProjectSectionID.PERMISSIONS,
@@ -78,7 +90,7 @@ const ProjectDetails: React.FC = () => {
               },
             ]
           : []),
-        ...(biasMetricsAreaAvailable
+        ...(biasMetricsAreaAvailable && allowCreate
           ? [
               {
                 id: ProjectSectionID.SETTINGS,
@@ -109,7 +121,7 @@ const ProjectDetails: React.FC = () => {
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded
+      loaded={rbacLoaded}
       empty={false}
     >
       {content()}

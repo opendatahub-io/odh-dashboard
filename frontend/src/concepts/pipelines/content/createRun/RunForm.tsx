@@ -1,15 +1,10 @@
 import * as React from 'react';
 import { Form, FormSection, Text } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import {
-  RunFormData,
-  RunTypeOption,
-  ScheduledRunType,
-} from '~/concepts/pipelines/content/createRun/types';
+import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import PipelineVersionSection from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionSection';
 import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
@@ -32,6 +27,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   const selectedVersion = data.version || latestVersion;
   const paramsRef = React.useRef(data.params);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const isSchedule = runType === PipelineRunType.Scheduled;
 
   const updateInputParams = React.useCallback(
     (version: PipelineVersionKFv2 | undefined) =>
@@ -66,18 +62,6 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
         <Text>{getProjectDisplayName(data.project)}</Text>
       </FormSection>
 
-      <FormSection
-        id={CreateRunPageSections.NAME_DESC}
-        aria-label={runPageSectionTitles[CreateRunPageSections.NAME_DESC]}
-      >
-        <NameDescriptionField
-          nameFieldId="run-name"
-          descriptionFieldId="run-description"
-          data={data.nameDesc}
-          setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
-        />
-      </FormSection>
-
       {isExperimentsAvailable && (
         <ExperimentSection
           value={data.experiment}
@@ -85,36 +69,37 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
         />
       )}
 
-      <PipelineSection
-        value={data.pipeline}
-        onChange={async (pipeline) => {
-          onValueChange('pipeline', pipeline);
-          onValueChange('version', undefined);
-        }}
-      />
+      <FormSection
+        id={isSchedule ? CreateRunPageSections.SCHEDULE_DETAILS : CreateRunPageSections.RUN_DETAILS}
+        title={
+          runPageSectionTitles[
+            isSchedule ? CreateRunPageSections.SCHEDULE_DETAILS : CreateRunPageSections.RUN_DETAILS
+          ]
+        }
+      >
+        <NameDescriptionField
+          nameFieldId="run-name"
+          descriptionFieldId="run-description"
+          data={data.nameDesc}
+          setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
+        />
 
-      <PipelineVersionSection
-        selectedPipeline={data.pipeline}
-        value={selectedVersion}
-        onChange={(version) => {
-          onValueChange('version', version);
-          updateInputParams(version);
-        }}
-      />
-
-      {runType === PipelineRunType.Scheduled && (
-        <FormSection
-          id={CreateRunPageSections.SCHEDULE_SETTINGS}
-          title={runPageSectionTitles[CreateRunPageSections.SCHEDULE_SETTINGS]}
-        >
+        {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (
           <RunTypeSectionScheduled
-            data={(data.runType as ScheduledRunType).data}
+            data={data.runType.data}
             onChange={(scheduleData) =>
               onValueChange('runType', { type: RunTypeOption.SCHEDULED, data: scheduleData })
             }
           />
-        </FormSection>
-      )}
+        )}
+      </FormSection>
+
+      <PipelineSection
+        pipeline={data.pipeline}
+        version={selectedVersion}
+        onValueChange={onValueChange}
+        updateInputParams={updateInputParams}
+      />
 
       <ParamsSection
         runParams={data.params}

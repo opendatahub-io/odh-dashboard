@@ -1,23 +1,20 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockProjectK8sResource, mockProjectsK8sList } from '~/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { ProjectKind } from '~/k8sTypes';
 import { incrementResourceVersion } from '~/__mocks__/mockUtils';
-import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ProjectModel, ProjectRequestModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mock200Status } from '~/__mocks__/mockK8sStatus';
 
 describe('Data science projects details', () => {
   it('should start with an empty project list', () => {
-    initIntercepts();
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
     projectListPage.shouldBeEmpty();
   });
 
   it('should open a modal to create a project', () => {
-    initIntercepts();
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
     projectListPage.findCreateProjectButton().click();
     createProjectModal.shouldBeOpen();
     createProjectModal.findCancelButton().click();
@@ -28,7 +25,6 @@ describe('Data science projects details', () => {
   });
 
   it('should create project', () => {
-    initIntercepts();
     initCreateProjectIntercepts();
 
     projectListPage.visit();
@@ -43,20 +39,13 @@ describe('Data science projects details', () => {
 
     createProjectModal.findSubmitButton().click();
 
-    cy.wsK8sAdded(ProjectModel, mockProjectK8sResource({}));
+    cy.wsK8s('ADDED', ProjectModel, mockProjectK8sResource({}));
 
     cy.url().should('include', '/projects/test-project');
   });
 
   it('should list the new project', () => {
-    initIntercepts();
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-      },
-      mockK8sResourceList([mockProjectK8sResource({})]),
-    );
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     projectListPage.visit();
     projectListPage.shouldHaveProjects();
     const projectRow = projectListPage.getProjectRow('Test Project');
@@ -64,15 +53,8 @@ describe('Data science projects details', () => {
   });
 
   it('should delete project', () => {
-    initIntercepts();
     const mockProject = mockProjectK8sResource({});
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-      },
-      mockK8sResourceList([mockProject]),
-    );
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
 
     projectListPage.visit();
     projectListPage.getProjectRow('Test Project').findKebabAction('Delete project').click();
@@ -82,24 +64,23 @@ describe('Data science projects details', () => {
     projectListPage.getProjectRow('Test Project').findKebabAction('Delete project').click();
     deleteModal.findInput().type('Test Project');
 
-    cy.intercept(
+    cy.interceptK8s(
+      'DELETE',
       {
-        method: 'DELETE',
-        pathname: '/api/k8s/apis/project.openshift.io/v1/projects/test-project',
+        model: ProjectModel,
+        name: 'test-project',
       },
-      { kind: 'Status', apiVersion: 'v1', metadata: {}, status: 'Success' },
+      mock200Status({}),
     ).as('deleteProject');
 
     deleteModal.findSubmitButton().should('be.enabled').click();
     cy.wait('@deleteProject');
 
-    cy.wsK8sModified(ProjectModel, deletedMockProjectResource(mockProject));
+    cy.wsK8s('MODIFIED', ProjectModel, deletedMockProjectResource(mockProject));
     projectListPage.shouldBeEmpty();
   });
 
   it('should react to updates through web sockets', () => {
-    initIntercepts();
-
     const projectsMock = mockProjectsK8sList();
     const projects = projectsMock.items;
     projectsMock.items = [projects[0]];
@@ -109,20 +90,20 @@ describe('Data science projects details', () => {
       'openshift.io/display-name': 'renamed',
     };
 
-    cy.intercept({ pathname: '/api/k8s/apis/project.openshift.io/v1/projects' }, projectsMock);
-    cy.visitWithLogin('/projects');
+    cy.interceptK8sList(ProjectModel, projectsMock);
+    cy.visit('/projects');
 
     projectListPage.shouldHaveProjects();
     projectListPage.findProjectLink('DS Project 1').should('exist');
 
-    cy.wsK8sAdded(ProjectModel, projects[1]);
+    cy.wsK8s('ADDED', ProjectModel, projects[1]);
     projectListPage.findProjectLink('DS Project 2').should('exist');
 
-    cy.wsK8sModified(ProjectModel, renamed);
+    cy.wsK8s('MODIFIED', ProjectModel, renamed);
     projectListPage.findProjectLink('renamed').should('exist');
     projectListPage.findProjectLink('DS Project 2').should('not.exist');
 
-    cy.wsK8sDeleted(ProjectModel, renamed);
+    cy.wsK8s('DELETED', ProjectModel, renamed);
     projectListPage.findProjectLink('DS Project 1').should('exist');
     projectListPage.findProjectLink('DS Project 2').should('not.exist');
     projectListPage.findProjectLink('renamed').should('not.exist');
@@ -141,33 +122,16 @@ const deletedMockProjectResource = (resource: ProjectKind): ProjectKind =>
     },
   });
 
-const initIntercepts = () => {
-  cy.intercept('/api/config', mockDashboardConfig({}));
-  cy.intercept('/api/status', mockStatus());
-};
-
 const initCreateProjectIntercepts = () => {
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
-    mockK8sResourceList([]),
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([]));
+
+  cy.interceptK8s('POST', ProjectRequestModel, mockProjectK8sResource({})).as(
+    'createProjectRequest',
   );
 
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projectrequests',
-    },
-    mockProjectK8sResource({}),
-  ).as('createProjectRequest');
-
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/namespaces/test-project/0',
-    },
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '0' } },
     { applied: true },
   );
 };

@@ -51,22 +51,22 @@ class PipelineImportModal extends Modal {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
-  mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData) {
+  mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/pipelines/create',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/create`,
         times: 1,
       },
       buildMockPipelineV2(params.pipeline),
     );
   }
 
-  mockUploadPipeline(params: Partial<PipelineKFv2>) {
+  mockUploadPipeline(params: Partial<PipelineKFv2>, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/pipelines/upload',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/upload`,
         times: 1,
       },
       buildMockPipelineV2(params),

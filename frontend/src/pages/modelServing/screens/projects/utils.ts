@@ -60,6 +60,9 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
+export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
 
@@ -155,11 +158,15 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   },
   minReplicas: 1,
   maxReplicas: 1,
+  externalRoute: false,
+  tokenAuth: false,
+  tokens: [],
 };
 
 export const useCreateInferenceServiceObject = (
   existingData?: InferenceServiceKind,
   existingServingRuntimeData?: ServingRuntimeKind, // upgrade path to already KServe models
+  secrets?: SecretKind[],
 ): [
   data: CreatingInferenceServiceObject,
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
@@ -183,6 +190,12 @@ export const useCreateInferenceServiceObject = (
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
 
+  const existingExternalRoute = false; // TODO: Change this in the future in case we have an External Route
+  const existingTokenAuth =
+    existingData?.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+
+  const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(secrets));
+
   React.useEffect(() => {
     if (existingName) {
       setCreateData('name', existingName);
@@ -202,6 +215,9 @@ export const useCreateInferenceServiceObject = (
       );
       setCreateData('minReplicas', existingMinReplicas);
       setCreateData('maxReplicas', existingMaxReplicas);
+      setCreateData('externalRoute', existingExternalRoute);
+      setCreateData('tokenAuth', existingTokenAuth);
+      setCreateData('tokens', existingTokens);
     }
   }, [
     existingName,
@@ -212,6 +228,9 @@ export const useCreateInferenceServiceObject = (
     existingMinReplicas,
     existingMaxReplicas,
     setCreateData,
+    existingExternalRoute,
+    existingTokenAuth,
+    existingTokens,
   ]);
 
   return createInferenceServiceState;
@@ -321,7 +340,9 @@ export const getSubmitInferenceServiceResourceFn = (
   servingRuntimeName?: string,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
-): ((opts: { dryRun?: boolean }) => Promise<InferenceServiceKind>) => {
+  allowCreate?: boolean,
+  secrets?: SecretKind[],
+): ((opts: { dryRun?: boolean }) => Promise<void>) => {
   const inferenceServiceData = {
     ...createData,
     ...(servingRuntimeName !== undefined && {
@@ -338,6 +359,9 @@ export const getSubmitInferenceServiceResourceFn = (
   const existingStorage =
     inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE;
 
+  const createTokenAuth = createData.tokenAuth && !!allowCreate;
+  const inferenceServiceName = translateDisplayNameForK8s(inferenceServiceData.name);
+
   return ({ dryRun = false }) =>
     createInferenceServiceAndDataConnection(
       inferenceServiceData,
@@ -346,12 +370,24 @@ export const getSubmitInferenceServiceResourceFn = (
       isModelMesh,
       acceleratorProfileState,
       dryRun,
+    ).then((inferenceService) =>
+      setUpTokenAuth(
+        createData,
+        inferenceServiceName,
+        createData.project,
+        createTokenAuth,
+        inferenceService,
+        secrets || [],
+        {
+          dryRun,
+        },
+      ),
     );
 };
 
 export const submitInferenceServiceResourceWithDryRun = async (
   ...params: Parameters<typeof getSubmitInferenceServiceResourceFn>
-): Promise<InferenceServiceKind> => {
+): Promise<void> => {
   const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(...params);
   await submitInferenceServiceResource({ dryRun: true });
   return submitInferenceServiceResource({ dryRun: false });

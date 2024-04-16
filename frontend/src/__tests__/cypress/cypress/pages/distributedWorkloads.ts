@@ -2,14 +2,14 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class GlobalDistributedWorkloads {
   visit(wait = true) {
-    cy.visitWithLogin(`/distributedWorkloads`);
+    cy.visit(`/distributedWorkloads`);
     if (wait) {
       this.wait();
     }
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Workload Metrics');
+    return appChrome.findNavItem('Distributed Workload Metrics');
   }
 
   shouldNotFoundPage() {
@@ -22,7 +22,7 @@ class GlobalDistributedWorkloads {
   }
 
   shouldHavePageTitle() {
-    return cy.findByTestId('app-page-title').should('have.text', 'Workload Metrics');
+    return cy.findByTestId('app-page-title').should('have.text', 'Distributed Workload Metrics');
   }
 
   findProjectSelect() {
@@ -31,6 +31,10 @@ class GlobalDistributedWorkloads {
 
   selectProjectByName(name: string) {
     this.findProjectSelect().findDropdownItem(name).click();
+  }
+
+  findStatusOverviewCard() {
+    return cy.findByTestId('dw-status-overview-card');
   }
 
   private wait() {

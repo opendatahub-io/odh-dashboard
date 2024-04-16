@@ -6,11 +6,11 @@ import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 
-export type PrometheusQueryResponse = {
+export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
   data: {
-    result: {
+    result: ({
       value: [number, string];
-    }[];
+    } & TResultExtraProps)[];
     resultType: string;
   };
   status: string;
@@ -266,6 +266,11 @@ export type Section = {
   actions: ApplicationAction[];
 };
 
+export enum TrackingOutcome {
+  submit = 'submit',
+  cancel = 'cancel',
+}
+
 export type TrackingEventProperties = {
   name?: string;
   anonymousID?: string;
@@ -278,6 +283,9 @@ export type TrackingEventProperties = {
   projectName?: string;
   notebookName?: string;
   lastActivity?: string;
+  outcome?: TrackingOutcome;
+  success?: boolean;
+  error?: string;
 };
 
 export type NotebookPort = {

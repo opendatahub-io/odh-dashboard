@@ -1,25 +1,11 @@
 import * as React from 'react';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Form,
-  FormGroup,
-  FormSection,
-  Modal,
-  Popover,
-  Stack,
-  StackItem,
-  getUniqueId,
-} from '@patternfly/react-core';
+import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import { HelpIcon } from '@patternfly/react-icons';
 import {
   submitServingRuntimeResourcesWithDryRun,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
 import {
   isModelServerEditInfoChanged,
   requestsUnderLimits,
@@ -31,11 +17,12 @@ import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
+import { useAccessReview } from '~/api';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
-import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
 import ServingRuntimeNameSection from './ServingRuntimeNameSection';
+import AuthServingRuntimeSection from './AuthServingRuntimeSection';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -140,20 +127,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       });
   };
 
-  const createNewToken = React.useCallback(() => {
-    const name = 'default-name';
-    const duplicated = createData.tokens.filter((token) => token.name === name);
-    const duplicatedError = duplicated.length > 0 ? 'Duplicates are invalid' : '';
-    setCreateData('tokens', [
-      ...createData.tokens,
-      {
-        name,
-        uuid: getUniqueId('ml'),
-        error: duplicatedError,
-      },
-    ]);
-  }, [createData.tokens, setCreateData]);
-
   return (
     <Modal
       title={`${editInfo ? 'Edit' : 'Add'} model server`}
@@ -211,60 +184,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
-          {!allowCreate && (
-            <StackItem>
-              <Popover
-                showClose
-                bodyContent="Model route and token authorization can only be changed by administrator users."
-              >
-                <Button variant="link" icon={<HelpIcon />} isInline>
-                  Why can&apos;t I change the model route and token authorization fields?
-                </Button>
-              </Popover>
-            </StackItem>
-          )}
-          <StackItem>
-            <FormSection title="Model route" titleElement="div">
-              <FormGroup>
-                <Checkbox
-                  label="Make deployed models available through an external route"
-                  id="alt-form-checkbox-route"
-                  data-testid="alt-form-checkbox-route"
-                  name="alt-form-checkbox-route"
-                  isChecked={createData.externalRoute}
-                  isDisabled={!allowCreate}
-                  onChange={(e, check) => {
-                    setCreateData('externalRoute', check);
-                    if (check && allowCreate) {
-                      setCreateData('tokenAuth', check);
-                      if (createData.tokens.length === 0) {
-                        createNewToken();
-                      }
-                    }
-                  }}
-                />
-              </FormGroup>
-            </FormSection>
-          </StackItem>
-          <StackItem>
-            <ServingRuntimeTokenSection
-              data={createData}
-              setData={setCreateData}
-              allowCreate={allowCreate}
-              createNewToken={createNewToken}
-            />
-          </StackItem>
-          {createData.externalRoute && !createData.tokenAuth && (
-            <StackItem>
-              <Alert
-                id="external-route-no-token-alert"
-                data-testid="external-route-no-token-alert"
-                variant="warning"
-                isInline
-                title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-              />
-            </StackItem>
-          )}
+          <AuthServingRuntimeSection
+            data={createData}
+            setData={setCreateData}
+            allowCreate={allowCreate}
+            publicRoute
+          />
         </Stack>
       </Form>
     </Modal>

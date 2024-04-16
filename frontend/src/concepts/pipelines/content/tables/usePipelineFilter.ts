@@ -23,7 +23,7 @@ export const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]
   return (data as { label: string; value: string } | undefined)?.value;
 };
 
-const defaultValue: FilterProps['filterData'] = {
+const defaultFilterData: FilterProps['filterData'] = {
   [FilterOptions.NAME]: '',
   [FilterOptions.CREATED_AT]: '',
   [FilterOptions.STATUS]: '',
@@ -31,8 +31,14 @@ const defaultValue: FilterProps['filterData'] = {
   [FilterOptions.PIPELINE_VERSION]: '',
 };
 
-const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): FilterProps => {
-  const [filterData, setFilterData] = React.useState(defaultValue);
+const usePipelineFilter = (
+  setFilter: (filter?: PipelinesFilter) => void,
+  initialFilterData?: Partial<FilterProps['filterData']>,
+): FilterProps => {
+  const [filterData, setFilterData] = React.useState({
+    ...defaultFilterData,
+    ...initialFilterData,
+  });
 
   const toolbarProps: FilterProps = {
     filterData,
@@ -40,7 +46,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
       (key, value) => setFilterData((oldValues) => ({ ...oldValues, [key]: value })),
       [],
     ),
-    onClearFilters: React.useCallback(() => setFilterData(defaultValue), []),
+    onClearFilters: React.useCallback(() => setFilterData(defaultFilterData), []),
   };
 
   const doSetFilter = React.useCallback(

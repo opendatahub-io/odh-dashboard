@@ -216,6 +216,8 @@ The primary method for selecting elements on a page is through the use of test I
 
 Test IDs must be unique within a specific context but are not required to be globally unique. For example the same test ID may appear per table row.
 
+Append meaningful descriptive words to test IDs to help with discovery and understanding. eg `delete-button`, `project-section`
+
 `data-testid` must contain at least one static string identifier. Do not solely assign dynamic identifiers (a value which is only known at runtime) to `data-testid`. It may be useful to assign multiple values to the `data-testid` attribute using whitespace separated values. eg `data-testid="card <dynamic-identifier>"`
 
 For example, if we had a gallery of cards where each card is populated from a k8s resource. We can select all cards, or select individual cards.
@@ -230,15 +232,35 @@ cy.findAllByTestId(['card']).should('have.length', 5)
 
 When querying the DOM within a modal, all queries must be scoped to the modal to avoid assertions that may match the DOM underneath the modal.
 
+### Intercept
+
+While it is possible to use `cy.intercept` for all use cases, this command doesn't provide type safety for the URL and response data structure. Use the following commands in place of `cy.intercept`:
+
+- Kubernetes API
+  - `interceptK8s` and `interceptK8sList`
+- All other Dashboard API
+  - `interceptOdh`
+  - Add additional APIs to this custom command interface as required.
+
+### Watching Kubernetes and Websockets
+
+When the frontend opens a websocket to watch Kubernetes resources, it will connect to a websocket server hosted by the cypress test infrastructure. This allows for a test to push updates through the websocket to be received by the frontend. Use the custom command `wsK8s` to simulate Kubernetes resource updates. The simplest form of this command accepts a Kubernetes model object. See the `wsK8s` API for more options.
+
+```ts
+cy.wsK8s('ADDED', ProjectModel, <project resource>);
+cy.wsK8s('MODIFIED', ProjectModel, <project resource>);
+cy.wsK8s('DELETED', ProjectModel, <project resource>);
+```
+
 ### Test Considerations
 
 Always start a new test with a `visit` to the page being tested.
 
-Use `cy.intercept` to mock network requests. 
+Use variants of `intercept` to mock network requests. 
 
 When a UI action results in a network request, the test must wait to ensure the request was issued:
 ```ts
-cy.intercept(...).as('some-request');
+cy.interceptOdh(...).as('some-request');
 ...
 cy.wait('@some-request');
 ```
@@ -251,6 +273,18 @@ cy.wait('@create-project').then((interception) => {
     description: 'Test project description.',
     displayName: 'My Test Project',
     kind: 'ProjectRequest',
+    metadata: {
+      name: 'test-project',
+    },
+  });
+});
+```
+
+Use chai's [containSubset](https://www.chaijs.com/plugins/) command to perform object equality assertions on a subset of an object. The above example can be simplified if all we wanted to check was the `displayName` and `name`:
+```ts
+cy.wait('@create-project').then((interception) => {
+  expect(interception.request.body).to.containSubset({
+    displayName: 'My Test Project',
     metadata: {
       name: 'test-project',
     },

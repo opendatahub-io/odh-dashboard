@@ -2,12 +2,12 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class ModelRegistry {
   landingPage() {
-    cy.visitWithLogin('/');
+    cy.visit('/');
     this.waitLanding();
   }
 
   visit(modelRegistry?: string) {
-    cy.visitWithLogin(`/modelRegistry${modelRegistry}`);
+    cy.visit(`/modelRegistry${modelRegistry}`);
     this.wait();
   }
 

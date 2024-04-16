@@ -3,3 +3,4 @@ export * from './odh';
 export * from './openShift';
 export * from './pipelines';
 export * from './kueue';
+export * from './trustyai';

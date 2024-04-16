@@ -52,7 +52,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
 
   const fireNotebookTrackingEvent = React.useCallback(
     (action: 'started' | 'stopped') => {
-      fireTrackingEvent(`Workbench ${action}`, {
+      fireTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
         acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
         accelerator: acceleratorProfile.acceleratorProfile
           ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
@@ -87,6 +87,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <Switch
         aria-label={label}
+        data-testid="notebook-status-switch"
         isDisabled={inProgress || isStopping || isDisabled}
         id={`${notebookName}-${notebookNamespace}`}
         isChecked={isChecked}

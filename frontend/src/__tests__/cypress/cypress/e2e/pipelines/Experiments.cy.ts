@@ -10,7 +10,6 @@ import {
   buildMockPipelineVersionsV2,
   mockProjectK8sResource,
   mockRouteK8sResource,
-  mockStatus,
 } from '~/__mocks__';
 import {
   archiveExperimentModal,
@@ -20,7 +19,12 @@ import {
   restoreExperimentModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { experimentsTabs } from '~/__tests__/cypress/cypress/pages/pipelines/experiments';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url.cy';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import {
+  DataSciencePipelineApplicationModel,
+  ProjectModel,
+  RouteModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -46,12 +50,12 @@ describe('Experiments', () => {
   describe('Active experiments', () => {
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments(mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       experimentsTabs.visit(projectName);
     });
 
     it('shows empty states', () => {
-      experimentsTabs.mockGetExperiments([]);
+      experimentsTabs.mockGetExperiments(projectName, []);
       experimentsTabs.visit(projectName);
       experimentsTabs.findActiveTab().click();
       experimentsTabs.getActiveExperimentsTable().findEmptyState().should('exist');
@@ -70,12 +74,17 @@ describe('Experiments', () => {
 
       // Mock experiments (filtered by typed experiment name)
       experimentsTabs.mockGetExperiments(
+        projectName,
         mockExperiments.filter((exp) => exp.display_name.includes('Test experiment 2')),
       );
 
       // Verify only rows with the typed experiment name exist
       experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 1);
-      experimentsTabs.getActiveExperimentsTable().getRowByName('Test experiment 2');
+      experimentsTabs
+        .getActiveExperimentsTable()
+        .getRowByName('Test experiment 2')
+        .find()
+        .should('exist');
     });
 
     it('archive a single experiment', () => {
@@ -83,13 +92,14 @@ describe('Experiments', () => {
 
       const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
 
-      activeExperimentsTable.mockArchiveExperiment(experimentToArchive.experiment_id);
+      activeExperimentsTable.mockArchiveExperiment(experimentToArchive.experiment_id, projectName);
       activeExperimentsTable
         .getRowByName(experimentToArchive.display_name)
         .findKebabAction('Archive')
         .click();
 
       experimentsTabs.mockGetExperiments(
+        projectName,
         [mockExperiments[1], mockExperiments[2]],
         [experimentToArchive],
       );
@@ -108,12 +118,12 @@ describe('Experiments', () => {
     it('archive multiple experiments', () => {
       const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
       mockExperiments.forEach((activeExperiment) => {
-        activeExperimentsTable.mockArchiveExperiment(activeExperiment.experiment_id);
+        activeExperimentsTable.mockArchiveExperiment(activeExperiment.experiment_id, projectName);
         activeExperimentsTable.getRowByName(activeExperiment.display_name).findCheckbox().click();
       });
 
       activeExperimentsTable.findActionsKebab().findDropdownItem('Archive').click();
-      experimentsTabs.mockGetExperiments([], mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
       bulkArchiveExperimentModal.findConfirmInput().type('Archive 3 experiments');
       bulkArchiveExperimentModal.findSubmitButton().click();
       activeExperimentsTable.findEmptyState().should('exist');
@@ -132,7 +142,7 @@ describe('Experiments', () => {
   describe('Archived experiments', () => {
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments([], mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
       experimentsTabs.visit(projectName);
       experimentsTabs.findArchivedTab().click();
     });
@@ -141,13 +151,17 @@ describe('Experiments', () => {
 
       const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
 
-      archivedExperimentsTable.mockRestoreExperiment(experimentToRestore.experiment_id);
+      archivedExperimentsTable.mockRestoreExperiment(
+        experimentToRestore.experiment_id,
+        projectName,
+      );
       archivedExperimentsTable
         .getRowByName(experimentToRestore.display_name)
         .findKebabAction('Restore')
         .click();
 
       experimentsTabs.mockGetExperiments(
+        projectName,
         [experimentToRestore],
         [mockExperiments[1], mockExperiments[2]],
       );
@@ -165,14 +179,17 @@ describe('Experiments', () => {
     it('restore multiple experiments', () => {
       const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
       mockExperiments.forEach((archivedExperiment) => {
-        archivedExperimentsTable.mockRestoreExperiment(archivedExperiment.experiment_id);
+        archivedExperimentsTable.mockRestoreExperiment(
+          archivedExperiment.experiment_id,
+          projectName,
+        );
         archivedExperimentsTable
           .getRowByName(archivedExperiment.display_name)
           .findCheckbox()
           .click();
       });
       archivedExperimentsTable.findRestoreExperimentButton().click();
-      experimentsTabs.mockGetExperiments(mockExperiments, []);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments, []);
       bulkRestoreExperimentModal.findSubmitButton().click();
       archivedExperimentsTable.findEmptyState().should('exist');
 
@@ -193,7 +210,7 @@ describe('Experiments', () => {
 
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments(mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       experimentsTabs.visit(projectName);
       activeExperimentsTable.getRowByName(mockExperiment.display_name).find().find('a').click();
     });
@@ -229,34 +246,26 @@ describe('Experiments', () => {
 });
 
 const initIntercepts = () => {
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept('/api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
-    },
-    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
+  cy.interceptK8sList(
+    DataSciencePipelineApplicationModel,
+    mockK8sResourceList([
+      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    ]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
-    },
-    mockDataSciencePipelineApplicationK8sResource({}),
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
+    mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
   );
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-dspa`,
-    },
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResource({
       notebookName: 'ds-pipeline-dspa',
       namespace: projectName,
     }),
   );
-  cy.intercept(
-    {
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([
       mockProjectK8sResource({ k8sName: projectName, displayName: projectName }),
     ]),
@@ -264,7 +273,7 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines([initialMockPipeline]),
   );
@@ -272,20 +281,20 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipeline_versions',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipeline_versions`,
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v2beta1/runs',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
     },
     { runs: [] },
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/recurringruns',
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
     },
     {
       recurringRuns: [],
@@ -293,7 +302,7 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v2beta1/experiments/${mockExperiments[0].experiment_id}`,
+      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${mockExperiments[0].experiment_id}`,
     },
     mockExperiments[0],
   );

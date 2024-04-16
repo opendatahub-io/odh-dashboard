@@ -25,6 +25,7 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
   if (!typeAhead) {
     return (
       <TextInput
+        data-testid={`project-sharing-name-input ${value}`}
         isRequired
         aria-label="project-sharing-name-input"
         type="text"

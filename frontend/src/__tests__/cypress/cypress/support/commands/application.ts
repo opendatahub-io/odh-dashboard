@@ -1,22 +1,9 @@
 import { MatcherOptions } from '@testing-library/cypress';
 import { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
-
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
     interface Chainable {
-      /**
-       * Visits the URL and performs a login if necessary.
-       * Uses credentials supplied by environment variables if not provided.
-       *
-       * @param url the URL to visit
-       * @param credentials login credentials
-       */
-      visitWithLogin(
-        url: string,
-        credentials?: { username?: string; password?: string },
-      ): Cypress.Chainable<void>;
-
       /**
        * Find a patternfly kebab toggle button.
        *
@@ -39,6 +26,12 @@ declare global {
        */
       findDropdownItem(name: string | RegExp): Cypress.Chainable<JQuery>;
 
+      /**
+       * Finds a patternfly dropdown item by data-testid, first opening the dropdown if not already opened.
+       *
+       * @param testId the name of the item
+       */
+      findDropdownItemByTestId(testId: string): Cypress.Chainable<JQuery>;
       /**
        * Finds a patternfly select option by first opening the select menu if not already opened.
        *
@@ -97,40 +90,6 @@ declare global {
   }
 }
 
-Cypress.Commands.add(
-  'visitWithLogin',
-  (
-    url,
-    credentials = {
-      username: Cypress.env('USERNAME'),
-      password: Cypress.env('PASSWORD'),
-    },
-  ) => {
-    cy.intercept('GET', url).as('visitWithLogin');
-
-    cy.visit(url, { failOnStatusCode: false });
-
-    cy.wait('@visitWithLogin').then((interception) => {
-      if (interception.response?.statusCode === 403) {
-        // do login
-        cy.findByRole('button', { name: 'Log in with OpenShift' }).click();
-        cy.findByRole('link', { name: 'customadmins' }).click();
-        cy.findByLabelText('Username *').type(credentials.username);
-        cy.findByLabelText('Password *').type(credentials.password);
-        cy.findByRole('button', { name: 'Log in' }).click();
-      } else if (interception.response?.statusCode !== 200) {
-        throw new Error(
-          `Failed to visit '${url}'. Status code: ${
-            interception.response?.statusCode || 'unknown'
-          }`,
-        );
-      } else {
-        cy.log('Already logged in');
-      }
-    });
-  },
-);
-
 Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject, isDropdownToggle) => {
   Cypress.log({ displayName: 'findKebab' });
   return cy
@@ -161,7 +120,17 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
     if ($el.find('[aria-expanded=false]').addBack().length) {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).findByRole('menuitem', { name });
+    return cy.wrap($el).parent().findByRole('menuitem', { name });
+  });
+});
+
+Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
+  Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
+  return cy.wrap(subject).then(($el) => {
+    if ($el.find('[aria-expanded=false]').addBack().length) {
+      cy.wrap($el).click();
+    }
+    return cy.wrap($el).parent().findByTestId(testId);
   });
 });
 
@@ -181,14 +150,14 @@ Cypress.Commands.add('fill', { prevSubject: 'optional' }, (subject, text, option
   return cy.wrap(subject).type(text, options);
 });
 
-Cypress.Commands.add('pfSwitch', (dataId) => {
+Cypress.Commands.add('pfSwitch', { prevSubject: 'optional' }, (subject, dataId) => {
   Cypress.log({ displayName: 'pfSwitch', message: dataId });
-  return cy.findByTestId(dataId).parent();
+  return cy.wrap(subject).findByTestId(dataId).parent();
 });
 
-Cypress.Commands.add('pfSwitchValue', (dataId) => {
+Cypress.Commands.add('pfSwitchValue', { prevSubject: 'optional' }, (subject, dataId) => {
   Cypress.log({ displayName: 'pfSwitchValue', message: dataId });
-  return cy.pfSwitch(dataId).find('[type=checkbox]');
+  return cy.wrap(subject).pfSwitch(dataId).find('[type=checkbox]');
 });
 
 Cypress.Commands.overwriteQuery('findByTestId', function findByTestId(...args) {

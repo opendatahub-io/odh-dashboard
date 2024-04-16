@@ -34,7 +34,9 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
       {isRedHatSupported(odhApp) && icon}
       {showProvider && odhApp.spec.provider && (
         <div>
-          <span className="odh-card__provider">by {odhApp.spec.provider}</span>
+          <span className="odh-card__provider" data-testid="cardprovider">
+            by {odhApp.spec.provider}
+          </span>
         </div>
       )}
     </CardTitle>

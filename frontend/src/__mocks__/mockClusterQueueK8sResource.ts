@@ -1,12 +1,19 @@
 import { ClusterQueueKind } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
+import { ContainerResourceAttributes } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
+  hasResourceGroups?: boolean;
+  isCpuOverQuota?: boolean;
+  isMemoryOverQuota?: boolean;
 };
 
 export const mockClusterQueueK8sResource = ({
   name = 'test-cluster-queue',
+  hasResourceGroups = true,
+  isCpuOverQuota = false,
+  isMemoryOverQuota = false,
 }: MockResourceConfigType): ClusterQueueKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta1',
   kind: 'ClusterQueue',
@@ -18,39 +25,30 @@ export const mockClusterQueueK8sResource = ({
     uid: genUID('clusterqueue'),
   },
   spec: {
-    flavorFungibility: {
-      whenCanBorrow: 'Borrow',
-      whenCanPreempt: 'TryNextFlavor',
-    },
+    flavorFungibility: { whenCanBorrow: 'Borrow', whenCanPreempt: 'TryNextFlavor' },
     namespaceSelector: {},
     preemption: {
-      borrowWithinCohort: {
-        policy: 'Never',
-      },
+      borrowWithinCohort: { policy: 'Never' },
       reclaimWithinCohort: 'Never',
       withinClusterQueue: 'Never',
     },
     queueingStrategy: 'BestEffortFIFO',
-    resourceGroups: [
-      {
-        coveredResources: ['cpu', 'memory'],
-        flavors: [
+    resourceGroups: hasResourceGroups
+      ? [
           {
-            name: 'test-flavor',
-            resources: [
+            coveredResources: [ContainerResourceAttributes.CPU, ContainerResourceAttributes.MEMORY],
+            flavors: [
               {
-                name: 'cpu',
-                nominalQuota: '20',
-              },
-              {
-                name: 'memory',
-                nominalQuota: '36Gi',
+                name: 'test-flavor',
+                resources: [
+                  { name: ContainerResourceAttributes.CPU, nominalQuota: '100' },
+                  { name: ContainerResourceAttributes.MEMORY, nominalQuota: '64Gi' },
+                ],
               },
             ],
           },
-        ],
-      },
-    ],
+        ]
+      : [],
     stopPolicy: 'None',
   },
   status: {
@@ -69,14 +67,14 @@ export const mockClusterQueueK8sResource = ({
         name: 'test-flavor',
         resources: [
           {
+            name: ContainerResourceAttributes.CPU,
             borrowed: '0',
-            name: 'cpu',
-            total: '0',
+            total: isCpuOverQuota ? '180' : '40',
           },
           {
+            name: ContainerResourceAttributes.MEMORY,
             borrowed: '0',
-            name: 'memory',
-            total: '0',
+            total: isMemoryOverQuota ? '100Gi' : '20Gi',
           },
         ],
       },
@@ -86,14 +84,14 @@ export const mockClusterQueueK8sResource = ({
         name: 'test-flavor',
         resources: [
           {
+            name: ContainerResourceAttributes.CPU,
             borrowed: '0',
-            name: 'cpu',
-            total: '0',
+            total: isCpuOverQuota ? '180' : '40',
           },
           {
+            name: ContainerResourceAttributes.MEMORY,
             borrowed: '0',
-            name: 'memory',
-            total: '0',
+            total: isMemoryOverQuota ? '100Gi' : '20Gi',
           },
         ],
       },

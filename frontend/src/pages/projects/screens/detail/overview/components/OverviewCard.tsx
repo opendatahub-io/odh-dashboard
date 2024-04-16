@@ -10,6 +10,7 @@ type OverviewCardProps = {
   objectType: ProjectObjectType;
   sectionType: SectionType;
   title?: string;
+  headerInfo?: React.ReactNode;
   popoverHeaderContent?: string;
   popoverBodyContent?: string;
   children: React.ReactNode;
@@ -19,6 +20,7 @@ const OverviewCard: React.FC<OverviewCardProps> = ({
   objectType,
   sectionType,
   title,
+  headerInfo,
   popoverHeaderContent,
   popoverBodyContent,
   children,
@@ -27,27 +29,36 @@ const OverviewCard: React.FC<OverviewCardProps> = ({
 }) => (
   <TypeBorderedCard id={id} objectType={objectType} sectionType={sectionType} {...rest}>
     <CardHeader>
-      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <Flex
+        gap={{ default: 'gapMd' }}
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      >
         <FlexItem>
-          <HeaderIcon type={objectType} sectionType={sectionType} size={36} />
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <HeaderIcon type={objectType} sectionType={sectionType} size={36} />
+            </FlexItem>
+            {title ? (
+              <FlexItem>
+                <TextContent>
+                  <Text id={id ? `${id}-title` : undefined} component="h3">
+                    <b>{title}</b>
+                  </Text>
+                </TextContent>
+              </FlexItem>
+            ) : null}
+            {popoverHeaderContent || popoverBodyContent ? (
+              <Popover headerContent={popoverHeaderContent} bodyContent={popoverBodyContent}>
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info"
+                />
+              </Popover>
+            ) : null}
+          </Flex>
         </FlexItem>
-        {title ? (
-          <FlexItem>
-            <TextContent>
-              <Text id={id ? `${id}-title` : undefined} component="h3">
-                <b>{title}</b>
-              </Text>
-            </TextContent>
-          </FlexItem>
-        ) : null}
-        {popoverHeaderContent || popoverBodyContent ? (
-          <Popover headerContent={popoverHeaderContent} bodyContent={popoverBodyContent}>
-            <DashboardPopupIconButton
-              icon={<OutlinedQuestionCircleIcon />}
-              aria-label="More info"
-            />
-          </Popover>
-        ) : null}
+        <FlexItem>{headerInfo}</FlexItem>
       </Flex>
     </CardHeader>
     {children}

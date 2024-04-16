@@ -9,13 +9,14 @@ type MockResourceConfigType = {
 };
 
 export const mockRouteK8sResource = ({
+  name,
   notebookName = 'test-notebook',
   namespace = 'test-project',
 }: MockResourceConfigType): RouteKind => ({
   kind: 'Route',
   apiVersion: 'route.openshift.io/v1',
   metadata: {
-    name: notebookName,
+    name: name || notebookName,
     namespace,
     uid: genUID('route'),
     resourceVersion: '4789458',

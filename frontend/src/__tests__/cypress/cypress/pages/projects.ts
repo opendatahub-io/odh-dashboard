@@ -11,6 +11,10 @@ class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
     return cy.findByTestId('image-display-name').should('have.text', name);
   }
+
+  findOutdatedElyraInfo() {
+    return cy.findByTestId('outdated-elyra-info');
+  }
 }
 
 class ProjectRow extends TableRow {
@@ -21,7 +25,7 @@ class ProjectRow extends TableRow {
 
 class ProjectListPage {
   visit() {
-    cy.visitWithLogin('/projects');
+    cy.visit('/projects');
     this.wait();
   }
 
@@ -173,6 +177,14 @@ class ProjectDetails {
 
   findTab(name: string) {
     return cy.findByRole('tab', { name });
+  }
+
+  findElyraInvalidVersionAlert() {
+    return cy.findByTestId('elyra-invalid-version-alert');
+  }
+
+  findUnsupportedPipelineVersionAlert() {
+    return cy.findByTestId('unsupported-pipeline-version-alert');
   }
 }
 

@@ -2,13 +2,11 @@ import * as React from 'react';
 import { ButtonVariant, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { AccessReviewResource, ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
 import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
 import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerActions';
-import { useAccessReview } from '~/api';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -17,16 +15,11 @@ import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/Pipe
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 
 const PipelinesSection: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
     apiAvailable,
     pipelinesServer: { initializing, installed, timedOut, compatible },
   } = usePipelinesAPI();
   const [isPipelinesEmpty, setIsPipelinesEmpty] = React.useState(false);
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
 
   const hideImportButton = installed && !compatible;
 
@@ -60,7 +53,7 @@ const PipelinesSection: React.FC = () => {
           installed ? (
             <Popover
               headerContent="About pipelines"
-              bodyContent="Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models."
+              bodyContent="Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench."
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
@@ -72,12 +65,7 @@ const PipelinesSection: React.FC = () => {
         actions={actions}
         isLoading={(compatible && !apiAvailable && installed) || initializing}
         isEmpty={!installed}
-        emptyState={
-          <NoPipelineServer
-            variant={ButtonVariant.primary}
-            allowCreate={rbacLoaded && allowCreate}
-          />
-        }
+        emptyState={<NoPipelineServer variant={ButtonVariant.primary} />}
         showDivider={isPipelinesEmpty}
       >
         <EnsureCompatiblePipelineServer>

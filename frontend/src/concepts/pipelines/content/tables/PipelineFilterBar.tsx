@@ -16,9 +16,8 @@ type FilterOptionRenders = {
   label?: string;
 };
 
-type Child = React.ReactElement<typeof ToolbarItem>;
 type PipelineFilterBarProps<Options extends FilterOptions> = {
-  children: Child | Child[];
+  children?: React.ReactNode;
   filterOptions: { [key in Options]?: string };
   filterOptionRenders: Record<Options, (props: FilterOptionRenders) => React.ReactNode>;
   filterData: Record<Options, string | { label: string; value: string } | undefined>;
@@ -87,12 +86,12 @@ const PipelineFilterBar = <Options extends FilterOptions>({
                 return {
                   key: filterKey,
                   node: (
-                    <>
+                    <span data-testid={`${optionValue?.toLowerCase()}-filter-chip`}>
                       <b>{optionValue}:</b>{' '}
                       <Tooltip content={dataValue.value} position="top-start">
                         <span>{dataValue.label}</span>
                       </Tooltip>
-                    </>
+                    </span>
                   ),
                 };
               }

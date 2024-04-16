@@ -44,7 +44,7 @@ const CustomServingRuntimePlatformsSelector: React.FC<
       isRequired
     >
       <SimpleDropdownSelect
-        data-testid="custom-serving-runtime-selection"
+        dataTestId="custom-serving-runtime-selection"
         aria-label="Select a model serving runtime platform"
         placeholder="Select a value"
         options={options}

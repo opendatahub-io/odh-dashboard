@@ -19,13 +19,7 @@ import {
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
-type EmptySingleModelServingCardProps = {
-  allowCreate: boolean;
-};
-
-const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = ({
-  allowCreate,
-}) => {
+const EmptySingleModelServingCard: React.FC = () => {
   const {
     dataConnections: { data: dataConnections },
   } = React.useContext(ProjectDetailsContext);
@@ -58,31 +52,33 @@ const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = 
   return (
     <>
       <Card
-        style={{ height: '100%', border: '1.5px dashed var(--pf-v5-global--BorderColor--200)' }}
+        style={{
+          height: '100%',
+          border: '1px solid var(--pf-v5-global--BorderColor--100)',
+          borderRadius: 16,
+        }}
         data-testid="single-serving-platform-card"
       >
         <CardTitle>
           <TextContent>
-            <Text component={TextVariants.h2}>Single model serving platform</Text>
+            <Text component={TextVariants.h2}>Single-model serving platform</Text>
           </TextContent>
         </CardTitle>
         <CardBody>
-          Each model is deployed from its own model server. Choose this option when you have a small
-          number of large models to deploy.
+          Each model is deployed on its own model server. Choose this option when you want to deploy
+          a large model such as a large language model (LLM).
         </CardBody>
-        {allowCreate ? (
-          <CardFooter>
-            <Bullseye>
-              <ModelServingPlatformButtonAction
-                isProjectModelMesh={false}
-                emptyTemplates={emptyTemplates}
-                onClick={() => setOpen(true)}
-                variant="secondary"
-                testId="single-serving-deploy-button"
-              />
-            </Bullseye>
-          </CardFooter>
-        ) : null}
+        <CardFooter>
+          <Bullseye>
+            <ModelServingPlatformButtonAction
+              isProjectModelMesh={false}
+              emptyTemplates={emptyTemplates}
+              onClick={() => setOpen(true)}
+              variant="secondary"
+              testId="single-serving-deploy-button"
+            />
+          </Bullseye>
+        </CardFooter>
       </Card>
       <ManageKServeModal
         isOpen={open}

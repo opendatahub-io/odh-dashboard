@@ -33,8 +33,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
 }) => {
   const { namespace, project } = usePipelinesAPI();
   const [version, loaded, error] = usePipelineVersionById(
-    pipelineRunKF?.pipeline_version_reference.pipeline_id,
-    pipelineRunKF?.pipeline_version_reference.pipeline_version_id,
+    pipelineRunKF?.pipeline_version_reference?.pipeline_id,
+    pipelineRunKF?.pipeline_version_reference?.pipeline_version_id,
   );
 
   if (!pipelineRunKF || !workflowName) {
@@ -76,9 +76,9 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     { key: 'Workflow name', value: workflowName },
     ...(!isPipelineRunJob(pipelineRunKF)
       ? [
-          { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
+          { key: 'Started', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
           {
-            key: 'Finished at',
+            key: 'Finished',
             value: isEmptyDateKF(pipelineRunKF.finished_at)
               ? 'N/A'
               : asTimestamp(new Date(pipelineRunKF.finished_at)),

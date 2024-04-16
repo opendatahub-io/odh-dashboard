@@ -3,10 +3,12 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
 import { Contextual } from './components/Contextual';
+import { TableToolbar } from './components/TableToolbar';
 
+class ModelServingToolbar extends TableToolbar {}
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visit(`/modelServing${project ? `/${project}` : ''}`);
     this.wait();
   }
 
@@ -58,6 +60,18 @@ class ModelServingGlobal {
   getModelRow(name: string) {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
+
+  findEmptyResults() {
+    return cy.findByTestId('no-result-found-title');
+  }
+
+  findSortButton(name: string) {
+    return this.findModelsTable().find('thead').findByRole('button', { name });
+  }
+
+  getTableToolbar() {
+    return new ModelServingToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+  }
 }
 
 class InferenceServiceModal extends Modal {
@@ -83,6 +97,14 @@ class InferenceServiceModal extends Modal {
 
   findExistingDataConnectionOption() {
     return this.find().findByTestId('existing-data-connection-radio');
+  }
+
+  findExternalRouteError() {
+    return this.find().findByTestId('external-route-no-token-alert');
+  }
+
+  findServiceAccountNameInput() {
+    return this.find().findByTestId('service-account-form-name');
   }
 
   findNewDataConnectionOption() {
@@ -138,7 +160,7 @@ class ServingRuntimeModal extends Modal {
   }
 
   findServingRuntimeTemplateDropdown() {
-    return this.find().find('#serving-runtime-template-selection');
+    return this.find().findByTestId('serving-runtime-template-selection');
   }
 
   findModelRouteCheckbox() {
@@ -273,6 +295,10 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
+  findKServeTableHeaderButton(name: string) {
+    return this.findKServeTable().find('thead').findByRole('button', { name });
+  }
+
   getKServeRow(name: string) {
     return new KServeRow(() =>
       this.findKServeTable().find('[data-label=Name]').contains(name).parents('tr'),
@@ -298,6 +324,10 @@ class ModelServingSection {
 
   findInferenceServiceTable() {
     return cy.findByTestId('inference-service-table');
+  }
+
+  findInferenceServiceTableHeaderButton(name: string) {
+    return this.findInferenceServiceTable().find('thead').findByRole('button', { name });
   }
 
   getInferenceServiceRow(name: string) {

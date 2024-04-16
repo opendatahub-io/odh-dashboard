@@ -13,8 +13,18 @@ import ModelServingLoading from './ModelServingLoading';
 
 const ModelServingGlobal: React.FC = () => {
   const {
-    servingRuntimes: { data: servingRuntimes, loaded: servingRuntimesLoaded },
-    inferenceServices: { data: inferenceServices, loaded: inferenceServicesLoaded },
+    servingRuntimes: {
+      data: servingRuntimes,
+      loaded: servingRuntimesLoaded,
+      refresh: refreshServingRuntimes,
+    },
+    inferenceServices: {
+      data: inferenceServices,
+      loaded: inferenceServicesLoaded,
+      refresh: refreshInferenceServices,
+    },
+    serverSecrets: { refresh: refreshServerSecrets },
+    filterTokens,
     project: currentProject,
     preferredProject,
     projects,
@@ -62,6 +72,12 @@ const ModelServingGlobal: React.FC = () => {
       <InferenceServiceListView
         inferenceServices={inferenceServices}
         servingRuntimes={servingRuntimes}
+        refresh={() => {
+          refreshInferenceServices();
+          refreshServingRuntimes();
+          refreshServerSecrets();
+        }}
+        filterTokens={filterTokens}
       />
     </ApplicationsPage>
   );

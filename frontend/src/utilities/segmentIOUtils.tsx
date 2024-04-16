@@ -1,6 +1,22 @@
 import { TrackingEventProperties } from '~/types';
 import { DEV_MODE } from './const';
 
+// The following is like the original method below, but allows for more 'free form' properties.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/explicit-module-boundary-types
+export const fireTrackingEventRaw = (eventType: string, properties?: any): void => {
+  const clusterID = window.clusterID ?? '';
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(
+      `Telemetry event triggered: ${eventType}${
+        properties ? ` - ${JSON.stringify(properties)}` : ''
+      }`,
+    );
+  } else if (window.analytics) {
+    window.analytics.track(eventType, { ...properties, clusterID });
+  }
+};
+
 export const fireTrackingEvent = (
   eventType: string,
   properties?: TrackingEventProperties,
@@ -75,7 +91,8 @@ export const initSegment = async (props: {
       const key = analytics.methods[e];
       analytics[key] = analytics.factory(key);
     }
-    analytics.load = (key: string, e: Event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    analytics.load = (key: string, options: any) => {
       const t = document.createElement('script');
       t.type = 'text/javascript';
       t.async = true;
@@ -84,11 +101,19 @@ export const initSegment = async (props: {
       if (n.parentNode) {
         n.parentNode.insertBefore(t, n);
       }
-      analytics._loadOptions = e;
+      analytics._loadOptions = options;
     };
     analytics.SNIPPET_VERSION = '4.13.1';
     if (segmentKey && enabled) {
-      analytics.load(segmentKey);
+      analytics.load(segmentKey, {
+        cdnURL: 'console.redhat.com/connections/cdn',
+        integrations: {
+          'Segment.io': {
+            apiHost: 'console.redhat.com/connections/api/v1',
+            protocol: 'https',
+          },
+        },
+      });
     }
     const anonymousIDBuffer = await crypto.subtle.digest(
       'SHA-1',

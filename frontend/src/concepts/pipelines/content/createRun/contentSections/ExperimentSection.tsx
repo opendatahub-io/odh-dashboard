@@ -19,7 +19,7 @@ const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }
     id={CreateRunPageSections.EXPERIMENT}
     title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
   >
-    <FormGroup>
+    <FormGroup label="Experiment" isRequired>
       <Stack hasGutter>
         <StackItem>
           <ExperimentSelector selection={value?.display_name} onSelect={onChange} />

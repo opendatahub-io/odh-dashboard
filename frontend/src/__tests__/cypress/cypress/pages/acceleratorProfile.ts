@@ -1,6 +1,8 @@
 import { Modal } from './components/Modal';
+import { TableToolbar } from './components/TableToolbar';
 import { TableRow } from './components/table';
 
+class AcceleratorTableToolbar extends TableToolbar {}
 class AcceleratorRow extends TableRow {
   findDescription() {
     return this.find().findByTestId('description');
@@ -9,6 +11,14 @@ class AcceleratorRow extends TableRow {
   shouldHaveIdentifier(name: string) {
     this.find().find(`[data-label=Identifier]`).should('have.text', name);
     return this;
+  }
+
+  findEnabled() {
+    return this.find().pfSwitchValue('enable-switch');
+  }
+
+  findEnableSwitch() {
+    return this.find().pfSwitch('enable-switch');
   }
 }
 
@@ -31,22 +41,8 @@ class TolerationRow extends TableRow {
 
 class AcceleratorProfile {
   visit() {
-    cy.visitWithLogin('/acceleratorProfiles');
+    cy.visit('/acceleratorProfiles');
     this.wait();
-  }
-
-  shouldBeSortedByColumn(column: string, order: string) {
-    this.findColumn(column).then(($cells) => {
-      const cellValues = Array.from($cells).map((cell) => cell.textContent?.trim());
-      const sortedCellValues =
-        order === 'asc'
-          ? [...cellValues].sort()
-          : [...cellValues].sort((a, b) =>
-              b === undefined || a === undefined ? -1 : b.localeCompare(a),
-            );
-      expect(cellValues).to.deep.equal(sortedCellValues);
-    });
-    return this;
   }
 
   private wait() {
@@ -74,30 +70,18 @@ class AcceleratorProfile {
     return this.findTable().find('thead').findByRole('button', { name });
   }
 
-  findResetButton() {
-    return cy.findByRole('button', { name: 'Reset' });
-  }
-
-  findFilterMenuOption() {
-    return cy.findByTestId('filter-dropdown-select');
-  }
-
-  findSearchInput() {
-    return cy.findByRole('textbox', { name: 'Search input' });
-  }
-
   private findTable() {
     return cy.findByTestId('accelerator-profile-table');
-  }
-
-  private findColumn(column: string) {
-    return this.findTable().find('tbody').find(`[data-label=${column}]`);
   }
 
   getRow(name: string) {
     return new AcceleratorRow(() =>
       this.findTable().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
+  }
+
+  getTableToolbar() {
+    return new AcceleratorTableToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
   }
 }
 
@@ -135,6 +119,20 @@ class ManageAcceleratorProfile {
     return new TolerationRow(() =>
       this.findTable().find(`[data-label=Key]`).contains(name).parents('tr'),
     );
+  }
+}
+
+class DisableAcceleratorProfileModal extends Modal {
+  constructor() {
+    super('Disable accelerator profile');
+  }
+
+  findDisableButton() {
+    return this.findFooter().findByRole('button', { name: 'Disable' });
+  }
+
+  findCancelButton() {
+    return this.findFooter().findByRole('button', { name: 'Cancel' });
   }
 }
 
@@ -200,7 +198,7 @@ class TolerationsModal extends Modal {
 
 class CreateAcceleratorProfile extends ManageAcceleratorProfile {
   visit() {
-    cy.visitWithLogin('/acceleratorProfiles/Create');
+    cy.visit('/acceleratorProfiles/Create');
     this.wait();
   }
 
@@ -212,7 +210,7 @@ class CreateAcceleratorProfile extends ManageAcceleratorProfile {
 
 class EditAcceleratorProfile extends ManageAcceleratorProfile {
   visit(name: string) {
-    cy.visitWithLogin(`/acceleratorProfiles/edit/${name}`);
+    cy.visit(`/acceleratorProfiles/edit/${name}`);
     cy.testA11y();
   }
 
@@ -227,7 +225,7 @@ class EditAcceleratorProfile extends ManageAcceleratorProfile {
 
 class IdentifierAcceleratorProfile extends ManageAcceleratorProfile {
   visit(multiple = false) {
-    cy.visitWithLogin(
+    cy.visit(
       multiple
         ? `/acceleratorProfiles/create?identifiers=test-identifier%2Ctest-identifier2`
         : `/acceleratorProfiles/create?identifiers=test-identifier`,
@@ -251,3 +249,4 @@ export const createTolerationModal = new TolerationsModal(false);
 export const editTolerationModal = new TolerationsModal(true);
 export const editAcceleratorProfile = new EditAcceleratorProfile();
 export const identifierAcceleratorProfile = new IdentifierAcceleratorProfile();
+export const disableAcceleratorProfileModal = new DisableAcceleratorProfileModal();

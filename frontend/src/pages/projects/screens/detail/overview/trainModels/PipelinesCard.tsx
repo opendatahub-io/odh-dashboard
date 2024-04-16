@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Button,
+  Alert,
   ButtonVariant,
   CardBody,
   CardFooter,
@@ -10,13 +9,12 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   Spinner,
+  Stack,
   Text,
   TextContent,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '~/api';
-import { AccessReviewResource } from '~/pages/projects/screens/detail/const';
 import usePipelineRunJobs from '~/concepts/pipelines/apiHooks/usePipelineRunJobs';
 import {
   usePipelineActiveRuns,
@@ -33,13 +31,11 @@ import PipelinesCardItems from '~/pages/projects/screens/detail/overview/trainMo
 import MetricsContents from './MetricsContents';
 
 const PipelinesCard: React.FC = () => {
-  const navigate = useNavigate();
   const { pipelinesServer } = usePipelinesAPI();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const [allowCreate] = useAccessReview({
-    ...AccessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
+  const {
+    currentProject,
+    notebooks: { data: notebooks, loaded: notebooksLoaded, error: notebooksError },
+  } = React.useContext(ProjectDetailsContext);
 
   const [{ items: pipelines, totalSize: pipelinesCount }, pipelinesLoaded, pipelinesError] =
     usePipelines({
@@ -137,21 +133,34 @@ const PipelinesCard: React.FC = () => {
       return (
         <>
           <CardBody>
-            <TextContent>
-              <Text component="small">
-                Pipelines are machine-learning workflows that you can use to train your model. To
-                create or import pipelines, you must first configure a pipeline server.
-              </Text>
-            </TextContent>
+            <Stack hasGutter>
+              <TextContent>
+                <Text component="small">
+                  Pipelines are platforms for building and deploying portable and scalable
+                  machine-learning (ML) workflows. You can import a pipeline or create one in a
+                  workbench. Before you can work with pipelines, you must first configure a pipeline
+                  server in your project.
+                </Text>
+              </TextContent>
+              {notebooksLoaded && !notebooksError && notebooks.length > 0 ? (
+                <Alert
+                  isInline
+                  isPlain
+                  variant="warning"
+                  title="Restart running workbenches after configuring the pipeline server"
+                >
+                  If you&apos;ve already created pipelines in a workbench, restart the workbench
+                  after configuring the pipeline server to view your pipelines here.
+                </Alert>
+              ) : null}
+            </Stack>
           </CardBody>
           <CardFooter>
-            {allowCreate ? (
-              <CreatePipelineServerButton
-                variant={ButtonVariant.link}
-                isInline
-                title="Configure pipeline server"
-              />
-            ) : null}
+            <CreatePipelineServerButton
+              variant={ButtonVariant.link}
+              isInline
+              title="Configure pipeline server"
+            />
           </CardFooter>
         </>
       );
@@ -163,7 +172,6 @@ const PipelinesCard: React.FC = () => {
           <>
             <MetricsContents
               title="Pipelines"
-              allowCreate={allowCreate}
               createButton={<ImportPipelineButton variant="link" />}
               createText="Import pipeline"
               statistics={statistics}
@@ -183,21 +191,15 @@ const PipelinesCard: React.FC = () => {
             <CardBody>
               <TextContent>
                 <Text component="small">
-                  Pipelines are machine-learning workflows that you can use to train your model.
+                  Pipelines are platforms for building and deploying portable and scalable
+                  machine-learning (ML) workflows. You can import a pipeline or create one in a
+                  workbench.
                 </Text>
               </TextContent>
             </CardBody>
-            {allowCreate ? (
-              <CardFooter>
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
-                >
-                  Import pipeline
-                </Button>
-              </CardFooter>
-            ) : null}
+            <CardFooter>
+              <ImportPipelineButton variant="link" isInline />
+            </CardFooter>
           </>
         )}
       </EnsureCompatiblePipelineServer>
@@ -210,10 +212,10 @@ const PipelinesCard: React.FC = () => {
       objectType={ProjectObjectType.pipeline}
       sectionType={pipelinesCount ? SectionType.training : SectionType.organize}
       title="Pipelines"
-      popoverHeaderContent={!pipelinesCount ? 'About pipelines' : undefined}
+      popoverHeaderContent={pipelinesCount ? 'About pipelines' : undefined}
       popoverBodyContent={
         !pipelinesCount
-          ? 'Standardize and automate machine learning workflows to enable you to further enhance and deploy your data science models.'
+          ? 'Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench.'
           : undefined
       }
       data-testid="section-pipelines"

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { Table } from '~/components/table';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { isModelMesh } from '~/pages/modelServing/utils';
@@ -12,17 +12,19 @@ import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } f
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
 
 type InferenceServiceTableProps = {
-  clearFilters?: () => void;
   inferenceServices: InferenceServiceKind[];
   servingRuntimes: ServingRuntimeKind[];
   refresh: () => void;
+  clearFilters?: () => void;
+  filterTokens?: (servingRuntime?: string | undefined) => SecretKind[];
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
-  clearFilters,
   inferenceServices,
   servingRuntimes,
   refresh,
+  filterTokens,
+  clearFilters,
   enablePagination,
   toolbarContent,
 }) => {
@@ -34,6 +36,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   const mappedColumns = isGlobal
     ? getGlobalInferenceServiceColumns(projects)
     : getProjectInferenceServiceColumns();
+
   return (
     <>
       <Table
@@ -100,6 +103,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
               : undefined,
             secrets: [],
           },
+          secrets: filterTokens ? filterTokens(editInferenceService?.metadata.name) : [],
         }}
         onClose={(edited) => {
           if (edited) {

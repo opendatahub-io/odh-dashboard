@@ -87,19 +87,19 @@ describe('Data Science Projects', { testIsolation: false }, () => {
     projectListPage.navigate();
     cy.waitSnapshot('@projects-1');
     projectListPage.shouldHaveProjects();
-    projectListPage.findProjectRow('My Test Project').should('exist');
+    projectListPage.getProjectRow('My Test Project').find().should('exist');
 
     cy.testA11y();
   });
 
   it('should delete project', () => {
-    projectListPage.findProjectRow('My Test Project').findKebabAction('Delete project').click();
+    projectListPage.getProjectRow('My Test Project').findKebabAction('Delete project').click();
 
     deleteModal.shouldBeOpen();
     deleteModal.findSubmitButton().should('be.disabled');
     deleteModal.findCancelButton().should('be.enabled').click();
 
-    projectListPage.findProjectRow('My Test Project').findKebabAction('Delete project').click();
+    projectListPage.getProjectRow('My Test Project').findKebabAction('Delete project').click();
 
     deleteModal.findInput().type('My Test Project');
 

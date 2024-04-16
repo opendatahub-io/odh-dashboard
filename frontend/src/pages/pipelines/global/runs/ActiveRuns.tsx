@@ -25,7 +25,7 @@ export const ActiveRuns: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, experimentId } = useParams();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineActiveRunsTable();
+    usePipelineActiveRunsTable({ experimentId });
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (error) {

@@ -116,7 +116,7 @@ const useUpdatePipelineFormData = (
       setFormValue('pipeline', pipeline);
     }
 
-    if (!formData.version && version) {
+    if (!formData.version && version && formData.pipeline?.pipeline_id === pipeline?.pipeline_id) {
       setFormValue('version', version);
     }
   }, [formData.pipeline, formData.version, pipeline, setFormValue, version]);

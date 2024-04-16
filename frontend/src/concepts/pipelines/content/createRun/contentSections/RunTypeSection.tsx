@@ -8,8 +8,7 @@ import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { runsBaseRoute } from '~/routes';
+import { createRunRoute, scheduleRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 interface RunTypeSectionProps {
@@ -26,7 +25,8 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
   let alertProps = {
     title: 'Go to Schedules to create schedules that execute recurring runs',
     label: `Go to ${PipelineRunTabTitle.Schedules}`,
-    navSearch: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+    search: '?runType=scheduled',
+    pathname: scheduleRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined),
   };
 
   if (runType === PipelineRunType.Scheduled) {
@@ -34,7 +34,8 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
     alertProps = {
       title: 'Go to Active runs to create a run that executes once immediately after creation.',
       label: `Go to ${PipelineRunTabTitle.Active} runs`,
-      navSearch: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+      search: '?runType=active',
+      pathname: createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined),
     };
   }
 
@@ -54,15 +55,8 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
             <Button
               isInline
               variant="link"
-              onClick={() =>
-                navigate({
-                  pathname: runsBaseRoute(
-                    namespace,
-                    isExperimentsAvailable ? experimentId : undefined,
-                  ),
-                  search: alertProps.navSearch,
-                })
-              }
+              onClick={() => navigate({ pathname: alertProps.pathname, search: alertProps.search })}
+              data-testid="run-type-section-alert-link"
             >
               {alertProps.label}
             </Button>

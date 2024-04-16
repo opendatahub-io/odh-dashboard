@@ -2,11 +2,16 @@ import { K8sResourceCommon, K8sResourceListResult } from '@openshift/dynamic-plu
 
 export const mockK8sResourceList = <TResource extends K8sResourceCommon>(
   resources: TResource[],
+  options?: {
+    namespace?: string;
+  },
 ): K8sResourceListResult<TResource> => ({
-  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiVersion: resources.length > 0 ? resources[0].apiVersion : 'v1',
   metadata: {
     continue: '',
     resourceVersion: '1462210',
   },
-  items: resources,
+  items: options?.namespace
+    ? resources.map((r) => ({ ...r, metadata: { ...r.metadata, namespace: options.namespace } }))
+    : resources,
 });

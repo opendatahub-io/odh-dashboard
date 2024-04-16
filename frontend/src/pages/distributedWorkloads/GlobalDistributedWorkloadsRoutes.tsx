@@ -20,7 +20,7 @@ const GlobalDistributedWorkloadsRoutes: React.FC = () => {
         .map((tab) => (
           <Route
             key={tab.id}
-            path={`${tab.path}${tab.projectSelectorMode !== null ? '/:namespace?' : ''}`}
+            path={`${tab.path}/:namespace?`}
             element={
               <GlobalDistributedWorkloads
                 activeTab={tab}

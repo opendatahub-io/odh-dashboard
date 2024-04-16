@@ -89,7 +89,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
       <StackItem>
         <FormGroup label="Trigger type">
           <SimpleDropdownSelect
-            data-testid="triggerTypeSelector"
+            dataTestId="triggerTypeSelector"
             isFullWidth
             options={[
               { key: ScheduledType.PERIODIC, label: 'Periodic' },

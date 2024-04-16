@@ -3,6 +3,7 @@ import { Button, ButtonVariant, Flex, FlexItem, Icon, Tooltip } from '@patternfl
 import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
 import { getNotebookDisplayName } from '~/pages/projects/utils';
+import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
 import useRouteForNotebook from './useRouteForNotebook';
 import { hasStopAnnotation } from './utils';
 
@@ -37,6 +38,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
         <Button
           component="a"
           isInline
+          data-testid="notebook-route-link"
           isDisabled={!canLink}
           href={error || !routeLink ? undefined : routeLink}
           target="_blank"
@@ -49,6 +51,9 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
               ? 'var(--pf-v5-global--FontSize--md)'
               : 'var(--pf-v5-global--FontSize--sm)',
           }}
+          onClick={() =>
+            fireTrackingEventRaw('Workbench Opened', { wbName: getNotebookDisplayName(notebook) })
+          }
         >
           {label ?? getNotebookDisplayName(notebook)}
         </Button>

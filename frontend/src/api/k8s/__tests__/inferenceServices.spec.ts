@@ -52,6 +52,30 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       undefined,
     );
+    expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
+      undefined,
+    );
+    expect(
+      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
+    ).toBe('true');
+    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe('true');
+    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
+      'true',
+    );
+  });
+
+  it('should have the right annotations when creating for Kserve with auth', async () => {
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ tokenAuth: true }),
+    );
+
+    expect(inferenceService.metadata.annotations).toBeDefined();
+    expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
+      undefined,
+    );
+    expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
+      'true',
+    );
     expect(
       inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
     ).toBe('true');

@@ -16,6 +16,8 @@ export enum SearchType {
   OUTPUT_VALUE = 'Output value',
   PROVIDER = 'Provider',
   IDENTIFIER = 'Identifier',
+  KEYWORD = 'Keyword',
+  OWNER = 'Owner',
 }
 
 type DashboardSearchFieldProps = {
@@ -24,6 +26,7 @@ type DashboardSearchFieldProps = {
   onSearchTypeChange: (searchType: SearchType) => void;
   searchValue: string;
   onSearchValueChange: (searchValue: string) => void;
+  icon?: React.ReactNode;
 };
 
 const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
@@ -32,12 +35,13 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
   searchType,
   onSearchValueChange,
   onSearchTypeChange,
+  icon,
 }) => (
-  <InputGroup>
+  <InputGroup data-testid="dashboard-table-toolbar">
     <InputGroupItem>
       <SimpleDropdownSelect
         aria-label="Filter type"
-        data-testid="filter-dropdown-select"
+        dataTestId="filter-dropdown-select"
         options={types.map((key) => ({
           key,
           label: key,
@@ -46,6 +50,7 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
         onChange={(key) => {
           onSearchTypeChange(key as SearchType);
         }}
+        icon={icon}
       />
     </InputGroupItem>
     <InputGroupItem>

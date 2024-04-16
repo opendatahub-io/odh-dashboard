@@ -12,7 +12,6 @@ import {
 type MetricsCardProps = {
   title: string;
   statistics: { count: number; text: string; onClick?: () => void }[];
-  allowCreate?: boolean;
   createButton?: React.ReactNode | false;
   createText?: string;
   onCreate?: () => void;
@@ -21,7 +20,6 @@ type MetricsCardProps = {
 
 const MetricsContents: React.FC<MetricsCardProps> = ({
   title,
-  allowCreate,
   createButton,
   createText,
   onCreate,
@@ -66,15 +64,13 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
         <FlexItem>{listItems}</FlexItem>
       </Flex>
     </CardBody>
-    {allowCreate ? (
-      <CardFooter>
-        {createButton || (
-          <Button variant="link" isInline onClick={onCreate}>
-            {createText}
-          </Button>
-        )}
-      </CardFooter>
-    ) : null}
+    <CardFooter>
+      {createButton || (
+        <Button variant="link" isInline onClick={onCreate}>
+          {createText}
+        </Button>
+      )}
+    </CardFooter>
   </>
 );
 

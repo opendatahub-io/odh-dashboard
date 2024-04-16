@@ -13,9 +13,20 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { ServingRuntimePlatform } from '~/types';
+import {
+  DataSciencePipelineApplicationModel,
+  ImageStreamModel,
+  NotebookModel,
+  PVCModel,
+  PodModel,
+  ProjectModel,
+  RouteModel,
+  SecretModel,
+  ServiceAccountModel,
+  TemplateModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -25,6 +36,9 @@ type HandlersProps = {
   isEnabled?: string;
   isUnknown?: boolean;
   templates?: boolean;
+  imageStreamPythonDependencies?: string;
+  v1PipelineServer?: boolean;
+  pipelineServerInstalled?: boolean;
 };
 
 const initIntercepts = ({
@@ -32,29 +46,27 @@ const initIntercepts = ({
   disableModelConfig,
   isEmpty = false,
   imageStreamName = 'test-image',
+  imageStreamPythonDependencies,
   isEnabled = 'true',
   isUnknown = false,
   templates = false,
+  v1PipelineServer = false,
+  pipelineServerInstalled = true,
 }: HandlersProps) => {
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
     mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]),
   );
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications`,
-    },
+  cy.interceptK8sList(
+    DataSciencePipelineApplicationModel,
     mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa`,
-    },
+  cy.interceptK8s(
+    DataSciencePipelineApplicationModel,
     mockDataSciencePipelineApplicationK8sResource({}),
   );
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
         workbenches: true,
@@ -65,8 +77,8 @@ const initIntercepts = ({
     }),
   );
 
-  cy.intercept(
-    { pathname: '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates' },
+  cy.interceptK8sList(
+    { model: TemplateModel, ns: 'opendatahub' },
     mockK8sResourceList(
       templates
         ? [
@@ -79,43 +91,44 @@ const initIntercepts = ({
         : [],
     ),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept(
-    '/api/config',
+  cy.interceptOdh(
+    'GET /api/config',
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelConfig,
     }),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/pods' },
-    mockK8sResourceList([mockPodK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
-    mockK8sResourceList([mockProjectK8sResource({})]),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects/test-project' },
-    mockProjectK8sResource({}),
-  );
-  cy.intercept(
-    {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa`,
-    },
+  if (pipelineServerInstalled) {
+    cy.interceptK8sList(
+      DataSciencePipelineApplicationModel,
+      mockK8sResourceList([
+        mockDataSciencePipelineApplicationK8sResource({
+          dspVersion: v1PipelineServer ? 'v1' : 'v2',
+        }),
+      ]),
+    );
+    cy.interceptK8s(
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({ dspVersion: v1PipelineServer ? 'v1' : 'v2' }),
+    );
+  }
+  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
+  cy.interceptK8s(
+    RouteModel,
     mockRouteK8sResource({
       notebookName: 'ds-pipeline-dspa',
     }),
   );
-  cy.intercept(
-    { pathname: '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims' },
+  cy.interceptK8sList(
+    { model: PVCModel, ns: 'test-project' },
     mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]),
   );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts',
-    },
+  cy.interceptK8s(
+    'POST',
+    ServiceAccountModel,
+
     {
       statusCode: 200,
       body: mockServiceAccountK8sResource({
@@ -124,14 +137,15 @@ const initIntercepts = ({
       }),
     },
   );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/project.openshift.io/v1/projects' },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: undefined })]),
   );
 
-  cy.intercept(
+  cy.interceptK8sList(
     {
-      pathname: '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+      model: ImageStreamModel,
+      ns: 'opendatahub',
     },
     mockK8sResourceList(
       isEmpty || isUnknown
@@ -150,6 +164,10 @@ const initIntercepts = ({
                   tags: [
                     {
                       name: 'latest',
+                      annotations: {
+                        'opendatahub.io/notebook-python-dependencies':
+                          imageStreamPythonDependencies ?? '[]',
+                      },
                     },
                   ],
                 },
@@ -165,22 +183,13 @@ const initIntercepts = ({
           ],
     ),
   );
-  cy.intercept(
-    {
-      pathname: '/api/namespaces/test-project/*',
-    },
-    { statusCode: 200, body: { applied: true } },
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    { applied: true },
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    },
-    mockDashboardConfig({}),
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks' },
+  cy.interceptK8sList(
+    { model: NotebookModel, ns: 'test-project' },
     mockK8sResourceList(
       isEmpty
         ? []
@@ -213,16 +222,11 @@ const initIntercepts = ({
           ],
     ),
   );
+  cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
   cy.intercept(
     {
-      pathname: '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
-    },
-    mockRouteK8sResource({ notebookName: 'test-notebook' }),
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v2beta1/pipelines',
+      method: 'GET',
+      pathname: `/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines`,
     },
     buildMockPipelines(isEmpty ? [] : [mockPipelineKFv2({})]),
   );
@@ -284,6 +288,44 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', false);
       projectDetails.shouldBeEmptyState('Data connections', 'data-connections', false);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', false);
+    });
+
+    it('Notebook with outdated Elyra image shows alert and v2 pipeline server', () => {
+      initIntercepts({ imageStreamPythonDependencies: '[{"name":"Elyra","version":"3.15"}]' });
+      projectDetails.visitSection('test-project', 'workbenches');
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.findOutdatedElyraInfo().should('be.visible');
+      projectDetails.findElyraInvalidVersionAlert().should('be.visible');
+    });
+
+    it('Notebook with updated Elyra image and v1 pipeline server', () => {
+      initIntercepts({
+        imageStreamPythonDependencies: '[{"name":"odh-elyra","version":"3.16"}]',
+        v1PipelineServer: true,
+      });
+
+      projectDetails.visitSection('test-project', 'workbenches');
+      projectDetails.findUnsupportedPipelineVersionAlert().should('be.visible');
+    });
+
+    it('Notebooks with outdated Elyra image and no pipeline server', () => {
+      initIntercepts({
+        imageStreamPythonDependencies: '[{"name":"Elyra","version":"3.15"}]',
+        pipelineServerInstalled: false,
+      });
+      projectDetails.visitSection('test-project', 'workbenches');
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.findOutdatedElyraInfo().should('not.exist');
+      projectDetails.findElyraInvalidVersionAlert().should('not.exist');
+    });
+    it('Notebook with updated Elyra image and no pipeline server', () => {
+      initIntercepts({
+        imageStreamPythonDependencies: '[{"name":"odh-elyra","version":"3.16"}]',
+        pipelineServerInstalled: false,
+      });
+
+      projectDetails.visitSection('test-project', 'workbenches');
+      projectDetails.findUnsupportedPipelineVersionAlert().should('not.exist');
     });
 
     it('Notebook with deleted image', () => {

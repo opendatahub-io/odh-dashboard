@@ -50,6 +50,7 @@ describe('createRegisteredModel', () => {
         externalID: '1',
         name: 'test new registered model',
         state: RegisteredModelState.LIVE,
+        customProperties: {},
       }),
     ).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
@@ -61,6 +62,7 @@ describe('createRegisteredModel', () => {
         externalID: '1',
         name: 'test new registered model',
         state: RegisteredModelState.LIVE,
+        customProperties: {},
       },
       {},
       K8sAPIOptionsMock,
@@ -80,6 +82,7 @@ describe('createModelVersion', () => {
         registeredModelID: '1',
         name: 'test new model version',
         state: ModelVersionState.LIVE,
+        customProperties: {},
       }),
     ).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
@@ -93,6 +96,7 @@ describe('createModelVersion', () => {
         registeredModelID: '1',
         name: 'test new model version',
         state: ModelVersionState.LIVE,
+        customProperties: {},
       },
       {},
       K8sAPIOptionsMock,
@@ -116,6 +120,7 @@ describe('createModelArtifact', () => {
         storagePath: 'teststoragePath',
         modelFormatVersion: 'testmodelFormatVersion',
         serviceAccountName: 'testserviceAccountname',
+        customProperties: {},
       }),
     ).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
@@ -133,6 +138,7 @@ describe('createModelArtifact', () => {
         storagePath: 'teststoragePath',
         modelFormatVersion: 'testmodelFormatVersion',
         serviceAccountName: 'testserviceAccountname',
+        customProperties: {},
       },
       {},
       K8sAPIOptionsMock,

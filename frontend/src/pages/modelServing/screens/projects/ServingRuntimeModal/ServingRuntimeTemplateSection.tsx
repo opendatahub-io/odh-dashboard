@@ -64,6 +64,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         isFullWidth
         isDisabled={isEditing || filteredTemplates.length === 0}
         id="serving-runtime-template-selection"
+        dataTestId="serving-runtime-template-selection"
         aria-label="Select a template"
         options={options}
         placeholder={

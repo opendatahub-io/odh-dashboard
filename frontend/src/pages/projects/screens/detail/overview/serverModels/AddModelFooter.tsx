@@ -13,10 +13,12 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 
-const AddModelFooter: React.FC = () => {
-  const [platformSelected, setPlatformSelected] = React.useState<
-    ServingRuntimePlatform | undefined
-  >(undefined);
+type AddModelFooterProps = {
+  selectedPlatform?: ServingRuntimePlatform;
+};
+
+const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform }) => {
+  const [modalShown, setModalShown] = React.useState<boolean>(false);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -43,10 +45,11 @@ const AddModelFooter: React.FC = () => {
     servingPlatformStatuses,
   );
 
-  const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
+  const isProjectModelMesh =
+    (selectedPlatform || currentProjectServingPlatform) === ServingRuntimePlatform.MULTI;
 
   const onSubmit = (submit: boolean) => {
-    setPlatformSelected(undefined);
+    setModalShown(false);
     if (submit) {
       refreshServingRuntime();
       refreshInferenceServices();
@@ -59,38 +62,31 @@ const AddModelFooter: React.FC = () => {
       <ModelServingPlatformButtonAction
         isProjectModelMesh={isProjectModelMesh}
         emptyTemplates={emptyTemplates}
-        onClick={() => {
-          setPlatformSelected(
-            isProjectModelMesh ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE,
-          );
-        }}
+        onClick={() => setModalShown(true)}
         variant="link"
         isInline
         testId="model-serving-platform-button"
       />
-      <ManageServingRuntimeModal
-        isOpen={platformSelected === ServingRuntimePlatform.MULTI}
-        currentProject={currentProject}
-        servingRuntimeTemplates={templatesEnabled.filter((template) =>
-          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
-        )}
-        onClose={(submit: boolean) => {
-          onSubmit(submit);
-        }}
-      />
-      <ManageKServeModal
-        isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
-        projectContext={{
-          currentProject,
-          dataConnections,
-        }}
-        servingRuntimeTemplates={templatesEnabled.filter((template) =>
-          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-        )}
-        onClose={(submit: boolean) => {
-          onSubmit(submit);
-        }}
-      />
+      {modalShown && isProjectModelMesh ? (
+        <ManageServingRuntimeModal
+          isOpen
+          currentProject={currentProject}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
+          )}
+          onClose={onSubmit}
+        />
+      ) : null}
+      {modalShown && !isProjectModelMesh ? (
+        <ManageKServeModal
+          isOpen
+          projectContext={{ currentProject, dataConnections }}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+          )}
+          onClose={onSubmit}
+        />
+      ) : null}
     </CardFooter>
   );
 };

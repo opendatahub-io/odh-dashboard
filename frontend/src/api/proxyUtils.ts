@@ -22,21 +22,41 @@ const callProxyJSON = <T>(
 ): Promise<T> => {
   const { method, ...otherOptions } = requestInit;
 
-  // Add the path to the end of the proxy call, so it's easier to notice different proxy requests from each other
-  return fetch(`/api/proxy${path}`, {
+  const sanitizedQueryParams = queryParams
+    ? Object.entries(queryParams).reduce((acc, [key, value]) => {
+        if (value) {
+          return { ...acc, [key]: value };
+        }
+
+        return acc;
+      }, {})
+    : null;
+
+  const searchParams = sanitizedQueryParams
+    ? new URLSearchParams(sanitizedQueryParams).toString()
+    : null;
+
+  let requestData: string | undefined;
+  let contentType: string | undefined;
+  let formData: FormData | undefined;
+  if (fileContents) {
+    formData = new FormData();
+    formData.append(
+      'uploadfile',
+      new Blob([fileContents], { type: 'application/x-yaml' }),
+      'uploadedFile.yml',
+    );
+  } else if (data) {
+    // It's OK for contentType and requestData to BOTH be undefined for e.g. a GET request or POST with no body.
+    contentType = 'application/json;charset=UTF-8';
+    requestData = JSON.stringify(data);
+  }
+
+  return fetch(`${host}${path}${searchParams ? `?${searchParams}` : ''}`, {
     ...otherOptions,
-    headers: {
-      'Content-Type': `application/json;charset=UTF-8`,
-    },
-    method: 'POST', // we always post so we can send data
-    body: JSON.stringify({
-      path, // Not part of the request -- but easier to read from the network tab
-      method,
-      host,
-      queryParams,
-      data,
-      fileContents,
-    }),
+    ...(contentType && { headers: { 'Content-Type': contentType } }),
+    method,
+    body: formData ?? requestData,
   }).then((response) =>
     response.text().then((fetchedData) => {
       if (parseJSON) {

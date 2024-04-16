@@ -92,6 +92,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
             <Split>
               <SplitItem>
                 <Button
+                  data-testid={`save-button ${roleBindingName}`}
                   data-id="save-rolebinding-button"
                   aria-label="Save role binding"
                   variant="link"

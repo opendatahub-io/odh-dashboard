@@ -104,7 +104,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
   const compareRunsAction =
     isExperimentsAvailable && experimentId ? (
-      <Tooltip content="Select up to 10 runs to compare">
+      <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"
           data-testid="compare-runs-button"
@@ -185,13 +185,16 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         rowRenderer={(run) => (
           <PipelineRunTableRow
             key={run.run_id}
-            isChecked={isSelected(run.run_id)}
-            onToggleCheck={() => toggleSelection(run.run_id)}
+            checkboxProps={{
+              isChecked: isSelected(run.run_id),
+              onToggle: () => toggleSelection(run.run_id),
+            }}
             onDelete={() => {
               setSelectedIds([run.run_id]);
               setIsDeleteModalOpen(true);
             }}
             run={run}
+            hasExperiments={!(isExperimentsAvailable && experimentId)}
           />
         )}
         variant={TableVariant.compact}

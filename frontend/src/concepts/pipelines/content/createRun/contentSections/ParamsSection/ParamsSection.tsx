@@ -49,7 +49,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
       return <Alert variant="info" isInline isPlain title="This pipeline has no parameters." />;
     }
 
-    const formGroups = Object.entries(runParams).map(([label, value]) => {
+    return Object.entries(runParams).map(([label, value]) => {
       const inputDefinitionParams = getInputDefinitionParams(version);
       const { parameterType, isOptional, description } = inputDefinitionParams?.[label] || {};
       const inputProps = {
@@ -100,13 +100,6 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
         </FormGroup>
       );
     });
-
-    return (
-      <>
-        <HelperText>Specify parameters required by the pipeline.</HelperText>
-        {formGroups}
-      </>
-    );
   };
 
   return (

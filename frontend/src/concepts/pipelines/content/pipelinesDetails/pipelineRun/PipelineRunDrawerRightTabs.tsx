@@ -19,8 +19,8 @@ enum PipelineRunNodeTabs {
 }
 
 const PipelineRunNodeTabsTitles = {
-  [PipelineRunNodeTabs.INPUT_OUTPUT]: 'Input / Output',
-  [PipelineRunNodeTabs.DETAILS]: 'Details',
+  [PipelineRunNodeTabs.INPUT_OUTPUT]: 'Input/Output',
+  [PipelineRunNodeTabs.DETAILS]: 'Task details',
   [PipelineRunNodeTabs.VOLUMES]: 'Volumes',
   [PipelineRunNodeTabs.LOGS]: 'Logs',
 };

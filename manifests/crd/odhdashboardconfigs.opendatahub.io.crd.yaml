@@ -57,6 +57,8 @@ spec:
                       type: boolean
                     disableKServe:
                       type: boolean
+                    disableKServeAuth:
+                      type: boolean
                     disableModelMesh:
                       type: boolean
                     disableAcceleratorProfiles:

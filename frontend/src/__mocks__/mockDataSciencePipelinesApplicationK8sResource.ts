@@ -1,6 +1,7 @@
 import { DSPipelineKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
+  name?: string;
   namespace?: string;
   dspVersion?: string;
   displayName?: string;
@@ -9,6 +10,7 @@ type MockResourceConfigType = {
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
+  name = 'dspa',
   namespace = 'test-project',
   dspVersion = 'v2',
   initializing = false,
@@ -17,7 +19,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
   metadata: {
-    name: 'dspa',
+    name,
     namespace,
   },
   spec: {

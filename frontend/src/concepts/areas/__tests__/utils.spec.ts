@@ -3,6 +3,7 @@ import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { StackComponent } from '~/concepts/areas/types';
 import { SupportedAreasStateMap } from '~/concepts/areas/const';
+import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 
 describe('isAreaAvailable', () => {
   describe('v1 Operator (deprecated)', () => {
@@ -10,6 +11,7 @@ describe('isAreaAvailable', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.DS_PIPELINES,
         mockDashboardConfig({ disablePipelines: false }).spec,
+        null,
         null,
       );
 
@@ -24,6 +26,7 @@ describe('isAreaAvailable', () => {
         SupportedArea.DS_PIPELINES,
         mockDashboardConfig({ disablePipelines: true }).spec,
         null,
+        null,
       );
 
       expect(isAvailable.status).not.toBe(true);
@@ -36,6 +39,7 @@ describe('isAreaAvailable', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.WORKBENCHES,
         mockDashboardConfig({}).spec,
+        null,
         null,
       );
 
@@ -53,6 +57,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.DS_PIPELINES,
           mockDashboardConfig({ disablePipelines: false }).spec,
           mockDscStatus({ installedComponents: { [StackComponent.DS_PIPELINES]: true } }),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).toBe(true);
@@ -66,6 +71,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.DS_PIPELINES,
           mockDashboardConfig({ disablePipelines: false }).spec,
           mockDscStatus({ installedComponents: { [StackComponent.DS_PIPELINES]: false } }),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).not.toBe(true);
@@ -79,6 +85,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.DS_PIPELINES,
           mockDashboardConfig({ disablePipelines: true }).spec,
           mockDscStatus({ installedComponents: { [StackComponent.DS_PIPELINES]: true } }),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).not.toBe(true);
@@ -92,6 +99,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.DS_PIPELINES,
           mockDashboardConfig({ disablePipelines: true }).spec,
           mockDscStatus({ installedComponents: { [StackComponent.DS_PIPELINES]: false } }),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).not.toBe(true);
@@ -105,6 +113,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.WORKBENCHES,
           mockDashboardConfig({}).spec,
           mockDscStatus({ installedComponents: { [StackComponent.WORKBENCHES]: true } }),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).toBe(true);
@@ -118,6 +127,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.WORKBENCHES,
           mockDashboardConfig({}).spec,
           mockDscStatus({ installedComponents: { [StackComponent.WORKBENCHES]: false } }),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).not.toBe(true);
@@ -143,6 +153,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.CUSTOM_RUNTIMES,
           mockDashboardConfig({ disableModelServing: false }).spec,
           mockDscStatus({}),
+          mockDsciStatus({}),
         );
 
         expect(isAvailableReliantCustomRuntimes.status).toBe(true);
@@ -166,6 +177,7 @@ describe('isAreaAvailable', () => {
           SupportedArea.CUSTOM_RUNTIMES,
           mockDashboardConfig({ disableModelServing: true }).spec,
           mockDscStatus({}),
+          mockDsciStatus({}),
         );
 
         expect(isAvailable.status).not.toBe(true);

@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAccessReview } from '~/api';
+import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
   ProjectObjectType,
   SectionType,
@@ -12,14 +15,26 @@ import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'create',
+};
+
 const ConfigurationSection: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = React.useState<boolean>(true);
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...accessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
+
+  const showPermissions = projectSharingEnabled && rbacLoaded && allowCreate;
 
   return (
     <CollapsibleSection
-      sectionType={SectionType.setup}
       title="Project configuration"
       data-testid="section-config"
       onOpenChange={setOpen}
@@ -27,36 +42,12 @@ const ConfigurationSection: React.FC = () => {
     >
       <DividedGallery
         minSize="225px"
-        itemCount={3}
+        itemCount={showPermissions ? 3 : 2}
         style={{
           borderRadius: 16,
           border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
         }}
       >
-        <InfoGalleryItem
-          sectionType={SectionType.setup}
-          title="Permissions"
-          imgSrc={typedObjectImage(ProjectObjectType.group)}
-          description="Add users and groups to share access to your project."
-          isOpen={open}
-          onClick={() =>
-            navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PERMISSIONS}`,
-            )
-          }
-        />
-        <InfoGalleryItem
-          sectionType={SectionType.setup}
-          imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
-          title="Data connections"
-          description="For projects that use very large data sets, you can use data connections to link your project to an object storage bucket."
-          isOpen={open}
-          onClick={() =>
-            navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.DATA_CONNECTIONS}`,
-            )
-          }
-        />
         <InfoGalleryItem
           sectionType={SectionType.setup}
           imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
@@ -69,6 +60,32 @@ const ConfigurationSection: React.FC = () => {
             )
           }
         />
+        <InfoGalleryItem
+          sectionType={SectionType.setup}
+          imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+          title="Data connections"
+          description="You can add data connections to workbenches to connect your project to data inputs and object storage buckets. You can also use data connections to specify the location of your models during deployment."
+          isOpen={open}
+          onClick={() =>
+            navigate(
+              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.DATA_CONNECTIONS}`,
+            )
+          }
+        />
+        {showPermissions ? (
+          <InfoGalleryItem
+            sectionType={SectionType.setup}
+            title="Permissions"
+            imgSrc={typedObjectImage(ProjectObjectType.group)}
+            description="Add users and groups to share access to your project."
+            isOpen={open}
+            onClick={() =>
+              navigate(
+                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PERMISSIONS}`,
+              )
+            }
+          />
+        ) : null}
       </DividedGallery>
     </CollapsibleSection>
   );

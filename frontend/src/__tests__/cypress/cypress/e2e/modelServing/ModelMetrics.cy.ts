@@ -4,7 +4,6 @@ import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServic
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockStatus } from '~/__mocks__/mockStatus';
 import {
   configureBiasMetricModal,
   modelMetricsBias,
@@ -26,6 +25,15 @@ import {
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimePlatform } from '~/types';
 import { mock403Error, mock404Error } from '~/__mocks__/mockK8sStatus';
+import {
+  InferenceServiceModel,
+  ProjectModel,
+  RouteModel,
+  SecretModel,
+  ServingRuntimeModel,
+  TemplateModel,
+  TrustyAIApplicationsModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;
@@ -50,169 +58,104 @@ const initIntercepts = ({
   isTrustyAIAvailable = true,
   isTrustyAIInstalled = true,
 }: HandlersProps) => {
-  cy.intercept(
-    '/api/dsc/status',
+  cy.interceptOdh(
+    'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: { kserve: true, 'model-mesh': true, trustyai: true },
     }),
   );
-  cy.intercept('/api/status', mockStatus());
-  cy.intercept(
-    '/api/config',
+  cy.interceptOdh(
+    'GET /api/config',
     mockDashboardConfig({
       disableBiasMetrics,
       disablePerformanceMetrics,
     }),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    },
-    mockDashboardConfig({}),
-  );
 
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/project.openshift.io/v1/projects',
-    },
+  cy.interceptK8sList(
+    ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh })]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
-    },
-    mockK8sResourceList(servingRuntimes),
+  cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+  cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
+  cy.interceptK8sList(
+    ServingRuntimeModel,
+    mockK8sResourceList(servingRuntimes, { namespace: 'modelServing' }),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
-    },
-    mockK8sResourceList(inferenceServices),
+  cy.interceptK8sList(
+    InferenceServiceModel,
+    mockK8sResourceList(inferenceServices, { namespace: 'modelServing' }),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/api/v1/namespaces/test-project/secrets',
-    },
-    mockK8sResourceList([mockSecretK8sResource({})]),
+  cy.interceptK8sList(
+    SecretModel,
+    mockK8sResourceList([mockSecretK8sResource({ namespace: 'modelServing' })]),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/modelServing/servingruntimes',
-    },
-    mockK8sResourceList(servingRuntimes),
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/modelServing/inferenceservices',
-    },
-    mockK8sResourceList(inferenceServices),
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/api/v1/namespaces/modelServing/secrets',
-    },
-    mockK8sResourceList([mockSecretK8sResource({})]),
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
-    },
+  cy.interceptK8s(
+    ServingRuntimeModel,
     mockServingRuntimeK8sResource({ name: 'test-model', namespace: 'test-project' }),
   );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/prometheus/serving',
-    },
+  cy.interceptOdh(
+    'POST /api/prometheus/serving',
     mockPrometheusServing({ result: hasServingData ? undefined : [] }), // will mock for both ok and not ok
   );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/prometheus/bias',
-    },
-    (req) => {
-      if ((req.body as { query: string }).query.includes(`query=trustyai_dir`)) {
-        req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'DIR' }));
-      }
-    },
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/prometheus/bias',
-    },
-    (req) => {
-      if ((req.body as { query: string }).query.includes(`query=trustyai_spd`)) {
-        req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'SPD' }));
-      }
-    },
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/proxy/metrics/all/requests',
-    },
+  cy.interceptOdh('POST /api/prometheus/bias', (req) => {
+    if ((req.body as { query: string }).query.includes(`query=trustyai_dir`)) {
+      req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'DIR' }));
+    }
+  });
+  cy.interceptOdh('POST /api/prometheus/bias', (req) => {
+    if ((req.body as { query: string }).query.includes(`query=trustyai_spd`)) {
+      req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'SPD' }));
+    }
+  });
+  cy.interceptOdh(
+    'GET /api/service/trustyai/:namespace/trustyai-service/metrics/all/requests',
+    { path: { namespace: 'test-project' } },
     mockMetricsRequest({ modelName: 'test-inference-service' }),
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
-    },
-    mockK8sResourceList([
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-1',
-        displayName: 'Multi Platform',
-        platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-      }),
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-2',
-        displayName: 'Caikit',
-        platforms: [ServingRuntimePlatform.SINGLE],
-      }),
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-3',
-        displayName: 'New OVMS Server',
-        platforms: [ServingRuntimePlatform.MULTI],
-      }),
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-4',
-        displayName: 'Serving Runtime with No Annotations',
-      }),
-      mockInvalidTemplateK8sResource({}),
-    ]),
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList(
+      [
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-1',
+          displayName: 'Multi Platform',
+          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-2',
+          displayName: 'Caikit',
+          platforms: [ServingRuntimePlatform.SINGLE],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-3',
+          displayName: 'New OVMS Server',
+          platforms: [ServingRuntimePlatform.MULTI],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-4',
+          displayName: 'Serving Runtime with No Annotations',
+        }),
+        mockInvalidTemplateK8sResource({}),
+      ],
+      { namespace: 'opendatahub' },
+    ),
   );
 
-  cy.intercept(
+  cy.interceptK8s(
     {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+      model: TrustyAIApplicationsModel,
+      ns: 'test-project',
+      name: 'trustyai-service',
     },
     isTrustyAIInstalled
-      ? mockTrustyAIServiceK8sResource({ isAvailable: isTrustyAIAvailable })
+      ? mockTrustyAIServiceK8sResource({
+          isAvailable: isTrustyAIAvailable,
+        })
       : { statusCode: 404, body: mock404Error({}) },
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname:
-        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/trustyai-service',
-    },
-    mockRouteK8sResource({ namespace: 'test-project' }),
-  );
+  cy.interceptK8s(RouteModel, mockRouteK8sResource({ name: 'trustyai-service' }));
 };
 
 describe('Model Metrics', () => {
@@ -404,11 +347,12 @@ describe('Model Metrics', () => {
       .should('be.checked');
 
     // test disabling
-    cy.intercept(
+    cy.interceptK8s(
+      'DELETE',
       {
-        method: 'DELETE',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+        model: TrustyAIApplicationsModel,
+        ns: 'test-project',
+        name: 'trustyai-service',
       },
       {},
     ).as('uninstallTrustyAI');
@@ -444,21 +388,14 @@ describe('Model Metrics', () => {
       .should('not.be.checked');
 
     // test enabling
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices',
-      },
+    cy.interceptK8s(
+      'POST',
+      TrustyAIApplicationsModel,
       mockTrustyAIServiceK8sResource({ isAvailable: true }),
     ).as('installTrustyAI');
 
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
-      },
+    cy.interceptK8s(
+      TrustyAIApplicationsModel,
       mockTrustyAIServiceK8sResource({
         isAvailable: false,
       }),
@@ -507,20 +444,17 @@ describe('Model Metrics', () => {
       .should('be.enabled')
       .should('not.be.checked');
 
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices',
-      },
+    cy.interceptK8s(
+      'POST',
+      TrustyAIApplicationsModel,
       mockTrustyAIServiceK8sResource({ isAvailable: true }),
     ).as('installTrustyAI');
 
-    cy.intercept(
+    cy.interceptK8s(
       {
-        method: 'GET',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+        model: TrustyAIApplicationsModel,
+        ns: 'test-project',
+        name: 'trustyai-service',
       },
       { statusCode: 403, body: mock403Error({}) },
     ).as('getTrustyAIError');
@@ -550,21 +484,14 @@ describe('Model Metrics', () => {
       .should('be.enabled')
       .should('not.be.checked');
 
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices',
-      },
+    cy.interceptK8s(
+      'POST',
+      TrustyAIApplicationsModel,
       mockTrustyAIServiceK8sResource({ isAvailable: true }),
     ).as('installTrustyAI');
 
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname:
-          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
-      },
+    cy.interceptK8s(
+      TrustyAIApplicationsModel,
       mockTrustyAIServiceK8sResource({
         isAvailable: false,
         creationTimestamp: new Date('2022-05-15T00:00:00.000Z').toISOString(),
@@ -664,11 +591,9 @@ describe('Model Metrics', () => {
     configureBiasMetricModal.findSubmitButton().should('be.disabled');
     configureBiasMetricModal.findMetricBatchSizeInput().clear().type('2');
 
-    cy.intercept(
-      {
-        method: 'POST',
-        pathname: '/api/proxy/metrics/dir/request',
-      },
+    cy.interceptOdh(
+      'POST /api/service/trustyai/:namespace/trustyai-service/metrics/dir/request',
+      { path: { namespace: 'test-project' } },
       {},
     ).as('configureBiasMetric');
 
@@ -676,21 +601,15 @@ describe('Model Metrics', () => {
 
     cy.wait('@configureBiasMetric').then((interception) => {
       expect(interception.request.body).to.eql({
-        path: '/metrics/dir/request',
-        method: 'POST',
-        host: 'https://test-notebook-test-project.apps.user.com',
-        queryParams: {},
-        data: {
-          modelId: 'test-inference-service',
-          requestName: 'Test Metric',
-          protectedAttribute: 'customer_data_input-3',
-          privilegedAttribute: 1,
-          unprivilegedAttribute: 0,
-          outcomeName: 'predict',
-          favorableOutcome: 1,
-          thresholdDelta: 0.1,
-          batchSize: 20,
-        },
+        modelId: 'test-inference-service',
+        requestName: 'Test Metric',
+        protectedAttribute: 'customer_data_input-3',
+        privilegedAttribute: 1,
+        unprivilegedAttribute: 0,
+        outcomeName: 'predict',
+        favorableOutcome: 1,
+        thresholdDelta: 0.1,
+        batchSize: 20,
       });
     });
   });

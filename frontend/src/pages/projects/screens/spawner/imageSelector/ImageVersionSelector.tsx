@@ -1,6 +1,15 @@
 import * as React from 'react';
-import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+import {
+  Alert,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  MenuToggle,
+  Select,
+  SelectList,
+  SelectOption,
+} from '@patternfly/react-core';
 import { ImageVersionSelectDataType } from '~/pages/projects/screens/spawner/types';
 import {
   checkTagBuildValid,
@@ -12,6 +21,7 @@ import {
   isImageVersionSelectOptionObject,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagType } from '~/k8sTypes';
+import { isElyraVersionOutOfDate } from '~/concepts/pipelines/elyra/utils';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
@@ -56,11 +66,23 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     );
   });
 
+  const isSelectedImageVersionOutOfDate =
+    selectedImageVersion && isElyraVersionOutOfDate(selectedImageVersion);
+
   return (
     <FormGroup isRequired label="Version selection" fieldId="workbench-image-version-selection">
       <Select
         id="workbench-image-version-selection"
-        onToggle={(e, open) => setVersionSelectionOpen(open)}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            isFullWidth
+            ref={toggleRef}
+            onClick={() => setVersionSelectionOpen(!versionSelectionOpen)}
+            isExpanded={versionSelectionOpen}
+          >
+            {selectedImageVersion?.name ?? 'Select one'}
+          </MenuToggle>
+        )}
         onSelect={(e, selection) => {
           // We know selection here is ImageVersionSelectOptionObjectType
           if (isImageVersionSelectOptionObject(selection)) {
@@ -70,14 +92,22 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
         }}
         aria-label="Image version select"
         isOpen={versionSelectionOpen}
-        selections={selectOptionObjects.find(
-          (optionObject) => optionObject.imageVersion.name === selectedImageVersion?.name,
-        )}
-        placeholderText="Select one"
+        selected={selectedImageVersion}
+        onOpenChange={(isOpen) => setVersionSelectionOpen(isOpen)}
+        shouldFocusToggleOnSelect
       >
-        {options}
+        <SelectList>{options}</SelectList>
       </Select>
       <FormHelperText>
+        {isSelectedImageVersionOutOfDate && (
+          <Alert
+            variant="info"
+            isInline
+            isPlain
+            title="A new image version is available. Select the latest image version to use Elyra for pipelines."
+          />
+        )}
+
         <HelperText>
           <HelperTextItem>
             Hover an option to learn more information about the packages included.

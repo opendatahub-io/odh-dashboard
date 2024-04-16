@@ -58,7 +58,6 @@ spec:
               required:
                 - description
                 - displayName
-                - durationMinutes
                 - type
                 - url
               type: object

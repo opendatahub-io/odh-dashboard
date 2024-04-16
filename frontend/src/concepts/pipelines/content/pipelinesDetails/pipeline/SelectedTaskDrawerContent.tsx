@@ -29,7 +29,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
-          {task.name} {task.type === 'artifact' ? 'artifact details' : ''}
+          {task.name} {task.type === 'artifact' ? 'Artifact details' : ''}
         </Title>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />

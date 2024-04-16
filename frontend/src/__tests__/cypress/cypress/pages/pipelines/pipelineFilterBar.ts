@@ -27,6 +27,30 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('runtime-status-dropdown');
   }
 
+  findSortButtonForActive(name: string) {
+    return this.findActiveRunsTable().find('thead').findByRole('button', { name });
+  }
+
+  private findActiveRunsTable() {
+    return cy.findByTestId('active-runs-table');
+  }
+
+  findSortButtonForArchive(name: string) {
+    return this.findArchiveRunsTable().find('thead').findByRole('button', { name });
+  }
+
+  private findArchiveRunsTable() {
+    return cy.findByTestId('archived-runs-table');
+  }
+
+  findSortButtonforSchedules(name: string) {
+    return this.findSchedulesTable().find('thead').findByRole('button', { name });
+  }
+
+  private findSchedulesTable() {
+    return cy.findByTestId('schedules-table');
+  }
+
   selectStatusByName(name: string) {
     this.findStatusSelect().findDropdownItem(name).click();
   }
@@ -45,11 +69,11 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     cy.findByTestId('experiment-search-select').findSelectOption(name).click();
   }
 
-  mockExperiments(experiments: ExperimentKFv2[]) {
+  mockExperiments(experiments: ExperimentKFv2[], namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/experiments',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments`,
       },
       {
         experiments,

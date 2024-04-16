@@ -65,11 +65,11 @@ class PipelineRunsTable {
     return cy.findByTestId('no-result-found-title');
   }
 
-  mockRestoreRun(runId: string) {
+  mockRestoreRun(runId: string, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/runs/${runId}:unarchive`,
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${runId}:unarchive`,
       },
       (req) => {
         req.reply({ body: {} });
@@ -77,11 +77,11 @@ class PipelineRunsTable {
     );
   }
 
-  mockArchiveRun(runId: string) {
+  mockArchiveRun(runId: string, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/runs/${runId}:archive`,
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${runId}:archive`,
       },
       (req) => {
         req.reply({ body: {} });
@@ -89,17 +89,22 @@ class PipelineRunsTable {
     );
   }
 
-  mockGetRuns(activeRuns: PipelineRunKFv2[], archivedRuns: PipelineRunKFv2[], times?: number) {
+  mockGetRuns(
+    activeRuns: PipelineRunKFv2[],
+    archivedRuns: PipelineRunKFv2[],
+    namespace: string,
+    times?: number,
+  ) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/runs',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs`,
         ...(times && { times }),
       },
       (req) => {
         const {
           predicates: [{ string_value: runState }],
-        } = JSON.parse(req.body.queryParams.filter);
+        } = JSON.parse(req.query.filter.toString());
 
         if (runState === 'ARCHIVED') {
           req.reply({ runs: archivedRuns, total_size: archivedRuns.length });
@@ -116,8 +121,8 @@ class ActiveRunsTable extends PipelineRunsTable {
     super('active-runs');
   }
 
-  mockGetActiveRuns(runs: PipelineRunKFv2[], times?: number) {
-    return this.mockGetRuns(runs, [], times);
+  mockGetActiveRuns(runs: PipelineRunKFv2[], namespace: string, times?: number) {
+    return this.mockGetRuns(runs, [], namespace, times);
   }
 }
 class ArchivedRunsTable extends PipelineRunsTable {
@@ -125,8 +130,8 @@ class ArchivedRunsTable extends PipelineRunsTable {
     super('archived-runs');
   }
 
-  mockGetArchivedRuns(runs: PipelineRunKFv2[], times?: number) {
-    return this.mockGetRuns([], runs, times);
+  mockGetArchivedRuns(runs: PipelineRunKFv2[], namespace: string, times?: number) {
+    return this.mockGetRuns([], runs, namespace, times);
   }
 }
 
@@ -156,41 +161,41 @@ class PipelineRunJobTable extends PipelineRunsTable {
     return cy.findByTestId('experiment-search-select');
   }
 
-  mockGetJobs(jobs: PipelineRunJobKFv2[]) {
+  mockGetJobs(jobs: PipelineRunJobKFv2[], namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v2beta1/recurringruns',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns`,
       },
       { recurringRuns: jobs, total_size: jobs.length },
     );
   }
 
-  mockGetJob(job: PipelineRunJobKFv2) {
+  mockGetJob(job: PipelineRunJobKFv2, namespace: string) {
     return cy.intercept(
       {
         method: 'GET',
-        pathname: `/api/proxy/apis/v2beta1/recurringruns/${job.recurring_run_id}`,
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}`,
       },
       job,
     );
   }
 
-  mockEnableJob(job: PipelineRunJobKFv2) {
+  mockEnableJob(job: PipelineRunJobKFv2, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/recurringruns/${job.recurring_run_id}:enable`,
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}:enable`,
       },
       {},
     );
   }
 
-  mockDisableJob(job: PipelineRunJobKFv2) {
+  mockDisableJob(job: PipelineRunJobKFv2, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: `/api/proxy/apis/v2beta1/recurringruns/${job.recurring_run_id}:disable`,
+        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}:disable`,
       },
       {},
     );

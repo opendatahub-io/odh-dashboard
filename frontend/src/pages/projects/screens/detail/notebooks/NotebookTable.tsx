@@ -6,6 +6,7 @@ import AddNotebookStorage from '~/pages/projects/pvc/AddNotebookStorage';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ElyraInvalidVersionAlerts } from '~/concepts/pipelines/elyra/ElyraInvalidVersionAlerts';
 import NotebookTableRow from './NotebookTableRow';
 import { columns } from './data';
 
@@ -21,27 +22,32 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
 
   return (
     <>
-      <CanEnableElyraPipelinesCheck namespace={currentProject.metadata.name}>
-        {(canEnablePipelines) => (
-          <Table
-            data-testid="notebook-table"
-            variant="compact"
-            data={notebookStates}
-            columns={columns}
-            disableRowRenderSupport
-            rowRenderer={(notebookState, i) => (
-              <NotebookTableRow
-                key={notebookState.notebook.metadata.uid}
-                rowIndex={i}
-                obj={notebookState}
-                onNotebookDelete={setNotebookToDelete}
-                onNotebookAddStorage={setAddNotebookStorage}
-                canEnablePipelines={canEnablePipelines}
+      <ElyraInvalidVersionAlerts notebooks={notebookStates.map((n) => n.notebook)}>
+        {(showImpactedNotebookInfo) => (
+          <CanEnableElyraPipelinesCheck namespace={currentProject.metadata.name}>
+            {(canEnablePipelines) => (
+              <Table
+                data-testid="notebook-table"
+                variant="compact"
+                data={notebookStates}
+                columns={columns}
+                disableRowRenderSupport
+                rowRenderer={(notebookState, i) => (
+                  <NotebookTableRow
+                    key={notebookState.notebook.metadata.uid}
+                    rowIndex={i}
+                    obj={notebookState}
+                    onNotebookDelete={setNotebookToDelete}
+                    onNotebookAddStorage={setAddNotebookStorage}
+                    canEnablePipelines={canEnablePipelines}
+                    showOutOfDateElyraInfo={showImpactedNotebookInfo(notebookState.notebook)}
+                  />
+                )}
               />
             )}
-          />
+          </CanEnableElyraPipelinesCheck>
         )}
-      </CanEnableElyraPipelinesCheck>
+      </ElyraInvalidVersionAlerts>
       <AddNotebookStorage
         notebook={addNotebookStorage}
         onClose={(submitted) => {
