@@ -53,6 +53,7 @@ const CompareRunsRunList: React.FC = () => {
       toggleText="Run list"
       isExpanded={isExpanded}
       onToggle={(_, expanded) => setExpanded(expanded)}
+      isIndented
     >
       <Table
         {...checkboxTableProps}

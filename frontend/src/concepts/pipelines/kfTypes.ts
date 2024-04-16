@@ -531,7 +531,7 @@ export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_version_reference?: PipelineVersionReferenceKF;
   // in lue of pipeline_version_reference, the pipeline spec is included
   pipeline_spec?: PipelineSpecVariable;
-  runtime_config: PipelineSpecRuntimeConfig;
+  runtime_config?: PipelineSpecRuntimeConfig;
   service_account: string;
   scheduled_at: string;
   finished_at: string;

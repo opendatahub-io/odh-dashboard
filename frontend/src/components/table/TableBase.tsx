@@ -160,6 +160,10 @@ const TableBase = <T,>({
         width={col.width}
         info={col.info}
         isSubheader={isSubheader}
+        isStickyColumn={col.isStickyColumn}
+        hasRightBorder={col.hasRightBorder}
+        modifier={col.modifier}
+        className={col.className}
       >
         {col.label}
       </Th>
@@ -256,16 +260,18 @@ const TableBase = <T,>({
         </div>
       )}
 
-      <Toolbar inset={{ default: 'insetNone' }} className="pf-v5-u-w-100">
-        <ToolbarContent alignItems="center">
-          {bottomToolbarContent}
-          {showPagination && (
-            <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
-              {pagination('bottom')}
-            </ToolbarItem>
-          )}
-        </ToolbarContent>
-      </Toolbar>
+      {(bottomToolbarContent || showPagination) && (
+        <Toolbar inset={{ default: 'insetNone' }} className="pf-v5-u-w-100">
+          <ToolbarContent alignItems="center">
+            {bottomToolbarContent}
+            {showPagination && (
+              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
+                {pagination('bottom')}
+              </ToolbarItem>
+            )}
+          </ToolbarContent>
+        </Toolbar>
+      )}
     </>
   );
 };
