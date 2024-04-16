@@ -34,4 +34,14 @@ module.exports = {
   snapshotSerializers: [],
 
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],
+
+  coverageDirectory: 'jest-coverage',
+
+  collectCoverageFrom: [
+    '<rootDir>/src/**/*.{ts,tsx}',
+    '!<rootDir>/src/third_party/**',
+    '!<rootDir>/src/__tests__/**',
+    '!<rootDir>/src/__mocks__/**',
+    '!**/*.spec.{ts,tsx}',
+  ],
 };
