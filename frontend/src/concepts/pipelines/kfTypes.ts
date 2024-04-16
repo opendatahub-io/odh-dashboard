@@ -466,6 +466,22 @@ export enum RuntimeStateKF {
   PAUSED = 'PAUSED',
 }
 
+export enum ExecutionStateKF {
+  NEW = 'New',
+  RUNNING = 'Running',
+  COMPLETE = 'Complete',
+  CANCELED = 'Canceled',
+  FAILED = 'Failed',
+  CACHED = 'Cached',
+}
+
+export enum ArtifactStateKF {
+  PENDING = 'Pending',
+  LIVE = 'Live',
+  MARKED_FOR_DELETION = 'Marked for deletion',
+  DELETED = 'Deleted',
+}
+
 export const runtimeStateLabels = {
   [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: 'Unspecified',
   [RuntimeStateKF.PENDING]: 'Pending',

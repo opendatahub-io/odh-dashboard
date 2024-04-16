@@ -36,6 +36,7 @@ import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { routePipelineRunsNamespace } from '~/routes';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
+import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { runId } = useParams();
@@ -52,17 +53,16 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineSpec, runResource ?? undefined);
+
+  const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(runResource);
+  const { taskMap, nodes } = usePipelineTaskTopology(
+    pipelineSpec,
+    runResource?.run_details,
+    executions,
+  );
 
   const loaded = runLoaded && (versionLoaded || !!runResource?.pipeline_spec);
   const error = versionError || runError;
-  if (!loaded && !error) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
 
   if (error) {
     return (
@@ -74,6 +74,14 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
         />
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
+    );
+  }
+
+  if (!loaded || (!executionsLoaded && !executionsError)) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
     );
   }
 
@@ -136,12 +144,10 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     </Breadcrumb>
                   }
                   headerAction={
-                    loaded && (
-                      <PipelineRunDetailsActions
-                        run={runResource}
-                        onDelete={() => setDeleting(true)}
-                      />
-                    )
+                    <PipelineRunDetailsActions
+                      run={runResource}
+                      onDelete={() => setDeleting(true)}
+                    />
                   }
                   empty={false}
                 >
