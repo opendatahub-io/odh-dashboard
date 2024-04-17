@@ -18,6 +18,7 @@ import { mockDashboardConfig, mockStatus } from '~/__mocks__';
 import { ODHDashboardConfigModel } from '~/__tests__/cypress/cypress/utils/models';
 import './commands';
 import { addCommands as webSocketsAddCommands } from './websockets';
+import '@cypress/code-coverage/support';
 
 chai.use(chaiSubset);
 
