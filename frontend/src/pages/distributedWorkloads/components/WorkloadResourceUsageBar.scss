@@ -1,21 +1,5 @@
-.dw-workload-resource-usage-bar-container {
-  // Vertically aligns the bar and the text to its left/right
-  align-items: center;
-  // Extra margin to space out the adjacent numbers of bars in two columns
-  margin-right: var(--pf-v5-global--spacer--xl);
-}
-
 .dw-workload-resource-usage-bar {
   // Prevents extra whitespace to the right of the bar when combining measureLocation="none" with no title prop
+  // TODO: can remove this after https://github.com/patternfly/patternfly-react/issues/10278 is in place
   grid-gap: 0;
-}
-
-.dw-workload-resource-usage-bar-color-swatch {
-  font-size: var(--pf-v5-global--icon--FontSize--md);
-  &.used {
-    color: var(--pf-v5-global--primary-color--100);
-  }
-  &.requested {
-    color: #d1e0f5; // Can't find where this is defined in PF CSS...
-  }
 }
