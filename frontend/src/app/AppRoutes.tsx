@@ -4,7 +4,12 @@ import { InvalidArgoDeploymentAlert } from '~/concepts/pipelines/content/Invalid
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
-import { globExperimentsAll, globPipelineRunsAll, globPipelinesAll } from '~/routes';
+import {
+  globArtifactsAll,
+  globExperimentsAll,
+  globPipelineRunsAll,
+  globPipelinesAll,
+} from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
 const InstalledApplications = React.lazy(
@@ -29,6 +34,8 @@ const GlobalPipelineRunsRoutes = React.lazy(
 const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
+
+const GlobalArtifactsRoutes = React.lazy(() => import('../pages/pipelines/GlobalArtifactsRoutes'));
 
 const GlobalDistributedWorkloadsRoutes = React.lazy(
   () => import('../pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
@@ -91,6 +98,7 @@ const AppRoutes: React.FC = () => {
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
         <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
+        <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 

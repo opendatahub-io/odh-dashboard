@@ -1,0 +1,1 @@
+export { GlobalArtifactsPage } from './GlobalArtifactsPage';

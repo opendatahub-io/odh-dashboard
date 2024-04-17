@@ -236,7 +236,11 @@ const TableBase = <T,>({
           <ToolbarContent>
             {toolbarContent}
             {showPagination && (
-              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
+              <ToolbarItem
+                variant="pagination"
+                align={{ default: 'alignRight' }}
+                className="pf-v5-u-pr-lg"
+              >
                 {pagination('top')}
               </ToolbarItem>
             )}

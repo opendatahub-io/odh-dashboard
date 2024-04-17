@@ -18,7 +18,7 @@ import {
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
-  title: React.ReactNode;
+  title?: React.ReactNode;
   breadcrumb?: React.ReactNode;
   description?: React.ReactNode;
   loaded: boolean;
