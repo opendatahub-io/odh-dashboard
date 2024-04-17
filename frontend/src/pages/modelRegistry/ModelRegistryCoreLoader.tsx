@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Outlet } from 'react-router';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
+
 import { ModelRegistryContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 
+// TODO: Parametrize this to make the route dynamic
 const ModelRegistryCoreLoader: React.FC = () => (
-  <ModelRegistryContextProvider namespace={MODEL_REGISTRY_DEFAULT_NAMESPACE}>
+  <ModelRegistryContextProvider modelRegistryName="modelregistry-sample">
     <Outlet />
   </ModelRegistryContextProvider>
 );

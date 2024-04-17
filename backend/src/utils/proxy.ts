@@ -6,10 +6,10 @@ import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 
-const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string) =>
+export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
 
-const setParam = (req: FastifyRequest, name: string, value: string) =>
+export const setParam = (req: FastifyRequest, name: string, value: string): string =>
   ((req.params as { [key: string]: string })[name] = value);
 
 const notFoundError = (kind: string, name: string, e?: any, overrideMessage?: string) => {
