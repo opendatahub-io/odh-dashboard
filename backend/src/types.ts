@@ -1021,3 +1021,9 @@ export type TrustyAIKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+export type ModelRegistryKind = K8sResourceCommon & {
+  status?: {
+    conditions?: K8sCondition[];
+  };
+};

@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { Alert, Bullseye } from '@patternfly/react-core';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
-import { MODEL_REGISTRY_DEFINITION_NAME } from '~/concepts/modelRegistry/const';
 import { ModelRegistryKind } from '~/k8sTypes';
 import useModelRegistries from '~/concepts/modelRegistry/apiHooks/useModelRegistries';
+import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import useModelRegistryAPIState, { ModelRegistryAPIState } from './useModelRegistryAPIState';
-import useModelRegistryAPIRoute from './useModelRegistryAPIRoute';
 import {
   hasServerTimedOut,
   isModelRegistryAvailable,
@@ -27,7 +26,7 @@ export type ModelRegistryContextType = {
 
 type ModelRegistryContextProviderProps = {
   children: React.ReactNode;
-  namespace: string;
+  modelRegistryName: string;
 };
 
 export const ModelRegistryContext = React.createContext<ModelRegistryContextType>({
@@ -46,12 +45,12 @@ export const ModelRegistryContext = React.createContext<ModelRegistryContextType
 export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContextProviderProps>(
   SupportedArea.MODEL_REGISTRY,
   true,
-)(({ children, namespace }) => {
+)(({ children, modelRegistryName }) => {
   const [modelRegistries] = useModelRegistries();
   const [preferredModelRegistry, setPreferredModelRegistry] =
     React.useState<ModelRegistryContextType['preferredModelRegistry']>(undefined);
 
-  const crState = useModelRegistryNamespaceCR(namespace, MODEL_REGISTRY_DEFINITION_NAME); // TODO: dynamially change the model registry name
+  const crState = useModelRegistryNamespaceCR(MODEL_REGISTRY_DEFAULT_NAMESPACE, modelRegistryName);
   const [modelRegistryNamespaceCR, crLoaded, crLoadError, refreshCR] = crState;
   const isCRReady = isModelRegistryAvailable(crState);
 
@@ -61,13 +60,7 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
     setDisableTimeout(true);
   }, []);
 
-  const [routeHost, routeLoaded, routeLoadError, refreshRoute] = useModelRegistryAPIRoute(
-    isCRReady,
-    MODEL_REGISTRY_DEFINITION_NAME,
-    namespace,
-  );
-
-  const hostPath = routeLoaded && routeHost ? routeHost : null;
+  const hostPath = modelRegistryName ? `/api/service/modelregistry/${modelRegistryName}` : null;
 
   const [apiState, refreshAPIState] = useModelRegistryAPIState(hostPath);
 
@@ -78,8 +71,8 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
   }, [modelRegistries, preferredModelRegistry]);
 
   const refreshState = React.useCallback(
-    () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
-    [refreshRoute, refreshCR],
+    () => Promise.all([refreshCR()]).then(() => undefined),
+    [refreshCR],
   );
 
   const updatePreferredModelRegistry = React.useCallback<
@@ -88,7 +81,7 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
     setPreferredModelRegistry(modelRegistry);
   }, []);
 
-  const error = crLoadError || routeLoadError;
+  const error = crLoadError;
   if (error) {
     return (
       <Bullseye>

@@ -1,2 +1,2 @@
-export const MODEL_REGISTRY_DEFINITION_NAME = 'modelregistry-sample'; // TODO: harcoded value, we need to dynamically fetch this
-export const MODEL_REGISTRY_DEFAULT_NAMESPACE = 'shared'; // TODO: harcoded value, we need to check which will be the default namespace
+export const MODEL_REGISTRY_DEFAULT_NAMESPACE = 'odh-model-registries'; // The default namespace for the model registry service, controlled by the operator.
+export const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
