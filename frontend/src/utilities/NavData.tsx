@@ -30,16 +30,23 @@ export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
 const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];
 
-const useApplicationsNav = (): NavDataItem[] => [
-  {
-    id: 'applications',
-    group: { id: 'apps', title: 'Applications' },
-    children: [
-      { id: 'apps-installed', label: 'Enabled', href: '/' },
-      { id: 'apps-explore', label: 'Explore', href: '/explore' },
-    ],
-  },
-];
+const useApplicationsNav = (): NavDataItem[] => {
+  const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
+
+  return [
+    {
+      id: 'applications',
+      group: { id: 'apps', title: 'Applications' },
+      children: [
+        { id: 'apps-installed', label: 'Enabled', href: isHomeAvailable ? '/enabled' : '/' },
+        { id: 'apps-explore', label: 'Explore', href: '/explore' },
+      ],
+    },
+  ];
+};
+
+const useHomeNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.HOME, [{ id: 'home', label: 'Home', href: '/' }]);
 
 const useDSProjectsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
@@ -171,6 +178,7 @@ const useSettingsNav = (): NavDataGroup[] => {
 };
 
 export const useBuildNavData = (): NavDataItem[] => [
+  ...useHomeNav(),
   ...useApplicationsNav(),
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),

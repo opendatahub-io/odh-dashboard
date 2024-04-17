@@ -13,6 +13,7 @@ spec:
     disableSupport: false
     disableTracking: false
     enablement: true
+    disableHome: false
     disableProjects: false
     disablePipelines: false
     disableModelServing: false

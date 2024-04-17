@@ -18,6 +18,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelines'],
     requiredComponents: [StackComponent.DS_PIPELINES],
   },
+  [SupportedArea.HOME]: {
+    featureFlags: ['disableHome'],
+  },
   [SupportedArea.DS_PROJECTS_VIEW]: {
     featureFlags: ['disableProjects'],
   },
