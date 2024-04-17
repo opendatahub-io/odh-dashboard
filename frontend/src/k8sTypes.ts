@@ -1196,6 +1196,7 @@ export type DashboardCommonConfig = {
   disableISVBadges: boolean;
   disableAppLauncher: boolean;
   disableUserManagement: boolean;
+  disableHome: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
   disableProjectSharing: boolean;
