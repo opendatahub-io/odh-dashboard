@@ -79,7 +79,11 @@ class ModelRegistry {
   }
 
   shouldregisteredModelsEmpty() {
-    cy.findByTestId('no-registered-models').should('exist');
+    cy.findByTestId('empty-model-registry').should('exist');
+  }
+
+  shouldModelRegistrySelectorExist() {
+    cy.get('#model-registry-selector-dropdown').should('exist');
   }
 
   shouldtableToolbarExist() {

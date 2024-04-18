@@ -12,7 +12,6 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
-import ModelRegistrySelector from './ModelRegistrySelector';
 
 type RegisteredModelsTableToolbarProps = {
   toggleGroupItems?: React.ReactNode;
@@ -29,9 +28,6 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
   return (
     <Toolbar data-testid="registered-models-table-toolbar">
       <ToolbarContent>
-        <ToolbarItem>
-          <ModelRegistrySelector />
-        </ToolbarItem>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
           {tableToggleGroupItems}
         </ToolbarToggleGroup>

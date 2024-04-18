@@ -76,7 +76,7 @@ describe('Model Registry', () => {
 
     modelRegistry.visit();
     modelRegistry.navigate();
-    modelRegistry.shouldtableToolbarExist();
+    modelRegistry.shouldModelRegistrySelectorExist();
     modelRegistry.shouldregisteredModelsEmpty();
   });
 

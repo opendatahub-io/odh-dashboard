@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { Alert, Bullseye } from '@patternfly/react-core';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
-import { ModelRegistryKind } from '~/k8sTypes';
-import useModelRegistries from '~/concepts/modelRegistry/apiHooks/useModelRegistries';
 import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import useModelRegistryAPIState, { ModelRegistryAPIState } from './useModelRegistryAPIState';
 import {
@@ -19,9 +17,6 @@ export type ModelRegistryContextType = {
   ignoreTimedOut: () => void;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
-  modelRegistries: ModelRegistryKind[];
-  preferredModelRegistry: ModelRegistryKind | undefined;
-  updatePreferredModelRegistry: (modelRegistry: ModelRegistryKind | undefined) => void;
 };
 
 type ModelRegistryContextProviderProps = {
@@ -37,25 +32,18 @@ export const ModelRegistryContext = React.createContext<ModelRegistryContextType
   ignoreTimedOut: () => undefined,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
-  modelRegistries: [],
-  preferredModelRegistry: undefined,
-  updatePreferredModelRegistry: () => undefined,
 });
 
 export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContextProviderProps>(
   SupportedArea.MODEL_REGISTRY,
   true,
 )(({ children, modelRegistryName }) => {
-  const [modelRegistries] = useModelRegistries();
-  const [preferredModelRegistry, setPreferredModelRegistry] =
-    React.useState<ModelRegistryContextType['preferredModelRegistry']>(undefined);
-
-  const crState = useModelRegistryNamespaceCR(MODEL_REGISTRY_DEFAULT_NAMESPACE, modelRegistryName);
-  const [modelRegistryNamespaceCR, crLoaded, crLoadError, refreshCR] = crState;
-  const isCRReady = isModelRegistryAvailable(crState);
+  const state = useModelRegistryNamespaceCR(MODEL_REGISTRY_DEFAULT_NAMESPACE, modelRegistryName);
+  const [modelRegistryCR, crLoaded, crLoadError, refreshCR] = state;
+  const isCRReady = isModelRegistryAvailable(state);
 
   const [disableTimeout, setDisableTimeout] = React.useState(false);
-  const serverTimedOut = !disableTimeout && hasServerTimedOut(crState, isCRReady);
+  const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
   const ignoreTimedOut = React.useCallback(() => {
     setDisableTimeout(true);
   }, []);
@@ -64,29 +52,16 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
 
   const [apiState, refreshAPIState] = useModelRegistryAPIState(hostPath);
 
-  React.useEffect(() => {
-    if (modelRegistries.length > 0 && !preferredModelRegistry) {
-      setPreferredModelRegistry(modelRegistries[0]);
-    }
-  }, [modelRegistries, preferredModelRegistry]);
-
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR()]).then(() => undefined),
     [refreshCR],
   );
 
-  const updatePreferredModelRegistry = React.useCallback<
-    ModelRegistryContextType['updatePreferredModelRegistry']
-  >((modelRegistry) => {
-    setPreferredModelRegistry(modelRegistry);
-  }, []);
-
-  const error = crLoadError;
-  if (error) {
+  if (crLoadError) {
     return (
       <Bullseye>
         <Alert title="Model registry load error" variant="danger" isInline>
-          {error.message}
+          {crLoadError.message}
         </Alert>
       </Bullseye>
     );
@@ -95,16 +70,13 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
   return (
     <ModelRegistryContext.Provider
       value={{
-        hasCR: !!modelRegistryNamespaceCR,
+        hasCR: !!modelRegistryCR,
         crInitializing: !crLoaded,
         serverTimedOut,
         apiState,
         ignoreTimedOut,
         refreshState,
         refreshAPIState,
-        modelRegistries,
-        preferredModelRegistry,
-        updatePreferredModelRegistry,
       }}
     >
       {children}
