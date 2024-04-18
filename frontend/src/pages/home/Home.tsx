@@ -9,12 +9,16 @@ import {
 } from '@patternfly/react-core';
 import { HomeIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '~/concepts/areas';
+import ProjectsSection from './projects/ProjectsSection';
 import { useAIFlows } from './aiFlows/useAIFlows';
 
 const Home: React.FC = () => {
+  const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const aiFlows = useAIFlows();
 
-  if (!aiFlows) {
+  if (!projectsAvailable && !aiFlows) {
     return (
       <PageSection data-testid="home-page-empty" variant={PageSectionVariants.default}>
         <Bullseye>
@@ -30,7 +34,12 @@ const Home: React.FC = () => {
     );
   }
 
-  return <div data-testid="home-page">{aiFlows}</div>;
+  return (
+    <div data-testid="home-page">
+      <ProjectsSection />
+      {aiFlows}
+    </div>
+  );
 };
 
 export default Home;
