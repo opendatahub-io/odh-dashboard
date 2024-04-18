@@ -4,6 +4,7 @@ import {
   ButtonVariant,
   Flex,
   FlexItem,
+  GalleryItemProps,
   Stack,
   StackItem,
   Text,
@@ -22,7 +23,7 @@ type InfoGalleryItemProps = {
   description: string;
   isOpen: boolean;
   onClick?: () => void;
-};
+} & GalleryItemProps;
 
 const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   title,
@@ -31,8 +32,9 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   description,
   isOpen,
   onClick,
+  ...rest
 }) => (
-  <DividedGalleryItem>
+  <DividedGalleryItem {...rest}>
     <Stack hasGutter>
       <StackItem>
         <Flex
