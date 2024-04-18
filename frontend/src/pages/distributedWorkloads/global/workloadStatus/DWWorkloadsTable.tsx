@@ -9,6 +9,7 @@ import { getStatusInfo, getWorkloadName } from '~/concepts/distributedWorkloads/
 import { WorkloadStatusLabel } from '~/pages/distributedWorkloads/components/WorkloadStatusLabel';
 import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
+import DWWorkloadsTableRow from './DWWorkloadsTableRow';
 
 export const DWWorkloadsTable: React.FC = () => {
   const { workloads } = React.useContext(DistributedWorkloadsContext);
@@ -67,26 +68,12 @@ export const DWWorkloadsTable: React.FC = () => {
       data={workloads.data}
       columns={columns}
       data-id="workload-table"
-      rowRenderer={(workload) => {
-        const statusInfo = getStatusInfo(workload);
-        return (
-          <Tr key={workload.metadata?.uid}>
-            <Td dataLabel="Name">{getWorkloadName(workload)}</Td>
-            <Td dataLabel="Priority">{workload.spec.priority}</Td>
-            <Td dataLabel="Status">
-              <WorkloadStatusLabel workload={workload} />
-            </Td>
-            <Td dataLabel="Created">
-              {workload.metadata?.creationTimestamp ? (
-                <Timestamp date={new Date(workload.metadata.creationTimestamp)} />
-              ) : (
-                'Unknown'
-              )}
-            </Td>
-            <Td dataLabel="Latest Message">{statusInfo.message}</Td>
-          </Tr>
-        );
-      }}
+      rowRenderer={(workload) => (
+        <DWWorkloadsTableRow
+          workload={workload}
+          statusInfo={getStatusInfo(workload)}
+        />
+      )}
     />
   );
 };
