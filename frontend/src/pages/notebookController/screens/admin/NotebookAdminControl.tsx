@@ -49,7 +49,12 @@ const NotebookAdminControl: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <Alert title="Manage users in OpenShift" component="h2" isInline>
+            <Alert
+              title="Manage users in OpenShift"
+              component="h2"
+              isInline
+              data-testid="manage-users-alert"
+            >
               Create, delete, and manage permissions for Red Hat OpenShift AI users in OpenShift.{' '}
               <ExternalLink
                 text="Learn more about OpenShift user management"
@@ -65,6 +70,7 @@ const NotebookAdminControl: React.FC = () => {
               aria-label="Users table"
               variant="compact"
               data={users}
+              data-testid="administration-users-table"
               enablePagination
               columns={columns}
               rowRenderer={(user) => (

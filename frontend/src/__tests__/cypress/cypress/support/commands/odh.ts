@@ -7,9 +7,11 @@ import type {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
   OdhQuickStart,
+  RoleBindingKind,
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
+import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
@@ -85,6 +87,16 @@ declare global {
       interceptOdh(
         type: 'GET /api/status',
         response: OdhResponse<StatusResponse>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',
+        response: OdhResponse<AllowedUser[]>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
+        response: OdhResponse<K8sResourceListResult<RoleBindingKind>>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
@@ -165,7 +177,8 @@ declare global {
 
       interceptOdh(
         type: 'GET /api/images/:type',
-        response: OdhResponse<ImageInfo>,
+        options: { path: { type: string } },
+        response: OdhResponse<ImageInfo[]>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
