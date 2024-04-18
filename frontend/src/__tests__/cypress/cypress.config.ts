@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { defineConfig } from 'cypress';
 import dotenv from 'dotenv';
+import coverage from '@cypress/code-coverage/task';
 import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 
@@ -23,6 +24,10 @@ export default defineConfig({
     PASSWORD: process.env.PASSWORD,
     RECORD: !!process.env.RECORD,
     WS_PORT: process.env.WS_PORT,
+    coverage: !!process.env.COVERAGE,
+    codeCoverage: {
+      exclude: [path.resolve(__dirname, '../../third_party/**')],
+    },
   },
   defaultCommandTimeout: 10000,
   e2e: {
@@ -34,6 +39,7 @@ export default defineConfig({
       : `cypress/e2e/**/*.(s)?cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      coverage(on, config);
       setupWebsockets(on, config);
       on('task', {
         readJSON(filePath: string) {
@@ -75,6 +81,7 @@ export default defineConfig({
           }
         });
       }
+      return config;
     },
   },
 });
