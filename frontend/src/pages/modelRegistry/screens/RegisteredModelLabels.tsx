@@ -13,6 +13,9 @@ import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { getRegisteredModelLabels } from './utils';
 
+// Threshold count to decide whether to choose modal or popover
+const MODAL_THRESHOLD = 4;
+
 type RegisteredModelLabelsProps = {
   rmName: string;
   customProperties: RegisteredModel['customProperties'];
@@ -40,7 +43,7 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
 
   const labelsComponent = (labels: string[], textMaxWidth?: string) =>
     labels.map((label, index) => (
-      <Label color="blue" textMaxWidth={textMaxWidth || '40ch'} key={index}>
+      <Label color="blue" data-testid="label" textMaxWidth={textMaxWidth || '40ch'} key={index}>
         {label}
       </Label>
     ));
@@ -48,19 +51,29 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
   const getLabelComponent = (labels: JSX.Element[]) => {
     const labelCount = labels.length;
     if (labelCount) {
-      return labelCount > 7 ? getLabelModal(labelCount) : getLabelPopover(labelCount, labels);
+      return labelCount > MODAL_THRESHOLD
+        ? getLabelModal(labelCount)
+        : getLabelPopover(labelCount, labels);
     }
     return null;
   };
 
   const getLabelPopover = (labelCount: number, labels: JSX.Element[]) => (
-    <Popover bodyContent={<LabelGroup numLabels={labelCount}>{labels}</LabelGroup>}>
-      <Label isOverflowLabel>{labelCount} more</Label>
+    <Popover
+      bodyContent={
+        <LabelGroup data-testid="popover-label-group" numLabels={labelCount}>
+          {labels}
+        </LabelGroup>
+      }
+    >
+      <Label data-testid="popover-label-text" isOverflowLabel>
+        {labelCount} more
+      </Label>
     </Popover>
   );
 
   const getLabelModal = (labelCount: number) => (
-    <Label isOverflowLabel onClick={() => setIsLabelModalOpen(true)}>
+    <Label data-testid="modal-label-text" isOverflowLabel onClick={() => setIsLabelModalOpen(true)}>
       {labelCount} more
     </Label>
   );
@@ -77,19 +90,28 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
         </Text>
       }
       actions={[
-        <Button key="close" variant="primary" onClick={() => setIsLabelModalOpen(false)}>
+        <Button
+          data-testid="close-modal"
+          key="close"
+          variant="primary"
+          onClick={() => setIsLabelModalOpen(false)}
+        >
           Close
         </Button>,
       ]}
     >
       <SearchInput
+        aria-label="Label modal search"
+        data-testid="label-modal-search"
         placeholder="Find a label"
         value={searchValue}
         onChange={(_event, value) => doSetSearchDebounced(value)}
         onClear={() => setSearchValue('')}
       />
       <br />
-      <LabelGroup numLabels={rmLabels.length}>{labelsComponent(filteredLabels, '50ch')}</LabelGroup>
+      <LabelGroup data-testid="modal-label-group" numLabels={rmLabels.length}>
+        {labelsComponent(filteredLabels, '50ch')}
+      </LabelGroup>
     </Modal>
   );
 
@@ -99,7 +121,7 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
 
   return (
     <>
-      <LabelGroup numLabels={4}>
+      <LabelGroup numLabels={MODAL_THRESHOLD}>
         {labelsComponent(rmLabels.slice(0, 3))}
         {getLabelComponent(labelsComponent(rmLabels.slice(3)))}
       </LabelGroup>

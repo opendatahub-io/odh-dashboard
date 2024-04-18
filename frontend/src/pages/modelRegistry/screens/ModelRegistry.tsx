@@ -1,12 +1,10 @@
 import React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
-import RegisteredModelListView from './RegisteredModelListView';
 import EmptyRegisteredModels from './EmptyRegisteredModels';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
+import RegisteredModelListView from './RegisteredModelListView';
 
 const ModelRegistry: React.FC = () => {
   const { preferredModelRegistry } = React.useContext(ModelRegistryContext);
@@ -21,9 +19,7 @@ const ModelRegistry: React.FC = () => {
           <EmptyRegisteredModels preferredModelRegistry={preferredModelRegistry?.metadata.name} />
         </>
       }
-      title={
-        <TitleWithIcon title="Registered models" objectType={ProjectObjectType.registeredModels} />
-      }
+      title="Registered models"
       description="View and manage your registered models."
       loadError={loadError}
       loaded={loaded}

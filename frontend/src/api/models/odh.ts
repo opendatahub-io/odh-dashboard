@@ -34,10 +34,3 @@ export const InferenceServiceModel: K8sModelCommon = {
   kind: 'InferenceService',
   plural: 'inferenceservices',
 };
-
-export const ModelRegistryModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
-  apiGroup: 'modelregistry.opendatahub.io',
-  kind: 'ModelRegistry',
-  plural: 'modelregistries',
-};

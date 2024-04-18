@@ -15,7 +15,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
 }) => (
   <Tr>
     <Td dataLabel="Model name">
-      <Truncate content={rm.name} />
+      <div id="model-name" data-testid="model-name">
+        <Truncate content={rm.name} />
+      </div>
       {rm.description && (
         <Text data-testid="description" component={TextVariants.small}>
           <Truncate content={rm.description} />
