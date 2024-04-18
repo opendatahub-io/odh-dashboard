@@ -9,6 +9,7 @@ import {
 import { TolerationEffect, TolerationOperator } from '~/types';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 
 type HandlersProps = {
   isPresent?: boolean;
@@ -39,6 +40,10 @@ const initIntercepts = ({ isPresent = true }: HandlersProps) => {
 };
 
 describe('Manage Accelerator Profile', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+  });
+
   it('create accelerator profile', () => {
     initIntercepts({});
     createAcceleratorProfile.visit();

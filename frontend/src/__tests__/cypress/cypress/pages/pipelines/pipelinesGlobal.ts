@@ -32,6 +32,10 @@ class PipelinesGlobal {
     return cy.findByTestId('incompatible-pipelines-server');
   }
 
+  findDeletePipelineServerButton() {
+    return this.findIsServerIncompatible().findByTestId('delete-pipeline-server-button');
+  }
+
   selectProjectByName(name: string) {
     this.findProjectSelect().findDropdownItem(name).click();
   }

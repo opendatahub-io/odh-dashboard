@@ -19,7 +19,7 @@ const UnauthorizedError: React.FC<UnauthorizedErrorProps> = ({
   variant = PageSectionVariants.default,
   accessDomain = ODH_PRODUCT_NAME,
 }) => (
-  <PageSection isFilled variant={variant}>
+  <PageSection isFilled variant={variant} data-testid="unauthorized-error">
     <EmptyState variant={EmptyStateVariant.lg}>
       <EmptyStateHeader
         titleText="Access permissions needed"

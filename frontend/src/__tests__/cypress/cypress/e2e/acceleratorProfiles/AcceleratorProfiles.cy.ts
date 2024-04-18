@@ -7,6 +7,7 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -33,6 +34,10 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
 };
 
 describe('Accelerator Profile', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+  });
+
   it('empty state no accelerator profile', () => {
     initIntercepts({ isEmpty: true });
     acceleratorProfile.visit();

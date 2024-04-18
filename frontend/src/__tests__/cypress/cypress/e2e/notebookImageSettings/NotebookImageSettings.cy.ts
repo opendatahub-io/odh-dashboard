@@ -7,10 +7,23 @@ import {
   notebookImageSettings,
   updateNotebookImageModal,
 } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
+import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 
-describe('Notebook images', () => {
+it('Notebook image settings should not be available for non product admins', () => {
+  asProjectAdminUser();
+  notebookImageSettings.visit(false);
+  pageNotfound.findPage().should('exist');
+  notebookImageSettings.findNavItem().should('not.exist');
+});
+
+describe('Notebook image settings', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+  });
+
   it('Table filtering, sorting, searching', () => {
     cy.interceptOdh(
       'GET /api/images/byon',
@@ -198,7 +211,7 @@ describe('Notebook images', () => {
         url: 'image:latest',
         description: '',
         recommendedAcceleratorIdentifiers: [],
-        provider: 'admin-user',
+        provider: 'test-user',
         packages: [
           { name: 'packages', version: 'version', visible: true },
           { name: 'packages-1', version: 'version-1', visible: true },

@@ -12,19 +12,25 @@ class NotebookRow extends TableRow {
 class NotebookImageSettingsTableToolbar extends TableToolbar {}
 
 class NotebookImageSettings {
-  visit() {
+  visit(wait = true) {
     cy.visit('/notebookImages');
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   navigate() {
-    appChrome.findNavItem('Notebook images', 'Settings').click();
+    this.findNavItem().click();
     this.wait();
   }
 
   private wait() {
     this.findImportImageButton();
     cy.testA11y();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem('Notebook images', 'Settings');
   }
 
   findErrorIcon() {

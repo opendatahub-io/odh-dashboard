@@ -73,7 +73,11 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
             {isAdmin && (
               <EmptyStateFooter>
                 <EmptyStateActions>
-                  <Button variant="primary" onClick={() => setIsDeleting(true)}>
+                  <Button
+                    data-testid="delete-pipeline-server-button"
+                    variant="primary"
+                    onClick={() => setIsDeleting(true)}
+                  >
                     Delete pipeline server
                   </Button>
                 </EmptyStateActions>

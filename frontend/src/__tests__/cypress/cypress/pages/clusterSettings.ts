@@ -1,19 +1,25 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class ClusterSettings {
-  visit() {
+  visit(wait = true) {
     cy.visit('/clusterSettings');
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   navigate() {
-    appChrome.findNavItem('Cluster settings', 'Settings').click();
+    this.findNavItem().click();
     this.wait();
   }
 
   private wait() {
     this.findSubmitButton();
     cy.testA11y();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem('Cluster settings', 'Settings');
   }
 
   findSubmitButton() {
