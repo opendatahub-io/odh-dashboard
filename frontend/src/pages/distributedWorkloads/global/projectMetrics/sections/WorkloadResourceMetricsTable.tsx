@@ -3,7 +3,6 @@ import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/Dis
 import { SortableData, Table } from '~/components/table';
 import {
   getStatusInfo,
-  getWorkloadName,
   getWorkloadRequestedResources,
 } from '~/concepts/distributedWorkloads/utils';
 import { WorkloadKind } from '~/k8sTypes';
