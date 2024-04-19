@@ -13,111 +13,26 @@ import {
   Text,
   TextContent,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import usePipelineRunJobs from '~/concepts/pipelines/apiHooks/usePipelineRunJobs';
-import {
-  usePipelineActiveRuns,
-  usePipelineArchivedRuns,
-} from '~/concepts/pipelines/apiHooks/usePipelineRuns';
 import { CreatePipelineServerButton, usePipelinesAPI } from '~/concepts/pipelines/context';
-import useExperiments from '~/concepts/pipelines/apiHooks/useExperiments';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
+import { useSafePipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
+import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
-import PipelinesCardItems from '~/pages/projects/screens/detail/overview/trainModels/PipelinesCardItems';
-import MetricsContents from './MetricsContents';
+import PipelinesOverviewCard from './PipelinesOverviewCard';
+import PipelinesCardMetrics from './PipelinesCardMetrics';
 
 const PipelinesCard: React.FC = () => {
   const { pipelinesServer } = usePipelinesAPI();
   const {
-    currentProject,
     notebooks: { data: notebooks, loaded: notebooksLoaded, error: notebooksError },
   } = React.useContext(ProjectDetailsContext);
 
-  const [{ items: pipelines, totalSize: pipelinesCount }, pipelinesLoaded, pipelinesError] =
-    usePipelines({
-      pageSize: 5,
-    });
-  const [{ totalSize: activeRunsCount }, activeRunsLoaded, activeRunsError] = usePipelineActiveRuns(
-    {
-      pageSize: 1,
-    },
-  );
-  const [{ totalSize: archivedRunsCount }, archivedRunsLoaded, archivedRunsError] =
-    usePipelineArchivedRuns({
-      pageSize: 1,
-    });
-  const [{ totalSize: scheduledCount }, scheduledLoaded, scheduledError] = usePipelineRunJobs({
+  const [{ totalSize: pipelinesCount }] = useSafePipelines({
     pageSize: 1,
   });
-  const [{ totalSize: experimentsCount }, experimentsLoaded, experimentsError] = useExperiments({
-    pageSize: 1,
-  });
-
-  const loaded =
-    !pipelinesServer.initializing &&
-    pipelinesLoaded &&
-    activeRunsLoaded &&
-    archivedRunsLoaded &&
-    scheduledLoaded &&
-    experimentsLoaded;
-
-  const loadError =
-    pipelinesError || activeRunsError || archivedRunsError || scheduledError || experimentsError;
-
-  const triggeredCount = activeRunsCount + archivedRunsCount;
-
-  const statistics = React.useMemo(
-    () => [
-      {
-        count: pipelinesCount,
-        text: pipelinesCount === 1 ? 'Pipeline' : 'Pipelines',
-      },
-      {
-        count: scheduledCount,
-        text: scheduledCount === 1 ? 'Schedule' : 'Schedules',
-      },
-      {
-        count: triggeredCount,
-        text: triggeredCount === 1 ? 'Run' : 'Runs',
-      },
-      {
-        count: experimentsCount,
-        text: experimentsCount === 1 ? 'Experiment' : 'Experiments',
-      },
-    ],
-    [experimentsCount, pipelinesCount, scheduledCount, triggeredCount],
-  );
 
   const renderContent = () => {
-    if (loadError) {
-      return (
-        <EmptyState variant="xs">
-          <EmptyStateHeader
-            icon={
-              <EmptyStateIcon
-                icon={() => (
-                  <ExclamationCircleIcon
-                    style={{
-                      color: 'var(--pf-v5-global--danger-color--100)',
-                      width: '32px',
-                      height: '32px',
-                    }}
-                  />
-                )}
-              />
-            }
-            headingLevel="h3"
-          />
-          <EmptyStateBody>{loadError.message}</EmptyStateBody>
-        </EmptyState>
-      );
-    }
-
-    if (!loaded) {
+    if (pipelinesServer.initializing) {
       return (
         <EmptyState variant="xs">
           <EmptyStateHeader
@@ -128,7 +43,6 @@ const PipelinesCard: React.FC = () => {
         </EmptyState>
       );
     }
-
     if (!pipelinesServer.installed) {
       return (
         <>
@@ -167,61 +81,16 @@ const PipelinesCard: React.FC = () => {
     }
 
     return (
-      <EnsureCompatiblePipelineServer>
-        {pipelinesCount ? (
-          <>
-            <MetricsContents
-              title="Pipelines"
-              createButton={<ImportPipelineButton variant="link" />}
-              createText="Import pipeline"
-              statistics={statistics}
-              listItems={
-                <PipelinesCardItems
-                  pipelines={pipelines}
-                  loaded={loaded}
-                  error={loadError}
-                  totalCount={pipelinesCount}
-                  currentProject={currentProject}
-                />
-              }
-            />
-          </>
-        ) : (
-          <>
-            <CardBody>
-              <TextContent>
-                <Text component="small">
-                  Pipelines are platforms for building and deploying portable and scalable
-                  machine-learning (ML) workflows. You can import a pipeline or create one in a
-                  workbench.
-                </Text>
-              </TextContent>
-            </CardBody>
-            <CardFooter>
-              <ImportPipelineButton variant="link" isInline />
-            </CardFooter>
-          </>
-        )}
-      </EnsureCompatiblePipelineServer>
+      <EnsureAPIAvailability>
+        <EnsureCompatiblePipelineServer>
+          <PipelinesCardMetrics />
+        </EnsureCompatiblePipelineServer>
+      </EnsureAPIAvailability>
     );
   };
 
   return (
-    <OverviewCard
-      id="Pipelines"
-      objectType={ProjectObjectType.pipeline}
-      sectionType={pipelinesCount ? SectionType.training : SectionType.organize}
-      title="Pipelines"
-      popoverHeaderContent={pipelinesCount ? 'About pipelines' : undefined}
-      popoverBodyContent={
-        !pipelinesCount
-          ? 'Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench.'
-          : undefined
-      }
-      data-testid="section-pipelines"
-    >
-      {renderContent()}
-    </OverviewCard>
+    <PipelinesOverviewCard pipelinesCount={pipelinesCount}>{renderContent()}</PipelinesOverviewCard>
   );
 };
 

@@ -1,7 +1,12 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useUser } from '~/redux/selectors';
-import { experimentsRootPath, routePipelineRuns, routePipelines } from '~/routes';
+import {
+  artifactsRootPath,
+  experimentsRootPath,
+  routePipelineRuns,
+  routePipelines,
+} from '~/routes';
 
 type NavDataCommon = {
   id: string;
@@ -30,16 +35,23 @@ export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
 const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];
 
-const useApplicationsNav = (): NavDataItem[] => [
-  {
-    id: 'applications',
-    group: { id: 'apps', title: 'Applications' },
-    children: [
-      { id: 'apps-installed', label: 'Enabled', href: '/' },
-      { id: 'apps-explore', label: 'Explore', href: '/explore' },
-    ],
-  },
-];
+const useApplicationsNav = (): NavDataItem[] => {
+  const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
+
+  return [
+    {
+      id: 'applications',
+      group: { id: 'apps', title: 'Applications' },
+      children: [
+        { id: 'apps-installed', label: 'Enabled', href: isHomeAvailable ? '/enabled' : '/' },
+        { id: 'apps-explore', label: 'Explore', href: '/explore' },
+      ],
+    },
+  ];
+};
+
+const useHomeNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.HOME, [{ id: 'home', label: 'Home', href: '/' }]);
 
 const useDSProjectsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
@@ -54,7 +66,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
     return [];
   }
 
-  const pipelinesNav: NavDataItem[] = [
+  return [
     {
       id: 'pipelines',
       group: { id: 'pipelines', title: 'Data Science Pipelines' },
@@ -63,24 +75,27 @@ const useDSPipelinesNav = (): NavDataItem[] => {
         { id: 'global-pipeline-runs', label: 'Runs', href: routePipelineRuns() },
       ],
     },
+    ...(isExperimentsAvailable
+      ? [
+          {
+            id: 'experiments',
+            group: { id: 'experiments', title: 'Experiments' },
+            children: [
+              {
+                id: 'experiments-and-runs',
+                label: 'Experiments and runs',
+                href: experimentsRootPath,
+              },
+              {
+                id: 'artifacts',
+                label: 'Artifacts',
+                href: artifactsRootPath,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
-
-  // TODO temporary solution to switch between layout options - remove with https://issues.redhat.com/browse/RHOAIENG-3826
-  if (isExperimentsAvailable) {
-    pipelinesNav.push({
-      id: 'experiments',
-      group: { id: 'experiments', title: 'Experiments' },
-      children: [
-        {
-          id: 'experiments-and-runs',
-          label: 'Experiments and runs',
-          href: experimentsRootPath,
-        },
-      ],
-    });
-  }
-
-  return pipelinesNav;
 };
 
 const useDistributedWorkloadsNav = (): NavDataItem[] =>
@@ -171,6 +186,7 @@ const useSettingsNav = (): NavDataGroup[] => {
 };
 
 export const useBuildNavData = (): NavDataItem[] => [
+  ...useHomeNav(),
   ...useApplicationsNav(),
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),

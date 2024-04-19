@@ -11,7 +11,7 @@ import {
   TimestampFormat,
 } from '@patternfly/react-core';
 import { GlobeAmericasIcon } from '@patternfly/react-icons';
-import { DateTimeKF } from '~/concepts/pipelines/kfTypes';
+import { DateTimeKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
 import { PodKind } from '~/k8sTypes';
 import { PodContainer } from '~/types';
 
@@ -79,4 +79,20 @@ export const checkPodContainersStatus = (
 export const isEmptyDateKF = (date: DateTimeKF): boolean => {
   const INVALID_TIMESTAMP = '1970-01-01T00:00:00Z';
   return date === INVALID_TIMESTAMP;
+};
+
+export const normalizeInputParamValue = (
+  initialValue: RuntimeConfigParamValue,
+): string | number => {
+  let value = initialValue;
+
+  if (typeof value === 'boolean') {
+    value = value ? 'True' : 'False';
+  }
+
+  if (typeof value === 'object') {
+    value = JSON.stringify(value);
+  }
+
+  return value;
 };

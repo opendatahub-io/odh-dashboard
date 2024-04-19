@@ -13,6 +13,7 @@ spec:
     disableSupport: false
     disableTracking: true
     enablement: true
+    disableHome: true
     disableProjects: true
     disablePipelines: true
     disablePipelineExperiments: true

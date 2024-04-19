@@ -5,6 +5,7 @@ import { PathProps } from '~/concepts/pipelines/content/types';
 import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { CompareRunsInvalidRunCount } from '~/concepts/pipelines/content/compareRuns/CompareRunInvalidRunCount';
 import CompareRunsRunList from '~/concepts/pipelines/content/compareRuns/CompareRunsRunList';
+import { CompareRunParamsSection } from './CompareRunParamsSection';
 
 const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const { runs, loaded } = useCompareRuns();
@@ -28,9 +29,13 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
       empty={false}
       noHeader
     >
-      <Stack>
+      <Stack hasGutter>
         <StackItem>
           <CompareRunsRunList />
+        </StackItem>
+
+        <StackItem>
+          <CompareRunParamsSection />
         </StackItem>
       </Stack>
     </ApplicationsPage>

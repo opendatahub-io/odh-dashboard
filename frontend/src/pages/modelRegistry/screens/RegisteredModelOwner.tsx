@@ -1,4 +1,4 @@
-import { Skeleton } from '@patternfly/react-core';
+import { Skeleton, Text } from '@patternfly/react-core';
 import React from 'react';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 
@@ -17,7 +17,7 @@ const RegisteredModelOwner: React.FC<RegisteredModelOwnerProps> = ({ registeredM
   // Currently, the author of the first model version is being used as the owner.
   const registeredModelOwner = modelVersions.items[0]?.author;
 
-  return registeredModelOwner || '-';
+  return <Text data-testid="registered-model-owner">{registeredModelOwner || '-'}</Text>;
 };
 
 export default RegisteredModelOwner;

@@ -11,27 +11,46 @@ import {
 } from '~/concepts/modelRegistry/types';
 import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
 import { K8sAPIOptions } from '~/k8sTypes';
+import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { handleModelRegistryFailures } from './errorUtils';
 
 export const createRegisteredModel =
   (hostpath: string) =>
   (opts: K8sAPIOptions, data: CreateRegisteredModelData): Promise<RegisteredModel> =>
     handleModelRegistryFailures(
-      proxyCREATE(hostpath, '/api/model_registry/v1alpha2/registered_models', data, {}, opts),
+      proxyCREATE(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
+        data,
+        {},
+        opts,
+      ),
     );
 
 export const createModelVersion =
   (hostpath: string) =>
   (opts: K8sAPIOptions, data: CreateModelVersionData): Promise<ModelVersion> =>
     handleModelRegistryFailures(
-      proxyCREATE(hostpath, '/api/model_registry/v1alpha2/model_versions', data, {}, opts),
+      proxyCREATE(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions`,
+        data,
+        {},
+        opts,
+      ),
     );
 
 export const createModelArtifact =
   (hostPath: string) =>
   (opts: K8sAPIOptions, data: CreateModelArtifactData): Promise<ModelArtifact> =>
     handleModelRegistryFailures(
-      proxyCREATE(hostPath, '/api/model_registry/v1alpha2/model_artifacts', data, {}, opts),
+      proxyCREATE(
+        hostPath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts`,
+        data,
+        {},
+        opts,
+      ),
     );
 
 export const getRegisteredModel =
@@ -40,7 +59,7 @@ export const getRegisteredModel =
     handleModelRegistryFailures(
       proxyGET(
         hostPath,
-        `/api/model_registry/v1alpha2/registered_models/${registeredModelID}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelID}`,
         {},
         opts,
       ),
@@ -50,7 +69,12 @@ export const getModelVersion =
   (hostpath: string) =>
   (opts: K8sAPIOptions, modelversionId: string): Promise<ModelVersion> =>
     handleModelRegistryFailures(
-      proxyGET(hostpath, `/api/model_registry/v1alpha2/model_versions/${modelversionId}`, {}, opts),
+      proxyGET(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelversionId}`,
+        {},
+        opts,
+      ),
     );
 
 export const getModelArtifact =
@@ -59,7 +83,7 @@ export const getModelArtifact =
     handleModelRegistryFailures(
       proxyGET(
         hostPath,
-        `/api/model_registry/v1alpha2/model_artifacts/${modelArtifactId}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts/${modelArtifactId}`,
         {},
         opts,
       ),
@@ -69,21 +93,36 @@ export const getListModelArtifacts =
   (hostpath: string) =>
   (opts: K8sAPIOptions): Promise<ModelArtifactList> =>
     handleModelRegistryFailures(
-      proxyGET(hostpath, `/api/model_registry/v1alpha2/model_artifacts`, {}, opts),
+      proxyGET(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts`,
+        {},
+        opts,
+      ),
     );
 
 export const getListModelVersions =
   (hostpath: string) =>
   (opts: K8sAPIOptions): Promise<ModelVersionList> =>
     handleModelRegistryFailures(
-      proxyGET(hostpath, `/api/model_registry/v1alpha2/model_versions`, {}, opts),
+      proxyGET(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions`,
+        {},
+        opts,
+      ),
     );
 
 export const getListRegisteredModels =
   (hostpath: string) =>
   (opts: K8sAPIOptions): Promise<RegisteredModelList> =>
     handleModelRegistryFailures(
-      proxyGET(hostpath, `/api/model_registry/v1alpha2/registered_models`, {}, opts),
+      proxyGET(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
+        {},
+        opts,
+      ),
     );
 
 export const getModelVersionsByRegisteredModel =
@@ -92,7 +131,7 @@ export const getModelVersionsByRegisteredModel =
     handleModelRegistryFailures(
       proxyGET(
         hostpath,
-        `/api/model_registry/v1alpha2/registered_models/${registeredmodelId}/versions`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredmodelId}/versions`,
         {},
         opts,
       ),
@@ -108,7 +147,7 @@ export const patchRegisteredModel =
     handleModelRegistryFailures(
       proxyPATCH(
         hostPath,
-        `/api/model_registry/v1alpha2/registered_models/${registeredModelID}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelID}`,
         data,
         opts,
       ),
@@ -124,7 +163,7 @@ export const patchModelVersion =
     handleModelRegistryFailures(
       proxyPATCH(
         hostPath,
-        `/api/model_registry/v1alpha2/model_versions/${modelversionId}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelversionId}`,
         data,
         opts,
       ),
@@ -140,7 +179,7 @@ export const patchModelArtifact =
     handleModelRegistryFailures(
       proxyPATCH(
         hostPath,
-        `/api/model_registry/v1alpha2/model_artifacts/${modelartifactId}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts/${modelartifactId}`,
         data,
         opts,
       ),

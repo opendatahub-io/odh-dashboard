@@ -23,6 +23,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableISVBadges: boolean;
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
+      disableHome: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
       disableProjectSharing: boolean;
@@ -1017,6 +1018,12 @@ export type DSPipelineKind = K8sResourceCommon & {
 };
 
 export type TrustyAIKind = K8sResourceCommon & {
+  status?: {
+    conditions?: K8sCondition[];
+  };
+};
+
+export type ModelRegistryKind = K8sResourceCommon & {
   status?: {
     conditions?: K8sCondition[];
   };

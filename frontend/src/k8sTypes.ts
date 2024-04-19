@@ -1196,6 +1196,7 @@ export type DashboardCommonConfig = {
   disableISVBadges: boolean;
   disableAppLauncher: boolean;
   disableUserManagement: boolean;
+  disableHome: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
   disableProjectSharing: boolean;
@@ -1293,7 +1294,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
       port: number;
       serviceRoute: string;
     };
-    mysql: {
+    mysql?: {
       database: string;
       host: string;
       port?: number;
@@ -1301,6 +1302,14 @@ export type ModelRegistryKind = K8sResourceCommon & {
     postgres: {
       database: string;
       host?: string;
+      passwordSecret?: {
+        key: string;
+        name: string;
+      };
+      port: number;
+      skipDBCreation?: boolean;
+      sslMode?: string;
+      username?: string;
     };
   };
   status?: {

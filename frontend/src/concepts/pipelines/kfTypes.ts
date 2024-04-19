@@ -466,6 +466,22 @@ export enum RuntimeStateKF {
   PAUSED = 'PAUSED',
 }
 
+export enum ExecutionStateKF {
+  NEW = 'New',
+  RUNNING = 'Running',
+  COMPLETE = 'Complete',
+  CANCELED = 'Canceled',
+  FAILED = 'Failed',
+  CACHED = 'Cached',
+}
+
+export enum ArtifactStateKF {
+  PENDING = 'Pending',
+  LIVE = 'Live',
+  MARKED_FOR_DELETION = 'Marked for deletion',
+  DELETED = 'Deleted',
+}
+
 export const runtimeStateLabels = {
   [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: 'Unspecified',
   [RuntimeStateKF.PENDING]: 'Pending',
@@ -531,7 +547,7 @@ export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_version_reference?: PipelineVersionReferenceKF;
   // in lue of pipeline_version_reference, the pipeline spec is included
   pipeline_spec?: PipelineSpecVariable;
-  runtime_config: PipelineSpecRuntimeConfig;
+  runtime_config?: PipelineSpecRuntimeConfig;
   service_account: string;
   scheduled_at: string;
   finished_at: string;

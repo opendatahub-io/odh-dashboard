@@ -9,7 +9,7 @@ By default the ODH Dashboard comes with a set of core features enabled that are 
 The following are a list of features that are supported, along with there default settings.
 
 | Feature                      | Default | Description                                                                                          |
-| ---------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+|------------------------------|---------|------------------------------------------------------------------------------------------------------|
 | enablement                   | true    | Enables the ability to enable ISVs to the dashboard                                                  |
 | disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
 | disableSupport               | false   | Disables components related to support.                                                              |
@@ -19,6 +19,7 @@ The following are a list of features that are supported, along with there defaul
 | disableISVBadges             | false   | Removes the badge that indicate if a product is ISV or not.                                          |
 | disableAppLauncher           | false   | Removes the application launcher that is used in OKD environments                                    |
 | disableUserManagement        | false   | Removes the User Management panel in Settings.                                                       |
+| disableHome                  | true    | Disables Data Science Home page from the dashboard.                                                  |
 | disableProjects              | false   | Disables Data Science Projects from the dashboard.                                                   |
 | disablePipelines             | false   | Disables Data Science Pipelines from the dashboard.                                                  |
 | disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
@@ -50,6 +51,7 @@ spec:
     disableISVBadges: false
     disableAppLauncher: false
     disableUserManagement: false
+    disableHome: true
     disableProjects: false
     disablePipelines: false
     disableModelServing: false
@@ -144,6 +146,7 @@ spec:
     disableInfo: false
     disableSupport: false
     disableTracking: true
+    disableHome: true
     disableProjects: true
     disablePipelines: true
     disableModelServing: true

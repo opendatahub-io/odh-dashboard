@@ -9,6 +9,7 @@ import {
 import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   DetailItem,
+  normalizeInputParamValue,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 
@@ -39,22 +40,10 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ run
     );
   }
 
-  const details: DetailItem[] = parameters.map(([key, initialValue]) => {
-    let value = initialValue;
-
-    if (typeof value === 'boolean') {
-      value = value ? 'True' : 'False';
-    }
-
-    if (typeof value === 'object') {
-      value = JSON.stringify(value);
-    }
-
-    return {
-      key,
-      value,
-    };
-  });
+  const details: DetailItem[] = parameters.map(([key, value]) => ({
+    key,
+    value: normalizeInputParamValue(value),
+  }));
 
   return <>{renderDetailItems(details)}</>;
 };

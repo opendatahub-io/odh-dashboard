@@ -20,6 +20,7 @@ import {
   patchModelVersion,
   patchRegisteredModel,
 } from '~/api/modelRegistry/custom';
+import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 
 const mockProxyPromise = Promise.resolve();
 
@@ -56,7 +57,7 @@ describe('createRegisteredModel', () => {
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/registered_models',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
       {
         description: 'test',
         externalID: '1',
@@ -88,7 +89,7 @@ describe('createModelVersion', () => {
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_versions',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions`,
       {
         description: 'test',
         externalID: '1',
@@ -126,7 +127,7 @@ describe('createModelArtifact', () => {
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_artifacts',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts`,
       {
         description: 'test',
         externalID: 'test',
@@ -154,7 +155,7 @@ describe('getRegisteredModel', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/registered_models/1',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1`,
       {},
       K8sAPIOptionsMock,
     );
@@ -169,7 +170,7 @@ describe('getModelVersion', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_versions/1',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/1`,
       {},
       K8sAPIOptionsMock,
     );
@@ -184,7 +185,7 @@ describe('getModelArtifact', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_artifacts/1',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts/1`,
       {},
       K8sAPIOptionsMock,
     );
@@ -199,7 +200,7 @@ describe('getListRegisteredModels', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/registered_models',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
       {},
       K8sAPIOptionsMock,
     );
@@ -214,7 +215,7 @@ describe('getListModelArtifacts', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_artifacts',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts`,
       {},
       K8sAPIOptionsMock,
     );
@@ -229,7 +230,7 @@ describe('getListModelVersions', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_versions',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions`,
       {},
       K8sAPIOptionsMock,
     );
@@ -244,7 +245,7 @@ describe('getModelVersionsByRegisteredModel', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/registered_models/1/versions',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
       {},
       K8sAPIOptionsMock,
     );
@@ -261,7 +262,7 @@ describe('patchRegisteredModel', () => {
     expect(proxyPATCHMock).toHaveBeenCalledTimes(1);
     expect(proxyPATCHMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/registered_models/1',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1`,
       { description: 'new test' },
       K8sAPIOptionsMock,
     );
@@ -278,7 +279,7 @@ describe('patchModelVersion', () => {
     expect(proxyPATCHMock).toHaveBeenCalledTimes(1);
     expect(proxyPATCHMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_versions/1',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/1`,
       { description: 'new test' },
       K8sAPIOptionsMock,
     );
@@ -295,7 +296,7 @@ describe('patchModelArtifact', () => {
     expect(proxyPATCHMock).toHaveBeenCalledTimes(1);
     expect(proxyPATCHMock).toHaveBeenCalledWith(
       'hostPath',
-      '/api/model_registry/v1alpha2/model_artifacts/1',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts/1`,
       { description: 'new test' },
       K8sAPIOptionsMock,
     );

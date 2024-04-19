@@ -1,5 +1,6 @@
 # testing
 /coverage
+/jest-coverage
 /test-results/
 /public-cypress
 

@@ -1,2 +1,4 @@
 cypress/downloads
 cypress/screenshots
+coverage
+.nyc_output

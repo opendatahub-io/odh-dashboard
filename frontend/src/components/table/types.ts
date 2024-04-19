@@ -2,13 +2,14 @@ import { ThProps } from '@patternfly/react-table';
 
 export type GetColumnSort = (columnIndex: number) => ThProps['sort'];
 
-export type SortableData<T> = {
+export type SortableData<T> = Pick<
+  ThProps,
+  'hasRightBorder' | 'isStickyColumn' | 'modifier' | 'width' | 'info' | 'className'
+> & {
   label: string;
   field: string;
   colSpan?: number;
   rowSpan?: number;
-  hasRightBorder?: boolean;
-  width?: ThProps['width'];
   /**
    * Set to false to disable sort.
    * Set to true to handle string and number fields automatically (everything else is equal).
@@ -16,5 +17,4 @@ export type SortableData<T> = {
    * Assume ASC -- the result will be inverted internally if needed.
    */
   sortable: boolean | ((a: T, b: T, keyField: string) => number);
-  info?: ThProps['info'];
 };
