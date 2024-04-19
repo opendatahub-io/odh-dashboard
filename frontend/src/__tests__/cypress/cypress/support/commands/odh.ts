@@ -12,6 +12,7 @@ import type {
   TemplateKind,
 } from '~/k8sTypes';
 import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
@@ -56,7 +57,17 @@ declare global {
       interceptOdh(
         type: 'PUT /api/accelerator-profiles/:name',
         options: { path: { name: string } },
-        response?: OdhResponse,
+        response: OdhResponse,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/groups-config',
+        response: OdhResponse<GroupsConfig>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'PUT /api/groups-config',
+        response: OdhResponse<GroupsConfig>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
