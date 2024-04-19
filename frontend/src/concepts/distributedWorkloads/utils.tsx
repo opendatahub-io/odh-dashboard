@@ -149,6 +149,9 @@ export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts
   return statusCounts;
 };
 
+export const getWorkloadName = (workload: WorkloadKind | 'other'): string =>
+  workload === 'other' ? 'Other' : workload.metadata?.name || 'Unnamed';
+
 export const getWorkloadOwnerJobName = (workload: WorkloadKind): string | undefined =>
   workload.metadata?.ownerReferences?.find((ref) => ref.kind === 'Job')?.name;
 

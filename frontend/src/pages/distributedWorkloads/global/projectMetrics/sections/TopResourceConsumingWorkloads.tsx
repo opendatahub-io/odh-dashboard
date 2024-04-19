@@ -2,14 +2,17 @@ import * as React from 'react';
 import { Card, CardBody, CardTitle, Gallery, GalleryItem } from '@patternfly/react-core';
 import { ChartLegend, ChartLabel, ChartDonut, ChartThemeColor } from '@patternfly/react-charts';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { WorkloadStatusType, getStatusInfo } from '~/concepts/distributedWorkloads/utils';
+import {
+  WorkloadStatusType,
+  getStatusInfo,
+  getWorkloadName,
+} from '~/concepts/distributedWorkloads/utils';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 import { truncateString } from '~/utilities/string';
 import { bytesAsPreciseGiB, roundNumber } from '~/utilities/number';
 import { WorkloadWithUsage } from '~/api';
-import { WorkloadKind } from '~/k8sTypes';
 
 interface TopResourceConsumingWorkloadsChartProps {
   metricLabel: string;
@@ -17,9 +20,6 @@ interface TopResourceConsumingWorkloadsChartProps {
   data: { totalUsage: number; topWorkloads: WorkloadWithUsage[] };
   convertUnits?: (num?: number) => number;
 }
-
-const getWorkloadName = (workload: WorkloadKind | 'other') =>
-  workload === 'other' ? 'Other' : workload.metadata?.name || 'Unnamed';
 
 const TopResourceConsumingWorkloadsChart: React.FC<TopResourceConsumingWorkloadsChartProps> = ({
   metricLabel,
