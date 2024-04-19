@@ -16,11 +16,8 @@ import GenericSidebar from '~/components/GenericSidebar';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NameDescType } from '~/pages/projects/types';
-import {
-  getNotebookDescription,
-  getNotebookDisplayName,
-  getProjectDisplayName,
-} from '~/pages/projects/utils';
+import { getNotebookDescription, getNotebookDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';

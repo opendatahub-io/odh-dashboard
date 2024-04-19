@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ProjectKind } from '~/k8sTypes';
-import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
+import { getProjectDisplayName, getProjectOwner } from '~/concepts/projects/utils';
 import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';

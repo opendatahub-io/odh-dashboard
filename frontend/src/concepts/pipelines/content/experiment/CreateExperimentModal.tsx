@@ -10,7 +10,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 

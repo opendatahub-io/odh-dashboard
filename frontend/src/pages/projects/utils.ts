@@ -1,34 +1,6 @@
-import {
-  K8sDSGResource,
-  NotebookKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
-} from '~/k8sTypes';
+import { NotebookKind, PersistentVolumeClaimKind, SecretKind } from '~/k8sTypes';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { NotebookState } from './notebook/types';
-
-export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
-  resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
-export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
-  resource.metadata.annotations?.['openshift.io/description'] || '';
-
-export const translateDisplayNameForK8s = (name: string): string =>
-  name
-    .trim()
-    .toLowerCase()
-    .replace(/\s/g, '-')
-    .replace(/[^A-Za-z0-9-]/g, '');
-export const isValidK8sName = (name?: string): boolean =>
-  name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
-
-export const getProjectDisplayName = (project: ProjectKind): string =>
-  getDisplayNameFromK8sResource(project);
-export const getProjectDescription = (project: ProjectKind): string =>
-  getDescriptionFromK8sResource(project);
-export const getProjectOwner = (project: ProjectKind): string =>
-  project.metadata.annotations?.['openshift.io/requester'] || '';
-export const getProjectCreationTime = (project: ProjectKind): number =>
-  project.metadata.creationTimestamp ? new Date(project.metadata.creationTimestamp).getTime() : 0;
 
 export const getNotebookDisplayName = (notebook: NotebookKind): string =>
   getDisplayNameFromK8sResource(notebook);

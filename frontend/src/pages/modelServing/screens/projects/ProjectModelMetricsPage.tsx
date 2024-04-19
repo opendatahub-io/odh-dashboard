@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 

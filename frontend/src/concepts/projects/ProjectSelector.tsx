@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Flex, FlexItem } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 

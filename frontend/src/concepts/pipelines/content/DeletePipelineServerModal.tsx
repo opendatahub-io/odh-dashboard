@@ -1,6 +1,6 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { deleteServer } from '~/concepts/pipelines/utils';
 

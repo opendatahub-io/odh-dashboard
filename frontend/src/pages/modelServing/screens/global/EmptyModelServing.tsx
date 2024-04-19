@@ -5,7 +5,7 @@ import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';

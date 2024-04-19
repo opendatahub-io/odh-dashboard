@@ -3,11 +3,8 @@ import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-
 import { createProject, updateProject } from '~/api';
 import { useUser } from '~/redux/selectors';
 import { ProjectKind } from '~/k8sTypes';
-import {
-  getProjectDescription,
-  getProjectDisplayName,
-  isValidK8sName,
-} from '~/pages/projects/utils';
+import { getProjectDescription, getProjectDisplayName } from '~/concepts/projects/utils';
+import { isValidK8sName } from '~/concepts/k8s/utils';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, Label, Skeleton } from '@patternfly/react-core';
 import { InferenceServiceKind } from '~/k8sTypes';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 
 type InferenceServiceProjectProps = {

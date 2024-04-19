@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ProjectKind } from '~/k8sTypes';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';

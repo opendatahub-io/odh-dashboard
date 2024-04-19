@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineUploadOption } from './utils';

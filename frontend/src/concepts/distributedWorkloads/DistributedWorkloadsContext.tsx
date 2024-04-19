@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Bullseye, Alert } from '@patternfly/react-core';
+import { Bullseye, Alert, Spinner } from '@patternfly/react-core';
 import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
 import { FetchStateObject } from '~/types';
 import { DEFAULT_LIST_FETCH_STATE, DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import {
   DEFAULT_DW_PROJECT_CURRENT_METRICS,
@@ -24,7 +25,8 @@ type DistributedWorkloadsContextType = {
   workloads: FetchStateObject<WorkloadKind[]>;
   projectCurrentMetrics: DWProjectCurrentMetrics;
   refreshAllData: () => void;
-  namespace?: string;
+  namespace: string;
+  projectDisplayName: string;
 };
 
 type DistributedWorkloadsContextProviderProps = {
@@ -38,6 +40,8 @@ export const DistributedWorkloadsContext = React.createContext<DistributedWorklo
   workloads: DEFAULT_LIST_FETCH_STATE,
   projectCurrentMetrics: DEFAULT_DW_PROJECT_CURRENT_METRICS,
   refreshAllData: () => undefined,
+  namespace: '',
+  projectDisplayName: '',
 });
 
 export const DistributedWorkloadsContextProvider =
@@ -100,6 +104,14 @@ export const DistributedWorkloadsContextProvider =
       );
     }
 
+    if (!project) {
+      return (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      );
+    }
+
     return (
       <DistributedWorkloadsContext.Provider
         value={{
@@ -109,6 +121,7 @@ export const DistributedWorkloadsContextProvider =
           projectCurrentMetrics,
           refreshAllData,
           namespace,
+          projectDisplayName: getProjectDisplayName(project),
         }}
       >
         {children}

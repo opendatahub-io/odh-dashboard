@@ -17,7 +17,7 @@ import {
   CreatingServingRuntimeObject,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
 type ServingRuntimeTokenInputProps = {
   data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;

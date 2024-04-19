@@ -4,7 +4,7 @@ import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';

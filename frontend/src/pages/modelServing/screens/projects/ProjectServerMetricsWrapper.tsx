@@ -3,7 +3,7 @@ import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getServerMetricsQueries } from '~/pages/modelServing/screens/metrics/utils';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import ProjectServerMetricsPathWrapper from './ProjectServerMetricsPathWrapper';
 import { getModelServerDisplayName } from './utils';

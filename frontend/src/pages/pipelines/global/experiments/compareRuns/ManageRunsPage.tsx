@@ -26,7 +26,7 @@ import {
 } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useExperimentByParams } from '~/pages/pipelines/global/experiments/useExperimentByParams';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineFilter, {
   FilterOptions,

@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, HelpIcon } from '@patternfly/react-icons';
 import { NameDescType } from '~/pages/projects/types';
-import { isValidK8sName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
