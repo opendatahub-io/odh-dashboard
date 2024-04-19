@@ -1,6 +1,7 @@
 import { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
+import { RegisteredModelList } from '~/concepts/modelRegistry/types';
 import type {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
@@ -250,6 +251,11 @@ declare global {
           path: { namespace: string };
         },
         response: OdhResponse<BaseMetricCreationResponse>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models`,
+        response: OdhResponse<RegisteredModelList | undefined>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(

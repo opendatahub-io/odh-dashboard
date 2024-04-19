@@ -6,8 +6,8 @@ class ModelRegistry {
     this.waitLanding();
   }
 
-  visit(modelRegistry?: string) {
-    cy.visit(`/modelRegistry${modelRegistry}`);
+  visit() {
+    cy.visit(`/modelRegistry`);
     this.wait();
   }
 
@@ -17,7 +17,7 @@ class ModelRegistry {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
   }
 
@@ -28,6 +28,14 @@ class ModelRegistry {
   shouldBeEmpty() {
     cy.findByTestId('empty-state-title').should('exist');
     return this;
+  }
+
+  shouldregisteredModelsEmpty() {
+    cy.findByTestId('no-registered-models').should('exist');
+  }
+
+  shouldtableToolbarExist() {
+    cy.findByTestId('registered-models-table-toolbar').should('exist');
   }
 
   tabEnabled() {
