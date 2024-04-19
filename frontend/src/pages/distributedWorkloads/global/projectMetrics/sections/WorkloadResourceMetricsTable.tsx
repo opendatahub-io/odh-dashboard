@@ -65,7 +65,7 @@ export const WorkloadResourceMetricsTable: React.FC = () => {
       data={workloads.data}
       columns={columns}
       emptyTableView={<>No distributed workloads match your filters</>}
-      data-id="workload-resource-metrics-table"
+      data-testid="workload-resource-metrics-table"
       rowRenderer={(workload) => (
         <WorkloadResourceMetricsTableRow
           workload={workload}

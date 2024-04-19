@@ -50,6 +50,10 @@ class GlobalDistributedWorkloads {
     return cy.findByTestId('dw-status-overview-card');
   }
 
+  findWorkloadResourceMetricsTable() {
+    return cy.findByTestId('workload-resource-metrics-table');
+  }
+
   private wait() {
     this.shouldHavePageTitle();
     cy.testA11y();

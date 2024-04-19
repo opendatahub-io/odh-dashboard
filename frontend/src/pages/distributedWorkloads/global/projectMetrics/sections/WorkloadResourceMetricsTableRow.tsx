@@ -22,7 +22,7 @@ const WorkloadResourceMetricsTableRow: React.FC<WorkloadResourceMetricsTableRowP
   usage,
   requested,
 }) => {
-  const showUsageBars = [
+  const inActiveState = [
     WorkloadStatusType.Pending,
     WorkloadStatusType.Admitted,
     WorkloadStatusType.Running,
@@ -33,7 +33,7 @@ const WorkloadResourceMetricsTableRow: React.FC<WorkloadResourceMetricsTableRowP
       <Td dataLabel="CPU usage (cores)" style={{ paddingRight: 'var(--pf-v5-global--spacer--xl)' }}>
         {' '}
         <WorkloadResourceUsageBar
-          showData={showUsageBars}
+          showData={inActiveState || (usage.cpuCoresUsed || 0) > 0}
           used={usage.cpuCoresUsed}
           requested={requested.cpuCoresRequested}
           metricLabel="CPU"
@@ -47,7 +47,7 @@ const WorkloadResourceMetricsTableRow: React.FC<WorkloadResourceMetricsTableRowP
       >
         {' '}
         <WorkloadResourceUsageBar
-          showData={showUsageBars}
+          showData={inActiveState || (usage.memoryBytesUsed || 0) > 0}
           used={bytesAsPreciseGiB(usage.memoryBytesUsed)}
           requested={bytesAsPreciseGiB(requested.memoryBytesRequested)}
           metricLabel="Memory"
