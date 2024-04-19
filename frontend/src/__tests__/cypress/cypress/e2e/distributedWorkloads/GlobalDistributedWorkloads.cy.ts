@@ -16,6 +16,7 @@ import {
   ProjectModel,
   WorkloadModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 
 type HandlersProps = {
   isKueueInstalled?: boolean;
@@ -155,6 +156,19 @@ describe('Distributed Workload Metrics root page', () => {
 
     globalDistributedWorkloads.navigate();
     cy.url().should('include', '/projectMetrics/test-project-2');
+  });
+
+  it('Changing the refresh interval and reloading the page should retain the selection', () => {
+    initIntercepts({});
+    globalDistributedWorkloads.visit();
+
+    globalDistributedWorkloads.shouldHaveRefreshInterval(RefreshIntervalTitle.THIRTY_MINUTES);
+
+    globalDistributedWorkloads.selectRefreshInterval(RefreshIntervalTitle.FIFTEEN_SECONDS);
+    globalDistributedWorkloads.shouldHaveRefreshInterval(RefreshIntervalTitle.FIFTEEN_SECONDS);
+
+    cy.reload();
+    globalDistributedWorkloads.shouldHaveRefreshInterval(RefreshIntervalTitle.FIFTEEN_SECONDS);
   });
 
   it('Should show an empty state if there are no projects', () => {

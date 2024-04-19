@@ -1,5 +1,6 @@
 import * as React from 'react';
 import useCurrentTimeframeBrowserStorage from '~/concepts/metrics/useCurrentTimeframeBrowserStorage';
+import useRefreshIntervalBrowserStorage from '~/concepts/metrics/useRefreshIntervalBrowserStorage';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/concepts/metrics/types';
 
 export type MetricsCommonContextType = {
@@ -27,12 +28,12 @@ type MetricsCommonContextProviderProps = {
 
 export const MetricsCommonContextProvider: React.FC<MetricsCommonContextProviderProps> = ({
   children,
-  initialRefreshInterval = RefreshIntervalTitle.FIVE_MINUTES,
+  initialRefreshInterval,
 }) => {
   const [currentTimeframe, setCurrentTimeframe] = useCurrentTimeframeBrowserStorage();
 
   const [currentRefreshInterval, setCurrentRefreshInterval] =
-    React.useState<RefreshIntervalTitle>(initialRefreshInterval);
+    useRefreshIntervalBrowserStorage(initialRefreshInterval);
 
   const [lastUpdateTime, setLastUpdateTime] = React.useState<number>(Date.now());
 

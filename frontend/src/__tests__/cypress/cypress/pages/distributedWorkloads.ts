@@ -1,4 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 
 class GlobalDistributedWorkloads {
   visit(wait = true) {
@@ -27,6 +28,18 @@ class GlobalDistributedWorkloads {
 
   findProjectSelect() {
     return cy.findByTestId('project-selector-dropdown');
+  }
+
+  findRefreshIntervalSelectToggle() {
+    return cy.get('#metrics-toolbar-refresh-interval-select-toggle');
+  }
+
+  selectRefreshInterval(interval: RefreshIntervalTitle) {
+    this.findRefreshIntervalSelectToggle().findSelectOption(interval).click();
+  }
+
+  shouldHaveRefreshInterval(interval: RefreshIntervalTitle) {
+    this.findRefreshIntervalSelectToggle().should('contain.text', interval);
   }
 
   selectProjectByName(name: string) {
