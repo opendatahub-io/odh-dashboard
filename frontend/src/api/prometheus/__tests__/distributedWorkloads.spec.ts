@@ -211,8 +211,8 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[5], usage: 0.01300163333333333 },
           { workload: mockWorkloads[2], usage: 0.0120015 },
           { workload: mockWorkloads[4], usage: 0.01100163333333333 },
-          { workload: 'other', usage: 0.00000313333333333 },
         ],
+        otherUsage: 0.00000313333333333,
       },
       memoryBytesUsed: {
         totalUsage: 169396710,
@@ -222,8 +222,8 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[6], usage: 10337050 },
           { workload: mockWorkloads[2], usage: 9349344 },
           { workload: mockWorkloads[1], usage: 8249344 },
-          { workload: 'other', usage: 16474092 },
         ],
+        otherUsage: 16474092,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -242,6 +242,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[1], usage: 0.00000163333333333 },
           { workload: mockWorkloads[0], usage: 0.0000015 },
         ],
+        otherUsage: undefined,
       },
       memoryBytesUsed: {
         totalUsage: 159059660,
@@ -253,6 +254,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[0], usage: 8237056 },
           { workload: mockWorkloads[5], usage: 8237036 },
         ],
+        otherUsage: undefined,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -268,6 +270,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[1], usage: 0.00000163333333333 },
           { workload: mockWorkloads[0], usage: 0.0000015 },
         ],
+        otherUsage: undefined,
       },
       memoryBytesUsed: {
         totalUsage: 25835744,
@@ -276,6 +279,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[1], usage: 8249344 },
           { workload: mockWorkloads[0], usage: 8237056 },
         ],
+        otherUsage: undefined,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -326,8 +330,8 @@ describe('useDWProjectCurrentMetrics', () => {
       error: undefined,
       getWorkloadCurrentUsage: expect.any(Function),
       topWorkloadsByUsage: {
-        cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
-        memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
+        cpuCoresUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
+        memoryBytesUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
       },
     } satisfies DWProjectCurrentMetrics);
     expect(mockAxios).toHaveBeenCalledTimes(2);
@@ -386,8 +390,8 @@ describe('useDWProjectCurrentMetrics', () => {
             { workload: mockWorkloads[5], usage: 0.01300163333333333 },
             { workload: mockWorkloads[2], usage: 0.0120015 },
             { workload: mockWorkloads[4], usage: 0.01100163333333333 },
-            { workload: 'other', usage: 0.00000313333333333 },
           ],
+          otherUsage: 0.00000313333333333,
           totalUsage: 0.09401116666666666,
         },
         memoryBytesUsed: {
@@ -397,8 +401,8 @@ describe('useDWProjectCurrentMetrics', () => {
             { workload: mockWorkloads[6], usage: 10337050 },
             { workload: mockWorkloads[2], usage: 9349344 },
             { workload: mockWorkloads[1], usage: 8249344 },
-            { workload: 'other', usage: 16474092 },
           ],
+          otherUsage: 16474092,
           totalUsage: 169396710,
         },
       },
