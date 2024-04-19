@@ -4,3 +4,4 @@ export * from './openShift';
 export * from './pipelines';
 export * from './kueue';
 export * from './trustyai';
+export * from './modelRegistry';

@@ -16,7 +16,7 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   toolbarContent,
 }) => (
   <Table
-    data-testid="inference-service-table"
+    data-testid="registered-model-table"
     data={registeredModels}
     columns={columns}
     toolbarContent={toolbarContent}

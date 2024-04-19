@@ -69,6 +69,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
             <DropdownList>
               <DropdownItem
                 id="register-new-version-button"
+                aria-label="Register new version"
                 key="register-new-version-button"
                 onClick={() => undefined}
                 ref={tooltipRef}

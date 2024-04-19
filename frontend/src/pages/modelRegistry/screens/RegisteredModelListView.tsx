@@ -73,6 +73,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
           }}
           onClear={() => setSearch('')}
           style={{ minWidth: '200px' }}
+          data-testid="registered-model-table-search"
         />
       </ToolbarItem>
     </ToolbarGroup>
