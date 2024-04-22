@@ -5,6 +5,7 @@ import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
 import { RoleBindingSubject } from '~/types';
+import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 
 const userSubjects: RoleBindingSubject[] = [
   {
@@ -55,9 +56,18 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
 describe('Permissions tab', () => {
   const userTable = permissions.getUserTable();
   const groupTable = permissions.getGroupTable();
+
+  it('should not be accessible for non-project admins', () => {
+    asProjectEditUser();
+    initIntercepts({ isEmpty: false });
+    permissions.visit('test-project');
+    cy.url().should('include', '/projects/test-project?section=overview');
+  });
+
   it('Empty table for groups and users', () => {
     initIntercepts({ isEmpty: true });
     permissions.visit('test-project');
+    cy.url().should('include', '/projects/test-project?section=permissions');
 
     //User table
     userTable.findRows().should('have.length', 0);

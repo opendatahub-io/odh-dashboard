@@ -5,7 +5,6 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
@@ -20,13 +19,13 @@ import {
   InferenceServiceModel,
   ProjectModel,
   SecretModel,
-  SelfSubjectAccessReviewModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -60,11 +59,6 @@ const initIntercepts = ({
       disableModelMesh: disableModelMeshConfig,
     }),
   );
-  cy.interceptK8s(
-    'POST',
-    SelfSubjectAccessReviewModel,
-    mockSelfSubjectAccessReview({ allowed: true }),
-  ).as('selfSubjectAccessReviewsCall');
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
@@ -170,6 +164,7 @@ describe('Model Serving Global', () => {
   });
 
   it('All projects loading and cancel', () => {
+    asClusterAdminUser();
     initIntercepts({
       delayInferenceServices: true,
       delayServingRuntimes: true,
@@ -462,23 +457,6 @@ describe('Model Serving Global', () => {
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/test-model/' },
             },
-          },
-        },
-      });
-    });
-
-    cy.wait('@selfSubjectAccessReviewsCall').then((interception) => {
-      expect(interception.request.body).to.eql({
-        apiVersion: 'authorization.k8s.io/v1',
-        kind: 'SelfSubjectAccessReview',
-        spec: {
-          resourceAttributes: {
-            group: 'serving.kserve.io',
-            resource: 'servingruntimes',
-            subresource: '',
-            verb: 'list',
-            name: '',
-            namespace: '',
           },
         },
       });

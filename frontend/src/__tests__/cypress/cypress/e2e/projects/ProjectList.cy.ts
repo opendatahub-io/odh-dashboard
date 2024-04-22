@@ -6,15 +6,21 @@ import { ProjectKind } from '~/k8sTypes';
 import { incrementResourceVersion } from '~/__mocks__/mockUtils';
 import { ProjectModel, ProjectRequestModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 
 describe('Data science projects details', () => {
-  it('should start with an empty project list', () => {
-    cy.visit('/projects');
+  it('should not have option to create new project', () => {
+    asProjectAdminUser({ isSelfProvisioner: false });
+    projectListPage.visit();
     projectListPage.shouldBeEmpty();
+    projectListPage.findCreateProjectButton().should('not.exist');
   });
 
-  it('should open a modal to create a project', () => {
-    cy.visit('/projects');
+  it('should create project', () => {
+    initCreateProjectIntercepts();
+
+    projectListPage.visit();
+    projectListPage.shouldBeEmpty();
     projectListPage.findCreateProjectButton().click();
     createProjectModal.shouldBeOpen();
     createProjectModal.findCancelButton().click();
@@ -22,13 +28,7 @@ describe('Data science projects details', () => {
     projectListPage.findCreateProjectButton().click();
     createProjectModal.shouldBeOpen();
     createProjectModal.findSubmitButton().should('be.disabled');
-  });
 
-  it('should create project', () => {
-    initCreateProjectIntercepts();
-
-    projectListPage.visit();
-    projectListPage.findCreateProjectButton().click();
     createProjectModal.findNameInput().type('My Test Project');
     createProjectModal.findDescriptionInput().type('Test project description.');
     createProjectModal.findSubmitButton().should('be.enabled');

@@ -32,23 +32,29 @@ class ServingRuntimeRow {
 }
 
 class ServingRuntimes {
-  visit() {
+  visit(wait = true) {
     cy.visit('/servingRuntimes');
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   navigate() {
-    appChrome.findNavItem('Serving runtimes', 'Settings').click();
+    this.findNavItem().click();
     this.wait();
-  }
-
-  findAppTitle() {
-    return cy.findByTestId('app-page-title');
   }
 
   private wait() {
     this.findAddButton();
     cy.testA11y();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem('Serving runtimes', 'Settings');
+  }
+
+  findAppTitle() {
+    return cy.findByTestId('app-page-title');
   }
 
   shouldBeMultiModel(enabled = true) {

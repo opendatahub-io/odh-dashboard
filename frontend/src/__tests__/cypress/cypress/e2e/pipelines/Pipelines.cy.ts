@@ -22,6 +22,7 @@ import {
   ProjectModel,
   RouteModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -56,6 +57,27 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     pipelinesGlobal.isApiAvailable();
     pipelinesGlobal.findIsServerIncompatible().should('exist');
+    pipelinesGlobal.findDeletePipelineServerButton().should('not.exist');
+  });
+
+  it('incompatible dpsa version shows error with delete option for admins', () => {
+    asProductAdminUser();
+    initIntercepts();
+    cy.interceptK8sList(
+      DataSciencePipelineApplicationModel,
+      mockK8sResourceList([
+        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
+      ]),
+    );
+    cy.interceptK8s(
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
+    );
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.isApiAvailable();
+    pipelinesGlobal.findIsServerIncompatible().should('exist');
+    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
   });
 
   it('selects a different project', () => {

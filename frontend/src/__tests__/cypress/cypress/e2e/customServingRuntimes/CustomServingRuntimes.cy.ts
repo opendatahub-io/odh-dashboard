@@ -6,6 +6,8 @@ import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 
 const addfilePath = '../../__mocks__/mock-custom-serving-runtime-add.yaml';
 const editfilePath = '../../__mocks__/mock-custom-serving-runtime-edit.yaml';
@@ -33,8 +35,16 @@ const initialMock = [
   }),
 ];
 
+it('Custom servingruntimes should not be available for non product admins', () => {
+  asProjectAdminUser();
+  servingRuntimes.visit(false);
+  pageNotfound.findPage().should('exist');
+  servingRuntimes.findNavItem().should('not.exist');
+});
+
 describe('Custom serving runtimes', () => {
   beforeEach(() => {
+    asProductAdminUser();
     cy.interceptOdh(
       'GET /api/templates/:namespace',
       { path: { namespace: 'opendatahub' } },
