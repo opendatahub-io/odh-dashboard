@@ -81,7 +81,10 @@ export const WorkloadResourceMetricsTable: React.FC = () => {
         return (
           <Tr key={workload.metadata?.uid}>
             <Td dataLabel="Name">{workload.metadata?.name || 'Unnamed'}</Td>
-            <Td dataLabel="CPU usage (cores)">
+            <Td
+              dataLabel="CPU usage (cores)"
+              style={{ paddingRight: 'var(--pf-v5-global--spacer--xl)' }}
+            >
               <WorkloadResourceUsageBar
                 showData={showUsageBars}
                 used={usage.cpuCoresUsed}
@@ -91,7 +94,10 @@ export const WorkloadResourceMetricsTable: React.FC = () => {
                 progressBarAriaLabel="CPU usage/requested"
               />
             </Td>
-            <Td dataLabel="Memory usage (GiB)">
+            <Td
+              dataLabel="Memory usage (GiB)"
+              style={{ paddingRight: 'var(--pf-v5-global--spacer--xl)' }}
+            >
               <WorkloadResourceUsageBar
                 showData={showUsageBars}
                 used={bytesAsPreciseGiB(usage.memoryBytesUsed)}

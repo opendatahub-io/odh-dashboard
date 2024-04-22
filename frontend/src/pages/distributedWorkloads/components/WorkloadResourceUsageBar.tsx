@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Split, SplitItem, Progress, Tooltip, Stack, StackItem } from '@patternfly/react-core';
+import { Progress, Tooltip, Stack, StackItem, Flex, FlexItem } from '@patternfly/react-core';
 import { roundNumber } from '~/utilities/number';
-
 import './WorkloadResourceUsageBar.scss';
 
 type WorkloadResourceUsageBarProps = {
@@ -24,27 +23,23 @@ export const WorkloadResourceUsageBar: React.FC<WorkloadResourceUsageBarProps> =
   if (!showData) {
     return '-';
   }
-  const getColorSwatch = (className: string) => (
-    <span className={`dw-workload-resource-usage-bar-color-swatch ${className}`}>&#x25A0;</span>
-  );
   return (
     <Tooltip
       isContentLeftAligned
       content={
         <Stack>
           <StackItem>
-            {getColorSwatch('used')} {metricLabel} usage: {roundNumber(used, 3)} {unitLabel}
+            {metricLabel} usage: {roundNumber(used, 3)} {unitLabel}
           </StackItem>
           <StackItem>
-            {getColorSwatch('requested')} {metricLabel} requested: {roundNumber(requested, 3)}{' '}
-            {unitLabel}
+            {metricLabel} requested: {roundNumber(requested, 3)} {unitLabel}
           </StackItem>
         </Stack>
       }
     >
-      <Split hasGutter className="dw-workload-resource-usage-bar-container">
-        <SplitItem>{roundNumber(used)}</SplitItem>
-        <SplitItem isFilled style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+      <Flex alignItems={{ default: 'alignItemsCenter' }}>
+        <FlexItem>{roundNumber(used)}</FlexItem>
+        <FlexItem grow={{ default: 'grow' }}>
           <Progress
             className="dw-workload-resource-usage-bar"
             value={used}
@@ -53,9 +48,9 @@ export const WorkloadResourceUsageBar: React.FC<WorkloadResourceUsageBarProps> =
             measureLocation="none"
             aria-label={progressBarAriaLabel}
           />
-        </SplitItem>
-        <SplitItem>{roundNumber(requested)}</SplitItem>
-      </Split>
+        </FlexItem>
+        <FlexItem>{roundNumber(requested)}</FlexItem>
+      </Flex>
     </Tooltip>
   );
 };
