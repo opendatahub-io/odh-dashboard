@@ -1,5 +1,5 @@
 import { RoleBindingKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
 
 export const getRoleBindingResourceName = (roleBinding: RoleBindingKind): string =>

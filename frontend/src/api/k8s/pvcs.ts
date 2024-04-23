@@ -10,7 +10,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { CreatingStorageObject } from '~/pages/projects/types';

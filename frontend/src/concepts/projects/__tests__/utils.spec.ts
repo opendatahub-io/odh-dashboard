@@ -1,4 +1,11 @@
-import { isAvailableProject } from '~/concepts/projects/utils';
+import { mockProjectK8sResource } from '~/__mocks__';
+import {
+  isAvailableProject,
+  getProjectDisplayName,
+  getProjectDescription,
+  getProjectOwner,
+  getProjectCreationTime,
+} from '~/concepts/projects/utils';
 
 const mockDashboardNamespace = 'mock-opendatahub';
 
@@ -29,5 +36,64 @@ describe('isAvailableProject', () => {
     expect(isAvailableProject('openshiftblabla', mockDashboardNamespace)).toBe(true);
     expect(isAvailableProject('kubelike', mockDashboardNamespace)).toBe(true);
     expect(isAvailableProject('odh-not-dashboard', mockDashboardNamespace)).toBe(true);
+  });
+});
+
+describe('getProjectDisplayName', () => {
+  it('gets the display name when present', () => {
+    const mockProject = mockProjectK8sResource({
+      k8sName: 'my-project',
+      displayName: 'My Project',
+    });
+    expect(getProjectDisplayName(mockProject)).toBe('My Project');
+  });
+
+  it('uses the resource name if no display name is present', () => {
+    const mockProject = mockProjectK8sResource({
+      k8sName: 'my-project',
+      displayName: '',
+    });
+    expect(getProjectDisplayName(mockProject)).toBe('my-project');
+  });
+});
+
+describe('getProjectDescription', () => {
+  it('gets the description', () => {
+    const mockProject = mockProjectK8sResource({ description: 'This is a test project' });
+    expect(getProjectDescription(mockProject)).toBe('This is a test project');
+  });
+
+  it('returns empty string if no description', () => {
+    const mockProject = mockProjectK8sResource({ description: '' });
+    expect(getProjectDescription(mockProject)).toBe('');
+  });
+});
+
+describe('getProjectOwner', () => {
+  it('gets the requester if present', () => {
+    const mockProject = mockProjectK8sResource({ username: 'john-doe' });
+    expect(getProjectOwner(mockProject)).toBe('john-doe');
+  });
+
+  it('returns empty string if no annotations', () => {
+    const mockProject = mockProjectK8sResource({ hasAnnotations: false });
+    expect(getProjectOwner(mockProject)).toBe('');
+  });
+
+  it('returns empty string if no requester', () => {
+    const mockProject = mockProjectK8sResource({ username: '' });
+    expect(getProjectOwner(mockProject)).toBe('');
+  });
+});
+
+describe('getProjectCreationTime', () => {
+  it('returns creation timestamp as unix time integer if present', () => {
+    const mockProject = mockProjectK8sResource({ creationTimestamp: '2024-04-19T16:36:37.104Z' });
+    expect(getProjectCreationTime(mockProject)).toBe(1713544597104);
+  });
+
+  it('returns 0 if no timestamp present', () => {
+    const mockProject = mockProjectK8sResource({ creationTimestamp: '' });
+    expect(getProjectCreationTime(mockProject)).toBe(0);
   });
 });

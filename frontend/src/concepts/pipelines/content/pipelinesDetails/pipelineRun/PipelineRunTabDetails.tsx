@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { relativeDuration } from '~/utilities/time';
 import {
   asTimestamp,

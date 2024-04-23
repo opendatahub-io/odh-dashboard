@@ -29,7 +29,7 @@ import {
   ServiceAccountKind,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,

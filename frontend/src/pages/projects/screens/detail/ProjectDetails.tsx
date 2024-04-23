@@ -3,7 +3,7 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem } from '@patternfly/react-co
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getProjectDescription, getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDescription, getProjectDisplayName } from '~/concepts/projects/utils';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';

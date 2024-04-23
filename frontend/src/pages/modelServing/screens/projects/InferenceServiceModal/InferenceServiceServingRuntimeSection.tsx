@@ -5,7 +5,7 @@ import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type InferenceServiceServingRuntimeSectionProps = {
   data: CreatingInferenceServiceObject;

@@ -31,7 +31,7 @@ const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletChartProps
   numRequestedByAllProjects,
   numTotalSharedQuota,
 }) => {
-  const { namespace } = React.useContext(DistributedWorkloadsContext);
+  const { projectDisplayName } = React.useContext(DistributedWorkloadsContext);
 
   // Cap things at 110% total quota for display, but show real values in tooltips
   const maxDomain = numTotalSharedQuota * 1.1;
@@ -58,7 +58,7 @@ const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletChartProps
   });
 
   const requestedByThisProjectData = getDataItem({
-    name: `Requested by ${namespace}`,
+    name: `Requested by ${projectDisplayName}`,
     color: chartColorBlue300.value,
     preciseValue: numRequestedByThisProject,
   });

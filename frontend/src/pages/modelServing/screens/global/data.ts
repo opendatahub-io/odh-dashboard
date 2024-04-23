@@ -1,6 +1,6 @@
 import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
 import { SortableData } from '~/components/table';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 
 const COL_EXPAND: SortableData<InferenceServiceKind> = {

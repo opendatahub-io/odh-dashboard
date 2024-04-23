@@ -54,7 +54,7 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
     );
   }
 
-  // We're all good, either no namespace is required or we have a valid one
+  // We're all good, we have a namespace matching a known project
   return (
     <ApplicationsPage
       {...{ title, description }}

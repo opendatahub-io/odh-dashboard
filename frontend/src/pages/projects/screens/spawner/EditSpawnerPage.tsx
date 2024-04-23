@@ -13,7 +13,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import SpawnerPage from './SpawnerPage';
 

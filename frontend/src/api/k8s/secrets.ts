@@ -9,7 +9,7 @@ import {
 import { K8sAPIOptions, KnownLabels, SecretKind } from '~/k8sTypes';
 import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';

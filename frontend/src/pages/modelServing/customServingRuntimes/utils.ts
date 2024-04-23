@@ -1,6 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 
 export const getTemplateEnabled = (
