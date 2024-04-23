@@ -1,17 +1,13 @@
 import React from 'react';
-import * as _ from 'lodash-es';
 import useDimensions from 'react-cool-dimensions';
-import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhDocument, OdhDocumentType } from '~/types';
-import { useWatchComponents } from '~/utilities/useWatchComponents';
-import { useWatchDocs } from '~/utilities/useWatchDocs';
+import { OdhDocument } from '~/types';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '~/utilities/const';
-import { combineCategoryAnnotations } from '~/utilities/utils';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { useDocResources } from '~/concepts/docResources/useDocResources';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,
@@ -36,10 +32,6 @@ const description = `Access all learning resources for ${ODH_PRODUCT_NAME} and s
 const docText = ` To learn more about ${ODH_PRODUCT_NAME}, `;
 
 export const LearningCenter: React.FC = () => {
-  const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
-  const { components, loaded, loadError } = useWatchComponents(false);
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-  const [docApps, setDocApps] = React.useState<OdhDocument[]>([]);
   const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);
   const queryParams = useQueryParams();
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
@@ -50,6 +42,8 @@ export const LearningCenter: React.FC = () => {
   const [viewType, setViewType] = useBrowserStorage<string>(VIEW_TYPE, '', false);
   const [filtersCollapsed, setFiltersCollapsed] = React.useState(false);
   const [filtersCollapsible, setFiltersCollapsible] = React.useState(false);
+  const { docs, loaded, loadError } = useDocResources();
+
   const { observe } = useDimensions({
     breakpoints: { sm: 0, md: 600 },
     onResize: ({ currentBreakpoint }) => {
@@ -59,61 +53,7 @@ export const LearningCenter: React.FC = () => {
   });
 
   React.useEffect(() => {
-    if (loaded && !loadError && docsLoaded && !docsLoadError) {
-      const docs = [...odhDocs];
-
-      // Add doc cards for all components' documentation
-      components.forEach((component) => {
-        if (component.spec.docsLink) {
-          const odhDoc: OdhDocument = {
-            metadata: {
-              name: `${component.metadata.name}-doc`,
-            },
-            spec: {
-              type: OdhDocumentType.Documentation,
-              appName: component.metadata.name,
-              provider: component.spec.provider,
-              url: component.spec.docsLink,
-              displayName: component.spec.displayName,
-              description: component.spec.description,
-            },
-          };
-          docs.push(odhDoc);
-        }
-      });
-
-      // Add doc cards for all quick starts
-      qsContext.allQuickStarts?.forEach((quickStart) => {
-        const odhDoc = _.merge({}, quickStart, {
-          spec: { type: OdhDocumentType.QuickStart },
-        });
-        docs.push(odhDoc as unknown as OdhDocument); // TODO: Fix QuickStart type dependency -- they updated their types and broke us
-      });
-
-      const updatedDocApps = docs
-        .filter((doc) => doc.spec.type !== 'getting-started')
-        .map((odhDoc) => {
-          const odhApp = components.find((c) => c.metadata.name === odhDoc.spec.appName);
-          const updatedDoc = _.cloneDeep(odhDoc);
-          if (odhApp) {
-            combineCategoryAnnotations(odhDoc, odhApp);
-            updatedDoc.spec.appDisplayName = odhApp.spec.displayName;
-            updatedDoc.spec.appEnabled = odhApp.spec.isEnabled ?? false;
-            updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
-            updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
-            updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
-            updatedDoc.spec.appCategory = odhDoc.spec.appCategory || odhApp.spec.category;
-          } else {
-            updatedDoc.spec.appEnabled = false;
-          }
-          return updatedDoc;
-        });
-      setDocApps(updatedDocApps);
-    }
-  }, [components, loaded, loadError, odhDocs, docsLoaded, docsLoadError, qsContext.allQuickStarts]);
-
-  React.useEffect(() => {
-    const filtered = docFilterer(docApps);
+    const filtered = docFilterer(docs);
     setFilteredDocApps(
       filtered.sort((a, b) => {
         const aFav = favoriteResources.includes(a.metadata.name);
@@ -158,7 +98,7 @@ export const LearningCenter: React.FC = () => {
     );
     // Do not include favoriteResources change to prevent re-sorting when favoriting/unfavoriting
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [docApps, docFilterer, sortOrder, sortType]);
+  }, [docs, docFilterer, sortOrder, sortType]);
 
   const updateFavorite = React.useCallback(
     (isFavorite: boolean, name: string): void => {
@@ -192,13 +132,13 @@ export const LearningCenter: React.FC = () => {
           {docLink}
         </>
       }
-      loaded={loaded && docsLoaded}
-      loadError={loadError || docsLoadError}
+      loaded={loaded}
+      loadError={loadError}
       empty={false}
     >
       <div className="odh-dashboard__page-content" data-id="page-content" ref={observe}>
         <LearningCenterFilters
-          docApps={docApps}
+          docApps={docs}
           collapsible={filtersCollapsible}
           collapsed={filtersCollapsed}
           onCollapse={() => setFiltersCollapsed(true)}
@@ -207,7 +147,7 @@ export const LearningCenter: React.FC = () => {
         <div className="odh-learning-paths__view-panel">
           <LearningCenterToolbar
             count={filteredDocApps.length}
-            totalCount={docApps.length}
+            totalCount={docs.length}
             viewType={viewType || CARD_VIEW}
             updateViewType={setViewType}
             filtersCollapsible={filtersCollapsible}

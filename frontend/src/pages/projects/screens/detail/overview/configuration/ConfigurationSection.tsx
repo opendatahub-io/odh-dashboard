@@ -37,7 +37,8 @@ const ConfigurationSection: React.FC = () => {
     <CollapsibleSection
       title="Project configuration"
       data-testid="section-config"
-      onOpenChange={setOpen}
+      open={open}
+      setOpen={setOpen}
       showChildrenWhenClosed
     >
       <DividedGallery

@@ -181,6 +181,7 @@ export enum OdhDocumentType {
 }
 
 export type OdhDocument = {
+  kind?: string;
   metadata: {
     name: string;
     annotations?: { [key: string]: string };
