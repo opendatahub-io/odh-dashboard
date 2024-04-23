@@ -515,10 +515,7 @@ export type ImageStreamTag = {
   name: string;
   labels?: { [key: string]: string };
   annotations?: { [key: string]: string };
-  from: {
-    kind: string;
-    name: string;
-  };
+  from: ImageTagFrom;
 };
 
 export type ImageStreamStatusTagItem = {
@@ -588,6 +585,12 @@ export type ImageTagInfo = {
   content: TagContent;
   recommended: boolean;
   default: boolean;
+  from: ImageTagFrom;
+};
+
+export type ImageTagFrom = {
+  kind: string;
+  name: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';

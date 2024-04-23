@@ -190,6 +190,7 @@ const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
       name: tag.name,
       recommended: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.RECOMMENDED] || 'false'),
       default: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.DEFAULT] || 'false'),
+      from: tag.from,
     };
     tagInfoArray.push(tagInfo);
   });

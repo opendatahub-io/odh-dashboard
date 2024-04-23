@@ -50,7 +50,9 @@ export const assembleNotebook = (
     existingResources,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
-  const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
+  const imageUrl =
+    image.imageVersion?.from?.name ||
+    `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(

@@ -170,7 +170,9 @@ export const assembleNotebook = async (
 
     const selectedImage = getImageTag(image, imageTagName);
 
-    imageUrl = `${selectedImage.image?.dockerImageRepo}:${selectedImage.tag?.name}`;
+    imageUrl =
+      selectedImage.tag.from?.name ||
+      `${selectedImage.image?.dockerImageRepo}:${selectedImage.tag?.name}`;
     imageSelection = `${selectedImage.image?.name}:${selectedImage.tag?.name}`;
   } catch (e) {
     fastify.log.error(`Error getting the image for ${imageName}:${imageTagName}`);
