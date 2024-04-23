@@ -42,6 +42,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
     <>
       <Radio
         id={image.name}
+        data-testid={`radio ${image.name}`}
         data-id={image.name}
         name={image.display_name}
         className="odh-notebook-controller__notebook-image-option"

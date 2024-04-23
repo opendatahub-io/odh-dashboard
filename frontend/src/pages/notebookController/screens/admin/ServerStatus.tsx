@@ -34,6 +34,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   return (
     <Button
       data-id={`server-button-${username}`}
+      data-testid="server-button"
       variant="link"
       isInline
       onClick={onClickServerAction}

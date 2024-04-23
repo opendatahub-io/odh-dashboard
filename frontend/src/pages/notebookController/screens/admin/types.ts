@@ -1,6 +1,6 @@
 import { Notebook, UsernameMap } from '~/types';
 
-enum PrivilegeState {
+export enum PrivilegeState {
   ADMIN = 'Admin',
   USER = 'User',
 }

@@ -283,7 +283,7 @@ const SpawnerPage: React.FC = () => {
         loadError={loadError}
         empty={images.length === 0}
       >
-        <Form maxWidth="1000px">
+        <Form maxWidth="1000px" data-testid="notebook-server-form">
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
@@ -341,6 +341,7 @@ const SpawnerPage: React.FC = () => {
             <ActionGroup>
               <Button
                 data-id="start-server-button"
+                data-testid="start-server-button"
                 variant="primary"
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
