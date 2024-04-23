@@ -3,7 +3,10 @@ import { useProjects } from '~/api';
 import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { isAvailableProject } from '~/concepts/projects/utils';
+import { getProjectDisplayName, isAvailableProject } from '~/concepts/projects/utils';
+
+const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
+  getProjectDisplayName(projectA).localeCompare(getProjectDisplayName(projectB));
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
 type ProjectsContextType = {
@@ -128,10 +131,10 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
 
   const contextValue = React.useMemo(
     () => ({
-      projects,
-      dataScienceProjects,
-      modelServingProjects,
-      nonActiveProjects,
+      projects: projects.sort(projectSorter),
+      dataScienceProjects: dataScienceProjects.sort(projectSorter),
+      modelServingProjects: modelServingProjects.sort(projectSorter),
+      nonActiveProjects: nonActiveProjects.sort(projectSorter),
       preferredProject,
       updatePreferredProject,
       loaded,
