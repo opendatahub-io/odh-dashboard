@@ -10,7 +10,10 @@ import type {
   RoleBindingKind,
   ServingRuntimeKind,
   TemplateKind,
+  NotebookKind,
 } from '~/k8sTypes';
+
+import { StartNotebookData } from '~/pages/projects/types';
 import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import type { StatusResponse } from '~/redux/types';
@@ -103,6 +106,11 @@ declare global {
       interceptOdh(
         type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',
         response: OdhResponse<AllowedUser[]>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',
+        response: OdhResponse<AllowedUser>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
@@ -210,6 +218,23 @@ declare global {
       ): Cypress.Chainable<null>;
 
       interceptOdh(
+        type: 'POST /api/notebooks',
+        response: OdhResponse<StartNotebookData>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'PATCH /api/notebooks',
+        response: OdhResponse<StartNotebookData>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+        options: {
+          path: { username: string };
+        },
+        response: OdhResponse<NotebookKind>,
+      ): Cypress.Chainable<null>;
+      interceptOdh(
         type: 'POST /api/prometheus/pvc',
         response: OdhResponse<{ code: number; response: PrometheusQueryResponse }>,
       ): Cypress.Chainable<null>;
@@ -293,6 +318,19 @@ declare global {
       interceptOdh(
         type: 'GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models/1/versions',
         response: OdhResponse<ModelVersionList | undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
+        response: OdhResponse<K8sResourceListResult<RoleBindingKind>>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+        options: {
+          path: { username: string };
+        },
+        response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
       ): Cypress.Chainable<null>;
     }
   }
