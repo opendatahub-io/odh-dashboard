@@ -4,6 +4,7 @@ import { Card, CardBody, CardFooter, CardTitle, Stack, StackItem } from '@patter
 type SettingSectionProps = {
   children: React.ReactNode;
   title: string;
+  testId?: string;
   description?: React.ReactNode;
   footer?: React.ReactNode;
 };
@@ -12,9 +13,10 @@ const SettingSection: React.FC<SettingSectionProps> = ({
   title,
   children,
   footer,
+  testId,
   description,
 }) => (
-  <Card isFlat>
+  <Card data-testid={testId} isFlat>
     <CardTitle>{title}</CardTitle>
     <CardBody>
       <Stack hasGutter>

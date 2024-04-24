@@ -315,9 +315,11 @@ describe('Project Details', () => {
       });
       projectDetails.visitSection('test-project', 'workbenches');
       const notebookRow = projectDetails.getNotebookRow('test-notebook');
-      notebookRow.findOutdatedElyraInfo().should('not.exist');
-      projectDetails.findElyraInvalidVersionAlert().should('not.exist');
+      notebookRow.findOutdatedElyraInfo().should('be.visible');
+      projectDetails.findElyraInvalidVersionAlert().should('be.visible');
+      projectDetails.findUnsupportedPipelineVersionAlert().should('not.exist');
     });
+
     it('Notebook with updated Elyra image and no pipeline server', () => {
       initIntercepts({
         imageStreamPythonDependencies: '[{"name":"odh-elyra","version":"3.16"}]',

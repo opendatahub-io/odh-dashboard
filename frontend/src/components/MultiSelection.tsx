@@ -26,6 +26,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue,
   return (
     <>
       <Select
+        data-testid="multi-group-selection"
         variant={SelectVariant.typeaheadMulti}
         onToggle={(e, isOpen: React.SetStateAction<boolean>) => toggleMenu(isOpen)}
         onSelect={(e, newValue) => {
@@ -51,7 +52,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue,
       </Select>
       {noSelectedItems && (
         <HelperText>
-          <HelperTextItem variant="error" hasIcon>
+          <HelperTextItem variant="error" hasIcon data-testid="group-selection-error-text">
             One or more group must be selected
           </HelperTextItem>
         </HelperText>
