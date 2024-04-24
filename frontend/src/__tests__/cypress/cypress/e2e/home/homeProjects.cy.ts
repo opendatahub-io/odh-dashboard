@@ -1,7 +1,15 @@
 import { initHomeIntercepts } from '~/__tests__/cypress/cypress/e2e/home/homeUtils';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
-import { createProjectModal } from '~/__tests__/cypress/cypress/pages/projects';
-import { SelfSubjectAccessReviewModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  createProjectModal,
+  projectDetails,
+  projectListPage,
+} from '~/__tests__/cypress/cypress/pages/projects';
+import {
+  ProjectModel,
+  SelfSubjectAccessReviewModel,
+} from '~/__tests__/cypress/cypress/utils/models';
+import { mockProjectsK8sList } from '~/__mocks__';
 
 const interceptAccessReview = (allowed: boolean) => {
   cy.interceptK8s(
@@ -41,5 +49,88 @@ describe('Home page Projects section', () => {
 
     cy.findByTestId('landing-page-projects-empty').should('be.visible');
     cy.findByTestId('create-project-button').should('not.exist');
+  });
+  it('should show create project button when more projects exist', () => {
+    initHomeIntercepts({ disableHome: false });
+    const projectsMock = mockProjectsK8sList();
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    cy.visit('/');
+
+    cy.findByTestId('create-project').should('be.visible');
+    cy.findByTestId('create-project-card').should('not.exist');
+  });
+  it('should not show create project button when more projects exist but user is not allowed', () => {
+    initHomeIntercepts({ disableHome: false });
+    interceptAccessReview(false);
+    const projectsMock = mockProjectsK8sList();
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    cy.visit('/');
+
+    cy.findByTestId('create-project').should('not.exist');
+    cy.findByTestId('create-project-card').should('not.exist');
+    cy.findByTestId('request-project-help').should('be.visible');
+    cy.findByTestId('request-project-card').should('not.exist');
+  });
+  it('should show create project card when no more projects exist', () => {
+    initHomeIntercepts({ disableHome: false });
+    const projectsMock = mockProjectsK8sList();
+    const projects = projectsMock.items;
+    projectsMock.items = projects.slice(0, 2);
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    cy.visit('/');
+
+    cy.findByTestId('create-project').should('not.exist');
+    cy.findByTestId('create-project-card').should('be.visible');
+  });
+  it('should show a request project card when no more projects exist but user is not allowed', () => {
+    initHomeIntercepts({ disableHome: false });
+    interceptAccessReview(false);
+    const projectsMock = mockProjectsK8sList();
+    const projects = projectsMock.items;
+    projectsMock.items = projects.slice(0, 2);
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    cy.visit('/');
+
+    cy.findByTestId('create-project').should('not.exist');
+    cy.findByTestId('create-project-card').should('not.exist');
+    cy.findByTestId('request-project-card').should('be.visible');
+    cy.findByTestId('request-project-help').should('not.exist');
+  });
+  it('should navigate to the project when the name is clicked', () => {
+    initHomeIntercepts({ disableHome: false });
+    interceptAccessReview(false);
+    const projectsMock = mockProjectsK8sList();
+    const projects = projectsMock.items;
+    projectsMock.items = projects.slice(0, 2);
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    cy.visit('/');
+
+    cy.findByTestId(`project-link-${projects[0].metadata.name}`).click();
+    cy.url().should('include', projects[0].metadata.name);
+    projectDetails.findComponent('overview').should('be.visible');
+  });
+  it('should navigate to the project list', () => {
+    initHomeIntercepts({ disableHome: false });
+    interceptAccessReview(false);
+    const projectsMock = mockProjectsK8sList();
+    const projects = projectsMock.items;
+    projectsMock.items = projects.slice(0, 2);
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    cy.visit('/');
+
+    cy.findByTestId('goto-projects-link').click();
+    projectListPage.findProjectsTable().should('be.visible');
   });
 });

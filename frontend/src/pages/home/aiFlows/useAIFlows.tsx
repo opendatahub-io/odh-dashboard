@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Gallery, PageSection, Stack, Text, TextContent } from '@patternfly/react-core';
+import { PageSection, Stack, Text, TextContent } from '@patternfly/react-core';
 import projectIcon from '~/images/UI_icon-Red_Hat-Folder-Color.svg';
 import pipelineIcon from '~/images/UI_icon-Red_Hat-Branch-Color.svg';
 import chartIcon from '~/images/UI_icon-Red_Hat-Chart-Color.svg';
 import { SectionType } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
+import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
@@ -67,23 +68,15 @@ export const useAIFlows = (): React.ReactNode => {
       return null;
     }
 
-    const galleryWidths = `calc(${100 / cards.length}% - (1rem * ${cards.length - 1} / ${
-      cards.length
-    }))`;
-
     return (
       <PageSection data-testid="home-page-ai-flows" variant="light">
         <Stack hasGutter>
           <TextContent>
             <Text component="h1">Train, serve, monitor, and manage AI/ML models</Text>
           </TextContent>
-          <Gallery
-            hasGutter
-            minWidths={{ default: '100%', md: galleryWidths }}
-            maxWidths={{ default: '100%', md: galleryWidths }}
-          >
+          <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}
-          </Gallery>
+          </EvenlySpacedGallery>
           {selected === 'organize' ? (
             <ProjectsGallery onClose={() => setSelected(undefined)} />
           ) : null}

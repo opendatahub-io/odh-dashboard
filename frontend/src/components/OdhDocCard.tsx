@@ -27,6 +27,7 @@ import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import FavoriteButton from './FavoriteButton';
+import TruncatedText from './TruncatedText';
 
 import './OdhCard.scss';
 
@@ -179,7 +180,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
           </StackItem>
           <StackItem>
             <Tooltip content={odhDoc.spec.description}>
-              <span className="odh-card__body-text">{odhDoc.spec.description}</span>
+              <TruncatedText maxLines={4} content={odhDoc.spec.description} />
             </Tooltip>
           </StackItem>
         </Stack>
