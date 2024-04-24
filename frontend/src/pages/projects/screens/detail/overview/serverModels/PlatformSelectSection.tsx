@@ -3,6 +3,7 @@ import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';
+import SelectNIMCard from './SelectNIMCard';
 
 const PlatformSelectSection: React.FC = () => (
   <CollapsibleSection title="Serve models" data-testid="section-model-server">
@@ -23,6 +24,7 @@ const PlatformSelectSection: React.FC = () => (
       >
         <SelectSingleModelCard />
         <SelectMultiModelCard />
+        <SelectNIMCard />
       </Gallery>
       <Alert
         isInline

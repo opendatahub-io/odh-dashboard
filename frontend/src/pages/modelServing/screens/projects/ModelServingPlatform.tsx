@@ -30,6 +30,7 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
 import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
+import EmptyNIMModelServingCard from '~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
@@ -196,6 +197,9 @@ const ModelServingPlatform: React.FC = () => {
                       </GalleryItem>
                       <GalleryItem>
                         <EmptyMultiModelServingCard />
+                      </GalleryItem>
+                      <GalleryItem>
+                        <EmptyNIMModelServingCard />
                       </GalleryItem>
                     </Gallery>
                   </StackItem>
