@@ -1,3 +1,4 @@
+const { execSync } = require('child_process');
 const path = require('path');
 const { merge } = require('webpack-merge');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
@@ -35,13 +36,67 @@ module.exports = merge(
       historyApiFallback: true,
       hot: true,
       open: false,
-      proxy: {
-        '/api': `http://0.0.0.0:${BACKEND_PORT}`,
-        '/wss': {
-          target: `ws://0.0.0.0:${BACKEND_PORT}`,
-          ws: true,
-        },
-      },
+      proxy: (() => {
+        if (process.env.EXT_CLUSTER) {
+          const odhProject = process.env.OC_PROJECT || 'opendatahub';
+          console.info('Using project:', odhProject);
+
+          let dashboardHost;
+          let token;
+          try {
+            try {
+              dashboardHost = execSync(
+                `oc get routes -n ${odhProject} odh-dashboard -o jsonpath='{.spec.host}'`,
+              )
+                .toString()
+                .trim();
+            } catch (e) {
+              console.info('Failed to GET dashboard route, constructing host manually.');
+              dashboardHost = new URL(execSync(`oc whoami --show-server`).toString()).host
+                .replace(/:\d+$/, '')
+                .replace(/^api./, `odh-dashboard-${odhProject}.apps.`);
+            }
+            console.info('Dashboard host:', dashboardHost);
+
+            token = execSync('oc whoami --show-token').toString().trim();
+
+            const username = execSync('oc whoami').toString().trim();
+            console.info('Logged in as user:', username);
+          } catch (e) {
+            console.error('Login with `oc login` prior to starting dev server.');
+            process.exit(1);
+          }
+
+          const headers = {
+            Authorization: `Bearer ${token}`,
+            'x-forwarded-access-token': token,
+          };
+
+          return {
+            '/api': {
+              target: `https://${dashboardHost}`,
+              secure: false,
+              changeOrigin: true,
+              headers,
+            },
+            '/wss': {
+              target: `wss://${dashboardHost}`,
+              ws: true,
+              secure: false,
+              changeOrigin: true,
+              headers,
+            },
+          };
+        } else {
+          return {
+            '/api': `http://0.0.0.0:${BACKEND_PORT}`,
+            '/wss': {
+              target: `ws://0.0.0.0:${BACKEND_PORT}`,
+              ws: true,
+            },
+          };
+        }
+      })(),
       devMiddleware: {
         stats: 'errors-only',
       },

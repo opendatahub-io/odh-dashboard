@@ -15,6 +15,7 @@ const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo.svg';
 const { ODH_PRODUCT_NAME } = process.env;
 const { ODH_NOTEBOOK_REPO } = process.env;
 const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
+const { EXT_CLUSTER } = process.env;
 
 export {
   DEV_MODE,
@@ -30,6 +31,7 @@ export {
   ODH_NOTEBOOK_REPO,
   DASHBOARD_CONFIG,
   WS_HOSTNAME,
+  EXT_CLUSTER,
 };
 
 export const DOC_TYPE_TOOLTIPS = {
