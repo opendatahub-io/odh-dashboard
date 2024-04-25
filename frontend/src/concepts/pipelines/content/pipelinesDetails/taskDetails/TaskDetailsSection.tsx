@@ -4,10 +4,11 @@ import { Stack, StackItem, Title } from '@patternfly/react-core';
 type TaskDetailsSectionProps = {
   title: string;
   children: React.ReactNode;
+  testId?: string;
 };
 
-const TaskDetailsSection: React.FC<TaskDetailsSectionProps> = ({ title, children }) => (
-  <Stack hasGutter>
+const TaskDetailsSection: React.FC<TaskDetailsSectionProps> = ({ title, children, testId }) => (
+  <Stack hasGutter data-testid={testId}>
     <StackItem>
       <Title headingLevel="h3" size="lg">
         {title}
