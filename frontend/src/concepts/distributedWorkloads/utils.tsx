@@ -27,6 +27,7 @@ import {
   UnitOption,
   convertToUnit,
 } from '~/utilities/valueUnits';
+import { WorkloadWithUsage } from '~/api';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',
@@ -37,6 +38,12 @@ export enum WorkloadStatusType {
   Succeeded = 'Succeeded',
   Failed = 'Failed',
 }
+
+export type TopWorkloadUsageType = {
+  totalUsage: number;
+  topWorkloads: WorkloadWithUsage[];
+  otherUsage: number | undefined;
+};
 
 export type WorkloadStatusInfo = {
   status: WorkloadStatusType;
@@ -148,6 +155,9 @@ export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts
   });
   return statusCounts;
 };
+
+export const getWorkloadName = (workload: WorkloadKind): string =>
+  workload.metadata?.name || 'Unnamed';
 
 export const getWorkloadOwnerJobName = (workload: WorkloadKind): string | undefined =>
   workload.metadata?.ownerReferences?.find((ref) => ref.kind === 'Job')?.name;

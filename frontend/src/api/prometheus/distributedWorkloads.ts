@@ -3,7 +3,10 @@ import { FetchStateObject, PrometheusQueryResponse } from '~/types';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
 import { WorkloadKind } from '~/k8sTypes';
-import { getWorkloadOwnerJobName } from '~/concepts/distributedWorkloads/utils';
+import {
+  TopWorkloadUsageType,
+  getWorkloadOwnerJobName,
+} from '~/concepts/distributedWorkloads/utils';
 import usePrometheusQuery from './usePrometheusQuery';
 
 export type WorkloadMetricPromQueryResponse = PrometheusQueryResponse<{
@@ -49,13 +52,10 @@ export type WorkloadCurrentUsage = {
 };
 
 export type WorkloadWithUsage = {
-  workload: WorkloadKind | 'other';
+  workload: WorkloadKind;
   usage: number | undefined;
 };
-export type TopWorkloadsByUsage = Record<
-  keyof WorkloadCurrentUsage,
-  { totalUsage: number; topWorkloads: WorkloadWithUsage[] }
->;
+export type TopWorkloadsByUsage = Record<keyof WorkloadCurrentUsage, TopWorkloadUsageType>;
 
 export const getTotalUsage = (workloadsWithUsage: WorkloadWithUsage[]): number =>
   workloadsWithUsage.reduce((prev, current) => prev + (current.usage || 0), 0);
@@ -64,9 +64,7 @@ export const getTopResourceConsumingWorkloads = (
   workloads: WorkloadKind[],
   getWorkloadCurrentUsage: (workload: WorkloadKind) => WorkloadCurrentUsage,
 ): TopWorkloadsByUsage => {
-  const getTopWorkloadsFor = (
-    usageType: keyof WorkloadCurrentUsage,
-  ): { totalUsage: number; topWorkloads: WorkloadWithUsage[] } => {
+  const getTopWorkloadsFor = (usageType: keyof WorkloadCurrentUsage): TopWorkloadUsageType => {
     const workloadsSortedByUsage: WorkloadWithUsage[] = workloads
       .map((workload) => ({
         workload,
@@ -74,23 +72,18 @@ export const getTopResourceConsumingWorkloads = (
       }))
       .filter(({ usage }) => usage !== undefined)
       .sort((a, b) => (b.usage || 0) - (a.usage || 0));
-    const top5Workloads = workloadsSortedByUsage.slice(0, 5);
-    const restOfWorkloads = workloadsSortedByUsage.slice(5, workloadsSortedByUsage.length);
+
+    const topWorkloads =
+      workloadsSortedByUsage.length === 6
+        ? workloadsSortedByUsage
+        : workloadsSortedByUsage.slice(0, 5);
     return {
       totalUsage: getTotalUsage(workloadsSortedByUsage),
-      topWorkloads: [
-        ...top5Workloads,
-        ...(restOfWorkloads.length === 1
-          ? restOfWorkloads
-          : restOfWorkloads.length > 1
-          ? [
-              {
-                workload: 'other',
-                usage: getTotalUsage(restOfWorkloads),
-              } satisfies WorkloadWithUsage,
-            ]
-          : []),
-      ],
+      topWorkloads,
+      otherUsage:
+        workloadsSortedByUsage.length < 7
+          ? undefined
+          : getTotalUsage(workloadsSortedByUsage.slice(5, workloadsSortedByUsage.length)),
     };
   };
   return {
@@ -121,8 +114,8 @@ export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
   },
   getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
   topWorkloadsByUsage: {
-    cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
-    memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
+    cpuCoresUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
+    memoryBytesUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
   },
 };
 

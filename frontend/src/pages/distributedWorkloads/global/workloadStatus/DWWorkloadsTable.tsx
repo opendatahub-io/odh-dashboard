@@ -5,7 +5,7 @@ import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import { SortableData, Table } from '~/components/table';
 import { WorkloadKind } from '~/k8sTypes';
-import { getStatusInfo } from '~/concepts/distributedWorkloads/utils';
+import { getStatusInfo, getWorkloadName } from '~/concepts/distributedWorkloads/utils';
 import { WorkloadStatusLabel } from '~/pages/distributedWorkloads/components/WorkloadStatusLabel';
 import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
@@ -71,7 +71,7 @@ export const DWWorkloadsTable: React.FC = () => {
         const statusInfo = getStatusInfo(workload);
         return (
           <Tr key={workload.metadata?.uid}>
-            <Td dataLabel="Name">{workload.metadata?.name || 'Unnamed'}</Td>
+            <Td dataLabel="Name">{getWorkloadName(workload)}</Td>
             <Td dataLabel="Priority">{workload.spec.priority}</Td>
             <Td dataLabel="Status">
               <WorkloadStatusLabel workload={workload} />

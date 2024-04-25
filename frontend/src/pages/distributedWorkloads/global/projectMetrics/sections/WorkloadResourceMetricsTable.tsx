@@ -7,6 +7,7 @@ import { WorkloadResourceUsageBar } from '~/pages/distributedWorkloads/component
 import {
   WorkloadStatusType,
   getStatusInfo,
+  getWorkloadName,
   getWorkloadRequestedResources,
 } from '~/concepts/distributedWorkloads/utils';
 import { bytesAsPreciseGiB } from '~/utilities/number';
@@ -80,7 +81,7 @@ export const WorkloadResourceMetricsTable: React.FC = () => {
         const requested = getWorkloadRequestedResources(workload);
         return (
           <Tr key={workload.metadata?.uid}>
-            <Td dataLabel="Name">{workload.metadata?.name || 'Unnamed'}</Td>
+            <Td dataLabel="Name">{getWorkloadName(workload)}</Td>
             <Td
               dataLabel="CPU usage (cores)"
               style={{ paddingRight: 'var(--pf-v5-global--spacer--xl)' }}
