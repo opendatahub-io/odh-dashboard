@@ -1,6 +1,5 @@
 import { mockByon } from '~/__mocks__/mockByon';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import {
   importNotebookImageModal,
   notebookImageDeleteModal,
@@ -11,6 +10,7 @@ import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 it('Notebook image settings should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -24,11 +24,12 @@ describe('Notebook image settings', () => {
     asProductAdminUser();
   });
 
-  it('Table filtering, sorting, searching', () => {
+  it('Table filtering, sorting, searching and pagination', () => {
+    const totalItems = 1000;
     cy.interceptOdh(
       'GET /api/images/byon',
       Array.from(
-        { length: 1000 },
+        { length: totalItems },
         (_, i) =>
           mockByon([
             {
@@ -73,25 +74,11 @@ describe('Notebook image settings', () => {
     notebookImageSettings.findTableHeaderButton('Enable').should(be.sortDescending);
     notebookImageSettings.findTableHeaderButton('Name').click();
 
-    // test pagination
-    // test next page
-    tablePagination.top.findNextButton().click();
-    tablePagination.top.findNextButton().click();
-    tablePagination.top.findNextButton().click();
-    tablePagination.top.findNextButton().click();
-    notebookImageSettings.getRow('image-136').find().should('exist');
+    // top pagination
+    testPagination({ totalItems, firstElement: 'image-0', paginationVariant: 'top' });
 
-    // test type page
-    tablePagination.top.findInput().clear();
-    tablePagination.top.findInput().type('50{enter}');
-    notebookImageSettings.getRow('image-542').find().should('exist');
-
-    // test last and first page
-    tablePagination.top.findLastButton().click();
-    notebookImageSettings.getRow('image-999').find().should('exist');
-
-    tablePagination.top.findFirstButton().click();
-    notebookImageSettings.getRow('image-0').find().should('exist');
+    // bottom pagination
+    testPagination({ totalItems, firstElement: 'image-0', paginationVariant: 'bottom' });
 
     // test filtering
     // by name

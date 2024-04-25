@@ -8,6 +8,7 @@ import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/model
 import { mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -45,14 +46,34 @@ describe('Accelerator Profile', () => {
     acceleratorProfile.findAddButton().should('be.enabled');
   });
 
-  it('list accelerator profiles and Table filtering, sorting, searching', () => {
-    initIntercepts({});
+  it('list accelerator profiles and Table filtering, sorting, searching and pagination', () => {
+    const totalItems = 50;
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(
+        Array.from({ length: totalItems }, (_, i) =>
+          mockAcceleratorProfile({
+            displayName: `Test Accelerator - ${i}`,
+            identifier: 'tensor.com/gpu',
+            description: `accelerator profile ${i}`,
+          }),
+        ),
+      ),
+    );
     acceleratorProfile.visit();
-    const tableRow = acceleratorProfile.getRow('TensorRT');
-    tableRow
-      .findDescription()
-      .contains('Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis');
+    const tableRow = acceleratorProfile.getRow('Test Accelerator - 0');
+    tableRow.findDescription().contains('accelerator profile 0');
     tableRow.shouldHaveIdentifier('tensor.com/gpu');
+
+    // top pagination
+    testPagination({ totalItems, firstElement: 'Test Accelerator - 0', paginationVariant: 'top' });
+
+    // bottom pagination
+    testPagination({
+      totalItems,
+      firstElement: 'Test Accelerator - 0',
+      paginationVariant: 'bottom',
+    });
 
     //sort by Name
     acceleratorProfile.findTableHeaderButton('Name').click();
@@ -83,7 +104,7 @@ describe('Accelerator Profile', () => {
     const acceleratorTableToolbar = acceleratorProfile.getTableToolbar();
     acceleratorTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
     acceleratorTableToolbar.findSearchInput().fill('Test');
-    acceleratorProfile.getRow('Test Accelerator').shouldHaveIdentifier('nvidia.com/gpu');
+    acceleratorProfile.getRow('Test Accelerator - 0').shouldHaveIdentifier('tensor.com/gpu');
 
     acceleratorTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Identifier').click();
     acceleratorTableToolbar.findResetButton().click();

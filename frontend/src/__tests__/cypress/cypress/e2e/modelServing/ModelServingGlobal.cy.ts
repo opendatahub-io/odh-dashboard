@@ -26,6 +26,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -472,7 +473,7 @@ describe('Model Serving Global', () => {
     cy.findByText('Error creating model server').should('not.exist');
   });
 
-  describe('Table filter', () => {
+  describe('Table filter and pagination', () => {
     it('filter by name', () => {
       initIntercepts({});
       modelServingGlobal.visit('test-project');
@@ -525,6 +526,33 @@ describe('Model Serving Global', () => {
 
       // Verify no results were found
       modelServingGlobal.findEmptyResults().should('exist');
+    });
+
+    it('Validate pagination', () => {
+      const totalItems = 50;
+      const mockInferenceService: InferenceServiceKind[] = Array.from(
+        { length: totalItems },
+        (_, i) =>
+          mockInferenceServiceK8sResource({
+            displayName: `Test Inference Service-${i}`,
+          }),
+      );
+      initIntercepts({ inferenceServices: mockInferenceService });
+      modelServingGlobal.visit('test-project');
+
+      // top pagination
+      testPagination({
+        totalItems,
+        firstElement: 'Test Inference Service-0',
+        paginationVariant: 'top',
+      });
+
+      // bottom pagination
+      testPagination({
+        totalItems,
+        firstElement: 'Test Inference Service-0',
+        paginationVariant: 'bottom',
+      });
     });
   });
 });
