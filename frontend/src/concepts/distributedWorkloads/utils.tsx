@@ -19,7 +19,13 @@ import {
   chart_color_green_300 as chartColorGreen,
   chart_color_red_100 as chartColorRed,
 } from '@patternfly/react-tokens';
-import { ClusterQueueKind, LocalQueueKind, WorkloadCondition, WorkloadKind } from '~/k8sTypes';
+import {
+  ClusterQueueKind,
+  LocalQueueKind,
+  WorkloadCondition,
+  WorkloadKind,
+  WorkloadOwnerType,
+} from '~/k8sTypes';
 import { ContainerResourceAttributes } from '~/types';
 import {
   CPU_UNITS,
@@ -149,8 +155,21 @@ export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts
   return statusCounts;
 };
 
-export const getWorkloadOwnerJobName = (workload: WorkloadKind): string | undefined =>
-  workload.metadata?.ownerReferences?.find((ref) => ref.kind === 'Job')?.name;
+export const isKnownWorkloadOwnerType = (s: string): s is WorkloadOwnerType =>
+  (Object.values(WorkloadOwnerType) as string[]).includes(s);
+
+export const getWorkloadOwner = (
+  workload: WorkloadKind,
+): { kind: WorkloadOwnerType; name: string } | undefined => {
+  const owner = workload.metadata?.ownerReferences?.find((ref) =>
+    isKnownWorkloadOwnerType(ref.kind),
+  );
+  if (!owner || !isKnownWorkloadOwnerType(owner.kind)) {
+    return undefined;
+  }
+  const { kind, name } = owner;
+  return { kind, name };
+};
 
 export type WorkloadRequestedResources = {
   cpuCoresRequested: number;
