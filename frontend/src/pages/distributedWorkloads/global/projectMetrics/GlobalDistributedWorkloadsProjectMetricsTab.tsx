@@ -20,7 +20,7 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => (
         content={<TopResourceConsumingWorkloads />}
       />
     </StackItem>
-    <StackItem data-testid="dw-workloada-resource-metrics">
+    <StackItem data-testid="dw-workload-resource-metrics">
       <DWSectionCard
         title="Distributed workload resource metrics"
         hasDivider={false}

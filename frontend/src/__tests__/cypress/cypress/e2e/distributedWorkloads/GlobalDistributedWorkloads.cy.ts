@@ -4,9 +4,10 @@ import { mockComponents } from '~/__mocks__/mockComponents';
 import { globalDistributedWorkloads } from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
+import { mockDWUsageByJobPrometheusResponse } from '~/__mocks__/mockDWUsageByJobPrometheusResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
+import { ClusterQueueKind, LocalQueueKind, WorkloadKind, WorkloadPodSet } from '~/k8sTypes';
+import { PodContainer } from '~/types';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
@@ -17,6 +18,37 @@ import {
   WorkloadModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
+
+const mockContainer: PodContainer = {
+  env: [],
+  image: 'perl:5.34.0',
+  imagePullPolicy: 'IfNotPresent',
+  name: 'pi',
+  resources: {
+    requests: {
+      cpu: '2',
+      memory: '200Mi',
+    },
+  },
+  terminationMessagePath: '/dev/termination-log',
+  terminationMessagePolicy: 'File',
+};
+const mockPodset: WorkloadPodSet = {
+  count: 5,
+  minCount: 4,
+  name: 'main',
+  template: {
+    metadata: {},
+    spec: {
+      containers: [mockContainer, mockContainer],
+      dnsPolicy: 'ClusterFirst',
+      restartPolicy: 'Never',
+      schedulerName: 'default-scheduler',
+      securityContext: {},
+      terminationGracePeriodSeconds: 30,
+    },
+  },
+};
 
 type HandlersProps = {
   isKueueInstalled?: boolean;
@@ -36,10 +68,29 @@ const initIntercepts = ({
     mockLocalQueueK8sResource({ name: 'test-local-queue', namespace: 'test-project' }),
   ],
   workloads = [
-    mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: WorkloadStatusType.Succeeded }),
     mockWorkloadK8sResource({
-      k8sName: 'test-workload-2',
+      k8sName: 'test-workload-finished',
+      ownerJobName: 'test-workload-finished-job',
       mockStatus: WorkloadStatusType.Succeeded,
+      podSets: [mockPodset, mockPodset],
+    }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload-running',
+      ownerJobName: 'test-workload-running-job',
+      mockStatus: WorkloadStatusType.Running,
+      podSets: [mockPodset, mockPodset],
+    }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload-spinning-down-both',
+      ownerJobName: 'test-workload-spinning-down-both-job',
+      mockStatus: WorkloadStatusType.Succeeded,
+      podSets: [mockPodset, mockPodset],
+    }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload-spinning-down-cpu-only',
+      ownerJobName: 'test-workload-spinning-down-cpu-only-job',
+      mockStatus: WorkloadStatusType.Succeeded,
+      podSets: [mockPodset, mockPodset],
     }),
   ],
 }: HandlersProps) => {
@@ -82,9 +133,30 @@ const initIntercepts = ({
     },
     mockK8sResourceList(workloads),
   );
-  cy.interceptOdh('POST /api/prometheus/query', {
-    code: 200,
-    response: mockPrometheusQueryVectorResponse({ result: [] }),
+  cy.interceptOdh('POST /api/prometheus/query', (req) => {
+    if (req.body.query.includes('container_cpu_usage_seconds_total')) {
+      req.reply({
+        code: 200,
+        response: mockDWUsageByJobPrometheusResponse({
+          'test-workload-finished-job': 0,
+          'test-workload-running-job': 2.2,
+          'test-workload-spinning-down-both-job': 0.2,
+          'test-workload-spinning-down-cpu-only-job': 0.2,
+        }),
+      });
+    } else if (req.body.query.includes('container_memory_working_set_bytes')) {
+      req.reply({
+        code: 200,
+        response: mockDWUsageByJobPrometheusResponse({
+          'test-workload-finished-job': 0,
+          'test-workload-running-job': 1610612736, // 1.5 GiB
+          'test-workload-spinning-down-both-job': 104857600, // 100 MiB
+          'test-workload-spinning-down-cpu-only-job': 0,
+        }),
+      });
+    } else {
+      req.reply(404);
+    }
   });
 };
 
@@ -213,7 +285,7 @@ describe('Project Metrics tab', () => {
     cy.findByTestId('dw-top-consuming-workloads').within(() => {
       cy.findByText('No distributed workloads').should('exist');
     });
-    cy.findByTestId('dw-workloada-resource-metrics').within(() => {
+    cy.findByTestId('dw-workload-resource-metrics').within(() => {
       cy.findByText('No distributed workloads').should('exist');
     });
     cy.findByTestId('dw-requested-resources').within(() => {
@@ -222,12 +294,71 @@ describe('Project Metrics tab', () => {
     });
   });
 
-  it('Should render the workload resource metrics table', () => {
-    initIntercepts({});
-    globalDistributedWorkloads.visit();
+  describe('Workload resource metrics table', () => {
+    it('Should render', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads.findWorkloadResourceMetricsTable().within(() => {
+        cy.findByText('test-workload-finished').should('exist');
+      });
+    });
 
-    cy.findByLabelText('Project metrics tab').click();
-    cy.findByText('test-workload').should('exist');
+    it('Should not render usage bars on a fully finished workload', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads
+        .findWorkloadResourceMetricsTable()
+        .findByText('test-workload-finished')
+        .closest('tr')
+        .within(() => {
+          cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '-');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '-');
+        });
+    });
+
+    it('Should render usage bars on a running workload', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads
+        .findWorkloadResourceMetricsTable()
+        .findByText('test-workload-running')
+        .closest('tr')
+        .within(() => {
+          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+        });
+    });
+
+    it('Should render usage bars on a succeeded workload that is still spinning down', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads
+        .findWorkloadResourceMetricsTable()
+        .findByText('test-workload-spinning-down-both')
+        .closest('tr')
+        .within(() => {
+          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+        });
+    });
+
+    it('Spinning-down workload should render usage bars only on the column that is still consuming resources', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads
+        .findWorkloadResourceMetricsTable()
+        .findByText('test-workload-spinning-down-cpu-only')
+        .closest('tr')
+        .within(() => {
+          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '-');
+        });
+    });
   });
 
   it('Should render the requested resources charts', () => {
@@ -247,7 +378,7 @@ describe('Workload Status tab', () => {
 
     const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
     statusOverview.should('exist');
-    statusOverview.findByText('Succeeded: 2').should('exist');
+    statusOverview.findByText('Succeeded: 3').should('exist');
   });
 
   it('Should render the status overview chart with pending fallback statuses', () => {
@@ -270,7 +401,7 @@ describe('Workload Status tab', () => {
     globalDistributedWorkloads.visit();
 
     cy.findByLabelText('Distributed workload status tab').click();
-    cy.findByText('test-workload').should('exist');
+    cy.findByText('test-workload-finished').should('exist');
   });
 
   it('Should render an empty state for the dw table if no workloads', () => {
