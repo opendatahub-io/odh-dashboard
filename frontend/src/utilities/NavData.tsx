@@ -3,6 +3,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useUser } from '~/redux/selectors';
 import {
   artifactsRootPath,
+  executionsRootPath,
   experimentsRootPath,
   routePipelineRuns,
   routePipelines,
@@ -85,6 +86,11 @@ const useDSPipelinesNav = (): NavDataItem[] => {
                 id: 'experiments-and-runs',
                 label: 'Experiments and runs',
                 href: experimentsRootPath,
+              },
+              {
+                id: 'executions',
+                label: 'Executions',
+                href: executionsRootPath,
               },
               {
                 id: 'artifacts',

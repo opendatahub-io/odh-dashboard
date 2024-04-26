@@ -18,7 +18,7 @@ import { KubeFlowTaskTopology } from './pipelineTaskTypes';
 export const usePipelineTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
-  executions?: Execution[] | null,
+  executions?: Execution[],
 ): KubeFlowTaskTopology => {
   if (!spec) {
     return { taskMap: {}, nodes: [] };
@@ -50,9 +50,10 @@ export const usePipelineTaskTopology = (
       const executorLabel = component?.executorLabel;
       const executor = executorLabel ? executors[executorLabel] : undefined;
 
-      const status = executions
-        ? parseRuntimeInfoFromExecutions(taskId, executions)
-        : parseRuntimeInfoFromRunDetails(taskId, runDetails);
+      const status =
+        executions && executions.length !== 0
+          ? parseRuntimeInfoFromExecutions(taskId, executions)
+          : parseRuntimeInfoFromRunDetails(taskId, runDetails);
 
       const runAfter: string[] = taskValue.dependentTasks ?? [];
 
