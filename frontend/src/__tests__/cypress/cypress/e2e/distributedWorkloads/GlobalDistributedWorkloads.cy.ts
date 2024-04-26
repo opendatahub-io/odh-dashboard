@@ -4,9 +4,15 @@ import { mockComponents } from '~/__mocks__/mockComponents';
 import { globalDistributedWorkloads } from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockDWUsageByJobPrometheusResponse } from '~/__mocks__/mockDWUsageByJobPrometheusResponse';
+import { mockDWUsageByOwnerPrometheusResponse } from '~/__mocks__/mockDWUsageByOwnerPrometheusResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { ClusterQueueKind, LocalQueueKind, WorkloadKind, WorkloadPodSet } from '~/k8sTypes';
+import {
+  ClusterQueueKind,
+  LocalQueueKind,
+  WorkloadKind,
+  WorkloadPodSet,
+  WorkloadOwnerType,
+} from '~/k8sTypes';
 import { PodContainer } from '~/types';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
@@ -70,25 +76,29 @@ const initIntercepts = ({
   workloads = [
     mockWorkloadK8sResource({
       k8sName: 'test-workload-finished',
-      ownerJobName: 'test-workload-finished-job',
+      ownerKind: WorkloadOwnerType.Job,
+      ownerName: 'test-workload-finished-job',
       mockStatus: WorkloadStatusType.Succeeded,
       podSets: [mockPodset, mockPodset],
     }),
     mockWorkloadK8sResource({
       k8sName: 'test-workload-running',
-      ownerJobName: 'test-workload-running-job',
+      ownerKind: WorkloadOwnerType.Job,
+      ownerName: 'test-workload-running-job',
       mockStatus: WorkloadStatusType.Running,
       podSets: [mockPodset, mockPodset],
     }),
     mockWorkloadK8sResource({
       k8sName: 'test-workload-spinning-down-both',
-      ownerJobName: 'test-workload-spinning-down-both-job',
+      ownerKind: WorkloadOwnerType.RayCluster,
+      ownerName: 'test-workload-spinning-down-both-rc',
       mockStatus: WorkloadStatusType.Succeeded,
       podSets: [mockPodset, mockPodset],
     }),
     mockWorkloadK8sResource({
       k8sName: 'test-workload-spinning-down-cpu-only',
-      ownerJobName: 'test-workload-spinning-down-cpu-only-job',
+      ownerKind: WorkloadOwnerType.RayCluster,
+      ownerName: 'test-workload-spinning-down-cpu-only-rc',
       mockStatus: WorkloadStatusType.Succeeded,
       podSets: [mockPodset, mockPodset],
     }),
@@ -137,21 +147,29 @@ const initIntercepts = ({
     if (req.body.query.includes('container_cpu_usage_seconds_total')) {
       req.reply({
         code: 200,
-        response: mockDWUsageByJobPrometheusResponse({
-          'test-workload-finished-job': 0,
-          'test-workload-running-job': 2.2,
-          'test-workload-spinning-down-both-job': 0.2,
-          'test-workload-spinning-down-cpu-only-job': 0.2,
+        response: mockDWUsageByOwnerPrometheusResponse({
+          [WorkloadOwnerType.Job]: {
+            'test-workload-finished-job': 0,
+            'test-workload-running-job': 2.2,
+          },
+          [WorkloadOwnerType.RayCluster]: {
+            'test-workload-spinning-down-both-rc': 0.2,
+            'test-workload-spinning-down-cpu-only-rc': 0.2,
+          },
         }),
       });
     } else if (req.body.query.includes('container_memory_working_set_bytes')) {
       req.reply({
         code: 200,
-        response: mockDWUsageByJobPrometheusResponse({
-          'test-workload-finished-job': 0,
-          'test-workload-running-job': 1610612736, // 1.5 GiB
-          'test-workload-spinning-down-both-job': 104857600, // 100 MiB
-          'test-workload-spinning-down-cpu-only-job': 0,
+        response: mockDWUsageByOwnerPrometheusResponse({
+          [WorkloadOwnerType.Job]: {
+            'test-workload-finished-job': 0,
+            'test-workload-running-job': 1610612736, // 1.5 GiB
+          },
+          [WorkloadOwnerType.RayCluster]: {
+            'test-workload-spinning-down-both-rc': 104857600, // 100 MiB
+            'test-workload-spinning-down-cpu-only-rc': 0,
+          },
         }),
       });
     } else {
