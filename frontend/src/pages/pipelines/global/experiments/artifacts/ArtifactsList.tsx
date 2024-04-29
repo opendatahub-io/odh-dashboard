@@ -3,18 +3,23 @@ import React from 'react';
 import {
   Bullseye,
   EmptyState,
-  EmptyStateBody,
+  EmptyStateVariant,
   EmptyStateHeader,
   EmptyStateIcon,
-  EmptyStateVariant,
+  EmptyStateBody,
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
+import { useMlmdListContext } from '~/concepts/pipelines/context';
 import { useGetArtifactsList } from './useGetArtifactsList';
+import { ArtifactsTable } from './ArtifactsTable';
 
-export const ArtifactsListTable: React.FC = () => {
-  const [artifacts, isArtifactsLoaded, artifactsError] = useGetArtifactsList();
+export const ArtifactsList: React.FC = () => {
+  const { filterQuery } = useMlmdListContext();
+  const [artifactsResponse, isArtifactsLoaded, artifactsError] = useGetArtifactsList();
+  const { artifacts, nextPageToken } = artifactsResponse || {};
+  const filterQueryRef = React.useRef(filterQuery);
 
   if (artifactsError) {
     return (
@@ -39,7 +44,7 @@ export const ArtifactsListTable: React.FC = () => {
     );
   }
 
-  if (!artifacts?.length) {
+  if (!artifacts?.length && !filterQuery && filterQueryRef.current === filterQuery) {
     return (
       <EmptyState data-testid="artifacts-list-empty-state" variant={EmptyStateVariant.lg}>
         <EmptyStateHeader
@@ -55,5 +60,11 @@ export const ArtifactsListTable: React.FC = () => {
     );
   }
 
-  return <></>;
+  return (
+    <ArtifactsTable
+      artifacts={artifacts}
+      nextPageToken={nextPageToken}
+      isLoaded={isArtifactsLoaded}
+    />
+  );
 };

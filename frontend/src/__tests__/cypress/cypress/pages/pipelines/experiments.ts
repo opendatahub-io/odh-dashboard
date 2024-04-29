@@ -140,7 +140,7 @@ class ExperimentsTable {
   findFilterTextField() {
     return this.findContainer()
       .findByTestId('experiment-table-toolbar')
-      .findByTestId('run-table-toolbar-filter-text-field');
+      .findByTestId('pipeline-filter-text-field');
   }
 }
 

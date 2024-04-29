@@ -152,9 +152,7 @@ class PipelineRunJobTable extends PipelineRunsTable {
   }
 
   findFilterTextField() {
-    return cy
-      .findByTestId('schedules-table-toolbar')
-      .findByTestId('run-table-toolbar-filter-text-field');
+    return cy.findByTestId('schedules-table-toolbar').findByTestId('pipeline-filter-text-field');
   }
 
   findExperimentFilterSelect() {
