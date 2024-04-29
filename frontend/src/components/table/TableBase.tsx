@@ -46,12 +46,24 @@ type Props<DataType> = {
     tooltip?: string;
   };
   getColumnSort?: GetColumnSort;
+  disableItemCount?: boolean;
 } & EitherNotBoth<
   { disableRowRenderSupport?: boolean },
   { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
 > &
   Omit<TableProps, 'ref' | 'data'> &
-  Pick<PaginationProps, 'itemCount' | 'onPerPageSelect' | 'onSetPage' | 'page' | 'perPage'>;
+  Pick<
+    PaginationProps,
+    | 'itemCount'
+    | 'onPerPageSelect'
+    | 'onSetPage'
+    | 'page'
+    | 'perPage'
+    | 'perPageOptions'
+    | 'toggleTemplate'
+    | 'onNextClick'
+    | 'onPreviousClick'
+  >;
 
 export const MIN_PAGE_SIZE = 10;
 
@@ -87,26 +99,35 @@ const TableBase = <T,>({
   tbodyProps,
   perPage = 10,
   page = 1,
+  perPageOptions = defaultPerPageOptions,
   onSetPage,
+  onNextClick,
+  onPreviousClick,
   onPerPageSelect,
   getColumnSort,
   itemCount = 0,
   loading,
+  toggleTemplate,
+  disableItemCount = false,
   ...props
 }: Props<T>): React.ReactElement => {
   const selectAllRef = React.useRef(null);
-  const showPagination = enablePagination && itemCount > MIN_PAGE_SIZE;
+  const showPagination = enablePagination;
+
   const pagination = (variant: 'top' | 'bottom') => (
     <Pagination
       isCompact={enablePagination === 'compact'}
-      itemCount={itemCount}
+      {...(!disableItemCount && { itemCount })}
       perPage={perPage}
       page={page}
       onSetPage={onSetPage}
+      onNextClick={onNextClick}
+      onPreviousClick={onPreviousClick}
       onPerPageSelect={onPerPageSelect}
+      toggleTemplate={toggleTemplate}
       variant={variant}
       widgetId="table-pagination"
-      perPageOptions={defaultPerPageOptions}
+      perPageOptions={perPageOptions}
       titles={{
         paginationAriaLabel: `${variant} pagination`,
       }}

@@ -12,7 +12,7 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   }
 
   findExperimentInput() {
-    return cy.findByTestId('run-table-toolbar-filter-text-field').find('#experiment-search-input');
+    return cy.findByTestId('pipeline-filter-text-field').find('#experiment-search-input');
   }
 
   findPipelineVersionSelect() {
