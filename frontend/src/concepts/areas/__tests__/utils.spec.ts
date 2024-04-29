@@ -1,7 +1,7 @@
 import { isAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { StackComponent } from '~/concepts/areas/types';
+import { StackCapability, StackComponent } from '~/concepts/areas/types';
 import { SupportedAreasStateMap } from '~/concepts/areas/const';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 
@@ -186,6 +186,73 @@ describe('isAreaAvailable', () => {
           [SupportedArea.MODEL_SERVING]: false,
         });
         expect(isAvailable.requiredComponents).toBe(null);
+      });
+    });
+
+    describe('requiredCapabilities', () => {
+      it('should enable area if both capabilities are enabled', () => {
+        // Make sure this test is valid
+        expect(SupportedAreasStateMap[SupportedArea.K_SERVE_AUTH].requiredCapabilities).toEqual([
+          StackCapability.SERVICE_MESH,
+          StackCapability.SERVICE_MESH_AUTHZ,
+        ]);
+
+        // Test both reliant areas
+        const isAvailableKserveAuth = isAreaAvailable(
+          SupportedArea.K_SERVE_AUTH,
+          mockDashboardConfig({ disableKServeAuth: false }).spec,
+          mockDscStatus({
+            installedComponents: {
+              [StackComponent.K_SERVE]: true,
+            },
+          }),
+          mockDsciStatus({
+            requiredCapabilities: [
+              StackCapability.SERVICE_MESH,
+              StackCapability.SERVICE_MESH_AUTHZ,
+            ],
+          }),
+        );
+
+        expect(isAvailableKserveAuth.status).toBe(true);
+        expect(isAvailableKserveAuth.featureFlags).toEqual({
+          disableKServeAuth: 'on',
+        });
+        expect(isAvailableKserveAuth.requiredCapabilities).toEqual({
+          [StackCapability.SERVICE_MESH]: true,
+          [StackCapability.SERVICE_MESH_AUTHZ]: true,
+        });
+      });
+
+      it('should enable area if one capability is missing', () => {
+        // Make sure this test is valid
+        expect(SupportedAreasStateMap[SupportedArea.K_SERVE_AUTH].requiredCapabilities).toEqual([
+          StackCapability.SERVICE_MESH,
+          StackCapability.SERVICE_MESH_AUTHZ,
+        ]);
+
+        // Test both reliant areas
+        const isAvailableKserveAuth = isAreaAvailable(
+          SupportedArea.K_SERVE_AUTH,
+          mockDashboardConfig({ disableKServeAuth: false }).spec,
+          mockDscStatus({
+            installedComponents: {
+              [StackComponent.K_SERVE]: true,
+            },
+          }),
+          mockDsciStatus({
+            requiredCapabilities: [StackCapability.SERVICE_MESH],
+          }),
+        );
+
+        expect(isAvailableKserveAuth.status).toBe(false);
+        expect(isAvailableKserveAuth.featureFlags).toEqual({
+          disableKServeAuth: 'on',
+        });
+        expect(isAvailableKserveAuth.requiredCapabilities).toEqual({
+          [StackCapability.SERVICE_MESH]: true,
+          [StackCapability.SERVICE_MESH_AUTHZ]: false,
+        });
       });
     });
   });
