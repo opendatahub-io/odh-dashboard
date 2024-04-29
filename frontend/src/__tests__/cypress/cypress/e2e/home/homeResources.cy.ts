@@ -15,7 +15,8 @@ describe('Home page Resources section', () => {
     initHomeIntercepts({ disableHome: false });
     cy.visit('/');
 
-    cy.findByTestId('landing-page-resources').should('be.visible');
+    cy.findByTestId('landing-page-resources').scrollIntoView();
+    cy.findByTestId('resource-card-create-jupyter-notebook').should('be.visible');
   });
   it('should hide the the resource section if none are available', () => {
     cy.interceptOdh('GET /api/quickstarts', []);
@@ -25,7 +26,7 @@ describe('Home page Resources section', () => {
 
     cy.findByTestId('landing-page-resources').should('not.exist');
   });
-  it('should navigate to the project list', () => {
+  it('should navigate to the resources page', () => {
     initHomeIntercepts({ disableHome: false });
     cy.visit('/');
 

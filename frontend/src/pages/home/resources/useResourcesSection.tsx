@@ -70,6 +70,10 @@ export const useResourcesSection = (): React.ReactNode => {
                   key={`${doc.metadata.name}`}
                   odhDoc={doc as unknown as OdhDocument}
                   showFavorite={false}
+                  style={{
+                    border: '1px solid var(--pf-v5-global--BorderColor--100)',
+                    borderRadius: 16,
+                  }}
                 />
               ))}
             </ScrolledGallery>
