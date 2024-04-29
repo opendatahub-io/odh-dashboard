@@ -58,7 +58,8 @@ describe('Administration Tab', () => {
     administration.findStopAllServersButton().should('be.disabled');
     const userRow = administration.getRow('test-user');
     userRow.shouldHavePrivilege('User');
-    userRow.shouldHaveLastActivity('2 months ago');
+    userRow.findServerStatusButton().should('have.text', 'Start your server');
+    userRow.findServerStatusButton().should('be.enabled');
   });
 
   it('Users table sorting', () => {
