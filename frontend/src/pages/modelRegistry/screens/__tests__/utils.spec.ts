@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import { getRegisteredModelLabels } from '~/pages/modelRegistry/screens/utils';
+import { getLabels } from '~/pages/modelRegistry/screens/utils';
 
-describe('getRegisteredModelLabels', () => {
+describe('getLabels', () => {
   it('should return an empty array when customProperties is empty', () => {
     const customProperties: RegisteredModel['customProperties'] = {};
-    const result = getRegisteredModelLabels(customProperties);
+    const result = getLabels(customProperties);
     expect(result).toEqual([]);
   });
 
@@ -15,7 +15,7 @@ describe('getRegisteredModelLabels', () => {
       label2: { string_value: 'non-empty' },
       label3: { string_value: '' },
     };
-    const result = getRegisteredModelLabels(customProperties);
+    const result = getLabels(customProperties);
     expect(result).toEqual(['label1', 'label3']);
   });
 
@@ -24,7 +24,7 @@ describe('getRegisteredModelLabels', () => {
       label1: { string_value: 'non-empty' },
       label2: { string_value: 'another-non-empty' },
     };
-    const result = getRegisteredModelLabels(customProperties);
+    const result = getLabels(customProperties);
     expect(result).toEqual([]);
   });
 });

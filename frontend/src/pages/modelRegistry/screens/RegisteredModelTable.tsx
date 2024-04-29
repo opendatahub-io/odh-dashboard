@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Table } from '~/components/table';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { columns } from './const';
+import { rmColumns } from './RegisteredModelsTableColumns';
 import RegisteredModelTableRow from './RegisteredModelTableRow';
 
 type RegisteredModelTableProps = {
@@ -18,7 +18,7 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   <Table
     data-testid="registered-model-table"
     data={registeredModels}
-    columns={columns}
+    columns={rmColumns}
     toolbarContent={toolbarContent}
     enablePagination
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
