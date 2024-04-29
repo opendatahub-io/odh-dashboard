@@ -59,6 +59,21 @@ export enum ArtifactType {
   MARKDOWN = 'system.Markdown',
 }
 
+export enum ExecutionType {
+  CONTAINER_EXECUTION = 'system.ContainerExecution',
+  DAG_EXECUTION = 'system.DAGExecution',
+}
+
+export enum ExecutionStatus {
+  UNKNOWN = 'Unknown',
+  NEW = 'New',
+  RUNNING = 'Running',
+  COMPLETE = 'Complete',
+  FAILED = 'Failed',
+  CACHED = 'Cached',
+  CANCELED = 'Canceled',
+}
+
 /** @deprecated resource type is no longer a concept in v2 */
 export enum ResourceTypeKF {
   UNKNOWN_RESOURCE_TYPE = 'UNKNOWN_RESOURCE_TYPE',

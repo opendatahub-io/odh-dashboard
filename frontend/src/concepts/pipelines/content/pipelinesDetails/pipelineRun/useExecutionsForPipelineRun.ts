@@ -7,7 +7,7 @@ import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
 const useExecutionsForPipelineRun = (
   run: PipelineRunKFv2 | null,
-): [executions: Execution[] | null, loaded: boolean, error?: Error] => {
+): [executions: Execution[], loaded: boolean, error?: Error] => {
   const isFinished = isPipelineRunFinished(run);
   const refreshRate = isFinished ? 0 : FAST_POLL_INTERVAL;
   // contextError means mlmd service is not available, no need to check executions
