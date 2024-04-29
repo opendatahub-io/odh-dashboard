@@ -22,14 +22,14 @@ const TaskDetailsInputOutput: React.FC<TaskDetailsInputOutputProps> = ({
     <Stack hasGutter>
       {artifacts && (
         <StackItem>
-          <TaskDetailsSection title={`${type} artifacts`}>
+          <TaskDetailsSection title={`${type} artifacts`} testId={`${type}-artifacts`}>
             <TaskDetailsPrintKeyValues items={artifacts} />
           </TaskDetailsSection>
         </StackItem>
       )}
       {params && (
         <StackItem>
-          <TaskDetailsSection title={`${type} parameters`}>
+          <TaskDetailsSection title={`${type} parameters`} testId={`${type}-parameters`}>
             <TaskDetailsPrintKeyValues items={params} />
           </TaskDetailsSection>
         </StackItem>

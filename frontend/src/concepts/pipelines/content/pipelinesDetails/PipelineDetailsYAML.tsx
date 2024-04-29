@@ -33,6 +33,7 @@ const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({ filename, con
 
   return (
     <DashboardCodeEditor
+      testId="pipeline-dashboard-code-editor"
       code={pipelineYAML}
       downloadFileName={filename ?? 'Pipeline content'}
       isDownloadEnabled

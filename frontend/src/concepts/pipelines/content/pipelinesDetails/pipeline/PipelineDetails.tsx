@@ -161,6 +161,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                 <Tab
                   eventKey={PipelineDetailsTab.YAML}
                   title={<TabTitleText>YAML</TabTitleText>}
+                  data-testid="pipeline-yaml-tab"
                   aria-label="Pipeline YAML Tab"
                   tabContentId={`tabContent-${PipelineDetailsTab.YAML}`}
                 />

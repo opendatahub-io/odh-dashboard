@@ -2,7 +2,10 @@
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { buildMockPipelineVersionV2 } from '~/__mocks__/mockPipelineVersionsProxy';
+import {
+  buildMockPipelineVersionV2,
+  buildMockPipelineVersionsV2,
+} from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
@@ -12,6 +15,7 @@ import {
   pipelineDetails,
   pipelineRunJobDetails,
   pipelineRunDetails,
+  pipelineVersionImportModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '~/__mocks__/mockPipelinePodK8sResource';
@@ -24,6 +28,8 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipelineV2({
@@ -34,6 +40,11 @@ const mockVersion = buildMockPipelineVersionV2({
   pipeline_id: mockPipeline.pipeline_id,
   pipeline_version_id: 'test-version-id',
   display_name: 'test-version-name',
+});
+const mockVersion2 = buildMockPipelineVersionV2({
+  pipeline_id: mockPipeline.pipeline_id,
+  pipeline_version_id: 'test-version-id-2',
+  display_name: 'test-version-2',
 });
 const mockRun = buildMockRunKF({
   display_name: 'test-pipeline-run',
@@ -109,6 +120,13 @@ const initIntercepts = () => {
     },
     mockPipeline,
   );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
+    },
+    buildMockPipelineVersionsV2([mockVersion, mockVersion2]),
+  );
 
   cy.intercept(
     {
@@ -181,16 +199,15 @@ const initIntercepts = () => {
 
 describe('Pipeline topology', () => {
   describe('Pipeline details', () => {
+    beforeEach(() => {
+      initIntercepts();
+      pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
+      // https://issues.redhat.com/browse/RHOAIENG-4562
+      // Bypass intermittent Cypress error:
+      // Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/base/worker/workerMain.js' failed to load.
+      Cypress.on('uncaught:exception', () => false);
+    });
     describe('Navigation', () => {
-      beforeEach(() => {
-        initIntercepts();
-        pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
-        // https://issues.redhat.com/browse/RHOAIENG-4562
-        // Bypass intermittent Cypress error:
-        // Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/base/worker/workerMain.js' failed to load.
-        Cypress.on('uncaught:exception', () => false);
-      });
-
       it('Test pipeline details create run navigation', () => {
         pipelineDetails.selectActionDropdownItem('Create run');
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
@@ -210,6 +227,91 @@ describe('Pipeline topology', () => {
         pipelineDetails.selectActionDropdownItem('View schedules');
         verifyRelativeURL(`/pipelineRuns/${projectId}?runType=scheduled`);
       });
+    });
+
+    it('validate clicking on node will open a drawer from right with data.', () => {
+      pipelineDetails.findTaskNode('create-dataset').click();
+      const taskDrawer = pipelineDetails.getTaskDrawer();
+      taskDrawer.shouldHaveTaskName('create-dataset ');
+      taskDrawer.findInputArtifacts().should('not.exist');
+      taskDrawer.findOutputParameters().should('not.exist');
+      taskDrawer.findOutputArtifacts().should('exist');
+      taskDrawer.findCommandCodeBlock().should('not.be.empty');
+      taskDrawer.findArgumentCodeBlock().should('not.be.empty');
+      taskDrawer.findTaskImage().should('have.text', 'Imagequay.io/hukhan/iris-base:1');
+      taskDrawer.findCloseDrawerButton().click();
+      taskDrawer.find().should('not.exist');
+    });
+
+    it('delete pipeline version from action dropdown', () => {
+      pipelineDetails.selectActionDropdownItem('Delete pipeline version');
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type(mockVersion.display_name);
+      cy.intercept(
+        {
+          method: 'DELETE',
+          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
+        },
+        mock200Status({}),
+      ).as('deletePipelineVersion');
+
+      deleteModal.findSubmitButton().click();
+      cy.wait('@deletePipelineVersion');
+    });
+
+    it('page details are updated when a new pipeline version is selected', () => {
+      cy.intercept(
+        {
+          method: 'GET',
+          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion2.pipeline_version_id}`,
+        },
+        mockVersion2,
+      );
+      pipelineDetails.selectPipelineVersionByName(mockVersion2.display_name);
+      pipelineDetails.findPageTitle().should('have.text', 'test-version-2');
+      verifyRelativeURL(
+        `/pipelines/${projectId}/pipeline/view/${mockPipeline.pipeline_id}/${mockVersion2.pipeline_version_id}`,
+      );
+    });
+
+    it('page details are updated after uploading a new version', () => {
+      cy.intercept(
+        {
+          method: 'GET',
+          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion2.pipeline_version_id}`,
+        },
+        mockVersion2,
+      );
+      pipelineDetails.findPageTitle().should('have.text', 'test-version-name');
+      pipelineDetails.selectActionDropdownItem('Upload new version');
+      pipelineVersionImportModal.findImportPipelineRadio().check();
+      pipelineVersionImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+      cy.intercept(
+        {
+          method: 'POST',
+          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
+        },
+        mockVersion2,
+      ).as('uploadNewPipelineVersion');
+
+      pipelineVersionImportModal.submit();
+      verifyRelativeURL(
+        `/pipelines/${projectId}/pipeline/view/${mockPipeline.pipeline_id}/${mockVersion2.pipeline_version_id}`,
+      );
+      cy.wait('@uploadNewPipelineVersion').then((interception) => {
+        expect(interception.request.body).to.containSubset({
+          pipeline_id: 'test-pipeline',
+          description: '',
+          package_url: { pipeline_url: 'https://example.com/pipeline.yaml' },
+        });
+      });
+      pipelineDetails.findPageTitle().should('have.text', 'test-version-2');
+    });
+
+    it('validate for Yaml tab in pipeline details tab', () => {
+      pipelineDetails.findYamlTab().click();
+      const pipelineDashboardCodeEditor = pipelineDetails.getPipelineDashboardCodeEditor();
+      pipelineDashboardCodeEditor.findInput().should('not.be.empty');
     });
   });
 

@@ -1,4 +1,39 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+
+class TaskDrawer extends Contextual<HTMLElement> {
+  findInputArtifacts() {
+    return this.find().findByTestId('Input-artifacts');
+  }
+
+  findCommandCodeBlock() {
+    return this.find().findByTestId('command-task-detail-code-block').findByRole('code');
+  }
+
+  findTaskImage() {
+    return this.find().findByTestId('task-detail-image');
+  }
+
+  findArgumentCodeBlock() {
+    return this.find().findByTestId('arguments-task-detail-code-block').findByRole('code');
+  }
+
+  findOutputArtifacts() {
+    return this.find().findByTestId('Output-artifacts');
+  }
+
+  findOutputParameters() {
+    return this.find().findByTestId('Output-parameters');
+  }
+
+  findCloseDrawerButton() {
+    return this.find().findByRole('button', { name: 'Close drawer panel' });
+  }
+
+  shouldHaveTaskName(name: string) {
+    return this.find().findByTestId('pipeline-task-name').should('have.text', name);
+  }
+}
 
 class PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
@@ -12,14 +47,6 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
-  }
-
-  findTaskDrawer() {
-    return cy.findByTestId('task-drawer');
-  }
-
-  findCloseDrawerButton() {
-    return this.findTaskDrawer().findByRole('button', { name: 'Close drawer panel' });
   }
 }
 
@@ -75,7 +102,37 @@ class PipelineDetails extends PipelinesTopology {
     this.wait();
   }
 
-  findActionsDropdown() {
+  private findPipelineVersionSelect() {
+    return cy.findByTestId('pipeline-version-toggle-button');
+  }
+
+  selectPipelineVersionByName(name: string): void {
+    this.findPipelineVersionSelect()
+      .click()
+      .parents()
+      .findByTestId('pipeline-version-selector-table-list')
+      .find('td')
+      .contains(name)
+      .click();
+  }
+
+  findYamlTab() {
+    return cy.findByTestId('pipeline-yaml-tab');
+  }
+
+  getPipelineDashboardCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('pipeline-dashboard-code-editor'));
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  getTaskDrawer() {
+    return new TaskDrawer(() => cy.findByTestId('task-drawer'));
+  }
+
+  private findActionsDropdown() {
     return cy.findByTestId('pipeline-version-details-actions');
   }
 
