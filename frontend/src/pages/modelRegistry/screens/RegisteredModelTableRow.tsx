@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Text, TextVariants, Truncate } from '@patternfly/react-core';
+import { FlexItem, Text, TextVariants, Truncate } from '@patternfly/react-core';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import RegisteredModelLastModified from './RegisteredModelLastModified';
-import RegisteredModelLabels from './RegisteredModelLabels';
 import RegisteredModelOwner from './RegisteredModelOwner';
+import RegisteredModelLink from './RegisteredModelLink';
+import ModelLabels from './ModelLabels';
+import ModelLastModified from './ModelLastModified';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -16,7 +17,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   <Tr>
     <Td dataLabel="Model name">
       <div id="model-name" data-testid="model-name">
-        <Truncate content={rm.name} />
+        <FlexItem>
+          <RegisteredModelLink registeredModel={rm} />
+        </FlexItem>
       </div>
       {rm.description && (
         <Text data-testid="description" component={TextVariants.small}>
@@ -25,10 +28,10 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       )}
     </Td>
     <Td dataLabel="Labels">
-      <RegisteredModelLabels customProperties={rm.customProperties} rmName={rm.name} />
+      <ModelLabels customProperties={rm.customProperties} name={rm.name} />
     </Td>
     <Td dataLabel="Last modified">
-      <RegisteredModelLastModified lastUpdateTimeSinceEpoch={rm.lastUpdateTimeSinceEpoch} />
+      <ModelLastModified lastUpdateTimeSinceEpoch={rm.lastUpdateTimeSinceEpoch} />
     </Td>
     <Td dataLabel="Owner">
       <RegisteredModelOwner registeredModelId={rm.id} />

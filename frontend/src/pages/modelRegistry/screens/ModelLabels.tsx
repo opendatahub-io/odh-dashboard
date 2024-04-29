@@ -9,37 +9,28 @@ import {
   Text,
 } from '@patternfly/react-core';
 import React from 'react';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
-import { getRegisteredModelLabels } from './utils';
+import { getLabels } from './utils';
 
 // Threshold count to decide whether to choose modal or popover
 const MODAL_THRESHOLD = 4;
 
-type RegisteredModelLabelsProps = {
-  rmName: string;
-  customProperties: RegisteredModel['customProperties'];
+type ModelLabelsProps = {
+  name: string;
+  customProperties: RegisteredModel['customProperties'] | ModelVersion['customProperties'];
 };
 
-const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
-  rmName,
-  customProperties,
-}) => {
-  const rmLabels = React.useMemo(
-    () => getRegisteredModelLabels(customProperties),
-    [customProperties],
-  );
-  const [filteredLabels, setFilteredLabels] = React.useState<string[]>([]);
+const ModelLabels: React.FC<ModelLabelsProps> = ({ name, customProperties }) => {
   const [isLabelModalOpen, setIsLabelModalOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState('');
 
-  const doSetSearchDebounced = useDebounceCallback(setSearchValue);
+  const allLabels = getLabels(customProperties);
+  const filteredLabels = allLabels.filter(
+    (label) => label && label.toLowerCase().includes(searchValue.toLowerCase()),
+  );
 
-  React.useEffect(() => {
-    setFilteredLabels(
-      rmLabels.filter((label) => label.toLowerCase().includes(searchValue.toLowerCase())),
-    );
-  }, [rmLabels, searchValue]);
+  const doSetSearchDebounced = useDebounceCallback(setSearchValue);
 
   const labelsComponent = (labels: string[], textMaxWidth?: string) =>
     labels.map((label, index) => (
@@ -86,7 +77,7 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
       onClose={() => setIsLabelModalOpen(false)}
       description={
         <Text>
-          The following are all the labels of <strong>{rmName}</strong>
+          The following are all the labels of <strong>{name}</strong>
         </Text>
       }
       actions={[
@@ -109,7 +100,7 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
         onClear={() => setSearchValue('')}
       />
       <br />
-      <LabelGroup data-testid="modal-label-group" numLabels={rmLabels.length}>
+      <LabelGroup data-testid="modal-label-group" numLabels={allLabels.length}>
         {labelsComponent(filteredLabels, '50ch')}
       </LabelGroup>
     </Modal>
@@ -122,12 +113,12 @@ const RegisteredModelLabels: React.FC<RegisteredModelLabelsProps> = ({
   return (
     <>
       <LabelGroup numLabels={MODAL_THRESHOLD}>
-        {labelsComponent(rmLabels.slice(0, 3))}
-        {getLabelComponent(labelsComponent(rmLabels.slice(3)))}
+        {labelsComponent(allLabels.slice(0, 3))}
+        {getLabelComponent(labelsComponent(allLabels.slice(3)))}
       </LabelGroup>
       {labelModal}
     </>
   );
 };
 
-export default RegisteredModelLabels;
+export default ModelLabels;
