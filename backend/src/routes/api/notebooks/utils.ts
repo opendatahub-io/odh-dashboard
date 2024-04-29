@@ -73,8 +73,8 @@ export const enableNotebook = async (
   const url = request.headers.origin;
 
   try {
-    await getNotebook(fastify, notebookNamespace, name);
-    return await updateNotebook(fastify, username, url, notebookData);
+    const notebook = await getNotebook(fastify, notebookNamespace, name);
+    return await updateNotebook(fastify, username, url, notebookData, notebook);
   } catch (e) {
     if (e.response?.statusCode === 404) {
       return await createNotebook(fastify, username, url, notebookData);

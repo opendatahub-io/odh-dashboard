@@ -6,7 +6,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
+import { ClusterQueueKind, LocalQueueKind, WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
@@ -35,9 +35,16 @@ const initIntercepts = ({
     mockLocalQueueK8sResource({ name: 'test-local-queue', namespace: 'test-project' }),
   ],
   workloads = [
-    mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: WorkloadStatusType.Succeeded }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      ownerKind: WorkloadOwnerType.Job,
+      ownerName: 'test-workload-job',
+      mockStatus: WorkloadStatusType.Succeeded,
+    }),
     mockWorkloadK8sResource({
       k8sName: 'test-workload-2',
+      ownerKind: WorkloadOwnerType.RayCluster,
+      ownerName: 'test-workload-2-rc',
       mockStatus: WorkloadStatusType.Succeeded,
     }),
   ],

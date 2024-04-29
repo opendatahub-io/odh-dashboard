@@ -1,4 +1,5 @@
 import { getDashboardConfig } from './resourceUtils';
+import { merge } from 'lodash';
 import {
   ContainerResourceAttributes,
   EnvironmentVariable,
@@ -510,6 +511,7 @@ export const updateNotebook = async (
   username: string,
   url: string,
   notebookData: NotebookData,
+  oldNotebook: Notebook,
 ): Promise<Notebook> => {
   if (!notebookData) {
     const error = createCustomError(
@@ -521,7 +523,29 @@ export const updateNotebook = async (
     throw error;
   }
   try {
-    const notebookAssembled = await generateNotebookResources(fastify, username, url, notebookData);
+    const serverNotebook = await generateNotebookResources(fastify, username, url, notebookData);
+
+    // Fix for Workbench Certs that get overridden
+    // We are intentionally applying on some details as to avoid implementing logic to properly
+    // manage the notebook the same way as workbench
+    const importantOldNotebookDetails: RecursivePartial<Notebook> = {
+      spec: {
+        template: {
+          spec: {
+            containers: [
+              {
+                env: oldNotebook.spec.template.spec.containers[0].env,
+                volumeMounts: oldNotebook.spec.template.spec.containers[0].volumeMounts,
+              },
+            ],
+            volumes: oldNotebook.spec.template.spec.volumes,
+          },
+        },
+      },
+    };
+
+    const notebookAssembled = merge({}, importantOldNotebookDetails, serverNotebook);
+
     const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
       'kubeflow.org',
       'v1',

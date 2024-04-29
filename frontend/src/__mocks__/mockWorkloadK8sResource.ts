@@ -1,6 +1,6 @@
 import { genUID } from '~/__mocks__/mockUtils';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
-import { WorkloadCondition, WorkloadKind, WorkloadPodSet } from '~/k8sTypes';
+import { WorkloadCondition, WorkloadKind, WorkloadOwnerType, WorkloadPodSet } from '~/k8sTypes';
 
 const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition[]> = {
   Pending: [
@@ -127,14 +127,16 @@ const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition
 type MockResourceConfigType = {
   k8sName?: string;
   namespace?: string;
-  ownerJobName?: string;
+  ownerKind?: WorkloadOwnerType;
+  ownerName?: string;
   mockStatus?: WorkloadStatusType | null;
   podSets?: WorkloadPodSet[];
 };
 export const mockWorkloadK8sResource = ({
   k8sName = 'test-workload',
   namespace = 'test-project',
-  ownerJobName,
+  ownerKind = WorkloadOwnerType.Job,
+  ownerName,
   mockStatus = WorkloadStatusType.Succeeded,
   podSets = [],
 }: MockResourceConfigType): WorkloadKind => ({
@@ -150,16 +152,16 @@ export const mockWorkloadK8sResource = ({
     namespace,
     resourceVersion: '9279356',
     uid: genUID('workload'),
-    ...(ownerJobName
+    ...(ownerName
       ? {
           ownerReferences: [
             {
               apiVersion: 'batch/v1',
               blockOwnerDeletion: true,
               controller: true,
-              kind: 'Job',
-              name: ownerJobName,
-              uid: genUID('job'),
+              kind: ownerKind,
+              name: ownerName,
+              uid: genUID(ownerKind.toLowerCase()),
             },
           ],
         }

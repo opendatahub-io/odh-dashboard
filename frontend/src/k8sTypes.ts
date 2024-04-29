@@ -919,6 +919,11 @@ export type WorkloadPodSet = {
   };
 };
 
+export enum WorkloadOwnerType {
+  RayCluster = 'RayCluster',
+  Job = 'Job',
+}
+
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-Workload
 export type WorkloadKind = K8sResourceCommon & {
   apiVersion: 'kueue.x-k8s.io/v1beta1';
