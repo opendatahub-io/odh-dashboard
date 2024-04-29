@@ -14,6 +14,8 @@ import {
   pipelineImportModal,
   pipelineVersionImportModal,
   pipelineDeleteModal,
+  configurePipelineServerModal,
+  viewPipelineServerModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
@@ -21,8 +23,12 @@ import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
+  SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -32,17 +38,466 @@ const initialMockPipelineVersion = buildMockPipelineVersionV2({
 const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
 
 describe('Pipelines', () => {
-  beforeEach(() => {
-    initIntercepts();
+  it('Empty state', () => {
+    initIntercepts({ isEmpty: true });
     pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findEmptyState().should('exist');
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+  });
+
+  it('Configure pipeline server when data connection exist', () => {
+    initIntercepts({ isEmpty: true });
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({ namespace: projectName }),
+    ).as('createSecret');
+
+    cy.interceptK8s(
+      'POST',
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('createDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([mockSecretK8sResource({ namespace: projectName })]),
+    ).as('refreshSecrets');
+
+    cy.interceptK8sList(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([
+        mockSecretK8sResource({ s3Bucket: 'c2RzZA==', namespace: projectName }),
+      ]),
+    );
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+    pipelinesGlobal.findConfigurePipelineServerButton().click();
+    configurePipelineServerModal.selectDataConnection('Test Secret •••••••••••••••••');
+    configurePipelineServerModal.findAwsKeyInput().should('have.value', 'sdsd');
+    configurePipelineServerModal.findShowPasswordButton().click();
+    configurePipelineServerModal.findAwsSecretKeyInput().should('have.value', 'sdsd');
+    configurePipelineServerModal
+      .findEndpointInput()
+      .should('have.value', 'https://s3.amazonaws.com/');
+    configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
+    configurePipelineServerModal.findBucketInput().should('have.value', 'sdsd');
+    configurePipelineServerModal.findSubmitButton().should('be.enabled');
+    configurePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'dashboard-dspa-secret',
+          namespace: 'test-project-name',
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { AWS_ACCESS_KEY_ID: 'sdsd', AWS_SECRET_ACCESS_KEY: 'sdsd' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.wait('@createDSPA').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: { name: 'dspa', namespace: projectName },
+        spec: {
+          apiServer: { enableSamplePipeline: false },
+          dspVersion: 'v2',
+          objectStorage: {
+            externalStorage: {
+              host: 's3.us-east-1.amazonaws.com',
+              scheme: 'https',
+              bucket: 'sdsd',
+              region: 'us-east-1',
+              s3CredentialsSecret: {
+                accessKey: 'AWS_ACCESS_KEY_ID',
+                secretKey: 'AWS_SECRET_ACCESS_KEY',
+                secretName: 'test-secret',
+              },
+            },
+          },
+        },
+      });
+    });
+  });
+
+  it('Configure pipeline server when data connection does not exist', () => {
+    initIntercepts({ isEmpty: true });
+    pipelinesGlobal.visit(projectName);
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({ namespace: projectName }),
+    ).as('createSecret');
+
+    cy.interceptK8s(
+      'POST',
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('createDSPA');
+
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+    pipelinesGlobal.findConfigurePipelineServerButton().click();
+    configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
+    configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
+    configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
+    configurePipelineServerModal.findBucketInput().type('test-bucket');
+    configurePipelineServerModal.findSubmitButton().should('be.enabled');
+    configurePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'dashboard-dspa-secret',
+          namespace: projectName,
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { AWS_ACCESS_KEY_ID: 'test-aws-key', AWS_SECRET_ACCESS_KEY: 'test-secret-key' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.wait('@createDSPA').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: { name: 'dspa', namespace: 'test-project-name' },
+        spec: {
+          apiServer: { enableSamplePipeline: false },
+          dspVersion: 'v2',
+          objectStorage: {
+            externalStorage: {
+              host: 's3.us-east-1.amazonaws.com',
+              scheme: 'https',
+              bucket: 'test-bucket',
+              region: 'us-east-1',
+              s3CredentialsSecret: {
+                accessKey: 'AWS_ACCESS_KEY_ID',
+                secretKey: 'AWS_SECRET_ACCESS_KEY',
+                secretName: 'test-secret',
+              },
+            },
+          },
+        },
+      });
+    });
+  });
+
+  it('Connect external database while configuring pipeline server', () => {
+    initIntercepts({ isEmpty: true });
+    pipelinesGlobal.visit(projectName);
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({ namespace: projectName }),
+    ).as('createSecret');
+
+    cy.interceptK8s(
+      'POST',
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('createDSPA');
+
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+    pipelinesGlobal.findConfigurePipelineServerButton().click();
+
+    configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
+    configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
+    configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
+    configurePipelineServerModal.findBucketInput().type('test-bucket');
+
+    configurePipelineServerModal.findToggleButton().click();
+    configurePipelineServerModal.findExternalMYSQLDatabaseRadio().click();
+    configurePipelineServerModal.findSubmitButton().should('be.disabled');
+
+    configurePipelineServerModal.findHostInput().type('mysql');
+    configurePipelineServerModal.findPortInput().type('3306');
+    configurePipelineServerModal.findUsernameInput().type('test-user');
+    configurePipelineServerModal.findPasswordInput().type('password');
+    configurePipelineServerModal.findDatabaseInput().type('mlpipelines');
+
+    configurePipelineServerModal.findSubmitButton().should('be.enabled');
+    configurePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'pipelines-db-password',
+          namespace: 'test-project-name',
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { 'db-password': 'password' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'dashboard-dspa-secret',
+          namespace: projectName,
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { AWS_ACCESS_KEY_ID: 'test-aws-key', AWS_SECRET_ACCESS_KEY: 'test-secret-key' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(4); // 2 dry-run request and 2 actual request
+    });
+
+    cy.wait('@createDSPA').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        spec: {
+          apiServer: { enableSamplePipeline: false },
+          dspVersion: 'v2',
+          objectStorage: {
+            externalStorage: {
+              host: 's3.us-east-1.amazonaws.com',
+              scheme: 'https',
+              bucket: 'test-bucket',
+              region: 'us-east-1',
+              s3CredentialsSecret: {
+                accessKey: 'AWS_ACCESS_KEY_ID',
+                secretKey: 'AWS_SECRET_ACCESS_KEY',
+                secretName: 'test-secret',
+              },
+            },
+          },
+          database: {
+            externalDB: {
+              host: 'mysql',
+              passwordSecret: { key: 'db-password', name: 'test-secret' },
+              pipelineDBName: 'mlpipelines',
+              port: '3306',
+              username: 'test-user',
+            },
+          },
+        },
+      });
+    });
+  });
+
+  it('Delete pipeline server', () => {
+    initIntercepts({});
+
+    cy.interceptK8s(
+      'DELETE',
+      SecretModel,
+      mockSecretK8sResource({ name: 'ds-pipeline-config', namespace: projectName }),
+    ).as('deletePipelineConfig');
+    cy.interceptK8s(
+      'DELETE',
+      SecretModel,
+      mockSecretK8sResource({ name: 'pipelines-db-password', namespace: projectName }),
+    ).as('deletePipelineDBPassword');
+    cy.interceptK8s(
+      'DELETE',
+      SecretModel,
+      mockSecretK8sResource({ name: 'dashboard-dspa-secret', namespace: projectName }),
+    ).as('deleteDSPASecret');
+    cy.interceptK8s(
+      'DELETE',
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    ).as('deleteDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.findSubmitButton().should('be.disabled');
+    deleteModal.findInput().fill('Test Project pipeline server');
+    deleteModal.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@deletePipelineDBPassword');
+    cy.wait('@deletePipelineConfig');
+    cy.wait('@deleteDSPASecret');
+    cy.wait('@deleteDSPA');
+  });
+
+  it('View pipeline server', () => {
+    initIntercepts({});
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({
+        s3Bucket: 'c2RzZA==',
+        namespace: projectName,
+        name: 'aws-connection-test',
+      }),
+    );
+
+    pipelinesGlobal.visit(projectName);
+
+    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    viewPipelineServerModal.findCloseButton().click();
+
+    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
+    viewPipelineServerModal.findPasswordHiddenButton().click();
+    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
+    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+
+    viewPipelineServerModal.findDoneButton().click();
   });
 
   it('renders the page with pipelines table data', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     pipelinesTable.find();
     pipelinesTable.getRowByName('Test pipeline').find().should('exist');
   });
 
+  describe('Table filtering and sorting', () => {
+    it('Filter by pipeline name', () => {
+      const mockPipelines: PipelineKFv2[] = [
+        buildMockPipelineV2({
+          display_name: 'Test pipeline 1',
+          pipeline_id: 'test-pipeline-1',
+        }),
+
+        buildMockPipelineV2({
+          display_name: 'Test pipeline 2',
+          pipeline_id: 'test-pipeline-2',
+        }),
+      ];
+
+      initIntercepts({ mockPipelines });
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesTable.findRows().should('have.length', 2);
+
+      pipelinesTable.selectFilterByName('Pipeline name');
+      pipelinesTable.findFilterTextField().type('Test pipeline 1');
+
+      pipelinesTable.mockGetPipelines(
+        mockPipelines.filter((mockpipeline) =>
+          mockpipeline.display_name.includes('Test pipeline 1'),
+        ),
+        projectName,
+      );
+
+      pipelinesTable.getRowByName('Test pipeline 1').find().should('exist');
+      pipelinesTable.findRows().should('have.length', 1);
+    });
+
+    it('Filter by created after', () => {
+      const mockPipelines = [
+        buildMockPipelineV2({
+          display_name: 'Test pipeline 1',
+          pipeline_id: 'test-pipeline-1',
+          created_at: '2023-01-30T22:55:17Z',
+        }),
+
+        buildMockPipelineV2({
+          display_name: 'Test pipeline 2',
+          pipeline_id: 'test-pipeline-2',
+          created_at: '2024-01-30T22:55:17Z',
+        }),
+      ];
+
+      initIntercepts({ mockPipelines });
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesTable.findRows().should('have.length', 2);
+
+      pipelinesTable.mockGetPipelines(
+        mockPipelines.filter((mockpipeline) => mockpipeline.created_at.includes('2024-01-30')),
+        projectName,
+      );
+
+      pipelinesTable.selectFilterByName('Created after');
+      pipelinesTable.findFilterTextField().type('2024-01-30');
+
+      pipelinesTable.findRows().should('have.length', 1);
+      pipelinesTable.getRowByName('Test pipeline 2').find().should('exist');
+    });
+
+    it('table with no result found', () => {
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesTable.selectFilterByName('Pipeline name');
+      pipelinesTable.findFilterTextField().type('abc');
+      const mockPipeline = [initialMockPipeline];
+
+      pipelinesTable.mockGetPipelines(
+        mockPipeline.filter((mockpipeline) => mockpipeline.display_name.includes('abc')),
+        projectName,
+      );
+
+      pipelinesTable.findEmptyResults();
+    });
+
+    it('Table sort', () => {
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+
+      // by Pipeline
+      pipelinesTable.findTableHeaderButton('Pipeline').click();
+      pipelinesTable.findTableHeaderButton('Pipeline').should(be.sortAscending);
+      pipelinesTable.findTableHeaderButton('Pipeline').click();
+      pipelinesTable.findTableHeaderButton('Pipeline').should(be.sortDescending);
+
+      // by Created
+      pipelinesTable.findTableHeaderButton('Created').click();
+      pipelinesTable.findTableHeaderButton('Created').should(be.sortAscending);
+      pipelinesTable.findTableHeaderButton('Created').click();
+      pipelinesTable.findTableHeaderButton('Created').should(be.sortDescending);
+    });
+  });
+
   it('incompatible dpsa version shows error', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     cy.interceptK8sList(
       DataSciencePipelineApplicationModel,
       mockK8sResourceList([
@@ -62,7 +517,8 @@ describe('Pipelines', () => {
 
   it('incompatible dpsa version shows error with delete option for admins', () => {
     asProductAdminUser();
-    initIntercepts();
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     cy.interceptK8sList(
       DataSciencePipelineApplicationModel,
       mockK8sResourceList([
@@ -81,6 +537,8 @@ describe('Pipelines', () => {
   });
 
   it('selects a different project', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     verifyRelativeURL('/pipelines/test-project-name');
 
     pipelinesGlobal.selectProjectByName('Test Project 2');
@@ -88,6 +546,8 @@ describe('Pipelines', () => {
   });
 
   it('imports a new pipeline', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     const uploadPipelineParams = {
       display_name: 'New pipeline',
       description: 'New pipeline description',
@@ -138,6 +598,8 @@ describe('Pipelines', () => {
   });
 
   it('imports a new pipeline by url', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     const createPipelineAndVersionParams = {
       pipeline: {
         display_name: 'New pipeline',
@@ -186,6 +648,8 @@ describe('Pipelines', () => {
   });
 
   it('uploads a new pipeline version', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     const uploadVersionParams = {
       display_name: 'New pipeline version',
       description: 'New pipeline version description',
@@ -249,6 +713,8 @@ describe('Pipelines', () => {
   });
 
   it('imports a new pipeline version by url', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     const createPipelineVersionParams = {
       pipeline_id: 'test-pipeline',
       display_name: 'New pipeline version',
@@ -294,6 +760,8 @@ describe('Pipelines', () => {
   });
 
   it('delete a single pipeline', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
     createDeletePipelineIntercept(initialMockPipeline.pipeline_id).as('deletePipeline');
     pipelinesTable.mockGetPipelineVersions([], initialMockPipeline.pipeline_id, projectName);
     pipelinesGlobal.visit(projectName);
@@ -320,6 +788,9 @@ describe('Pipelines', () => {
   });
 
   it('delete a single pipeline version', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     createDeleteVersionIntercept(
       initialMockPipelineVersion.pipeline_id,
       initialMockPipelineVersion.pipeline_version_id,
@@ -359,6 +830,9 @@ describe('Pipelines', () => {
   });
 
   it('navigate to pipeline version details page', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     // Wait for the pipelines table to load
     pipelinesTable.find();
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
@@ -372,6 +846,9 @@ describe('Pipelines', () => {
   });
 
   it('delete pipeline and versions', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     const mockPipeline1 = buildMockPipelineV2({
       display_name: 'Test pipeline 1',
       pipeline_id: 'test-pipeline-1',
@@ -435,6 +912,9 @@ describe('Pipelines', () => {
   });
 
   it('navigate to create run page from pipeline row', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     // Wait for the pipelines table to load
     pipelinesTable.find();
     pipelinesTable
@@ -445,6 +925,9 @@ describe('Pipelines', () => {
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     pipelinesTable.find();
     pipelinesTable
       .getRowByName(initialMockPipeline.display_name)
@@ -455,6 +938,9 @@ describe('Pipelines', () => {
   });
 
   it('navigate to create run page from pipeline version row', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     // Wait for the pipelines table to load
     pipelinesTable.find();
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
@@ -466,6 +952,9 @@ describe('Pipelines', () => {
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     pipelinesTable.find();
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
@@ -477,6 +966,9 @@ describe('Pipelines', () => {
   });
 
   it('navigate to view runs page from pipeline version row', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     // Wait for the pipelines table to load
     pipelinesTable.find();
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
@@ -488,6 +980,9 @@ describe('Pipelines', () => {
   });
 
   it('navigates to "Schedules" page from pipeline version row', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
     pipelinesTable.find();
     pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
     pipelinesTable
@@ -498,16 +993,27 @@ describe('Pipelines', () => {
   });
 });
 
-const initIntercepts = () => {
+type HandlersProps = {
+  isEmpty?: boolean;
+  mockPipelines?: PipelineKFv2[];
+};
+
+const initIntercepts = ({
+  isEmpty = false,
+  mockPipelines = [initialMockPipeline],
+}: HandlersProps) => {
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
-    mockK8sResourceList([
-      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
-    ]),
+    mockK8sResourceList(
+      isEmpty ? [] : [mockDataSciencePipelineApplicationK8sResource({ namespace: projectName })],
+    ),
   );
   cy.interceptK8s(
     DataSciencePipelineApplicationModel,
-    mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    mockDataSciencePipelineApplicationK8sResource({
+      namespace: projectName,
+      dspaSecretName: 'aws-connection-test',
+    }),
   );
   cy.interceptK8s(
     RouteModel,
@@ -528,7 +1034,7 @@ const initIntercepts = () => {
     {
       pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
-    buildMockPipelines([initialMockPipeline]),
+    buildMockPipelines(mockPipelines),
   );
 
   cy.intercept(

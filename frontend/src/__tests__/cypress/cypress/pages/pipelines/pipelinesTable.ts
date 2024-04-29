@@ -9,10 +9,6 @@ class PipelinesTableRow extends TableRow {
     return this.find().findByTestId(`table-row-title-${name}`).find('a');
   }
 
-  findPipelineVersionName(name: string) {
-    return this.find().parents().findByTestId(`table-row-title-${name}`).find('a');
-  }
-
   toggleExpandByIndex(index: number) {
     this.find().find('button').should('have.attr', 'aria-label', 'Details').eq(index).click();
   }
@@ -26,11 +22,20 @@ class PipelinesTableRow extends TableRow {
     return this;
   }
 }
+
 class PipelinesTable {
   private testId = 'pipelines-table';
 
   find() {
     return cy.findByTestId(this.testId);
+  }
+
+  findRows() {
+    return this.find().find('tbody tr');
+  }
+
+  findTableHeaderButton(name: string) {
+    return this.find().find('thead').findByRole('button', { name });
   }
 
   getRowByName(name: string) {
@@ -46,6 +51,21 @@ class PipelinesTable {
 
   shouldBeEmpty() {
     return cy.findByTestId('global-no-pipelines').should('exist');
+  }
+
+  selectFilterByName(name: string) {
+    cy.findByTestId('pipeline-filter')
+      .findByTestId('pipeline-filter-dropdown')
+      .findDropdownItem(name)
+      .click();
+  }
+
+  findFilterTextField() {
+    return cy.findByTestId('pipeline-filter').findByTestId('pipeline-filter-text-field');
+  }
+
+  findEmptyResults() {
+    return cy.findByTestId('no-result-found-title');
   }
 
   mockDeletePipeline(pipeline: PipelineKFv2, namespace: string) {

@@ -41,7 +41,12 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       actions={[
-        <Button key="done-button" variant="link" onClick={onClose}>
+        <Button
+          key="done-button"
+          variant="link"
+          onClick={onClose}
+          data-testid="view-pipeline-server-done-button"
+        >
           Done
         </Button>,
       ]}
@@ -55,19 +60,19 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
               <Title headingLevel="h2">Object storage connection</Title>
               <DescriptionListGroup>
                 <DescriptionListTerm>Access key</DescriptionListTerm>
-                <DescriptionListDescription>
+                <DescriptionListDescription data-testid="access-key-field">
                   {pipelineSecret.AWS_ACCESS_KEY_ID || ''}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Secret key</DescriptionListTerm>
-                <DescriptionListDescription>
+                <DescriptionListDescription data-testid="secret-key-field">
                   <PasswordHiddenText password={pipelineSecret.AWS_SECRET_ACCESS_KEY ?? ''} />
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Endpoint</DescriptionListTerm>
-                <DescriptionListDescription>
+                <DescriptionListDescription data-testid="endpoint-field">
                   {pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme &&
                   pipelineNamespaceCR.spec.objectStorage.externalStorage.host
                     ? `${pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme}://${pipelineNamespaceCR.spec.objectStorage.externalStorage.host}`
@@ -76,7 +81,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Bucket</DescriptionListTerm>
-                <DescriptionListDescription>
+                <DescriptionListDescription data-testid="bucket-field">
                   {pipelineNamespaceCR.spec.objectStorage.externalStorage.bucket}
                 </DescriptionListDescription>
               </DescriptionListGroup>

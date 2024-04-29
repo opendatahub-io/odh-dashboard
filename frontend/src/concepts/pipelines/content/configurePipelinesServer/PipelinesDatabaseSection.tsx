@@ -61,6 +61,7 @@ export const PipelinesDatabaseSection = ({
             <Radio
               className="checkbox-radio-fix-body-width"
               name="database-type-radio"
+              data-testid="external-database-type-radio"
               id="external-database-type-radio"
               label="Connect to external MySQL database"
               isChecked={!config.database.useDefault}
