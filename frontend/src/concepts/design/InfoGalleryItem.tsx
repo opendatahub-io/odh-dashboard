@@ -23,6 +23,7 @@ type InfoGalleryItemProps = {
   description: string;
   isOpen: boolean;
   onClick?: () => void;
+  testId?: string;
 } & GalleryItemProps;
 
 const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
@@ -32,9 +33,10 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   description,
   isOpen,
   onClick,
+  testId,
   ...rest
 }) => (
-  <DividedGalleryItem {...rest}>
+  <DividedGalleryItem data-testid={testId} {...rest}>
     <Stack hasGutter>
       <StackItem>
         <Flex
@@ -61,6 +63,7 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
           </FlexItem>
           {onClick ? (
             <Button
+              data-testid={testId ? `${testId}-button` : undefined}
               variant={ButtonVariant.link}
               isInline
               onClick={onClick}

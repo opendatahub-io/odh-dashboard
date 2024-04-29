@@ -1,39 +1,18 @@
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+import {
+  customServingRuntimesInitialMock,
+  customServingRuntimesIntercept,
+} from '~/__tests__/cypress/cypress/e2e/customServingRuntimes/customServingRuntimesUtils';
 
 const addfilePath = '../../__mocks__/mock-custom-serving-runtime-add.yaml';
 const editfilePath = '../../__mocks__/mock-custom-serving-runtime-edit.yaml';
-
-const initialMock = [
-  mockServingRuntimeTemplateK8sResource({
-    name: 'template-1',
-    displayName: 'Multi Platform',
-    platforms: [ServingRuntimePlatform.SINGLE],
-  }),
-  mockServingRuntimeTemplateK8sResource({
-    name: 'template-2',
-    displayName: 'Caikit',
-    platforms: [ServingRuntimePlatform.SINGLE],
-    apiProtocol: ServingRuntimeAPIProtocol.GRPC,
-  }),
-  mockServingRuntimeTemplateK8sResource({
-    name: 'template-3',
-    displayName: 'OVMS',
-    platforms: [ServingRuntimePlatform.MULTI],
-  }),
-  mockServingRuntimeTemplateK8sResource({
-    name: 'template-4',
-    displayName: 'Serving Runtime with No Annotations',
-  }),
-];
 
 it('Custom servingruntimes should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -45,12 +24,7 @@ it('Custom servingruntimes should not be available for non product admins', () =
 describe('Custom serving runtimes', () => {
   beforeEach(() => {
     asProductAdminUser();
-    cy.interceptOdh(
-      'GET /api/templates/:namespace',
-      { path: { namespace: 'opendatahub' } },
-      mockK8sResourceList(initialMock),
-    );
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    customServingRuntimesIntercept();
 
     servingRuntimes.visit();
   });
@@ -221,7 +195,7 @@ describe('Custom serving runtimes', () => {
     cy.interceptOdh(
       'GET /api/templates/:namespace',
       { path: { namespace: 'opendatahub' } },
-      mockK8sResourceList([...initialMock, ServingRuntimeTemplateMock]),
+      mockK8sResourceList([...customServingRuntimesInitialMock, ServingRuntimeTemplateMock]),
     ).as('refreshServingRuntime');
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();

@@ -14,13 +14,16 @@ import { SupportedArea } from '~/concepts/areas';
 import ProjectsSection from './projects/ProjectsSection';
 import { useAIFlows } from './aiFlows/useAIFlows';
 import { useResourcesSection } from './resources/useResourcesSection';
+import { useEnableTeamSection } from './useEnableTeamSection';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const aiFlows = useAIFlows();
   const resourcesSection = useResourcesSection();
 
-  if (!projectsAvailable && !aiFlows && !resourcesSection) {
+  const enableTeamSection = useEnableTeamSection();
+
+  if (!projectsAvailable && !aiFlows && !resourcesSection && !enableTeamSection) {
     return (
       <PageSection data-testid="home-page-empty" variant={PageSectionVariants.default}>
         <Bullseye>
@@ -41,6 +44,7 @@ const Home: React.FC = () => {
       <ProjectsSection />
       {aiFlows}
       {resourcesSection}
+      {enableTeamSection}
     </div>
   );
 };
