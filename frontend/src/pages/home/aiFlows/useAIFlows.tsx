@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { PageSection, Stack, Text, TextContent } from '@patternfly/react-core';
-import projectIcon from '~/images/UI_icon-Red_Hat-Folder-Color.svg';
-import pipelineIcon from '~/images/UI_icon-Red_Hat-Branch-Color.svg';
-import chartIcon from '~/images/UI_icon-Red_Hat-Chart-Color.svg';
-import { SectionType } from '~/concepts/design/utils';
+import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
+import ProjectImage from './flowImages/ProjectImage';
+import BranchImage from './flowImages/BranchImage';
+import ChartImage from './flowImages/ChartImage';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
@@ -27,8 +27,11 @@ export const useAIFlows = (): React.ReactNode => {
           key="projects"
           data-testid="ai-flow-projects-card"
           title="Organize your work with projects"
-          imgSrc={projectIcon}
-          imgAlt="organizing your work"
+          image={
+            <ProjectImage
+              style={{ color: sectionTypeBorderColor(SectionType.organize), width: 42, height: 42 }}
+            />
+          }
           sectionType={SectionType.organize}
           selected={selected === 'organize'}
           onSelect={() => setSelected((prev) => (prev === 'organize' ? undefined : 'organize'))}
@@ -41,8 +44,11 @@ export const useAIFlows = (): React.ReactNode => {
           key="train"
           data-testid="ai-flow-train-card"
           title="Create and train models"
-          imgSrc={pipelineIcon}
-          imgAlt="train your models"
+          image={
+            <BranchImage
+              style={{ color: sectionTypeBorderColor(SectionType.training), width: 42, height: 42 }}
+            />
+          }
           sectionType={SectionType.training}
           selected={selected === 'train'}
           onSelect={() => setSelected((prev) => (prev === 'train' ? undefined : 'train'))}
@@ -55,8 +61,11 @@ export const useAIFlows = (): React.ReactNode => {
           key="models"
           data-testid="ai-flow-models-card"
           title="Deploy and monitor models"
-          imgSrc={chartIcon}
-          imgAlt="deploy models"
+          image={
+            <ChartImage
+              style={{ color: sectionTypeBorderColor(SectionType.serving), width: 42, height: 42 }}
+            />
+          }
           sectionType={SectionType.serving}
           selected={selected === 'serving'}
           onSelect={() => setSelected((prev) => (prev === 'serving' ? undefined : 'serving'))}
