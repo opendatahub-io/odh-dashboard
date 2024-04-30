@@ -22,7 +22,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   showChildrenWhenClosed,
 }) => {
   const [innerOpen, setInnerOpen] = React.useState<boolean>(true);
-  const localId = id || title.replace(' ', '-');
+  const localId = id || title.replace(/ /g, '-');
   const titleId = `${localId}-title`;
 
   return (

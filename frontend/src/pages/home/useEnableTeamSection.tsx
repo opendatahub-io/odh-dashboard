@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PageSection, TextVariants } from '@patternfly/react-core';
+import { PageSection, Text, TextContent, TextVariants } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
@@ -44,8 +44,14 @@ export const useEnableTeamSection = (): React.ReactNode => {
         onClick={() => navigate('/notebookImages')}
         imgSrc={notebookImagesImage}
         sectionType={SectionType.setup}
-        description="These are instances of your development and experimentation environment. They
-           typically contain IDEs, such as JupyterLab, RStudio, and Visual Studio Code."
+        description={
+          <TextContent>
+            <Text component="small">
+              These are instances of your development and experimentation environment. They
+              typically contain IDEs, such as JupyterLab, RStudio, and Visual Studio Code.
+            </Text>
+          </TextContent>
+        }
       />,
     );
   }
@@ -59,9 +65,15 @@ export const useEnableTeamSection = (): React.ReactNode => {
         onClick={() => navigate('/servingRuntimes')}
         imgSrc={servingRuntimesImage}
         sectionType={SectionType.setup}
-        description="Administrators can access notebook servers that are owned by other users to
-            correct configuration errors or help a data scientist troubleshoot problems with their
-            environment."
+        description={
+          <TextContent>
+            <Text component="small">
+              Administrators can access notebook servers that are owned by other users to correct
+              configuration errors or help a data scientist troubleshoot problems with their
+              environment.
+            </Text>
+          </TextContent>
+        }
       />,
     );
   }
@@ -75,8 +87,14 @@ export const useEnableTeamSection = (): React.ReactNode => {
         onClick={() => navigate('/clusterSettings')}
         imgSrc={clusterSettingsImage}
         sectionType={SectionType.setup}
-        description="You can change the default size of the cluster’s persistent volume claim (PVC)
-            ensuring that the storage requested matches your common storage workflow."
+        description={
+          <TextContent>
+            <Text component="small">
+              You can change the default size of the cluster’s persistent volume claim (PVC)
+              ensuring that the storage requested matches your common storage workflow.
+            </Text>
+          </TextContent>
+        }
       />,
     );
   }
@@ -90,9 +108,15 @@ export const useEnableTeamSection = (): React.ReactNode => {
         onClick={() => navigate('/groupSettings')}
         imgSrc={userImage}
         sectionType={SectionType.setup}
-        description="If you plan to restrict access to your instance by defining specialized user
-            groups, you must grant users permission access by adding user accounts to the Red Hat
-            OpenShift AI user group, administrator group, or both."
+        description={
+          <TextContent>
+            <Text component="small">
+              If you plan to restrict access to your instance by defining specialized user groups,
+              you must grant users permission access by adding user accounts to the Red Hat
+              OpenShift AI user group, administrator group, or both.
+            </Text>
+          </TextContent>
+        }
       />,
     );
   }
