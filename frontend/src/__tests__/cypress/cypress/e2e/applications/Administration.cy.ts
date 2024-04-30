@@ -9,6 +9,8 @@ import {
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
+import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -18,11 +20,14 @@ const groupSubjects: RoleBindingSubject[] = [
   },
 ];
 
-const initIntercepts = () => {
-  cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', [
-    mockAllowedUsers({}),
-    mockAllowedUsers({ username: 'regularuser1' }),
-  ]);
+type HandlersProps = {
+  allowedUser?: AllowedUser[];
+};
+
+const initIntercepts = ({
+  allowedUser = [mockAllowedUsers({}), mockAllowedUsers({ username: 'regularuser1' })],
+}: HandlersProps) => {
+  cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', allowedUser);
   cy.interceptOdh(
     'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
     mockK8sResourceList([
@@ -36,8 +41,8 @@ const initIntercepts = () => {
   cy.interceptOdh('GET /api/images/:type', { path: { type: 'jupyter' } }, mockNotebookImageInfo());
 };
 
-it('Administartion tab should not be accessible for non-project admins', () => {
-  initIntercepts();
+it('Administration tab should not be accessible for non-project admins', () => {
+  initIntercepts({});
   asProjectEditUser();
   notebookController.visit();
   notebookController.findAdministrationTab().should('not.exist');
@@ -47,13 +52,13 @@ it('Administartion tab should not be accessible for non-project admins', () => {
 
 describe('Administration Tab', () => {
   beforeEach(() => {
-    initIntercepts();
     asProductAdminUser();
-    notebookController.visit();
-    notebookController.findAdministrationTab().click();
   });
 
   it('Check table with users details', () => {
+    initIntercepts({});
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
     administration.shouldHaveManageUsersAlert();
     administration.findStopAllServersButton().should('be.disabled');
     const userRow = administration.getRow('test-user');
@@ -63,6 +68,9 @@ describe('Administration Tab', () => {
   });
 
   it('Users table sorting', () => {
+    initIntercepts({});
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
     // By user
     administration.findTableHeaderButton('User').click();
     administration.findTableHeaderButton('User').should(be.sortDescending);
@@ -88,7 +96,27 @@ describe('Administration Tab', () => {
     administration.findTableHeaderButton('Server status').should(be.sortDescending);
   });
 
+  it('Validate pagination', () => {
+    const totalItems = 50;
+    const mockAllowedUser: AllowedUser[] = Array.from({ length: totalItems }, (_, i) =>
+      mockAllowedUsers({
+        username: `Test user-${i}`,
+      }),
+    );
+    initIntercepts({ allowedUser: mockAllowedUser });
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    // top pagination
+    testPagination({ totalItems, firstElement: 'Test user-0', paginationVariant: 'top' });
+
+    // bottom pagination
+    testPagination({ totalItems, firstElement: 'Test user-0', paginationVariant: 'bottom' });
+  });
+
   it('Validate that clicking on "Start server" button will open a form in administartion tab and "Start your server" button will navigate to notebook server tab', () => {
+    initIntercepts({});
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
     let userRow = administration.getRow('regularuser1');
 
     // open a form in administartion tab with impersonate alert

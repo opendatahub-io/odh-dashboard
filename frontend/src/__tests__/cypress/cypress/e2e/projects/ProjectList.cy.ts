@@ -7,6 +7,7 @@ import { incrementResourceVersion } from '~/__mocks__/mockUtils';
 import { ProjectModel, ProjectRequestModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 describe('Data science projects details', () => {
   it('should not have option to create new project', () => {
@@ -78,6 +79,30 @@ describe('Data science projects details', () => {
 
     cy.wsK8s('MODIFIED', ProjectModel, deletedMockProjectResource(mockProject));
     projectListPage.shouldBeEmpty();
+  });
+
+  it('validate pagination', () => {
+    const totalItems = 50;
+    const mockProject: ProjectKind[] = Array.from({ length: totalItems }, (_, i) =>
+      mockProjectK8sResource({
+        k8sName: `ds-project-${i}`,
+        displayName: `DS Project ${i}`,
+        isDSProject: true,
+      }),
+    );
+    mockProjectK8sResource({});
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProject));
+    projectListPage.visit();
+
+    // top pagination
+    testPagination({ totalItems, firstElement: 'DS Project 0', paginationVariant: 'top' });
+
+    // bottom pagination
+    testPagination({
+      totalItems,
+      firstElement: 'DS Project 0',
+      paginationVariant: 'bottom',
+    });
   });
 
   it('should react to updates through web sockets', () => {
