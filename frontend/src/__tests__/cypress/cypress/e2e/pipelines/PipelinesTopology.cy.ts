@@ -335,6 +335,22 @@ describe('Pipeline topology', () => {
         );
       });
 
+      it('Test pipeline job delete navigation', () => {
+        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+        pipelineRunJobDetails.selectActionDropdownItem('Delete');
+        deleteModal.shouldBeOpen();
+        deleteModal.findInput().type(mockPipeline.display_name);
+
+        cy.interceptOdh(
+          'DELETE /api/service/pipelines/:projectId/dspa/apis/v2beta1/recurringruns/:pipeline_id',
+          { path: { projectId, pipeline_id: mockPipeline.pipeline_id } },
+          mock200Status({}),
+        ).as('deletepipelineRunJob');
+
+        deleteModal.findSubmitButton().click();
+        cy.wait('@deletepipelineRunJob');
+      });
+
       it('Test pipeline job bottom drawer project navigation', () => {
         pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
 
@@ -413,6 +429,23 @@ describe('Pipeline topology', () => {
         .findBottomDrawerDetailItem('standard_scaler')
         .findValue()
         .contains('yes');
+    });
+    it('Ensure that clicking on a node will open a right-side drawer', () => {
+      initIntercepts();
+
+      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+
+      pipelineDetails.findTaskNode('create-dataset').click();
+      const taskDrawer = pipelineDetails.getTaskDrawer();
+      taskDrawer.shouldHaveTaskName('create-dataset ');
+      taskDrawer.findInputArtifacts().should('not.exist');
+      taskDrawer.findOutputParameters().should('not.exist');
+      taskDrawer.findOutputArtifacts().should('exist');
+      taskDrawer.findCommandCodeBlock().should('not.be.empty');
+      taskDrawer.findArgumentCodeBlock().should('not.be.empty');
+      taskDrawer.findTaskImage().should('have.text', 'Imagequay.io/hukhan/iris-base:1');
+      taskDrawer.findCloseDrawerButton().click();
+      taskDrawer.find().should('not.exist');
     });
 
     it('Test pipeline triggered run bottom drawer details', () => {

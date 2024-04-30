@@ -1,4 +1,4 @@
-import { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import { ModelVersionList, RegisteredModelList } from '~/concepts/modelRegistry/types';
@@ -288,6 +288,12 @@ declare global {
       interceptOdh(
         type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models`,
         response: OdhResponse<RegisteredModelList | undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'DELETE /api/service/pipelines/:projectId/dspa/apis/v2beta1/recurringruns/:pipeline_id',
+        options: { path: { projectId: string; pipeline_id: string } },
+        response: OdhResponse<K8sStatus>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
