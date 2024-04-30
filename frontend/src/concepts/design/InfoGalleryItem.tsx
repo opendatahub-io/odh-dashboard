@@ -7,8 +7,6 @@ import {
   GalleryItemProps,
   Stack,
   StackItem,
-  Text,
-  TextContent,
 } from '@patternfly/react-core';
 import { SectionType, sectionTypeBackgroundColor } from '~/concepts/design/utils';
 import DividedGalleryItem from '~/concepts/design/DividedGalleryItem';
@@ -20,7 +18,7 @@ type InfoGalleryItemProps = {
   title: string;
   imgSrc: string;
   sectionType: SectionType;
-  description: string;
+  description: React.ReactNode;
   isOpen: boolean;
   onClick?: () => void;
   testId?: string;
@@ -79,13 +77,7 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
           )}
         </Flex>
       </StackItem>
-      {isOpen ? (
-        <StackItem isFilled>
-          <TextContent>
-            <Text component="small">{description}</Text>
-          </TextContent>
-        </StackItem>
-      ) : null}
+      {isOpen ? <StackItem isFilled>{description}</StackItem> : null}
     </Stack>
   </DividedGalleryItem>
 );

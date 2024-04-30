@@ -1,10 +1,10 @@
-import { initHomeIntercepts } from '~/__tests__/cypress/cypress/e2e/home/homeUtils';
 import { mockDocs } from '~/__mocks__/mockDocs';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
 import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/e2e/customServingRuntimes/customServingRuntimesUtils';
 import { notebookImageSettings } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
+import { homePage } from '~/__tests__/cypress/cypress/pages/home';
 
 describe('Home page Admin section', () => {
   beforeEach(() => {
@@ -14,9 +14,8 @@ describe('Home page Admin section', () => {
   });
   it('should show the admin section for admins', () => {
     asProductAdminUser();
-    initHomeIntercepts({ disableHome: false });
-
-    cy.visit('/');
+    homePage.initHomeIntercepts({ disableHome: false });
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
     cy.findByTestId('landing-page-admin--notebook-images').should('be.visible');
@@ -25,16 +24,16 @@ describe('Home page Admin section', () => {
     cy.findByTestId('landing-page-admin--user-management').should('be.visible');
   });
   it('should hide the admin section for non-admin users', () => {
-    initHomeIntercepts({ disableHome: false });
     asProjectEditUser();
-    cy.visit('/');
+    homePage.initHomeIntercepts({ disableHome: false });
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').should('not.exist');
   });
   it('should hide notebook images card when not available', () => {
     asProductAdminUser();
-    initHomeIntercepts({ disableHome: false, disableBYONImageStream: true });
-    cy.visit('/');
+    homePage.initHomeIntercepts({ disableHome: false, disableBYONImageStream: true });
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
     cy.findByTestId('landing-page-admin--notebook-images').should('not.exist');
@@ -44,8 +43,8 @@ describe('Home page Admin section', () => {
   });
   it('should hide serving runtimes card when not available', () => {
     asProductAdminUser();
-    initHomeIntercepts({ disableHome: false, disableCustomServingRuntimes: true });
-    cy.visit('/');
+    homePage.initHomeIntercepts({ disableHome: false, disableCustomServingRuntimes: true });
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
     cy.findByTestId('landing-page-admin--notebook-images').should('be.visible');
@@ -55,8 +54,8 @@ describe('Home page Admin section', () => {
   });
   it('should hide cluster settings card when not available', () => {
     asProductAdminUser();
-    initHomeIntercepts({ disableHome: false, disableClusterManager: true });
-    cy.visit('/');
+    homePage.initHomeIntercepts({ disableHome: false, disableClusterManager: true });
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
     cy.findByTestId('landing-page-admin--notebook-images').should('be.visible');
@@ -66,8 +65,8 @@ describe('Home page Admin section', () => {
   });
   it('should hide user management card when not available', () => {
     asProductAdminUser();
-    initHomeIntercepts({ disableHome: false, disableUserManagement: true });
-    cy.visit('/');
+    homePage.initHomeIntercepts({ disableHome: false, disableUserManagement: true });
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
     cy.findByTestId('landing-page-admin--notebook-images').should('be.visible');
@@ -77,7 +76,7 @@ describe('Home page Admin section', () => {
   });
   it('should hide the admin section if all cards are hidden', () => {
     asProductAdminUser();
-    initHomeIntercepts({
+    homePage.initHomeIntercepts({
       disableHome: false,
       disableBYONImageStream: true,
       disableCustomServingRuntimes: true,
@@ -85,16 +84,16 @@ describe('Home page Admin section', () => {
       disableUserManagement: true,
     });
 
-    cy.visit('/');
+    homePage.visit();
 
     cy.get('#dashboard-page-main').find('[class="pf-v5-c-drawer__content"]').scrollTo('bottom');
     cy.findByTestId('landing-page-admin').should('not.exist');
   });
   it('should navigate to the correct section when the title is clicked', () => {
     asProductAdminUser();
-    initHomeIntercepts({ disableHome: false });
+    homePage.initHomeIntercepts({ disableHome: false });
     customServingRuntimesIntercept();
-    cy.visit('/');
+    homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
 
@@ -104,15 +103,15 @@ describe('Home page Admin section', () => {
     // Verify the Settings nav menu is now expanded
     notebookImageSettings.findNavItem().should('be.visible');
 
-    cy.visit('/');
+    homePage.visit();
     cy.findByTestId('landing-page-admin--serving-runtimes-button').click();
     cy.findByTestId('app-page-title').should('have.text', 'Serving runtimes');
 
-    cy.visit('/');
+    homePage.visit();
     cy.findByTestId('landing-page-admin--cluster-settings-button').click();
     cy.findByTestId('app-page-title').should('have.text', 'Cluster settings');
 
-    cy.visit('/');
+    homePage.visit();
     cy.findByTestId('landing-page-admin--user-management-button').click();
     cy.findByTestId('app-page-title').should('have.text', 'User management');
   });
