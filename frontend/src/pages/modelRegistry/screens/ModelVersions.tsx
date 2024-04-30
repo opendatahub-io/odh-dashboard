@@ -1,10 +1,11 @@
 import React from 'react';
 import { useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import GlobalModelVersionsTabs from './GlobalModelVersionsTabs';
 import { ModelVersionsTabs } from './const';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
@@ -17,7 +18,7 @@ type ModelVersionsProps = {
 >;
 
 const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { registeredModelId: rmId } = useParams();
   const [modelVersions, mvLoaded, mvLoadError] = useModelVersionsByRegisteredModel(rmId);
   const [rm] = useRegisteredModelById(rmId);
@@ -26,11 +27,14 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
     <ApplicationsPage
       {...pageProps}
       breadcrumb={
-        // TODO: refactor this
         <Breadcrumb>
-          <BreadcrumbItem to="/modelRegistry/modelregistry-sample">
-            Registered models - {preferredModelRegistry?.metadata.name}
-          </BreadcrumbItem>
+          <BreadcrumbItem
+            render={() => (
+              <Link to="/modelRegistry">
+                Registered models - {preferredModelRegistry?.metadata.name}
+              </Link>
+            )}
+          />
           <BreadcrumbItem isActive>{rm?.name}</BreadcrumbItem>
         </Breadcrumb>
       }
