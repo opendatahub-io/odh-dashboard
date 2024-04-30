@@ -15,6 +15,7 @@ import ProjectsSection from './projects/ProjectsSection';
 import { useAIFlows } from './aiFlows/useAIFlows';
 import { useResourcesSection } from './resources/useResourcesSection';
 import { useEnableTeamSection } from './useEnableTeamSection';
+import HomeHint from './HomeHint';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
@@ -25,22 +26,26 @@ const Home: React.FC = () => {
 
   if (!projectsAvailable && !aiFlows && !resourcesSection && !enableTeamSection) {
     return (
-      <PageSection data-testid="home-page-empty" variant={PageSectionVariants.default}>
-        <Bullseye>
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText={`Welcome to ${ODH_PRODUCT_NAME}`}
-              headingLevel="h4"
-              icon={<EmptyStateIcon icon={HomeIcon} />}
-            />
-          </EmptyState>
-        </Bullseye>
-      </PageSection>
+      <>
+        <HomeHint />
+        <PageSection data-testid="home-page-empty" variant={PageSectionVariants.default}>
+          <Bullseye>
+            <EmptyState variant="full">
+              <EmptyStateHeader
+                titleText={`Welcome to ${ODH_PRODUCT_NAME}`}
+                headingLevel="h4"
+                icon={<EmptyStateIcon icon={HomeIcon} />}
+              />
+            </EmptyState>
+          </Bullseye>
+        </PageSection>
+      </>
     );
   }
 
   return (
     <div data-testid="home-page">
+      <HomeHint />
       <ProjectsSection />
       {aiFlows}
       {resourcesSection}

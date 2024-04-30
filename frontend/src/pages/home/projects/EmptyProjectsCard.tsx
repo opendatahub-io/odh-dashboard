@@ -19,7 +19,7 @@ type EmptyProjectsCardProps = {
 };
 
 const EmptyProjectsCard: React.FC<EmptyProjectsCardProps> = ({ allowCreate, onCreateProject }) => (
-  <Card data-testid="landing-page-projects-empty">
+  <Card data-testid="landing-page-projects-empty" style={{ borderRadius: 16 }}>
     <CardBody>
       <Flex
         gap={{ default: 'gapLg' }}

@@ -23,6 +23,7 @@ type MockDashboardConfigType = {
   disablePipelineExperiments?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
+  disableNotebookController?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -48,6 +49,7 @@ export const mockDashboardConfig = ({
   disablePipelineExperiments = true,
   disableDistributedWorkloads = false,
   disableModelRegistry = true,
+  disableNotebookController = false,
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -86,7 +88,7 @@ export const mockDashboardConfig = ({
       disableModelRegistry,
     },
     notebookController: {
-      enabled: true,
+      enabled: !disableNotebookController,
       notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
