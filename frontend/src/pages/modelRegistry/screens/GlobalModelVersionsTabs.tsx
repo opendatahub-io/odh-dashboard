@@ -11,12 +11,14 @@ type GlobalModelVersionsTabProps = {
   tab: ModelVersionsTabs;
   registeredModel: RegisteredModel;
   modelVersions: ModelVersion[];
+  refresh: () => void;
 };
 
 const GlobalModelVersionsTabs: React.FC<GlobalModelVersionsTabProps> = ({
   tab,
   registeredModel: rm,
   modelVersions,
+  refresh,
 }) => {
   const navigate = useNavigate();
   return (
@@ -44,7 +46,7 @@ const GlobalModelVersionsTabs: React.FC<GlobalModelVersionsTabProps> = ({
         data-testid="model-details-tab"
       >
         <PageSection isFilled variant="light" data-testid="model-details-tab-content">
-          <ModelDetailsView registeredModel={rm} />
+          <ModelDetailsView registeredModel={rm} refresh={refresh} />
         </PageSection>
       </Tab>
     </Tabs>

@@ -35,6 +35,57 @@ export enum ModelArtifactState {
   REFERENCE = 'REFERENCE',
 }
 
+export enum ModelRegistryMetadataType {
+  INT = 'MetadataIntValue',
+  DOUBLE = 'MetadataDoubleValue',
+  STRING = 'MetadataStringValue',
+  STRUCT = 'MetadataStructValue',
+  PROTO = 'MetadataProtoValue',
+  BOOL = 'MetadataBoolValue',
+}
+
+export type ModelRegistryCustomPropertyInt = {
+  metadataType: ModelRegistryMetadataType.INT;
+  int_value: string; // int64-formatted string
+};
+
+export type ModelRegistryCustomPropertyDouble = {
+  metadataType: ModelRegistryMetadataType.DOUBLE;
+  double_value: number;
+};
+
+export type ModelRegistryCustomPropertyString = {
+  metadataType: ModelRegistryMetadataType.STRING;
+  string_value: string;
+};
+
+export type ModelRegistryCustomPropertyStruct = {
+  metadataType: ModelRegistryMetadataType.STRUCT;
+  struct_value: string; // Base64 encoded bytes for struct value
+};
+
+export type ModelRegistryCustomPropertyProto = {
+  metadataType: ModelRegistryMetadataType.PROTO;
+  type: string; // url describing proto value
+  proto_value: string; // Base64 encoded bytes for proto value
+};
+
+export type ModelRegistryCustomPropertyBool = {
+  metadataType: ModelRegistryMetadataType.BOOL;
+  bool_value: boolean;
+};
+
+export type ModelRegistryCustomProperty =
+  | ModelRegistryCustomPropertyInt
+  | ModelRegistryCustomPropertyDouble
+  | ModelRegistryCustomPropertyString
+  | ModelRegistryCustomPropertyStruct
+  | ModelRegistryCustomPropertyProto
+  | ModelRegistryCustomPropertyBool;
+
+export type ModelRegistryCustomProperties = Record<string, ModelRegistryCustomProperty>;
+export type ModelRegistryStringCustomProperties = Record<string, ModelRegistryCustomPropertyString>;
+
 export type ModelRegistryBase = {
   id: string;
   name: string;
@@ -42,7 +93,7 @@ export type ModelRegistryBase = {
   description?: string;
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch: string;
-  customProperties: Record<string, Record<string, string>>;
+  customProperties: ModelRegistryCustomProperties;
 };
 
 export type ModelArtifact = ModelRegistryBase & {

@@ -719,3 +719,8 @@ export enum ServingRuntimeAPIProtocol {
   REST = 'REST',
   GRPC = 'gRPC',
 }
+
+export type KeyValuePair = {
+  key: string;
+  value: string;
+};

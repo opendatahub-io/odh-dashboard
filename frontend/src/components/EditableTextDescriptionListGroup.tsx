@@ -9,7 +9,7 @@ type EditableTextDescriptionListGroupProps = Pick<
   'title' | 'contentWhenEmpty'
 > & {
   value: string;
-  saveEditedValue: (value: string) => Promise<void>;
+  saveEditedValue: (value: string) => Promise<unknown>;
 };
 
 const EditableTextDescriptionListGroup: React.FC<EditableTextDescriptionListGroupProps> = ({
@@ -37,6 +37,8 @@ const EditableTextDescriptionListGroup: React.FC<EditableTextDescriptionListGrou
           value={unsavedValue}
           onChange={(_event, v) => setUnsavedValue(v)}
           isDisabled={isSavingEdits}
+          rows={24}
+          resizeOrientation="vertical"
         />
       }
       onEditClick={() => {

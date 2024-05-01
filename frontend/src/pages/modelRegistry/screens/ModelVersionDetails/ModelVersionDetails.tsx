@@ -26,7 +26,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
-  const [mv, mvLoaded, mvLoadError] = useModelVersionById(mvId);
+  const [mv, mvLoaded, mvLoadError, refresh] = useModelVersionById(mvId);
 
   return (
     <ApplicationsPage
@@ -80,7 +80,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
       loaded={mvLoaded}
       provideChildrenPadding
     >
-      {mv !== null && <ModelVersionDetailsTabs tab={tab} modelVersion={mv} />}
+      {mv !== null && <ModelVersionDetailsTabs tab={tab} modelVersion={mv} refresh={refresh} />}
     </ApplicationsPage>
   );
 };

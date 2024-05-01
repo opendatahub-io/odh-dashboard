@@ -20,7 +20,8 @@ type EditableTextDescriptionListGroupProps = Partial<
   Pick<DashboardDescriptionListGroupProps, 'title' | 'contentWhenEmpty'>
 > & {
   labels: string[];
-  saveEditedLabels: (labels: string[]) => Promise<void>;
+  saveEditedLabels: (labels: string[]) => Promise<unknown>;
+  allExistingKeys?: string[];
 };
 
 const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGroupProps> = ({
@@ -28,6 +29,7 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
   contentWhenEmpty = 'No labels',
   labels,
   saveEditedLabels,
+  allExistingKeys = labels,
 }) => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [unsavedLabels, setUnsavedLabels] = React.useState(labels);
@@ -54,10 +56,22 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
     setUnsavedLabels([...unsavedLabels, text]);
   };
 
+  // Don't allow a label that matches a non-label property key or another label (as they stand before saving)
+  // Note that this means if you remove a label and add it back before saving, that is valid
+  const reservedKeys = [
+    ...allExistingKeys.filter((key) => !labels.includes(key)),
+    ...unsavedLabels,
+  ];
+
   const [isAddLabelModalOpen, setIsAddLabelModalOpen] = React.useState(false);
   const [addLabelInputValue, setAddLabelInputValue] = React.useState('');
   const addLabelInputRef = React.useRef<HTMLInputElement>(null);
-  const addLabelInputTooLong = addLabelInputValue.length > 63;
+  let addLabelValidationError: string | null = null;
+  if (reservedKeys.includes(addLabelInputValue)) {
+    addLabelValidationError = 'Label must not match an existing label or property key';
+  } else if (addLabelInputValue.length > 63) {
+    addLabelValidationError = "Label text can't exceed 63 characters";
+  }
 
   const toggleAddLabelModal = () => {
     setAddLabelInputValue('');
@@ -68,7 +82,8 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
       addLabelInputRef.current.focus();
     }
   }, [isAddLabelModalOpen]);
-  const addLabelModalSubmitDisabled = !addLabelInputValue || addLabelInputTooLong;
+
+  const addLabelModalSubmitDisabled = !addLabelInputValue || !!addLabelValidationError;
   const submitAddLabelModal = (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!addLabelModalSubmitDisabled) {
@@ -107,7 +122,11 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
                 editableProps={{ 'aria-label': `Editable label with text ${label}` }}
                 onClose={() => removeUnsavedLabel(label)}
                 closeBtnProps={{ isDisabled: isSavingEdits }}
-                onEditComplete={(_event, newText) => editUnsavedLabel(newText, index)}
+                onEditComplete={(_event, newText) => {
+                  if (!reservedKeys.includes(newText) && newText.length <= 63) {
+                    editUnsavedLabel(newText, index);
+                  }
+                }}
               >
                 {label}
               </Label>
@@ -172,13 +191,13 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
               }
               ref={addLabelInputRef}
               isRequired
-              validated={addLabelInputTooLong ? 'error' : 'default'}
+              validated={addLabelValidationError ? 'error' : 'default'}
             />
-            {addLabelInputTooLong && (
+            {addLabelValidationError && (
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                    Label text can&apos;t exceed 63 characters
+                    {addLabelValidationError}
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
