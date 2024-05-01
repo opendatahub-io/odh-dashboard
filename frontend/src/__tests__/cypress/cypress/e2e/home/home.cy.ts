@@ -3,24 +3,22 @@ import { mockComponents } from '~/__mocks__/mockComponents';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home';
 
 describe('Home page', () => {
-  it('should not be shown by default', () => {
+  beforeEach(() => {
+    cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
     homePage.initHomeIntercepts();
-
-    cy.visit('/');
-    cy.findByTestId('app-page-title').should('have.text', 'Enabled');
   });
-  it('should be shown when enabled', () => {
-    homePage.initHomeIntercepts({ disableHome: false });
+  it('should be shown by default', () => {
     homePage.visit();
 
     // enabled applications page is still navigable
-    cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
-    enabledPage.visit(true);
+    enabledPage.visit();
+  });
+  it('should be not shown when disabled', () => {
+    homePage.initHomeIntercepts({ disableHome: true });
+    cy.visit('/');
+    cy.findByTestId('app-page-title').should('have.text', 'Enabled');
   });
   it('should show the home page hint', () => {
-    homePage.initHomeIntercepts({ disableHome: false });
-    cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
-
     homePage.visit();
 
     cy.findByTestId('jupyter-hint-icon').should('be.visible');
@@ -32,24 +30,18 @@ describe('Home page', () => {
     cy.findByTestId('enabled-application').should('be.visible');
   });
   it('should hide the home page hint when the notebook controller is disabled.', () => {
-    homePage.initHomeIntercepts({ disableHome: false, disableNotebookController: true });
-    cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
-
+    homePage.initHomeIntercepts({ disableNotebookController: true });
     cy.visit('/');
 
     cy.findByTestId('home-page-hint').should('not.exist');
   });
   it('should hide the home page hint when closed', () => {
-    homePage.initHomeIntercepts({ disableHome: false });
-    cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
-
     homePage.visit();
 
-    // enabled applications page is still navigable
     cy.findByTestId('home-page-hint-close').click();
-
     cy.findByTestId('home-page-hint').should('not.exist');
 
+    // hint should not reappear when home page is navigated to
     cy.visit('/enabled');
     cy.findByTestId('enabled-application').should('be.visible');
 

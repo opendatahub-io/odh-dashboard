@@ -1,6 +1,6 @@
 class EnabledPage {
-  visit(homeEnabled = false) {
-    cy.visit(homeEnabled ? '/enabled' : '/');
+  visit() {
+    cy.visit('/enabled');
     this.wait();
   }
 

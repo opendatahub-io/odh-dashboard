@@ -71,7 +71,7 @@ class ModelRegistry {
   }
 
   private waitLanding() {
-    cy.findByTestId('enabled-application').should('be.visible');
+    cy.findByTestId('home-page').should('be.visible');
   }
 
   shouldBeEmpty() {

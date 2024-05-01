@@ -8,7 +8,7 @@ describe('Home page Resources section', () => {
     cy.interceptOdh('GET /api/docs', mockDocs());
     cy.interceptOdh('GET /api/components', null, mockComponents());
     cy.interceptOdh('GET /api/quickstarts', mockQuickStarts());
-    homePage.initHomeIntercepts({ disableHome: false });
+    homePage.initHomeIntercepts();
     homePage.visit();
   });
   it('should show the resources section', () => {
@@ -16,14 +16,14 @@ describe('Home page Resources section', () => {
     cy.findByTestId('resource-card-create-jupyter-notebook').should('be.visible');
   });
   it('should hide the the resource section if none are available', () => {
+    cy.interceptOdh('GET /api/docs', []);
+    cy.interceptOdh('GET /api/components', null, []);
     cy.interceptOdh('GET /api/quickstarts', []);
     homePage.visit();
 
     cy.findByTestId('landing-page-resources').should('not.exist');
   });
   it('should navigate to the resources page', () => {
-    homePage.visit();
-
     cy.findByTestId('goto-resources-link').scrollIntoView();
     cy.findByTestId('goto-resources-link').click();
     cy.findByTestId('app-page-title').should('have.text', 'Resources');
