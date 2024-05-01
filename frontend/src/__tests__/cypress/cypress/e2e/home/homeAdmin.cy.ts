@@ -86,7 +86,7 @@ describe('Home page Admin section', () => {
 
     homePage.visit();
 
-    cy.get('#dashboard-page-main').find('[class="pf-v5-c-drawer__content"]').scrollTo('bottom');
+    cy.get('#dashboard-page-main').find('[class="pf-v5-c-page__main"]').scrollTo('bottom');
     cy.findByTestId('landing-page-admin').should('not.exist');
   });
   it('should navigate to the correct section when the title is clicked', () => {

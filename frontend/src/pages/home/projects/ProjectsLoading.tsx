@@ -1,16 +1,10 @@
 import * as React from 'react';
-import { Gallery, Skeleton } from '@patternfly/react-core';
+import { Skeleton } from '@patternfly/react-core';
 
 const ProjectsLoading: React.FC = () => (
-  <Gallery
-    hasGutter
-    minWidths={{ default: '100%', lg: '20%' }}
-    maxWidths={{ default: '100%', lg: '20%' }}
-  >
-    <Skeleton style={{ height: 250 }} />
-    <Skeleton style={{ height: 250 }} />
-    <Skeleton style={{ height: 250 }} />
-  </Gallery>
+  <div style={{ height: '230px' }}>
+    <Skeleton height="75%" width="100%" screenreaderText="Loading projects" />
+  </div>
 );
 
 export default ProjectsLoading;
