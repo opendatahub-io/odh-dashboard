@@ -21,7 +21,9 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { registeredModelId: rmId } = useParams();
   const [modelVersions, mvLoaded, mvLoadError] = useModelVersionsByRegisteredModel(rmId);
-  const [rm] = useRegisteredModelById(rmId);
+  const [rm, rmLoaded, rmLoadError] = useRegisteredModelById(rmId);
+  const loadError = mvLoadError || rmLoadError;
+  const loaded = mvLoaded && rmLoaded;
 
   return (
     <ApplicationsPage
@@ -41,8 +43,8 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
       title={rm?.name}
       headerAction={<ModelVersionsHeaderActions />}
       description={rm?.description}
-      loadError={mvLoadError}
-      loaded={mvLoaded}
+      loadError={loadError}
+      loaded={loaded}
       provideChildrenPadding
     >
       {rm !== null && (

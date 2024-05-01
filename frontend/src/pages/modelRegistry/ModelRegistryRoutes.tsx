@@ -18,10 +18,18 @@ const ModelRegistryRoutes: React.FC = () => (
         }
       >
         <Route index element={<ModelRegistry />} />
-        <Route
-          path="registeredModels/:registeredModelId"
-          element={<ModelVersions tab={ModelVersionsTabs.VERSIONS} empty={false} />}
-        />
+        <Route path="registeredModels/:registeredModelId">
+          <Route index element={<Navigate to={ModelVersionsTabs.VERSIONS} />} />
+          <Route
+            path={ModelVersionsTabs.VERSIONS}
+            element={<ModelVersions tab={ModelVersionsTabs.VERSIONS} empty={false} />}
+          />
+          <Route
+            path={ModelVersionsTabs.DETAILS}
+            element={<ModelVersions tab={ModelVersionsTabs.DETAILS} empty={false} />}
+          />
+          <Route path="*" element={<Navigate to="." />} />
+        </Route>
         <Route path="*" element={<Navigate to="." />} />
       </Route>
     </Routes>

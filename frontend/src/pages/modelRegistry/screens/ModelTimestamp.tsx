@@ -2,16 +2,16 @@ import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import React from 'react';
 import { relativeTime } from '~/utilities/time';
 
-type ModelLastModifiedProps = {
-  lastUpdateTimeSinceEpoch?: string;
+type ModelTimestampProps = {
+  timeSinceEpoch?: string;
 };
 
-const ModelLastModified: React.FC<ModelLastModifiedProps> = ({ lastUpdateTimeSinceEpoch }) => {
-  if (!lastUpdateTimeSinceEpoch) {
+const ModelTimestamp: React.FC<ModelTimestampProps> = ({ timeSinceEpoch }) => {
+  if (!timeSinceEpoch) {
     return '--';
   }
 
-  const time = new Date(parseInt(lastUpdateTimeSinceEpoch)).getTime();
+  const time = new Date(parseInt(timeSinceEpoch)).getTime();
 
   if (Number.isNaN(time)) {
     return '--';
@@ -19,7 +19,7 @@ const ModelLastModified: React.FC<ModelLastModifiedProps> = ({ lastUpdateTimeSin
 
   return (
     <Timestamp
-      date={new Date(lastUpdateTimeSinceEpoch)}
+      date={new Date(timeSinceEpoch)}
       tooltip={{
         variant: TimestampTooltipVariant.default,
       }}
@@ -29,4 +29,4 @@ const ModelLastModified: React.FC<ModelLastModifiedProps> = ({ lastUpdateTimeSin
   );
 };
 
-export default ModelLastModified;
+export default ModelTimestamp;

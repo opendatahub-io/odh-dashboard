@@ -3,7 +3,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Text, TextVariants, Truncate } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import ModelLabels from './ModelLabels';
-import ModelLastModified from './ModelLastModified';
+import ModelTimestamp from './ModelTimestamp';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -22,7 +22,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({ modelVers
       )}
     </Td>
     <Td dataLabel="Last modified">
-      <ModelLastModified lastUpdateTimeSinceEpoch={mv.lastUpdateTimeSinceEpoch} />
+      <ModelTimestamp timeSinceEpoch={mv.lastUpdateTimeSinceEpoch} />
     </Td>
     <Td dataLabel="Owner">{mv.author}</Td>
     <Td dataLabel="Labels">
