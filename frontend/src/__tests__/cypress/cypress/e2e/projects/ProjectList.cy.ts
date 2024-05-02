@@ -4,10 +4,24 @@ import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { ProjectKind } from '~/k8sTypes';
 import { incrementResourceVersion } from '~/__mocks__/mockUtils';
-import { ProjectModel, ProjectRequestModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  NotebookModel,
+  PodModel,
+  ProjectModel,
+  ProjectRequestModel,
+  RouteModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
+import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { notebookConfirmModal } from '~/__tests__/cypress/cypress/pages/workbench';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+
+const mockProject = mockProjectK8sResource({});
+const initIntercepts = () => {
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
+};
 
 describe('Data science projects details', () => {
   it('should not have option to create new project', () => {
@@ -45,8 +59,16 @@ describe('Data science projects details', () => {
     cy.url().should('include', '/projects/test-project');
   });
 
+  it('should test url for workbench creation', () => {
+    initIntercepts();
+    projectListPage.visit();
+    projectListPage.findCreateWorkbenchButton().click();
+
+    cy.url().should('include', '/projects/test-project/spawner');
+  });
+
   it('should list the new project', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    initIntercepts();
     projectListPage.visit();
     projectListPage.shouldHaveProjects();
     const projectRow = projectListPage.getProjectRow('Test Project');
@@ -54,9 +76,7 @@ describe('Data science projects details', () => {
   });
 
   it('should delete project', () => {
-    const mockProject = mockProjectK8sResource({});
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
-
+    initIntercepts();
     projectListPage.visit();
     projectListPage.getProjectRow('Test Project').findKebabAction('Delete project').click();
     deleteModal.shouldBeOpen();
@@ -83,7 +103,7 @@ describe('Data science projects details', () => {
 
   it('validate pagination', () => {
     const totalItems = 50;
-    const mockProject: ProjectKind[] = Array.from({ length: totalItems }, (_, i) =>
+    const mockProjects: ProjectKind[] = Array.from({ length: totalItems }, (_, i) =>
       mockProjectK8sResource({
         k8sName: `ds-project-${i}`,
         displayName: `DS Project ${i}`,
@@ -91,7 +111,7 @@ describe('Data science projects details', () => {
       }),
     );
     mockProjectK8sResource({});
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProject));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
     projectListPage.visit();
 
     // top pagination
@@ -132,6 +152,107 @@ describe('Data science projects details', () => {
     projectListPage.findProjectLink('DS Project 1').should('exist');
     projectListPage.findProjectLink('DS Project 2').should('not.exist');
     projectListPage.findProjectLink('renamed').should('not.exist');
+  });
+
+  describe('Table filter', () => {
+    it('filter by name', () => {
+      initIntercepts();
+      projectListPage.visit();
+
+      // Select the "Name" filter
+      const projectListToolbar = projectListPage.getTableToolbar();
+      projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+      projectListToolbar.findSearchInput().type('Test Project');
+      // Verify only rows with the typed run name exist
+      projectListPage.getProjectRow('Test Project').find().should('exist');
+    });
+
+    it('filter by user', () => {
+      initIntercepts();
+      projectListPage.visit();
+
+      // Select the "User" filter
+      const projectListToolbar = projectListPage.getTableToolbar();
+      projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'User').click();
+      projectListToolbar.findSearchInput().type('test-user');
+      // Verify only rows with the typed run user exist
+      projectListPage.getProjectRow('Test Project').find().should('exist');
+    });
+  });
+
+  it('Validate that clicking on switch toggle will open modal to stop workbench', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
+      'getWorkbench',
+    );
+    cy.interceptK8sList(
+      { model: NotebookModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          opts: {
+            spec: {
+              template: {
+                spec: {
+                  containers: [
+                    {
+                      name: 'test-notebook',
+                      image: 'test-image:latest',
+                    },
+                  ],
+                },
+              },
+            },
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ]),
+    );
+    projectListPage.visit();
+    cy.wait('@getWorkbench');
+    const projectTableRow = projectListPage.getProjectRow('Test Project');
+    projectTableRow.findEnableSwitch().click();
+
+    //stop workbench
+    notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
+    cy.interceptK8s(
+      NotebookModel,
+      mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+            },
+            annotations: {
+              'kubeflow-resource-stopped': '2023-02-14T21:45:14Z',
+              'opendatahub.io/image-display-name': 'Test image',
+            },
+          },
+        },
+      }),
+    );
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: false })]));
+
+    notebookConfirmModal.findStopWorkbenchButton().click();
+    cy.wait('@stopWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset([
+        {
+          op: 'add',
+          path: '/metadata/annotations/kubeflow-resource-stopped',
+        },
+      ]);
+    });
+    projectTableRow.findNotebookStatusText().should('have.text', 'Stopped ');
+    projectTableRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
   });
 });
 
