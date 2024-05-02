@@ -13,6 +13,7 @@ type MockResourceConfigType = {
   description?: string;
   envFromName?: string;
   resources?: ContainerResources;
+  image?: string;
   opts?: RecursivePartial<NotebookKind>;
   uid?: string;
 };
@@ -25,6 +26,7 @@ export const mockNotebookK8sResource = ({
   user = 'test-user',
   description = '',
   resources = DEFAULT_NOTEBOOK_SIZES[0].resources,
+  image = 'test-imagestream:1.2',
   opts = {},
   uid = genUID('notebook'),
 }: MockResourceConfigType): NotebookKind =>
@@ -90,7 +92,7 @@ export const mockNotebookK8sResource = ({
                   {
                     name: 'JUPYTER_IMAGE',
                     value:
-                      'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-v1',
+                      'image-registry.openshift-image-registry.svc:5000/opendatahub/code-server-notebook:2023.2',
                   },
                 ],
                 envFrom: [
@@ -100,7 +102,7 @@ export const mockNotebookK8sResource = ({
                     },
                   },
                 ],
-                image: 'test-imagestream:1.2',
+                image,
                 imagePullPolicy: 'Always',
                 livenessProbe: {
                   failureThreshold: 3,
