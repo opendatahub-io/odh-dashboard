@@ -2,7 +2,9 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { TableRow } from './components/table';
+import { TableToolbar } from './components/TableToolbar';
 
+class ProjectListToolbar extends TableToolbar {}
 class NotebookRow extends TableRow {
   findNotebookImageAvailability() {
     return cy.findByTestId('notebook-image-availability');
@@ -20,6 +22,18 @@ class NotebookRow extends TableRow {
 class ProjectRow extends TableRow {
   shouldHaveProjectIcon() {
     return this.find().findByTestId('ds-project-image').should('exist');
+  }
+
+  findEnableSwitch() {
+    return this.find().pfSwitch('notebook-status-switch');
+  }
+
+  findNotebookRouteLink() {
+    return this.find().findByTestId('notebook-route-link');
+  }
+
+  findNotebookStatusText() {
+    return this.find().findByTestId('notebook-status-text');
   }
 }
 
@@ -44,6 +58,11 @@ class ProjectListPage {
     return this;
   }
 
+  shouldReturnNotFound() {
+    cy.findByTestId('not-found-page').should('exist');
+    return this;
+  }
+
   shouldBeEmpty() {
     cy.findByTestId('no-data-science-project').should('exist');
     return this;
@@ -63,6 +82,22 @@ class ProjectListPage {
 
   findProjectLink(projectName: string) {
     return this.findProjectsTable().findByRole('link', { name: projectName });
+  }
+
+  findEmptyResults() {
+    return cy.findByTestId('no-result-found-title');
+  }
+
+  findSortButton(name: string) {
+    return this.findProjectsTable().find('thead').findByRole('button', { name });
+  }
+
+  getTableToolbar() {
+    return new ProjectListToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+  }
+
+  findCreateWorkbenchButton() {
+    return cy.findByRole('button', { name: 'Create a workbench' });
   }
 }
 
