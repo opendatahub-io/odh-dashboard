@@ -163,3 +163,15 @@ export const isInEnum =
   <T extends { [s: string]: unknown }>(e: T) =>
   (token: unknown): token is T[keyof T] =>
     Object.values(e).includes(token as T[keyof T]);
+
+/**
+ * Pick keys from enum types
+ * enum MyEnum {
+ *   A = 1;
+ *   B = 2;
+ * }
+ * PickEnum<MyEnum, MyEnum.A>
+ */
+export type PickEnum<T, K extends T> = {
+  [P in keyof K]: P extends K ? P : never;
+};

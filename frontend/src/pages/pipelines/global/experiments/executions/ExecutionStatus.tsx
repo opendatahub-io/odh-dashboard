@@ -1,21 +1,24 @@
 import React from 'react';
-import { Icon, Tooltip } from '@patternfly/react-core';
+import { Icon, Label, Tooltip } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
+  InProgressIcon,
   OutlinedWindowRestoreIcon,
-  QuestionCircleIcon,
+  PendingIcon,
   TimesCircleIcon,
 } from '@patternfly/react-icons';
 import { Execution } from '~/third_party/mlmd';
 
-type ExecutionsTableRowStatusIconProps = {
+type ExecutionStatusProps = {
   status: Execution.State;
+  isIcon?: boolean;
 };
 
-const ExecutionsTableRowStatusIcon: React.FC<ExecutionsTableRowStatusIconProps> = ({ status }) => {
+const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isIcon }) => {
   let tooltip;
   let icon;
+  let label;
   switch (status) {
     case Execution.State.COMPLETE:
       icon = (
@@ -24,6 +27,11 @@ const ExecutionsTableRowStatusIcon: React.FC<ExecutionsTableRowStatusIconProps> 
         </Icon>
       );
       tooltip = 'Complete';
+      label = (
+        <Label color="green" icon={<CheckCircleIcon />}>
+          Complete
+        </Label>
+      );
       break;
     case Execution.State.CACHED:
       icon = (
@@ -32,6 +40,11 @@ const ExecutionsTableRowStatusIcon: React.FC<ExecutionsTableRowStatusIconProps> 
         </Icon>
       );
       tooltip = 'Cached';
+      label = (
+        <Label color="cyan" icon={<OutlinedWindowRestoreIcon />}>
+          Cached
+        </Label>
+      );
       break;
     case Execution.State.CANCELED:
       icon = (
@@ -40,6 +53,7 @@ const ExecutionsTableRowStatusIcon: React.FC<ExecutionsTableRowStatusIconProps> 
         </Icon>
       );
       tooltip = 'Canceled';
+      label = <Label icon={<TimesCircleIcon />}>Canceled</Label>;
       break;
     case Execution.State.FAILED:
       icon = (
@@ -48,30 +62,32 @@ const ExecutionsTableRowStatusIcon: React.FC<ExecutionsTableRowStatusIconProps> 
         </Icon>
       );
       tooltip = 'Failed';
+      label = (
+        <Label color="red" icon={<ExclamationCircleIcon />}>
+          Failed
+        </Label>
+      );
       break;
     case Execution.State.RUNNING:
       icon = <Icon isInProgress />;
       tooltip = 'Running';
+      label = <Label icon={<InProgressIcon />}>Running</Label>;
       break;
-    // TODO: change the icon here
     case Execution.State.NEW:
       icon = (
         <Icon>
-          <QuestionCircleIcon />
+          <PendingIcon />
         </Icon>
       );
       tooltip = 'New';
+      label = <Label icon={<PendingIcon />}>New</Label>;
       break;
     default:
-      icon = (
-        <Icon>
-          <QuestionCircleIcon />
-        </Icon>
-      );
-      tooltip = 'Unknown';
+      icon = <>Unknown</>;
+      label = <Label>Unknown</Label>;
   }
 
-  return <Tooltip content={tooltip}>{icon}</Tooltip>;
+  return isIcon ? <Tooltip content={tooltip}>{icon}</Tooltip> : <>{label}</>;
 };
 
-export default ExecutionsTableRowStatusIcon;
+export default ExecutionStatus;
