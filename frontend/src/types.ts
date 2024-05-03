@@ -331,14 +331,6 @@ export type PodContainer = {
   securityContext?: unknown;
 };
 
-export type PodStepState = { stepName: string; state: PodStepStateType };
-
-export enum PodStepStateType {
-  success = 'Success',
-  error = 'Error',
-  loading = 'Loading',
-}
-
 export type PodContainerStatus = {
   name?: string;
   ready: boolean;
