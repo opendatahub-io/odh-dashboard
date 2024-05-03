@@ -2,12 +2,12 @@ import { ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types'
 
 type MockModelVersionType = {
   author?: string;
-  registeredModelID?: string;
+  registeredModelId?: string;
 };
 
 export const mockModelVersion = ({
   author = 'Test author',
-  registeredModelID = '1',
+  registeredModelId = '1',
 }: MockModelVersionType): ModelVersion => ({
   author,
   createTimeSinceEpoch: '1712234877179',
@@ -16,5 +16,5 @@ export const mockModelVersion = ({
   lastUpdateTimeSinceEpoch: '1712234877179',
   name: 'fraud detection model version 1',
   state: ModelVersionState.ARCHIVED,
-  registeredModelID,
+  registeredModelId,
 });

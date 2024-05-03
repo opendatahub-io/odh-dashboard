@@ -55,11 +55,11 @@ export const createModelArtifact =
 
 export const getRegisteredModel =
   (hostPath: string) =>
-  (opts: K8sAPIOptions, registeredModelID: string): Promise<RegisteredModel> =>
+  (opts: K8sAPIOptions, registeredModelId: string): Promise<RegisteredModel> =>
     handleModelRegistryFailures(
       proxyGET(
         hostPath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelID}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
         {},
         opts,
       ),
@@ -137,17 +137,29 @@ export const getModelVersionsByRegisteredModel =
       ),
     );
 
+export const getModelArtifactsByModelVersion =
+  (hostpath: string) =>
+  (opts: K8sAPIOptions, modelVersionId: string): Promise<ModelArtifactList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}/artifacts`,
+        {},
+        opts,
+      ),
+    );
+
 export const patchRegisteredModel =
   (hostPath: string) =>
   (
     opts: K8sAPIOptions,
     data: Partial<RegisteredModel>,
-    registeredModelID: string,
+    registeredModelId: string,
   ): Promise<RegisteredModel> =>
     handleModelRegistryFailures(
       proxyPATCH(
         hostPath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelID}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
         data,
         opts,
       ),

@@ -8,6 +8,7 @@ import {
   DescriptionListTerm,
   Split,
   SplitItem,
+  Text,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { CheckIcon, PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
@@ -99,7 +100,13 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
         <DescriptionListTerm>{title}</DescriptionListTerm>
       )}
       <DescriptionListDescription className={isEmpty && !isEditing ? text.disabledColor_100 : ''}>
-        {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}
+        {isEditing ? (
+          contentWhenEditing
+        ) : isEmpty ? (
+          <Text style={{ color: '--pf-v5-global--Color--200' }}>{contentWhenEmpty}</Text>
+        ) : (
+          children
+        )}
       </DescriptionListDescription>
     </DescriptionListGroup>
   );
