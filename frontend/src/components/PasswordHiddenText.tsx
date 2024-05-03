@@ -22,7 +22,11 @@ const PasswordHiddenText: React.FC<PasswordHiddenTextProps> = ({ password }) => 
         <Text>{passwordText}</Text>
       </FlexItem>
       <FlexItem>
-        <Button variant="plain" onClick={() => setIsHidden(!isHidden)}>
+        <Button
+          variant="plain"
+          onClick={() => setIsHidden(!isHidden)}
+          data-testid="password-hidden-button"
+        >
           {isHidden ? <EyeSlashIcon /> : <EyeIcon />}
         </Button>
       </FlexItem>

@@ -63,6 +63,7 @@ export const ObjectStorageSection = ({
               <InputGroupItem isFill>
                 <TextInput
                   aria-label={`Field list ${field.key}`}
+                  data-testid={`field ${field.key}`}
                   isRequired={field.isRequired}
                   value={
                     config.objectStorage.newValue.find((data) => data.key === field.key)?.value ||
