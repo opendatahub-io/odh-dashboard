@@ -3,7 +3,6 @@ import {
   Button,
   Checkbox,
   DropdownList,
-  Icon,
   Spinner,
   Stack,
   StackItem,
@@ -20,10 +19,8 @@ import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import { DownloadIcon } from '@patternfly/react-icons/dist/esm/icons/download-icon';
 import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
 import {
-  CheckCircleIcon,
   CompressIcon,
   EllipsisVIcon,
-  ExclamationCircleIcon,
   ExpandIcon,
   OutlinedWindowRestoreIcon,
 } from '@patternfly/react-icons';
@@ -34,10 +31,8 @@ import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetai
 import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
 import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 import { downloadAllStepLogs, downloadCurrentStepLog } from '~/concepts/k8s/pods/utils';
-import usePodStepsStates from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodStepsStates';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
-import { PodStepStateType } from '~/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
@@ -83,7 +78,6 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
       (podContainerStatus) => podContainerStatus?.name === podContainer.name,
     ),
   );
-  const podStepStates = usePodStepsStates(sortedContainerStatuses, podName);
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
   const logViewerRef = React.useRef<{ scrollToBottom: () => void }>();
@@ -244,26 +238,10 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                         <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
                           <SimpleDropdownSelect
                             dataTestId="logs-step-select"
-                            isDisabled={podStepStates.length <= 1}
-                            options={podStepStates.map((podStepState) => ({
-                              key: podStepState.stepName,
-                              label: podStepState.stepName,
-                              dropdownLabel: (
-                                <>
-                                  <span className="pf-v5-u-mr-sm">{podStepState.stepName}</span>
-                                  {podStepState.state === PodStepStateType.loading ? (
-                                    <Spinner size="sm" />
-                                  ) : podStepState.state === PodStepStateType.error ? (
-                                    <Icon status="danger">
-                                      <ExclamationCircleIcon />
-                                    </Icon>
-                                  ) : (
-                                    <Icon status="success">
-                                      <CheckCircleIcon />
-                                    </Icon>
-                                  )}
-                                </>
-                              ),
+                            isDisabled={sortedContainerStatuses.length <= 1}
+                            options={sortedContainerStatuses.map((containerStatus) => ({
+                              key: containerStatus?.name || '',
+                              label: containerStatus?.name || '',
                             }))}
                             value={containerName}
                             placeholder="Select container..."
