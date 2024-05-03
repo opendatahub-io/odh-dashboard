@@ -5,6 +5,8 @@ import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { artifactsBaseRoute } from '~/routes';
 import { GlobalArtifactsPage } from './global/experiments/artifacts';
+import GlobalPipelineCoreDetails from './global/GlobalPipelineCoreDetails';
+import { ArtifactDetails } from './global/experiments/artifacts/ArtifactDetails';
 
 const GlobalArtifactsRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -13,6 +15,16 @@ const GlobalArtifactsRoutes: React.FC = () => (
       element={<GlobalPipelineCoreLoader getInvalidRedirectPath={artifactsBaseRoute} />}
     >
       <Route index element={<GlobalArtifactsPage />} />
+      <Route
+        path=":artifactId"
+        element={
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        }
+      />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </ProjectsRoutes>

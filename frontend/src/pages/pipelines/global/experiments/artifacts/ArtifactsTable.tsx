@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import { Flex, FlexItem, TextInput, Truncate } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { TextInput } from '@patternfly/react-core';
 import { TableVariant, Td, Tr } from '@patternfly/react-table';
 
 import { Artifact } from '~/third_party/mlmd';
@@ -12,8 +11,12 @@ import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/Pipelines
 import { FilterToolbar } from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
-import { useMlmdListContext } from '~/concepts/pipelines/context';
+import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
+import { artifactsDetailsRoute } from '~/routes';
+import { usePipelinesUiRoute } from '~/concepts/pipelines/context/usePipelinesUiRoute';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
+import { getArtifactName } from './utils';
+import { ArtifactUriLink } from './ArtifactUriLink';
 
 interface ArtifactsTableProps {
   artifacts: Artifact[] | null | undefined;
@@ -32,6 +35,8 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
     setPageToken: setRequestToken,
     setMaxResultSize,
   } = useMlmdListContext(nextPageToken);
+  const { namespace } = usePipelinesAPI();
+  const [pipelinesUiRoute, isPipelinesUiRouteLoaded] = usePipelinesUiRoute();
   const [page, setPage] = React.useState(1);
   const [filterData, setFilterData] = React.useState(initialFilterData);
   const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), []);
@@ -141,34 +146,25 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
     (artifact: Artifact.AsObject) => (
       <Tr key={artifact.id}>
         <Td>
-          {artifact.name ||
-            artifact.customPropertiesMap.find(([name]) => name === 'display_name')?.[1].stringValue}
+          <Link to={artifactsDetailsRoute(namespace, artifact.id)}>
+            {getArtifactName(artifact)}
+          </Link>
         </Td>
         <Td>{artifact.id}</Td>
         <Td>{artifact.type}</Td>
         <Td>
-          <Link to={artifact.uri} target="_blank">
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              spaceItems={{ default: 'spaceItemsSm' }}
-              flexWrap={{ default: 'nowrap' }}
-            >
-              <FlexItem>
-                <Truncate content={artifact.uri} />
-              </FlexItem>
-
-              <FlexItem>
-                <ExternalLinkAltIcon />
-              </FlexItem>
-            </Flex>
-          </Link>
+          <ArtifactUriLink
+            uri={artifact.uri}
+            downloadHost={pipelinesUiRoute}
+            isLoaded={isPipelinesUiRouteLoaded}
+          />
         </Td>
         <Td>
           <PipelinesTableRowTime date={new Date(artifact.createTimeSinceEpoch)} />
         </Td>
       </Tr>
     ),
-    [],
+    [isPipelinesUiRouteLoaded, namespace, pipelinesUiRoute],
   );
 
   return (

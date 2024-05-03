@@ -1,13 +1,13 @@
 import React from 'react';
-import { CodeEditor } from '@patternfly/react-code-editor';
 import { MlmdMetadataValueType } from '~/pages/pipelines/global/experiments/executions/utils';
+import { MaxHeightCodeEditor } from '~/components/MaxHeightCodeEditor';
 
 type ExecutionDetailsPropertiesValueProps = {
   value: MlmdMetadataValueType;
 };
 
 const ExecutionDetailsPropertiesValueCode = ({ code }: { code: string }) => (
-  <CodeEditor isReadOnly code={code} height="sizeToFit" />
+  <MaxHeightCodeEditor isReadOnly code={code} maxHeight={300} />
 );
 
 const ExecutionDetailsPropertiesValue: React.FC<ExecutionDetailsPropertiesValueProps> = ({
