@@ -1,9 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Bullseye, Spinner, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Event } from '~/third_party/mlmd';
 import { useGetLinkedArtifactsByEvents } from '~/concepts/pipelines/apiHooks/mlmd/useGetLinkedArtifactsByEvents';
 import { getArtifactNameFromEvent } from '~/pages/pipelines/global/experiments/executions/utils';
+import { artifactsDetailsRoute } from '~/routes';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type ExecutionDetailsInputOutputSectionProps = {
   isLoaded: boolean;
@@ -18,6 +21,7 @@ const ExecutionDetailsInputOutputSection: React.FC<ExecutionDetailsInputOutputSe
   events,
   artifactTypeMap,
 }) => {
+  const { namespace } = usePipelinesAPI();
   const [linkedArtifacts, isLinkedArtifactsLoaded] = useGetLinkedArtifactsByEvents(events);
 
   if (!isLoaded || !isLinkedArtifactsLoaded) {
@@ -72,8 +76,9 @@ const ExecutionDetailsInputOutputSection: React.FC<ExecutionDetailsInputOutputSe
                 return (
                   <Tr key={id}>
                     <Td dataLabel="Artifact ID">{id}</Td>
-                    {/* TODO: add artifact details page line */}
-                    <Td dataLabel="Name">{data.name}</Td>
+                    <Td dataLabel="Name">
+                      <Link to={artifactsDetailsRoute(namespace, id)}>{data.name}</Link>
+                    </Td>
                     <Td dataLabel="Type">{type}</Td>
                     <Td dataLabel="URI">{data.uri}</Td>
                   </Tr>

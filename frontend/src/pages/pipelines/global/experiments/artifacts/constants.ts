@@ -49,3 +49,8 @@ export const columns: SortableData<MlmdArtifact.AsObject>[] = [
     width: 15,
   },
 ];
+
+export enum ArtifactDetailsTabKey {
+  Overview = 'overview',
+  LineageExplorer = 'lineage-explorer',
+}
