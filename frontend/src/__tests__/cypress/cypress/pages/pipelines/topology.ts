@@ -72,7 +72,7 @@ class PipelineRunRightDrawer extends Contextual<HTMLDivElement> {
   }
 
   findRightDrawerDetailItem(key: string) {
-    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`).parent());
+    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`));
   }
 }
 
@@ -232,6 +232,18 @@ class PipelineRunDetails extends RunDetails {
 
   selectActionDropdownItem(label: string) {
     this.findActionsDropdown().findDropdownItem(label).click();
+  }
+
+  findYamlOutput() {
+    return cy.findByTestId('pipeline-dashboard-code-editor');
+  }
+
+  findInputArtifacts() {
+    return cy.findByTestId('Input-artifacts');
+  }
+
+  findOutputArtifacts() {
+    return cy.findByTestId('Output-artifacts');
   }
 }
 

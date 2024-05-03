@@ -499,6 +499,68 @@ describe('Pipeline topology', () => {
         .findValue()
         .contains('False');
     });
+
+    it('Test pipeline triggered run bottom drawer output', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findBottomDrawer().findBottomDrawerYamlTab().click();
+      pipelineRunDetails.findYamlOutput().click();
+      const pipelineDashboardCodeEditor = pipelineDetails.getPipelineDashboardCodeEditor();
+      pipelineDashboardCodeEditor.findInput().should('not.be.empty');
+    });
+  });
+
+  describe('Pipeline run Input/Output', () => {
+    beforeEach(() => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+    });
+
+    it('Test with input/output artifacts', () => {
+      pipelineRunDetails.findTaskNode('create-dataset').click();
+      const rightDrawer = pipelineRunDetails.findRightDrawer();
+      rightDrawer.findRightDrawerInputOutputTab().should('be.visible');
+      rightDrawer.findRightDrawerInputOutputTab().click();
+      pipelineDetails.findRunTaskRightDrawer();
+      pipelineRunDetails
+        .findOutputArtifacts()
+        .should('contain', 'Output artifacts')
+        .should('contain', 'iris_dataset');
+
+      pipelineRunDetails.findTaskNode('normalize-dataset').click();
+      rightDrawer.findRightDrawerInputOutputTab().should('be.visible');
+      pipelineDetails.findRunTaskRightDrawer();
+      pipelineRunDetails
+        .findInputArtifacts()
+        .should('contain', 'Input artifacts')
+        .should('contain', 'input_iris_dataset');
+    });
+  });
+
+  describe('Pipeline run Details', () => {
+    beforeEach(() => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+    });
+
+    it('Test with the details', () => {
+      pipelineRunDetails.findTaskNode('create-dataset').click();
+      const rightDrawer = pipelineRunDetails.findRightDrawer();
+      rightDrawer.findRightDrawerDetailsTab().should('be.visible');
+      rightDrawer.findRightDrawerDetailsTab().click();
+      rightDrawer
+        .findRightDrawerDetailItem('Task ID')
+        .findValue()
+        .should('contain', 'task.create-dataset');
+
+      pipelineRunDetails.findTaskNode('normalize-dataset').click();
+      pipelineRunDetails.findRightDrawer().findRightDrawerDetailsTab().should('be.visible');
+      rightDrawer
+        .findRightDrawerDetailItem('Task ID')
+        .findValue()
+        .should('contain', 'task.normalize-dataset');
+    });
   });
 
   describe('Pipeline run volume mounts', () => {
@@ -509,29 +571,26 @@ describe('Pipeline topology', () => {
 
     it('Test node with no volume mounts', () => {
       pipelineRunDetails.findTaskNode('create-dataset').click();
-      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().should('be.visible');
-      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().click();
-      pipelineRunDetails
-        .findRightDrawer()
-        .findRightDrawerVolumesSection()
-        .should('contain.text', 'No content');
+      const rightDrawer = pipelineRunDetails.findRightDrawer();
+      rightDrawer.findRightDrawerVolumesTab().should('be.visible');
+      rightDrawer.findRightDrawerVolumesTab().click();
+      rightDrawer.findRightDrawerVolumesSection().should('contain.text', 'No content');
     });
 
     it('Test node with volume mounts', () => {
       pipelineRunDetails.findTaskNode('normalize-dataset').click();
-      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().should('be.visible');
-      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().click();
-      pipelineRunDetails
-        .findRightDrawer()
+      const rightDrawer = pipelineRunDetails.findRightDrawer();
+      rightDrawer.findRightDrawerVolumesTab().should('be.visible');
+      rightDrawer.findRightDrawerVolumesTab().click();
+      rightDrawer
         .findRightDrawerDetailItem('/data/1')
         .findValue()
         .should('contain', 'create-dataset');
       // Close the side drawer to uncover the 'train-model' node
       pipelineRunDetails.findTaskNode('normalize-dataset').click();
       pipelineRunDetails.findTaskNode('train-model').click();
-      pipelineRunDetails.findRightDrawer().findRightDrawerVolumesTab().click();
-      pipelineRunDetails
-        .findRightDrawer()
+      rightDrawer.findRightDrawerVolumesTab().click();
+      rightDrawer
         .findRightDrawerDetailItem('/data/2')
         .findValue()
         .should('contain', 'normalize-dataset');
@@ -543,9 +602,10 @@ describe('Pipeline topology', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
       pipelineRunDetails.findTaskNode('create-dataset').click();
-      pipelineRunDetails.findRightDrawer().findRightDrawerDetailsTab().should('be.visible');
-      pipelineRunDetails.findRightDrawer().findRightDrawerLogsTab().should('be.visible');
-      pipelineRunDetails.findRightDrawer().findRightDrawerLogsTab().click();
+      const rightDrawer = pipelineRunDetails.findRightDrawer();
+      rightDrawer.findRightDrawerDetailsTab().should('be.visible');
+      rightDrawer.findRightDrawerLogsTab().should('be.visible');
+      rightDrawer.findRightDrawerLogsTab().click();
       pipelineRunDetails.findLogsSuccessAlert().should('be.visible');
     });
 
