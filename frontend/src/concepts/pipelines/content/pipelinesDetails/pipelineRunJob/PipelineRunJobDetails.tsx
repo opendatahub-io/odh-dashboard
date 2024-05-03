@@ -53,7 +53,14 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
-  const { taskMap, nodes } = usePipelineTaskTopology(version?.pipeline_spec);
+  const nodes = usePipelineTaskTopology(version?.pipeline_spec);
+
+  const selectedNode = React.useMemo(
+    () => nodes.find((n) => n.id === selectedId),
+    [selectedId, nodes],
+  );
+
+  const getFirstNode = (firstId: string) => nodes.find((n) => n.id === firstId)?.data?.pipelineTask;
 
   const loaded = versionLoaded && jobLoaded;
   const error = versionError || jobError;
@@ -80,11 +87,11 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
 
   return (
     <>
-      <Drawer isExpanded={!!selectedId}>
+      <Drawer isExpanded={!!selectedNode}>
         <DrawerContent
           panelContent={
             <SelectedTaskDrawerContent
-              task={selectedId ? taskMap[selectedId] : undefined}
+              task={selectedNode?.data.pipelineTask}
               onClose={() => setSelectedId(null)}
             />
           }
@@ -136,7 +143,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                         const firstId = ids[0];
                         if (ids.length === 0) {
                           setSelectedId(null);
-                        } else if (taskMap[firstId]) {
+                        } else if (getFirstNode(firstId)) {
                           setDetailsTab(null);
                           setSelectedId(firstId);
                         }

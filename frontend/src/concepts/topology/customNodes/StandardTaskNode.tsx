@@ -12,9 +12,10 @@ import {
   WithContextMenuProps,
   WithSelectionProps,
 } from '@patternfly/react-topology';
+import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
 
 type StandardTaskNodeProps = {
-  element: GraphElement;
+  element: GraphElement<PipelineNodeModelExpanded>;
 } & WithContextMenuProps &
   WithSelectionProps;
 
@@ -28,8 +29,12 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
   const [hover, hoverRef] = useHover();
   const detailsLevel = element.getGraph().getDetailsLevel();
 
-  const whenDecorator = data?.whenStatus ? (
-    <WhenDecorator element={element} status={data.whenStatus} leftOffset={DEFAULT_WHEN_OFFSET} />
+  const whenDecorator = data?.pipelineTask.whenStatus ? (
+    <WhenDecorator
+      element={element}
+      status={data.pipelineTask.whenStatus}
+      leftOffset={DEFAULT_WHEN_OFFSET}
+    />
   ) : null;
 
   return (
@@ -39,7 +44,7 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
         onSelect={onSelect}
         selected={selected}
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
-        status={data?.status}
+        status={data?.runStatus}
         hideDetailsAtMedium
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
@@ -47,8 +52,8 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
           RunStatus.Failed,
           RunStatus.Running,
         ]}
-        whenOffset={data?.whenStatus ? DEFAULT_WHEN_OFFSET : 0}
-        whenSize={data?.whenStatus ? DEFAULT_WHEN_SIZE : 0}
+        whenOffset={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_OFFSET : 0}
+        whenSize={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_SIZE : 0}
         {...rest}
       >
         {whenDecorator}
