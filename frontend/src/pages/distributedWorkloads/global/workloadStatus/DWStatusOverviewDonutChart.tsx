@@ -39,44 +39,46 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
     );
   }
   return (
-    <ChartDonut
-      ariaDesc="Distributed workload status overview"
-      ariaTitle="Status overview donut chart"
-      constrainToVisibleArea
-      data={statusTypesIncludedInChart.map((statusType) => ({
-        x: statusType,
-        y: statusCounts[statusType],
-      }))}
-      labels={({ datum }) => `${datum.x}: ${datum.y}`}
-      colorScale={statusTypesIncludedInChart.map(
-        (statusType) => WorkloadStatusColorAndIcon[statusType].chartColor,
-      )}
-      legendComponent={
-        <ChartLegend
-          data={statusTypesIncludedInLegend.map((statusType) => ({
-            name: `${statusType}: ${statusCounts[statusType]}`,
-          }))}
-          colorScale={statusTypesIncludedInLegend.map(
-            (statusType) => WorkloadStatusColorAndIcon[statusType].chartColor,
-          )}
-          gutter={15}
-          itemsPerRow={Math.ceil(statusTypesIncludedInLegend.length / 2)}
-          rowGutter={0}
-        />
-      }
-      legendOrientation="vertical"
-      legendPosition="right"
-      name="status-overview"
-      padding={{
-        bottom: 0,
-        left: 0,
-        right: 280, // Adjusted to accommodate legend
-        top: 0,
-      }}
-      subTitle="Distributed Workloads"
-      title={String(workloads.data.length)}
-      width={450}
-      height={150}
-    />
+    <div style={{ height: '250px', paddingBottom: '12px' }}>
+      <ChartDonut
+        ariaDesc="Distributed workload status overview"
+        ariaTitle="Status overview donut chart"
+        constrainToVisibleArea
+        data={statusTypesIncludedInChart.map((statusType) => ({
+          x: statusType,
+          y: statusCounts[statusType],
+        }))}
+        labels={({ datum }) => `${datum.x}: ${datum.y}`}
+        colorScale={statusTypesIncludedInChart.map(
+          (statusType) => WorkloadStatusColorAndIcon[statusType].chartColor,
+        )}
+        legendComponent={
+          <ChartLegend
+            data={statusTypesIncludedInLegend.map((statusType) => ({
+              name: `${statusType}: ${statusCounts[statusType]}`,
+            }))}
+            colorScale={statusTypesIncludedInLegend.map(
+              (statusType) => WorkloadStatusColorAndIcon[statusType].chartColor,
+            )}
+            gutter={15}
+            itemsPerRow={Math.ceil(statusTypesIncludedInLegend.length / 2)}
+            rowGutter={0}
+          />
+        }
+        legendOrientation="vertical"
+        legendPosition="right"
+        name="status-overview"
+        padding={{
+          bottom: 0,
+          left: 0,
+          right: 280, // Adjusted to accommodate legend
+          top: 0,
+        }}
+        subTitle="Distributed Workloads"
+        title={String(workloads.data.length)}
+        width={530}
+        height={200}
+      />
+    </div>
   );
 };
