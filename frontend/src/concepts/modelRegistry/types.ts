@@ -60,7 +60,7 @@ export type ModelArtifact = ModelRegistryBase & {
 export type ModelVersion = ModelRegistryBase & {
   state?: ModelVersionState;
   author?: string;
-  registeredModelID: string;
+  registeredModelId: string;
 };
 
 export type RegisteredModel = ModelRegistryBase & {
@@ -131,7 +131,7 @@ export type CreateModelArtifact = (
 
 export type GetRegisteredModel = (
   opts: K8sAPIOptions,
-  registeredModelID: string,
+  registeredModelId: string,
 ) => Promise<RegisteredModel>;
 
 export type GetModelVersion = (
@@ -155,10 +155,15 @@ export type GetModelVersionsByRegisteredModel = (
   registeredmodelId: string,
 ) => Promise<ModelVersionList>;
 
+export type GetModelArtifactsByModelVersion = (
+  opts: K8sAPIOptions,
+  modelVersionId: string,
+) => Promise<ModelArtifactList>;
+
 export type PatchRegisteredModel = (
   opts: K8sAPIOptions,
   data: Partial<RegisteredModel>,
-  registeredModelID: string,
+  registeredModelId: string,
 ) => Promise<RegisteredModel>;
 
 export type PatchModelVersion = (
@@ -184,6 +189,7 @@ export type ModelRegistryAPIs = {
   listModelVersions: GetListModelVersions;
   listRegisteredModels: GetListRegisteredModels;
   getModelVersionsByRegisteredModel: GetModelVersionsByRegisteredModel;
+  getModelArtifactsByModelVersion: GetModelArtifactsByModelVersion;
   patchRegisteredModel: PatchRegisteredModel;
   patchModelVersion: PatchModelVersion;
   patchModelArtifact: PatchModelArtifact;

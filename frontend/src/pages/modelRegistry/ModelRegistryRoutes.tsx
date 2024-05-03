@@ -5,6 +5,8 @@ import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import ModelRegistry from './screens/ModelRegistry';
 import { ModelVersionsTabs } from './screens/const';
 import ModelVersions from './screens/ModelVersions';
+import ModelVersionsDetails from './screens/ModelVersionDetails/ModelVersionDetails';
+import { ModelVersionDetailsTab } from './screens/ModelVersionDetails/const';
 
 const ModelRegistryRoutes: React.FC = () => (
   <ModelRegistrySelectorContextProvider>
@@ -28,6 +30,14 @@ const ModelRegistryRoutes: React.FC = () => (
             path={ModelVersionsTabs.DETAILS}
             element={<ModelVersions tab={ModelVersionsTabs.DETAILS} empty={false} />}
           />
+          <Route path="versions/:modelVersionId">
+            <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} />} />
+            <Route
+              path={ModelVersionDetailsTab.DETAILS}
+              element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
+            />
+            <Route path="*" element={<Navigate to="." />} />
+          </Route>
           <Route path="*" element={<Navigate to="." />} />
         </Route>
         <Route path="*" element={<Navigate to="." />} />
