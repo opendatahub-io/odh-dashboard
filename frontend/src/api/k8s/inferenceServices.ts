@@ -13,6 +13,7 @@ import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/typ
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { ContainerResources } from '~/types';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions } from './utils';
 
@@ -24,13 +25,19 @@ export const assembleInferenceService = (
   inferenceService?: InferenceServiceKind,
   acceleratorState?: AcceleratorProfileState,
 ): InferenceServiceKind => {
-  const { storage, format, servingRuntimeName, project, maxReplicas, minReplicas, tokenAuth } =
-    data;
+  const {
+    storage,
+    format,
+    servingRuntimeName,
+    project,
+    modelSize,
+    maxReplicas,
+    minReplicas,
+    tokenAuth,
+  } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
   const { path, dataConnection } = storage;
   const dataConnectionKey = secretKey || dataConnection;
-
-  const { tolerations, resources } = assemblePodSpecOptions({}, acceleratorState);
 
   const updateInferenceService: InferenceServiceKind = inferenceService
     ? {
@@ -111,11 +118,25 @@ export const assembleInferenceService = (
     delete updateInferenceService.metadata.annotations['serving.knative.openshift.io/token-auth'];
   }
 
-  if (!isModelMesh && tolerations.length !== 0) {
-    updateInferenceService.spec.predictor.tolerations = tolerations;
-  }
+  // Resource and Accelerator support for KServe
+  if (!isModelMesh) {
+    const resourceSettings: ContainerResources = {
+      requests: {
+        cpu: modelSize.resources.requests?.cpu,
+        memory: modelSize.resources.requests?.memory,
+      },
+      limits: {
+        cpu: modelSize.resources.limits?.cpu,
+        memory: modelSize.resources.limits?.memory,
+      },
+    };
 
-  if (!isModelMesh && resources.limits && resources.requests) {
+    const { tolerations, resources } = assemblePodSpecOptions(resourceSettings, acceleratorState);
+
+    if (tolerations.length !== 0) {
+      updateInferenceService.spec.predictor.tolerations = tolerations;
+    }
+
     updateInferenceService.spec.predictor.model.resources = resources;
   }
 

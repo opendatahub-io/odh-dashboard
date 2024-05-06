@@ -121,9 +121,11 @@ export const assembleServingRuntime = (
         volumeMounts.push(getshmVolumeMount());
       }
 
+      const containerWithoutResources = _.omit(container, 'resources');
+
       return {
-        ...container,
-        resources: isModelMesh ? resources : resourceSettings,
+        ...containerWithoutResources,
+        ...(isModelMesh ? { resources } : {}),
         affinity,
         volumeMounts,
       };

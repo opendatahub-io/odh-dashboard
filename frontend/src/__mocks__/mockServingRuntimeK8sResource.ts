@@ -1,5 +1,5 @@
 import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimeAPIProtocol } from '~/types';
+import { ServingRuntimeAPIProtocol, ContainerResources } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -10,6 +10,10 @@ type MockResourceConfigType = {
   route?: boolean;
   acceleratorName?: string;
   apiProtocol?: ServingRuntimeAPIProtocol;
+  resources?: ContainerResources;
+  disableResources?: boolean;
+  disableReplicas?: boolean;
+  disableModelMeshAnnotations?: boolean;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -95,6 +99,19 @@ export const mockServingRuntimeK8sResource = ({
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
+  resources = {
+    limits: {
+      cpu: '2',
+      memory: '8Gi',
+    },
+    requests: {
+      cpu: '1',
+      memory: '4Gi',
+    },
+  },
+  disableResources = false,
+  disableReplicas = false,
+  disableModelMeshAnnotations = false,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -108,10 +125,12 @@ export const mockServingRuntimeK8sResource = ({
       'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
       'opendatahub.io/accelerator-name': acceleratorName,
       'opendatahub.io/template-name': 'ovms',
-      'enable-auth': auth ? 'true' : 'false',
-      'enable-route': route ? 'true' : 'false',
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
+      ...(!disableModelMeshAnnotations && {
+        'enable-auth': auth ? 'true' : 'false',
+        'enable-route': route ? 'true' : 'false',
+      }),
     },
     name,
     namespace,
@@ -137,25 +156,16 @@ export const mockServingRuntimeK8sResource = ({
         image:
           'registry.redhat.io/openshift-ai/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
         name: 'ovms',
-        resources: {
-          limits: {
-            cpu: '2',
-            memory: '8Gi',
-          },
-          requests: {
-            cpu: '1',
-            memory: '4Gi',
-          },
-        },
         affinity: {},
         volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
+        ...(!disableResources && { resources }),
       },
     ],
     grpcDataEndpoint: 'port:8001',
     grpcEndpoint: 'port:8085',
     multiModel: true,
     protocolVersions: ['grpc-v1'],
-    replicas,
+    ...(!disableReplicas && { replicas }),
     supportedModelFormats: [
       {
         autoSelect: true,

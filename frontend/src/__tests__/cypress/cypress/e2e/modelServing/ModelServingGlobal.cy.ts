@@ -307,11 +307,17 @@ describe('Model Serving Global', () => {
 
     cy.wait('@editModel').then((interception) => {
       const servingRuntimeMock = mockServingRuntimeK8sResource({ displayName: 'test-model' });
+      const servingRuntimeMockNoResources = mockServingRuntimeK8sResource({
+        displayName: 'test-model',
+        disableResources: true,
+        disableReplicas: true,
+        disableModelMeshAnnotations: true,
+      }); // KServe should send resources in ServingRuntime after migration
       delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
       delete servingRuntimeMock.spec.replicas;
       expect(interception.request.url).to.include('?dryRun=All'); //dry run request
-      expect(interception.request.body).to.eql(servingRuntimeMock);
+      expect(interception.request.body).to.eql(servingRuntimeMockNoResources);
     });
   });
 

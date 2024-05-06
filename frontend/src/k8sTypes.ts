@@ -15,7 +15,7 @@ import {
   VolumeMount,
   ContainerResourceAttributes,
 } from './types';
-import { ServingRuntimeSize } from './pages/modelServing/screens/types';
+import { ModelServingSize } from './pages/modelServing/screens/types';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -1234,7 +1234,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
-    modelServerSizes?: ServingRuntimeSize[];
+    modelServerSizes?: ModelServingSize[];
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;

@@ -4,8 +4,9 @@ import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
+  CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
-  ServingRuntimeSize,
+  ModelServingSize,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
@@ -15,9 +16,11 @@ import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState'
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
-  data: CreatingServingRuntimeObject;
-  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
-  sizes: ServingRuntimeSize[];
+  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
+  setData:
+    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
+    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+  sizes: ModelServingSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
   acceleratorProfileState: AcceleratorProfileState;
   setAcceleratorProfileState: UpdateObjectAtPropAndValue<AcceleratorProfileState>;
