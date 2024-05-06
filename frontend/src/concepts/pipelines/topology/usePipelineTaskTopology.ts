@@ -42,8 +42,8 @@ const getNodeArtifacts = (
       const { artifactId } =
         artifactNodeData?.find((a) => artifactKey === a.outputArtifactKey) ?? {};
 
-      // if no node needs it as an input, we don't really need a well known id
-      const id = artifactId ?? artifactKey;
+      // if no node needs it as an input, we don't really need a well known id, prepend taskId to ensure uniqueness
+      const id = `${taskId}--${artifactId ?? artifactKey}`;
 
       const artifactPipelineTask: PipelineTask = {
         type: 'artifact',
