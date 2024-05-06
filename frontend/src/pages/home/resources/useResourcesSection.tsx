@@ -18,7 +18,6 @@ import ScrolledGallery from '~/concepts/design/ScrolledGallery';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { useSpecifiedResources } from './useSpecifiedResources';
-import ResourcesLoading from './ResourcesLoading';
 
 const includedCards = [
   { name: 'create-jupyter-notebook', kind: 'OdhQuickStart' },
@@ -38,7 +37,7 @@ export const useResourcesSection = (): React.ReactNode => {
     false,
   );
 
-  if (loaded && !loadError && docs.length === 0) {
+  if (!loadError && (!loaded || docs.length === 0)) {
     return null;
   }
 
@@ -60,8 +59,6 @@ export const useResourcesSection = (): React.ReactNode => {
               />
               <EmptyStateBody>{loadError.message}</EmptyStateBody>
             </EmptyState>
-          ) : !loaded ? (
-            <ResourcesLoading />
           ) : (
             <ScrolledGallery count={docs.length} childWidth="330px">
               {docs.map((doc) => (

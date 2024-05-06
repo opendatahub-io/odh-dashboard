@@ -4,6 +4,7 @@ import {
   EmptyState,
   EmptyStateHeader,
   EmptyStateIcon,
+  Page,
   PageSection,
   PageSectionVariants,
 } from '@patternfly/react-core';
@@ -21,13 +22,12 @@ const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const aiFlows = useAIFlows();
   const resourcesSection = useResourcesSection();
-
   const enableTeamSection = useEnableTeamSection();
 
-  if (!projectsAvailable && !aiFlows && !resourcesSection && !enableTeamSection) {
-    return (
-      <>
-        <HomeHint />
+  return (
+    <Page data-testid="home-page">
+      <HomeHint />
+      {!projectsAvailable && !aiFlows && !resourcesSection && !enableTeamSection ? (
         <PageSection data-testid="home-page-empty" variant={PageSectionVariants.default}>
           <Bullseye>
             <EmptyState variant="full">
@@ -39,18 +39,15 @@ const Home: React.FC = () => {
             </EmptyState>
           </Bullseye>
         </PageSection>
-      </>
-    );
-  }
-
-  return (
-    <div data-testid="home-page">
-      <HomeHint />
-      <ProjectsSection />
-      {aiFlows}
-      {resourcesSection}
-      {enableTeamSection}
-    </div>
+      ) : (
+        <>
+          <ProjectsSection />
+          {aiFlows}
+          {resourcesSection}
+          {enableTeamSection}
+        </>
+      )}
+    </Page>
   );
 };
 
