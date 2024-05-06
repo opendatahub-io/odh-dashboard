@@ -65,6 +65,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         hideDetailsAtMedium
         showStatusState
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
+        showLabel={detailsLevel === ScaleDetailsLevel.high}
         status={element.getData()?.runStatus}
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
