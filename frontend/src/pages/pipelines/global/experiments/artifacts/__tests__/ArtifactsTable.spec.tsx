@@ -79,7 +79,7 @@ describe('ArtifactsTable', () => {
                 ],
               ],
               state: 2,
-              createTimeSinceEpoch: 1711113121829,
+              createTimeSinceEpoch: new Date(),
             })),
           },
           {
@@ -135,7 +135,7 @@ describe('ArtifactsTable', () => {
     expect(firstRow).toHaveTextContent('1');
     expect(firstRow).toHaveTextContent('system.Artifact');
     expect(firstRow).toHaveTextContent('https://test-artifact!-aiplatform.googleapis.com/v1/12.15');
-    expect(firstRow).toHaveTextContent('1 month ago');
+    expect(firstRow).toHaveTextContent('Just now');
 
     const secondRow = screen.getByRole('row', { name: /iris_dataset/ });
     expect(secondRow).toHaveTextContent('iris_dataset');
