@@ -36,6 +36,15 @@ const ModelRegistryRoutes: React.FC = () => (
               path={ModelVersionDetailsTab.DETAILS}
               element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
             />
+            <Route
+              path={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+              element={
+                <ModelVersionsDetails
+                  tab={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+                  empty={false}
+                />
+              }
+            />
             <Route path="*" element={<Navigate to="." />} />
           </Route>
           <Route path="*" element={<Navigate to="." />} />

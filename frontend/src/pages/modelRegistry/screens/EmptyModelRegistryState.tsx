@@ -16,8 +16,8 @@ type EmptyModelRegistryStateType = {
   testid?: string;
   title: string;
   description: string;
-  primaryActionText: string;
-  primaryActionOnClick: () => void;
+  primaryActionText?: string;
+  primaryActionOnClick?: () => void;
   secondaryActionText?: string;
   secondaryActionOnClick?: () => void;
 };
@@ -36,23 +36,25 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
     <EmptyStateBody>{description}</EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
-        <Button
-          data-testid="empty-model-registry-primary-action"
-          variant={ButtonVariant.primary}
-          onClick={primaryActionOnClick}
-        >
-          {primaryActionText}
-        </Button>
+        {primaryActionText && (
+          <Button
+            data-testid="empty-model-registry-primary-action"
+            variant={ButtonVariant.primary}
+            onClick={primaryActionOnClick}
+          >
+            {primaryActionText}
+          </Button>
+        )}
+        {secondaryActionText && (
+          <Button
+            data-testid="empty-model-registry-secondary-action"
+            variant="link"
+            onClick={secondaryActionOnClick}
+          >
+            {secondaryActionText}
+          </Button>
+        )}
       </EmptyStateActions>
-      {secondaryActionText && (
-        <Button
-          data-testid="empty-model-registry-secondary-action"
-          variant="link"
-          onClick={secondaryActionOnClick}
-        >
-          {secondaryActionText}
-        </Button>
-      )}
     </EmptyStateFooter>
   </EmptyState>
 );
