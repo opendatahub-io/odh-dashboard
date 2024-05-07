@@ -1,7 +1,5 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
 import ManageProjectModal from './ManageProjectModal';
 
 type NewProjectButtonProps = {
@@ -24,11 +22,6 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onPr
       <ManageProjectModal
         open={open}
         onClose={(newProjectName) => {
-          fireTrackingEvent('NewProject Created', {
-            outcome: newProjectName ? TrackingOutcome.submit : TrackingOutcome.cancel,
-            success: onProjectCreated != null,
-            projectName: newProjectName || '',
-          });
           if (newProjectName) {
             if (onProjectCreated) {
               onProjectCreated(newProjectName);

@@ -23,6 +23,7 @@ import {
   getProjectDisplayName,
   getProjectOwner,
 } from '~/concepts/projects/utils';
+import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
 
 interface ProjectCardProps {
   project: ProjectKind;
@@ -38,7 +39,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           data-testid={`project-link-${project.metadata.name}`}
           variant="link"
           isInline
-          onClick={() => navigate(`/projects/${project.metadata.name}`)}
+          onClick={() => {
+            navigate(`/projects/${project.metadata.name}`);
+            fireTrackingEventRaw('HomeCardClicked', {
+              to: `/projects/${project.metadata.name}`,
+              type: 'project',
+            });
+          }}
           style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
         >
           <Truncate content={getProjectDisplayName(project)} />
