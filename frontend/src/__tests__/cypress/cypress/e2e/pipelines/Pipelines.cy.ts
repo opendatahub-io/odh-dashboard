@@ -28,14 +28,35 @@ import {
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
 const initialMockPipelineVersion = buildMockPipelineVersionV2({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
-const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
+
+const uploadVersionParams = {
+  display_name: 'New pipeline version',
+  description: 'New pipeline version description',
+  pipeline_id: 'test-pipeline',
+};
+
+const uploadPipelineParams = {
+  display_name: 'New pipeline',
+  description: 'New pipeline description',
+};
+
+const createPipelineAndVersionParams = {
+  pipeline: {
+    display_name: 'New pipeline',
+  },
+  pipeline_version: {
+    display_name: 'New pipeline',
+    package_url: {
+      pipeline_url: 'https://example.com/pipeline.yaml',
+    },
+  },
+};
 
 describe('Pipelines', () => {
   it('Empty state', () => {
@@ -160,59 +181,23 @@ describe('Pipelines', () => {
       }),
     ).as('createDSPA');
 
-    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
-    pipelinesGlobal.findConfigurePipelineServerButton().click();
-    configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
-    configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
-    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
-    configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
-    configurePipelineServerModal.findBucketInput().type('test-bucket');
-    configurePipelineServerModal.findSubmitButton().should('be.enabled');
-    configurePipelineServerModal.findSubmitButton().click();
+    configurePipelineServerModal.configurePipelineServer(projectName);
+  });
 
-    cy.wait('@createSecret').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.containSubset({
-        metadata: {
-          name: 'dashboard-dspa-secret',
-          namespace: projectName,
-          annotations: {},
-          labels: { 'opendatahub.io/dashboard': 'true' },
-        },
-        stringData: { AWS_ACCESS_KEY_ID: 'test-aws-key', AWS_SECRET_ACCESS_KEY: 'test-secret-key' },
-      });
-    });
+  it('imports a new pipeline', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+    pipelineImportModal.importNewPipeline(projectName, initialMockPipeline, uploadPipelineParams);
+  });
 
-    cy.wait('@createSecret').then((interception) => {
-      expect(interception.request.url).not.to.include('?dryRun=All');
-    });
-
-    cy.get('@createSecret.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
-    });
-
-    cy.wait('@createDSPA').then((interception) => {
-      expect(interception.request.body).to.containSubset({
-        metadata: { name: 'dspa', namespace: 'test-project-name' },
-        spec: {
-          apiServer: { enableSamplePipeline: false },
-          dspVersion: 'v2',
-          objectStorage: {
-            externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
-              scheme: 'https',
-              bucket: 'test-bucket',
-              region: 'us-east-1',
-              s3CredentialsSecret: {
-                accessKey: 'AWS_ACCESS_KEY_ID',
-                secretKey: 'AWS_SECRET_ACCESS_KEY',
-                secretName: 'test-secret',
-              },
-            },
-          },
-        },
-      });
-    });
+  it('imports a new pipeline by url', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+    pipelineImportModal.importPipelineFromUrl(
+      projectName,
+      initialMockPipeline,
+      createPipelineAndVersionParams,
+    );
   });
 
   it('Connect external database while configuring pipeline server', () => {
@@ -375,18 +360,7 @@ describe('Pipelines', () => {
     );
 
     pipelinesGlobal.visit(projectName);
-
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.findCloseButton().click();
-
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
-
-    viewPipelineServerModal.findDoneButton().click();
+    viewPipelineServerModal.viewPipelineServerDetails();
   });
 
   it('renders the page with pipelines table data', () => {
@@ -480,18 +454,7 @@ describe('Pipelines', () => {
     it('Table sort', () => {
       initIntercepts({});
       pipelinesGlobal.visit(projectName);
-
-      // by Pipeline
-      pipelinesTable.findTableHeaderButton('Pipeline').click();
-      pipelinesTable.findTableHeaderButton('Pipeline').should(be.sortAscending);
-      pipelinesTable.findTableHeaderButton('Pipeline').click();
-      pipelinesTable.findTableHeaderButton('Pipeline').should(be.sortDescending);
-
-      // by Created
-      pipelinesTable.findTableHeaderButton('Created').click();
-      pipelinesTable.findTableHeaderButton('Created').should(be.sortAscending);
-      pipelinesTable.findTableHeaderButton('Created').click();
-      pipelinesTable.findTableHeaderButton('Created').should(be.sortDescending);
+      pipelinesTable.sortTable();
     });
   });
 
@@ -545,171 +508,15 @@ describe('Pipelines', () => {
     verifyRelativeURL('/pipelines/test-project-name-2');
   });
 
-  it('imports a new pipeline', () => {
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-    const uploadPipelineParams = {
-      display_name: 'New pipeline',
-      description: 'New pipeline description',
-    };
-    const uploadedMockPipeline = buildMockPipelineV2(uploadPipelineParams);
-
-    // Intercept upload/re-fetch of pipelines
-    pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
-    pipelinesTable
-      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
-      .as('refreshPipelines');
-
-    // Wait for the pipelines table to load
-    pipelinesTable.find();
-
-    // Open the "Import pipeline" modal
-    pipelinesGlobal.findImportPipelineButton().click();
-
-    // Fill out the "Import pipeline" modal and submit
-    pipelineImportModal.shouldBeOpen();
-    pipelineImportModal.fillPipelineName('New pipeline');
-    pipelineImportModal.fillPipelineDescription('New pipeline description');
-    pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
-    pipelineImportModal.submit();
-
-    // Wait for upload/fetch requests
-    cy.wait('@uploadPipeline').then((interception) => {
-      // Note: contain is used instead of equals as different browser engines will add a different boundary
-      // to the body - the aim is to not limit these tests to working with one specific engine.
-      expect(interception.request.body).to.contain(
-        'Content-Disposition: form-data; name="uploadfile"; filename="uploadedFile.yml"',
-      );
-      expect(interception.request.body).to.contain('Content-Type: application/x-yaml');
-      expect(interception.request.body).to.contain('test-yaml-pipeline-content');
-
-      expect(interception.request.query).to.eql({
-        name: 'New pipeline',
-        description: 'New pipeline description',
-      });
-    });
-
-    cy.wait('@refreshPipelines').then((interception) => {
-      expect(interception.request.query).to.eql({ sort_by: 'created_at desc', page_size: '10' });
-    });
-
-    // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowByName('New pipeline').find().should('exist');
-  });
-
-  it('imports a new pipeline by url', () => {
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-    const createPipelineAndVersionParams = {
-      pipeline: {
-        display_name: 'New pipeline',
-      },
-      pipeline_version: {
-        display_name: 'New pipeline',
-        package_url: {
-          pipeline_url: 'https://example.com/pipeline.yaml',
-        },
-      },
-    };
-    const createdMockPipeline = buildMockPipelineV2(createPipelineAndVersionParams.pipeline);
-
-    // Intercept upload/re-fetch of pipelines
-    pipelineImportModal
-      .mockCreatePipelineAndVersion(createPipelineAndVersionParams, projectName)
-      .as('createPipelineAndVersion');
-    pipelinesTable
-      .mockGetPipelines([initialMockPipeline, createdMockPipeline], projectName)
-      .as('refreshPipelines');
-    pipelinesTable.mockGetPipelineVersions(
-      [buildMockPipelineVersionV2(createPipelineAndVersionParams.pipeline_version)],
-      'new-pipeline',
-      projectName,
-    );
-
-    // Wait for the pipelines table to load
-    pipelinesTable.find();
-
-    // Open the "Import pipeline" modal
-    pipelinesGlobal.findImportPipelineButton().click();
-
-    // Fill out the "Import pipeline" modal and submit
-    pipelineImportModal.shouldBeOpen();
-    pipelineImportModal.fillPipelineName('New pipeline');
-    pipelineImportModal.findImportPipelineRadio().check();
-    pipelineImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
-    pipelineImportModal.submit();
-
-    // Wait for upload/fetch requests
-    cy.wait('@createPipelineAndVersion');
-    cy.wait('@refreshPipelines');
-
-    // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowByName('New pipeline').find().should('exist');
-  });
-
   it('uploads a new pipeline version', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    const uploadVersionParams = {
-      display_name: 'New pipeline version',
-      description: 'New pipeline version description',
-      pipeline_id: 'test-pipeline',
-    };
-
-    // Wait for the pipelines table to load
-    pipelinesTable.find();
-
-    // Open the "Upload new version" modal
-    pipelinesGlobal.findUploadVersionButton().click();
-
-    // Intercept upload/re-fetch of pipeline versions
-    pipelineVersionImportModal
-      .mockUploadVersion(uploadVersionParams, projectName)
-      .as('uploadVersion');
-    pipelinesTable
-      .mockGetPipelineVersions(
-        [initialMockPipelineVersion, buildMockPipelineVersionV2(uploadVersionParams)],
-        initialMockPipeline.pipeline_id,
-        projectName,
-      )
-      .as('refreshVersions');
-
-    // Fill out the "Upload new version" modal and submit
-    pipelineVersionImportModal.shouldBeOpen();
-    pipelineVersionImportModal.selectPipelineByName('Test pipeline');
-    pipelineVersionImportModal.fillVersionName('New pipeline version');
-    pipelineVersionImportModal.fillVersionDescription('New pipeline version description');
-    pipelineVersionImportModal.uploadPipelineYaml(pipelineYamlPath);
-    pipelineVersionImportModal.submit();
-
-    // Wait for upload/fetch requests
-    cy.wait('@uploadVersion').then((interception) => {
-      // Note: contain is used instead of equals as different browser engines will add a different boundary
-      // to the body - the aim is to not limit these tests to working with one specific engine.
-      expect(interception.request.body).to.contain(
-        'Content-Disposition: form-data; name="uploadfile"; filename="uploadedFile.yml"',
-      );
-      expect(interception.request.body).to.contain('Content-Type: application/x-yaml');
-      expect(interception.request.body).to.contain('test-yaml-pipeline-content');
-
-      expect(interception.request.query).to.eql({
-        name: 'New pipeline version',
-        description: 'New pipeline version description',
-        pipelineid: 'test-pipeline',
-      });
-    });
-
-    cy.wait('@refreshVersions').then((interception) => {
-      expect(interception.request.query).to.eql({
-        sort_by: 'created_at desc',
-        page_size: '1',
-        pipeline_id: 'test-pipeline',
-      });
-    });
-
-    // Verify the uploaded pipeline version is in the table
-    pipelinesTable.getRowByName('Test pipeline').toggleExpandByIndex(0);
-    pipelinesTable.getRowByName('New pipeline version').find().should('exist');
+    pipelineImportModal.uploadPipelineVersion(
+      projectName,
+      initialMockPipeline,
+      initialMockPipelineVersion,
+      uploadVersionParams,
+    );
   });
 
   it('imports a new pipeline version by url', () => {

@@ -3,6 +3,7 @@ import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes'
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 class PipelinesTableRow extends TableRow {
   findPipelineName(name: string) {
@@ -25,6 +26,20 @@ class PipelinesTableRow extends TableRow {
 
 class PipelinesTable {
   private testId = 'pipelines-table';
+
+  sortTable() {
+    // by Pipeline
+    this.findTableHeaderButton('Pipeline').click();
+    this.findTableHeaderButton('Pipeline').should(be.sortAscending);
+    this.findTableHeaderButton('Pipeline').click();
+    this.findTableHeaderButton('Pipeline').should(be.sortDescending);
+
+    // by Created
+    this.findTableHeaderButton('Created').click();
+    this.findTableHeaderButton('Created').should(be.sortAscending);
+    this.findTableHeaderButton('Created').click();
+    this.findTableHeaderButton('Created').should(be.sortDescending);
+  }
 
   find() {
     return cy.findByTestId(this.testId);

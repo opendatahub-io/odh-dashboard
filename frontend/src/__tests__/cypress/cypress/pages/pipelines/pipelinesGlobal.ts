@@ -132,11 +132,82 @@ class ConfigurePipelineServerModal extends Modal {
   findDatabaseInput() {
     return this.find().findByTestId('field Database');
   }
+
+  configurePipelineServer(projectName: string) {
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+    pipelinesGlobal.findConfigurePipelineServerButton().click();
+
+    this.findAwsKeyInput().type('test-aws-key');
+    this.findAwsSecretKeyInput().type('test-secret-key');
+    this.findEndpointInput().type('https://s3.amazonaws.com/');
+    this.findRegionInput().should('have.value', 'us-east-1');
+    this.findBucketInput().type('test-bucket');
+    this.findSubmitButton().should('be.enabled');
+    this.findSubmitButton().click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'dashboard-dspa-secret',
+          namespace: projectName,
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { AWS_ACCESS_KEY_ID: 'test-aws-key', AWS_SECRET_ACCESS_KEY: 'test-secret-key' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.wait('@createDSPA').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: { name: 'dspa', namespace: projectName },
+        spec: {
+          apiServer: { enableSamplePipeline: false },
+          dspVersion: 'v2',
+          objectStorage: {
+            externalStorage: {
+              host: 's3.us-east-1.amazonaws.com',
+              scheme: 'https',
+              bucket: 'test-bucket',
+              region: 'us-east-1',
+              s3CredentialsSecret: {
+                accessKey: 'AWS_ACCESS_KEY_ID',
+                secretKey: 'AWS_SECRET_ACCESS_KEY',
+                secretName: 'test-secret',
+              },
+            },
+          },
+        },
+      });
+    });
+  }
 }
 
 class ViewPipelineServerModal extends Modal {
   constructor() {
     super('View pipeline server');
+  }
+
+  viewPipelineServerDetails() {
+    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    this.findCloseButton().click();
+
+    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    this.shouldHaveAccessKey('sdsd');
+    this.findPasswordHiddenButton().click();
+    this.shouldHaveSecretKey('sdsd');
+    this.shouldHaveEndPoint('https://s3.amazonaws.com');
+    this.shouldHaveBucketName('test-pipelines-bucket');
+
+    this.findDoneButton().click();
   }
 
   findDoneButton() {
