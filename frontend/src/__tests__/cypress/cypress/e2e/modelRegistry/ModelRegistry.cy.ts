@@ -1,20 +1,31 @@
+/* eslint-disable camelcase */
 import { mockK8sResourceList, mockRouteK8sResourceModelRegistry } from '~/__mocks__';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ModelRegistryModel, RouteModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
+import { mockModelVersion } from '~/__mocks__/mockModelVersion';
+import { ModelVersion } from '~/concepts/modelRegistry/types';
 
 type HandlersProps = {
   disableModelRegistryFeature?: boolean;
-  size?: number;
+  registeredModelsSize?: number;
+  modelVersions?: ModelVersion[];
 };
 
-const initIntercepts = ({ disableModelRegistryFeature = false, size = 4 }: HandlersProps) => {
+const initIntercepts = ({
+  disableModelRegistryFeature = false,
+  registeredModelsSize = 4,
+  modelVersions = [
+    mockModelVersion({ author: 'Author 1' }),
+    mockModelVersion({ name: 'model version' }),
+  ],
+}: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -37,14 +48,15 @@ const initIntercepts = ({ disableModelRegistryFeature = false, size = 4 }: Handl
       namespace: 'odh-model-registries',
     }),
   );
+
   cy.interceptOdh(
     `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
-    mockRegisteredModelList({ size }),
+    mockRegisteredModelList({ size: registeredModelsSize }),
   );
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
-    mockModelVersionList(),
+    mockModelVersionList({ items: modelVersions }),
   );
 };
 
@@ -71,7 +83,7 @@ describe('Model Registry', () => {
   it('No registered models in the selected Model Registry', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
-      size: 0,
+      registeredModelsSize: 0,
     });
 
     modelRegistry.visit();

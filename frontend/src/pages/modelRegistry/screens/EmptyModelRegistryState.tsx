@@ -13,6 +13,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 
 type EmptyModelRegistryStateType = {
+  testid?: string;
   title: string;
   description: string;
   primaryActionText: string;
@@ -22,6 +23,7 @@ type EmptyModelRegistryStateType = {
 };
 
 const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
+  testid,
   title,
   description,
   primaryActionText,
@@ -29,7 +31,7 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
   primaryActionOnClick,
   secondaryActionOnClick,
 }) => (
-  <EmptyState variant={EmptyStateVariant.sm} data-testid="empty-model-registry">
+  <EmptyState variant={EmptyStateVariant.sm} data-testid={testid}>
     <EmptyStateHeader titleText={title} icon={<EmptyStateIcon icon={PlusCircleIcon} />} />
     <EmptyStateBody>{description}</EmptyStateBody>
     <EmptyStateFooter>

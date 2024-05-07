@@ -43,6 +43,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
   if (unfilteredmodelVersions.length === 0) {
     return (
       <EmptyModelRegistryState
+        testid="empty-model-versions"
         title="No versions"
         description={`${rmName} has no versions registered to it. Register a version to this model.`}
         primaryActionText="Register new version"
@@ -69,9 +70,10 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                 chips={search === '' ? [] : [search]}
                 deleteChip={() => setSearch('')}
                 deleteChipGroup={() => setSearch('')}
-                categoryName="Keyword"
+                categoryName={searchType}
               >
                 <SimpleDropdownSelect
+                  dataTestId="model-versions-table-filter"
                   options={searchTypes.map((key) => ({
                     key,
                     label: key,
@@ -107,6 +109,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
               onOpenChange={(isOpen: boolean) => setIsArchivedModelVersionKebabOpen(isOpen)}
               toggle={(tr: React.Ref<MenuToggleElement>) => (
                 <MenuToggle
+                  data-testid="model-versions-table-kebab-action"
                   ref={tr}
                   variant="plain"
                   onClick={() =>

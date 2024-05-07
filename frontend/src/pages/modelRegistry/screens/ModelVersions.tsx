@@ -37,7 +37,9 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
               </Link>
             )}
           />
-          <BreadcrumbItem isActive>{rm?.name}</BreadcrumbItem>
+          <BreadcrumbItem data-testid="breadcrumb-model" isActive>
+            {rm?.name}
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       title={rm?.name}

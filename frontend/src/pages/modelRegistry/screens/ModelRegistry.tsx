@@ -17,6 +17,7 @@ const ModelRegistry: React.FC = () => {
       empty={registeredModels.size === 0}
       emptyStatePage={
         <EmptyModelRegistryState
+          testid="empty-registered-models"
           title="No models in selected registry"
           description={`${preferredModelRegistry?.metadata.name} has no models registered to it. Register model to this registry, or select a different one.`}
           primaryActionText="Register model"
@@ -30,7 +31,7 @@ const ModelRegistry: React.FC = () => {
         />
       }
       title={
-        <TitleWithIcon title="Deployed models" objectType={ProjectObjectType.deployedModels} />
+        <TitleWithIcon title="Registered models" objectType={ProjectObjectType.deployedModels} />
       }
       description="View and manage your registered models."
       headerContent={
