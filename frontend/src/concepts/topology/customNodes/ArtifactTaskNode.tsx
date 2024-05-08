@@ -96,7 +96,9 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
     const detailsLevel = element.getGraph().getDetailsLevel();
     const data = element.getData();
     const scale = element.getGraph().getScale();
-    const iconSize = 24;
+    const iconSize = 16;
+    const iconPadding = 4;
+
     const whenDecorator = data?.pipelineTask.whenStatus ? (
       <WhenDecorator
         element={element}
@@ -106,6 +108,8 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
     ) : null;
     const upScale = 1 / scale;
 
+    const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
+    const translateY = iconPadding * upScale;
     return (
       <g
         className={css('pf-topology__pipelines__task-node')}
@@ -128,22 +132,16 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
             >
               {whenDecorator}
             </TaskNode>
-            {!isHover && detailsLevel !== ScaleDetailsLevel.high ? (
-              <g
-                transform={`translate(0, ${
-                  (bounds.height - iconSize * upScale) / 2
-                }) scale(${upScale})`}
-              >
-                <g transform="translate(4, 4)">
-                  <g
-                    color={
-                      selected
-                        ? 'var(--pf-v5-global--icon--Color--dark--light)'
-                        : 'var(--pf-v5-global--icon--Color--light)'
-                    }
-                  >
-                    {data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />}
-                  </g>
+            {!isHover ? (
+              <g transform={`translate(${translateX}, ${translateY}) scale(${upScale})`}>
+                <g
+                  color={
+                    selected
+                      ? 'var(--pf-v5-global--icon--Color--dark--light)'
+                      : 'var(--pf-v5-global--icon--Color--light)'
+                  }
+                >
+                  {data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />}
                 </g>
               </g>
             ) : null}

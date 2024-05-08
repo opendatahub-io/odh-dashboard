@@ -3,10 +3,10 @@ import {
   Graph,
   GRAPH_LAYOUT_END_EVENT,
   Layout,
+  pipelineElementFactory,
   PipelineDagreGroupsLayout,
   Visualization,
 } from '@patternfly/react-topology';
-import pipelineElementFactory from '@patternfly/react-topology/dist/esm/pipelines/elements/pipelineElementFactory';
 import { pipelineComponentFactory } from './factories';
 import {
   PIPELINE_LAYOUT,
