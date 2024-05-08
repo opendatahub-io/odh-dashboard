@@ -39,6 +39,7 @@ module.exports = merge(
       proxy: (() => {
         if (process.env.EXT_CLUSTER) {
           const odhProject = process.env.OC_PROJECT || 'opendatahub';
+          const app = process.env.ODH_APP || 'odh-dashboard';
           console.info('Using project:', odhProject);
 
           let dashboardHost;
@@ -46,7 +47,7 @@ module.exports = merge(
           try {
             try {
               dashboardHost = execSync(
-                `oc get routes -n ${odhProject} odh-dashboard -o jsonpath='{.spec.host}'`,
+                `oc get routes -n ${odhProject} ${app} -o jsonpath='{.spec.host}'`,
               )
                 .toString()
                 .trim();
@@ -54,7 +55,7 @@ module.exports = merge(
               console.info('Failed to GET dashboard route, constructing host manually.');
               dashboardHost = new URL(execSync(`oc whoami --show-server`).toString()).host
                 .replace(/:\d+$/, '')
-                .replace(/^api./, `odh-dashboard-${odhProject}.apps.`);
+                .replace(/^api./, `${app}-${odhProject}.apps.`);
             }
             console.info('Dashboard host:', dashboardHost);
 
