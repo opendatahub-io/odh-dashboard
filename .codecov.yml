@@ -1,0 +1,22 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project: true
+    patch: true
+    # project:
+    #   frontend:
+    #     target: auto
+    #     threshold: 1%
+    # patch:
+    #   default:
+    #     target: 70%
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
