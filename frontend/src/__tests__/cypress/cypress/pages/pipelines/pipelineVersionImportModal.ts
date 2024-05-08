@@ -58,11 +58,11 @@ class PipelineImportModal extends Modal {
     this.findSubmitButton().click();
   }
 
-  mockUploadVersion(params: Partial<PipelineVersionKF>) {
+  mockUploadVersion(params: Partial<PipelineVersionKF>, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines/upload_version',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/pipelines/upload_version`,
         times: 1,
       },
       buildMockPipelineVersion(params),

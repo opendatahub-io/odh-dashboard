@@ -158,8 +158,8 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/metrics/all/requests',
+      method: 'GET',
+      pathname: '/api/service/trustyai/test-project/trustyai-service/metrics/all/requests',
     },
     mockMetricsRequest({ modelName: 'test-inference-service' }),
   );
@@ -656,7 +656,7 @@ describe('Model Metrics', () => {
     cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/metrics/dir/request',
+        pathname: '/api/service/trustyai/test-project/trustyai-service/metrics/dir/request',
       },
       {},
     ).as('configureBiasMetric');
@@ -664,7 +664,7 @@ describe('Model Metrics', () => {
     configureBiasMetricModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@configureBiasMetric').then((interception) => {
-      expect(interception.request.body.data).to.eql({
+      expect(interception.request.body).to.eql({
         modelId: 'test-inference-service',
         requestName: 'Test Metric',
         protectedAttribute: 'customer_data_input-3',

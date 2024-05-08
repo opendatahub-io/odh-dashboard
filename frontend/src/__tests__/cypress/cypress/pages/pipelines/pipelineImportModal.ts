@@ -39,11 +39,11 @@ class PipelineImportModal extends Modal {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
-  mockUploadPipeline(params: Partial<PipelineKF>) {
+  mockUploadPipeline(params: Partial<PipelineKF>, namespace: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines/upload',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/pipelines/upload`,
         times: 1,
       },
       buildMockPipeline(params),

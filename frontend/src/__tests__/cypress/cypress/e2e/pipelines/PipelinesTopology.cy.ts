@@ -32,15 +32,17 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipelines/test-pipeline',
     },
     mockPipelineKF({}),
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions/test-pipeline',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipeline_versions/test-pipeline',
     },
     buildMockPipelineVersion({
       id: 'test-pipeline',
@@ -57,8 +59,9 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions/test-pipeline/templates',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipeline_versions/test-pipeline/templates',
     },
     mockPipelinesVersionTemplateResourceKF(),
   );
@@ -102,15 +105,16 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs/test-pipeline',
     },
     buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipelines',
     },
     mockPipelineKF({}),
   );
@@ -130,15 +134,16 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline-run-id',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs/test-pipeline-run-id',
     },
     getMockRunResource(mockRun),
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: `/api/proxy/apis/v1beta1/pipeline_versions/${mockRunVersionDetails.id}`,
+      method: 'GET',
+      pathname: `/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipeline_versions/${mockRunVersionDetails.id}`,
     },
     buildMockPipelineVersion(mockRunVersionDetails),
   );

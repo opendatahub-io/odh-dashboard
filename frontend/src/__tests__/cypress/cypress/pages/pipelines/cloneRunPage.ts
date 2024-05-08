@@ -13,41 +13,44 @@ class CloneRunPage extends CreateRunPage {
     super();
   }
 
-  mockGetRunResource(runResource: PipelineRunResourceKF) {
+  mockGetRunResource(runResource: PipelineRunResourceKF, namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v1beta1/runs/${runResource.run.id}`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/runs/${runResource.run.id}`,
       },
       runResource,
     );
   }
 
-  mockGetJob(job: PipelineRunJobKF) {
+  mockGetJob(job: PipelineRunJobKF, namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v1beta1/jobs/${job.id}`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/jobs/${job.id}`,
       },
       job,
     );
   }
 
-  mockGetPipelineVersion(pipelineVersion: PipelineVersionKF): Cypress.Chainable<null> {
+  mockGetPipelineVersion(
+    pipelineVersion: PipelineVersionKF,
+    namespace: string,
+  ): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v1beta1/pipeline_versions/${pipelineVersion.id}`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/pipeline_versions/${pipelineVersion.id}`,
       },
       pipelineVersion,
     );
   }
 
-  mockGetPipeline(pipeline: PipelineKF): Cypress.Chainable<null> {
+  mockGetPipeline(pipeline: PipelineKF, namespace: string): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: `/api/proxy/apis/v1beta1/pipelines/${pipeline.id}`,
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/pipelines/${pipeline.id}`,
       },
       pipeline,
     );

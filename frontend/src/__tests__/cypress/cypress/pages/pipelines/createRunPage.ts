@@ -69,20 +69,23 @@ export class CreateRunPage {
       .click();
   }
 
-  mockGetPipelines(pipelines: PipelineKF[]): Cypress.Chainable<null> {
+  mockGetPipelines(pipelines: PipelineKF[], namespace: string): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/pipelines`,
       },
       buildMockPipelines(pipelines),
     );
   }
 
-  mockGetPipelineVersions(versions: PipelineVersionKF[]): Cypress.Chainable<null> {
+  mockGetPipelineVersions(
+    versions: PipelineVersionKF[],
+    namespace: string,
+  ): Cypress.Chainable<null> {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/pipeline_versions`,
       },
       buildMockPipelineVersions(versions),
     );
@@ -91,11 +94,12 @@ export class CreateRunPage {
   mockCreateRun(
     pipelineVersion: PipelineVersionKF,
     { id, name, description }: Partial<PipelineRunKF>,
+    namespace: string,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/runs',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/runs`,
         times: 1,
       },
       {
@@ -134,11 +138,12 @@ export class CreateRunPage {
   mockCreateJob(
     pipelineVersion: PipelineVersionKF,
     { id, name, description }: Partial<PipelineRunJobKF>,
+    namespace: string,
   ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/jobs',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/jobs`,
         times: 1,
       },
       {
