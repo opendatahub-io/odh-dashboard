@@ -4,11 +4,11 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { FlexItem, Text, TextVariants, Truncate } from '@patternfly/react-core';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
+import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
 import RegisteredModelOwner from './RegisteredModelOwner';
-import ModelLabels from './ModelLabels';
-import ModelTimestamp from './ModelTimestamp';
-import { ModelVersionsTabs } from './const';
-import { registeredModelUrl } from './routeUtils';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -51,7 +51,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
           items={[
             {
               title: 'View details',
-              onClick: () => navigate(`${rmUrl}/${ModelVersionsTabs.DETAILS}`),
+              onClick: () => navigate(`${rmUrl}/${ModelVersionsTab.DETAILS}`),
             },
             {
               title: 'Archive model',

@@ -107,12 +107,12 @@ export const getPatchBodyForModelVersion = (
   updates: Partial<ModelVersion>,
 ): Partial<ModelVersion> => getPatchBody(existing, updates, ['registeredModelId']);
 
-export const filteredmodelVersions = (
-  unfilteredmodelVersions: ModelVersion[],
+export const filterModelVersions = (
+  unfilteredModelVersions: ModelVersion[],
   search: string,
   searchType: SearchType,
 ): ModelVersion[] =>
-  unfilteredmodelVersions.filter((mv: ModelVersion) => {
+  unfilteredModelVersions.filter((mv: ModelVersion) => {
     if (!search) {
       return true;
     }

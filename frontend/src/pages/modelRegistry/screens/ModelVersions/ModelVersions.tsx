@@ -6,12 +6,12 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import GlobalModelVersionsTabs from './GlobalModelVersionsTabs';
-import { ModelVersionsTabs } from './const';
+import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
+import { ModelVersionsTab } from './const';
 
 type ModelVersionsProps = {
-  tab: ModelVersionsTabs;
+  tab: ModelVersionsTab;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
@@ -38,7 +38,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
             )}
           />
           <BreadcrumbItem data-testid="breadcrumb-model" isActive>
-            {rm?.name}
+            {rm?.name || 'Loading...'}
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -50,7 +50,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
       provideChildrenPadding
     >
       {rm !== null && (
-        <GlobalModelVersionsTabs
+        <ModelVersionsTabs
           tab={tab}
           registeredModel={rm}
           modelVersions={modelVersions.items}

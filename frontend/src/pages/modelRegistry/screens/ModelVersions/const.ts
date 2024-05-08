@@ -1,4 +1,4 @@
-export enum ModelVersionsTabs {
+export enum ModelVersionsTab {
   VERSIONS = 'versions',
   DETAILS = 'details',
 }

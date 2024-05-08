@@ -43,11 +43,13 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
           <BreadcrumbItem
             render={() => (
               <Link to={registeredModelUrl(rmId, preferredModelRegistry?.metadata.name)}>
-                {rm?.name}
+                {rm?.name || 'Loading...'}
               </Link>
             )}
           />
-          <BreadcrumbItem isActive>{mv?.name}</BreadcrumbItem>
+          <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
+            {mv?.name || 'Loading...'}
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       title={mv?.name}

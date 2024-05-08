@@ -23,4 +23,5 @@ export const mockModelVersion = ({
   name,
   state: ModelVersionState.ARCHIVED,
   registeredModelId,
+  description: 'Description of model version',
 });

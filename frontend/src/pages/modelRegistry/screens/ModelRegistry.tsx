@@ -4,7 +4,7 @@ import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegistered
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import RegisteredModelListView from './RegisteredModelListView';
+import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
 import EmptyModelRegistryState from './EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
 

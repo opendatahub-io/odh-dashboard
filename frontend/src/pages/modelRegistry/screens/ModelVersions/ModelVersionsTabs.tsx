@@ -3,18 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelVersionsTabs, ModelVersionsTabTitle } from './const';
 import ModelVersionListView from './ModelVersionListView';
 import ModelDetailsView from './ModelDetailsView';
+import { ModelVersionsTab, ModelVersionsTabTitle } from './const';
 
-type GlobalModelVersionsTabProps = {
-  tab: ModelVersionsTabs;
+type ModelVersionsTabProps = {
+  tab: ModelVersionsTab;
   registeredModel: RegisteredModel;
   modelVersions: ModelVersion[];
   refresh: () => void;
 };
 
-const GlobalModelVersionsTabs: React.FC<GlobalModelVersionsTabProps> = ({
+const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
   tab,
   registeredModel: rm,
   modelVersions,
@@ -30,7 +30,7 @@ const GlobalModelVersionsTabs: React.FC<GlobalModelVersionsTabProps> = ({
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
       <Tab
-        eventKey={ModelVersionsTabs.VERSIONS}
+        eventKey={ModelVersionsTab.VERSIONS}
         title={<TabTitleText>{ModelVersionsTabTitle.VERSIONS}</TabTitleText>}
         aria-label="Model versions tab"
         data-testid="model-versions-tab"
@@ -40,7 +40,7 @@ const GlobalModelVersionsTabs: React.FC<GlobalModelVersionsTabProps> = ({
         </PageSection>
       </Tab>
       <Tab
-        eventKey={ModelVersionsTabs.DETAILS}
+        eventKey={ModelVersionsTab.DETAILS}
         title={<TabTitleText>{ModelVersionsTabTitle.DETAILS}</TabTitleText>}
         aria-label="Model Details tab"
         data-testid="model-details-tab"
@@ -52,4 +52,4 @@ const GlobalModelVersionsTabs: React.FC<GlobalModelVersionsTabProps> = ({
     </Tabs>
   );
 };
-export default GlobalModelVersionsTabs;
+export default ModelVersionsTabs;

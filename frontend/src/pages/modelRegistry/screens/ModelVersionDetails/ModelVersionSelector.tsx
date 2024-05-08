@@ -65,6 +65,7 @@ const ModelVersionSelector: React.FC<ModelVersionSelectorProps> = ({
         <MenuSearch>
           <MenuSearchInput>
             <SearchInput
+              data-testid="search-input"
               value={input}
               aria-label="Filter menu items"
               onChange={(_event, value) => setInput(value)}
@@ -76,7 +77,7 @@ const ModelVersionSelector: React.FC<ModelVersionSelectorProps> = ({
             </HelperTextItem>
           </HelperText>
         </MenuSearch>
-        <MenuList>{menuListItems}</MenuList>
+        <MenuList data-testid="model-version-selector-list">{menuListItems}</MenuList>
       </MenuContent>
     </Menu>
   );
