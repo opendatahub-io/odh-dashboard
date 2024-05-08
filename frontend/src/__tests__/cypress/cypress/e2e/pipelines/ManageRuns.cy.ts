@@ -22,7 +22,7 @@ const initialRunIds = ['test-run-1', 'test-run-2'];
 
 const mockRuns = Array(11)
   .fill(buildMockRunKF())
-  .map((mockRun: Partial<PipelineRunKFv2>, index) => ({
+  .map((mockRun: PipelineRunKFv2, index) => ({
     ...mockRun,
     display_name: `Test run ${index + 1}`,
     run_id: `test-run-${index + 1}`,
@@ -95,10 +95,10 @@ describe('Manage runs', () => {
   });
 
   it('navigates to "Compare runs" page with updated run IDs when "Update" toolbar action is clicked', () => {
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/test-run-3`,
+        path: { namespace: projectName, serviceName: 'dspa', runId: 'test-run-3' },
       },
       mockRuns[2],
     );
@@ -117,10 +117,10 @@ const initIntercepts = () => {
   configIntercept();
   dspaIntercepts(projectName);
   projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
   );
@@ -130,37 +130,32 @@ const initIntercepts = () => {
     pipeline_id: pipelineId,
   });
 
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
+      path: { namespace: projectName, serviceName: 'dspa', pipelineId },
     },
     buildMockPipelineVersionsV2([mockPipelineVersion]),
   );
 
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${experimentId}`,
-    },
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+    { path: { namespace: projectName, serviceName: 'dspa', experimentId } },
     buildMockExperimentKF({ experiment_id: experimentId }),
   );
 
   initialRunIds.forEach((selectedRunId) => {
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${selectedRunId}`,
+        path: { namespace: projectName, serviceName: 'dspa', runId: selectedRunId },
       },
-      mockRuns.find((mockRun) => mockRun.run_id === selectedRunId),
+      mockRuns.find((mockRun) => mockRun.run_id === selectedRunId) as PipelineRunKFv2,
     );
   });
-
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
-    },
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
     {
       runs: mockRuns,
       total_size: mockRuns.length,

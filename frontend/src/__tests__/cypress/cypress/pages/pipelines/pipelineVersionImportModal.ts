@@ -74,23 +74,17 @@ class PipelineImportModal extends Modal {
   }
 
   mockCreatePipelineVersion(params: CreatePipelineVersionKFData, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${params.pipeline_id}/versions`,
-        times: 1,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+      { path: { namespace, serviceName: 'dspa', pipelineId: params.pipeline_id }, times: 1 },
       buildMockPipelineVersionV2(params),
     );
   }
 
   mockUploadVersion(params: Partial<PipelineVersionKFv2>, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/upload_version`,
-        times: 1,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version',
+      { path: { namespace, serviceName: 'dspa' }, times: 1 },
       buildMockPipelineVersionV2(params),
     );
   }

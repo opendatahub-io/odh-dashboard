@@ -7,7 +7,6 @@ import {
   buildMockPipelineV2,
   buildMockPipelines,
   buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
   mockProjectK8sResource,
   mockRouteK8sResource,
   buildMockRunKF,
@@ -23,6 +22,7 @@ import {
   compareRunsListTable,
   compareRunParamsTable,
 } from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
+import { mockCancelledGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -90,21 +90,24 @@ describe('Compare runs', () => {
   });
 
   it('valid number of runs but it is invalid', () => {
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/invalid_run_id`,
+        path: { namespace: projectName, serviceName: 'dspa', runId: 'invalid_run_id' },
       },
       { statusCode: 404 },
     ).as('invalidRun');
+
     compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, ['invalid_run_id']);
     cy.wait('@invalidRun');
     compareRunsGlobal.findInvalidRunsError().should('exist');
   });
 
   it('invalid runs are removed from url', () => {
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/invalid_run_id`,
+        path: { namespace: projectName, serviceName: 'dspa', runId: 'invalid_run_id' },
       },
       { statusCode: 404 },
     ).as('invalidRun');
@@ -121,18 +124,12 @@ describe('Compare runs', () => {
   });
 
   it('other failed requests dont change the url ', () => {
-    const errorRun = {
-      error: {
-        code: 1, // cancelled
-        message: 'Run cancelled by caller',
-        details: [],
-      },
-    };
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/invalid_run_id`,
+        path: { namespace: projectName, serviceName: 'dspa', runId: 'invalid_run_id' },
       },
-      errorRun,
+      mockCancelledGoogleRpcStatus({ message: 'Run cancelled by caller' }),
     ).as('invalidRun');
     compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
       'invalid_run_id',
@@ -224,36 +221,37 @@ const initIntercepts = () => {
       mockProjectK8sResource({ k8sName: projectName, displayName: projectName }),
     ]),
   );
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines([initialMockPipeline]),
   );
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
     {
-      method: 'POST',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipeline_versions`,
-    },
-    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
-  );
-  cy.intercept(
-    {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${mockExperiment.experiment_id}`,
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        experimentId: mockExperiment.experiment_id,
+      },
     },
     mockExperiment,
   );
-  cy.intercept(
+
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${mockRun.run_id}`,
+      path: { namespace: projectName, serviceName: 'dspa', runId: mockRun.run_id },
     },
     mockRun,
   ).as('validRun');
-  cy.intercept(
+
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${mockRun2.run_id}`,
+      path: { namespace: projectName, serviceName: 'dspa', runId: mockRun2.run_id },
     },
     mockRun2,
   );

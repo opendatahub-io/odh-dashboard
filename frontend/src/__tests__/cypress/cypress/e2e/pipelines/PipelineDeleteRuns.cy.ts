@@ -3,7 +3,6 @@ import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockD
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPipelineKFv2 } from '~/__mocks__/mockPipelineKF';
 import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
@@ -23,7 +22,7 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -32,17 +31,11 @@ const initIntercepts = () => {
       installedComponents: { 'data-science-pipelines-operator': true },
     }),
   );
-  cy.intercept(
+
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
     {
-      method: 'POST',
-      pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines/test-pipeline',
-    },
-    mockPipelineKFv2({}),
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/recurringruns',
+      path: { namespace: 'test-project', serviceName: 'dspa' },
     },
     {
       recurringRuns: [
@@ -51,10 +44,10 @@ const initIntercepts = () => {
       ],
     },
   );
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
     {
-      method: 'GET',
-      pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/runs',
+      path: { namespace: 'test-project', serviceName: 'dspa' },
     },
     {
       runs: [
@@ -63,13 +56,7 @@ const initIntercepts = () => {
       ],
     },
   );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines',
-    },
-    mockPipelineKFv2({}),
-  );
+
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'ds-pipeline-dspa' }));
   cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'ds-pipeline-config' }));
   cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'pipelines-db-password' }));
@@ -101,20 +88,18 @@ describe('Pipeline runs', () => {
       schedulesDeleteModal.findSubmitButton().should('be.disabled');
       schedulesDeleteModal.findInput().type('test-pipeline');
       schedulesDeleteModal.findSubmitButton().should('be.enabled');
-
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
         {
-          method: 'DELETE',
-          pathname:
-            '/api/service/pipelines/test-project/dspa/apis/v2beta1/recurringruns/test-pipeline',
+          path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
         },
-        mock200Status({}),
+        mockSuccessGoogleRpcStatus({}),
       ).as('deleteJobPipeline');
 
-      cy.intercept(
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
         {
-          method: 'GET',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/recurringruns',
+          path: { namespace: 'test-project', serviceName: 'dspa' },
         },
         {
           recurringRuns: [
@@ -150,29 +135,30 @@ describe('Pipeline runs', () => {
       schedulesDeleteModal.findSubmitButton().should('be.disabled');
       schedulesDeleteModal.findInput().type('Delete 2 schedules');
       schedulesDeleteModal.findSubmitButton().should('be.enabled');
-
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
         {
-          method: 'DELETE',
-          pathname:
-            '/api/service/pipelines/test-project/dspa/apis/v2beta1/recurringruns/test-pipeline',
+          path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
         },
-        mock200Status({}),
+        mockSuccessGoogleRpcStatus({}),
       ).as('deleteJobPipeline-1');
 
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
         {
-          method: 'DELETE',
-          pathname:
-            '/api/service/pipelines/test-project/dspa/apis/v2beta1/recurringruns/other-pipeline',
+          path: {
+            namespace: 'test-project',
+            serviceName: 'dspa',
+            recurringRunId: 'other-pipeline',
+          },
         },
-        mock200Status({}),
+        mockSuccessGoogleRpcStatus({}),
       ).as('deleteJobPipeline-2');
 
-      cy.intercept(
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
         {
-          method: 'GET',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/recurringruns',
+          path: { namespace: 'test-project', serviceName: 'dspa' },
         },
         { recurringRuns: [] },
       ).as('getRuns');
@@ -202,18 +188,18 @@ describe('Pipeline runs', () => {
       runsDeleteModal.findInput().type('test-pipeline');
       runsDeleteModal.findSubmitButton().should('be.enabled');
 
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {
-          method: 'DELETE',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/runs/test-pipeline',
+          path: { namespace: 'test-project', serviceName: 'dspa', runId: 'test-pipeline' },
         },
-        mock200Status({}),
+        mockSuccessGoogleRpcStatus({}),
       ).as('deleteRunPipeline');
 
-      cy.intercept(
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
         {
-          method: 'GET',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/runs',
+          path: { namespace: 'test-project', serviceName: 'dspa' },
         },
         { runs: [buildMockRunKF({ run_id: 'other-pipeline', display_name: 'other-pipeline' })] },
       ).as('getRuns');
@@ -249,27 +235,25 @@ describe('Pipeline runs', () => {
       runsDeleteModal.findSubmitButton().should('be.disabled');
       runsDeleteModal.findInput().type('Delete 2 runs');
       runsDeleteModal.findSubmitButton().should('be.enabled');
-
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {
-          method: 'DELETE',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/runs/test-pipeline',
+          path: { namespace: 'test-project', serviceName: 'dspa', runId: 'test-pipeline' },
         },
-        mock200Status({}),
+        mockSuccessGoogleRpcStatus({}),
       ).as('deleteRunPipeline-1');
 
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {
-          method: 'DELETE',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/runs/other-pipeline',
+          path: { namespace: 'test-project', serviceName: 'dspa', runId: 'other-pipeline' },
         },
-        mock200Status({}),
+        mockSuccessGoogleRpcStatus({}),
       ).as('deleteRunPipeline-2');
-
-      cy.intercept(
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
         {
-          method: 'GET',
-          pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/runs',
+          path: { namespace: 'test-project', serviceName: 'dspa' },
         },
         { runs: [] },
       ).as('getRuns');

@@ -30,6 +30,7 @@ import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
+import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -774,13 +775,14 @@ describe('Pipelines', () => {
       .click();
     pipelineDeleteModal.shouldBeOpen();
     pipelineDeleteModal.findInput().type(initialMockPipeline.display_name);
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+        path: { namespace: projectName, serviceName: 'dspa' },
       },
       buildMockPipelines([]),
     ).as('refreshPipelines');
+
     pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deletePipeline');
@@ -808,13 +810,18 @@ describe('Pipelines', () => {
       .click();
     pipelineDeleteModal.shouldBeOpen();
     pipelineDeleteModal.findInput().type(initialMockPipelineVersion.display_name);
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          pipelineId: initialMockPipeline.pipeline_id,
+        },
       },
       buildMockPipelineVersionsV2([]),
     ).as('refreshVersions');
+
     pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteVersion');
@@ -1020,13 +1027,14 @@ describe('Pipelines', () => {
 
     // test Next button
     pagination.findPreviousButton().should('be.disabled');
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+        path: { namespace: projectName, serviceName: 'dspa' },
       },
       buildMockPipelines(mockPipelinesv2.slice(10, 20), 25),
     ).as('refreshPipelines');
+
     pagination.findNextButton().click();
 
     cy.wait('@refreshPipelines').then((interception) => {
@@ -1041,10 +1049,10 @@ describe('Pipelines', () => {
     pipelinesTable.findRows().should('have.length', '10');
 
     // test Previous button
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+        path: { namespace: projectName, serviceName: 'dspa' },
       },
       buildMockPipelines(mockPipelinesv2.slice(0, 10), 25),
     ).as('getFirstTenPipelines');
@@ -1061,10 +1069,10 @@ describe('Pipelines', () => {
     pipelinesTable.getRowByName('Test pipeline-0').find().should('exist');
 
     // 20 per page
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+        path: { namespace: projectName, serviceName: 'dspa' },
       },
       buildMockPipelines(mockPipelinesv2.slice(0, 20), 22),
     );
@@ -1116,42 +1124,43 @@ const initIntercepts = ({
     ]),
   );
 
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines(mockPipelines, totalSize, nextPageToken),
   ).as('getPipelines');
 
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: initialMockPipeline.pipeline_id,
+      },
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
 };
 
 const createDeleteVersionIntercept = (pipelineId: string, pipelineVersionId: string) =>
-  cy.intercept(
+  cy.interceptOdh(
+    'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions/${pipelineVersionId}`,
-      method: 'DELETE',
+      path: { namespace: projectName, serviceName: 'dspa', pipelineId, pipelineVersionId },
       times: 1,
     },
-    {
-      body: {},
-    },
+    mockSuccessGoogleRpcStatus({}),
   );
 
 const createDeletePipelineIntercept = (pipelineId: string) =>
-  cy.intercept(
+  cy.interceptOdh(
+    'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}`,
-      method: 'DELETE',
+      path: { namespace: projectName, serviceName: 'dspa', pipelineId },
       times: 1,
     },
-    {
-      body: {},
-    },
+    mockSuccessGoogleRpcStatus({}),
   );
