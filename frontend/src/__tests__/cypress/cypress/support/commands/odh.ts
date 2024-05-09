@@ -258,6 +258,7 @@ declare global {
         type: 'GET /api/service/trustyai/:namespace/trustyai-service/metrics/all/requests',
         options: {
           path: { namespace: string };
+          query?: { type: string };
         },
         response: OdhResponse<BaseMetricListResponse>,
       ): Cypress.Chainable<null>;

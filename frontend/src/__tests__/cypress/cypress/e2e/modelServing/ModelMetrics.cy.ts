@@ -111,7 +111,7 @@ const initIntercepts = ({
   });
   cy.interceptOdh(
     'GET /api/service/trustyai/:namespace/trustyai-service/metrics/all/requests',
-    { path: { namespace: 'test-project' } },
+    { path: { namespace: 'test-project' }, query: { type: 'fairness' } },
     mockMetricsRequest({ modelName: 'test-inference-service' }),
   );
   cy.interceptK8sList(
