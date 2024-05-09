@@ -9,7 +9,7 @@ import {
 
 import { Value } from '~/third_party/mlmd';
 import { NoValue } from '~/components/NoValue';
-import { MaxHeightCodeEditor } from '~/components/MaxHeightCodeEditor';
+import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
 
 interface ArtifactPropertyDescriptionListProps {
   testId?: string;
@@ -26,9 +26,7 @@ export const ArtifactPropertyDescriptionList: React.FC<ArtifactPropertyDescripti
 
     if (property.structValue || property.protoValue) {
       propValue = (
-        <MaxHeightCodeEditor
-          isReadOnly
-          maxHeight={300}
+        <ExecutionDetailsPropertiesValueCode
           code={JSON.stringify(property.structValue || property.protoValue, null, 2)}
         />
       );

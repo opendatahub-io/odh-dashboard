@@ -6,6 +6,7 @@ import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/r
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
+import { Execution } from '~/third_party/mlmd';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'inputoutput',
@@ -27,13 +28,22 @@ const PipelineRunNodeTabsTitles = {
 
 type PipelineRunDrawerRightTabsProps = {
   task: PipelineTask;
+  executions: Execution[];
 };
 
-const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({ task }) => {
+const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
+  task,
+  executions,
+}) => {
   const [selection, setSelection] = React.useState(PipelineRunNodeTabs.INPUT_OUTPUT);
+  const taskExecution = executions.find(
+    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === task.name,
+  );
 
   const tabContents: Record<PipelineRunNodeTabs, React.ReactNode> = {
-    [PipelineRunNodeTabs.INPUT_OUTPUT]: <SelectedNodeInputOutputTab task={task} />,
+    [PipelineRunNodeTabs.INPUT_OUTPUT]: (
+      <SelectedNodeInputOutputTab task={task} execution={taskExecution?.toObject()} />
+    ),
     // [PipelineRunNodeTabs.VISUALIZATIONS]: <>TBD 2</>,
     [PipelineRunNodeTabs.DETAILS]: <SelectedNodeDetailsTab task={task} />,
     [PipelineRunNodeTabs.VOLUMES]: <SelectedNodeVolumeMountsTab task={task} />,

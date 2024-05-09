@@ -96,6 +96,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             <PipelineRunDrawerRightContent
               task={selectedNode?.data.pipelineTask}
               onClose={() => setSelectedId(null)}
+              executions={executions}
             />
           }
         >
