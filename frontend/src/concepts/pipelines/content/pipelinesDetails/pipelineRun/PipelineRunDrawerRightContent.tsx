@@ -11,14 +11,17 @@ import {
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '~/concepts/pipelines/topology';
+import { Execution } from '~/third_party/mlmd';
 
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineTask;
+  executions: Execution[];
   onClose: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
+  executions,
   onClose,
 }) => {
   if (!task) {
@@ -42,7 +45,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm">
-        <PipelineRunDrawerRightTabs task={task} />
+        <PipelineRunDrawerRightTabs task={task} executions={executions} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

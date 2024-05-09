@@ -76,7 +76,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({ o
                   Compare runs
                 </DropdownItem>
               ) : (
-                <></>
+                <React.Fragment key="compare-runs" />
               ),
               <DropdownSeparator key="separator" />,
               <DropdownItem key="delete-run" onClick={() => onDelete()}>
