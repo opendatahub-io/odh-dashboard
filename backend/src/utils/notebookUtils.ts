@@ -163,7 +163,6 @@ export const assembleNotebook = async (
 
   const notebookSize = getNotebookSize(notebookSizeName);
 
-  let imageUrl = ``;
   let imageSelection = ``;
 
   try {
@@ -171,7 +170,6 @@ export const assembleNotebook = async (
 
     const selectedImage = getImageTag(image, imageTagName);
 
-    imageUrl = `${selectedImage.image?.dockerImageRepo}:${selectedImage.tag?.name}`;
     imageSelection = `${selectedImage.image?.name}:${selectedImage.tag?.name}`;
   } catch (e) {
     fastify.log.error(`Error getting the image for ${imageName}:${imageTagName}`);
@@ -268,6 +266,7 @@ export const assembleNotebook = async (
       },
       annotations: {
         'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebookController/${translatedUsername}/home`,
+        'image.openshift.io/triggers': `[{"from":{"kind":"ImageStreamTag","name":"${imageSelection}", "namespace":"${namespace}"},"fieldPath":"spec.template.spec.containers[?(@.name==\\"${name}\\")].image"}]`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
@@ -285,7 +284,7 @@ export const assembleNotebook = async (
           enableServiceLinks: false,
           containers: [
             {
-              image: imageUrl,
+              image: imageSelection,
               imagePullPolicy: 'Always',
               workingDir: MOUNT_PATH,
               name: name,
@@ -301,7 +300,7 @@ export const assembleNotebook = async (
                 },
                 {
                   name: 'JUPYTER_IMAGE',
-                  value: imageUrl,
+                  value: imageSelection,
                 },
                 ...configMapEnvs,
                 ...secretEnvs,

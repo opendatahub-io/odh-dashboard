@@ -50,7 +50,6 @@ export const assembleNotebook = (
     existingResources,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
-  const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
@@ -101,6 +100,7 @@ export const assembleNotebook = (
       },
       annotations: {
         'openshift.io/display-name': notebookName.trim(),
+        'image.openshift.io/triggers': `[{"from":{"kind":"ImageStreamTag","name":"${imageSelection}", "namespace":"${projectName}"},"fieldPath":"spec.template.spec.containers[?(@.name==\\"${notebookId}\\")].image"}]`,
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
@@ -120,7 +120,7 @@ export const assembleNotebook = (
           enableServiceLinks: false,
           containers: [
             {
-              image: imageUrl,
+              image: imageSelection,
               imagePullPolicy: 'Always',
               workingDir: ROOT_MOUNT_PATH,
               name: notebookId,
@@ -136,7 +136,7 @@ export const assembleNotebook = (
                 },
                 {
                   name: 'JUPYTER_IMAGE',
-                  value: imageUrl,
+                  value: imageSelection,
                 },
               ],
               envFrom,
