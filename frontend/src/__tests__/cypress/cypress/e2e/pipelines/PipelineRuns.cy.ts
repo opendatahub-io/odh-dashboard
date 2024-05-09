@@ -32,6 +32,7 @@ import {
   ProjectModel,
   RouteModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -167,6 +168,112 @@ describe('Pipeline runs', () => {
       it('navigate to create run page', () => {
         pipelineRunsGlobal.findCreateRunButton().click();
         verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=active`);
+      });
+    });
+
+    describe('table pagination', () => {
+      it('Active run table pagination', () => {
+        const mockRuns = Array.from({ length: 15 }, (_, i) =>
+          buildMockRunKF({
+            display_name: `Test active run-${i}`,
+            run_id: `run-${i}`,
+            pipeline_version_reference: {
+              pipeline_id: pipelineId,
+              pipeline_version_id: `test-version-${i}`,
+            },
+            experiment_id: `test-experiment-${i}`,
+            created_at: '2024-02-05T00:00:00Z',
+            state: RuntimeStateKF.SUCCEEDED,
+          }),
+        );
+
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+          },
+          {
+            runs: mockRuns.slice(0, 10),
+            total_size: 15,
+            next_page_token: 'page-2-token',
+          },
+        ).as('getActiveRuns');
+
+        pipelineRunsGlobal.visit(projectName, 'active');
+
+        cy.wait('@getActiveRuns').then((interception) => {
+          expect(interception.request.query).to.eql({
+            sort_by: 'created_at desc',
+            page_size: '10',
+            filter:
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+          });
+        });
+        activeRunsTable.findRows().should('have.length', 10);
+        activeRunsTable.getRowByName('Test active run-0').find().should('exist');
+
+        const pagination = tablePagination.top;
+
+        // test Next button
+        pagination.findPreviousButton().should('be.disabled');
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+          },
+          {
+            runs: mockRuns.slice(10, 15),
+            total_size: 15,
+          },
+        ).as('refreshActiveRuns');
+        pagination.findNextButton().click();
+
+        cy.wait('@refreshActiveRuns').then((interception) => {
+          expect(interception.request.query).to.eql({
+            sort_by: 'created_at desc',
+            page_size: '10',
+            filter:
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+            page_token: 'page-2-token',
+          });
+        });
+        activeRunsTable.getRowByName('Test active run-14').find().should('exist');
+        activeRunsTable.findRows().should('have.length', 5);
+
+        // test Previous button
+        pagination.findNextButton().should('be.disabled');
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+          },
+          {
+            runs: mockRuns.slice(0, 10),
+            total_size: 15,
+          },
+        );
+        pagination.findPreviousButton().click();
+        activeRunsTable.getRowByName('Test active run-0').find().should('exist');
+        activeRunsTable.findRows().should('have.length', 10);
+
+        // 20 per page
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+          },
+          {
+            runs: mockRuns.slice(0, 15),
+            total_size: 15,
+          },
+        );
+        pagination.selectToggleOption('20 per page');
+        activeRunsTable.findRows().should('have.length', 15);
+        activeRunsTable.getRowByName('Test active run-0').find().should('exist');
+        activeRunsTable.getRowByName('Test active run-14').find().should('exist');
+        pagination.findNextButton().should('be.disabled');
+        pagination.findPreviousButton().should('be.disabled');
+        pagination.selectToggleOption('10 per page');
       });
     });
 
@@ -528,14 +635,14 @@ describe('Pipeline runs', () => {
 
           // Mock runs (filtered by typed run name)
           archivedRunsTable.mockGetArchivedRuns(
-            mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
+            mockArchivedRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
             projectName,
             1,
           );
 
           // Verify only rows with the typed run name exist
           archivedRunsTable.findRows().should('have.length', 1);
-          archivedRunsTable.getRowByName('Test active run 1').find().should('exist');
+          archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
         });
 
         it('filter by experiment', () => {
@@ -711,6 +818,160 @@ describe('Pipeline runs', () => {
       pipelineRunJobTable.mockGetJobs([], projectName);
       pipelineRunsGlobal.visit(projectName, 'scheduled');
       pipelineRunJobTable.findEmptyState().should('exist');
+    });
+
+    describe('table pagination', () => {
+      it('Scheduled run table pagination', () => {
+        const mockJobRuns = Array.from({ length: 15 }, (_, i) =>
+          buildMockJobKF({
+            display_name: `another-pipeline-${i}`,
+            recurring_run_id: `another-test-pipeline-${i}`,
+            experiment_id: `test-experiment-${i}`,
+            pipeline_version_reference: {
+              pipeline_id: pipelineId,
+              pipeline_version_id: `test-version-${i}`,
+            },
+          }),
+        );
+
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+          },
+          {
+            recurringRuns: mockJobRuns.slice(0, 10),
+            total_size: 15,
+            next_page_token: 'page-2-token',
+          },
+        ).as('getScheduledRuns');
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
+
+        cy.wait('@getScheduledRuns').then((interception) => {
+          expect(interception.request.query).to.eql({
+            sort_by: 'created_at desc',
+            page_size: '10',
+          });
+        });
+
+        pipelineRunJobTable.getRowByName('another-pipeline-0').find().should('exist');
+        pipelineRunJobTable.findRows().should('have.length', 10);
+
+        const pagination = tablePagination.top;
+
+        // test Next button
+        pagination.findFirstButton().should('be.disabled');
+        pagination.findPreviousButton().should('be.disabled');
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+          },
+          {
+            recurringRuns: mockJobRuns.slice(10, 15),
+            total_size: 15,
+          },
+        ).as('refreshScheduledRuns');
+        pagination.findNextButton().click();
+
+        cy.wait('@refreshScheduledRuns').then((interception) => {
+          expect(interception.request.query).to.eql({
+            sort_by: 'created_at desc',
+            page_size: '10',
+            page_token: 'page-2-token',
+          });
+        });
+
+        pagination.findInput().should('have.value', '2');
+        pipelineRunJobTable.getRowByName('another-pipeline-14').find().should('exist');
+        pipelineRunJobTable.findRows().should('have.length', 5);
+
+        //test first button
+        pagination.findLastButton().should('be.disabled');
+        pagination.findNextButton().should('be.disabled');
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+          },
+          {
+            recurringRuns: mockJobRuns.slice(0, 10),
+            total_size: 15,
+            next_page_token: 'new-page-token',
+          },
+        );
+        pagination.findFirstButton().click();
+        pagination.findInput().should('have.value', '1');
+        pipelineRunJobTable.getRowByName('another-pipeline-0').find().should('exist');
+        pipelineRunJobTable.findRows().should('have.length', 10);
+
+        //test last button
+        pagination.findFirstButton().should('be.disabled');
+        pagination.findPreviousButton().should('be.disabled');
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+          },
+          {
+            recurringRuns: mockJobRuns.slice(10, 15),
+            total_size: 15,
+          },
+        ).as('refreshPipelineRunJobs');
+
+        pagination.findLastButton().click();
+        pagination.findInput().should('have.value', Math.ceil(15 / 10));
+        pipelineRunJobTable.getRowByName('another-pipeline-14').find().should('exist');
+        pipelineRunJobTable.findRows().should('have.length', 5);
+
+        cy.wait('@refreshPipelineRunJobs').then((interception) => {
+          expect(interception.request.query).to.eql({
+            sort_by: 'created_at desc',
+            page_size: '10',
+            page_token: 'new-page-token',
+          });
+        });
+
+        // test Previous button
+        pagination.findLastButton().should('be.disabled');
+        pagination.findNextButton().should('be.disabled');
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+          },
+          {
+            recurringRuns: mockJobRuns.slice(0, 10),
+            total_size: 15,
+          },
+        );
+        pagination.findPreviousButton().click();
+        pagination.findInput().should('have.value', '1');
+        pipelineRunJobTable.getRowByName('another-pipeline-0').find().should('exist');
+        pipelineRunJobTable.findRows().should('have.length', 10);
+
+        // 20 per page
+        cy.intercept(
+          {
+            method: 'GET',
+            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+          },
+          {
+            recurringRuns: mockJobRuns.slice(0, 15),
+            total_size: 15,
+          },
+        );
+        pagination.selectToggleOption('20 per page');
+
+        pipelineRunJobTable.getRowByName('another-pipeline-0').find().should('exist');
+        pipelineRunJobTable.getRowByName('another-pipeline-14').find().should('exist');
+        pipelineRunJobTable.findRows().should('have.length', 15);
+        pagination.findLastButton().should('be.disabled');
+        pagination.findNextButton().should('be.disabled');
+        pagination.findPreviousButton().should('be.disabled');
+        pagination.findFirstButton().should('be.disabled');
+        pagination.findInput().should('have.value', Math.ceil(15 / 20));
+      });
     });
 
     describe('with data', () => {

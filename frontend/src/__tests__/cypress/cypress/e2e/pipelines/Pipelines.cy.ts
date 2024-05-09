@@ -29,6 +29,7 @@ import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -991,16 +992,101 @@ describe('Pipelines', () => {
       .click();
     verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
   });
+
+  it('Table pagination', () => {
+    const mockPipelinesv2 = Array.from({ length: 25 }, (_, i) =>
+      buildMockPipelineV2({
+        display_name: `Test pipeline-${i}`,
+      }),
+    );
+    initIntercepts({
+      mockPipelines: mockPipelinesv2.slice(0, 10),
+      totalSize: 25,
+      nextPageToken: 'page-2-token',
+    });
+    pipelinesGlobal.visit(projectName);
+
+    cy.wait('@getPipelines').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+      });
+    });
+
+    pipelinesTable.getRowByName('Test pipeline-0').find().should('exist');
+    pipelinesTable.findRows().should('have.length', '10');
+
+    const pagination = tablePagination.top;
+
+    // test Next button
+    pagination.findPreviousButton().should('be.disabled');
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      },
+      buildMockPipelines(mockPipelinesv2.slice(10, 20), 25),
+    ).as('refreshPipelines');
+    pagination.findNextButton().click();
+
+    cy.wait('@refreshPipelines').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+        page_token: 'page-2-token',
+      });
+    });
+
+    pipelinesTable.getRowByName('Test pipeline-10').find().should('exist');
+    pipelinesTable.findRows().should('have.length', '10');
+
+    // test Previous button
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      },
+      buildMockPipelines(mockPipelinesv2.slice(0, 10), 25),
+    ).as('getFirstTenPipelines');
+
+    pagination.findPreviousButton().click();
+
+    cy.wait('@getFirstTenPipelines').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+      });
+    });
+
+    pipelinesTable.getRowByName('Test pipeline-0').find().should('exist');
+
+    // 20 per page
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      },
+      buildMockPipelines(mockPipelinesv2.slice(0, 20), 22),
+    );
+    pagination.selectToggleOption('20 per page');
+    pagination.findPreviousButton().should('be.disabled');
+    pipelinesTable.getRowByName('Test pipeline-19').find().should('exist');
+    pipelinesTable.findRows().should('have.length', '20');
+  });
 });
 
 type HandlersProps = {
   isEmpty?: boolean;
   mockPipelines?: PipelineKFv2[];
+  totalSize?: number;
+  nextPageToken?: string | undefined;
 };
 
 const initIntercepts = ({
   isEmpty = false,
   mockPipelines = [initialMockPipeline],
+  totalSize = mockPipelines.length,
+  nextPageToken,
 }: HandlersProps) => {
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
@@ -1034,8 +1120,8 @@ const initIntercepts = ({
     {
       pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
     },
-    buildMockPipelines(mockPipelines),
-  );
+    buildMockPipelines(mockPipelines, totalSize, nextPageToken),
+  ).as('getPipelines');
 
   cy.intercept(
     {
