@@ -1,5 +1,8 @@
 import * as React from 'react';
+import * as _ from 'lodash-es';
 import {
+  InputOutputArtifactType,
+  InputOutputDefinitionArtifacts,
   PipelineComponentsKF,
   PipelineExecutorsKF,
   PipelineSpecVariable,
@@ -13,6 +16,7 @@ import { Execution } from '~/third_party/mlmd';
 import {
   ComponentArtifactMap,
   composeArtifactType,
+  idForTaskArtifact,
   parseComponentsForArtifactRelationship,
   parseInputOutput,
   parseRuntimeInfoFromExecutions,
@@ -24,8 +28,40 @@ import {
 } from './parseUtils';
 import { PipelineTask, PipelineTaskRunStatus } from './pipelineTaskTypes';
 
-const idForTaskArtifact = (groupId: string | undefined, artifactId: string) =>
-  groupId ? `${groupId}-ARTIFACT-${artifactId}` : artifactId;
+const getArtifactPipelineTask = (
+  name: string,
+  artifactType: InputOutputArtifactType,
+): PipelineTask => ({
+  type: 'artifact',
+  name,
+  inputs: {
+    artifacts: [{ label: name, type: composeArtifactType(artifactType) }],
+  },
+});
+
+/**
+ * Get the artifact nodes without the inputs from a task node
+ */
+const getInputArtifacts = (
+  groupId: string | undefined,
+  status: PipelineTaskRunStatus | undefined,
+  inputArtifacts: InputOutputDefinitionArtifacts | undefined,
+) => {
+  if (!inputArtifacts) {
+    return [];
+  }
+
+  return Object.entries(inputArtifacts).map(([artifactKey, data]) =>
+    createArtifactNode(
+      idForTaskArtifact(groupId, '', artifactKey),
+      artifactKey,
+      getArtifactPipelineTask(artifactKey, data.artifactType),
+      undefined,
+      translateStatusForNode(status?.state),
+      data.artifactType.schemaTitle,
+    ),
+  );
+};
 
 const getTaskArtifacts = (
   groupId: string | undefined,
@@ -33,42 +69,22 @@ const getTaskArtifacts = (
   status: PipelineTaskRunStatus | undefined,
   componentRef: string,
   componentArtifactMap: ComponentArtifactMap,
-  taskArtifactMap: TaskArtifactMap,
 ): PipelineNodeModelExpanded[] => {
   const artifactsInComponent = componentArtifactMap[componentRef];
-  const artifactNodes: PipelineNodeModelExpanded[] = [];
-  if (artifactsInComponent) {
-    const artifactNodeData = taskArtifactMap[taskId];
 
-    Object.entries(artifactsInComponent).forEach(([artifactKey, data]) => {
-      const label = artifactKey;
-      const { artifactId } =
-        artifactNodeData?.find((a) => artifactKey === a.outputArtifactKey) ?? {};
-
-      // if no node needs it as an input, we don't really need a well known id, prepend taskId to ensure uniqueness
-      const id = idForTaskArtifact(groupId, artifactId ?? artifactKey);
-
-      const artifactPipelineTask: PipelineTask = {
-        type: 'artifact',
-        name: label,
-        inputs: {
-          artifacts: [{ label, type: composeArtifactType(data) }],
-        },
-      };
-
-      artifactNodes.push(
-        createArtifactNode(
-          id,
-          label,
-          artifactPipelineTask,
-          [taskId],
-          translateStatusForNode(status?.state),
-          data.schemaTitle,
-        ),
-      );
-    });
+  if (!artifactsInComponent) {
+    return [];
   }
-  return artifactNodes;
+  return Object.entries(artifactsInComponent).map(([artifactKey, data]) =>
+    createArtifactNode(
+      idForTaskArtifact(groupId, taskId, artifactKey),
+      artifactKey,
+      getArtifactPipelineTask(artifactKey, data),
+      [taskId],
+      translateStatusForNode(status?.state),
+      data.schemaTitle,
+    ),
+  );
 };
 
 const getNodesForTasks = (
@@ -81,6 +97,7 @@ const getNodesForTasks = (
   taskArtifactMap: TaskArtifactMap,
   runDetails?: RunDetailsKF,
   executions?: Execution[] | null,
+  inputArtifacts?: InputOutputDefinitionArtifacts,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   const children: string[] = [];
@@ -95,7 +112,9 @@ const getNodesForTasks = (
       parseRuntimeInfoFromRunDetails(taskId, runDetails);
     const runStatus = translateStatusForNode(status?.state);
 
-    const runAfter: string[] = details.dependentTasks ?? [];
+    // add edges from one task to its parent tasks
+    const runAfter: string[] =
+      details.dependentTasks?.filter((t) => Object.keys(items).includes(t)) ?? [];
     const hasSubTask =
       Object.keys(components).find((task) => task === componentRef) &&
       components[componentRef]?.dag;
@@ -106,41 +125,40 @@ const getNodesForTasks = (
     const pipelineTask: PipelineTask = {
       type: 'groupTask',
       name: taskName,
-      steps: executor ? [executor.container] : undefined,
+      steps: executor?.container ? [executor.container] : undefined,
       inputs: parseInputOutput(component?.inputDefinitions),
       outputs: parseInputOutput(component?.outputDefinitions),
       status,
       volumeMounts: parseVolumeMounts(spec.platform_spec, executorLabel),
     };
 
+    // Build artifact nodes with inputs from task nodes
     const artifactNodes = getTaskArtifacts(
       groupId,
       taskId,
       status,
       componentRef,
       componentArtifactMap,
-      taskArtifactMap,
     );
     if (artifactNodes.length) {
       nodes.push(...artifactNodes);
       children.push(...artifactNodes.map((n) => n.id));
     }
 
-    if (details.dependentTasks) {
-      // This task's runAfters may need artifact relationships -- find those artifactIds
-      runAfter.push(
-        ...details.dependentTasks
-          .map((dependantTaskId) => {
-            const art = taskArtifactMap[dependantTaskId];
-            return art ? art.map((v) => idForTaskArtifact(groupId, v.artifactId)) : null;
-          })
-          .filter((v): v is string[] => !!v)
-          .flat(),
-      );
+    // Build artifact nodes without inputs
+    const inputArtifactNodes = getInputArtifacts(groupId, status, inputArtifacts);
+    if (inputArtifactNodes.length) {
+      nodes.push(...inputArtifactNodes);
+      children.push(...inputArtifactNodes.map((n) => n.id));
     }
 
+    // Read the artifact-task map we built before
+    // Add edge from artifact to task
+    const artifactToTaskEdges = taskArtifactMap[taskId]?.map((v) => v.artifactNodeId) ?? [];
+    runAfter.push(...artifactToTaskEdges);
+
     if (hasSubTask && subTasks) {
-      const subTasksArtifactMap = parseTasksForArtifactRelationship(subTasks);
+      const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
 
       const [nestedNodes, taskChildren] = getNodesForTasks(
         taskId,
@@ -152,6 +170,7 @@ const getNodesForTasks = (
         subTasksArtifactMap,
         runDetails,
         executions,
+        component?.inputDefinitions?.artifacts,
       );
 
       const itemNode = createGroupNode(
@@ -188,27 +207,27 @@ export const usePipelineTaskTopology = (
       deploymentSpec: { executors },
       root: {
         dag: { tasks },
+        inputDefinitions,
       },
     } = pipelineSpec;
 
     const componentArtifactMap = parseComponentsForArtifactRelationship(components);
-    const taskArtifactMap = parseTasksForArtifactRelationship(tasks);
+    const taskArtifactMap = parseTasksForArtifactRelationship('root', tasks);
 
-    const nodes = getNodesForTasks(
-      'root',
-      spec,
-      tasks,
-      components,
-      executors,
-      componentArtifactMap,
-      taskArtifactMap,
-      runDetails,
-      executions,
-    )[0];
-
-    // Since we have artifacts that are input only that do not get created, remove any dependencies on them
-    return nodes.map((n) => ({
-      ...n,
-      runAfterTasks: n.runAfterTasks?.filter((t) => nodes.find((nextNode) => nextNode.id === t)),
-    }));
+    // There are some duplicated nodes, remove them
+    return _.uniqBy(
+      getNodesForTasks(
+        'root',
+        spec,
+        tasks,
+        components,
+        executors,
+        componentArtifactMap,
+        taskArtifactMap,
+        runDetails,
+        executions,
+        inputDefinitions?.artifacts,
+      )[0],
+      (node) => node.id,
+    );
   }, [executions, runDetails, spec]);

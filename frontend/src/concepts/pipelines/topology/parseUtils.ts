@@ -44,33 +44,47 @@ export const parseComponentsForArtifactRelationship = (
   );
 
 export type TaskArtifactMap = {
-  [taskName: string]: { outputArtifactKey: string; artifactId: string }[] | undefined;
+  [taskName: string]: { artifactNodeId: string }[] | undefined;
 };
-export const parseTasksForArtifactRelationship = (tasks: DAG['tasks']): TaskArtifactMap =>
-  Object.values(tasks).reduce<TaskArtifactMap>(
-    (map, taskValue) =>
-      Object.entries(taskValue.inputs?.artifacts ?? {}).reduce(
-        (artifactItems, [artifactId, value]) => {
-          const { producerTask: taskId, outputArtifactKey } = value.taskOutputArtifact || {};
-          if (!taskId || !outputArtifactKey) {
-            // eslint-disable-next-line no-console
-            console.warn('Issue constructing artifact node', value);
-            return artifactItems;
-          }
-
+export const parseTasksForArtifactRelationship = (
+  groupId: string | undefined,
+  tasks: DAG['tasks'],
+): TaskArtifactMap =>
+  Object.entries(tasks).reduce<TaskArtifactMap>(
+    (map, [taskId, taskValue]) =>
+      Object.entries(taskValue.inputs?.artifacts ?? {}).reduce((artifactItems, [, value]) => {
+        // artifact without inputs
+        if (value.componentInputArtifact) {
           return {
             ...artifactItems,
             [taskId]: [
               ...(artifactItems[taskId] ?? []),
               {
-                outputArtifactKey,
-                artifactId,
+                artifactNodeId: idForTaskArtifact(groupId, '', value.componentInputArtifact),
               },
             ],
           };
-        },
-        map,
-      ),
+        }
+
+        // else, artifacts with inputs from tasks
+        const { producerTask, outputArtifactKey } = value.taskOutputArtifact || {};
+
+        if (!producerTask || !outputArtifactKey) {
+          // eslint-disable-next-line no-console
+          console.warn('Issue constructing artifact node', value);
+          return artifactItems;
+        }
+
+        return {
+          ...artifactItems,
+          [taskId]: [
+            ...(artifactItems[taskId] ?? []),
+            {
+              artifactNodeId: idForTaskArtifact(groupId, producerTask, outputArtifactKey),
+            },
+          ],
+        };
+      }, map),
     {},
   );
 
@@ -314,3 +328,12 @@ export const parseVolumeMounts = (
     name: pvc.taskOutputParameter?.producerTask ?? '',
   }));
 };
+
+export const idForTaskArtifact = (
+  groupId: string | undefined,
+  taskId: string,
+  artifactId: string,
+): string =>
+  groupId
+    ? `GROUP.${groupId}.ARTIFACT.${taskId}.${artifactId}`
+    : `ARTIFACT.${taskId}.${artifactId}`;
