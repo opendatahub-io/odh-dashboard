@@ -221,6 +221,14 @@ class ProjectDetails {
   findUnsupportedPipelineVersionAlert() {
     return cy.findByTestId('unsupported-pipeline-version-alert');
   }
+
+  private findKserveModelsTable() {
+    return cy.findByTestId('kserve-inference-service-table');
+  }
+
+  getKserveModelMetricLink(name: string) {
+    return this.findKserveModelsTable().findByTestId(`metrics-link-${name}`);
+  }
 }
 
 class ProjectDetailsSettingsTab extends ProjectDetails {

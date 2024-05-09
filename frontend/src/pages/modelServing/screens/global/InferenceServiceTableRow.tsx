@@ -6,6 +6,8 @@ import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { isModelMesh } from '~/pages/modelServing/utils';
+import { SupportedArea } from '~/concepts/areas';
+import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
@@ -31,28 +33,42 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   showServingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
-  const modelMetricsSupported = (modelMetricsInferenceService: InferenceServiceKind) =>
-    modelMetricsEnabled &&
-    modelMetricsInferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
-      'ModelMesh';
+  const modelMesh = isModelMesh(inferenceService);
+  const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
+  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
+
+  const displayName = getInferenceServiceDisplayName(inferenceService);
 
   return (
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMetricsSupported(inferenceService) ? (
+          {modelMeshMetricsSupported ? (
             <Link
+              data-testid={`metrics-link-${displayName}`}
               to={
                 isGlobal
                   ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
                   : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
               }
             >
-              {getInferenceServiceDisplayName(inferenceService)}
+              {displayName}
+            </Link>
+          ) : kserveMetricsSupported ? (
+            <Link
+              data-testid={`metrics-link-${displayName}`}
+              to={
+                isGlobal
+                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
+                  : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
+              }
+            >
+              {displayName}
             </Link>
           ) : (
-            getInferenceServiceDisplayName(inferenceService)
+            displayName
           )}
         </ResourceNameTooltip>
       </Td>
@@ -70,20 +86,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
-          isKserve={!isModelMesh(inferenceService)}
+          isKserve={!modelMesh}
         />
       </Td>
       <Td dataLabel="API protocol">
         <InferenceServiceAPIProtocol
           servingRuntime={servingRuntime}
-          isMultiModel={modelMetricsSupported(inferenceService)}
+          isMultiModel={modelMeshMetricsSupported}
         />
       </Td>
       <Td dataLabel="Status">
-        <InferenceServiceStatus
-          inferenceService={inferenceService}
-          isKserve={!isModelMesh(inferenceService)}
-        />
+        <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
       </Td>
       <Td isActionCell>
         <ResourceActionsColumn

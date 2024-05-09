@@ -18,6 +18,7 @@ const GlobalModelMetricsPage: React.FC = () => {
           isActive: true,
         },
       ]}
+      model={model}
       type={PerformanceMetricType.MODEL}
     />
   );

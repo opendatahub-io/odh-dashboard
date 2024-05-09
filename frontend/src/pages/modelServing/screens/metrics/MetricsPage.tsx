@@ -9,15 +9,17 @@ import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 import ServerMetricsPage from '~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
+import { InferenceServiceKind } from '~/k8sTypes';
 import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
   type: PerformanceMetricType;
+  model?: InferenceServiceKind;
 };
 
-const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type }) => {
+const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type, model }) => {
   const { tab } = useParams();
   const navigate = useNavigate();
 
@@ -46,7 +48,11 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type 
         )
       }
     >
-      {type === PerformanceMetricType.SERVER ? <ServerMetricsPage /> : <MetricsPageTabs />}
+      {type === PerformanceMetricType.SERVER ? (
+        <ServerMetricsPage />
+      ) : model ? (
+        <MetricsPageTabs model={model} />
+      ) : null}
     </ApplicationsPage>
   );
 };

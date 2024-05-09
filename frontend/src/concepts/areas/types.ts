@@ -45,6 +45,7 @@ export enum SupportedArea {
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
+  K_SERVE_METRICS = 'kserve-metrics',
   MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',

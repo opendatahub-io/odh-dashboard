@@ -6,6 +6,7 @@ import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import NotFound from '~/pages/NotFound';
 import useDoesTrustyAICRExist from '~/concepts/trustyai/context/useDoesTrustyAICRExist';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { InferenceServiceKind } from '~/k8sTypes';
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
 import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
@@ -13,7 +14,11 @@ import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 
 import './MetricsPageTabs.scss';
 
-const MetricsPageTabs: React.FC = () => {
+type MetricsPageTabsProps = {
+  model: InferenceServiceKind;
+};
+
+const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const enabledTabs = useMetricsPageEnabledTabs();
   const { biasMetricConfigs, loaded } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();
@@ -33,6 +38,10 @@ const MetricsPageTabs: React.FC = () => {
 
   if (enabledTabs.length === 0) {
     return <NotFound />;
+  }
+
+  if (enabledTabs.length === 1) {
+    return performanceMetricsAreaAvailable ? <PerformanceTab model={model} /> : <BiasTab />;
   }
 
   return (
@@ -57,7 +66,7 @@ const MetricsPageTabs: React.FC = () => {
           className="odh-metrics-page-tabs__content"
           data-testid="performance-tab"
         >
-          <PerformanceTab />
+          <PerformanceTab model={model} />
         </Tab>
       )}
       {biasMetricsInstalled && (

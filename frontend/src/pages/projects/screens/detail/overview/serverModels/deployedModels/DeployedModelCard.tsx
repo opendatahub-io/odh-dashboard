@@ -23,6 +23,7 @@ import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled'
 import InferenceServiceServingRuntime from '~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '~/pages/modelServing/screens/global/InferenceServiceEndpoint';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas/';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -33,10 +34,11 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   servingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  const modelMesh = isModelMesh(inferenceService);
 
-  const modelMetricsSupported =
-    modelMetricsEnabled &&
-    inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
+  const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
+
   const inferenceServiceDisplayName = getInferenceServiceDisplayName(inferenceService);
 
   return (
