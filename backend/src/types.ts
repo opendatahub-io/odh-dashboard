@@ -1029,6 +1029,36 @@ export type TrustyAIKind = K8sResourceCommon & {
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    grpc: {
+      port: number;
+    };
+    rest: {
+      port: number;
+      serviceRoute: string;
+    };
+    mysql?: {
+      database: string;
+      host: string;
+      port?: number;
+    };
+    postgres: {
+      database: string;
+      host?: string;
+      passwordSecret?: {
+        key: string;
+        name: string;
+      };
+      port: number;
+      skipDBCreation?: boolean;
+      sslMode?: string;
+      username?: string;
+    };
+  };
   status?: {
     conditions?: K8sCondition[];
   };

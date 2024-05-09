@@ -1,6 +1,6 @@
 import httpProxy from '@fastify/http-proxy';
 import { KubeFastifyInstance } from '../../../../types';
-import { DEV_MODE } from '../../../../utils/constants';
+import { DEV_MODE, MODEL_REGISTRY_NAMESPACE } from '../../../../utils/constants';
 import { getParam, setParam } from '../../../../utils/proxy';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
@@ -20,7 +20,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
           `http://${process.env.MODEL_REGISTRY_SERVICE_HOST}:${process.env.MODEL_REGISTRY_SERVICE_PORT}`
         : // Construct service URL
-          `http://${name}.odh-model-registries.svc.cluster.local:8080`;
+          `http://${name}.${MODEL_REGISTRY_NAMESPACE}.svc.cluster.local:8080`;
 
       // assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
       setParam(request, 'upstream', upstream);
