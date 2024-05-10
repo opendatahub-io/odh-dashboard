@@ -88,9 +88,9 @@ undeploy:
 port-forward:
 ifdef NAMESPACE
 	parallel -j0 --lb ::: \
-	'oc port-forward -n ${NAMESPACE} svc/ds-pipeline-metadata-envoy-${DSPA_NAME} ${METADATA_ENVOY_SERVICE_PORT}:9090' \
+	'oc port-forward -n ${NAMESPACE} svc/ds-pipeline-metadata-envoy-${DSPA_NAME} ${METADATA_ENVOY_SERVICE_PORT}:8443' \
 	'oc port-forward -n ${NAMESPACE} svc/ds-pipeline-${DSPA_NAME} ${DS_PIPELINE_DSPA_SERVICE_PORT}:8443' \
-	'oc port-forward -n ${NAMESPACE} svc/${TRUSTYAI_NAME}-tls ${TRUSTYAI_TAIS_SERVICE_PORT}:443'
+	'oc port-forward -n ${NAMESPACE} svc/${TRUSTYAI_NAME}-tls ${TRUSTYAI_TAIS_SERVICE_PORT}:443' \
 	'oc port-forward -n odh-model-registries svc/${MODEL_REGISTRY_NAME} ${MODEL_REGISTRY_SERVICE_PORT}:8080' 
 else
 	$(error Missing NAMESPACE variable)
