@@ -1,4 +1,9 @@
-import { InputDefinitionParameterType, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import {
+  ArtifactStateKF,
+  ExecutionStateKF,
+  InputDefinitionParameterType,
+  RuntimeStateKF,
+} from '~/concepts/pipelines/kfTypes';
 import { createNode } from '~/concepts/topology';
 import { VolumeMount } from '~/types';
 
@@ -31,7 +36,7 @@ export type PipelineTaskRunStatus = {
   startTime: string;
   completeTime?: string;
   podName?: string;
-  state?: RuntimeStateKF;
+  state?: RuntimeStateKF | ExecutionStateKF | ArtifactStateKF;
   taskId?: string;
 };
 
