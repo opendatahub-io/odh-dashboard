@@ -1,12 +1,14 @@
-import { PipelineRunKFv2, PipelineSpecVariable, TaskKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/concepts/pipelines/kfTypes';
 import { createNode } from '~/concepts/topology';
 import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
 import { createArtifactNode } from '~/concepts/topology/utils';
+import { Execution } from '~/third_party/mlmd';
 import {
   composeArtifactType,
   parseComponentsForArtifactRelationship,
   parseInputOutput,
-  parseRuntimeInfo,
+  parseRuntimeInfoFromExecutions,
+  parseRuntimeInfoFromRunDetails,
   parseTasksForArtifactRelationship,
   parseVolumeMounts,
   translateStatusForNode,
@@ -15,7 +17,8 @@ import { KubeFlowTaskTopology } from './pipelineTaskTypes';
 
 export const usePipelineTaskTopology = (
   spec?: PipelineSpecVariable,
-  run?: PipelineRunKFv2,
+  runDetails?: RunDetailsKF,
+  executions?: Execution[] | null,
 ): KubeFlowTaskTopology => {
   if (!spec) {
     return { taskMap: {}, nodes: [] };
@@ -29,7 +32,6 @@ export const usePipelineTaskTopology = (
       dag: { tasks: rootTasks },
     },
   } = pipelineSpec;
-  const { run_details: runDetails } = run || {};
 
   const componentArtifactMap = parseComponentsForArtifactRelationship(components);
   const nodes: PipelineNodeModelExpanded[] = [];
@@ -48,7 +50,9 @@ export const usePipelineTaskTopology = (
       const executorLabel = component?.executorLabel;
       const executor = executorLabel ? executors[executorLabel] : undefined;
 
-      const status = parseRuntimeInfo(taskId, runDetails);
+      const status = executions
+        ? parseRuntimeInfoFromExecutions(taskId, executions)
+        : parseRuntimeInfoFromRunDetails(taskId, runDetails);
 
       const runAfter: string[] = taskValue.dependentTasks ?? [];
 

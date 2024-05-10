@@ -9,6 +9,15 @@ import { PipelineRunKFv2, RuntimeStateKF, runtimeStateLabels } from '~/concepts/
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
+export const isPipelineRunFinished = (run?: PipelineRunKFv2 | null): boolean => {
+  const { label } = computeRunStatus(run);
+  return [
+    runtimeStateLabels[RuntimeStateKF.SUCCEEDED],
+    runtimeStateLabels[RuntimeStateKF.FAILED],
+    runtimeStateLabels[RuntimeStateKF.CANCELED],
+  ].includes(label);
+};
+
 const usePipelineRunById = (
   pipelineRunId?: string,
   refreshForDetails?: boolean,
@@ -32,18 +41,13 @@ const usePipelineRunById = (
   });
 
   const [run] = runData;
-  const { label } = computeRunStatus(run);
-  const isComplete = [
-    runtimeStateLabels[RuntimeStateKF.SUCCEEDED],
-    runtimeStateLabels[RuntimeStateKF.FAILED],
-    runtimeStateLabels[RuntimeStateKF.CANCELED],
-  ].includes(label);
+  const isFinished = isPipelineRunFinished(run);
 
   React.useEffect(() => {
-    if (isComplete) {
+    if (isFinished) {
       setPipelineFinished(true);
     }
-  }, [isComplete]);
+  }, [isFinished]);
 
   return runData;
 };

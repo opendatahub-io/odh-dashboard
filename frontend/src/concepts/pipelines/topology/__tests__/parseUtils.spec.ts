@@ -2,22 +2,30 @@
 import { RunStatus } from '@patternfly/react-topology';
 import {
   parseInputOutput,
-  parseRuntimeInfo,
   translateStatusForNode,
   lowestProgress,
   parseComponentsForArtifactRelationship,
   parseTasksForArtifactRelationship,
+  parseRuntimeInfoFromRunDetails,
+  getResourceStateText,
+  ResourceType,
+  parseRuntimeInfoFromExecutions,
+  parseVolumeMounts,
 } from '~/concepts/pipelines/topology/parseUtils';
 import {
+  ArtifactStateKF,
   ArtifactType,
+  ExecutionStateKF,
   InputDefinitionParameterType,
   PipelineComponentsKF,
+  PlatformSpec,
   RunDetailsKF,
   RuntimeStateKF,
   TaskDetailKF,
   TaskKF,
   TriggerStrategy,
 } from '~/concepts/pipelines/kfTypes';
+import { Artifact, Execution, Value } from '~/third_party/mlmd';
 
 describe('pipeline topology parseUtils', () => {
   describe('parseInputOutput', () => {
@@ -58,7 +66,7 @@ describe('pipeline topology parseUtils', () => {
     const testTaskId = 'test-task-id';
 
     it('returns undefined when runDetails are not provided', () => {
-      const result = parseRuntimeInfo(testTaskId);
+      const result = parseRuntimeInfoFromRunDetails(testTaskId);
       expect(result).toBeUndefined();
     });
 
@@ -69,7 +77,7 @@ describe('pipeline topology parseUtils', () => {
         task_details: [],
       };
 
-      const result = parseRuntimeInfo(testTaskId, testRunDetails);
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
       expect(result).toBeUndefined();
     });
 
@@ -89,7 +97,7 @@ describe('pipeline topology parseUtils', () => {
         ],
       };
 
-      const result = parseRuntimeInfo(testTaskId, testRunDetails);
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
       expect(result).toBeUndefined();
     });
 
@@ -116,13 +124,13 @@ describe('pipeline topology parseUtils', () => {
         ],
       };
 
-      const result = parseRuntimeInfo(testTaskId, testRunDetails);
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
       expect(result).toEqual({
         completeTime: '2024-01-03T00:00:00Z',
         podName: 'Some pod name',
         startTime: '2024-01-02T00:00:00Z',
         state: 'RUNNING',
-        taskId: 'test-task-id',
+        taskId: 'task.test-task-id',
       });
     });
 
@@ -143,13 +151,112 @@ describe('pipeline topology parseUtils', () => {
         ],
       };
 
-      const result = parseRuntimeInfo(testTaskId, testRunDetails);
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
       expect(result).toEqual({
         completeTime: '2024-01-03T00:00:00Z',
         podName: undefined,
         startTime: '2024-01-02T00:00:00Z',
         state: 'RUNNING',
-        taskId: 'test-task-id',
+        taskId: 'task.test-task-id',
+      });
+    });
+  });
+
+  describe('parseRuntimeInfoFromExecutions', () => {
+    const testTaskId = 'test-task-id';
+
+    it('returns undefined when executions are not provided', () => {
+      const result = parseRuntimeInfoFromExecutions(testTaskId);
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when executions is null', () => {
+      const result = parseRuntimeInfoFromExecutions(testTaskId, null);
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when executions are empty', () => {
+      const result = parseRuntimeInfoFromExecutions(testTaskId, []);
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when there are no match executions', () => {
+      const mockExecution = new Execution();
+      const result = parseRuntimeInfoFromExecutions(testTaskId, [mockExecution]);
+      expect(result).toBeUndefined();
+    });
+
+    it('returns runtime info when execution id matches', () => {
+      const mockExecution = new Execution();
+      const value = new Value();
+      mockExecution.getCustomPropertiesMap().set('task_name', value.setStringValue(testTaskId));
+      mockExecution.setCreateTimeSinceEpoch(1713285296322);
+      mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
+      mockExecution.setLastKnownState(Execution.State.COMPLETE);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, [mockExecution]);
+      expect(result).toStrictEqual({
+        completeTime: '2024-04-16T16:34:56.524Z',
+        podName: undefined,
+        startTime: '2024-04-16T16:34:56.322Z',
+        state: 'Complete',
+        taskId: 'task.test-task-id',
+      });
+    });
+  });
+
+  describe('getResourceStateText', () => {
+    it('returns undefined when state is not provided', () => {
+      const mockExecution = new Execution();
+      const result = getResourceStateText({
+        resourceType: ResourceType.EXECUTION,
+        resource: mockExecution,
+      });
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when state is "UNKNOWN"', () => {
+      const mockExecution = new Execution();
+      mockExecution.setLastKnownState(Execution.State.UNKNOWN);
+      const result = getResourceStateText({
+        resourceType: ResourceType.EXECUTION,
+        resource: mockExecution,
+      });
+      expect(result).toBeUndefined();
+    });
+
+    [
+      { state: Execution.State.CACHED, status: ExecutionStateKF.CACHED },
+      { state: Execution.State.CANCELED, status: ExecutionStateKF.CANCELED },
+      { state: Execution.State.COMPLETE, status: ExecutionStateKF.COMPLETE },
+      { state: Execution.State.FAILED, status: ExecutionStateKF.FAILED },
+      { state: Execution.State.NEW, status: ExecutionStateKF.NEW },
+      { state: Execution.State.RUNNING, status: ExecutionStateKF.RUNNING },
+    ].forEach(({ state, status }) => {
+      it(`returns "${status}" with a provided "${state}" MLMD execution state`, () => {
+        const mockExecution = new Execution();
+        mockExecution.setLastKnownState(state);
+        const result = getResourceStateText({
+          resourceType: ResourceType.EXECUTION,
+          resource: mockExecution,
+        });
+        expect(result).toBe(status);
+      });
+    });
+
+    [
+      { state: Artifact.State.LIVE, status: ArtifactStateKF.LIVE },
+      { state: Artifact.State.DELETED, status: ArtifactStateKF.DELETED },
+      { state: Artifact.State.MARKED_FOR_DELETION, status: ArtifactStateKF.MARKED_FOR_DELETION },
+      { state: Artifact.State.PENDING, status: ArtifactStateKF.PENDING },
+    ].forEach(({ state, status }) => {
+      it(`returns "${status}" with a provided "${state}" MLMD artifact state`, () => {
+        const mockArtifact = new Artifact();
+        mockArtifact.setState(state);
+        const result = getResourceStateText({
+          resourceType: ResourceType.ARTIFACT,
+          resource: mockArtifact,
+        });
+        expect(result).toBe(status);
       });
     });
   });
@@ -179,6 +286,11 @@ describe('pipeline topology parseUtils', () => {
       { state: RuntimeStateKF.RUNNING, status: RunStatus.InProgress },
       { state: RuntimeStateKF.SKIPPED, status: RunStatus.Skipped },
       { state: RuntimeStateKF.SUCCEEDED, status: RunStatus.Succeeded },
+      { state: ExecutionStateKF.CANCELED, status: RunStatus.Cancelled },
+      { state: ExecutionStateKF.CACHED, status: RunStatus.Skipped },
+      { state: ExecutionStateKF.COMPLETE, status: RunStatus.Succeeded },
+      { state: ExecutionStateKF.FAILED, status: RunStatus.Failed },
+      { state: ExecutionStateKF.RUNNING, status: RunStatus.Running },
     ].forEach(({ state, status }) => {
       it(`returns "${status}" with a provided "${state}" state`, () => {
         const result = translateStatusForNode(state);
@@ -407,6 +519,87 @@ describe('pipeline topology parseUtils', () => {
         expect(consoleWarnSpy).toHaveBeenCalledWith('Issue constructing artifact node', {});
         expect(result).toEqual({});
       });
+    });
+  });
+
+  describe('parseVolumeMounts', () => {
+    it('returns empty when no params passed', () => {
+      const result = parseVolumeMounts();
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty when no platform.kubernetes', () => {
+      const testPlatformSpec: PlatformSpec = { platforms: {} };
+      const result = parseVolumeMounts(testPlatformSpec, 'test-executor-label');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty when no executor label', () => {
+      const testExecutorLabel = 'test-executor-label';
+      const testPlatformSpec: PlatformSpec = {
+        platforms: {
+          kubernetes: {
+            deploymentSpec: {
+              executors: {
+                [testExecutorLabel]: {
+                  container: { image: 'test-image' },
+                  pvcMount: [{ mountPath: 'path-1' }],
+                },
+              },
+            },
+          },
+        },
+      };
+      const result = parseVolumeMounts(testPlatformSpec);
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty when executor label does not match the platform spec', () => {
+      const testExecutorLabel = 'test-executor-label';
+      const testPlatformSpec: PlatformSpec = {
+        platforms: {
+          kubernetes: {
+            deploymentSpec: {
+              executors: {
+                [`${testExecutorLabel}-not-match`]: {
+                  container: { image: 'test-image' },
+                  pvcMount: [{ mountPath: 'path-1' }],
+                },
+              },
+            },
+          },
+        },
+      };
+      const result = parseVolumeMounts(testPlatformSpec, testExecutorLabel);
+      expect(result).toEqual([]);
+    });
+
+    it('returns the correct result when executor label matches the platform spec', () => {
+      const testExecutorLabel = 'test-executor-label';
+      const testPlatformSpec: PlatformSpec = {
+        platforms: {
+          kubernetes: {
+            deploymentSpec: {
+              executors: {
+                [testExecutorLabel]: {
+                  container: { image: 'test-image' },
+                  pvcMount: [
+                    {
+                      mountPath: 'path-1',
+                      taskOutputParameter: {
+                        outputParameterKey: 'test-key',
+                        producerTask: 'test-task-1',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      };
+      const result = parseVolumeMounts(testPlatformSpec, testExecutorLabel);
+      expect(result).toEqual([{ mountPath: 'path-1', name: 'test-task-1' }]);
     });
   });
 });
