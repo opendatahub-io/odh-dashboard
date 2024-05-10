@@ -53,6 +53,9 @@ const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/Cl
 const CustomServingRuntimeRoutes = React.lazy(
   () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
 );
+const ModelRegistrySettingsPage = React.lazy(
+  () => import('../pages/modelRegistrySettings/ModelRegistrySettings'),
+);
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
@@ -127,6 +130,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
+            <Route path="/modelRegistrySettings" element={<ModelRegistrySettingsPage />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}

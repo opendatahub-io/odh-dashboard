@@ -150,6 +150,15 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useModelRegisterySettingsNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY_SETTINGS, [
+    {
+      id: 'settings-model-registry',
+      label: 'Model registry settings',
+      href: '/modelRegistrySettings',
+    },
+  ]);
+
 const useUserManagementNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
     {
@@ -174,6 +183,7 @@ const useSettingsNav = (): NavDataGroup[] => {
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
+    ...useModelRegisterySettingsNav(),
     ...useUserManagementNav(),
   ];
 

@@ -14,6 +14,7 @@ The following are a list of features that are supported, along with there defaul
 | disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
 | disableSupport               | false   | Disables components related to support.                                                              |
 | disableClusterManager        | false   | Disables cluster management section for admins                                                       |
+| disableModelRegistryManager  | false   | Disables model registry management section for admins                                                |
 | disableTracking              | true    | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured |
 | disableBYONImageStream       | false   | Disables custom notebook images that are created via image streams                                   |
 | disableISVBadges             | false   | Removes the badge that indicate if a product is ISV or not.                                          |
@@ -46,6 +47,7 @@ spec:
     disableInfo: false
     disableSupport: false
     disableClusterManager: false
+    disableModelRegistryManager: false
     disableTracking: true
     disableBYONImageStream: false
     disableISVBadges: false
@@ -142,6 +144,7 @@ spec:
     enablement: true
     disableBYONImageStream: false
     disableClusterManager: false
+    disableModelRegistryManager: false
     disableISVBadges: false
     disableInfo: false
     disableSupport: false

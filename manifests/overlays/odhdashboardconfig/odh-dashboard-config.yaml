@@ -8,6 +8,7 @@ spec:
   dashboardConfig:
     disableBYONImageStream: false
     disableClusterManager: false
+    disableModelRegistryManager: false
     disableISVBadges: false
     disableInfo: false
     disableSupport: false

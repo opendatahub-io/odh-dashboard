@@ -18,6 +18,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableInfo: boolean;
       disableSupport: boolean;
       disableClusterManager: boolean;
+      disableModelRegistryManager: boolean;
       disableTracking: boolean;
       disableBYONImageStream: boolean;
       disableISVBadges: boolean;

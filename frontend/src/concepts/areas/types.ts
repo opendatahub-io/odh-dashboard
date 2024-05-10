@@ -34,6 +34,7 @@ export enum SupportedArea {
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
   CLUSTER_SETTINGS = 'cluster-settings',
+  MODEL_REGISTRY_SETTINGS = 'model-registry-settings',
   USER_MANAGEMENT = 'user-management',
   ACCELERATOR_PROFILES = 'accelerator-profiles',
 

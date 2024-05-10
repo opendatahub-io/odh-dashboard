@@ -33,6 +33,8 @@ spec:
                       type: boolean
                     disableClusterManager:
                       type: boolean
+                    disableModelRegistryManager:
+                      type: boolean
                     disableTracking:
                       type: boolean
                     disableBYONImageStream:
