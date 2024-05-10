@@ -1,6 +1,5 @@
-name: Pull request
-on:
-  pull_request:
+name: Test
+on: [push, pull_request]
 jobs:
   Tests:
     runs-on: ubuntu-latest
