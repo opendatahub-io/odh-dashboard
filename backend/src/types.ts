@@ -738,7 +738,12 @@ export type DetectedAccelerators = {
 
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
-  { valueFrom: Record<string, unknown> }
+  {
+    valueFrom: Record<string, unknown> & {
+      configMapKeyRef?: { key: string; name: string };
+      secretKeyRef?: { key: string; name: string };
+    };
+  }
 > & {
   name: string;
 };
