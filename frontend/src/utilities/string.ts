@@ -103,3 +103,16 @@ export const truncateString = (str: string, length: number): string => {
   }
   return `${str.substring(0, length)}…`;
 };
+
+export const testFunction = (x: string, y?: string): string => {
+  if (y) {
+    return `${x}-${y}`;
+  }
+  return x;
+};
+
+export const testingCodecov = (): string => {
+  const first = testFunction('a');
+  const second = testFunction('a', 'b');
+  return testFunction(first, second);
+};
