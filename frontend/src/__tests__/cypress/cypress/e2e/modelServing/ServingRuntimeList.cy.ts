@@ -598,6 +598,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableModelMeshConfig: false,
         disableKServeConfig: false,
+        disableKServeAuthConfig: true,
         servingRuntimes: [],
       });
 
@@ -617,6 +618,44 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
       kserveModal.findAuthenticationCheckbox().should('not.exist');
+    });
+
+    it('Kserve auth should be hidden when no required capabilities', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableKServeAuthConfig: false,
+        servingRuntimes: [],
+        requiredCapabilities: [],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // check external route, token should be checked and no alert
+      kserveModal.findAuthenticationCheckbox().should('not.exist');
+    });
+
+    it('Kserve auth should be enabled if capabilities are prsent', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableKServeAuthConfig: false,
+        servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // check external route, token should be checked and no alert
+      kserveModal.findAuthenticationCheckbox().should('exist');
     });
 
     it('Do not deploy KServe model when user cannot edit namespace', () => {

@@ -172,3 +172,11 @@ rules:
       - get
     resources:
       - datascienceclusters
+  - apiGroups:
+      - dscinitialization.opendatahub.io
+    verbs:
+      - list
+      - watch
+      - get
+    resources:
+      - dscinitializations
