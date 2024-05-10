@@ -53,9 +53,8 @@ module.exports = merge(
                 .trim();
             } catch (e) {
               console.info('Failed to GET dashboard route, constructing host manually.');
-              dashboardHost = new URL(execSync(`oc whoami --show-server`).toString()).host
-                .replace(/:\d+$/, '')
-                .replace(/^api./, `${app}-${odhProject}.apps.`);
+              dashboardHost = new URL(execSync(`oc whoami --show-console`).toString()).host
+                .replace(/^[^.]+\./, `${app}-${odhProject}.`);
             }
             console.info('Dashboard host:', dashboardHost);
 
