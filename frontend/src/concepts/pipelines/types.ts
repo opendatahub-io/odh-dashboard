@@ -152,6 +152,7 @@ export type PipelineAPIs = {
   listPipelineRunJobs: ListPipelineRunJobs;
   listPipelineVersions: ListPipelineVersions;
   archivePipelineRun: UpdatePipelineRun;
+  retryPipelineRun: UpdatePipelineRun;
   unarchivePipelineRun: UpdatePipelineRun;
   archiveExperiment: UpdateExperiment;
   unarchiveExperiment: UpdateExperiment;
