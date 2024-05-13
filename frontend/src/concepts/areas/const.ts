@@ -11,7 +11,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableClusterManager'],
   },
   [SupportedArea.MODEL_REGISTRY_SETTINGS]: {
-    featureFlags: ['disableModelRegistryManager'],
+    featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },

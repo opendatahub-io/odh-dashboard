@@ -4,7 +4,6 @@ type MockDashboardConfigType = {
   disableInfo?: boolean;
   disableSupport?: boolean;
   disableClusterManager?: boolean;
-  disableModelRegistryManager?: boolean;
   disableTracking?: boolean;
   disableBYONImageStream?: boolean;
   disableISVBadges?: boolean;
@@ -31,7 +30,6 @@ export const mockDashboardConfig = ({
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
-  disableModelRegistryManager = false,
   disableTracking = false,
   disableBYONImageStream = false,
   disableISVBadges = false,
@@ -68,7 +66,6 @@ export const mockDashboardConfig = ({
       disableInfo,
       disableSupport,
       disableClusterManager,
-      disableModelRegistryManager,
       disableTracking,
       disableBYONImageStream,
       disableISVBadges,

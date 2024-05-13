@@ -1196,7 +1196,6 @@ export type DashboardCommonConfig = {
   disableInfo: boolean;
   disableSupport: boolean;
   disableClusterManager: boolean;
-  disableModelRegistryManager: boolean;
   disableTracking: boolean;
   disableBYONImageStream: boolean;
   disableISVBadges: boolean;
