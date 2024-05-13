@@ -10,11 +10,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
   },
-  [SupportedArea.MODEL_REGISTRY_SETTINGS]: {
-    featureFlags: ['disableModelRegistry'],
-    requiredComponents: [StackComponent.MODEL_REGISTRY],
-    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-  },
   [SupportedArea.CUSTOM_RUNTIMES]: {
     featureFlags: ['disableCustomServingRuntimes'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
@@ -82,5 +77,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
+    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
 };

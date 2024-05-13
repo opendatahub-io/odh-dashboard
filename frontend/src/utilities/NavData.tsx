@@ -151,7 +151,7 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
   ]);
 
 const useModelRegisterySettingsNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY_SETTINGS, [
+  useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
     {
       id: 'settings-model-registry',
       label: 'Model registry settings',
