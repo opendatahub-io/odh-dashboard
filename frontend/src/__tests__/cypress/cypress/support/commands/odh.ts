@@ -2,6 +2,8 @@ import { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import {
+  ModelArtifactList,
+  ModelVersion,
   ModelVersionList,
   RegisteredModel,
   RegisteredModelList,
@@ -321,14 +323,30 @@ declare global {
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: 'DELETE /api/service/pipelines/:projectId/dspa/apis/v2beta1/recurringruns/:pipeline_id',
-        options: { path: { projectId: string; pipeline_id: string } },
-        response: OdhResponse<K8sStatus>,
+        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models/1`,
+        response: OdhResponse<RegisteredModel | undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/model_versions/:id`,
+        options: { path: { id: string } },
+        response: OdhResponse<ModelVersion | undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/model_versions/1/artifacts`,
+        response: OdhResponse<ModelArtifactList | undefined>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
         type: 'GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models/1/versions',
         response: OdhResponse<ModelVersionList | undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'DELETE /api/service/pipelines/:projectId/dspa/apis/v2beta1/recurringruns/:pipeline_id',
+        options: { path: { projectId: string; pipeline_id: string } },
+        response: OdhResponse<K8sStatus>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(

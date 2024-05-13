@@ -103,11 +103,18 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
         isSavingEdits={isSavingEdits}
         contentWhenEditing={
           <LabelGroup
+            data-testid="label-group"
             isEditable={!isSavingEdits}
             numLabels={unsavedLabels.length}
             addLabelControl={
               !isSavingEdits && (
-                <Label color="blue" variant="outline" isOverflowLabel onClick={toggleAddLabelModal}>
+                <Label
+                  textMaxWidth="40ch"
+                  color="blue"
+                  variant="outline"
+                  isOverflowLabel
+                  onClick={toggleAddLabelModal}
+                >
                   Add label
                 </Label>
               )
@@ -151,9 +158,9 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
           setIsEditing(false);
         }}
       >
-        <LabelGroup>
+        <LabelGroup data-testid="label-group">
           {labels.map((label) => (
-            <Label key={label} color="blue" data-testid="label">
+            <Label textMaxWidth="40ch" key={label} color="blue" data-testid="label">
               {label}
             </Label>
           ))}

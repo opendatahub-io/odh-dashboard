@@ -11,7 +11,7 @@ import {
 import React from 'react';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
-import { getLabels } from './utils';
+import { getLabels } from '~/pages/modelRegistry/screens/utils';
 
 // Threshold count to decide whether to choose modal or popover
 const MODAL_THRESHOLD = 4;

@@ -80,6 +80,7 @@ describe('Model Registry', () => {
 
     modelRegistry.tabEnabled();
   });
+
   it('No registered models in the selected Model Registry', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
@@ -92,7 +93,7 @@ describe('Model Registry', () => {
     modelRegistry.shouldregisteredModelsEmpty();
   });
 
-  it('Model registry table', () => {
+  it('Registered model table', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
     });

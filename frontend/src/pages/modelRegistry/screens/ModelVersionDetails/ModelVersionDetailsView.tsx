@@ -10,9 +10,9 @@ import {
   getPatchBodyForModelVersion,
   mergeUpdatedLabels,
 } from '~/pages/modelRegistry/screens/utils';
-import ModelTimestamp from '~/pages/modelRegistry/screens/ModelTimestamp';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -35,6 +35,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       <FlexItem flex={{ default: 'flex_1' }}>
         <DescriptionList isFillColumns>
           <EditableTextDescriptionListGroup
+            testid="model-version-description"
             title="Description"
             contentWhenEmpty="No description"
             value={mv.description || ''}
@@ -87,22 +88,32 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             isEmpty={!mv.id}
             contentWhenEmpty="No model ID"
           >
-            <ClipboardCopy hoverTip="Copy" clickTip="Copied" variant="inline-compact">
+            <ClipboardCopy
+              data-testid="model-version-id"
+              hoverTip="Copy"
+              clickTip="Copied"
+              variant="inline-compact"
+            >
               {mv.id}
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Storage location"
-            isEmpty={modelArtifact.size === 0}
+            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].uri}
             contentWhenEmpty="No storage location"
           >
-            <ClipboardCopy hoverTip="Copy" clickTip="Copied" variant="inline-compact">
+            <ClipboardCopy
+              data-testid="storage-location"
+              hoverTip="Copy"
+              clickTip="Copied"
+              variant="inline-compact"
+            >
               {modelArtifact.items[0]?.uri}
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Source model format"
-            isEmpty={modelArtifact.size === 0}
+            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatName}
             contentWhenEmpty="No source model format"
           >
             {modelArtifact.items[0]?.modelFormatName}

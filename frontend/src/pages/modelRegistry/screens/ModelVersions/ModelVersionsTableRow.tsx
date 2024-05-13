@@ -4,9 +4,9 @@ import { Text, TextVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import ModelLabels from './ModelLabels';
-import ModelTimestamp from './ModelTimestamp';
-import { modelVersionUrl } from './routeUtils';
+import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
+import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;

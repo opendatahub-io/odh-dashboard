@@ -5,10 +5,14 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
-import ModelPropertiesDescriptionListGroup from './ModelPropertiesDescriptionListGroup';
-import RegisteredModelOwner from './RegisteredModelOwner';
-import ModelTimestamp from './ModelTimestamp';
-import { getLabels, getPatchBodyForRegisteredModel, mergeUpdatedLabels } from './utils';
+import RegisteredModelOwner from '~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelOwner';
+import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import {
+  getLabels,
+  getPatchBodyForRegisteredModel,
+  mergeUpdatedLabels,
+} from '~/pages/modelRegistry/screens/utils';
+import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 
 type ModelDetailsViewProps = {
   registeredModel: RegisteredModel;

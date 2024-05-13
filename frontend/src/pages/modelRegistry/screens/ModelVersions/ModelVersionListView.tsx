@@ -17,9 +17,9 @@ import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import EmptyModelRegistryState from '~/pages/modelRegistry/screens/EmptyModelRegistryState';
+import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import ModelVersionsTable from './ModelVersionsTable';
-import EmptyModelRegistryState from './EmptyModelRegistryState';
-import { filteredmodelVersions } from './utils';
 
 type ModelVersionListViewProps = {
   modelVersions: ModelVersion[];
@@ -27,7 +27,7 @@ type ModelVersionListViewProps = {
 };
 
 const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
-  modelVersions: unfilteredmodelVersions,
+  modelVersions: unfilteredModelVersions,
   registeredModelName: rmName,
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
@@ -38,9 +38,9 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
   const [isArchivedModelVersionKebabOpen, setIsArchivedModelVersionKebabOpen] =
     React.useState(false);
 
-  const filteredModelVersions = filteredmodelVersions(unfilteredmodelVersions, search, searchType);
+  const filteredModelVersions = filterModelVersions(unfilteredModelVersions, search, searchType);
 
-  if (unfilteredmodelVersions.length === 0) {
+  if (unfilteredModelVersions.length === 0) {
     return (
       <EmptyModelRegistryState
         testid="empty-model-versions"

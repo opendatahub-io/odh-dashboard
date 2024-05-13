@@ -10,7 +10,7 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ModelRegistryModel } from '~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelVersion } from '~/concepts/modelRegistry/types';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 
 type HandlersProps = {
@@ -28,39 +28,39 @@ const initIntercepts = ({
       id: '1',
       customProperties: {
         Financial: {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: 'non-empty',
         },
         'Financial data': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Fraud detection': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Test label': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Machine learning': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Next data to be overflow': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Test label x': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Test label y': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
         'Test label z': {
-          metadataType: 'MetadataStringValue',
+          metadataType: ModelRegistryMetadataType.STRING,
           string_value: '',
         },
       },
