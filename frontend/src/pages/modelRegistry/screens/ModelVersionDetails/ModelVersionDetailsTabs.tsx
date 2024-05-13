@@ -8,11 +8,13 @@ import ModelVersionDetailsView from './ModelVersionDetailsView';
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
   modelVersion: ModelVersion;
+  refresh: () => void;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   tab,
   modelVersion: mv,
+  refresh,
 }) => (
   <Tabs
     activeKey={tab}
@@ -27,7 +29,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
       data-testid="model-versions-details-tab"
     >
       <PageSection isFilled variant="light" data-testid="model-versions-details-tab-content">
-        <ModelVersionDetailsView modelVersion={mv} />
+        <ModelVersionDetailsView modelVersion={mv} refresh={refresh} />
       </PageSection>
     </Tab>
     <Tab
