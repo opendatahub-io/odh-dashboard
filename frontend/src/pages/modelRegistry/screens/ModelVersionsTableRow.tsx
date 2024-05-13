@@ -17,7 +17,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({ modelVers
 
   return (
     <Tr>
-      <Td dataLabel="Model version name">
+      <Td dataLabel="Version name">
         <div id="model-version-name" data-testid="model-version-name">
           <FlexItem>
             <Link

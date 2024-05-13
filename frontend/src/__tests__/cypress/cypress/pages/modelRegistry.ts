@@ -21,7 +21,7 @@ class LabelModal extends Modal {
   }
 }
 
-class RegisteredModelTableRow extends TableRow {
+class ModelRegistryTableRow extends TableRow {
   findName() {
     return this.find().findByTestId('model-name');
   }
@@ -66,6 +66,7 @@ class ModelRegistry {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Registered models');
     cy.testA11y();
   }
 
@@ -79,7 +80,11 @@ class ModelRegistry {
   }
 
   shouldregisteredModelsEmpty() {
-    cy.findByTestId('empty-model-registry').should('exist');
+    cy.findByTestId('empty-registered-models').should('exist');
+  }
+
+  shouldmodelVersionsEmpty() {
+    cy.findByTestId('empty-model-versions').should('exist');
   }
 
   shouldModelRegistrySelectorExist() {
@@ -104,13 +109,30 @@ class ModelRegistry {
     return cy.findByTestId('registered-model-table');
   }
 
+  findModelVersionsTable() {
+    return cy.findByTestId('model-versions-table');
+  }
+
   findTableRows() {
     return this.findTable().find('tbody tr');
   }
 
+  findModelVersionsTableRows() {
+    return this.findModelVersionsTable().find('tbody tr');
+  }
+
   getRow(name: string) {
-    return new RegisteredModelTableRow(() =>
+    return new ModelRegistryTableRow(() =>
       this.findTable().find(`[data-label="Model name"]`).contains(name).parents('tr'),
+    );
+  }
+
+  getModelVersionRow(name: string) {
+    return new ModelRegistryTableRow(() =>
+      this.findModelVersionsTable()
+        .find(`[data-label="Version name"]`)
+        .contains(name)
+        .parents('tr'),
     );
   }
 
@@ -118,8 +140,32 @@ class ModelRegistry {
     return this.findTable().find('thead').findByRole('button', { name });
   }
 
+  findModelVersionsTableHeaderButton(name: string) {
+    return this.findModelVersionsTable().find('thead').findByRole('button', { name });
+  }
+
   findTableSearch() {
     return cy.findByTestId('registered-model-table-search');
+  }
+
+  findModelVersionsTableSearch() {
+    return cy.findByTestId('model-versions-table-search');
+  }
+
+  findModelBreadcrumbItem() {
+    return cy.findByTestId('breadcrumb-model');
+  }
+
+  findModelVersionsTableKebab() {
+    return cy.findByTestId('model-versions-table-kebab-action');
+  }
+
+  findModelVersionsHeaderAction() {
+    return cy.findByTestId('model-version-action-toggle');
+  }
+
+  findModelVersionsTableFilter() {
+    return cy.findByTestId('model-versions-table-filter');
   }
 }
 

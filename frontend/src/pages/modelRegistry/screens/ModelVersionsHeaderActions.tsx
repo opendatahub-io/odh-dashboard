@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-  Dropdown,
-  DropdownList,
-  MenuToggle,
-  MenuToggleAction,
-  DropdownItem,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownList, MenuToggle, DropdownItem } from '@patternfly/react-core';
 
 const ModelVersionsHeaderActions: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
@@ -23,23 +17,11 @@ const ModelVersionsHeaderActions: React.FC = () => {
             ref={toggleRef}
             onClick={() => setOpen(!isOpen)}
             isExpanded={isOpen}
-            splitButtonOptions={{
-              variant: 'action',
-              items: [
-                <MenuToggleAction
-                  id="register-model-button"
-                  key="register-model-button"
-                  data-testid="register-model-button"
-                  aria-label="Register model"
-                  onClick={() => undefined}
-                >
-                  Actions
-                </MenuToggleAction>,
-              ],
-            }}
             aria-label="Model version action toggle"
-            data-testid="model-version-split-button"
-          />
+            data-testid="model-version-action-toggle"
+          >
+            Actions
+          </MenuToggle>
         )}
       >
         <DropdownList>
