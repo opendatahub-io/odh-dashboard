@@ -25,6 +25,10 @@ class NotebookServer {
     return cy.findByTestId('start-server-button');
   }
 
+  findCancelStartServerButton() {
+    return cy.findByTestId('cancel-start-server-button');
+  }
+
   findEventlog() {
     return cy.findByTestId('expand-logs').findByRole('button');
   }

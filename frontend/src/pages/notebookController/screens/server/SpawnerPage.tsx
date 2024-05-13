@@ -40,6 +40,7 @@ import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -47,13 +48,14 @@ import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import ImageSelector from './ImageSelector';
 import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
+import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 import '~/pages/notebookController/NotebookController.scss';
-import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
+  const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
@@ -358,12 +360,13 @@ const SpawnerPage: React.FC = () => {
               </Button>
               <Button
                 data-id="cancel-button"
+                data-testid="cancel-start-server-button"
                 variant="secondary"
                 onClick={() => {
                   if (impersonatedUsername) {
                     setImpersonating();
                   } else {
-                    navigate('/');
+                    navigate(isHomeAvailable ? '/enabled' : '/');
                   }
                 }}
               >

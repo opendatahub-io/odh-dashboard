@@ -7,6 +7,7 @@ import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 import { notebookController } from '~/__tests__/cypress/cypress/pages/administration';
+import { homePage } from '~/__tests__/cypress/cypress/pages/home';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -31,7 +32,7 @@ const initIntercepts = () => {
   cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', mockAllowedUsers({}));
 };
 
-it('Administartion tab should not be accessible for non-project admins', () => {
+it('Administration tab should not be accessible for non-project admins', () => {
   initIntercepts();
   asProjectEditUser();
   notebookServer.visit();
@@ -92,5 +93,21 @@ describe('NotebookServer', () => {
     cy.wait('@stopNotebookServer').then((interception) => {
       expect(interception.request.body).to.eql({ state: 'stopped', username: 'test-user' });
     });
+  });
+
+  it('should return to the enabled page on cancel', () => {
+    homePage.initHomeIntercepts({ disableHome: false });
+    notebookServer.visit();
+    notebookServer.findCancelStartServerButton().should('be.visible');
+    notebookServer.findCancelStartServerButton().click();
+
+    cy.findByTestId('app-page-title').should('have.text', 'Enabled');
+
+    homePage.initHomeIntercepts({ disableHome: true });
+    notebookServer.visit();
+    notebookServer.findCancelStartServerButton().should('be.visible');
+    notebookServer.findCancelStartServerButton().click();
+
+    cy.findByTestId('app-page-title').should('have.text', 'Enabled');
   });
 });
