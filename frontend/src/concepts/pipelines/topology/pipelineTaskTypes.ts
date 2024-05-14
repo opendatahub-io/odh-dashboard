@@ -5,6 +5,7 @@ import {
   InputDefinitionParameterType,
   RuntimeStateKF,
 } from '~/concepts/pipelines/kfTypes';
+import { Artifact } from '~/third_party/mlmd';
 import { VolumeMount } from '~/types';
 
 export type PipelineTaskParam = {
@@ -46,6 +47,7 @@ export type PipelineTask = {
   steps?: PipelineTaskStep[];
   inputs?: PipelineTaskInputOutput;
   outputs?: PipelineTaskInputOutput;
+  metadata?: Artifact | undefined;
   /** Run Status */
   status?: PipelineTaskRunStatus;
   /** Volume Mounts */

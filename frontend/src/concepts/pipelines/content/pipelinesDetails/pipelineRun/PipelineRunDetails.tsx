@@ -37,25 +37,40 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { routePipelineRunsNamespace } from '~/routes';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
+import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
+import { parseEventsByType } from '~/pages/pipelines/global/experiments/executions/utils';
+import { Event } from '~/third_party/mlmd';
+import { usePipelineRunArtifacts } from './artifacts';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { runId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [runResource, runLoaded, runError] = usePipelineRunById(runId, true);
+  const [run, runLoaded, runError] = usePipelineRunById(runId, true);
   const [version, versionLoaded, versionError] = usePipelineVersionById(
-    runResource?.pipeline_version_reference?.pipeline_id,
-    runResource?.pipeline_version_reference?.pipeline_version_id,
+    run?.pipeline_version_reference?.pipeline_id,
+    run?.pipeline_version_reference?.pipeline_version_id,
   );
-  const pipelineSpec = version?.pipeline_spec ?? runResource?.pipeline_spec;
+  const pipelineSpec = version?.pipeline_spec ?? run?.pipeline_spec;
   const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
-  const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(runResource);
-  const nodes = usePipelineTaskTopology(pipelineSpec, runResource?.run_details, executions);
+  const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
+  const [artifacts] = usePipelineRunArtifacts(run);
+  const [eventsResponse] = useGetEventsByExecutionIds(
+    React.useMemo(() => executions.map((execution) => execution.getId()), [executions]),
+  );
+  const events = parseEventsByType(eventsResponse);
+  const nodes = usePipelineTaskTopology(
+    pipelineSpec,
+    run?.run_details,
+    executions,
+    events[Event.Type.OUTPUT],
+    artifacts,
+  );
 
   const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedId),
@@ -64,7 +79,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
 
   const getFirstNode = (firstId: string) => nodes.find((n) => n.id === firstId);
 
-  const loaded = runLoaded && (versionLoaded || !!runResource?.pipeline_spec);
+  const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec);
   const error = versionError || runError;
 
   if (error) {
@@ -95,6 +110,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedNode?.data.pipelineTask}
+              upstreamTaskName={selectedNode?.runAfterTasks?.[0]}
               onClose={() => setSelectedId(null)}
               executions={executions}
             />
@@ -110,29 +126,29 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                       setDetailsTab(selection);
                       setSelectedId(null);
                     }}
-                    pipelineRunDetails={runResource && pipelineSpec ? runResource : undefined}
+                    pipelineRunDetails={run && pipelineSpec ? run : undefined}
                   />
                 }
               >
                 <ApplicationsPage
                   title={
-                    runResource ? (
-                      <PipelineDetailsTitle run={runResource} statusIcon pipelineRunLabel />
+                    run ? (
+                      <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
                     ) : (
                       'Error loading run'
                     )
                   }
                   subtext={
-                    runResource && (
+                    run && (
                       <PipelineJobReferenceName
-                        runName={runResource.display_name}
-                        recurringRunId={runResource.recurring_run_id}
+                        runName={run.display_name}
+                        recurringRunId={run.recurring_run_id}
                       />
                     )
                   }
                   description={
-                    runResource?.description ? (
-                      <MarkdownView conciseDisplay markdown={runResource.description} />
+                    run?.description ? (
+                      <MarkdownView conciseDisplay markdown={run.description} />
                     ) : (
                       ''
                     )
@@ -143,15 +159,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     <Breadcrumb>
                       {breadcrumbPath}
                       <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                        <Truncate content={runResource?.display_name ?? 'Loading...'} />
+                        <Truncate content={run?.display_name ?? 'Loading...'} />
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
-                    <PipelineRunDetailsActions
-                      run={runResource}
-                      onDelete={() => setDeleting(true)}
-                    />
+                    <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
                   }
                   empty={false}
                 >
@@ -180,7 +193,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
       </Drawer>
       <DeletePipelineRunsModal
         type={PipelineRunType.Archived}
-        toDeleteResources={deleting && runResource ? [runResource] : []}
+        toDeleteResources={deleting && run ? [run] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
             navigate(contextPath ?? routePipelineRunsNamespace(namespace));

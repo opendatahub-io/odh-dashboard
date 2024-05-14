@@ -12,7 +12,7 @@ export interface ArtifactsListResponse {
 
 export const useGetArtifactsList = (
   refreshRate?: number,
-): FetchState<ArtifactsListResponse | null> => {
+): FetchState<ArtifactsListResponse | undefined> => {
   const { pageToken, maxResultSize, filterQuery } = useMlmdListContext();
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
@@ -39,7 +39,7 @@ export const useGetArtifactsList = (
     };
   }, [filterQuery, pageToken, maxResultSize, metadataStoreServiceClient]);
 
-  return useFetchState(fetchArtifactsList, null, {
+  return useFetchState(fetchArtifactsList, undefined, {
     refreshRate,
   });
 };
