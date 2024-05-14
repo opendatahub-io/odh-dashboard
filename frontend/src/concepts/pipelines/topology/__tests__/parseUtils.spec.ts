@@ -417,11 +417,25 @@ describe('pipeline topology parseUtils', () => {
         taskInfo: { name: 'task-2' },
         triggerPolicy: { strategy: TriggerStrategy.ALL_UPSTREAM_TASKS_SUCCEEDED },
       },
+      'task-3': {
+        cachingOptions: { enableCache: true },
+        componentRef: { name: 'comp-task-3' },
+        dependentTasks: [],
+        inputs: {
+          artifacts: {
+            'task-3-artifact-3': {
+              componentInputArtifact: 'test-artifact',
+            },
+          },
+        },
+        taskInfo: { name: 'task-3' },
+        triggerPolicy: { strategy: TriggerStrategy.ALL_UPSTREAM_TASKS_SUCCEEDED },
+      },
     };
     const consoleWarnSpy = jest.spyOn(global.console, 'warn');
 
     it('returns empty object when no task artifacts exist', () => {
-      const result = parseTasksForArtifactRelationship({
+      const result = parseTasksForArtifactRelationship('root', {
         'task-1': { ...testTasks['task-1'], inputs: {} },
         'task-2': { ...testTasks['task-2'], inputs: {} },
       });
@@ -429,21 +443,18 @@ describe('pipeline topology parseUtils', () => {
     });
 
     it('returns task artifact map when artifacts are provided', () => {
-      const result = parseTasksForArtifactRelationship(testTasks);
+      const result = parseTasksForArtifactRelationship('root', testTasks);
 
       expect(result).toEqual({
-        'some-dag-task-2': [
-          { outputArtifactKey: 'task-1-artifact-name', artifactId: 'task-1-artifact-1' },
-        ],
-        'some-dag-task-1': [
-          { outputArtifactKey: 'task-2-artifact-name', artifactId: 'task-2-artifact-2' },
-        ],
+        'task-1': [{ artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-2.task-1-artifact-name' }],
+        'task-2': [{ artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-1.task-2-artifact-name' }],
+        'task-3': [{ artifactNodeId: 'GROUP.root.ARTIFACT..test-artifact' }],
       });
     });
 
     describe('returns warning with unmapped artifact for a task when', () => {
       it('no producerTask is found', () => {
-        const result = parseTasksForArtifactRelationship({
+        const result = parseTasksForArtifactRelationship('root', {
           ...testTasks,
           'task-2': {
             ...testTasks['task-2'],
@@ -464,17 +475,17 @@ describe('pipeline topology parseUtils', () => {
           taskOutputArtifact: { outputArtifactKey: 'task-2-artifact-name', producerTask: '' },
         });
         expect(result).toEqual({
-          'some-dag-task-2': [
+          'task-1': [
             {
-              artifactId: 'task-1-artifact-1',
-              outputArtifactKey: 'task-1-artifact-name',
+              artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-2.task-1-artifact-name',
             },
           ],
+          'task-3': [{ artifactNodeId: 'GROUP.root.ARTIFACT..test-artifact' }],
         });
       });
 
       it('no outputArtifactKey is found', () => {
-        const result = parseTasksForArtifactRelationship({
+        const result = parseTasksForArtifactRelationship('root', {
           ...testTasks,
           'task-2': {
             ...testTasks['task-2'],
@@ -495,17 +506,17 @@ describe('pipeline topology parseUtils', () => {
           taskOutputArtifact: { outputArtifactKey: '', producerTask: 'some-dag-task-1' },
         });
         expect(result).toEqual({
-          'some-dag-task-2': [
+          'task-1': [
             {
-              artifactId: 'task-1-artifact-1',
-              outputArtifactKey: 'task-1-artifact-name',
+              artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-2.task-1-artifact-name',
             },
           ],
+          'task-3': [{ artifactNodeId: 'GROUP.root.ARTIFACT..test-artifact' }],
         });
       });
 
       it('no taskOutputArtifact is found', () => {
-        const result = parseTasksForArtifactRelationship({
+        const result = parseTasksForArtifactRelationship('root', {
           'task-1': {
             ...testTasks['task-1'],
             inputs: {

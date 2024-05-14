@@ -6,6 +6,9 @@ import { ICON_TASK_NODE_TYPE } from '~/concepts/topology/utils';
 import { EXECUTION_TASK_NODE_TYPE } from '~/concepts/topology/const';
 
 describe('usePipelineTaskTopology', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation(jest.fn());
+  });
   it('returns the correct number of nodes', () => {
     const renderResult = testHook(usePipelineTaskTopology)(mockLargePipelineSpec);
     const nodes = renderResult.result.current;
@@ -14,9 +17,9 @@ describe('usePipelineTaskTopology', () => {
     const groups = nodes.filter((n) => n.type === EXECUTION_TASK_NODE_TYPE);
     const artifactNodes = nodes.filter((n) => n.type === ICON_TASK_NODE_TYPE);
 
-    expect(nodes).toHaveLength(86);
+    expect(nodes).toHaveLength(107);
     expect(tasks).toHaveLength(35);
     expect(groups).toHaveLength(5);
-    expect(artifactNodes).toHaveLength(46);
+    expect(artifactNodes).toHaveLength(67);
   });
 });

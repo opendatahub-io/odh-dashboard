@@ -175,14 +175,16 @@ export type InputOutputArtifactType = {
 };
 
 export type InputOutputDefinition = {
-  artifacts?: Record<
-    string,
-    {
-      artifactType: InputOutputArtifactType;
-    }
-  >;
+  artifacts?: InputOutputDefinitionArtifacts;
   parameters?: ParametersKF;
 };
+
+export type InputOutputDefinitionArtifacts = Record<
+  string,
+  {
+    artifactType: InputOutputArtifactType;
+  }
+>;
 
 type GroupNodeComponent = {
   dag: DAG;
@@ -234,17 +236,22 @@ export type TaskKF = {
   inputs?: {
     artifacts?: Record<
       string,
-      {
-        taskOutputArtifact?: {
-          /** Artifact node name */
-          outputArtifactKey: string;
-          /**
-           * The task string for runAfter
-           * @see DAG.tasks
-           */
-          producerTask: string;
-        };
-      }
+      EitherNotBoth<
+        {
+          taskOutputArtifact?: {
+            /** Artifact node name */
+            outputArtifactKey: string;
+            /**
+             * The task string for runAfter
+             * @see DAG.tasks
+             */
+            producerTask: string;
+          };
+        },
+        {
+          componentInputArtifact: string;
+        }
+      >
     >;
     parameters?: Record<
       string,
@@ -326,9 +333,7 @@ export type PipelineSpec = {
   };
   root: {
     dag: DAG;
-    inputDefinitions?: {
-      parameters: ParametersKF;
-    };
+    inputDefinitions?: InputOutputDefinition;
   };
   schemaVersion: string;
   sdkVersion: string;
