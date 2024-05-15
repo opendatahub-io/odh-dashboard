@@ -14,7 +14,7 @@ const usePipelineVersionsCheckboxTable = (
     versions,
     selectedVersions,
     setSelectedVersions,
-    React.useCallback((version) => version.pipeline_id, []),
+    React.useCallback((version) => version.pipeline_version_id, []),
     { selectAll: { disabled: pipelineChecked, ...(pipelineChecked ? { selected: true } : {}) } },
   );
 };

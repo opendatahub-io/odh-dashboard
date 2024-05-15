@@ -37,7 +37,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   const createdDate = new Date(version.created_at);
 
   return (
-    <Tr>
+    <Tr data-testid={`pipeline-version-row ${version.pipeline_version_id}`}>
       <CheckboxTd
         id={version.pipeline_version_id}
         isChecked={isChecked}
@@ -59,7 +59,6 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
           }
           description={version.description}
           descriptionAsMarkdown
-          testId={`table-row-title-${version.display_name}`}
         />
       </Td>
       <Td>

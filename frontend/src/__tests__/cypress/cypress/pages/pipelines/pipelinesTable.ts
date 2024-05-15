@@ -5,21 +5,29 @@ import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsPro
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class PipelinesTableRow extends TableRow {
-  findPipelineName(name: string) {
-    return this.find().findByTestId(`table-row-title-${name}`).find('a');
-  }
-
-  toggleExpandByIndex(index: number) {
-    this.find().find('button').should('have.attr', 'aria-label', 'Details').eq(index).click();
-  }
-
-  toggleCheckboxByRowName() {
-    this.find().find(`[data-label=Checkbox]`).find('input').check();
+  findPipelineVersionsTable() {
+    return this.find().parent().findByTestId(`pipeline-versions-table`);
   }
 
   shouldNotHavePipelineVersion() {
     this.find().parents('tbody').findByTestId('no-pipeline-versions').should('exist');
     return this;
+  }
+
+  getPipelineVersionRowById(id: string) {
+    return new PipelineVersionsTableRow(
+      () =>
+        this.findPipelineVersionsTable().findByTestId([
+          'pipeline-version-row',
+          id,
+        ]) as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
+    );
+  }
+}
+
+class PipelineVersionsTableRow extends TableRow {
+  findPipelineVersionLink() {
+    return this.find().findByTestId(`table-row-title`).find('a');
   }
 }
 
@@ -38,9 +46,12 @@ class PipelinesTable {
     return this.find().find('thead').findByRole('button', { name });
   }
 
-  getRowByName(name: string) {
-    return new PipelinesTableRow(() =>
-      this.find().findByTestId(`table-row-title-${name}`).parents('tr'),
+  getRowById(id: string) {
+    return new PipelinesTableRow(
+      () =>
+        this.find().findByTestId(['pipeline-row', id]) as unknown as Cypress.Chainable<
+          JQuery<HTMLTableRowElement>
+        >,
     );
   }
 
