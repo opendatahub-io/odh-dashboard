@@ -81,8 +81,11 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     namespace,
   );
 
-  const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
-  useManageElyraSecret(namespace, pipelineNamespaceCR, hostPath);
+  const routeHost = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
+  const hostPath =
+    routeLoaded && namespace ? `/api/service/pipelines/${namespace}/pipelines-definition` : null;
+
+  useManageElyraSecret(namespace, pipelineNamespaceCR, routeHost);
 
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),

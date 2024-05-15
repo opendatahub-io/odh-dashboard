@@ -32,15 +32,16 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipelines/test-pipeline',
     },
     mockPipelineKF({}),
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/jobs',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs',
     },
     {
       jobs: [
@@ -51,8 +52,8 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/runs',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs',
     },
     {
       runs: [
@@ -63,15 +64,16 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipelines',
     },
     mockPipelineKF({}),
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines/test-pipeline/templates',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipelines/test-pipeline/templates',
     },
     mockPipelinesVersionTemplateResourceKF(),
   );
@@ -139,31 +141,23 @@ describe('Pipeline runs', () => {
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+          method: 'DELETE',
+          pathname:
+            '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs/test-pipeline',
         },
         mockStatus(),
       ).as('postJobPipeline');
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs',
+          method: 'GET',
+          pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs',
         },
         { jobs: [buildMockJobKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
       ).as('getRuns');
 
       scheduledRunDeleteModal.findSubmitButton().click();
 
-      cy.wait('@postJobPipeline').then((intercept) => {
-        expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/jobs/test-pipeline',
-          method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
-          queryParams: {},
-          data: {},
-        });
-      });
       cy.wait('@getRuns').then(() => {
         pipelineRunJobTable.findEmptyState().should('not.exist');
       });
@@ -187,49 +181,31 @@ describe('Pipeline runs', () => {
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+          method: 'DELETE',
+          pathname:
+            '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs/test-pipeline',
         },
         mockStatus(),
       ).as('postJobPipeline-1');
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs/other-pipeline',
+          method: 'DELETE',
+          pathname:
+            '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs/other-pipeline',
         },
         mockStatus(),
       ).as('postJobPipeline-2');
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/jobs',
+          method: 'GET',
+          pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/jobs',
         },
         { jobs: [] },
       ).as('getRuns');
 
       scheduledRunDeleteMultipleModal.findSubmitButton().click();
-
-      cy.wait('@postJobPipeline-1').then((intercept) => {
-        expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/jobs/test-pipeline',
-          method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
-          queryParams: {},
-          data: {},
-        });
-      });
-
-      cy.wait('@postJobPipeline-2').then((intercept) => {
-        expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/jobs/other-pipeline',
-          method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
-          queryParams: {},
-          data: {},
-        });
-      });
 
       cy.wait('@getRuns').then(() => {
         pipelineRunJobTable.findEmptyState().should('exist');
@@ -251,31 +227,23 @@ describe('Pipeline runs', () => {
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline',
+          method: 'DELETE',
+          pathname:
+            '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs/test-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline');
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs',
+          method: 'GET',
+          pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs',
         },
         { runs: [buildMockRunKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
       ).as('getRuns');
 
       triggeredRunDeleteModal.findSubmitButton().click();
 
-      cy.wait('@postRunPipeline').then((intercept) => {
-        expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/test-pipeline',
-          method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
-          queryParams: {},
-          data: {},
-        });
-      });
       cy.wait('@getRuns').then(() => {
         pipelineRunTable.findEmptyState().should('not.exist');
       });
@@ -299,49 +267,32 @@ describe('Pipeline runs', () => {
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/test-pipeline',
+          method: 'DELETE',
+          pathname:
+            '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs/test-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline-1');
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs/other-pipeline',
+          method: 'DELETE',
+          pathname:
+            '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs/other-pipeline',
         },
         mockStatus(),
       ).as('postRunPipeline-2');
 
       cy.intercept(
         {
-          method: 'POST',
-          pathname: '/api/proxy/apis/v1beta1/runs',
+          method: 'GET',
+          pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/runs',
         },
         { runs: [] },
       ).as('getRuns');
 
       triggeredRunDeleteMultipleModal.findSubmitButton().click();
 
-      cy.wait('@postRunPipeline-1').then((intercept) => {
-        expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/test-pipeline',
-          method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
-          queryParams: {},
-          data: {},
-        });
-      });
-
-      cy.wait('@postRunPipeline-2').then((intercept) => {
-        expect(intercept.request.body).to.eql({
-          path: '/apis/v1beta1/runs/other-pipeline',
-          method: 'DELETE',
-          host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
-          queryParams: {},
-          data: {},
-        });
-      });
       cy.wait('@getRuns').then(() => {
         pipelineRunTable.findEmptyState().should('exist');
       });

@@ -51,9 +51,9 @@ describe('Pipelines', () => {
     const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
 
     // Intercept upload/re-fetch of pipelines
-    pipelineImportModal.mockUploadPipeline(uploadPipelineParams).as('uploadPipeline');
+    pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
     pipelinesTable
-      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline])
+      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
       .as('refreshPipelines');
 
     // Wait for the pipelines table to load
@@ -91,12 +91,14 @@ describe('Pipelines', () => {
     pipelinesGlobal.findUploadVersionButton().click();
 
     // Intercept upload/re-fetch of pipeline versions
-    pipelineVersionImportModal.mockUploadVersion(uploadVersionParams).as('uploadVersion');
+    pipelineVersionImportModal
+      .mockUploadVersion(uploadVersionParams, projectName)
+      .as('uploadVersion');
     pipelinesTable
-      .mockGetPipelineVersions([
-        initialMockPipelineVersion,
-        buildMockPipelineVersion(uploadVersionParams),
-      ])
+      .mockGetPipelineVersions(
+        [initialMockPipelineVersion, buildMockPipelineVersion(uploadVersionParams)],
+        projectName,
+      )
       .as('refreshVersions');
 
     // Fill out the "Upload new version" modal and submit
@@ -120,15 +122,17 @@ describe('Pipelines', () => {
     initIntercepts();
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines',
       },
       buildMockPipelines([initialMockPipeline]),
     );
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions',
       },
       buildMockPipelineVersions([initialMockPipelineVersion]),
     );
@@ -145,8 +149,9 @@ describe('Pipelines', () => {
     deleteModal.findInput().type(initialMockPipeline.name);
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines',
       },
       buildMockPipelines([]),
     ).as('refreshPipelines');
@@ -160,15 +165,17 @@ describe('Pipelines', () => {
     initIntercepts();
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines',
       },
       buildMockPipelines([initialMockPipeline]),
     );
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions',
       },
       buildMockPipelineVersions([initialMockPipelineVersion]),
     );
@@ -186,8 +193,9 @@ describe('Pipelines', () => {
     deleteModal.findInput().type(initialMockPipelineVersion.name);
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions',
       },
       buildMockPipelineVersions([]),
     ).as('refreshVersions');
@@ -224,15 +232,17 @@ describe('Pipelines', () => {
     initIntercepts();
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines',
       },
       buildMockPipelines([mockPipeline1, mockPipeline2]),
     );
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions',
       },
       (req) => {
         const response = {
@@ -242,7 +252,7 @@ describe('Pipelines', () => {
             mockPipeline2Version2,
           ]),
         };
-        req.reply(response[req.body.queryParams['resource_key.id']]);
+        req.reply(response[req.query['resource_key.id']]);
       },
     );
     createDeletePipelineIntercept(mockPipeline1.id).as('deletePipeline');
@@ -263,19 +273,21 @@ describe('Pipelines', () => {
     deleteModal.findInput().type('Delete 1 pipeline and 1 version');
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines',
       },
       buildMockPipelines([mockPipeline2]),
     ).as('refreshPipelines');
     cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        method: 'GET',
+        pathname:
+          '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions',
       },
       (req) => {
         const response = { [mockPipeline2.id]: buildMockPipelineVersions([mockPipeline2Version2]) };
-        req.reply(response[req.body.queryParams['resource_key.id']]);
+        req.reply(response[req.query['resource_key.id']]);
       },
     ).as('refreshVersions');
     deleteModal.findSubmitButton().click();
@@ -328,16 +340,18 @@ const initIntercepts = () => {
 const initPipelineIntercepts = () => {
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines',
     },
     buildMockPipelines([initialMockPipeline]),
   );
 
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+      method: 'GET',
+      pathname:
+        '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions',
     },
     buildMockPipelineVersions([initialMockPipelineVersion]),
   );
@@ -346,12 +360,11 @@ const initPipelineIntercepts = () => {
 const createDeletePipelineIntercept = (id: string) =>
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v1beta1/pipelines/${id}`,
-      method: 'POST',
+      pathname: `/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipelines/${id}`,
+      method: 'DELETE',
       times: 1,
     },
     (req) => {
-      expect(req.body.method).eq('DELETE');
       req.reply({ body: {} });
     },
   );
@@ -359,12 +372,11 @@ const createDeletePipelineIntercept = (id: string) =>
 const createDeleteVersionIntercept = (id: string) =>
   cy.intercept(
     {
-      pathname: `/api/proxy/apis/v1beta1/pipeline_versions/${id}`,
-      method: 'POST',
+      pathname: `/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/pipeline_versions/${id}`,
+      method: 'DELETE',
       times: 1,
     },
     (req) => {
-      expect(req.body.method).eq('DELETE');
       req.reply({ body: {} });
     },
   );

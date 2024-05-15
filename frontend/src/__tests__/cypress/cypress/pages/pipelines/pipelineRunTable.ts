@@ -36,11 +36,11 @@ class PipelineRunTable {
     cy.findByRole('menu').get('span').contains(actionName).parents('button').click();
   }
 
-  mockGetRuns(runs: PipelineRunKF[]) {
+  mockGetRuns(runs: PipelineRunKF[], namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/runs',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/runs`,
       },
       { runs, total_size: runs.length },
     );
@@ -52,11 +52,11 @@ class PipelineRunJobTable extends PipelineRunTable {
     super(testId, toolbarTestId);
   }
 
-  mockGetJobs(jobs: PipelineRunJobKF[]) {
+  mockGetJobs(jobs: PipelineRunJobKF[], namespace: string) {
     return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/jobs',
+        method: 'GET',
+        pathname: `/api/service/pipelines/${namespace}/pipelines-definition/apis/v1beta1/jobs`,
       },
       { jobs, total_size: jobs.length },
     );

@@ -67,8 +67,10 @@ describe('Pipeline Runs Global', () => {
     };
 
     // Mock pipelines & versions for form select dropdowns
-    createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
-    createRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
+    createRunPage.mockGetPipelines([mockPipeline], projectName).as('getPipelines');
+    createRunPage
+      .mockGetPipelineVersions([mockPipelineVersion], projectName)
+      .as('getPipelinesVersions');
 
     // Navigate to the 'Create run' page
     pipelineRunsGlobal.findCreateRunButton().click();
@@ -82,7 +84,7 @@ describe('Pipeline Runs Global', () => {
     createRunPage.selectPipelineByName('Test pipeline');
     createRunPage.findPipelineVersionSelect().should('not.be.disabled');
     createRunPage.findTriggeredRunTypeRadioInput().click();
-    createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRun');
+    createRunPage.mockCreateRun(mockPipelineVersion, createRunParams, projectName).as('createRun');
     createRunPage.submit();
 
     // Should be redirected to the run details page
@@ -97,12 +99,14 @@ describe('Pipeline Runs Global', () => {
     };
 
     // Mock pipelines & versions for form select dropdowns
-    createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
-    createRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
+    createRunPage.mockGetPipelines([mockPipeline], projectName).as('getPipelines');
+    createRunPage
+      .mockGetPipelineVersions([mockPipelineVersion], projectName)
+      .as('getPipelinesVersions');
 
     // Mock jobs list with newly created job
     pipelineRunJobTable
-      .mockGetJobs([...initialJobs, buildMockJobKF(createJobParams)])
+      .mockGetJobs([...initialJobs, buildMockJobKF(createJobParams)], projectName)
       .as('refreshRunJobs');
 
     // Navigate to the 'Create run' page
@@ -117,7 +121,7 @@ describe('Pipeline Runs Global', () => {
     createRunPage.selectPipelineByName('Test pipeline');
     createRunPage.findPipelineVersionSelect().should('not.be.disabled');
     createRunPage.findScheduledRunTypeRadioInput().click();
-    createRunPage.mockCreateJob(mockPipelineVersion, createJobParams).as('createJob');
+    createRunPage.mockCreateJob(mockPipelineVersion, createJobParams, projectName).as('createJob');
     createRunPage.submit();
 
     // Should show newly created scheduled job in the table
@@ -134,15 +138,17 @@ describe('Pipeline Runs Global', () => {
     };
 
     // Mock pipelines & versions for form select dropdowns
-    cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
-    cloneRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
-    cloneRunPage.mockGetJob(mockJob);
-    cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
-    cloneRunPage.mockGetPipeline(mockPipeline);
+    cloneRunPage.mockGetPipelines([mockPipeline], projectName).as('getPipelines');
+    cloneRunPage
+      .mockGetPipelineVersions([mockPipelineVersion], projectName)
+      .as('getPipelinesVersions');
+    cloneRunPage.mockGetJob(mockJob, projectName);
+    cloneRunPage.mockGetPipelineVersion(mockPipelineVersion, projectName);
+    cloneRunPage.mockGetPipeline(mockPipeline, projectName);
 
     // Mock jobs list with newly cloned job
     pipelineRunJobTable
-      .mockGetJobs([...initialJobs, buildMockJobKF(duplicateJobParams)])
+      .mockGetJobs([...initialJobs, buildMockJobKF(duplicateJobParams)], projectName)
       .as('refreshRunJobs');
 
     // Navigate to clone run page for a given scheduled job
@@ -152,7 +158,7 @@ describe('Pipeline Runs Global', () => {
     // Verify pipeline & pipeline version are pre-populated & submit
     cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.name);
     cloneRunPage.findPipelineVersionSelect().should('have.text', mockPipelineVersion.name);
-    cloneRunPage.mockCreateJob(mockPipelineVersion, duplicateJobParams).as('cloneJob');
+    cloneRunPage.mockCreateJob(mockPipelineVersion, duplicateJobParams, projectName).as('cloneJob');
     cloneRunPage.submit();
 
     // Should show newly cloned scheduled job in the table
@@ -170,15 +176,17 @@ describe('Pipeline Runs Global', () => {
     };
 
     // Mock pipelines & versions for form select dropdowns
-    cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
-    cloneRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
-    cloneRunPage.mockGetRunResource(mockRunResource);
-    cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
-    cloneRunPage.mockGetPipeline(mockPipeline);
+    cloneRunPage.mockGetPipelines([mockPipeline], projectName).as('getPipelines');
+    cloneRunPage
+      .mockGetPipelineVersions([mockPipelineVersion], projectName)
+      .as('getPipelinesVersions');
+    cloneRunPage.mockGetRunResource(mockRunResource, projectName);
+    cloneRunPage.mockGetPipelineVersion(mockPipelineVersion, projectName);
+    cloneRunPage.mockGetPipeline(mockPipeline, projectName);
 
     // Mock runs list with newly cloned run
     pipelineRunTable
-      .mockGetRuns([...initialRuns, buildMockRunKF(duplicateRunParams)])
+      .mockGetRuns([...initialRuns, buildMockRunKF(duplicateRunParams)], projectName)
       .as('refreshRuns');
 
     // Navigate to clone run page for a given triggered run
@@ -189,7 +197,7 @@ describe('Pipeline Runs Global', () => {
     // Verify pipeline & pipeline version are pre-populated & submit
     cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.name);
     cloneRunPage.findPipelineVersionSelect().should('have.text', mockPipelineVersion.name);
-    cloneRunPage.mockCreateRun(mockPipelineVersion, duplicateRunParams).as('cloneRun');
+    cloneRunPage.mockCreateRun(mockPipelineVersion, duplicateRunParams, projectName).as('cloneRun');
     cloneRunPage.submit();
 
     // Should redirect to the details of the newly cloned triggered run
@@ -226,15 +234,15 @@ const initIntercepts = () => {
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/jobs',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/jobs',
     },
     { jobs: initialJobs, total_size: initialJobs.length },
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/runs',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project-name/pipelines-definition/apis/v1beta1/runs',
     },
     { runs: initialRuns, total_size: initialRuns.length },
   );

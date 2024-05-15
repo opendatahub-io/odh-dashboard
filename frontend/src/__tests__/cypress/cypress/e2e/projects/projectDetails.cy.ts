@@ -157,8 +157,8 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
-      method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      method: 'GET',
+      pathname: '/api/service/pipelines/test-project/pipelines-definition/apis/v1beta1/pipelines',
     },
     buildMockPipelines(isEmpty ? [] : [mockPipelineKF({})]),
   );
