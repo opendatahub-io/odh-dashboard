@@ -1,9 +1,21 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { PatchUtils } from '@kubernetes/client-node';
 import { secureAdminRoute } from '../../../utils/route-security';
 import { KubeFastifyInstance, ModelRegistryKind, RecursivePartial } from '../../../types';
-import { MODEL_REGISTRY_NAMESPACE } from '../../../utils/constants';
+import {
+  createModelRegistryAndSecret,
+  deleteModelRegistryAndSecret,
+  getDatabasePassword,
+  getModelRegistry,
+  listModelRegistries,
+  patchModelRegistryAndUpdatePassword,
+} from './modelRegistryUtils';
 
+type ModelRegistryAndDBPassword = {
+  modelRegistry: ModelRegistryKind;
+  databasePassword?: string;
+};
+
+// Lists ModelRegistries directly (does not look up passwords from associated Secrets, you must make a direct request to '/:modelRegistryName' for that)
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
@@ -14,17 +26,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { labelSelector } = request.query;
         try {
-          const response = await fastify.kube.customObjectsApi.listNamespacedCustomObject(
-            'modelregistry.opendatahub.io',
-            'v1alpha1',
-            MODEL_REGISTRY_NAMESPACE,
-            'modelregistries',
-            undefined,
-            undefined,
-            undefined,
-            labelSelector,
-          );
-          return response.body;
+          return listModelRegistries(fastify, labelSelector);
         } catch (e) {
           fastify.log.error(
             `ModelRegistries could not be listed, ${e.response?.body?.message || e.message}`,
@@ -35,29 +37,22 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     ),
   );
 
+  // Accepts a ModelRegistry and a password, creates the MR and an associated Secret
+  // Returns the ModelRegistry only
   fastify.post(
     '/',
     secureAdminRoute(fastify)(
       async (
         request: FastifyRequest<{
           Querystring: { dryRun?: string };
-          Body: ModelRegistryKind;
+          Body: ModelRegistryAndDBPassword;
         }>,
         reply: FastifyReply,
       ) => {
         const { dryRun } = request.query;
-        const modelRegistry = request.body;
+        const { modelRegistry, databasePassword } = request.body;
         try {
-          const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-            'modelregistry.opendatahub.io',
-            'v1alpha1',
-            MODEL_REGISTRY_NAMESPACE,
-            'modelregistries',
-            request.body,
-            undefined,
-            dryRun,
-          );
-          return response.body;
+          return createModelRegistryAndSecret(fastify, modelRegistry, databasePassword, !!dryRun);
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistry.metadata.name} could not be created, ${
@@ -70,6 +65,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     ),
   );
 
+  // Returns both the ModelRegistry and the password decoded from its associated Secret
   fastify.get(
     '/:modelRegistryName',
     secureAdminRoute(fastify)(
@@ -79,14 +75,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { modelRegistryName } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-            'modelregistry.opendatahub.io',
-            'v1alpha1',
-            MODEL_REGISTRY_NAMESPACE,
-            'modelregistries',
-            modelRegistryName,
-          );
-          return response.body;
+          const modelRegistry = await getModelRegistry(fastify, modelRegistryName);
+          const databasePassword = await getDatabasePassword(fastify, modelRegistry);
+          return { modelRegistry, databasePassword } satisfies ModelRegistryAndDBPassword;
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistryName} could not be read, ${
@@ -99,6 +90,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     ),
   );
 
+  // Accepts both a patch for the ModelRegistry and (optionally) a password to replace on the associated Secret
+  // Returns the patched ModelRegistry only
   fastify.patch(
     '/:modelRegistryName',
     secureAdminRoute(fastify)(
@@ -106,29 +99,22 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         request: FastifyRequest<{
           Querystring: { dryRun?: string };
           Params: { modelRegistryName: string };
-          Body: RecursivePartial<ModelRegistryKind>;
+          Body: RecursivePartial<ModelRegistryAndDBPassword>;
         }>,
         reply: FastifyReply,
       ) => {
-        const options = {
-          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH },
-        };
         const { dryRun } = request.query;
         const { modelRegistryName } = request.params;
+        const { modelRegistry: patchBody, databasePassword } = request.body;
         try {
-          const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-            'modelregistry.opendatahub.io',
-            'v1alpha1',
-            MODEL_REGISTRY_NAMESPACE,
-            'modelregistries',
+          const modelRegistry = await patchModelRegistryAndUpdatePassword(
+            fastify,
             modelRegistryName,
-            request.body,
-            dryRun,
-            undefined,
-            undefined,
-            options,
+            patchBody,
+            databasePassword,
+            !!dryRun,
           );
-          return response.body;
+          return { modelRegistry, databasePassword };
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistryName} could not be modified, ${
@@ -141,6 +127,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     ),
   );
 
+  // Deletes both the ModelRegistry and its associated Secret
   fastify.delete(
     '/:modelRegistryName',
     secureAdminRoute(fastify)(
@@ -154,18 +141,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const { modelRegistryName } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-            'modelregistry.opendatahub.io',
-            'v1alpha1',
-            MODEL_REGISTRY_NAMESPACE,
-            'modelregistries',
-            modelRegistryName,
-            undefined,
-            undefined,
-            undefined,
-            dryRun,
-          );
-          return response.body;
+          deleteModelRegistryAndSecret(fastify, modelRegistryName, !!dryRun);
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistryName} could not be deleted, ${

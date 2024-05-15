@@ -17,6 +17,7 @@ import type {
   ServingRuntimeKind,
   TemplateKind,
   NotebookKind,
+  ModelRegistryKind,
 } from '~/k8sTypes';
 
 import { StartNotebookData } from '~/pages/projects/types';
@@ -312,6 +313,17 @@ declare global {
           type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
           options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
           response: OdhResponse<ModelVersion | undefined>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/modelRegistries',
+          response: OdhResponse<K8sResourceListResult<ModelRegistryKind>>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/modelRegistries/:modelRegistryName',
+          options: {
+            path: { modelRegistryName: string };
+          },
+          response: OdhResponse<{ modelRegistry: ModelRegistryKind; databasePassword?: string }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId`,
