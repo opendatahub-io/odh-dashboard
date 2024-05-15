@@ -8,25 +8,25 @@ import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilitie
 
 export const useGetEventsByExecutionId = (
   executionId?: string,
+): FetchState<GetEventsByExecutionIDsResponse | null> =>
+  useGetEventsByExecutionIds([Number(executionId)]);
+
+export const useGetEventsByExecutionIds = (
+  executionIds: number[],
 ): FetchState<GetEventsByExecutionIDsResponse | null> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
   const call = React.useCallback<
     FetchStateCallbackPromise<GetEventsByExecutionIDsResponse | null>
   >(async () => {
-    const numberId = Number(executionId);
     const request = new GetEventsByExecutionIDsRequest();
 
-    if (!executionId || Number.isNaN(numberId)) {
-      return null;
-    }
-
-    request.setExecutionIdsList([numberId]);
+    request.setExecutionIdsList(executionIds);
 
     const response = await metadataStoreServiceClient.getEventsByExecutionIDs(request);
 
     return response;
-  }, [executionId, metadataStoreServiceClient]);
+  }, [executionIds, metadataStoreServiceClient]);
 
   return useFetchState(call, null);
 };

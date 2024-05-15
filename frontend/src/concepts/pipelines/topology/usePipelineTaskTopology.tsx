@@ -12,7 +12,7 @@ import {
 import { createNode } from '~/concepts/topology';
 import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
 import { createArtifactNode, createGroupNode } from '~/concepts/topology/utils';
-import { Execution } from '~/third_party/mlmd';
+import { Artifact, Execution, Event } from '~/third_party/mlmd';
 import {
   ComponentArtifactMap,
   composeArtifactType,
@@ -31,9 +31,11 @@ import { PipelineTask, PipelineTaskRunStatus } from './pipelineTaskTypes';
 const getArtifactPipelineTask = (
   name: string,
   artifactType: InputOutputArtifactType,
+  artifactData: Artifact | undefined,
 ): PipelineTask => ({
   type: 'artifact',
   name,
+  metadata: artifactData,
   inputs: {
     artifacts: [{ label: name, type: composeArtifactType(artifactType) }],
   },
@@ -46,19 +48,20 @@ const getInputArtifacts = (
   groupId: string | undefined,
   status: PipelineTaskRunStatus | undefined,
   inputArtifacts: InputOutputDefinitionArtifacts | undefined,
+  artifactData: Artifact | undefined,
 ) => {
   if (!inputArtifacts) {
     return [];
   }
 
-  return Object.entries(inputArtifacts).map(([artifactKey, data]) =>
+  return Object.entries(inputArtifacts).map(([artifactKey, { artifactType }]) =>
     createArtifactNode(
       idForTaskArtifact(groupId, '', artifactKey),
       artifactKey,
-      getArtifactPipelineTask(artifactKey, data.artifactType),
+      getArtifactPipelineTask(artifactKey, artifactType, artifactData),
       undefined,
       translateStatusForNode(status?.state),
-      data.artifactType.schemaTitle,
+      artifactType.schemaTitle,
     ),
   );
 };
@@ -69,17 +72,19 @@ const getTaskArtifacts = (
   status: PipelineTaskRunStatus | undefined,
   componentRef: string,
   componentArtifactMap: ComponentArtifactMap,
+  artifactData: Artifact | undefined,
 ): PipelineNodeModelExpanded[] => {
   const artifactsInComponent = componentArtifactMap[componentRef];
 
   if (!artifactsInComponent) {
     return [];
   }
+
   return Object.entries(artifactsInComponent).map(([artifactKey, data]) =>
     createArtifactNode(
       idForTaskArtifact(groupId, taskId, artifactKey),
       artifactKey,
-      getArtifactPipelineTask(artifactKey, data),
+      getArtifactPipelineTask(artifactKey, data, artifactData),
       [taskId],
       translateStatusForNode(status?.state),
       data.schemaTitle,
@@ -98,6 +103,8 @@ const getNodesForTasks = (
   runDetails?: RunDetailsKF,
   executions?: Execution[] | null,
   inputArtifacts?: InputOutputDefinitionArtifacts,
+  events?: Event[],
+  artifacts?: Artifact[] | undefined,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   const children: string[] = [];
@@ -132,6 +139,17 @@ const getNodesForTasks = (
       volumeMounts: parseVolumeMounts(spec.platform_spec, executorLabel),
     };
 
+    const artifactData = artifacts?.find((artifact) => {
+      const artifactEvent = events?.find((event) => event.getArtifactId() === artifact.getId());
+      const artifactExecution = executions?.find(
+        (execution) => execution.getId() === artifactEvent?.getExecutionId(),
+      );
+
+      return (
+        artifactExecution?.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskId
+      );
+    });
+
     // Build artifact nodes with inputs from task nodes
     const artifactNodes = getTaskArtifacts(
       groupId,
@@ -139,6 +157,7 @@ const getNodesForTasks = (
       status,
       componentRef,
       componentArtifactMap,
+      artifactData,
     );
     if (artifactNodes.length) {
       nodes.push(...artifactNodes);
@@ -146,7 +165,7 @@ const getNodesForTasks = (
     }
 
     // Build artifact nodes without inputs
-    const inputArtifactNodes = getInputArtifacts(groupId, status, inputArtifacts);
+    const inputArtifactNodes = getInputArtifacts(groupId, status, inputArtifacts, artifactData);
     if (inputArtifactNodes.length) {
       nodes.push(...inputArtifactNodes);
       children.push(...inputArtifactNodes.map((n) => n.id));
@@ -195,6 +214,8 @@ export const usePipelineTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
   executions?: Execution[] | null,
+  events?: Event[],
+  artifacts?: Artifact[] | undefined,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -227,7 +248,9 @@ export const usePipelineTaskTopology = (
         runDetails,
         executions,
         inputDefinitions?.artifacts,
+        events,
+        artifacts,
       )[0],
       (node) => node.id,
     );
-  }, [executions, runDetails, spec]);
+  }, [artifacts, events, executions, runDetails, spec]);
