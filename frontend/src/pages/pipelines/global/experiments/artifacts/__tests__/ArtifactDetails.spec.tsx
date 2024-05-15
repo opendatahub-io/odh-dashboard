@@ -6,10 +6,9 @@ import '@testing-library/jest-dom';
 
 import { Artifact } from '~/third_party/mlmd';
 import { artifactsBaseRoute } from '~/routes';
-import * as useGetArtifactById from '~/pages/pipelines/global/experiments/artifacts/useGetArtifactById';
-import * as usePipelinesUiRoute from '~/concepts/pipelines/context/usePipelinesUiRoute';
 import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 
 jest.mock('~/redux/selectors', () => ({
   ...jest.requireActual('~/redux/selectors'),
@@ -38,7 +37,6 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
 
 describe('ArtifactDetails', () => {
   const useGetArtifactByIdSpy = jest.spyOn(useGetArtifactById, 'useGetArtifactById');
-  const usePipelinesUiRouteSpy = jest.spyOn(usePipelinesUiRoute, 'usePipelinesUiRoute');
 
   beforeEach(() => {
     useGetArtifactByIdSpy.mockReturnValue([
@@ -72,8 +70,6 @@ describe('ArtifactDetails', () => {
       undefined,
       jest.fn(),
     ]);
-
-    usePipelinesUiRouteSpy.mockReturnValue(['dspa-pipeline-ui-route', true]);
   });
 
   it('renders page breadcrumbs', () => {

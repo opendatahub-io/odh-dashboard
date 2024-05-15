@@ -1,12 +1,27 @@
 import React from 'react';
 import { MlmdContext, MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { GetContextByTypeAndNameRequest } from '~/third_party/mlmd';
+import {
+  GetContextByTypeAndNameRequest,
+  MetadataStoreServicePromiseClient,
+} from '~/third_party/mlmd';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
+
+export const getMlmdContext = async (
+  client: MetadataStoreServicePromiseClient,
+  name: string,
+  type: MlmdContextTypes,
+): Promise<MlmdContext | undefined> => {
+  const request = new GetContextByTypeAndNameRequest();
+  request.setTypeName(type);
+  request.setContextName(name);
+  const res = await client.getContextByTypeAndName(request);
+  return res.getContext();
+};
 
 /**
  * A hook used to use the MLMD service and fetch the MLMD context
@@ -28,11 +43,7 @@ export const useMlmdContext = (
       return Promise.reject(new NotReadyError('No context name'));
     }
 
-    const request = new GetContextByTypeAndNameRequest();
-    request.setTypeName(type);
-    request.setContextName(name);
-    const res = await metadataStoreServiceClient.getContextByTypeAndName(request);
-    const context = res.getContext();
+    const context = await getMlmdContext(metadataStoreServiceClient, name, type);
     if (!context) {
       return Promise.reject(new Error('Cannot find specified context'));
     }

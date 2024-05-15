@@ -20,9 +20,9 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useGetArtifactById } from '~/pages/pipelines/global/experiments/artifacts/useGetArtifactById';
 import { getArtifactName } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import { ArtifactDetailsTabKey } from '~/pages/pipelines/global/experiments/artifacts/constants';
+import { useGetArtifactById } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 
 export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
