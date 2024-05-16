@@ -26,12 +26,17 @@ import {
   SecretModel,
   ServiceAccountModel,
   TemplateModel,
+  InferenceServiceModel,
+  ServingRuntimeModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 
 type HandlersProps = {
   isEmpty?: boolean;
   imageStreamName?: string;
   disableKServeConfig?: boolean;
+  disableKServeMetrics?: boolean;
   disableModelConfig?: boolean;
   isEnabled?: string;
   isUnknown?: boolean;
@@ -43,6 +48,7 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableKServeConfig,
+  disableKServeMetrics,
   disableModelConfig,
   isEmpty = false,
   imageStreamName = 'test-image',
@@ -96,6 +102,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelConfig,
+      disableKServeMetrics,
     }),
   );
   if (pipelineServerInstalled) {
@@ -233,6 +240,13 @@ const initIntercepts = ({
 };
 
 describe('Project Details', () => {
+  const servingRuntimes = [mockServingRuntimeK8sResource({})];
+  const inferenceServices = [mockInferenceServiceK8sResource({})];
+  const initModelServingIntercepts = () => {
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+  };
+
   describe('Empty project details', () => {
     it('Empty state component in project details', () => {
       initIntercepts({ isEmpty: true });
@@ -271,6 +285,26 @@ describe('Project Details', () => {
       projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
     });
 
+    it('Shows KServe metrics only when available', () => {
+      initIntercepts({ templates: true, disableKServeConfig: false, disableModelConfig: true });
+      initModelServingIntercepts();
+
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.getKserveModelMetricLink('Test Inference Service').should('not.exist');
+
+      initIntercepts({
+        templates: true,
+        disableKServeConfig: false,
+        disableModelConfig: true,
+        disableKServeMetrics: false,
+      });
+      initModelServingIntercepts();
+
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.getKserveModelMetricLink('Test Inference Service').should('be.visible');
+      projectDetails.getKserveModelMetricLink('Test Inference Service').click();
+      cy.findByTestId('kserve-metrics-page').should('be.visible');
+    });
     it('Multi model serving platform is enabled', () => {
       initIntercepts({ templates: true, disableKServeConfig: true, disableModelConfig: false });
       projectDetails.visit('test-project');

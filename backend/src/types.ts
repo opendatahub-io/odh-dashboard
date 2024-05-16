@@ -33,6 +33,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disablePerformanceMetrics: boolean;
       disableKServe: boolean;
       disableKServeAuth: boolean;
+      disableKServeMetrics: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disablePipelineExperiments: boolean;

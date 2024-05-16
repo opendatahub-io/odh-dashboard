@@ -36,6 +36,7 @@ type HandlersProps = {
   inferenceServices?: InferenceServiceKind[];
   delayInferenceServices?: boolean;
   delayServingRuntimes?: boolean;
+  disableKServeMetrics?: boolean;
 };
 
 const initIntercepts = ({
@@ -46,6 +47,7 @@ const initIntercepts = ({
   inferenceServices = [mockInferenceServiceK8sResource({})],
   delayInferenceServices,
   delayServingRuntimes,
+  disableKServeMetrics,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -58,6 +60,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
+      disableKServeMetrics,
     }),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
@@ -477,6 +480,22 @@ describe('Model Serving Global', () => {
     // Check that the error message is gone
     modelServingGlobal.findDeployModelButton().click();
     cy.findByText('Error creating model server').should('not.exist');
+  });
+  it('Navigate to kserve model metrics page only if enabled', () => {
+    initIntercepts({});
+    modelServingGlobal.visit('test-project');
+
+    // Verify initial run rows exist
+    modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
+    modelServingGlobal.getModelMetricLink('Test Inference Service').should('not.exist');
+
+    initIntercepts({ disableKServeMetrics: false });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
+    modelServingGlobal.getModelMetricLink('Test Inference Service').should('be.visible');
+    modelServingGlobal.getModelMetricLink('Test Inference Service').click();
+    cy.findByTestId('kserve-metrics-page').should('be.visible');
   });
 
   describe('Table filter and pagination', () => {

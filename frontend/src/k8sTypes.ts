@@ -1211,6 +1211,7 @@ export type DashboardCommonConfig = {
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableKServeAuth: boolean;
+  disableKServeMetrics: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
