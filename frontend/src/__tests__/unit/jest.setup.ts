@@ -1,9 +1,12 @@
+import { TextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
 import {
   BooleanValues,
   RenderHookResultExt,
   createComparativeValue,
 } from '~/__tests__/unit/testUtils/hooks';
+
+global.TextEncoder = TextEncoder;
 
 const tryExpect = (expectFn: () => void) => {
   try {

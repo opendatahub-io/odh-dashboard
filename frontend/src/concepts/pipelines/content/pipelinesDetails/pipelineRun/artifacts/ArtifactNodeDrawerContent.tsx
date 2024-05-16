@@ -17,6 +17,7 @@ import {
 
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import { ArtifactNodeDetails } from './ArtifactNodeDetails';
+import { ArtifactVisualization } from './ArtifactVisualization';
 
 type ArtifactNodeDrawerContentProps = Omit<
   React.ComponentProps<typeof PipelineRunDrawerRightContent>,
@@ -34,7 +35,7 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
   onClose,
 }) => {
   const [activeTab, setActiveTab] = React.useState<string | number>(ArtifactNodeDrawerTab.Details);
-  const artifact = task?.metadata?.toObject();
+  const artifact = task?.metadata;
 
   return task ? (
     <>
@@ -57,15 +58,20 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
             <Tab
               eventKey={ArtifactNodeDrawerTab.Details}
               title={<TabTitleText>Artifact details</TabTitleText>}
-              aria-label="Overview"
+              aria-label="Artifact details"
             >
-              <ArtifactNodeDetails artifact={artifact} upstreamTaskName={upstreamTaskName} />
+              <ArtifactNodeDetails
+                artifact={artifact.toObject()}
+                upstreamTaskName={upstreamTaskName}
+              />
             </Tab>
             <Tab
               eventKey={ArtifactNodeDrawerTab.Visualization}
               title={<TabTitleText>Visualization</TabTitleText>}
               aria-label="Visualization"
-            />
+            >
+              <ArtifactVisualization artifact={artifact} />
+            </Tab>
           </Tabs>
         ) : (
           <EmptyState variant={EmptyStateVariant.xs}>

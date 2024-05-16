@@ -14,15 +14,6 @@ export interface ConfusionMatrixConfig {
   labels: string[];
 }
 
-export function buildConfusionMatrixConfig(
-  confusionMatrix: ConfusionMatrixInput,
-): ConfusionMatrixConfig {
-  return {
-    labels: confusionMatrix.annotationSpecs.map((annotation) => annotation.displayName),
-    data: confusionMatrix.rows.map((x) => x.row),
-  };
-}
-
 type ConfusionMatrixProps = {
   config: ConfusionMatrixConfig;
   size?: number;
