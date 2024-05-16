@@ -115,7 +115,7 @@ const getNodesForTasks = (
     const taskName = details.taskInfo.name;
 
     const status =
-      parseRuntimeInfoFromExecutions(taskId, executions) ||
+      parseRuntimeInfoFromExecutions(taskId, taskName, executions) ||
       parseRuntimeInfoFromRunDetails(taskId, runDetails);
     const runStatus = translateStatusForNode(status?.state);
 

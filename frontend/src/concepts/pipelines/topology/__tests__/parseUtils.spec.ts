@@ -166,23 +166,23 @@ describe('pipeline topology parseUtils', () => {
     const testTaskId = 'test-task-id';
 
     it('returns undefined when executions are not provided', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId);
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when executions is null', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, null);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, null);
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when executions are empty', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, []);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, []);
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when there are no match executions', () => {
       const mockExecution = new Execution();
-      const result = parseRuntimeInfoFromExecutions(testTaskId, [mockExecution]);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
       expect(result).toBeUndefined();
     });
 
@@ -193,7 +193,7 @@ describe('pipeline topology parseUtils', () => {
       mockExecution.setCreateTimeSinceEpoch(1713285296322);
       mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
       mockExecution.setLastKnownState(Execution.State.COMPLETE);
-      const result = parseRuntimeInfoFromExecutions(testTaskId, [mockExecution]);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
       expect(result).toStrictEqual({
         completeTime: '2024-04-16T16:34:56.524Z',
         podName: undefined,
