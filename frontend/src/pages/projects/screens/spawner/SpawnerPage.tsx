@@ -210,7 +210,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 variant="info"
                 isPlain
                 isInline
-                title="Cluster storage will mount to /"
+                title="Cluster storage will mount to /opt/app-root/src"
               />
               <StorageField
                 storageData={storageData}
