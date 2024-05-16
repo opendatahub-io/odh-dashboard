@@ -180,3 +180,15 @@ rules:
       - get
     resources:
       - dscinitializations
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - modelregistries
