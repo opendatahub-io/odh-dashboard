@@ -147,10 +147,11 @@ describe('PipelinesList', () => {
     projectDetails.visitSection('test-project', 'pipelines-projects');
 
     pipelinesTable.find();
-    pipelinesTable.getRowByName(initialMockPipeline.display_name).toggleExpandByIndex(0);
-    pipelinesTable
-      .getRowByName(initialMockPipelineVersion.display_name)
-      .findPipelineName(initialMockPipelineVersion.display_name)
+    const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
+    pipelineRow.findExpandButton().click();
+    pipelineRow
+      .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
+      .findPipelineVersionLink()
       .click();
     verifyRelativeURL(
       `/projects/test-project/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,

@@ -66,7 +66,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   return (
     <>
       <Tbody isExpanded={isExpanded}>
-        <Tr>
+        <Tr data-testid={`pipeline-row ${pipeline.pipeline_id}`}>
           <Td
             expand={{
               rowIndex,

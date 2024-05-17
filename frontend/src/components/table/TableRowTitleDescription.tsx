@@ -11,7 +11,6 @@ type TableRowTitleDescriptionProps = {
   description?: string;
   descriptionAsMarkdown?: boolean;
   label?: React.ReactNode;
-  testId?: string;
 };
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
@@ -21,7 +20,6 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   subtitle,
   descriptionAsMarkdown,
   label,
-  testId,
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
@@ -34,7 +32,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
 
   return (
     <>
-      <b data-testid={testId || `table-row-title-${title}`}>
+      <b data-testid="table-row-title">
         {resource ? <ResourceNameTooltip resource={resource}>{title}</ResourceNameTooltip> : title}
       </b>
       {subtitle}

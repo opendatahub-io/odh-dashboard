@@ -152,7 +152,7 @@ describe('Pipeline create runs', () => {
           description: 'New run description',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
-            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            pipeline_version_id: 'test-pipeline-version',
           },
           runtime_config: {
             parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'yes' },
@@ -218,7 +218,7 @@ describe('Pipeline create runs', () => {
           description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
-            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            pipeline_version_id: 'test-pipeline-version',
           },
           runtime_config: {
             parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: false },
@@ -343,7 +343,7 @@ describe('Pipeline create runs', () => {
           description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
-            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            pipeline_version_id: 'test-pipeline-version',
           },
           runtime_config: createRunParams.runtime_config,
           service_account: '',
@@ -456,7 +456,7 @@ describe('Pipeline create runs', () => {
           description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
-            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            pipeline_version_id: 'test-pipeline-version',
           },
           runtime_config: createRunParams.runtime_config,
           service_account: '',
@@ -554,7 +554,7 @@ describe('Pipeline create runs', () => {
           description: 'New job description',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
-            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            pipeline_version_id: 'test-pipeline-version',
           },
           runtime_config: {
             parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'no' },
@@ -626,7 +626,7 @@ describe('Pipeline create runs', () => {
           description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
-            pipeline_version_id: '8ce2d04a0-828c-45209fdf1c20',
+            pipeline_version_id: 'test-pipeline-version',
           },
           runtime_config: {
             parameters: { min_max_scaler: false, neighbors: 0, standard_scaler: 'yes' },
