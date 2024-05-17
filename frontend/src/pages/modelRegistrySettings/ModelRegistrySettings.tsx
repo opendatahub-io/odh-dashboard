@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Button,
   EmptyState,
@@ -12,9 +11,10 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
+import CreateModal from './CreateModal';
 
 const ModelRegistrySettings: React.FC = () => {
-  const navigate = useNavigate();
+  const [createModalOpen, setCreateModalOpen] = React.useState(false);
 
   return (
     <ApplicationsPage
@@ -37,12 +37,13 @@ const ModelRegistrySettings: React.FC = () => {
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => navigate('/modelRegistry')}>
+            <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
               Create model registry
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>
       </EmptyState>
+      <CreateModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </ApplicationsPage>
   );
 };

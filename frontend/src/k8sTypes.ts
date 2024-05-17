@@ -1302,10 +1302,11 @@ export type ModelRegistryKind = K8sResourceCommon & {
     };
     mysql?: {
       database: string;
+      username: string;
       host: string;
       port?: number;
     };
-    postgres: {
+    postgres?: {
       database: string;
       host?: string;
       passwordSecret?: {

@@ -3,20 +3,20 @@ import { Button, InputGroup, TextInput, InputGroupItem } from '@patternfly/react
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 
 const PasswordInput: React.FC<React.ComponentProps<typeof TextInput>> = (props) => {
-  const [isPassword, setPassword] = React.useState(true);
+  const [isPasswordHidden, setPasswordHidden] = React.useState(true);
 
   return (
     <InputGroup>
       <InputGroupItem isFill>
-        <TextInput {...props} type={isPassword ? 'password' : 'text'} />
+        <TextInput {...props} type={isPasswordHidden ? 'password' : 'text'} />
       </InputGroupItem>
       <InputGroupItem>
         <Button
-          aria-label={isPassword ? 'Show password' : 'Hide password'}
+          aria-label={isPasswordHidden ? 'Show password' : 'Hide password'}
           variant="control"
-          onClick={() => setPassword(!isPassword)}
+          onClick={() => setPasswordHidden(!isPasswordHidden)}
         >
-          {isPassword ? <EyeSlashIcon /> : <EyeIcon />}
+          {isPasswordHidden ? <EyeSlashIcon /> : <EyeIcon />}
         </Button>
       </InputGroupItem>
     </InputGroup>

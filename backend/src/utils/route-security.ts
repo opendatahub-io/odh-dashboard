@@ -11,7 +11,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
 import { logRequestDetails } from './fileUtils';
-import { DEV_MODE } from './constants';
+import { DEV_MODE, MODEL_REGISTRY_NAMESPACE } from './constants';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -73,7 +73,7 @@ const requestSecurityGuard = async (
   const isReadRequest = request.method.toLowerCase() === 'get';
 
   // Check to see if a request was made against one of our namespaces
-  if (![notebookNamespace, dashboardNamespace].includes(namespace)) {
+  if (![notebookNamespace, dashboardNamespace, MODEL_REGISTRY_NAMESPACE].includes(namespace)) {
     // Not a valid namespace -- cannot make direct calls to just any namespace no matter who you are
     fastify.log.error(
       `User requested a resource that was not in our namespaces. Namespace: ${namespace}`,
