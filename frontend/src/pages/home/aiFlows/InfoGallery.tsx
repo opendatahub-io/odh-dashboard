@@ -22,7 +22,7 @@ const InfoGallery: React.FC<InfoGalleryProps> = ({ infoItems, closeAlt, onClose,
         border: `1px solid var(--pf-v5-global--BorderColor--100)`,
       }}
     >
-      {...infoItems}
+      {infoItems}
     </DividedGallery>
   ) : null;
 
