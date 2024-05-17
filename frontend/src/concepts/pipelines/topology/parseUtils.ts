@@ -182,6 +182,7 @@ export const parseRuntimeInfoFromRunDetails = (
 
 export const parseRuntimeInfoFromExecutions = (
   taskId: string,
+  taskName: string,
   executions?: Execution[] | null,
 ): PipelineTaskRunStatus | undefined => {
   if (!executions) {
@@ -189,7 +190,7 @@ export const parseRuntimeInfoFromExecutions = (
   }
 
   const execution = executions.find(
-    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskId,
+    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
   );
 
   if (!execution) {
