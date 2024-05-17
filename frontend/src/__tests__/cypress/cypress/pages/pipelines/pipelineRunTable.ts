@@ -66,11 +66,9 @@ class PipelineRunsTable {
   }
 
   mockRestoreRun(runId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${runId}:unarchive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      { path: { namespace, serviceName: 'dspa', runId: `${runId}:unarchive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -78,11 +76,9 @@ class PipelineRunsTable {
   }
 
   mockArchiveRun(runId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${runId}:archive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      { path: { namespace, serviceName: 'dspa', runId: `${runId}:archive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -95,10 +91,10 @@ class PipelineRunsTable {
     namespace: string,
     times?: number,
   ) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs`,
+        path: { namespace, serviceName: 'dspa' },
         ...(times && { times }),
       },
       (req) => {
@@ -160,40 +156,40 @@ class PipelineRunJobTable extends PipelineRunsTable {
   }
 
   mockGetJobs(jobs: PipelineRunJobKFv2[], namespace: string) {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      { path: { namespace, serviceName: 'dspa' } },
       { recurringRuns: jobs, total_size: jobs.length },
     );
   }
 
   mockGetJob(job: PipelineRunJobKFv2, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      { path: { namespace, serviceName: 'dspa', recurringRunId: job.recurring_run_id } },
       job,
     );
   }
 
   mockEnableJob(job: PipelineRunJobKFv2, namespace: string) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}:enable`,
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: `${job.recurring_run_id}:'enable'`,
+        },
       },
       {},
     );
   }
 
   mockDisableJob(job: PipelineRunJobKFv2, namespace: string) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}:disable`,
+        path: { namespace, serviceName: 'dspa', recurringRunId: `${job.recurring_run_id}:disable` },
       },
       {},
     );

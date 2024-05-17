@@ -28,7 +28,6 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 const projectId = 'test-project';
@@ -106,67 +105,41 @@ const initIntercepts = () => {
       namespace: projectId,
     }),
   );
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
     {
-      method: 'POST',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines`,
-    },
-    { pipelines: [mockPipeline] },
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}`,
+      path: { namespace: projectId, serviceName: 'dspa', pipelineId: mockPipeline.pipeline_id },
     },
     mockPipeline,
   );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
-    },
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+    { path: { namespace: projectId, serviceName: 'dspa', pipelineId: mockPipeline.pipeline_id } },
     buildMockPipelineVersionsV2([mockVersion, mockVersion2]),
   );
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/recurringruns/${mockJob.recurring_run_id}`,
+      path: { namespace: projectId, serviceName: 'dspa', recurringRunId: mockJob.recurring_run_id },
     },
     mockJob,
   );
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
     {
-      method: 'POST',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/recurringruns`,
-    },
-    { recurringRuns: [mockJob] },
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/runs/${mockRun.run_id}`,
+      path: { namespace: projectId, serviceName: 'dspa', runId: mockRun.run_id },
     },
     mockRun,
   );
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
     {
-      method: 'POST',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/runs`,
-    },
-    { runs: [mockRun] },
-  );
-  cy.intercept(
-    {
-      method: 'POST',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
-    },
-    [mockVersion],
-  );
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
+      path: {
+        namespace: projectId,
+        serviceName: 'dspa',
+        pipelineId: mockPipeline.pipeline_id,
+        pipelineVersionId: mockVersion.pipeline_version_id,
+      },
     },
     mockVersion,
   );
@@ -247,12 +220,17 @@ describe('Pipeline topology', () => {
       pipelineDetails.selectActionDropdownItem('Delete pipeline version');
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(mockVersion.display_name);
-      cy.intercept(
+      cy.interceptOdh(
+        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
         {
-          method: 'DELETE',
-          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion.pipeline_version_id}`,
+          path: {
+            namespace: projectId,
+            serviceName: 'dspa',
+            pipelineId: mockPipeline.pipeline_id,
+            pipelineVersionId: mockVersion.pipeline_version_id,
+          },
         },
-        mock200Status({}),
+        {},
       ).as('deletePipelineVersion');
 
       deleteModal.findSubmitButton().click();
@@ -260,10 +238,15 @@ describe('Pipeline topology', () => {
     });
 
     it('page details are updated when a new pipeline version is selected', () => {
-      cy.intercept(
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
         {
-          method: 'GET',
-          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion2.pipeline_version_id}`,
+          path: {
+            namespace: projectId,
+            serviceName: 'dspa',
+            pipelineId: mockPipeline.pipeline_id,
+            pipelineVersionId: mockVersion2.pipeline_version_id,
+          },
         },
         mockVersion2,
       );
@@ -275,10 +258,15 @@ describe('Pipeline topology', () => {
     });
 
     it('page details are updated after uploading a new version', () => {
-      cy.intercept(
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
         {
-          method: 'GET',
-          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions/${mockVersion2.pipeline_version_id}`,
+          path: {
+            namespace: projectId,
+            serviceName: 'dspa',
+            pipelineId: mockPipeline.pipeline_id,
+            pipelineVersionId: mockVersion2.pipeline_version_id,
+          },
         },
         mockVersion2,
       );
@@ -286,10 +274,10 @@ describe('Pipeline topology', () => {
       pipelineDetails.selectActionDropdownItem('Upload new version');
       pipelineVersionImportModal.findImportPipelineRadio().check();
       pipelineVersionImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
-      cy.intercept(
+      cy.interceptOdh(
+        'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
         {
-          method: 'POST',
-          pathname: `/api/service/pipelines/${projectId}/dspa/apis/v2beta1/pipelines/${mockPipeline.pipeline_id}/versions`,
+          path: { namespace: projectId, serviceName: 'dspa', pipelineId: mockPipeline.pipeline_id },
         },
         mockVersion2,
       ).as('uploadNewPipelineVersion');
@@ -342,9 +330,15 @@ describe('Pipeline topology', () => {
         deleteModal.findInput().type(mockPipeline.display_name);
 
         cy.interceptOdh(
-          'DELETE /api/service/pipelines/:projectId/dspa/apis/v2beta1/recurringruns/:pipeline_id',
-          { path: { projectId, pipeline_id: mockPipeline.pipeline_id } },
-          mock200Status({}),
+          'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+          {
+            path: {
+              namespace: projectId,
+              serviceName: 'dspa',
+              recurringRunId: mockPipeline.pipeline_id,
+            },
+          },
+          {},
         ).as('deletepipelineRunJob');
 
         deleteModal.findSubmitButton().click();

@@ -159,16 +159,20 @@ export class CreateRunPage {
   }
 
   mockGetExperiments(namespace: string, experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
-    return cy.intercept(
-      { pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments` },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+      {
+        path: { namespace, serviceName: 'dspa' },
+      },
       buildMockExperiments(experiments),
     );
   }
 
   mockGetPipelines(namespace: string, pipelines: PipelineKFv2[]): Cypress.Chainable<null> {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines`,
+        path: { namespace, serviceName: 'dspa' },
       },
       buildMockPipelines(pipelines),
     );
@@ -179,11 +183,9 @@ export class CreateRunPage {
     versions: PipelineVersionKFv2[],
     pipelineId: string,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+      { path: { namespace, serviceName: 'dspa', pipelineId } },
       buildMockPipelineVersionsV2(versions),
     );
   }
@@ -193,10 +195,10 @@ export class CreateRunPage {
     pipelineVersion: PipelineVersionKFv2,
     { run_id, ...run }: Partial<PipelineRunKFv2>,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs`,
+        path: { namespace, serviceName: 'dspa' },
         times: 1,
       },
       (req) => {
@@ -222,12 +224,9 @@ export class CreateRunPage {
     pipelineVersion: PipelineVersionKFv2,
     { recurring_run_id, ...recurringRun }: Partial<PipelineRunJobKFv2>,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns`,
-        times: 1,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      { path: { namespace, serviceName: 'dspa' }, times: 1 },
       (req) => {
         const data = {
           display_name: recurringRun.display_name,

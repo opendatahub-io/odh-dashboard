@@ -186,11 +186,10 @@ describe('Pipeline runs', () => {
             state: RuntimeStateKF.SUCCEEDED,
           }),
         );
-
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             runs: mockRuns.slice(0, 10),
@@ -216,10 +215,10 @@ describe('Pipeline runs', () => {
 
         // test Next button
         pagination.findPreviousButton().should('be.disabled');
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             runs: mockRuns.slice(10, 15),
@@ -242,10 +241,10 @@ describe('Pipeline runs', () => {
 
         // test Previous button
         pagination.findNextButton().should('be.disabled');
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             runs: mockRuns.slice(0, 10),
@@ -257,10 +256,10 @@ describe('Pipeline runs', () => {
         activeRunsTable.findRows().should('have.length', 10);
 
         // 20 per page
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             runs: mockRuns.slice(0, 15),
@@ -834,10 +833,10 @@ describe('Pipeline runs', () => {
           }),
         );
 
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             recurringRuns: mockJobRuns.slice(0, 10),
@@ -862,10 +861,10 @@ describe('Pipeline runs', () => {
         // test Next button
         pagination.findFirstButton().should('be.disabled');
         pagination.findPreviousButton().should('be.disabled');
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             recurringRuns: mockJobRuns.slice(10, 15),
@@ -889,10 +888,10 @@ describe('Pipeline runs', () => {
         //test first button
         pagination.findLastButton().should('be.disabled');
         pagination.findNextButton().should('be.disabled');
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             recurringRuns: mockJobRuns.slice(0, 10),
@@ -908,10 +907,10 @@ describe('Pipeline runs', () => {
         //test last button
         pagination.findFirstButton().should('be.disabled');
         pagination.findPreviousButton().should('be.disabled');
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             recurringRuns: mockJobRuns.slice(10, 15),
@@ -935,10 +934,10 @@ describe('Pipeline runs', () => {
         // test Previous button
         pagination.findLastButton().should('be.disabled');
         pagination.findNextButton().should('be.disabled');
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             recurringRuns: mockJobRuns.slice(0, 10),
@@ -951,16 +950,17 @@ describe('Pipeline runs', () => {
         pipelineRunJobTable.findRows().should('have.length', 10);
 
         // 20 per page
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+            path: { namespace: projectName, serviceName: 'dspa' },
           },
           {
             recurringRuns: mockJobRuns.slice(0, 15),
             total_size: 15,
           },
         );
+
         pagination.selectToggleOption('20 per page');
 
         pipelineRunJobTable.getRowByName('another-pipeline-0').find().should('exist');
@@ -1062,19 +1062,17 @@ const initIntercepts = () => {
     ]),
   );
 
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
   );
 
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
-    },
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+    { path: { namespace: projectName, serviceName: 'dspa', pipelineId } },
     buildMockPipelineVersionsV2(mockVersions),
   );
 };

@@ -81,13 +81,14 @@ describe('PipelinesList', () => {
       DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({}),
     );
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        method: 'GET',
-        pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines',
+        path: { namespace: 'test-project', serviceName: 'dspa' },
       },
       buildMockPipelines([]),
     ).as('pipelines');
+
     projectDetails.visitSection('test-project', 'pipelines-projects');
 
     pipelinesSection.findImportPipelineSplitButton().should('be.enabled').click();
@@ -130,17 +131,21 @@ describe('PipelinesList', () => {
       DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({}),
     );
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        pathname: '/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines',
+        path: { namespace: 'test-project', serviceName: 'dspa' },
       },
       buildMockPipelines([initialMockPipeline]),
     );
-
-    cy.intercept(
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        path: {
+          namespace: 'test-project',
+          serviceName: 'dspa',
+          pipelineId: initialMockPipeline.pipeline_id,
+        },
       },
       buildMockPipelineVersionsV2([initialMockPipelineVersion]),
     );

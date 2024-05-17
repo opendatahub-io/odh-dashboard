@@ -1,4 +1,4 @@
-import { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import {
@@ -32,6 +32,19 @@ import type {
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
 } from '~/types';
+import {
+  ExperimentKFv2,
+  GoogleRpcStatusKF,
+  ListExperimentsResponseKF,
+  ListPipelineRunJobsResourceKF,
+  ListPipelineRunsResourceKF,
+  ListPipelineVersionsKF,
+  ListPipelinesResponseKF,
+  PipelineKFv2,
+  PipelineRunJobKFv2,
+  PipelineRunKFv2,
+  PipelineVersionKFv2,
+} from '~/concepts/pipelines/kfTypes';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -46,7 +59,7 @@ type OdhResponse<V = SuccessErrorResponse> =
 type Replacement<R extends string = string> = Record<R, string | undefined>;
 type Query<Q extends string = string> = Record<Q, string>;
 
-type Options = { path?: Replacement; query?: Query } | null;
+type Options = { path?: Replacement; query?: Query; times?: number } | null;
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -318,35 +331,194 @@ declare global {
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models`,
-        response: OdhResponse<RegisteredModelList | undefined>,
+        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
+        options: { path: { serviceName: string; apiVersion: string } },
+        response: OdhResponse<RegisteredModelList>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models/1`,
-        response: OdhResponse<RegisteredModel | undefined>,
+        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId`,
+        options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+        response: OdhResponse<RegisteredModel>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/model_versions/:id`,
-        options: { path: { id: string } },
-        response: OdhResponse<ModelVersion | undefined>,
+        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+        options: {
+          path: { serviceName: string; apiVersion: string; modelVersionId: number };
+        },
+        response: OdhResponse<ModelVersion>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/model_versions/1/artifacts`,
-        response: OdhResponse<ModelArtifactList | undefined>,
+        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+        options: { path: { serviceName: string; apiVersion: string; modelVersionId: 1 } },
+        response: OdhResponse<ModelArtifactList>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: 'GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models/1/versions',
-        response: OdhResponse<ModelVersionList | undefined>,
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId`,
+        options: {
+          path: {
+            namespace: string;
+            serviceName: string;
+            pipelineId: string;
+            pipelineVersionId: string;
+          };
+        },
+        response: OdhResponse<PipelineVersionKFv2 | GoogleRpcStatusKF>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: 'DELETE /api/service/pipelines/:projectId/dspa/apis/v2beta1/recurringruns/:pipeline_id',
-        options: { path: { projectId: string; pipeline_id: string } },
-        response: OdhResponse<K8sStatus>,
+        type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId`,
+        options: {
+          path: {
+            namespace: string;
+            serviceName: string;
+            pipelineId: string;
+            pipelineVersionId: string;
+          };
+          times?: number;
+        },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId`,
+        options: { path: { namespace: string; serviceName: string; pipelineId: string } },
+        response: OdhResponse<PipelineKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId`,
+        options: {
+          path: { namespace: string; serviceName: string; pipelineId: string };
+          times?: number;
+        },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version`,
+        options: { path: { namespace: string; serviceName: string }; times?: number },
+        response: OdhResponse<PipelineVersionKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions`,
+        options: {
+          path: { namespace: string; serviceName: string; pipelineId: string };
+          times?: number;
+        },
+        response: OdhResponse<PipelineVersionKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions`,
+        options: { path: { namespace: string; serviceName: string; pipelineId: string } },
+        response: OdhResponse<ListPipelineVersionsKF | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines`,
+        options: { path: { namespace: string; serviceName: string } },
+        response: OdhResponse<ListPipelinesResponseKF | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
+        options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
+        options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
+        response: OdhResponse<PipelineRunJobKFv2>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
+        options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/create`,
+        options: { path: { namespace: string; serviceName: string }; times?: number },
+        response: OdhResponse<PipelineKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload`,
+        options: { path: { namespace: string; serviceName: string }; times?: number },
+        response: OdhResponse<PipelineKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs`,
+        options: { path: { namespace: string; serviceName: string } },
+        response: OdhResponse<ListPipelineRunsResourceKF | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs`,
+        options: { path: { namespace: string; serviceName: string }; times?: number },
+        response: OdhResponse<PipelineRunKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId`,
+        options: { path: { namespace: string; serviceName: string; runId: string } },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId`,
+        options: { path: { namespace: string; serviceName: string; runId: string } },
+        response: OdhResponse<PipelineRunKFv2 | GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId`,
+        options: { path: { namespace: string; serviceName: string; runId: string } },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments`,
+        options: { path: { namespace: string; serviceName: string } },
+        response: OdhResponse<ListExperimentsResponseKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId`,
+        options: { path: { namespace: string; serviceName: string; experimentId: string } },
+        response: OdhResponse<GoogleRpcStatusKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId`,
+        options: { path: { namespace: string; serviceName: string; experimentId: string } },
+        response: OdhResponse<ExperimentKFv2>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
+        options: { path: { namespace: string; serviceName: string }; times?: number },
+        response: OdhResponse<PipelineRunJobKFv2>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
+        options: { path: { namespace: string; serviceName: string } },
+        response: OdhResponse<ListPipelineRunJobsResourceKF>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
+        options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+        response: OdhResponse<ModelVersionList>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
@@ -360,11 +532,6 @@ declare global {
           path: { username: string };
         },
         response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
-      ): Cypress.Chainable<null>;
-
-      interceptOdh(
-        type: 'GET /api/service/modelregistry/modelregistry-sample/api/model_registry/v1alpha3/registered_models/1',
-        response: OdhResponse<RegisteredModel | undefined>,
       ): Cypress.Chainable<null>;
     }
   }
@@ -397,6 +564,9 @@ Cypress.Commands.add(
         pathname = pathname.replace(new RegExp(`:${part}\\b`), replacement);
       });
     }
-    return cy.intercept({ method, pathname, query: options?.query }, response);
+    return cy.intercept(
+      { method, pathname, query: options?.query, ...(options?.times && { times: options.times }) },
+      response,
+    );
   },
 );

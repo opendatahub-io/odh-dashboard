@@ -6,8 +6,6 @@ import {
   mockK8sResourceList,
   buildMockPipelineV2,
   buildMockPipelines,
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
   mockProjectK8sResource,
   mockRouteK8sResource,
 } from '~/__mocks__';
@@ -28,9 +26,6 @@ import {
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockPipelineVersionV2({
-  pipeline_id: initialMockPipeline.pipeline_id,
-});
 const mockExperiments = [
   buildMockExperimentKF({
     display_name: 'Test experiment 1',
@@ -270,39 +265,38 @@ const initIntercepts = () => {
       mockProjectK8sResource({ k8sName: projectName, displayName: projectName }),
     ]),
   );
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines([initialMockPipeline]),
   );
 
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
     {
-      method: 'POST',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipeline_versions`,
-    },
-    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
-  );
-  cy.intercept(
-    {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     { runs: [] },
   );
-  cy.intercept(
+
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
-    {
-      recurringRuns: [],
-    },
+    { recurringRuns: [] },
   );
-  cy.intercept(
+
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
     {
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${mockExperiments[0].experiment_id}`,
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        experimentId: mockExperiments[0].experiment_id,
+      },
     },
     mockExperiments[0],
   );

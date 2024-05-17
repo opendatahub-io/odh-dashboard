@@ -50,12 +50,22 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
+    {
+      path: { serviceName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
     mockRegisteredModelList({ size: registeredModelsSize }),
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: 1,
+      },
+    },
     mockModelVersionList({ items: modelVersions }),
   );
 };

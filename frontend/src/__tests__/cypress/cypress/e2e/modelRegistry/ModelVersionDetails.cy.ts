@@ -38,12 +38,27 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1`,
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: 1,
+      },
+    },
+
     mockRegisteredModel({}),
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: 1,
+      },
+    },
     mockModelVersionList({
       items: [
         mockModelVersion({ name: 'Version 1', author: 'Author 1', registeredModelId: '1' }),
@@ -58,8 +73,14 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/:id`,
-    { path: { id: '1' } },
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
     mockModelVersion({
       id: '1',
       name: 'Version 1',
@@ -110,13 +131,26 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/:id`,
-    { path: { id: '2' } },
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
     mockModelVersion({ id: '2', name: 'Version 2' }),
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/modelregistry-sample/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/1/artifacts`,
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
     mockModelArtifactList(),
   );
 };

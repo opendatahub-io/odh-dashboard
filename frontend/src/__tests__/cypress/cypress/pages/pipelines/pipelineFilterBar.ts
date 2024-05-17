@@ -70,10 +70,10 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   }
 
   mockExperiments(experiments: ExperimentKFv2[], namespace: string) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments`,
+        path: { namespace, serviceName: 'dspa' },
       },
       {
         experiments,

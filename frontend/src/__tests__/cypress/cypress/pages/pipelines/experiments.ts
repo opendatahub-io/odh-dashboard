@@ -35,10 +35,10 @@ class ExperimentsTabs {
     activeExperiments: ExperimentKFv2[],
     archivedExperiments: ExperimentKFv2[] = [],
   ) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments`,
+        path: { namespace, serviceName: 'dspa' },
       },
       (req) => {
         const { predicates } = JSON.parse(req.query.filter.toString());
@@ -72,11 +72,9 @@ class ExperimentsTable {
   }
 
   mockArchiveExperiment(experimentId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments/${experimentId}:archive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      { path: { namespace, serviceName: 'dspa', experimentId: `${experimentId}:archive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -84,11 +82,9 @@ class ExperimentsTable {
   }
 
   mockRestoreExperiment(experimentId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments/${experimentId}:unarchive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      { path: { namespace, serviceName: 'dspa', experimentId: `${experimentId}:unarchive` } },
       (req) => {
         req.reply({ body: {} });
       },

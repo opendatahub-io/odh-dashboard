@@ -69,18 +69,6 @@ describe('Pipeline create runs', () => {
   });
 
   describe('Runs', () => {
-    beforeEach(() => {
-      mockExperiments.forEach((experiment) => {
-        cy.intercept(
-          {
-            method: 'POST',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${experiment.experiment_id}`,
-          },
-          experiment,
-        );
-      });
-    });
-
     it('switches to scheduled runs from triggered', () => {
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -471,10 +459,14 @@ describe('Pipeline create runs', () => {
   describe('Schedules', () => {
     beforeEach(() => {
       mockExperiments.forEach((experiment) => {
-        cy.intercept(
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
           {
-            method: 'GET',
-            pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments/${experiment.experiment_id}`,
+            path: {
+              namespace: projectName,
+              serviceName: 'dspa',
+              experimentId: experiment.experiment_id,
+            },
           },
           experiment,
         );
@@ -725,19 +717,17 @@ const initIntercepts = () => {
   configIntercept();
   dspaIntercepts(projectName);
   projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/recurringruns`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     { recurringRuns: initialMockRecurringRuns, total_size: initialMockRecurringRuns.length },
   );
-
-  cy.intercept(
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
     {
-      method: 'GET',
-      pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs`,
+      path: { namespace: projectName, serviceName: 'dspa' },
     },
     { runs: initialMockRuns, total_size: initialMockRuns.length },
   );
