@@ -46,15 +46,14 @@ export const RocCurveChartColorScale = [
 type ROCCurveProps = {
   configs: ROCCurveConfig[];
   maxDimension?: number;
+  maxContainerWidth?: number;
 };
 
-const ROCCurve: React.FC<ROCCurveProps> = ({ configs, maxDimension }) => {
-  const width = Math.min(maxDimension || 800, 500);
-  const height = width;
+const ROCCurve: React.FC<ROCCurveProps> = ({ configs, maxContainerWidth, maxDimension = 800 }) => {
   const baseLineData = Array.from(Array(100).keys()).map((x) => ({ x: x / 100, y: x / 100 }));
 
   return (
-    <div style={{ width }}>
+    <div style={{ width: maxContainerWidth || maxDimension }}>
       <Chart
         ariaDesc="ROC Curve"
         ariaTitle="ROC Curve"
@@ -65,8 +64,8 @@ const ROCCurve: React.FC<ROCCurveProps> = ({ configs, maxDimension }) => {
             labels={({ datum }) => `threshold (Series #${datum.index + 1}): ${datum.name}`}
           />
         }
-        height={height}
-        width={width}
+        height={maxDimension}
+        width={maxDimension}
         padding={{ bottom: 100, left: 100, right: 50, top: 50 }}
         legendAllowWrap
         legendPosition="bottom-left"
