@@ -14,22 +14,30 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import EmptyModelRegistryState from '~/pages/modelRegistry/screens/EmptyModelRegistryState';
+import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { modelVersionArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {
   modelVersions: ModelVersion[];
-  registeredModelName?: string;
+  registeredModel?: RegisteredModel;
+  refresh: () => void;
 };
 
 const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
   modelVersions: unfilteredModelVersions,
-  registeredModelName: rmName,
+  registeredModel: rm,
+  refresh,
 }) => {
+  const navigate = useNavigate();
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
@@ -45,14 +53,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
       <EmptyModelRegistryState
         testid="empty-model-versions"
         title="No versions"
-        description={`${rmName} has no versions registered to it. Register a version to this model.`}
+        description={`${rm?.name} has no versions registered to it. Register a version to this model.`}
         primaryActionText="Register new version"
         secondaryActionText="View archived versions"
         primaryActionOnClick={() => {
           // TODO: Add primary action
         }}
         secondaryActionOnClick={() => {
-          // TODO: Add secondary action
+          navigate(modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name));
         }}
       />
     );
@@ -60,6 +68,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
 
   return (
     <ModelVersionsTable
+      refresh={refresh}
       clearFilters={() => setSearch('')}
       modelVersions={filteredModelVersions}
       toolbarContent={
@@ -124,7 +133,13 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
               shouldFocusToggleOnSelect
             >
               <DropdownList>
-                <DropdownItem isDisabled>View archived versions</DropdownItem>
+                <DropdownItem
+                  onClick={() =>
+                    navigate(modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name))
+                  }
+                >
+                  View archived versions
+                </DropdownItem>
               </DropdownList>
             </Dropdown>
           </ToolbarItem>

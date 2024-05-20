@@ -14,7 +14,7 @@ export const mvColumns: SortableData<ModelVersion>[] = [
     sortable: (a: ModelVersion, b: ModelVersion): number => {
       const first = parseInt(a.lastUpdateTimeSinceEpoch);
       const second = parseInt(b.lastUpdateTimeSinceEpoch);
-      return new Date(first).getTime() - new Date(second).getTime();
+      return new Date(second).getTime() - new Date(first).getTime();
     },
   },
   {

@@ -7,7 +7,7 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
-import EmptyModelRegistryState from './screens/EmptyModelRegistryState';
+import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;

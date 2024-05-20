@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
-import EmptyModelRegistryState from '~/pages/modelRegistry/screens/EmptyModelRegistryState';
+import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 
 type ModelVersionRegisteredDeploymentsViewProps = {
   modelVersion: ModelVersion;

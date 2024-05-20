@@ -6,6 +6,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { filterLiveVersions } from '~/pages/modelRegistry/screens/utils';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
 import { ModelVersionsTab } from './const';
@@ -20,7 +21,7 @@ type ModelVersionsProps = {
 const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { registeredModelId: rmId } = useParams();
-  const [modelVersions, mvLoaded, mvLoadError] = useModelVersionsByRegisteredModel(rmId);
+  const [modelVersions, mvLoaded, mvLoadError, mvRefresh] = useModelVersionsByRegisteredModel(rmId);
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
@@ -53,8 +54,9 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
         <ModelVersionsTabs
           tab={tab}
           registeredModel={rm}
-          modelVersions={modelVersions.items}
           refresh={rmRefresh}
+          mvRefresh={mvRefresh}
+          modelVersions={filterLiveVersions(modelVersions.items)}
         />
       )}
     </ApplicationsPage>

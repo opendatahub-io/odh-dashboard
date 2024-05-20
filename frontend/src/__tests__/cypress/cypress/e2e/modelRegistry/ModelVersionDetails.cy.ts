@@ -14,7 +14,6 @@ import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -84,49 +83,17 @@ const initIntercepts = () => {
     mockModelVersion({
       id: '1',
       name: 'Version 1',
-      customProperties: {
-        'Testing label': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        Financial: {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: 'non-empty',
-        },
-        'Financial data': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Fraud detection': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
-          {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-        'Machine learning': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Next data to be overflow': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Label x': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Label y': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Label z': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-      },
+      labels: [
+        'Testing label',
+        'Financial data',
+        'Fraud detection',
+        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc',
+        'Machine learning',
+        'Next data to be overflow',
+        'Label x',
+        'Label y',
+        'Label z',
+      ],
     }),
   );
 

@@ -45,6 +45,8 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
             {primaryActionText}
           </Button>
         )}
+      </EmptyStateActions>
+      <EmptyStateActions>
         {secondaryActionText && (
           <Button
             data-testid="empty-model-registry-secondary-action"
