@@ -12,27 +12,41 @@ To review the ODH requirements, please refer to the [dev setup documentation].
 
 ### Running locally
 
+Development for only "frontend" can target a backend service running on an OpenShift cluster. This method requires you to first log in to the OpenShift cluster. It is recommended to use this method unless backend changes are being developed.
+
+```bash
+cd frontend
+oc login ...
+npm run start:dev:ext
+```
+
 Development for both "frontend" and "backend" can be done while running:
 
-``` bash
+```bash
 npm run dev
 ```
 
-But the recommended flow for development would be have two sessions, one for the frontend:
+But the recommended flow for development would be have two sessions, one for the "frontend":
 
 ```bash
 cd frontend
 npm run start:dev
 ```
 
-And one for the backend
+And one for the "backend":
 
 ```bash
 cd backend
 npm run start:dev
 ```
 
-Once you have these running, you can open the dashboard locally at: `http://localhost:4010`. The dev server will reload automatically when you make changes.
+Once you have either method running, you can open the dashboard locally at: `http://localhost:4010`. The dev server will reload automatically when you make changes.
+
+If running a local backend, some requests from the frontend need to make their way to services running on the cluster for which there are no external routes exposed. This can be achieved using `oc port-forward`. Run the following command in a separate terminal to start the port forwarding processes. Note that this limits developers to working within a single namespace and must be restarted if switching to a new namespace.
+
+```bash
+NAMESPACE=my-example make port-forward
+```
 
 #### Give your dev env access
 
