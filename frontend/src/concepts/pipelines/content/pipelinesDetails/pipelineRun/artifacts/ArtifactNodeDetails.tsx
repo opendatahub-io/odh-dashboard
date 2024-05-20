@@ -18,6 +18,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getArtifactName } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type ArtifactNodeDetailsProps = Pick<
   React.ComponentProps<typeof PipelineRunDrawerRightContent>,
@@ -32,6 +33,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
 }) => {
   const { namespace } = usePipelinesAPI();
   const artifactName = getArtifactName(artifact);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
     <Flex
@@ -53,7 +55,11 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
 
               <DescriptionListTerm>Artifact name</DescriptionListTerm>
               <DescriptionListDescription>
-                <Link to={artifactsDetailsRoute(namespace, artifact.id)}>{artifactName}</Link>
+                {isExperimentsAvailable ? (
+                  <Link to={artifactsDetailsRoute(namespace, artifact.id)}>{artifactName}</Link>
+                ) : (
+                  artifactName
+                )}
               </DescriptionListDescription>
 
               <DescriptionListTerm>Artifact type</DescriptionListTerm>

@@ -34,6 +34,15 @@ jest.mock('~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils',
   })),
 }));
 
+jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+  status: true,
+  featureFlags: {},
+  reliantAreas: {},
+  requiredComponents: {},
+  requiredCapabilities: {},
+  customCondition: jest.fn(),
+}));
+
 describe('ArtifactNodeDrawerContent', () => {
   it('renders artifact drawer content', () => {
     render(
