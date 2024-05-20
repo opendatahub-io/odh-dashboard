@@ -30,6 +30,15 @@ const task: PipelineTask = {
   volumeMounts: [],
 };
 
+jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+  status: true,
+  featureFlags: {},
+  reliantAreas: {},
+  requiredComponents: {},
+  requiredCapabilities: {},
+  customCondition: jest.fn(),
+}));
+
 describe('PipelineRunDrawerRightContent', () => {
   it('renders artifact drawer tabs when the task prop is of type "artifact"', () => {
     render(
