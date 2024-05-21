@@ -13,6 +13,7 @@ import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
   const navigate = useNavigate();
@@ -32,6 +33,15 @@ export const useEnableTeamSection = (): React.ReactNode => {
     return null;
   }
 
+  const trackAndNavigate = (section: string, to: string): void => {
+    fireTrackingEventRaw('HomeCardClicked', {
+      to: `${to}`,
+      type: 'enableTeam',
+      section: `${section}`,
+    });
+    navigate(to);
+  };
+
   const infoItems = [];
 
   if (notebooksAvailable) {
@@ -41,7 +51,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--notebook-images"
         isOpen={resourcesOpen}
         title="Notebook images"
-        onClick={() => navigate('/notebookImages')}
+        onClick={() => trackAndNavigate('notebook-images', '/notebookImages')}
         imgSrc={notebookImagesImage}
         sectionType={SectionType.setup}
         description={
@@ -62,7 +72,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--serving-runtimes"
         isOpen={resourcesOpen}
         title="Serving runtimes"
-        onClick={() => navigate('/servingRuntimes')}
+        onClick={() => trackAndNavigate('serving-runtimes', '/servingRuntimes')}
         imgSrc={servingRuntimesImage}
         sectionType={SectionType.setup}
         description={
@@ -84,7 +94,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--cluster-settings"
         isOpen={resourcesOpen}
         title="Cluster settings"
-        onClick={() => navigate('/clusterSettings')}
+        onClick={() => trackAndNavigate('cluster-settings', '/clusterSettings')}
         imgSrc={clusterSettingsImage}
         sectionType={SectionType.setup}
         description={
@@ -105,7 +115,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--user-management"
         isOpen={resourcesOpen}
         title="User management"
-        onClick={() => navigate('/groupSettings')}
+        onClick={() => trackAndNavigate('user-management', '/groupSettings')}
         imgSrc={userImage}
         sectionType={SectionType.setup}
         description={
