@@ -78,9 +78,8 @@ export const useEnableTeamSection = (): React.ReactNode => {
         description={
           <TextContent>
             <Text component="small">
-              Administrators can access notebook servers that are owned by other users to correct
-              configuration errors or help a data scientist troubleshoot problems with their
-              environment.
+              A model-serving runtime adds support for a specified set of model frameworks. You can
+              use a default serving runtime, or add and enable a custom serving runtime.
             </Text>
           </TextContent>
         }
@@ -123,7 +122,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
             <Text component="small">
               If you plan to restrict access to your instance by defining specialized user groups,
               you must grant users permission access by adding user accounts to the Red Hat
-              OpenShift AI user group, administrator group, or both.
+              OpenShift AI user groups, administrator groups, or both.
             </Text>
           </TextContent>
         }
