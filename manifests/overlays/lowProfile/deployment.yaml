@@ -1,0 +1,30 @@
+# dashboard container smaller
+- op: replace
+  path: /spec/template/spec/containers/0/resources/requests/cpu
+  value: 100m
+- op: replace
+  path: /spec/template/spec/containers/0/resources/requests/memory
+  value: 250Mi
+- op: replace
+  path: /spec/template/spec/containers/0/resources/limits/cpu
+  value: 200m
+- op: replace
+  path: /spec/template/spec/containers/0/resources/limits/memory
+  value: 500Mi
+# oauth proxy container smaller
+- op: replace
+  path: /spec/template/spec/containers/1/resources/requests/cpu
+  value: 100m
+- op: replace
+  path: /spec/template/spec/containers/1/resources/requests/memory
+  value: 250Mi
+- op: replace
+  path: /spec/template/spec/containers/1/resources/limits/cpu
+  value: 200m
+- op: replace
+  path: /spec/template/spec/containers/1/resources/limits/memory
+  value: 500Mi
+# 1 replica
+- op: replace
+  path: /spec/replicas
+  value: 1
