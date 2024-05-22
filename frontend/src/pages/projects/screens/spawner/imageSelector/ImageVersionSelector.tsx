@@ -104,14 +104,12 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
             variant="info"
             isInline
             isPlain
-            title="A new image version is available. Select the latest image version to use Elyra for pipelines."
+            title="A new image version is available. Select the recommended version to use Elyra for pipelines."
           />
         )}
 
         <HelperText>
-          <HelperTextItem>
-            Hover an option to learn more information about the packages included.
-          </HelperTextItem>
+          <HelperTextItem>Hover over a version to view its included packages.</HelperTextItem>
         </HelperText>
       </FormHelperText>
     </FormGroup>

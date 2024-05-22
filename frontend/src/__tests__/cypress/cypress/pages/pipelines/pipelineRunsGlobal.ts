@@ -25,11 +25,11 @@ class PipelineRunsGlobal {
   }
 
   findActiveRunsTab() {
-    return cy.findByRole('tab', { name: 'Active tab' });
+    return cy.findByTestId('active-runs-tab');
   }
 
   findArchivedRunsTab() {
-    return cy.findByRole('tab', { name: 'Archived tab' });
+    return cy.findByTestId('archived-runs-tab');
   }
 
   findProjectSelect() {

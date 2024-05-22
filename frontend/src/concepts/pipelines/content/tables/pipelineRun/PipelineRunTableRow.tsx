@@ -59,7 +59,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     };
 
-    if (runType === PipelineRunType.Archived) {
+    if (runType === PipelineRunType.ARCHIVED) {
       return [
         {
           title: 'Restore',

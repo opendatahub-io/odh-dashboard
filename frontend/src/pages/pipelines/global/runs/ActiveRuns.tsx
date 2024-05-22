@@ -55,14 +55,14 @@ export const ActiveRuns: React.FC = () => {
     return (
       <EmptyState data-testid="active-runs-empty-state">
         <EmptyStateHeader
-          titleText="No active runs"
+          titleText="No runs"
           icon={<EmptyStateIcon icon={PlusCircleIcon} />}
           headingLevel="h2"
         />
 
         <EmptyStateBody>
           To get started, create a run. Alternatively, go to the{' '}
-          <b>{PipelineRunTabTitle.Schedules}</b> tab and create a schedule to execute recurring
+          <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring
           runs.
         </EmptyStateBody>
 
@@ -77,7 +77,7 @@ export const ActiveRuns: React.FC = () => {
                     namespace,
                     isExperimentsAvailable ? experimentId : undefined,
                   ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                 })
               }
             >
@@ -94,7 +94,7 @@ export const ActiveRuns: React.FC = () => {
       runs={runs}
       loading={!loaded}
       totalSize={totalSize}
-      runType={PipelineRunType.Active}
+      runType={PipelineRunType.ACTIVE}
       {...tableProps}
     />
   );

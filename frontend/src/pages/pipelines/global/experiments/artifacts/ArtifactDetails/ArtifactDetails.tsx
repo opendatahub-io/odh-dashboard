@@ -56,14 +56,14 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
 
   return (
     <ApplicationsPage
-      title={artifactName ?? 'Error loading artifact'}
+      title={artifactName}
       loaded={isArtifactLoaded}
       loadError={artifactError}
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-            <Truncate content={artifactName ?? 'Loading...'} />
+            <Truncate content={artifactName} />
           </BreadcrumbItem>
         </Breadcrumb>
       }

@@ -69,7 +69,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
                 namespace,
                 isExperimentsAvailable ? experimentId : undefined,
               ),
-              search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+              search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
             })
           }
         >

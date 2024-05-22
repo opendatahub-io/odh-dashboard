@@ -27,8 +27,8 @@ import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { asEnumMember } from '~/utilities/utils';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { routePipelineRunsNamespace } from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
@@ -44,7 +44,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     PipelineRunSearchParam.TriggerType,
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
-  const isSchedule = runType === PipelineRunType.Scheduled;
+  const isSchedule = runType === PipelineRunType.SCHEDULED;
 
   const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
   const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
@@ -53,13 +53,11 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
   const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
   const [runExperiment] = useExperimentById(cloneRunExperimentId || experimentId);
-
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
       !(
-        (section === CreateRunPageSections.EXPERIMENT && !isExperimentsAvailable) ||
         (section === CreateRunPageSections.SCHEDULE_DETAILS && !isSchedule) ||
         (section === CreateRunPageSections.RUN_DETAILS && isSchedule)
       ),
@@ -67,7 +65,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
 
   const runTypeData: RunType = React.useMemo(
     () =>
-      runType === PipelineRunType.Scheduled
+      runType === PipelineRunType.SCHEDULED
         ? {
             type: RunTypeOption.SCHEDULED,
             data: {
@@ -90,9 +88,9 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   React.useEffect(() => {
     // set the data if the url run type is different from the form data run type
     if (
-      (runType === PipelineRunType.Scheduled &&
+      (runType === PipelineRunType.SCHEDULED &&
         formData.runType.type === RunTypeOption.ONE_TRIGGER) ||
-      (runType !== PipelineRunType.Scheduled && formData.runType.type === RunTypeOption.SCHEDULED)
+      (runType !== PipelineRunType.SCHEDULED && formData.runType.type === RunTypeOption.SCHEDULED)
     ) {
       setFormDataValue('runType', runTypeData);
     }
@@ -103,10 +101,21 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
     [setFormDataValue],
   );
 
+  const runPageSectionTitlesEdited = isExperimentsAvailable
+    ? runPageSectionTitles
+    : {
+        ...runPageSectionTitles,
+        [CreateRunPageSections.PROJECT_AND_EXPERIMENT]: 'Project',
+      };
+
   return (
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
-        <GenericSidebar sections={jumpToSections} titles={runPageSectionTitles} maxWidth={175}>
+        <GenericSidebar
+          sections={jumpToSections}
+          titles={runPageSectionTitlesEdited}
+          maxWidth={175}
+        >
           <RunForm
             data={formData}
             runType={runType as PipelineRunType}

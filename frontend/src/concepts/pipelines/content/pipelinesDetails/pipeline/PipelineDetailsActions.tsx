@@ -68,7 +68,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               navigate(
                 {
                   pathname: routePipelineRunCreateNamespace(namespace),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                 },
                 {
                   state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
@@ -85,7 +85,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               navigate(
                 {
                   pathname: routePipelineRunsNamespace(namespace),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                 },
                 {
                   state: { lastVersion: pipelineVersion },
@@ -101,7 +101,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               navigate(
                 {
                   pathname: routePipelineRunsNamespace(namespace),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                 },
                 {
                   state: { lastVersion: pipelineVersion },

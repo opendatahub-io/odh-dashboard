@@ -120,7 +120,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                     navigate(
                       {
                         pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                       },
                       {
                         state: { lastPipeline: pipeline },

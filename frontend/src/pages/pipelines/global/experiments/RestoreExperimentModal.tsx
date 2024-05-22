@@ -43,14 +43,14 @@ export const RestoreExperimentModal: React.FC<RestoreExperimentModalProps> = ({
         <>
           <b>{experiments[0].display_name}</b> will be restored and returned to the{' '}
           <b>{ExperimentListTabTitle.ACTIVE}</b> tab. Its runs and schedules can be restored from
-          the <b>{PipelineRunTabTitle.Archived}</b> and <b>{PipelineRunTabTitle.Schedules}</b> tabs.
+          the <b>{PipelineRunTabTitle.ARCHIVED}</b> and <b>{PipelineRunTabTitle.SCHEDULES}</b> tabs.
         </>
       ) : (
         <Stack hasGutter>
           <StackItem>
             <b>{experiments.length}</b> experiments will be restored and returned to the{' '}
             <b>{ExperimentListTabTitle.ACTIVE}</b> tab. Their runs can be restored from the{' '}
-            <b>{PipelineRunTabTitle.Archived}</b> page.
+            <b>{PipelineRunTabTitle.ARCHIVED}</b> page.
           </StackItem>
           <StackItem>
             <BulkActionExpandableSection title="Selected experiments">
