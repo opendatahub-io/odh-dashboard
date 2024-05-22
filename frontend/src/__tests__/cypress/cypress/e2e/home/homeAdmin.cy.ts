@@ -14,7 +14,7 @@ describe('Home page Admin section', () => {
   });
   it('should show the admin section for admins', () => {
     asProductAdminUser();
-    homePage.initHomeIntercepts({ disableHome: false });
+    homePage.initHomeIntercepts();
     homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
@@ -25,14 +25,14 @@ describe('Home page Admin section', () => {
   });
   it('should hide the admin section for non-admin users', () => {
     asProjectEditUser();
-    homePage.initHomeIntercepts({ disableHome: false });
+    homePage.initHomeIntercepts();
     homePage.visit();
 
     cy.findByTestId('landing-page-admin').should('not.exist');
   });
   it('should hide notebook images card when not available', () => {
     asProductAdminUser();
-    homePage.initHomeIntercepts({ disableHome: false, disableBYONImageStream: true });
+    homePage.initHomeIntercepts({ disableBYONImageStream: true });
     homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
@@ -43,7 +43,7 @@ describe('Home page Admin section', () => {
   });
   it('should hide serving runtimes card when not available', () => {
     asProductAdminUser();
-    homePage.initHomeIntercepts({ disableHome: false, disableCustomServingRuntimes: true });
+    homePage.initHomeIntercepts({ disableCustomServingRuntimes: true });
     homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
@@ -54,7 +54,7 @@ describe('Home page Admin section', () => {
   });
   it('should hide cluster settings card when not available', () => {
     asProductAdminUser();
-    homePage.initHomeIntercepts({ disableHome: false, disableClusterManager: true });
+    homePage.initHomeIntercepts({ disableClusterManager: true });
     homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
@@ -65,7 +65,7 @@ describe('Home page Admin section', () => {
   });
   it('should hide user management card when not available', () => {
     asProductAdminUser();
-    homePage.initHomeIntercepts({ disableHome: false, disableUserManagement: true });
+    homePage.initHomeIntercepts({ disableUserManagement: true });
     homePage.visit();
 
     cy.findByTestId('landing-page-admin').scrollIntoView();
@@ -77,7 +77,6 @@ describe('Home page Admin section', () => {
   it('should hide the admin section if all cards are hidden', () => {
     asProductAdminUser();
     homePage.initHomeIntercepts({
-      disableHome: false,
       disableBYONImageStream: true,
       disableCustomServingRuntimes: true,
       disableClusterManager: true,
@@ -91,7 +90,7 @@ describe('Home page Admin section', () => {
   });
   it('should navigate to the correct section when the title is clicked', () => {
     asProductAdminUser();
-    homePage.initHomeIntercepts({ disableHome: false });
+    homePage.initHomeIntercepts();
     customServingRuntimesIntercept();
     homePage.visit();
 

@@ -48,7 +48,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableISVBadges: false,
       disableAppLauncher: false,
       disableUserManagement: false,
-      disableHome: true,
+      disableHome: false,
       disableProjects: false,
       disableModelServing: false,
       disableProjectSharing: false,

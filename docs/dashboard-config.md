@@ -19,7 +19,7 @@ The following are a list of features that are supported, along with there defaul
 | disableISVBadges             | false   | Removes the badge that indicate if a product is ISV or not.                                          |
 | disableAppLauncher           | false   | Removes the application launcher that is used in OKD environments                                    |
 | disableUserManagement        | false   | Removes the User Management panel in Settings.                                                       |
-| disableHome                  | true    | Disables Data Science Home page from the dashboard.                                                  |
+| disableHome                  | false   | Disables Data Science Home page from the dashboard.                                                  |
 | disableProjects              | false   | Disables Data Science Projects from the dashboard.                                                   |
 | disablePipelines             | false   | Disables Data Science Pipelines from the dashboard.                                                  |
 | disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
@@ -51,7 +51,7 @@ spec:
     disableISVBadges: false
     disableAppLauncher: false
     disableUserManagement: false
-    disableHome: true
+    disableHome: false
     disableProjects: false
     disablePipelines: false
     disableModelServing: false
