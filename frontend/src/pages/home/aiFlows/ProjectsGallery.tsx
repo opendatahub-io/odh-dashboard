@@ -49,14 +49,14 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <InfoGalleryItem
       key="projects"
       data-testid="ai-flows-projects-info"
-      title="Projects"
+      title="Data science projects"
       imgSrc={typedObjectImage(ProjectObjectType.project)}
       sectionType={SectionType.organize}
       description={
         <TextContent>
           <Text component="small">
-            Projects allow you and your team to organize and collaborate on resources within
-            separate namespaces.
+            Data science projects allow you and your team to organize and collaborate on resources
+            within separate namespaces.
           </Text>
           <Text component="small">
             Within a project, you can create multiple workbenches, each with their own IDE, data

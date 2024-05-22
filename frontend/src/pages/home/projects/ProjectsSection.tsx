@@ -126,7 +126,7 @@ const ProjectsSection: React.FC = () => {
                 variant="link"
                 onClick={() => navigate('/projects')}
               >
-                Go to <b>Projects</b>
+                Go to <b>Data Science Projects</b>
               </Button>
             </FlexItem>
           </Flex>

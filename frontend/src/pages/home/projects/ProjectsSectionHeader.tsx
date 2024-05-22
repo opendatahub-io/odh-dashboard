@@ -36,7 +36,7 @@ const ProjectsSectionHeader: React.FC<ProjectsSectionHeaderProps> = ({
         </FlexItem>
         <FlexItem>
           <TextContent>
-            <Text component={TextVariants.h1}>Projects</Text>
+            <Text component={TextVariants.h1}>Data Science Projects</Text>
           </TextContent>
         </FlexItem>
         {showCreate && !allowCreate ? (
