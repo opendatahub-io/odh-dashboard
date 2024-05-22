@@ -10,8 +10,8 @@ import {
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import { isModelMesh } from '~/pages/modelServing/utils';
+import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import ModelGraphs from '~/pages/modelServing/screens/metrics/performance/ModelGraphs';
 
 type PerformanceTabsProps = {
@@ -24,14 +24,19 @@ const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
 
   if (!modelMesh && !kserveMetricsEnabled) {
     return (
-      <EmptyState variant="full">
-        <EmptyStateHeader
-          titleText="Single-model serving platform model metrics are not enabled."
-          headingLevel="h4"
-          icon={<EmptyStateIcon icon={WarningTriangleIcon} />}
-          alt=""
-        />
-      </EmptyState>
+      <Stack data-testid="performance-metrics-loaded">
+        <StackItem>
+          <EmptyState variant="full">
+            <EmptyStateHeader
+              titleText="Single-model serving platform model metrics are not enabled."
+              headingLevel="h4"
+              icon={<EmptyStateIcon icon={WarningTriangleIcon} />}
+              alt=""
+              data-testid="kserve-metrics-disabled"
+            />
+          </EmptyState>
+        </StackItem>
+      </Stack>
     );
   }
 

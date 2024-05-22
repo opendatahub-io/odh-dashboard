@@ -9,6 +9,6 @@ type ModelGraphProps = {
 };
 
 const ModelGraphs: React.FC<ModelGraphProps> = ({ model }) =>
-  isModelMesh(model) ? <ModelMeshMetrics /> : <KserveMetrics />;
+  isModelMesh(model) ? <ModelMeshMetrics /> : <KserveMetrics modelName={model.metadata.name} />;
 
 export default ModelGraphs;

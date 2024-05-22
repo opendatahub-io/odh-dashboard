@@ -14,6 +14,10 @@ class ModelMetricsGlobal {
   getMetricsChart(title: string) {
     return new ModelMetricsChart(() => cy.findByTestId(`metrics-card-${title}`).parents());
   }
+
+  getAllMetricsCharts() {
+    return cy.findAllByTestId(/metrics-card-.*/);
+  }
 }
 
 class ModelMetricsChart extends Contextual<HTMLTableRowElement> {
@@ -32,13 +36,27 @@ class ModelMetricsPerformance extends ModelMetricsGlobal {
     this.wait();
   }
 
-  private wait() {
+  protected wait() {
     cy.findByTestId('performance-metrics-loaded');
     cy.testA11y();
   }
 
   findTab() {
     return cy.findByTestId('performance-tab');
+  }
+}
+
+class ModelMetricsKserve extends ModelMetricsPerformance {
+  findKserveAreaDisabledCard() {
+    return cy.findByTestId('kserve-metrics-disabled');
+  }
+
+  findUnsupportedRuntimeCard() {
+    return cy.findByTestId('kserve-metrics-runtime-unsupported');
+  }
+
+  findUnknownErrorCard() {
+    return cy.findByTestId('kserve-unknown-error');
   }
 }
 
@@ -181,3 +199,4 @@ export const modelMetricsBias = new ModelMetricsBias();
 export const serverMetrics = new ServerMetrics();
 export const modelMetricsConfigureSection = new ModelMetricsConfigureSection();
 export const configureBiasMetricModal = new ConfigureBiasMetricModal();
+export const modelMetricsKserve = new ModelMetricsKserve();
