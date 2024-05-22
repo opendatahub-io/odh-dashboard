@@ -134,7 +134,7 @@ export const CompareRunParamsSection: React.FunctionComponent = () => {
         <InnerScrollContainer>
           <Table
             loading={!loaded}
-            data={Object.entries(runParamsMap).sort()}
+            data={Object.entries(runParamsMap).toSorted()}
             columns={hasParameters ? runNameColumns : []}
             hasNestedHeader
             emptyTableView={

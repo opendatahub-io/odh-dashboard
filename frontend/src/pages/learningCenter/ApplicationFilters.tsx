@@ -64,7 +64,7 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
       showAll={showAll}
     >
       {Object.keys(applications)
-        .sort((a, b) => a.localeCompare(b))
+        .toSorted((a, b) => a.localeCompare(b))
         .map((application) => (
           <FilterSidePanelCategoryItem
             data-id={application}

@@ -37,7 +37,7 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites })
         }
         return acc;
       }, initCategories)
-      .sort((a, b) => a.localeCompare(b));
+      .toSorted((a, b) => a.localeCompare(b));
     setCategories([ALL_ITEMS, ...updatedCategories]);
   }, [docApps, favorites]);
 

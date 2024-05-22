@@ -147,7 +147,7 @@ export const lowestProgress = (details: TaskDetailKF[]): PipelineTaskRunStatus['
     }
   };
 
-  return details.sort(
+  return details.toSorted(
     ({ state: stateA }, { state: stateB }) => statusWeight(stateB) - statusWeight(stateA),
   )[0].state;
 };

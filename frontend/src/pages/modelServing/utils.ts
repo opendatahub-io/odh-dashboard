@@ -293,8 +293,8 @@ export const isModelServerEditInfoChanged = (
         !_.isEqual(
           getServingRuntimeTokens(editInfo.secrets)
             .map((token) => token.name)
-            .sort(),
-          createData.tokens.map((token) => token.name).sort(),
+            .toSorted(),
+          createData.tokens.map((token) => token.name).toSorted(),
         ))
     : true;
 

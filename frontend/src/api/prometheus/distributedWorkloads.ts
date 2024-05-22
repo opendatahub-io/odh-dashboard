@@ -81,7 +81,7 @@ export const getTopResourceConsumingWorkloads = (
         usage: getWorkloadCurrentUsage(workload)[usageType],
       }))
       .filter(({ usage }) => usage !== undefined)
-      .sort((a, b) => (b.usage || 0) - (a.usage || 0));
+      .toSorted((a, b) => (b.usage || 0) - (a.usage || 0));
 
     const topWorkloads =
       workloadsSortedByUsage.length === 6

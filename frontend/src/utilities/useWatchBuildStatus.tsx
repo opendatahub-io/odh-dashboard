@@ -28,8 +28,7 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     const watchBuildStatuses = () => {
       fetchBuildStatuses()
         .then((buildStatuses: BuildStatus[]) => {
-          buildStatuses.sort((a, b) => a.name.localeCompare(b.name));
-          setStatuses(buildStatuses);
+          setStatuses(buildStatuses.toSorted((a, b) => a.name.localeCompare(b.name)));
         })
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         .catch(() => {});

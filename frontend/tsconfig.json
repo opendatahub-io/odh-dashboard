@@ -4,7 +4,7 @@
     "outDir": "public",
     "module": "esnext",
     "target": "es5",
-    "lib": ["es6", "dom"],
+    "lib": ["es6", "dom", "ES2023.Array"],
     "sourceMap": true,
     "jsx": "react",
     "moduleResolution": "node",
@@ -25,10 +25,5 @@
     "skipLibCheck": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
-  "exclude": [
-    "node_modules",
-    "public",
-    "public-cypress",
-    "src/__tests__/cypress"
-  ]
+  "exclude": ["node_modules", "public", "public-cypress", "src/__tests__/cypress"]
 }
