@@ -49,7 +49,7 @@ describe('Enabled Page', () => {
     // Now validate with the home page feature flag enabled
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableHome: false }));
 
-    enabledPage.visit(true);
+    enabledPage.visit();
     jupyterCard.findApplicationLink().click();
     cy.findByTestId('app-page-title').should('have.text', 'Start a notebook server');
   });
