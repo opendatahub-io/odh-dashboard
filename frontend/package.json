@@ -18,8 +18,8 @@
   },
   "scripts": {
     "build": "run-s build:prod",
-    "build:analyze": "export _ODH_OUTPUT_ONLY=true; run-s build build:bundle-profile build:bundle-analyze",
-    "build:bundle-profile": "webpack --config ./config/webpack.prod.js --profile --json > ./bundle.stats.json",
+    "build:analyze": "run-s build build:bundle-profile build:bundle-analyze",
+    "build:bundle-profile": "_ODH_OUTPUT_ONLY=true webpack --config ./config/webpack.prod.js --profile --json > ./bundle.stats.json",
     "build:bundle-analyze": "webpack-bundle-analyzer ./bundle.stats.json",
     "build:clean": "rimraf ./public",
     "build:prod": "webpack --config ./config/webpack.prod.js",
