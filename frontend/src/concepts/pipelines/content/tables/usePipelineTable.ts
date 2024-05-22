@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineCoreResourceKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   PipelineListPaged,
   PipelineOptions,
@@ -52,18 +52,19 @@ export const getTablePagingProps = (
     setPageSize,
   }))(tableProps);
 
-export const useCreatePipelineRunTable = (
-  fetchState: (options: PipelineRunOptions) => FetchState<PipelineListPaged<PipelineRunKFv2>>,
+export function useCreatePipelineRunTable<T extends PipelineCoreResourceKFv2>(
+  fetchState: (options: PipelineRunOptions) => FetchState<PipelineListPaged<T>>,
   additionalOptions?: PipelineRunOptions,
   limit?: number,
-): [FetchState<PipelineListPaged<PipelineRunKFv2>>, TableProps] =>
-  createUsePipelineTable((options) => {
+): [FetchState<PipelineListPaged<T>>, TableProps] {
+  return createUsePipelineTable<T>((options) => {
     const experimentId = options.filter?.predicates?.find(
       (predicate) => predicate.key === 'experiment_id',
     )?.string_value;
 
     return fetchState({ ...options, experimentId, ...additionalOptions });
   })(limit);
+}
 
 const createUsePipelineTable =
   <T extends PipelineCoreResourceKFv2>(
