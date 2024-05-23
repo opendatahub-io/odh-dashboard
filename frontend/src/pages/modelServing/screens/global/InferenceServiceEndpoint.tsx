@@ -35,11 +35,12 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   if (!isKserve && !isRouteEnabled) {
     return (
       <Popover
+        data-testid="internal-service-popover"
         headerContent="Internal Service can be accessed inside the cluster"
         aria-label="Internal Service Info"
         bodyContent={<InternalServicePopoverContent inferenceService={inferenceService} />}
       >
-        <Button isInline variant="link">
+        <Button data-testid="internal-service-button" isInline variant="link">
           Internal Service
         </Button>
       </Popover>

@@ -180,7 +180,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     setActionInProgress(true);
 
     const servingRuntimeName =
-      editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
+      editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(

@@ -12,18 +12,18 @@ export const getTokenDisplayName = (secret: SecretKind): string =>
 export const getInferenceServiceActiveModelState = (
   is: InferenceServiceKind,
 ): InferenceServiceModelState =>
-  <InferenceServiceModelState | undefined>is.status?.modelStatus.states.activeModelState ||
-  <InferenceServiceModelState | undefined>is.status?.modelStatus.states.targetModelState ||
+  <InferenceServiceModelState | undefined>is.status?.modelStatus?.states?.activeModelState ||
+  <InferenceServiceModelState | undefined>is.status?.modelStatus?.states?.targetModelState ||
   InferenceServiceModelState.UNKNOWN;
 
 export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
-  const activeModelState = is.status?.modelStatus.states.activeModelState;
-  const targetModelState = is.status?.modelStatus.states.targetModelState;
+  const activeModelState = is.status?.modelStatus?.states?.activeModelState;
+  const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
   const failedToLoad = InferenceServiceModelState.FAILED_TO_LOAD;
   const isFailedToLoad = activeModelState === failedToLoad || targetModelState === failedToLoad;
 
-  const lastFailureMessage = is.status?.modelStatus.lastFailureInfo?.message;
+  const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
   const stateMessage = activeModelState ?? targetModelState ?? 'Unknown';
 
   return isFailedToLoad ? lastFailureMessage ?? stateMessage : stateMessage;

@@ -876,7 +876,20 @@ export type ContainerResources = {
   } & Record<string, unknown>;
 };
 
-export type ServingRuntime = K8sResourceCommon & {
+export type PodAffinity = {
+  nodeAffinity?: { [key: string]: unknown };
+};
+
+export type ServingContainer = {
+  name: string;
+  args?: string[];
+  image?: string;
+  affinity?: PodAffinity;
+  resources?: ContainerResources;
+  volumeMounts?: VolumeMount[];
+};
+
+export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
     name: string;
@@ -884,20 +897,15 @@ export type ServingRuntime = K8sResourceCommon & {
   };
   spec: {
     builtInAdapter?: {
-      serverType: string;
-      runtimeManagementPort: number;
+      serverType?: string;
+      runtimeManagementPort?: number;
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
-    containers: {
-      args: string[];
-      image: string;
-      name: string;
-      resources?: ContainerResources;
-      volumeMounts?: VolumeMount[];
-    }[];
-    supportedModelFormats: SupportedModelFormats[];
+    containers: ServingContainer[];
+    supportedModelFormats?: SupportedModelFormats[];
     replicas?: number;
+    tolerations?: Toleration[];
     volumes?: Volume[];
   };
 };

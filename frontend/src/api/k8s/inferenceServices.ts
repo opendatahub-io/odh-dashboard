@@ -137,7 +137,10 @@ export const assembleInferenceService = (
       updateInferenceService.spec.predictor.tolerations = tolerations;
     }
 
-    updateInferenceService.spec.predictor.model.resources = resources;
+    updateInferenceService.spec.predictor.model = {
+      ...updateInferenceService.spec.predictor.model,
+      resources,
+    };
   }
 
   return updateInferenceService;
