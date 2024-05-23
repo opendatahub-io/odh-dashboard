@@ -931,6 +931,33 @@ describe('Serving Runtime List', () => {
       kserveModal.findLocationPathInput().type('correct-path');
       kserveModal.findSubmitButton().should('be.enabled');
     });
+
+    it('Check authentication section', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test labels are correct
+      expect(
+        kserveModal.findAuthenticationSection().findByText('Token authentication').should('exist'),
+      );
+      expect(
+        kserveModal
+          .findAuthenticationSection()
+          .findByText('Require token authentication')
+          .should('exist'),
+      );
+    });
   });
 
   describe('ModelMesh model server', () => {
@@ -1565,7 +1592,7 @@ describe('Serving Runtime List', () => {
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
-      kserveRow.findDescriptionListItem('Token authorization').should('exist');
+      kserveRow.findDescriptionListItem('Token authentication').should('exist');
     });
 
     it('Check token section is disabled if capability is disabled', () => {
@@ -1579,7 +1606,7 @@ describe('Serving Runtime List', () => {
       const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
-      kserveRow.findDescriptionListItem('Token authorization').should('not.exist');
+      kserveRow.findDescriptionListItem('Token authentication').should('not.exist');
     });
   });
 

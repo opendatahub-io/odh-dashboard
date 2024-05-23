@@ -171,6 +171,10 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('serving-runtime-template-selection');
   }
 
+  findAuthenticationSection() {
+    return this.find().findByTestId('auth-section');
+  }
+
   findModelRouteCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-route');
   }

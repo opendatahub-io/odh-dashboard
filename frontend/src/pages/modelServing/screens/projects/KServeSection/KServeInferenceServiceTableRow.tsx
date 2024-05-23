@@ -109,7 +109,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                 <StackItem>
                   <DescriptionList>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Token authorization</DescriptionListTerm>
+                      <DescriptionListTerm>Token authentication</DescriptionListTerm>
                       <DescriptionListDescription>
                         <ServingRuntimeTokensTable
                           obj={obj}
