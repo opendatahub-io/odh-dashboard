@@ -6,6 +6,7 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
+  imageTag?: string;
   opts?: RecursivePartial<ImageStreamKind>;
 };
 
@@ -13,6 +14,7 @@ export const mockImageStreamK8sResource = ({
   name = 'test-imagestream',
   namespace = 'test-project',
   displayName = 'Test Image',
+  imageTag = 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
   opts = {},
 }: MockResourceConfigType): ImageStreamKind =>
   _.mergeWith(
@@ -56,7 +58,7 @@ export const mockImageStreamK8sResource = ({
             },
             from: {
               kind: 'DockerImage',
-              name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+              name: imageTag,
             },
           },
         ],
@@ -72,7 +74,7 @@ export const mockImageStreamK8sResource = ({
                 created: '2023-06-30T15:07:36Z',
                 dockerImageReference:
                   'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
-                image: 'sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                image: imageTag,
                 generation: 2,
               },
             ],
