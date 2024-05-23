@@ -111,7 +111,7 @@ const RocCurveCompare: React.FC<RocCurveCompareProps> = ({ runArtifacts, isLoade
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
       <Split hasGutter>
         <SplitItem>
-          <Text>ROC Curve: multiple artifacts</Text>
+          <Text>ROC curve: multiple artifacts</Text>
         </SplitItem>
         <SplitItem>
           <DashboardHelpTooltip content="The receiver operating characteristic (ROC) curve shows the performance of a model at varying threshold values by plotting the true positive rate against the false positive rate." />

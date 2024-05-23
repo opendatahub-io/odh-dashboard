@@ -34,7 +34,7 @@ type PipelineRunTableProps = {
   setSortField: (field: string) => void;
   setSortDirection: (dir: 'asc' | 'desc') => void;
   setFilter: (filter?: PipelinesFilter) => void;
-  runType: PipelineRunType.Active | PipelineRunType.Archived;
+  runType: PipelineRunType.ACTIVE | PipelineRunType.ARCHIVED;
 };
 
 const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
@@ -75,7 +75,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   }, []);
 
   const primaryToolbarAction = React.useMemo(() => {
-    if (runType === PipelineRunType.Archived) {
+    if (runType === PipelineRunType.ARCHIVED) {
       return (
         <Button
           data-testid="restore-button"
@@ -124,7 +124,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       key="run-table-toolbar-actions"
       data-testid="run-table-toolbar-actions"
       dropdownItems={[
-        ...(runType === PipelineRunType.Archived
+        ...(runType === PipelineRunType.ARCHIVED
           ? [
               {
                 key: 'delete',
@@ -221,7 +221,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       {isDeleteModalOpen && (
         <DeletePipelineRunsModal
           toDeleteResources={selectedRuns}
-          type={PipelineRunType.Archived}
+          type={PipelineRunType.ARCHIVED}
           onClose={(deleted) => {
             if (deleted) {
               refreshAllAPI();

@@ -76,7 +76,7 @@ const mockActiveRuns = [
 const mockExperimentIds = [...new Set(mockActiveRuns.map((mockRun) => mockRun.experiment_id))];
 const mockVersionIds = [
   ...new Set(
-    mockActiveRuns.map((mockRun) => mockRun.pipeline_version_reference.pipeline_version_id),
+    mockActiveRuns.map((mockRun) => mockRun.pipeline_version_reference?.pipeline_version_id),
   ),
 ];
 const mockExperiments = mockExperimentIds.map((experimentId) =>
@@ -355,7 +355,7 @@ describe('Pipeline runs', () => {
           const selectedVersion = mockVersions.find(
             (mockVersion) =>
               mockVersion.pipeline_version_id ===
-              mockActiveRuns[0].pipeline_version_reference.pipeline_version_id,
+              mockActiveRuns[0].pipeline_version_reference?.pipeline_version_id,
           );
           if (!selectedVersion) {
             return;
@@ -439,7 +439,7 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter(
               (mockRun) =>
-                mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
+                mockRun.pipeline_version_reference?.pipeline_version_id === 'test-version-1',
             ),
             projectName,
             1,
@@ -688,7 +688,7 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter(
               (mockRun) =>
-                mockRun.pipeline_version_reference.pipeline_version_id === 'test-version-1',
+                mockRun.pipeline_version_reference?.pipeline_version_id === 'test-version-1',
             ),
             projectName,
             1,

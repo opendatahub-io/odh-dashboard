@@ -192,7 +192,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
         </DrawerContent>
       </Drawer>
       <DeletePipelineRunsModal
-        type={PipelineRunType.Archived}
+        type={PipelineRunType.ARCHIVED}
         toDeleteResources={deleting && run ? [run] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {

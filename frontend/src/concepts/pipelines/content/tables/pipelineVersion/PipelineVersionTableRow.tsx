@@ -81,7 +81,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                 navigate(
                   {
                     pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                   },
                   {
                     state: { lastPipeline: pipeline, lastVersion: version },
@@ -98,7 +98,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                 navigate(
                   {
                     pathname: routePipelineRunsNamespace(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                   },
                   {
                     state: { lastVersion: version },
@@ -112,7 +112,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                 navigate(
                   {
                     pathname: routePipelineRunsNamespace(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                   },
                   {
                     state: { lastVersion: version },

@@ -19,8 +19,7 @@ export const RUN_OPTION_LABEL_SIZE = 100;
 
 export enum CreateRunPageSections {
   RUN_TYPE = 'run-section-run-type',
-  PROJECT = 'run-section-project',
-  EXPERIMENT = 'run-section-experiment',
+  PROJECT_AND_EXPERIMENT = 'run-section-project-and-experiment',
   RUN_DETAILS = 'run-section-details',
   SCHEDULE_DETAILS = 'run-section-schedule-details',
   PIPELINE = 'run-section-pipeline',
@@ -29,8 +28,7 @@ export enum CreateRunPageSections {
 
 export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.RUN_TYPE]: 'Run type',
-  [CreateRunPageSections.PROJECT]: 'Project',
-  [CreateRunPageSections.EXPERIMENT]: 'Experiment',
+  [CreateRunPageSections.PROJECT_AND_EXPERIMENT]: 'Project and experiment',
   [CreateRunPageSections.RUN_DETAILS]: 'Run details',
   [CreateRunPageSections.SCHEDULE_DETAILS]: 'Schedule details',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',

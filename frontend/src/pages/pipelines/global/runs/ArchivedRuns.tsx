@@ -11,7 +11,7 @@ import {
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineArchivedRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { PipelineRunType } from './types';
+import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ArchivedRuns: React.FC = () => {
   const { experimentId } = useParams();
@@ -51,8 +51,8 @@ export const ArchivedRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          Archive a run to remove it from the <b>Active</b> runs tab. Archived runs can be restored
-          later, or deleted.
+          Archive a run to remove it from the <b>{PipelineRunTabTitle.ACTIVE}</b> tab. Archived runs
+          can be restored later, or deleted.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -63,7 +63,7 @@ export const ArchivedRuns: React.FC = () => {
       runs={runs}
       loading={!loaded}
       totalSize={totalSize}
-      runType={PipelineRunType.Archived}
+      runType={PipelineRunType.ARCHIVED}
       {...tableProps}
     />
   );

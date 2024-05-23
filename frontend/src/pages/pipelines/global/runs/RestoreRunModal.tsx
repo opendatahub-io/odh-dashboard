@@ -31,13 +31,13 @@ export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ isOpen, runs, 
       {isSingleRestoring ? (
         <>
           <b>{runs[0].display_name}</b> will be restored and returned to the{' '}
-          <b>{PipelineRunTabTitle.Active}</b> tab.
+          <b>{PipelineRunTabTitle.ACTIVE}</b> tab.
         </>
       ) : (
         <Stack hasGutter>
           <StackItem>
             <b>{runs.length}</b> runs will be restored and returned to the{' '}
-            <b>{PipelineRunTabTitle.Active}</b> tab.
+            <b>{PipelineRunTabTitle.ACTIVE}</b> tab.
           </StackItem>
           <StackItem>
             <BulkActionExpandableSection title="Selected runs">

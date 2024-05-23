@@ -13,11 +13,11 @@ type DeletePipelineRunsModalProps = {
   onClose: (deleted?: boolean) => void;
 } & (
   | {
-      type: PipelineRunType.Archived;
+      type: PipelineRunType.ARCHIVED;
       toDeleteResources: PipelineRunKFv2[];
     }
   | {
-      type: PipelineRunType.Scheduled;
+      type: PipelineRunType.SCHEDULED;
       toDeleteResources: PipelineRunJobKFv2[];
     }
 );
@@ -47,10 +47,10 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
 
         let callFunc: (opts: K8sAPIOptions, id: string) => Promise<void>;
         switch (type) {
-          case PipelineRunType.Archived:
+          case PipelineRunType.ARCHIVED:
             callFunc = api.deletePipelineRun;
             break;
-          case PipelineRunType.Scheduled:
+          case PipelineRunType.SCHEDULED:
             callFunc = api.deletePipelineRunJob;
             break;
           default:
@@ -65,7 +65,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
         if (resourceCount === 1) {
           callFunc(
             { signal: abortSignal },
-            type === PipelineRunType.Scheduled
+            type === PipelineRunType.SCHEDULED
               ? toDeleteResources[0].recurring_run_id
               : toDeleteResources[0].run_id,
           )
@@ -81,7 +81,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             toDeleteResources.map((_run, i) =>
               callFunc(
                 { signal: abortSignal },
-                type === PipelineRunType.Scheduled
+                type === PipelineRunType.SCHEDULED
                   ? toDeleteResources[i].recurring_run_id
                   : toDeleteResources[i].run_id,
               ),

@@ -61,8 +61,8 @@ const ScheduledRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          Schedules dictate when and how many times a run is executed. To get started, schedule
-          runs.
+          Schedules dictate when and how many times a run is executed. To get started, create a
+          schedule.
         </EmptyStateBody>
 
         <EmptyStateFooter>
@@ -76,11 +76,11 @@ const ScheduledRuns: React.FC = () => {
                     namespace,
                     isExperimentsAvailable ? experimentId : undefined,
                   ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                 })
               }
             >
-              Schedule run
+              Create schedule
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>

@@ -158,7 +158,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
       </Drawer>
 
       <DeletePipelineRunsModal
-        type={PipelineRunType.Scheduled}
+        type={PipelineRunType.SCHEDULED}
         toDeleteResources={deleting && job ? [job] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {

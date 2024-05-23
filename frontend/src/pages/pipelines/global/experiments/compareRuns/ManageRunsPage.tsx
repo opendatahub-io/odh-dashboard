@@ -88,7 +88,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
 
         <EmptyStateBody>
           To get started, create a run. Alternatively, go to the{' '}
-          <b>{PipelineRunTabTitle.Schedules}</b> tab and create a schedule to execute recurring
+          <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring
           runs.
         </EmptyStateBody>
 
@@ -100,7 +100,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
               onClick={() =>
                 navigate({
                   pathname: experimentsCreateRunRoute(namespace, experiment.experiment_id),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                 })
               }
             >
