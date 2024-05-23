@@ -23,8 +23,14 @@ export const getNotebookImageData = (
     };
   }
 
-  const [imageName, versionName] = imageTag;
-  const imageStream = images.find((image) => image.metadata.name === imageName);
+  const [, versionName] = imageTag;
+  const imageStream = images.find((image) =>
+    image.spec.tags
+      ? image.spec.tags.find(
+          (version) => version.name === versionName || version.from?.name === container.image,
+        )
+      : false,
+  );
 
   // if the image stream is not found, consider it deleted
   if (!imageStream) {
@@ -38,7 +44,9 @@ export const getNotebookImageData = (
   }
 
   const versions = imageStream.spec.tags || [];
-  const imageVersion = versions.find((version) => version.name === versionName);
+  const imageVersion = versions.find(
+    (version) => version.name === versionName || version.from?.name === container.image,
+  );
 
   // because the image stream was found, get its display name
   const imageDisplayName = getImageStreamDisplayName(imageStream);
