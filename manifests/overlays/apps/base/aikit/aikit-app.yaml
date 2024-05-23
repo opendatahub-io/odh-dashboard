@@ -5,7 +5,7 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Data preprocessing,Model development'
 spec:
-  displayName: Intel® oneAPI AI Analytics Toolkit Container
+  displayName: Intel® oneAPI AI Analytics Toolkit Containers
   provider: Intel®
   description: >-
     The AI Kit is a set of AI software tools to accelerate end-to-end data science and analytics pipelines on Intel® architectures.
@@ -46,9 +46,7 @@ spec:
 
     ## Installing AI Kit
 
-    Intel® oneAPI AI Analytics Toolkit libraries are provided through Anaconda* and can be installed from many existing notebook container images. Intel provides a number of certified container images on Red Hat OpenShift AI pre-installed Jupyter that have toolkit components pre-installed, and ready to use.
-
-    Try out selecting the “intel-aikit-notebook:v/0.0.1” Jupyter Notebook image in Jupyter to get started!
+    Intel® oneAPI AI Analytics Toolkit libraries are provided through pip and can be installed from many existing notebook container images. Intel provides a number of certified container images on Red Hat OpenShift AI pre-installed Jupyter that have toolkit components pre-installed, and ready to use.
 
     ## Installing AI Kit Operator
 
@@ -64,6 +62,6 @@ spec:
 
     ## Getting Started with AI Kit Resources:
 
-    - [AI Analytics Toolkit Website](https://software.intel.com/oneapi/ai-kit)
+    - [AI Analytics Toolkit Website](https://www.intel.com/content/www/us/en/developer/tools/oneapi/ai-analytics-toolkit.html)
 
     - [AI Analytics Toolkit Code Samples](https://github.com/oneapi-src/oneAPI-samples/tree/master/AI-and-Analytics)
