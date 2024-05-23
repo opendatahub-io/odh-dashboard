@@ -14,6 +14,7 @@ Details on how we will do a release are being worked on and will likely update t
 > Note: the version number should be the last release number with an increment on the patch version (see [release version](#version-numbers))
 
 * Catch up `incubation` branch with the `main` branch
+* Change the INTERNAL_DASHBOARD_VERSION value in ~/.env to the next release number
 * Go to our [quay repo] & "Add New Tag" off of the latest `main` build
   * `vX.YY.Z-incubation` naming convention (eg. `v1.23.4-incubation`)
   * Get the latest sha digest value for this release
