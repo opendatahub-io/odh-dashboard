@@ -1,5 +1,5 @@
 import { TrackingEventProperties } from '~/types';
-import { DEV_MODE } from './const';
+import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from './const';
 
 // The following is like the original method below, but allows for more 'free form' properties.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/explicit-module-boundary-types
@@ -9,7 +9,9 @@ export const fireTrackingEventRaw = (eventType: string, properties?: any): void 
     /* eslint-disable-next-line no-console */
     console.log(
       `Telemetry event triggered: ${eventType}${
-        properties ? ` - ${JSON.stringify(properties)}` : ''
+        properties
+          ? ` - ${JSON.stringify(properties)} for version ${INTERNAL_DASHBOARD_VERSION}`
+          : ''
       }`,
     );
   } else if (window.analytics) {
@@ -26,7 +28,9 @@ export const fireTrackingEvent = (
     /* eslint-disable-next-line no-console */
     console.log(
       `Telemetry event triggered: ${eventType}${
-        properties ? ` - ${JSON.stringify(properties)}` : ''
+        properties
+          ? ` - ${JSON.stringify(properties)} for version ${INTERNAL_DASHBOARD_VERSION}`
+          : ''
       }`,
     );
   } else if (window.analytics) {
