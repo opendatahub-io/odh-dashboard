@@ -35,6 +35,7 @@ import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServic
 type HandlersProps = {
   isEmpty?: boolean;
   imageStreamName?: string;
+  imageStreamTag?: string;
   disableKServeConfig?: boolean;
   disableKServeMetrics?: boolean;
   disableModelConfig?: boolean;
@@ -52,6 +53,7 @@ const initIntercepts = ({
   disableModelConfig,
   isEmpty = false,
   imageStreamName = 'test-image',
+  imageStreamTag = 'latest',
   imageStreamPythonDependencies,
   isEnabled = 'true',
   isUnknown = false,
@@ -170,7 +172,7 @@ const initIntercepts = ({
                 spec: {
                   tags: [
                     {
-                      name: 'latest',
+                      name: imageStreamTag,
                       annotations: {
                         'opendatahub.io/notebook-python-dependencies':
                           imageStreamPythonDependencies ?? '[]',
@@ -181,7 +183,7 @@ const initIntercepts = ({
                 status: {
                   tags: [
                     {
-                      tag: 'latest',
+                      tag: imageStreamTag,
                     },
                   ],
                 },
@@ -365,7 +367,7 @@ describe('Project Details', () => {
     });
 
     it('Notebook with deleted image', () => {
-      initIntercepts({ imageStreamName: 'test' });
+      initIntercepts({ imageStreamName: 'test', imageStreamTag: 'failing-tag' });
       projectDetails.visitSection('test-project', 'workbenches');
       const notebookRow = projectDetails.getNotebookRow('test-notebook');
       notebookRow.shouldHaveNotebookImageName('Test image');
