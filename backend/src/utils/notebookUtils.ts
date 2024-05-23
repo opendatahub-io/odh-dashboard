@@ -1,5 +1,5 @@
 import { getDashboardConfig } from './resourceUtils';
-import { merge } from 'lodash';
+import { mergeWith } from 'lodash';
 import {
   ContainerResourceAttributes,
   EnvironmentVariable,
@@ -31,6 +31,7 @@ import {
 import { DEFAULT_NOTEBOOK_SIZES, DEFAULT_PVC_SIZE, MOUNT_PATH } from './constants';
 import { FastifyRequest } from 'fastify';
 import { verifyEnvVars } from './envUtils';
+import { smartMergeArraysWithNameObjects } from './objUtils';
 import { getImageInfo } from '../routes/api/images/imageUtils';
 
 export const generateNotebookNameFromUsername = (username: string): string =>
@@ -534,7 +535,15 @@ export const updateNotebook = async (
           spec: {
             containers: [
               {
-                env: oldNotebook.spec.template.spec.containers[0].env,
+                // Drop all env vars we added in the past, because we will just add them back if they are still there
+                env: oldNotebook.spec.template.spec.containers[0].env.filter(({ valueFrom }) => {
+                  if (!valueFrom) {
+                    return true;
+                  } else {
+                    const value = valueFrom.secretKeyRef ?? valueFrom.configMapKeyRef;
+                    return !value?.name?.startsWith('jupyterhub-singleuser-profile');
+                  }
+                }),
                 volumeMounts: oldNotebook.spec.template.spec.containers[0].volumeMounts,
               },
             ],
@@ -544,7 +553,12 @@ export const updateNotebook = async (
       },
     };
 
-    const notebookAssembled = merge({}, importantOldNotebookDetails, serverNotebook);
+    const notebookAssembled = mergeWith(
+      {},
+      importantOldNotebookDetails,
+      serverNotebook,
+      smartMergeArraysWithNameObjects,
+    );
 
     const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
       'kubeflow.org',
