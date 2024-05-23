@@ -15,7 +15,7 @@ import {
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
-import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
+import { usePipelineScheduledRunsTable } from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { scheduleRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -25,7 +25,7 @@ const ScheduledRuns: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, experimentId } = useParams();
   const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineRunJobTable();
+    usePipelineScheduledRunsTable({ experimentId });
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (error) {
