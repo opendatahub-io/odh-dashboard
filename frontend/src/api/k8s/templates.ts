@@ -1,9 +1,14 @@
 import YAML from 'yaml';
-import { k8sDeleteResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import React from 'react';
+import { WatchK8sResource, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { TemplateModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
+import { CustomWatchK8sResult, ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
+import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
+import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { groupVersionKind } from '~/api/k8sUtils';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
 
 export const assembleServingRuntimeTemplate = (
   body: string,
@@ -39,18 +44,39 @@ export const assembleServingRuntimeTemplate = (
   };
 };
 
-export const listTemplates = async (
-  namespace?: string,
-  labelSelector?: string,
-): Promise<TemplateKind[]> => {
-  const queryOptions = {
-    ...(namespace && { ns: namespace }),
-    ...(labelSelector && { queryParams: { labelSelector } }),
-  };
-  return k8sListResource<TemplateKind>({
-    model: TemplateModel,
-    queryOptions,
-  }).then((listResource) => listResource.items);
+export const useTemplates = (namespace?: string): CustomWatchK8sResult<TemplateKind[]> => {
+  const modelServingEnabled = useModelServingEnabled();
+  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
+
+  const initResource: WatchK8sResource | null =
+    namespace && modelServingEnabled
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(TemplateModel),
+          namespace,
+        }
+      : null;
+
+  const [templatesData, loaded, error] = useK8sWatchResourceList<TemplateKind[]>(
+    initResource,
+    TemplateModel,
+  );
+
+  const templates = React.useMemo(
+    () =>
+      customServingRuntimesEnabled
+        ? templatesData
+        : templatesData.filter(
+            (template) => template.metadata.labels?.['opendatahub.io/ootb'] === 'true',
+          ),
+    [templatesData, customServingRuntimesEnabled],
+  );
+
+  if (!namespace || !modelServingEnabled) {
+    return [templates, false, undefined];
+  }
+
+  return [templates, loaded, error];
 };
 
 export const deleteTemplate = (name: string, namespace: string): Promise<TemplateKind> =>

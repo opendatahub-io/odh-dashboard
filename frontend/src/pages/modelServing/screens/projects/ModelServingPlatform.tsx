@@ -54,7 +54,7 @@ const ModelServingPlatform: React.FC = () => {
       error: servingRuntimeError,
       refresh: refreshServingRuntime,
     },
-    servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
+    servingRuntimeTemplates: [templates, templatesLoaded, templateError],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },

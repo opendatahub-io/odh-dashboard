@@ -1,5 +1,9 @@
-import { WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
-import { ContextResourceData, FetchStateObject, OdhDocumentType } from '~/types';
+import {
+  ContextResourceData,
+  CustomWatchK8sResult,
+  FetchStateObject,
+  OdhDocumentType,
+} from '~/types';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';
@@ -52,7 +56,11 @@ export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
   refresh: () => undefined,
 };
 
-export const DEFAULT_LIST_WATCH_RESULT: WatchK8sResult<never | never[]> = [[], false, undefined];
+export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = [
+  [],
+  false,
+  undefined,
+];
 
 export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
   data: [],

@@ -1,11 +1,13 @@
-import { useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { groupVersionKind, useAccessReview, useGroups } from '~/api';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { GroupModel } from '~/api/models';
 import { mockGroup } from '~/__mocks__/mockGroup';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
+import { GroupKind } from '~/k8sTypes';
 
-jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  useK8sWatchResource: jest.fn(),
+jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock('~/api/useAccessReview', () => ({
@@ -13,17 +15,17 @@ jest.mock('~/api/useAccessReview', () => ({
 }));
 
 const useAccessReviewMock = jest.mocked(useAccessReview);
-const useK8sWatchResourceMock = useK8sWatchResource as jest.Mock;
+const useK8sWatchResourceListMock = jest.mocked(useK8sWatchResourceList<GroupKind[]>);
 
 describe('useGroups', () => {
   it('should wrap useK8sWatchResource to watch groups', async () => {
-    const mockReturnValue: ReturnType<typeof useK8sWatchResourceMock> = [[], false, undefined];
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
     useAccessReviewMock.mockReturnValue([true, true]);
-    useK8sWatchResourceMock.mockReturnValue(mockReturnValue);
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
     const { result } = testHook(useGroups)();
 
-    expect(useK8sWatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(useK8sWatchResourceMock).toHaveBeenCalledWith(
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
       {
         isList: true,
         groupVersionKind: groupVersionKind(GroupModel),
@@ -34,16 +36,16 @@ describe('useGroups', () => {
   });
 
   it('should render list of groups', () => {
-    const mockReturnValue: ReturnType<typeof useK8sWatchResourceMock> = [
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [
       [mockGroup({})],
       true,
       undefined,
     ];
     useAccessReviewMock.mockReturnValue([true, true]);
-    useK8sWatchResourceMock.mockReturnValue(mockReturnValue);
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
     const { result } = testHook(useGroups)();
-    expect(useK8sWatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(useK8sWatchResourceMock).toHaveBeenCalledWith(
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
       {
         isList: true,
         groupVersionKind: groupVersionKind(GroupModel),
@@ -55,10 +57,30 @@ describe('useGroups', () => {
 
   it('should handle 403 error', () => {
     useAccessReviewMock.mockReturnValue([false, true]);
-    useK8sWatchResourceMock.mockReturnValue([undefined, true, undefined]);
+    useK8sWatchResourceListMock.mockReturnValue([[], true, undefined]);
     const { result } = testHook(useGroups)();
-    expect(useK8sWatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(useK8sWatchResourceMock).toHaveBeenCalledWith(null, GroupModel);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(null, GroupModel);
     expect(result.current).toStrictEqual([[], true, undefined]);
+  });
+
+  it('should handle errors and rethrow', () => {
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [
+      [],
+      true,
+      new Error('Unknown error occured'),
+    ];
+    useAccessReviewMock.mockReturnValue([true, true]);
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+    const { result } = testHook(useGroups)();
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(GroupModel),
+      },
+      GroupModel,
+    );
+    expect(result.current).toStrictEqual(mockReturnValue);
   });
 });

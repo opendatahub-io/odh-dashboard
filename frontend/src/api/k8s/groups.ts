@@ -1,9 +1,11 @@
-import { WatchK8sResult, useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import React from 'react';
+import { WatchK8sResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { AccessReviewResourceAttributes, GroupKind } from '~/k8sTypes';
 import { GroupModel } from '~/api/models';
 import { groupVersionKind } from '~/api/k8sUtils';
 import { useAccessReview } from '~/api/useAccessReview';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
+import { CustomWatchK8sResult } from '~/types';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'user.openshift.io',
@@ -11,17 +13,18 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'list',
 };
 
-export const useGroups = (): WatchK8sResult<GroupKind[]> => {
+export const useGroups = (): CustomWatchK8sResult<GroupKind[]> => {
   const [allowList, accessReviewLoaded] = useAccessReview(accessReviewResource);
-  const [groupData, loaded, error] = useK8sWatchResource<GroupKind[]>(
+  const initResource: WatchK8sResource | null =
     allowList && accessReviewLoaded
       ? {
           isList: true,
           groupVersionKind: groupVersionKind(GroupModel),
         }
-      : null,
-    GroupModel,
-  );
+      : null;
+
+  const [groupData, loaded, error] = useK8sWatchResourceList<GroupKind[]>(initResource, GroupModel);
+
   return React.useMemo(() => {
     if (!allowList) {
       return [[], true, undefined];

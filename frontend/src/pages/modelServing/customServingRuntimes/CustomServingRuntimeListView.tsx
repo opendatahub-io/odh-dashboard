@@ -16,7 +16,7 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 const CustomServingRuntimeListView: React.FC = () => {
   const {
     servingRuntimeTemplateOrder: { data: templateOrder, refresh: refreshOrder },
-    servingRuntimeTemplates: { data: unsortedTemplates },
+    servingRuntimeTemplates: [unsortedTemplates],
     refreshData,
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
