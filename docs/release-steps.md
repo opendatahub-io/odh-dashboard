@@ -13,24 +13,29 @@ Details on how we will do a release are being worked on and will likely update t
 
 > Note: the version number should be the last release number with an increment on the patch version (see [release version](#version-numbers))
 
-* Catch up `incubation` branch with the `main` branch
-* Change the INTERNAL_DASHBOARD_VERSION value in ~/.env to the next release number
+* Determine the next version number by taking the last release and adding a z-stream number (eg. for `v1.23.0`, we would be `v1.23.1`)
+  * Back to back ODH releases will increment the z value
+  * First ODH release after a RHOAI release will take the value from 0 to 1
+  * Read more about [release version](#version-numbers) if needed
+* Change the `INTERNAL_DASHBOARD_VERSION` var value in ~/frontend/.env file to the release value
 * Go to our [quay repo] & "Add New Tag" off of the latest `main` build
-  * `vX.YY.Z-incubation` naming convention (eg. `v1.23.4-incubation`)
+  * Create the tag with the `vX.YY.Z-odh` naming convention (eg. `v1.23.1-odh`)
   * Get the latest sha digest value for this release
-* Create a branch on the latest of `incubation`
-  * `vX.YY.Z-incubation-release` naming convention
-  * Add a comment to this branch, modify the [base/kustomization.yaml] value for `images.odh-dashboard` to specify the latest sha digest value
+* Create a branch on the latest of `main` (make sure this matches the same as the sha value you grabbed in the previous step)
+  * `vX.YY.Z-odh-release` naming convention
+  * Add a comment to this branch, modify the [base/kustomization.yaml] value for `images.odh-dashboard` to specify the sha digest value you grabbed from Quay
 * Start [drafting a new release], this release will not make use of the generate release notes feature as we want a high level breakdown.
   * Versioning will match the quay image name you generated in the first step
   * Be sure to disable the `Set as the latest release` setting as we use the stable releases as our latest release
 
 ## OpenShift AI Release
 
-* Start by [drafting a new release]
 * Pick a new [release version](#version-numbers)
   * `vX.YY.Z` based on what is included (eg. `v1.23.4`)
   * If you do not have enough information to make the call on minor or patch version updating, you may need to pick one and wait until the release notes are generated
+* Change the `INTERNAL_DASHBOARD_VERSION` var value in ~/frontend/.env file to the release value
+  * Create a PR and self lgtm + approve the PR upversion
+* Once the version number has been updated -- Start [drafting a new release]
 * Set the release title to the same name as the tag
 * Click the `Generate release notes` button to get the full list of PRs merged into `main`
   * Scan the notes it generated for any gaps in your Release
