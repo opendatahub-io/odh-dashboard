@@ -23,7 +23,7 @@ const ErrorDetails: React.FC<ErrorDetailsProps> = ({
   stack,
 }) => (
   <>
-    <Title headingLevel="h2" className="pf-v5-u-mb-lg">
+    <Title headingLevel="h2" className="pf-v5-u-mb-md">
       {title}
     </Title>
     <DescriptionList>
