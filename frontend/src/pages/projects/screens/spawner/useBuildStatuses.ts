@@ -26,7 +26,7 @@ const useBuildStatuses = (namespace?: string): BuildStatus[] => {
               imageStreamVersion: buildConfig.spec.output.to.name,
             };
           }
-          const mostRecent = builds.sort(compareBuilds).pop() as BuildKind;
+          const mostRecent = builds.toSorted(compareBuilds).pop() as BuildKind;
           return {
             name: buildNotebookName,
             status: mostRecent.status.phase,

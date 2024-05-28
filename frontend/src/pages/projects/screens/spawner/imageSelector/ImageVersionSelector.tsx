@@ -43,8 +43,8 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     return null;
   }
 
-  const selectOptionObjects = [...imageVersions]
-    .sort(compareImageVersionOrder)
+  const selectOptionObjects = imageVersions
+    .toSorted(compareImageVersionOrder)
     .map((imageVersion) => getImageVersionSelectOptionObject(imageStream, imageVersion));
 
   const options = selectOptionObjects.map((optionObject) => {

@@ -71,7 +71,7 @@ const AppLauncher: React.FC = () => {
         (link) =>
           link.spec.location === 'ApplicationMenu' && link.metadata?.name !== odhConsoleLinkName,
       )
-      .sort((a, b) => a.spec.text.localeCompare(b.spec.text));
+      .toSorted((a, b) => a.spec.text.localeCompare(b.spec.text));
 
     const getODHApplications = (): Section[] => {
       const osConsoleAction = getOpenShiftConsoleAction(serverURL);
@@ -110,9 +110,7 @@ const AppLauncher: React.FC = () => {
       return acc;
     }, getODHApplications());
 
-    sections.sort((a, b) => sectionSortValue(a) - sectionSortValue(b));
-
-    return sections;
+    return sections.toSorted((a, b) => sectionSortValue(a) - sectionSortValue(b));
   }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL]);
 
   const onToggle = () => {

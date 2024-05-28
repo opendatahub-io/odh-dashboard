@@ -26,7 +26,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   buildStatuses,
   compatibleAcceleratorIdentifier,
 }) => {
-  const options = [...imageStreams].sort(compareImageStreamOrder).map((imageStream) => {
+  const options = imageStreams.toSorted(compareImageStreamOrder).map((imageStream) => {
     const description = getRelatedVersionDescription(imageStream);
     const displayName = getImageStreamDisplayName(imageStream);
 

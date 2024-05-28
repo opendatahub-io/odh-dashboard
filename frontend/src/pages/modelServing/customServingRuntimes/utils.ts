@@ -17,7 +17,7 @@ export const isTemplateOOTB = (template: TemplateKind): boolean =>
   template.metadata.labels?.['opendatahub.io/ootb'] === 'true';
 
 export const getSortedTemplates = (templates: TemplateKind[], order: string[]): TemplateKind[] =>
-  [...templates].sort(
+  templates.toSorted(
     (a, b) =>
       order.indexOf(getServingRuntimeNameFromTemplate(a)) -
       order.indexOf(getServingRuntimeNameFromTemplate(b)),

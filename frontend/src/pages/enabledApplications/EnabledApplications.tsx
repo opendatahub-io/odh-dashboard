@@ -50,7 +50,7 @@ const EnabledApplications: React.FC = () => {
     () =>
       _.cloneDeep(components)
         .filter((component) => !component.spec.hidden)
-        .sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
+        .toSorted((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
     [components],
   );
 

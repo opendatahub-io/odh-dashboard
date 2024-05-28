@@ -289,9 +289,9 @@ const SpawnerPage: React.FC = () => {
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                {[...images]
+                {images
                   .filter((image) => !image.error)
-                  .sort(checkOrder)
+                  .toSorted(checkOrder)
                   .map((image) => (
                     <GridItem key={image.name}>
                       <ImageSelector

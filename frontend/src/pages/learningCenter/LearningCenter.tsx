@@ -55,7 +55,7 @@ export const LearningCenter: React.FC = () => {
   React.useEffect(() => {
     const filtered = docFilterer(docs);
     setFilteredDocApps(
-      filtered.sort((a, b) => {
+      filtered.toSorted((a, b) => {
         const aFav = favoriteResources.includes(a.metadata.name);
         const bFav = favoriteResources.includes(b.metadata.name);
         if (aFav && !bFav) {

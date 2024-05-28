@@ -248,7 +248,7 @@ export const getDefaultVersionForImageStream = (
     return undefined;
   }
 
-  const sortedVersions = [...availableVersions].sort(compareTagVersions);
+  const sortedVersions = availableVersions.toSorted(compareTagVersions);
 
   // Return the most recent version
   return sortedVersions[0];

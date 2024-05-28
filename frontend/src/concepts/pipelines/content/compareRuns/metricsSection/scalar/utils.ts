@@ -85,7 +85,9 @@ export const generateTableStructure = (scalarMetricsArtifacts: RunArtifact[]): S
   ];
 
   // Prepare data rows and sort them
-  const sortedDataList = Object.entries(dataMap).sort((a, b) => b[1].dataCount - a[1].dataCount);
+  const sortedDataList = Object.entries(dataMap).toSorted(
+    (a, b) => b[1].dataCount - a[1].dataCount,
+  );
 
   return {
     columns,

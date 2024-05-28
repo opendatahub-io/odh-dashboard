@@ -199,6 +199,10 @@
         "object": "Promise",
         "property": "allSettled",
         "message": "Avoid using Promise.allSettled, use allSettledPromises utility function instead."
+      },
+      {
+        "property": "sort",
+        "message": "Avoid using .sort, use .toSorted instead."
       }
     ],
     "import/newline-after-import": "error",
