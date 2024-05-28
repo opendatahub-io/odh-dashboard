@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Tooltip } from '@patternfly/react-core';
 import { OdhApplicationCategory } from '~/types';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 type OdhExploreCardTypeBadgeProps = {
   category: OdhApplicationCategory | string;
@@ -14,8 +15,7 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
   } else if (category === OdhApplicationCategory.PartnerManaged) {
     content = 'Partner managed software is hosted on the ISV’s cloud service';
   } else if (category === OdhApplicationCategory.SelfManaged) {
-    content =
-      'Self-managed software is installed to a Red Hat OpenShift AI cluster, but does not support upgrade testing, alerting, or other features of externally managed software';
+    content = `Self-managed software is installed to a ${ODH_PRODUCT_NAME} cluster, but does not support upgrade testing, alerting, or other features of externally managed software`;
   }
 
   if (!content) {

@@ -28,7 +28,9 @@ class AdministrationTab {
   shouldHaveManageUsersAlert() {
     cy.findByTestId('manage-users-alert').should(
       'have.text',
-      'Custom alert:Manage users in OpenShiftCreate, delete, and manage permissions for Red Hat OpenShift AI users in OpenShift. Learn more about OpenShift user management',
+      `Custom alert:Manage users in OpenShiftCreate, delete, and manage permissions for ${Cypress.env(
+        'ODH_PRODUCT_NAME',
+      )} users in OpenShift. Learn more about OpenShift user management`,
     );
     return this;
   }

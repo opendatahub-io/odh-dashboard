@@ -6,6 +6,7 @@ import ExternalLink from '~/components/ExternalLink';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '~/types';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
@@ -55,7 +56,7 @@ const NotebookAdminControl: React.FC = () => {
               isInline
               data-testid="manage-users-alert"
             >
-              Create, delete, and manage permissions for Red Hat OpenShift AI users in OpenShift.{' '}
+              Create, delete, and manage permissions for {ODH_PRODUCT_NAME} users in OpenShift.{' '}
               <ExternalLink
                 text="Learn more about OpenShift user management"
                 to="https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/index"

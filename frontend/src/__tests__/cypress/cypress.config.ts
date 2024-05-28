@@ -7,6 +7,9 @@ import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapsho
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 
 dotenv.config({
+  path: path.resolve(__dirname, '../../../.env'),
+});
+dotenv.config({
   path: path.resolve(__dirname, `../../../.env.cypress${process.env.MOCK ? '.mock' : ''}`),
 });
 dotenv.config({
@@ -28,6 +31,7 @@ export default defineConfig({
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
+    ODH_PRODUCT_NAME: process.env.ODH_PRODUCT_NAME,
   },
   defaultCommandTimeout: 10000,
   e2e: {
