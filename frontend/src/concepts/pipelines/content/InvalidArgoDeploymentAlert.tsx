@@ -2,6 +2,7 @@ import { Alert, AlertActionCloseButton, AlertActionLink } from '@patternfly/reac
 import React from 'react';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 const INVALID_ARGO_DEPLOYMENT_CLOUD_DOCUMENTATION_URL =
   'https://access.redhat.com/documentation/en-us/red_hat_openshift_ai_self-managed/2.9/html/release_notes/new-features-and-enhancements_relnotes';
@@ -55,7 +56,7 @@ export const InvalidArgoDeploymentAlert: React.FC = () => {
       title="Data Science Pipelines enablement failed"
     >
       Data Science Pipelines could not be enabled because a version of Argo Workflows that is not
-      managed by Red Hat is installed on your cluster. To learn more, view the Red Hat Openshift AI
+      managed by Red Hat is installed on your cluster. To learn more, view the {ODH_PRODUCT_NAME}
       2.9 documentation.
     </Alert>
   );
