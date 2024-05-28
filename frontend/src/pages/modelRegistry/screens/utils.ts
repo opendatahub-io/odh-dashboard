@@ -5,6 +5,7 @@ import {
   ModelRegistryMetadataType,
   ModelRegistryStringCustomProperties,
   ModelVersion,
+  ModelVersionState,
   RegisteredModel,
 } from '~/concepts/modelRegistry/types';
 import { KeyValuePair } from '~/types';
@@ -111,8 +112,13 @@ export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
   search: string,
   searchType: SearchType,
+  archived?: boolean,
 ): ModelVersion[] =>
   unfilteredModelVersions.filter((mv: ModelVersion) => {
+    if (archived && mv.state !== ModelVersionState.ARCHIVED) {
+      return false;
+    }
+
     if (!search) {
       return true;
     }
@@ -135,3 +141,9 @@ export const filterModelVersions = (
         return true;
     }
   });
+
+export const filterArchiveVersions = (modelVersions: ModelVersion[]): ModelVersion[] =>
+  modelVersions.filter((mv) => mv.state === ModelVersionState.ARCHIVED);
+
+export const filterLiveVersions = (modelVersions: ModelVersion[]): ModelVersion[] =>
+  modelVersions.filter((mv) => mv.state === ModelVersionState.LIVE);

@@ -331,19 +331,25 @@ declare global {
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
+        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',
         options: { path: { serviceName: string; apiVersion: string } },
         response: OdhResponse<RegisteredModelList>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId`,
+        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
+        options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+        response: OdhResponse<ModelVersionList>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
         options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
         response: OdhResponse<RegisteredModel>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
         options: {
           path: { serviceName: string; apiVersion: string; modelVersionId: number };
         },
@@ -351,9 +357,15 @@ declare global {
       ): Cypress.Chainable<null>;
 
       interceptOdh(
-        type: `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
-        options: { path: { serviceName: string; apiVersion: string; modelVersionId: 1 } },
+        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
+        options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
         response: OdhResponse<ModelArtifactList>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
+        type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+        options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
+        response: OdhResponse<ModelVersion | undefined>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(
@@ -513,12 +525,6 @@ declare global {
         type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
         options: { path: { namespace: string; serviceName: string } },
         response: OdhResponse<ListPipelineRunJobsResourceKF>,
-      ): Cypress.Chainable<null>;
-
-      interceptOdh(
-        type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
-        options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
-        response: OdhResponse<ModelVersionList>,
       ): Cypress.Chainable<null>;
 
       interceptOdh(

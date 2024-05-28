@@ -1,5 +1,4 @@
-/* eslint-disable camelcase */
-import { ModelRegistryMetadataType, RegisteredModelList } from '~/concepts/modelRegistry/types';
+import { RegisteredModelList } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from './mockRegisteredModel';
 
 export const mockRegisteredModelList = ({
@@ -12,105 +11,39 @@ export const mockRegisteredModelList = ({
       name: 'Fraud detection model',
       description:
         'A machine learning model trained to detect fraudulent transactions in financial data',
-      customProperties: {
-        Financial: {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: 'non-empty',
-        },
-        'Financial data': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Fraud detection': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Test label': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Machine learning': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Next data to be overflow': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-      },
+      labels: [
+        'Financial data',
+        'Fraud detection',
+        'Test label',
+        'Machine learning',
+        'Next data to be overflow',
+      ],
     }),
     mockRegisteredModel({
       name: 'Credit Scoring',
-      customProperties: {
-        'Credit Score Predictor': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Creditworthiness scoring system': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Default Risk Analyzer': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Portfolio Management': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Risk Assessment': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-      },
+      labels: [
+        'Credit Score Predictor',
+        'Creditworthiness scoring system',
+        'Default Risk Analyzer',
+        'Portfolio Management',
+        'Risk Assessment',
+      ],
     }),
     mockRegisteredModel({
       name: 'Label modal',
       description:
         'A machine learning model trained to detect fraudulent transactions in financial data',
-      customProperties: {
-        'Testing label': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        Financial: {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: 'non-empty',
-        },
-        'Financial data': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Fraud detection': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
-          {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-        'Machine learning': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Next data to be overflow': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Label x': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Label y': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Label z': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-      },
+      labels: [
+        'Testing label',
+        'Financial data',
+        'Fraud detection',
+        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc',
+        'Machine learning',
+        'Next data to be overflow',
+        'Label x',
+        'Label y',
+        'Label z',
+      ],
     }),
   ],
   nextPageToken: '',

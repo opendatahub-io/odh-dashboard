@@ -10,7 +10,7 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ModelRegistryModel } from '~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { ModelRegistryMetadataType, ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 
 type HandlersProps = {
@@ -26,44 +26,16 @@ const initIntercepts = ({
     mockModelVersion({
       author: 'Author 1',
       id: '1',
-      customProperties: {
-        Financial: {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: 'non-empty',
-        },
-        'Financial data': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Fraud detection': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Test label': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Machine learning': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Next data to be overflow': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Test label x': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Test label y': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-        'Test label z': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-      },
+      labels: [
+        'Financial data',
+        'Fraud detection',
+        'Test label',
+        'Machine learning',
+        'Next data to be overflow',
+        'Test label x',
+        'Test label y',
+        'Test label z',
+      ],
     }),
     mockModelVersion({ id: '2', name: 'model version' }),
   ],
@@ -136,14 +108,8 @@ describe('Model Versions', () => {
     registeredModelRow.findName().contains('Fraud detection model').click();
     verifyRelativeURL(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     modelRegistry.findModelBreadcrumbItem().contains('test');
-    modelRegistry
-      .findModelVersionsTableKebab()
-      .findDropdownItem('View archived versions')
-      .should('be.disabled');
-    modelRegistry
-      .findModelVersionsHeaderAction()
-      .findDropdownItem('Archive model')
-      .should('be.disabled');
+    modelRegistry.findModelVersionsTableKebab().findDropdownItem('View archived versions');
+    modelRegistry.findModelVersionsHeaderAction().findDropdownItem('Archive model');
     modelRegistry.findModelVersionsTable().should('be.visible');
     modelRegistry.findModelVersionsTableRows().should('have.length', 2);
 

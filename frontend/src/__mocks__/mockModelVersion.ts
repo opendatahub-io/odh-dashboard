@@ -1,27 +1,32 @@
-import { ModelRegistryBase, ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types';
+import { createModelRegistryLabelsObject } from './utils';
 
 type MockModelVersionType = {
   author?: string;
   id?: string;
   registeredModelId?: string;
   name?: string;
-  customProperties?: ModelRegistryBase['customProperties'];
+  labels?: string[];
+  state?: ModelVersionState;
+  description?: string;
 };
 
 export const mockModelVersion = ({
   author = 'Test author',
   registeredModelId = '1',
   name = 'new model version',
-  customProperties = {},
-  id = '',
+  labels = [],
+  id = '1',
+  state = ModelVersionState.LIVE,
+  description = 'Description of model version',
 }: MockModelVersionType): ModelVersion => ({
   author,
   createTimeSinceEpoch: '1712234877179',
-  customProperties,
+  customProperties: createModelRegistryLabelsObject(labels),
   id,
   lastUpdateTimeSinceEpoch: '1712234877179',
   name,
-  state: ModelVersionState.ARCHIVED,
+  state,
   registeredModelId,
-  description: 'Description of model version',
+  description,
 });
