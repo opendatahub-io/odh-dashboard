@@ -8,7 +8,7 @@ import { TableToolbar } from './components/TableToolbar';
 class ModelServingToolbar extends TableToolbar {}
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visit(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
     this.wait();
   }
 

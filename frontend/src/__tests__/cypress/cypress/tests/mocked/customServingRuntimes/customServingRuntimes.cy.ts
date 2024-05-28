@@ -9,7 +9,7 @@ import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
   customServingRuntimesInitialMock,
   customServingRuntimesIntercept,
-} from '~/__tests__/cypress/cypress/e2e/customServingRuntimes/customServingRuntimesUtils';
+} from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
 
 const addfilePath = '../../__mocks__/mock-custom-serving-runtime-add.yaml';
 const editfilePath = '../../__mocks__/mock-custom-serving-runtime-edit.yaml';

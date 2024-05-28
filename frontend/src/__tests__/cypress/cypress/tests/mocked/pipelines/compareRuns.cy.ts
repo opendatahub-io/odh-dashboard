@@ -145,9 +145,10 @@ describe('Compare runs', () => {
 
   describe('Parameters', () => {
     beforeEach(() => {
-      cy.visit(
-        `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?runs=${mockRun.run_id},${mockRun2.run_id}`,
-      );
+      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+        mockRun.run_id,
+        mockRun2.run_id,
+      ]);
     });
 
     it('shows empty state when the Runs list has no selections', () => {

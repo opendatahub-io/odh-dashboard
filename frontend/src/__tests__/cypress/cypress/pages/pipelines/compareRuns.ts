@@ -2,7 +2,9 @@ import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class CompareRunsGlobal {
   visit(projectName: string, experimentId: string, runIds: string[] = []) {
-    cy.visit(`/experiments/${projectName}/${experimentId}/compareRuns?runs=${runIds.join(',')}`);
+    cy.visitWithLogin(
+      `/experiments/${projectName}/${experimentId}/compareRuns?runs=${runIds.join(',')}`,
+    );
   }
 
   findInvalidRunsError() {

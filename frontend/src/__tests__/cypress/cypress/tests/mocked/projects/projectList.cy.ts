@@ -136,7 +136,7 @@ describe('Data science projects details', () => {
     };
 
     cy.interceptK8sList(ProjectModel, projectsMock);
-    cy.visit('/projects');
+    projectListPage.visit();
 
     projectListPage.shouldHaveProjects();
     projectListPage.findProjectLink('DS Project 1').should('exist');

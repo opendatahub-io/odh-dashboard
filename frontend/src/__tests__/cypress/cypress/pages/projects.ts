@@ -39,7 +39,7 @@ class ProjectRow extends TableRow {
 
 class ProjectListPage {
   visit() {
-    cy.visit('/projects');
+    cy.visitWithLogin('/projects');
     this.wait();
   }
 
@@ -131,12 +131,12 @@ class DataConnectionRow extends TableRow {
 
 class ProjectDetails {
   visit(project: string) {
-    cy.visit(`/projects/${project}`);
+    cy.visitWithLogin(`/projects/${project}`);
     this.wait();
   }
 
   visitSection(project: string, section: string) {
-    cy.visit(`/projects/${project}?section=${section}`);
+    cy.visitWithLogin(`/projects/${project}?section=${section}`);
     this.wait(section);
   }
 

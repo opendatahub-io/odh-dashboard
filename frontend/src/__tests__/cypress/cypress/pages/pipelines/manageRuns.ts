@@ -2,7 +2,7 @@ import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class ManageRunsPage {
   visit(experimentId: string, projectName: string, runIds: string[]) {
-    cy.visit(
+    cy.visitWithLogin(
       `/experiments/${projectName}/${experimentId}/compareRuns/add?runs=${runIds.join(',')}`,
     );
     this.wait();

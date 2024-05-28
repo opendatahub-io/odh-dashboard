@@ -3,7 +3,7 @@ import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 
 class GlobalDistributedWorkloads {
   visit(wait = true) {
-    cy.visit(`/distributedWorkloads`);
+    cy.visitWithLogin(`/distributedWorkloads`);
     if (wait) {
       this.wait();
     }

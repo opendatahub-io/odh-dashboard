@@ -13,7 +13,7 @@ class NotebookImageSettingsTableToolbar extends TableToolbar {}
 
 class NotebookImageSettings {
   visit(wait = true) {
-    cy.visit('/notebookImages');
+    cy.visitWithLogin('/notebookImages');
     if (wait) {
       this.wait();
     }

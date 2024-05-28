@@ -61,21 +61,21 @@ class ModelVersionArchive {
   }
 
   visit() {
-    cy.visit(modelVersionArchiveUrl('1', 'modelregistry-sample'));
+    cy.visitWithLogin(modelVersionArchiveUrl('1', 'modelregistry-sample'));
     this.wait();
   }
 
   visitArchiveVersionDetail() {
-    cy.visit(modelVersionArchiveDetailsUrl('2', '1', 'modelregistry-sample'));
+    cy.visitWithLogin(modelVersionArchiveDetailsUrl('2', '1', 'modelregistry-sample'));
   }
 
   visitModelVersionList() {
-    cy.visit(modelVersionListUrl('1', 'modelregistry-sample'));
+    cy.visitWithLogin(modelVersionListUrl('1', 'modelregistry-sample'));
     this.wait();
   }
 
   visitModelVersionDetails() {
-    cy.visit(modelVersionUrl('3', '1', 'modelregistry-sample'));
+    cy.visitWithLogin(modelVersionUrl('3', '1', 'modelregistry-sample'));
     this.wait();
   }
 

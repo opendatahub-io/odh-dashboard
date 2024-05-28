@@ -2,7 +2,7 @@ import { appChrome } from './appChrome';
 
 class ModelRegistrySettings {
   visit(wait = true) {
-    cy.visit('/modelRegistrySettings');
+    cy.visitWithLogin('/modelRegistrySettings');
     if (wait) {
       this.wait();
     }

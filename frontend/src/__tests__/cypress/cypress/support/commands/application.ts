@@ -5,6 +5,18 @@ declare global {
   namespace Cypress {
     interface Chainable {
       /**
+       * Visits the URL and performs a login if necessary.
+       * Uses credentials supplied by environment variables if not provided.
+       *
+       * @param url the URL to visit
+       * @param credentials login credentials
+       */
+      visitWithLogin(
+        url: string,
+        credentials?: { username: string; password: string; provider?: string },
+      ): Cypress.Chainable<void>;
+
+      /**
        * Find a patternfly kebab toggle button.
        *
        * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
@@ -89,6 +101,46 @@ declare global {
     }
   }
 }
+
+Cypress.Commands.add(
+  'visitWithLogin',
+  (
+    url,
+    credentials = {
+      username: Cypress.env('LOGIN_USERNAME') ?? '',
+      password: Cypress.env('LOGIN_PASSWORD') ?? '',
+      provider: Cypress.env('LOGIN_PROVIDER'),
+    },
+  ) => {
+    if (Cypress.env('MOCK')) {
+      cy.visit(url);
+    } else {
+      cy.intercept('GET', url, { log: false }).as('visitWithLogin');
+
+      cy.visit(url, { failOnStatusCode: false });
+
+      cy.wait('@visitWithLogin', { log: false }).then((interception) => {
+        if (interception.response?.statusCode === 403) {
+          cy.log('Do login');
+          // do login
+          cy.get('form[action="/oauth/start"]').submit();
+          cy.findAllByRole('link', credentials.provider ? { name: credentials.provider } : {})
+            .last()
+            .click();
+          cy.get('input[name=username]').type(credentials.username);
+          cy.get('input[name=password]').type(credentials.password);
+          cy.get('form').submit();
+        } else if (interception.response?.statusCode !== 200) {
+          throw new Error(
+            `Failed to visit '${url}'. Status code: ${
+              interception.response?.statusCode || 'unknown'
+            }`,
+          );
+        }
+      });
+    }
+  },
+);
 
 Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject, isDropdownToggle) => {
   Cypress.log({ displayName: 'findKebab' });

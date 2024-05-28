@@ -1,6 +1,6 @@
 class NotebookServer {
   visit() {
-    cy.visit('/notebookController/spawner');
+    cy.visitWithLogin('/notebookController/spawner');
     this.wait();
   }
 
