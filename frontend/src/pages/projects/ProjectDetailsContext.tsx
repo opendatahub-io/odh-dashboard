@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
+import { WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   GroupKind,
   InferenceServiceKind,
@@ -10,7 +11,7 @@ import {
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ContextResourceData } from '~/types';
@@ -26,13 +27,13 @@ import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/u
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getTokenNames } from '~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useGroups } from '~/api';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
-import useGroups from './projectSharing/useGroups';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -48,7 +49,7 @@ type ProjectDetailsContextType = {
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
   projectSharingRB: ContextResourceData<RoleBindingKind>;
-  groups: ContextResourceData<GroupKind>;
+  groups: WatchK8sResult<GroupKind[]>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -66,7 +67,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
   projectSharingRB: DEFAULT_CONTEXT_DATA,
-  groups: DEFAULT_CONTEXT_DATA,
+  groups: DEFAULT_LIST_WATCH_RESULT,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -93,7 +94,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
-  const groups = useContextResourceData<GroupKind>(useGroups());
+  const groups = useGroups();
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
@@ -104,7 +105,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateDisablement.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const projectSharingRefresh = projectSharingRB.refresh;
-  const groupsRefresh = groups.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
@@ -113,7 +113,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeRefresh();
     inferenceServiceRefresh();
     projectSharingRefresh();
-    groupsRefresh();
     servingRuntimeTemplateRefresh();
     servingRuntimeTemplateOrderRefresh();
     servingRuntimeTemplateDisablementRefresh();
@@ -127,7 +126,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeTemplateDisablementRefresh,
     inferenceServiceRefresh,
     projectSharingRefresh,
-    groupsRefresh,
   ]);
 
   const filterTokens = React.useCallback(
