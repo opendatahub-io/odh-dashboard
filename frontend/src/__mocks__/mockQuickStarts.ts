@@ -87,7 +87,7 @@ export const mockQuickStarts = (): OdhQuickStart[] => [
       appName: 'jupyter',
       conclusion: 'You are now able to deploy a sample model stored in GitHub.',
       description: 'How to deploy a Python model using Flask and OpenShift.',
-      displayName: 'Deploying a sample Python application using Flask and OpenShift.',
+      displayName: 'Deploying a sample Python application using Flask and OpenShift',
       durationMinutes: 10,
       icon: 'images/jupyterhub.svg',
       introduction:
