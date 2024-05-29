@@ -16,6 +16,7 @@ import {
   pipelineDeleteModal,
   configurePipelineServerModal,
   viewPipelineServerModal,
+  PipelineSort,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
@@ -28,7 +29,6 @@ import {
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
@@ -363,32 +363,8 @@ describe('Pipelines', () => {
   });
 
   it('View pipeline server', () => {
-    initIntercepts({});
-    cy.interceptK8s(
-      {
-        model: SecretModel,
-        ns: projectName,
-      },
-      mockSecretK8sResource({
-        s3Bucket: 'c2RzZA==',
-        namespace: projectName,
-        name: 'aws-connection-test',
-      }),
-    );
-
-    pipelinesGlobal.visit(projectName);
-
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.findCloseButton().click();
-
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
-
-    viewPipelineServerModal.findDoneButton().click();
+    const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
+    viewPipelineServerDetailsTest(visitPipelineProjects);
   });
 
   it('renders the page with pipelines table data', () => {
@@ -483,17 +459,22 @@ describe('Pipelines', () => {
       initIntercepts({});
       pipelinesGlobal.visit(projectName);
 
-      // by Pipeline
-      pipelinesTable.findTableHeaderButton('Pipeline').click();
-      pipelinesTable.findTableHeaderButton('Pipeline').should(be.sortAscending);
-      pipelinesTable.findTableHeaderButton('Pipeline').click();
-      pipelinesTable.findTableHeaderButton('Pipeline').should(be.sortDescending);
-
-      // by Created
-      pipelinesTable.findTableHeaderButton('Created').click();
-      pipelinesTable.findTableHeaderButton('Created').should(be.sortAscending);
-      pipelinesTable.findTableHeaderButton('Created').click();
-      pipelinesTable.findTableHeaderButton('Created').should(be.sortDescending);
+      pipelinesTable.shouldSortTable({
+        sortType: PipelineSort.All,
+        pipelines: [
+          buildMockPipelineV2({
+            display_name: 'Test pipeline 1',
+            pipeline_id: 'test-pipeline-1',
+            created_at: '2023-01-30T22:55:17Z',
+          }),
+          buildMockPipelineV2({
+            display_name: 'Test pipeline 2',
+            pipeline_id: 'test-pipeline-2',
+            created_at: '2024-01-30T22:55:17Z',
+          }),
+        ],
+        projectName,
+      });
     });
   });
 
@@ -945,29 +926,13 @@ describe('Pipelines', () => {
   });
 
   it('navigate to create run page from pipeline row', () => {
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-
-    // Wait for the pipelines table to load
-    pipelinesTable.find();
-    pipelinesTable
-      .getRowById(initialMockPipeline.pipeline_id)
-      .findKebabAction('Create run')
-      .click();
-    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+    const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
+    runCreateRunPageNavTest(visitPipelineProjects);
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-
-    pipelinesTable.find();
-    pipelinesTable
-      .getRowById(initialMockPipeline.pipeline_id)
-      .findKebabAction('Schedule run')
-      .click();
-
-    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+    const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
+    runScheduleRunPageNavTest(visitPipelineProjects);
   });
 
   it('navigate to create run page from pipeline version row', () => {
@@ -1119,12 +1084,12 @@ type HandlersProps = {
   nextPageToken?: string | undefined;
 };
 
-const initIntercepts = ({
+export const initIntercepts = ({
   isEmpty = false,
   mockPipelines = [initialMockPipeline],
   totalSize = mockPipelines.length,
   nextPageToken,
-}: HandlersProps) => {
+}: HandlersProps): void => {
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
     mockK8sResourceList(
@@ -1193,3 +1158,59 @@ const createDeletePipelineIntercept = (pipelineId: string) =>
     },
     mockSuccessGoogleRpcStatus({}),
   );
+
+export const runCreateRunPageNavTest = (visitPipelineProjects: () => void): void => {
+  initIntercepts({});
+  visitPipelineProjects();
+
+  // Wait for the pipelines table to load
+  pipelinesTable.find();
+  pipelinesTable.getRowById(initialMockPipeline.pipeline_id).findKebabAction('Create run').click();
+  verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+};
+
+export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): void => {
+  initIntercepts({});
+  visitPipelineProjects();
+
+  pipelinesTable.find();
+  pipelinesTable
+    .getRowById(initialMockPipeline.pipeline_id)
+    .findKebabAction('Schedule run')
+    .click();
+
+  verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+};
+
+export const viewPipelineServerDetailsTest = (visitPipelineProjects: () => void): void => {
+  initIntercepts({});
+  cy.interceptK8s(
+    {
+      model: SecretModel,
+      ns: projectName,
+    },
+    mockSecretK8sResource({
+      s3Bucket: 'c2RzZA==',
+      namespace: projectName,
+      name: 'aws-connection-test',
+    }),
+  );
+  visitPipelineProjects();
+  viewPipelinelineDetails();
+};
+
+const viewPipelinelineDetails = (
+  accessKey = 'sdsd',
+  secretKey = 'sdsd',
+  endpoint = 'https://s3.amazonaws.com',
+  bucketName = 'test-pipelines-bucket',
+) => {
+  pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+  viewPipelineServerModal.shouldHaveAccessKey(accessKey);
+  viewPipelineServerModal.findPasswordHiddenButton().click();
+  viewPipelineServerModal.shouldHaveSecretKey(secretKey);
+  viewPipelineServerModal.shouldHaveEndPoint(endpoint);
+  viewPipelineServerModal.shouldHaveBucketName(bucketName);
+
+  viewPipelineServerModal.findDoneButton().click();
+};

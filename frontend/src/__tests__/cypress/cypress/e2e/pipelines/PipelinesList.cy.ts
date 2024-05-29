@@ -1,63 +1,54 @@
 /* eslint-disable camelcase */
-import { buildMockPipelineVersionV2, buildMockPipelineVersionsV2 } from '~/__mocks__';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
+import { buildMockPipelineVersionV2 } from '~/__mocks__';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock404Error } from '~/__mocks__/mockK8sStatus';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines';
+import {
+  pipelinesTable,
+  configurePipelineServerModal,
+  pipelineVersionImportModal,
+  PipelineSort,
+} from '~/__tests__/cypress/cypress/pages/pipelines';
 import { pipelinesSection } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { DataSciencePipelineApplicationModel } from '~/__tests__/cypress/cypress/utils/models';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
-  DataSciencePipelineApplicationModel,
-  PVCModel,
-  PodModel,
-  ProjectModel,
-  RouteModel,
-  SecretModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+  initIntercepts,
+  runCreateRunPageNavTest,
+  runScheduleRunPageNavTest,
+  viewPipelineServerDetailsTest,
+} from './Pipelines.cy';
 
+const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
 const initialMockPipelineVersion = buildMockPipelineVersionV2({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 
-const initIntercepts = () => {
-  cy.interceptOdh(
-    'GET /api/dsc/status',
-    mockDscStatus({ installedComponents: { 'data-science-pipelines-operator': true } }),
-  );
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableModelServing: true }));
-  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
-  cy.interceptK8s(RouteModel, mockRouteK8sResource({}));
-  cy.interceptK8sList(RouteModel, mockK8sResourceList([mockNotebookK8sResource({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-  cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
-  cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
-  cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
-  cy.interceptK8s(
-    RouteModel,
-    mockRouteK8sResource({
-      notebookName: 'ds-pipeline-dspa',
-    }),
-  );
-};
+const mockPipelines: PipelineKFv2[] = [
+  buildMockPipelineV2({
+    display_name: 'Test pipeline 1',
+    pipeline_id: 'test-pipeline-1',
+    created_at: '2023-01-30T22:55:17Z',
+  }),
+
+  buildMockPipelineV2({
+    display_name: 'Test pipeline 2',
+    pipeline_id: 'test-pipeline-2',
+    created_at: '2024-01-30T22:55:17Z',
+  }),
+];
 
 describe('PipelinesList', () => {
   it('should show the configure pipeline server button when the server is not configured', () => {
-    initIntercepts();
+    initIntercepts({ isEmpty: true });
     cy.interceptK8s(
       {
         model: DataSciencePipelineApplicationModel,
-        ns: 'test-project',
+        ns: projectName,
         name: 'pipelines-definition',
       },
       {
@@ -66,13 +57,27 @@ describe('PipelinesList', () => {
       },
     );
 
-    projectDetails.visitSection('test-project', 'pipelines-projects');
+    projectDetails.visitSection(projectName, 'pipelines-projects');
 
     pipelinesSection.findCreatePipelineButton().should('be.enabled');
   });
 
+  it('should verify that clicking on Configure pipeline server button will open a modal', () => {
+    initIntercepts({ isEmpty: true });
+    projectDetails.visitSection(projectName, 'pipelines-projects');
+    pipelinesSection.findCreatePipelineButton().should('be.enabled');
+    pipelinesSection.findCreatePipelineButton().click();
+    configurePipelineServerModal.findSubmitButton().should('exist');
+  });
+
+  it('should view pipeline server', () => {
+    const visitPipelineProjects = () =>
+      projectDetails.visitSection(projectName, 'pipelines-projects');
+    viewPipelineServerDetailsTest(visitPipelineProjects);
+  });
+
   it('should disable the upload version button when the list is empty', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptK8sList(
       DataSciencePipelineApplicationModel,
       mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
@@ -84,12 +89,12 @@ describe('PipelinesList', () => {
     cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        path: { namespace: 'test-project', serviceName: 'dspa' },
+        path: { namespace: projectName, serviceName: 'dspa' },
       },
       buildMockPipelines([]),
     ).as('pipelines');
 
-    projectDetails.visitSection('test-project', 'pipelines-projects');
+    projectDetails.visitSection(projectName, 'pipelines-projects');
 
     pipelinesSection.findImportPipelineSplitButton().should('be.enabled').click();
 
@@ -104,52 +109,27 @@ describe('PipelinesList', () => {
   });
 
   it('should show the ability to delete the pipeline server kebab option', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      DataSciencePipelineApplicationModel,
-      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' })]),
-    );
-    cy.interceptK8s(
-      DataSciencePipelineApplicationModel,
-      mockDataSciencePipelineApplicationK8sResource({ dspVersion: 'v1' }),
-    );
-    projectDetails.visitSection('test-project', 'pipelines-projects');
+    initIntercepts({});
 
-    pipelinesSection.findAllActions().should('have.length', 1);
-    pipelinesSection.findImportPipelineSplitButton().should('not.exist');
+    projectDetails.visitSection(projectName, 'pipelines-projects');
+
     pipelinesSection.findKebabActions().should('be.visible').should('be.enabled');
     pipelinesSection.findKebabActionItem('Delete pipeline server').should('be.visible');
   });
 
+  it('should show the ability to upload new version when clicking the pipeline server kebab option', () => {
+    initIntercepts({});
+
+    projectDetails.visitSection(projectName, 'pipelines-projects');
+    pipelinesTable.find();
+    const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
+    pipelineRow.findKebabAction('Upload new version').should('be.visible').click();
+    pipelineVersionImportModal.shouldBeOpen();
+  });
+
   it('should navigate to details page when clicking on the version name', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      DataSciencePipelineApplicationModel,
-      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
-    );
-    cy.interceptK8s(
-      DataSciencePipelineApplicationModel,
-      mockDataSciencePipelineApplicationK8sResource({}),
-    );
-    cy.interceptOdh(
-      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
-      {
-        path: { namespace: 'test-project', serviceName: 'dspa' },
-      },
-      buildMockPipelines([initialMockPipeline]),
-    );
-    cy.interceptOdh(
-      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
-      {
-        path: {
-          namespace: 'test-project',
-          serviceName: 'dspa',
-          pipelineId: initialMockPipeline.pipeline_id,
-        },
-      },
-      buildMockPipelineVersionsV2([initialMockPipelineVersion]),
-    );
-    projectDetails.visitSection('test-project', 'pipelines-projects');
+    initIntercepts({});
+    projectDetails.visitSection(projectName, 'pipelines-projects');
 
     pipelinesTable.find();
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
@@ -159,7 +139,53 @@ describe('PipelinesList', () => {
       .findPipelineVersionLink()
       .click();
     verifyRelativeURL(
-      `/projects/test-project/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+      `/projects/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
+
+  it('clicking on upload a new pipeline version should show a modal', () => {
+    initIntercepts({});
+    cy.intercept(
+      {
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      },
+      buildMockPipelines([initialMockPipelineVersion]),
+    );
+    projectDetails.visitSection(projectName, 'pipelines-projects');
+    cy.intercept(
+      {
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines`,
+      },
+      buildMockPipelines(mockPipelines),
+    );
+
+    pipelinesSection.findImportPipelineSplitButton().click();
+    pipelinesSection.findUploadVersionButton().click();
+    pipelineVersionImportModal.shouldBeOpen();
+  });
+
+  it('should sort the table', () => {
+    pipelineTableSetup();
+    pipelinesTable.shouldSortTable({
+      sortType: PipelineSort.All,
+      pipelines: mockPipelines,
+    });
+  });
+
+  it('navigates to create run page from pipeline row', () => {
+    const visitPipelineProjects = () =>
+      projectDetails.visitSection(projectName, 'pipelines-projects');
+    runCreateRunPageNavTest(visitPipelineProjects);
+  });
+
+  it('navigates to "Schedule run" page from pipeline row', () => {
+    const visitPipelineProjects = () =>
+      projectDetails.visitSection(projectName, 'pipelines-projects');
+    runScheduleRunPageNavTest(visitPipelineProjects);
+  });
 });
+
+const pipelineTableSetup = () => {
+  initIntercepts({ mockPipelines });
+  projectDetails.visitSection(projectName, 'pipelines-projects');
+};
