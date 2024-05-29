@@ -39,7 +39,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
             setError(e);
           });
       }}
-      submitButtonLabel="Delete"
+      submitButtonLabel="Delete pipeline server"
       deleteName={deleteName}
     >
       The <b>{deleteName}</b> and all of its pipelines and runs will be deleted from{' '}
