@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+import { BrowserRouter } from 'react-router-dom';
 import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
 import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { Execution } from '~/third_party/mlmd';
@@ -11,7 +12,52 @@ jest.mock('~/components/MaxHeightCodeEditor', () => ({
   MaxHeightCodeEditor: ({ code }: { code: string }) => JSON.stringify(JSON.parse(code)),
 }));
 
+jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+  status: true,
+  featureFlags: {},
+  reliantAreas: {},
+  requiredComponents: {},
+  requiredCapabilities: {},
+  customCondition: jest.fn(),
+}));
+
 describe('SelectedNodeInputOutputTab', () => {
+  it('renders execution name', async () => {
+    render(
+      <BrowserRouter>
+        <SelectedNodeInputOutputTab
+          task={{
+            type: 'groupTask',
+            name: 'task-1',
+            inputs: {
+              params: [],
+            },
+          }}
+          execution={
+            {
+              id: 1,
+              customPropertiesMap: [
+                [
+                  'display_name',
+                  {
+                    stringValue: 'task-1',
+                  },
+                  'inputs',
+                  {
+                    structValue: {
+                      fieldsMap: [],
+                    },
+                  },
+                ],
+              ],
+            } as unknown as Execution.AsObject
+          }
+        />
+      </BrowserRouter>,
+    );
+    expect(screen.getByText('task-1')).toBeVisible();
+  });
+
   it('renders execution values for input parameters', async () => {
     render(
       <SelectedNodeInputOutputTab

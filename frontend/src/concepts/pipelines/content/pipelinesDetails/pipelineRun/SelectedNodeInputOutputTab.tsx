@@ -1,14 +1,18 @@
 import React from 'react';
 
-import { Stack, StackItem } from '@patternfly/react-core';
+import { Grid, GridItem, Stack, StackItem } from '@patternfly/react-core';
 import { Value as ProtoValue } from 'google-protobuf/google/protobuf/struct_pb';
 
+import { Link } from 'react-router-dom';
 import { Execution } from '~/third_party/mlmd';
 import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
 import { PipelineTask, PipelineTaskParam } from '~/concepts/pipelines/topology';
 import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
 import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { NoValue } from '~/components/NoValue';
+import { executionDetailsRoute } from '~/routes';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type SelectedNodeInputOutputTabProps = {
   task: PipelineTask;
@@ -19,6 +23,17 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
   task,
   execution,
 }) => {
+  const { namespace } = usePipelinesAPI();
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+
+  const executionDisplayName = React.useMemo(
+    () =>
+      execution?.customPropertiesMap.find(
+        ([customPropKey]) => customPropKey === 'display_name',
+      )?.[1].stringValue || '(No name)',
+    [execution?.customPropertiesMap],
+  );
+
   const getExecutionFieldsMap = React.useCallback(
     (key: string) =>
       execution?.customPropertiesMap.find(([customPropKey]) => customPropKey === key)?.[1]
@@ -94,6 +109,20 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
 
   return (
     <Stack hasGutter>
+      {isExperimentsAvailable && execution?.id && (
+        <StackItem data-testid="execution-name">
+          <Grid hasGutter>
+            <GridItem span={6}>
+              <b>Execution name</b>
+            </GridItem>
+            <GridItem span={6}>
+              <Link to={executionDetailsRoute(namespace, execution.id.toString())}>
+                {executionDisplayName}
+              </Link>
+            </GridItem>
+          </Grid>
+        </StackItem>
+      )}
       {task.inputs && (
         <StackItem>
           <TaskDetailsInputOutput
