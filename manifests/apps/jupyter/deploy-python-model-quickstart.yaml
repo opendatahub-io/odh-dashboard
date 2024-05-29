@@ -5,7 +5,7 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Model serving,Getting started'
 spec:
-  displayName: Deploying a sample Python application using Flask and OpenShift.
+  displayName: Deploying a sample Python application using Flask and OpenShift
   appName: jupyter
   durationMinutes: 10
   icon: 'images/jupyter.svg'
