@@ -39,6 +39,9 @@ export * from './prometheus/distributedWorkloads';
 // Network error handling
 export * from './errorUtils';
 
+// Models for use when constructing API objects
+export * from './models';
+
 // User access review hook
 export * from './useAccessReview';
 
