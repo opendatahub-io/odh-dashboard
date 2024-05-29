@@ -3,6 +3,7 @@ import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes'
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 class PipelinesTableRow extends TableRow {
   findPipelineVersionsTable() {
@@ -31,8 +32,118 @@ class PipelineVersionsTableRow extends TableRow {
   }
 }
 
+export enum PipelineSort {
+  PipelineAsc = 'PIPELINE_ASC',
+  PipelineDesc = 'PIPELINE_DESC',
+  Pipeline = 'PIPELINE_SORT',
+  CreatedAsc = 'CREATED_ASC',
+  CreatedDesc = 'CREATED_DESC',
+  Created = 'CREATED_SORT',
+  All = 'SORT_ALL',
+}
+
 class PipelinesTable {
   private testId = 'pipelines-table';
+
+  shouldSortTable({
+    sortType,
+    pipelines,
+    projectName = 'test-project-name',
+  }: {
+    sortType: PipelineSort;
+    pipelines: PipelineKFv2[];
+    projectName?: string;
+  }): void {
+    const sortPipelineByAscending = (): void => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
+        {
+          path: { namespace: projectName, serviceName: 'dspa' },
+          query: { sort_by: 'name asc' },
+        },
+        buildMockPipelines(pipelines),
+      ).as('asc');
+      this.findTableHeaderButton('Pipeline').click();
+      this.findTableHeaderButton('Pipeline').should(be.sortAscending);
+      cy.wait('@asc');
+    };
+
+    const sortPipelineByDescending = (): void => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
+        {
+          path: { namespace: projectName, serviceName: 'dspa' },
+          query: { sort_by: 'name desc' },
+        },
+        buildMockPipelines(pipelines),
+      ).as('desc');
+      this.findTableHeaderButton('Pipeline').click();
+      this.findTableHeaderButton('Pipeline').should(be.sortDescending);
+      cy.wait('@desc');
+    };
+
+    const sortPipelineCreationByAscending = (): void => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
+        {
+          path: { namespace: projectName, serviceName: 'dspa' },
+          query: { sort_by: 'created_at asc' },
+        },
+        buildMockPipelines(pipelines),
+      ).as('asc');
+      this.findTableHeaderButton('Created').click();
+      this.findTableHeaderButton('Created').should(be.sortAscending);
+      cy.wait('@asc');
+    };
+
+    const sortPipelineCreationByDescending = (): void => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
+        {
+          path: { namespace: projectName, serviceName: 'dspa' },
+          query: { sort_by: 'created_at desc' },
+        },
+        buildMockPipelines(pipelines),
+      ).as('desc');
+
+      this.findTableHeaderButton('Created').click();
+      this.findTableHeaderButton('Created').should(be.sortDescending);
+      cy.wait('@desc');
+    };
+
+    switch (sortType) {
+      case PipelineSort.PipelineAsc:
+        sortPipelineByAscending();
+        break;
+      case PipelineSort.PipelineDesc:
+        this.findTableHeaderButton('Pipeline').click();
+        sortPipelineByDescending();
+        break;
+      case PipelineSort.Pipeline:
+        sortPipelineByAscending();
+        sortPipelineByDescending();
+        break;
+      case PipelineSort.CreatedAsc:
+        sortPipelineCreationByAscending();
+        break;
+      case PipelineSort.CreatedDesc:
+        this.findTableHeaderButton('Created').click();
+        sortPipelineCreationByDescending();
+        break;
+      case PipelineSort.Created:
+        sortPipelineCreationByAscending();
+        sortPipelineCreationByDescending();
+        break;
+      case PipelineSort.All:
+        sortPipelineByAscending();
+        sortPipelineByDescending();
+        sortPipelineCreationByAscending();
+        sortPipelineCreationByDescending();
+        break;
+      default:
+        throw new Error('Invalid invocation of shouldSortTable() method');
+    }
+  }
 
   find() {
     return cy.findByTestId(this.testId);

@@ -421,7 +421,10 @@ declare global {
 
       interceptOdh(
         type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines`,
-        options: { path: { namespace: string; serviceName: string } },
+        options: {
+          path: { namespace: string; serviceName: string };
+          query?: { sort_by: string };
+        },
         response: OdhResponse<ListPipelinesResponseKF | GoogleRpcStatusKF>,
       ): Cypress.Chainable<null>;
 
