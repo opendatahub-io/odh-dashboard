@@ -29,7 +29,7 @@ class StorageModal extends Modal {
 }
 class WorkbenchPage {
   visit(projectName: string) {
-    cy.visit(`/projects/${projectName}?section=workbenches`);
+    cy.visitWithLogin(`/projects/${projectName}?section=workbenches`);
     this.wait();
   }
 
@@ -303,7 +303,7 @@ class CreateSpawnerPage {
 
 class EditSpawnerPage extends CreateSpawnerPage {
   visit(notebookName: string) {
-    cy.visit(`/projects/test-project/spawner/${notebookName}`);
+    cy.visitWithLogin(`/projects/test-project/spawner/${notebookName}`);
     this.wait();
   }
 
@@ -330,7 +330,7 @@ class EditSpawnerPage extends CreateSpawnerPage {
 
 class NotFoundSpawnerPage {
   visit(notebookName: string) {
-    cy.visit(`/projects/test-project/spawner/${notebookName}`);
+    cy.visitWithLogin(`/projects/test-project/spawner/${notebookName}`);
     this.wait();
   }
 

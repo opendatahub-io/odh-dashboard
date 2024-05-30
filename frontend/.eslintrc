@@ -282,6 +282,20 @@
         "plugin:prettier/recommended",
         "prettier",
         "plugin:cypress/recommended"
+      ],
+      "overrides": [
+        {
+          "files": ["./src/__tests__/cypress/cypress/pages/*.ts", "./src/__tests__/cypress/cypress/tests/e2e/*.ts"],
+          "rules": {
+            "no-restricted-syntax": [
+              "error",
+              {
+                "selector": "CallExpression[callee.property.name='visit'][callee.object.name='cy']",
+                "message": "Use `cy.visitWithLogin` in page objects and e2e tests instead of `cy.visit`."
+              }
+            ]
+          }
+        }
       ]
     },
     {

@@ -2,7 +2,7 @@ import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
 
 class ModelVersionDetails {
   visit() {
-    cy.visit(modelVersionUrl('1', '1', 'modelregistry-sample'));
+    cy.visitWithLogin(modelVersionUrl('1', '1', 'modelregistry-sample'));
     this.wait();
   }
 

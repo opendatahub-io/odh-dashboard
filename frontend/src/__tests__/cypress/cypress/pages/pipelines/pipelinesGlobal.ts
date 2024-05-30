@@ -3,7 +3,7 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 class PipelinesGlobal {
   visit(projectName: string) {
-    cy.visit(`/pipelines/${projectName}`);
+    cy.visitWithLogin(`/pipelines/${projectName}`);
     this.wait();
   }
 

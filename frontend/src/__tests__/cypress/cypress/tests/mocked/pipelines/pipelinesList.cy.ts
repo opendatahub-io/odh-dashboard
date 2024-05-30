@@ -20,7 +20,7 @@ import {
   runCreateRunPageNavTest,
   runScheduleRunPageNavTest,
   viewPipelineServerDetailsTest,
-} from './Pipelines.cy';
+} from './pipelines.cy';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });

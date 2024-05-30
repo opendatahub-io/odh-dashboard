@@ -37,7 +37,7 @@ const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' 
 const initialMockPipelineVersion = buildMockPipelineVersionV2({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
-const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
+const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
 
 describe('Pipelines', () => {
   it('Empty state', () => {

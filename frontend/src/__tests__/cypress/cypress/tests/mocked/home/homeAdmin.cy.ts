@@ -1,7 +1,7 @@
 import { mockDocs } from '~/__mocks__/mockDocs';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
-import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/e2e/customServingRuntimes/customServingRuntimesUtils';
+import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
 import { notebookImageSettings } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home';

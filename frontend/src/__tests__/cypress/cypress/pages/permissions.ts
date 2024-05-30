@@ -5,7 +5,7 @@ class PermissionsTableRow extends TableRow {}
 
 class PermissionsTab {
   visit(projectName: string) {
-    cy.visit(`/projects/${projectName}?section=permissions`);
+    cy.visitWithLogin(`/projects/${projectName}?section=permissions`);
     this.wait();
   }
 

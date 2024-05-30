@@ -2,7 +2,7 @@ import { mockDashboardConfig } from '~/__mocks__';
 
 class HomePage {
   visit() {
-    cy.visit('/');
+    cy.visitWithLogin('/');
     this.wait();
   }
 

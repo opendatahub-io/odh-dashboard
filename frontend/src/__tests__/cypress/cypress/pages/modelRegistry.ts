@@ -50,12 +50,12 @@ class ModelRegistryTableRow extends TableRow {
 
 class ModelRegistry {
   landingPage() {
-    cy.visit('/');
+    cy.visitWithLogin('/');
     this.waitLanding();
   }
 
   visit() {
-    cy.visit(`/modelRegistry`);
+    cy.visitWithLogin(`/modelRegistry`);
     this.wait();
   }
 
