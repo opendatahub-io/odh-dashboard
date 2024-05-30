@@ -139,10 +139,6 @@ class ViewPipelineServerModal extends Modal {
     super('View pipeline server');
   }
 
-  findDoneButton() {
-    return this.find().findByTestId('view-pipeline-server-done-button');
-  }
-
   shouldHaveAccessKey(value: string) {
     this.find().findByTestId('access-key-field').should('have.text', value);
     return this;
