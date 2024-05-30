@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -36,22 +35,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
 
   return (
-    <Modal
-      title="View pipeline server"
-      isOpen={isOpen}
-      onClose={onClose}
-      actions={[
-        <Button
-          key="done-button"
-          variant="link"
-          onClick={onClose}
-          data-testid="view-pipeline-server-done-button"
-        >
-          Done
-        </Button>,
-      ]}
-      variant="small"
-    >
+    <Modal title="View pipeline server" isOpen={isOpen} onClose={onClose} variant="small">
       {pipelineNamespaceCR && (
         <DescriptionList termWidth="20ch" isHorizontal>
           {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret

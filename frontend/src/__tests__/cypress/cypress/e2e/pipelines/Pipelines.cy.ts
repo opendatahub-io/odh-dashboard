@@ -1212,5 +1212,5 @@ const viewPipelinelineDetails = (
   viewPipelineServerModal.shouldHaveEndPoint(endpoint);
   viewPipelineServerModal.shouldHaveBucketName(bucketName);
 
-  viewPipelineServerModal.findDoneButton().click();
+  viewPipelineServerModal.findCloseButton().click();
 };
