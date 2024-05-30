@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import { experimentRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -24,11 +24,18 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
 }) => {
   const { namespace } = usePipelinesAPI();
 
+  const isArchived = experiment.storage_state === StorageStateKF.ARCHIVED;
+
   return (
     <Tr>
       <CheckboxTd id={experiment.experiment_id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td dataLabel="Experiment">
-        <Link to={experimentRunsRoute(namespace, experiment.experiment_id)} state={{ experiment }}>
+        <Link
+          to={`${experimentRunsRoute(namespace, experiment.experiment_id)}${
+            isArchived ? '/?runType=archived' : ''
+          }`}
+          state={{ experiment }}
+        >
           {experiment.display_name}
         </Link>
       </Td>

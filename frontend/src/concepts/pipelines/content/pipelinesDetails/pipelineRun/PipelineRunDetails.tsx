@@ -27,6 +27,7 @@ import {
   RunDetailsTabs,
   RunDetailsTabSelection,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
+import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
@@ -53,6 +54,8 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   );
   const pipelineSpec = version?.pipeline_spec ?? run?.pipeline_spec;
   const [deleting, setDeleting] = React.useState(false);
+  const [archiving, setArchiving] = React.useState(false);
+
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
     RunDetailsTabs.DETAILS,
   );
@@ -164,7 +167,11 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     </Breadcrumb>
                   }
                   headerAction={
-                    <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
+                    <PipelineRunDetailsActions
+                      run={run}
+                      onDelete={() => setDeleting(true)}
+                      onArchive={() => setArchiving(true)}
+                    />
                   }
                   empty={false}
                 >
@@ -201,6 +208,11 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             setDeleting(false);
           }
         }}
+      />
+      <ArchiveRunModal
+        isOpen={archiving}
+        runs={run ? [run] : []}
+        onCancel={() => setArchiving(false)}
       />
     </>
   );
