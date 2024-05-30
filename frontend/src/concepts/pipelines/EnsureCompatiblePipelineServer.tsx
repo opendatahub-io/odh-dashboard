@@ -12,11 +12,10 @@ import {
   EmptyStateIcon,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import ExternalLink from '~/components/ExternalLink';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import { useUser } from '~/redux/selectors';
-import { usePipelinesAPI } from './context';
+import { DeleteServerModal, usePipelinesAPI } from './context';
 
 // TODO: Fix doc link to go to more docs on v2
 const DOCS_LINK =
@@ -85,7 +84,7 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
             )}
           </EmptyState>
         </Bullseye>
-        <DeletePipelineServerModal isOpen={isDeleting} onClose={() => setIsDeleting(false)} />
+        <DeleteServerModal isOpen={isDeleting} onClose={() => setIsDeleting(false)} />
       </>
     );
   }
