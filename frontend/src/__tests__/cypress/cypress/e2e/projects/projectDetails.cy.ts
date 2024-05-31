@@ -18,6 +18,10 @@ import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 type HandlersProps = {
   isEmpty?: boolean;
   imageStreamName?: string;
+  imageStreamTag?: string;
+  disableKServeConfig?: boolean;
+  disableKServeMetrics?: boolean;
+  disableModelConfig?: boolean;
   isEnabled?: string;
   isUnknown?: boolean;
 };
@@ -25,6 +29,7 @@ type HandlersProps = {
 const initIntercepts = ({
   isEmpty = false,
   imageStreamName = 'test-image',
+  imageStreamTag = 'latest',
   isEnabled = 'true',
   isUnknown = false,
 }: HandlersProps) => {
@@ -99,14 +104,14 @@ const initIntercepts = ({
                 spec: {
                   tags: [
                     {
-                      name: 'latest',
+                      name: imageStreamTag,
                     },
                   ],
                 },
                 status: {
                   tags: [
                     {
-                      tag: 'latest',
+                      tag: imageStreamTag,
                     },
                   ],
                 },
@@ -185,7 +190,7 @@ describe('Project Details', () => {
   });
 
   it('Notebook with deleted image', () => {
-    initIntercepts({ imageStreamName: 'test' });
+    initIntercepts({ imageStreamName: 'test', imageStreamTag: 'failing-tag' });
     projectDetails.visit('test-project');
     const notebookRow = projectDetails.getNotebookRow('test-notebook');
     notebookRow.shouldHaveNotebookImageName('Test image');
