@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { IAction } from '@patternfly/react-table';
+import { IAction, TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import { experimentColumns } from '~/concepts/pipelines/content/tables/columns';
@@ -83,6 +83,7 @@ const ExperimentTable: React.FC<ExperimentTableProps> = ({
         />
       )}
       getColumnSort={getTableColumnSort({ columns: experimentColumns, ...tableProps })}
+      variant={TableVariant.compact}
       data-testid="experiment-table"
     />
   );
