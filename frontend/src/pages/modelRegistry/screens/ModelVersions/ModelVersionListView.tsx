@@ -125,7 +125,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                     setIsArchivedModelVersionKebabOpen(!isArchivedModelVersionKebabOpen)
                   }
                   isExpanded={isArchivedModelVersionKebabOpen}
-                  aria-label="View archived models"
+                  aria-label="View archived versions"
                 >
                   <EllipsisVIcon />
                 </MenuToggle>

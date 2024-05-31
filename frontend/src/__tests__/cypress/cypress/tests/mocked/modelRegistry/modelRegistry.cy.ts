@@ -10,17 +10,47 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ModelRegistryModel, RouteModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
+import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 
 type HandlersProps = {
   disableModelRegistryFeature?: boolean;
-  registeredModelsSize?: number;
+  registeredModels?: RegisteredModel[];
   modelVersions?: ModelVersion[];
 };
 
 const initIntercepts = ({
   disableModelRegistryFeature = false,
-  registeredModelsSize = 4,
+  registeredModels = [
+    mockRegisteredModel({
+      name: 'Fraud detection model',
+      description:
+        'A machine learning model trained to detect fraudulent transactions in financial data',
+      labels: [
+        'Financial data',
+        'Fraud detection',
+        'Test label',
+        'Machine learning',
+        'Next data to be overflow',
+      ],
+    }),
+    mockRegisteredModel({
+      name: 'Label modal',
+      description:
+        'A machine learning model trained to detect fraudulent transactions in financial data',
+      labels: [
+        'Testing label',
+        'Financial data',
+        'Fraud detection',
+        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc',
+        'Machine learning',
+        'Next data to be overflow',
+        'Label x',
+        'Label y',
+        'Label z',
+      ],
+    }),
+  ],
   modelVersions = [
     mockModelVersion({ author: 'Author 1' }),
     mockModelVersion({ name: 'model version' }),
@@ -54,7 +84,7 @@ const initIntercepts = ({
     {
       path: { serviceName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION },
     },
-    mockRegisteredModelList({ size: registeredModelsSize }),
+    mockRegisteredModelList({ items: registeredModels }),
   );
 
   cy.interceptOdh(
@@ -94,7 +124,7 @@ describe('Model Registry', () => {
   it('No registered models in the selected Model Registry', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
-      registeredModelsSize: 0,
+      registeredModels: [],
     });
 
     modelRegistry.visit();

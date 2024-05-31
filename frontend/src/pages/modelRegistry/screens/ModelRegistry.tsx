@@ -1,35 +1,29 @@
 import React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
-import EmptyModelRegistryState from './components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
+import { filterLiveModels } from './utils';
 
-const ModelRegistry: React.FC = () => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const [registeredModels, loaded, loadError] = useRegisteredModels();
+type ModelRegistryProps = Omit<
+  React.ComponentProps<typeof ApplicationsPage>,
+  | 'title'
+  | 'description'
+  | 'loadError'
+  | 'loaded'
+  | 'provideChildrenPadding'
+  | 'removeChildrenTopPadding'
+  | 'headerContent'
+>;
+
+const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
+  const [registeredModels, loaded, loadError, refresh] = useRegisteredModels();
 
   return (
     <ApplicationsPage
-      empty={registeredModels.size === 0}
-      emptyStatePage={
-        <EmptyModelRegistryState
-          testid="empty-registered-models"
-          title="No models in selected registry"
-          description={`${preferredModelRegistry?.metadata.name} has no models registered to it. Register model to this registry, or select a different one.`}
-          primaryActionText="Register model"
-          secondaryActionText="View archived models"
-          primaryActionOnClick={() => {
-            // TODO: Add primary action
-          }}
-          secondaryActionOnClick={() => {
-            // TODO: Add secondary action
-          }}
-        />
-      }
+      {...pageProps}
       title={
         <TitleWithIcon title="Registered models" objectType={ProjectObjectType.deployedModels} />
       }
@@ -44,7 +38,10 @@ const ModelRegistry: React.FC = () => {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <RegisteredModelListView registeredModels={registeredModels.items} />
+      <RegisteredModelListView
+        registeredModels={filterLiveModels(registeredModels.items)}
+        refresh={refresh}
+      />
     </ApplicationsPage>
   );
 };

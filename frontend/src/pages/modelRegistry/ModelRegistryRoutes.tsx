@@ -9,6 +9,8 @@ import ModelVersionsDetails from './screens/ModelVersionDetails/ModelVersionDeta
 import { ModelVersionDetailsTab } from './screens/ModelVersionDetails/const';
 import ModelVersionsArchive from './screens/ModelVersionsArchive/ModelVersionsArchive';
 import ModelVersionsArchiveDetails from './screens/ModelVersionsArchive/ModelVersionArchiveDetails';
+import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
+import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/RegisteredModelArchiveDetails';
 
 const ModelRegistryRoutes: React.FC = () => (
   <ModelRegistrySelectorContextProvider>
@@ -21,7 +23,7 @@ const ModelRegistryRoutes: React.FC = () => (
           />
         }
       >
-        <Route index element={<ModelRegistry />} />
+        <Route index element={<ModelRegistry empty={false} />} />
         <Route path="registeredModels/:registeredModelId">
           <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} />} />
           <Route
@@ -70,6 +72,26 @@ const ModelRegistryRoutes: React.FC = () => (
               />
               <Route path="*" element={<Navigate to="." />} />
             </Route>
+            <Route path="*" element={<Navigate to="." />} />
+          </Route>
+          <Route path="*" element={<Navigate to="." />} />
+        </Route>
+        <Route path="registeredModels/archive">
+          <Route index element={<RegisteredModelsArchive empty={false} />} />
+          <Route path=":registeredModelId">
+            <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} />} />
+            <Route
+              path={ModelVersionsTab.DETAILS}
+              element={
+                <RegisteredModelsArchiveDetails tab={ModelVersionsTab.DETAILS} empty={false} />
+              }
+            />
+            <Route
+              path={ModelVersionsTab.VERSIONS}
+              element={
+                <RegisteredModelsArchiveDetails tab={ModelVersionsTab.VERSIONS} empty={false} />
+              }
+            />
             <Route path="*" element={<Navigate to="." />} />
           </Route>
           <Route path="*" element={<Navigate to="." />} />

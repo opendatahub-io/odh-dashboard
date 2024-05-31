@@ -3,8 +3,7 @@ import { mockRegisteredModel } from './mockRegisteredModel';
 
 export const mockRegisteredModelList = ({
   size = 5,
-}: Partial<RegisteredModelList>): RegisteredModelList => ({
-  items: [
+  items = [
     mockRegisteredModel({ name: 'test-1' }),
     mockRegisteredModel({ name: 'test-2' }),
     mockRegisteredModel({
@@ -46,6 +45,8 @@ export const mockRegisteredModelList = ({
       ],
     }),
   ],
+}: Partial<RegisteredModelList>): RegisteredModelList => ({
+  items,
   nextPageToken: '',
   pageSize: 0,
   size,

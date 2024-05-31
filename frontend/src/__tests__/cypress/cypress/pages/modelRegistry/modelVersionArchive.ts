@@ -79,10 +79,6 @@ class ModelVersionArchive {
     this.wait();
   }
 
-  findTableKebabMenu() {
-    return cy.findByTestId('model-versions-table-kebab-action');
-  }
-
   findModelVersionsTableKebab() {
     return cy.findByTestId('model-versions-table-kebab-action');
   }

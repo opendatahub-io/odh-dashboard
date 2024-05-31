@@ -13,6 +13,17 @@ export const modelVersionUrl = (
 export const modelVersionArchiveUrl = (rmId?: string, preferredModelRegistry?: string): string =>
   `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/archive`;
 
+export const registeredModelArchiveUrl = (preferredModelRegistry?: string): string =>
+  `/modelRegistry/${preferredModelRegistry}/registeredModels/archive`;
+
+export const registeredModelsUrl = (preferredModelRegistry?: string): string =>
+  `/modelRegistry/${preferredModelRegistry}/registeredModels`;
+
+export const registeredModelArchiveDetailsUrl = (
+  rmId?: string,
+  preferredModelRegistry?: string,
+): string => `/modelRegistry/${preferredModelRegistry}/registeredModels/archive/${rmId}`;
+
 export const modelVersionArchiveDetailsUrl = (
   mvId: string,
   rmId?: string,

@@ -2,31 +2,70 @@ import * as React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { FlexItem, Text, TextVariants, Truncate } from '@patternfly/react-core';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import { ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  registeredModelArchiveDetailsUrl,
+  registeredModelUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
-import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
+import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
+import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
+import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
 import RegisteredModelOwner from './RegisteredModelOwner';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
+  isArchiveRow?: boolean;
+  refresh: () => void;
 };
 
 const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   registeredModel: rm,
+  isArchiveRow,
+  refresh,
 }) => {
+  const { apiState } = React.useContext(ModelRegistryContext);
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name);
+
+  const actions = isArchiveRow
+    ? [
+        {
+          title: 'Restore model',
+          onClick: () => setIsRestoreModalOpen(true),
+        },
+      ]
+    : [
+        {
+          title: 'Deploy',
+          isDisabled: true,
+          // TODO: Implement functionality for onClick. This will be added in another PR
+          onClick: () => undefined,
+        },
+        {
+          title: 'Archive model',
+          onClick: () => setIsArchiveModalOpen(true),
+        },
+      ];
 
   return (
     <Tr>
       <Td dataLabel="Model name">
         <div id="model-name" data-testid="model-name">
           <FlexItem>
-            <Link to={rmUrl}>
+            <Link
+              to={
+                isArchiveRow
+                  ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.metadata.name)
+                  : rmUrl
+              }
+            >
               <Truncate content={rm.name} />
             </Link>
           </FlexItem>
@@ -47,17 +86,38 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         <RegisteredModelOwner registeredModelId={rm.id} />
       </Td>
       <Td isActionCell>
-        <ActionsColumn
-          items={[
-            {
-              title: 'View details',
-              onClick: () => navigate(`${rmUrl}/${ModelVersionsTab.DETAILS}`),
-            },
-            {
-              title: 'Archive model',
-              isDisabled: true, // This feature is currently disabled but will be enabled in a future PR post-summit release.
-            },
-          ]}
+        <ActionsColumn items={actions} />
+        <ArchiveRegisteredModelModal
+          onCancel={() => setIsArchiveModalOpen(false)}
+          onSubmit={() =>
+            apiState.api
+              .patchRegisteredModel(
+                {},
+                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
+                getPatchBodyForRegisteredModel(rm, { state: ModelState.ARCHIVED }),
+                rm.id,
+              )
+              .then(refresh)
+          }
+          isOpen={isArchiveModalOpen}
+          registeredModelName={rm.name}
+        />
+        <RestoreRegisteredModelModal
+          onCancel={() => setIsRestoreModalOpen(false)}
+          onSubmit={() =>
+            apiState.api
+              .patchRegisteredModel(
+                {},
+                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
+                getPatchBodyForRegisteredModel(rm, { state: ModelState.LIVE }),
+                rm.id,
+              )
+              .then(() =>
+                navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
+              )
+          }
+          isOpen={isRestoreModalOpen}
+          registeredModelName={rm.name}
         />
       </Td>
     </Tr>
