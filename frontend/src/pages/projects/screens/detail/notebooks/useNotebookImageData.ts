@@ -23,14 +23,23 @@ export const getNotebookImageData = (
     };
   }
 
-  const [, versionName] = imageTag;
-  const imageStream = images.find((image) =>
-    image.spec.tags
-      ? image.spec.tags.find(
-          (version) => version.name === versionName || version.from?.name === container.image,
-        )
-      : false,
-  );
+  const [imageName, versionName] = imageTag;
+  const [lastImageSelectionName] =
+    notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection']?.split(':') ??
+    [];
+
+  // Fallback for non internal registry clusters
+  const imageStream =
+    images.find((image) => image.metadata.name === imageName) ||
+    images.find((image) =>
+      image.spec.tags
+        ? image.spec.tags.find(
+            (version) =>
+              version.from?.name === container.image &&
+              image.metadata.name === lastImageSelectionName,
+          )
+        : false,
+    );
 
   // if the image stream is not found, consider it deleted
   if (!imageStream) {
