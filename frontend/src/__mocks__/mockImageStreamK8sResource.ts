@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   imageTag?: string;
+  tagName?: string;
   opts?: RecursivePartial<ImageStreamKind>;
 };
 
@@ -15,6 +16,7 @@ export const mockImageStreamK8sResource = ({
   namespace = 'test-project',
   displayName = 'Test Image',
   imageTag = 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+  tagName = '1.2',
   opts = {},
 }: MockResourceConfigType): ImageStreamKind =>
   _.mergeWith(
@@ -50,7 +52,7 @@ export const mockImageStreamK8sResource = ({
         },
         tags: [
           {
-            name: '1.2',
+            name: tagName,
             annotations: {
               'opendatahub.io/notebook-python-dependencies':
                 '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
