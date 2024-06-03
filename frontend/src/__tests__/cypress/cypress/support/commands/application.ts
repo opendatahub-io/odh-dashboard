@@ -11,17 +11,17 @@ declare global {
        * @param url the URL to visit
        * @param credentials login credentials
        */
-      visitWithLogin(
+      visitWithLogin: (
         url: string,
         credentials?: { username: string; password: string; provider?: string },
-      ): Cypress.Chainable<void>;
+      ) => Cypress.Chainable<void>;
 
       /**
        * Find a patternfly kebab toggle button.
        *
        * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
        */
-      findKebab(isDropdownToggle?: boolean): Cypress.Chainable<JQuery>;
+      findKebab: (isDropdownToggle?: boolean) => Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly kebab toggle button, opens the menu, and finds the action.
@@ -29,51 +29,61 @@ declare global {
        * @param name the name of the action in the kebeb menu
        * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
        */
-      findKebabAction(name: string | RegExp, isDropdownToggle?: boolean): Cypress.Chainable<JQuery>;
+      findKebabAction: (
+        name: string | RegExp,
+        isDropdownToggle?: boolean,
+      ) => Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
        *
        * @param name the name of the item
        */
-      findDropdownItem(name: string | RegExp): Cypress.Chainable<JQuery>;
+      findDropdownItem: (name: string | RegExp) => Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly dropdown item by data-testid, first opening the dropdown if not already opened.
        *
        * @param testId the name of the item
        */
-      findDropdownItemByTestId(testId: string): Cypress.Chainable<JQuery>;
+      findDropdownItemByTestId: (testId: string) => Cypress.Chainable<JQuery>;
       /**
        * Finds a patternfly select option by first opening the select menu if not already opened.
        *
        * @param name the name of the option
        */
-      findSelectOption(name: string | RegExp): Cypress.Chainable<JQuery>;
+      findSelectOption: (name: string | RegExp) => Cypress.Chainable<JQuery>;
 
       /**
        * Shortcut to first clear the previous value and then type text into DOM element.
        *
        * @see https://on.cypress.io/type
        */
-      fill(
+      fill: (
         text: string,
         options?: Partial<Cypress.TypeOptions> | undefined,
-      ): Cypress.Chainable<unknown>;
+      ) => Cypress.Chainable<unknown>;
 
       /**
        * Returns a PF Switch label for clickable actions.
        *
        * @param dataId - the data test id you provided to the PF Switch
        */
-      pfSwitch(dataId: string): Cypress.Chainable<JQuery>;
+      pfSwitch: (dataId: string) => Cypress.Chainable<JQuery>;
 
       /**
        * Returns a PF Switch input behind the checkbox to compare .should('be.checked') like ops
        *
        * @param dataId
        */
-      pfSwitchValue(dataId: string): Cypress.Chainable<JQuery>;
+      pfSwitchValue: (dataId: string) => Cypress.Chainable<JQuery>;
+
+      /**
+       * The bottom two functions, findByTestId and findAllByTestId have the disabled rule
+       * method-signature-style because they are overwrites.
+       * Thus, we cannot change it to use the property signature for functions.
+       * https://typescript-eslint.io/rules/method-signature-style/
+       */
 
       /**
        * Overwrite `findByTestId` to support an array of Matchers.
@@ -85,6 +95,7 @@ declare global {
        * cy.findByTestId(['card', 'my-id']);
        * cy.findByTestId('card my-id');
        */
+      // eslint-disable-next-line @typescript-eslint/method-signature-style
       findByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
 
       /**
@@ -97,6 +108,7 @@ declare global {
        * cy.findAllByTestId(['card']);
        * cy.findAllByTestId('card my-id');
        */
+      // eslint-disable-next-line @typescript-eslint/method-signature-style
       findAllByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
     }
   }

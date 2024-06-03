@@ -4,7 +4,7 @@ import 'cypress-axe';
 declare global {
   namespace Cypress {
     interface Chainable {
-      testA11y(context?: Parameters<cy['checkA11y']>[0]): void;
+      testA11y: (context?: Parameters<cy['checkA11y']>[0]) => void;
     }
   }
 }
