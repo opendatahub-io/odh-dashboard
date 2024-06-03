@@ -4,10 +4,8 @@ import {
   routePipelineRunDetailsNamespace,
   routePipelineRunJobCloneNamespace,
   routePipelineRunJobDetailsNamespace,
-  routePipelineRunsNamespace,
 } from './global';
 import {
-  experimentRunsRoute,
   experimentRunDetailsRoute,
   experimentScheduleDetailsRoute,
   experimentsCloneRunRoute,
@@ -15,14 +13,6 @@ import {
   experimentsCreateRunRoute,
   experimentsScheduleRunRoute,
 } from './experiments';
-
-export const runsBaseRoute = (
-  namespace: string | undefined,
-  experimentId: string | undefined,
-): string =>
-  experimentId
-    ? experimentRunsRoute(namespace, experimentId)
-    : routePipelineRunsNamespace(namespace);
 
 export const cloneScheduleRoute = (
   namespace: string,

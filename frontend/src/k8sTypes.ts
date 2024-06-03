@@ -366,10 +366,6 @@ export type ProjectKind = K8sResourceCommon & {
   };
 };
 
-export type DashboardProjectKind = ProjectKind & {
-  labels: DashboardLabels & Partial<ModelServingProjectLabels>;
-};
-
 export type ServiceAccountKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
@@ -1218,13 +1214,6 @@ export type DashboardCommonConfig = {
   disablePipelineExperiments: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
-};
-
-export type OperatorStatus = {
-  /** Operator is installed and will be cloned to the namespace on creation */
-  available: boolean;
-  /** Has a detection gone underway or is the available a static default */
-  queriedForStatus: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

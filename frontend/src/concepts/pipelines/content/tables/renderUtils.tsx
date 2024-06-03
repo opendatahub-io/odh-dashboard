@@ -10,10 +10,8 @@ import {
   Timestamp,
   TimestampTooltipVariant,
   Tooltip,
-  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
   PipelineRunKFv2,
@@ -26,7 +24,6 @@ import {
   getPipelineRunJobScheduledState,
   ScheduledState,
 } from '~/concepts/pipelines/content/tables/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 
@@ -35,18 +32,6 @@ export const NoRunContent = (): React.JSX.Element => <>-</>;
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
 type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKFv2 } & P>;
-
-export const RunNameForPipeline: RunUtil = ({ run }) => {
-  const { namespace } = usePipelinesAPI();
-  return (
-    // TODO: get link path
-    // TODO: check if this could be removed with the `expandedRowRenderUtils.tsx`
-    // Not going to refactor the link here
-    <Link to={`/pipelines/${namespace}/pipelineRun/view/${run.run_id}`}>
-      <Truncate content={run.display_name} />
-    </Link>
-  );
-};
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
   const { icon, status, label, details, createdAt } = computeRunStatus(run);

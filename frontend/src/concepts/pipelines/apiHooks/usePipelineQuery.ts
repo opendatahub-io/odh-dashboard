@@ -5,9 +5,6 @@ import { PipelineListPaged, PipelineOptions, PipelineParams } from '~/concepts/p
 import { POLL_INTERVAL } from '~/utilities/const';
 import { K8sAPIOptions } from '~/k8sTypes';
 
-export type PipelineKFCallCommonWithItems<T extends PipelineCoreResourceKFv2> =
-  PipelineKFCallCommon<unknown> & { items?: T[] };
-
 const usePipelineQuery = <T extends PipelineCoreResourceKFv2>(
   apiFetch: (
     opts: K8sAPIOptions,

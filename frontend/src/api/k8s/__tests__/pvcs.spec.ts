@@ -2,23 +2,12 @@ import {
   K8sStatus,
   k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sListResourceItems,
-  k8sPatchResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import {
-  assemblePvc,
-  createPvc,
-  deletePvc,
-  getAvailableMultiUsePvcs,
-  getDashboardPvcs,
-  getPvc,
-  updatePvc,
-  updatePvcSize,
-} from '~/api/k8s/pvcs';
+import { assemblePvc, createPvc, deletePvc, getDashboardPvcs, updatePvc } from '~/api/k8s/pvcs';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { CreatingStorageObject } from '~/pages/projects/types';
 
@@ -31,12 +20,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sPatchResource: jest.fn(),
 }));
 
-const k8sGetResourceMock = jest.mocked(k8sGetResource<PersistentVolumeClaimKind>);
 const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<PersistentVolumeClaimKind>);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<PersistentVolumeClaimKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<PersistentVolumeClaimKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>);
-const k8sPatchResourceMock = jest.mocked(k8sPatchResource<PersistentVolumeClaimKind>);
 
 const data: CreatingStorageObject = {
   nameDesc: {
@@ -88,29 +75,6 @@ describe('assemblePvc', () => {
   });
 });
 
-describe('getPvc', () => {
-  it('should fetch and return pvc', async () => {
-    k8sGetResourceMock.mockResolvedValue(pvcMock);
-    const result = await getPvc('projectName', 'pvcName');
-    expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
-      queryOptions: { name: 'pvcName', ns: 'projectName' },
-    });
-    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual(pvcMock);
-  });
-
-  it('should handle errors and rethrow', async () => {
-    k8sGetResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(getPvc('projectName', 'pvcName')).rejects.toThrow('error1');
-    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
-      queryOptions: { name: 'pvcName', ns: 'projectName' },
-    });
-  });
-});
-
 describe('getDashboardPvcs', () => {
   it('should fetch and return dashboard pvcs', async () => {
     k8sListResourceItemsMock.mockResolvedValue([pvcMock]);
@@ -128,52 +92,6 @@ describe('getDashboardPvcs', () => {
   it('should handle errors and rethrow', async () => {
     k8sListResourceItemsMock.mockRejectedValue(new Error('error1'));
     await expect(getDashboardPvcs('projectName')).rejects.toThrow('error1');
-    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
-      queryOptions: {
-        ns: 'projectName',
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
-      },
-    });
-  });
-});
-
-describe('getAvailableMultiUsePvcs', () => {
-  it('should return available multi use pvcs when access mode is ReadOnlyMany', async () => {
-    k8sListResourceItemsMock.mockResolvedValue([createAssemblePvcs(['ReadOnlyMany'])]);
-    const result = await getAvailableMultiUsePvcs('projectName');
-    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
-      queryOptions: {
-        ns: 'projectName',
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
-      },
-    });
-    expect(result).toStrictEqual([createAssemblePvcs(['ReadOnlyMany'])]);
-  });
-
-  it('should return available multi use pvcs when access mode is ReadWriteMany', async () => {
-    k8sListResourceItemsMock.mockResolvedValue([createAssemblePvcs(['ReadWriteMany'])]);
-    const result = await getAvailableMultiUsePvcs('projectName');
-    expect(result).toStrictEqual([createAssemblePvcs(['ReadWriteMany'])]);
-    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: {
-        apiVersion: 'v1',
-        kind: 'PersistentVolumeClaim',
-        plural: 'persistentvolumeclaims',
-      },
-      queryOptions: {
-        ns: 'projectName',
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
-      },
-    });
-  });
-  it('should handle errors and rethrow', async () => {
-    k8sListResourceItemsMock.mockRejectedValue(new Error('error1'));
-    await expect(getAvailableMultiUsePvcs('projectName')).rejects.toThrow('error1');
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
       model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
@@ -272,32 +190,5 @@ describe('deletePvc', () => {
       model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
       queryOptions: { name: 'pvcName', ns: 'namespace' },
     });
-  });
-});
-
-describe('updatePvcSize', () => {
-  it('should update pvc size ', async () => {
-    k8sPatchResourceMock.mockResolvedValue(pvcMock);
-    const result = await updatePvcSize('pvcName', 'namespace', 'size');
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
-      patches: [{ op: 'replace', path: '/spec/resources/requests', value: { storage: 'size' } }],
-      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
-    });
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual(pvcMock);
-  });
-
-  it('should handle errors and rethrow', async () => {
-    k8sPatchResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(updatePvcSize('pvcName', 'namespace', 'size')).rejects.toThrow('error1');
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
-      patches: [{ op: 'replace', path: '/spec/resources/requests', value: { storage: 'size' } }],
-      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
-    });
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
   });
 });

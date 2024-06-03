@@ -17,12 +17,10 @@ import {
 import {
   createRoleBinding,
   deleteRoleBinding,
-  generateRoleBindingData,
   generateRoleBindingProjectSharing,
   generateRoleBindingServingRuntime,
   getRoleBinding,
   listRoleBindings,
-  patchRoleBindingName,
   patchRoleBindingOwnerRef,
 } from '~/api/k8s/roleBindings';
 
@@ -70,12 +68,6 @@ const createRoleBindingObject = (roleRefName: string, subjects: RoleBindingSubje
   ...roleBindingObject,
   roleRef: { ...roleBindingObject.roleRef, name: roleRefName },
   subjects,
-});
-describe('generateRoleBindingData', () => {
-  it('should generate role binding data', () => {
-    const result = generateRoleBindingData('rbName', namespace, 'projectName');
-    expect(result).toStrictEqual(roleBindingObject);
-  });
 });
 
 describe('generateRoleBindingServingRuntime', () => {
@@ -390,60 +382,6 @@ describe('deleteRoleBinding', () => {
   });
 });
 
-describe('patchRoleBindingName', () => {
-  it('should patch role binding name when role type is ADMIN', async () => {
-    k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
-    const result = await patchRoleBindingName('rbName', namespace, ProjectSharingRoleType.ADMIN);
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
-      patches: [{ op: 'replace', path: '/roleRef/name', value: 'admin' }],
-      queryOptions: { name: 'rbName', ns: namespace },
-    });
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual(roleBindingMock);
-  });
-
-  it('should patch role binding name when role type is EDIT', async () => {
-    k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
-    const result = await patchRoleBindingName('rbName', namespace, ProjectSharingRoleType.EDIT);
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
-      patches: [{ op: 'replace', path: '/roleRef/name', value: 'edit' }],
-      queryOptions: { name: 'rbName', ns: namespace },
-    });
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual(roleBindingMock);
-  });
-
-  it('should handle errors and rethrow', async () => {
-    k8sPatchResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(
-      patchRoleBindingName('rbName', namespace, ProjectSharingRoleType.EDIT),
-    ).rejects.toThrow('error1');
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
-      patches: [{ op: 'replace', path: '/roleRef/name', value: 'edit' }],
-      queryOptions: { name: 'rbName', ns: namespace },
-    });
-  });
-});
-
 describe('patchRoleBindingOwnerRef', () => {
   it('should patch role binding owner ref', async () => {
     k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
@@ -460,23 +398,5 @@ describe('patchRoleBindingOwnerRef', () => {
     });
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(roleBindingMock);
-  });
-
-  it('should handle errors and rethrow', async () => {
-    k8sPatchResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(
-      patchRoleBindingName('rbName', namespace, ProjectSharingRoleType.EDIT),
-    ).rejects.toThrow('error1');
-    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
-      patches: [{ op: 'replace', path: '/roleRef/name', value: 'edit' }],
-      queryOptions: { name: 'rbName', ns: namespace },
-    });
   });
 });

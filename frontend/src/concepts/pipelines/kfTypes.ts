@@ -9,8 +9,6 @@ import { EitherNotBoth, ExactlyOne } from '~/typeHelpers';
 export type DateTimeKF = string;
 
 export enum PipelinesFilterOp {
-  UNKNOWN = 'UNKNOWN',
-
   // Operators on scalar values. Only applies to one of |int_value|,
   // |long_value|, |string_value| or |timestamp_value|.
   EQUALS = 'EQUALS',
