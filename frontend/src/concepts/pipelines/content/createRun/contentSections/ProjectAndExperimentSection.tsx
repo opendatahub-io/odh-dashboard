@@ -6,20 +6,25 @@ import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import ExperimentSelector from '~/concepts/pipelines/content/experiment/ExperimentSelector';
+import {
+  ActiveExperimentSelector,
+  AllExperimentSelector,
+} from '~/concepts/pipelines/content/experiment/ExperimentSelector';
 import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-type ExperimentSectionProps = {
+type ProjectAndExperimentSectionProps = {
   projectName: string;
   value: ExperimentKFv2 | null;
   onChange: (experiment: ExperimentKFv2) => void;
+  isSchedule: boolean;
 };
 
-const ProjectAndExperimentSection: React.FC<ExperimentSectionProps> = ({
+const ProjectAndExperimentSection: React.FC<ProjectAndExperimentSectionProps> = ({
   projectName,
   value,
   onChange,
+  isSchedule,
 }) => {
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
@@ -39,7 +44,11 @@ const ProjectAndExperimentSection: React.FC<ExperimentSectionProps> = ({
         <FormGroup label="Experiment" aria-label="Experiment" isRequired>
           <Stack hasGutter>
             <StackItem>
-              <ExperimentSelector selection={value?.display_name} onSelect={onChange} />
+              {isSchedule ? (
+                <AllExperimentSelector selection={value?.display_name} onSelect={onChange} />
+              ) : (
+                <ActiveExperimentSelector selection={value?.display_name} onSelect={onChange} />
+              )}
             </StackItem>
             <StackItem>
               <CreateExperimentButton

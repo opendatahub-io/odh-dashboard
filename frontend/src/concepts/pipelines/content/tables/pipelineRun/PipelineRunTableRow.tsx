@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Skeleton } from '@patternfly/react-core';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
@@ -12,16 +11,17 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { cloneRunRoute, experimentRunsRoute } from '~/routes';
+import { cloneRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
+import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
@@ -43,11 +43,11 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
-  const [experiment, isExperimentLoaded] = useExperimentById(run.experiment_id);
   const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const isExperimentArchived = useContextExperimentArchived();
 
   const actions: IAction[] = React.useMemo(() => {
     const cloneAction: IAction = {
@@ -64,6 +64,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         {
           title: 'Restore',
           onClick: () => setIsRestoreModalOpen(true),
+          isAriaDisabled: isExperimentArchived,
+          ...(isExperimentArchived && {
+            tooltipProps: {
+              content:
+                'Archived runs cannot be restored until its associated experiment is restored.',
+            },
+          }),
         },
         cloneAction,
         {
@@ -110,6 +117,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     api,
     refreshAllAPI,
     notification,
+    isExperimentArchived,
   ]);
 
   return (
@@ -118,19 +126,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td dataLabel="Name">
         <PipelineRunTableRowTitle run={run} />
       </Td>
-      {hasExperiments && (
-        <Td dataLabel="Experiment">
-          {!isExperimentLoaded ? (
-            <Skeleton />
-          ) : isExperimentsAvailable && experimentId ? (
-            <Link to={experimentRunsRoute(namespace, experiment?.experiment_id)}>
-              {experiment?.display_name}
-            </Link>
-          ) : (
-            experiment?.display_name
-          )}
-        </Td>
-      )}
+      {hasExperiments && <PipelineRunTableRowExperiment experimentId={run.experiment_id} />}
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink
           displayName={version?.display_name}

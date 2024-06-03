@@ -115,7 +115,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   },
                 },
                 {
-                  title: 'Schedule run',
+                  title: 'Create schedule',
                   onClick: () => {
                     navigate(
                       {

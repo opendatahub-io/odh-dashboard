@@ -76,7 +76,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               )
             }
           >
-            Schedule run
+            Create schedule
           </DropdownItem>,
           <DropdownSeparator key="separator-view" />,
           <DropdownItem

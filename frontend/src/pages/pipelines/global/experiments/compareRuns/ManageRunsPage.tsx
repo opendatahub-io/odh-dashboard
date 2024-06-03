@@ -25,7 +25,6 @@ import {
   experimentsCreateRunRoute,
 } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useExperimentByParams } from '~/pages/pipelines/global/experiments/useExperimentByParams';
 import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineFilter, {
@@ -34,6 +33,7 @@ import usePipelineFilter, {
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 import { ManageRunsTable } from './ManageRunsTable';
 
 interface ManageRunsPageInternalProps {
@@ -165,6 +165,6 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
 };
 
 export const ManageRunsPage: React.FC = () => {
-  const experiment = useExperimentByParams();
+  const { experiment } = React.useContext(ExperimentRunsContext);
   return experiment ? <ManageRunsPageInternal experiment={experiment} /> : null;
 };

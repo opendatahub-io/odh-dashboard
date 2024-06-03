@@ -57,6 +57,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
         projectName={getProjectDisplayName(data.project)}
         value={data.experiment}
         onChange={(experiment) => onValueChange('experiment', experiment)}
+        isSchedule={isSchedule}
       />
 
       <FormSection

@@ -7,7 +7,7 @@ import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/t
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { experimentRunsRoute, experimentSchedulesRoute, experimentsBaseRoute } from '~/routes';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { useExperimentByParams } from './experiments/useExperimentByParams';
+import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 
 type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -48,7 +48,7 @@ export const GlobalExperimentDetails: React.FC<
     isSchedule?: boolean;
   }
 > = ({ BreadcrumbDetailsComponent, isSchedule }) => {
-  const experiment = useExperimentByParams();
+  const { experiment } = React.useContext(ExperimentRunsContext);
   const experimentId = experiment?.experiment_id;
   const { namespace, project } = usePipelinesAPI();
 

@@ -76,7 +76,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               },
             },
             {
-              title: 'Schedule run',
+              title: 'Create schedule',
               onClick: () => {
                 navigate(
                   {

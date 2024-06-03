@@ -20,6 +20,7 @@ import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { createRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKFv2[];
@@ -74,17 +75,30 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     return acc;
   }, []);
 
+  const restoreButtonTooltipRef = React.useRef(null);
+  const isExperimentArchived = useContextExperimentArchived();
+
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (
-        <Button
-          data-testid="restore-button"
-          variant="primary"
-          isDisabled={!selectedIds.length}
-          onClick={() => setIsRestoreModalOpen(true)}
-        >
-          Restore
-        </Button>
+        <>
+          {isExperimentArchived && (
+            <Tooltip
+              content="Archived runs cannot be restored until its associated experiment is restored."
+              triggerRef={restoreButtonTooltipRef}
+            />
+          )}
+          <Button
+            data-testid="restore-button"
+            variant="primary"
+            isDisabled={!selectedIds.length}
+            isAriaDisabled={isExperimentArchived}
+            onClick={() => setIsRestoreModalOpen(true)}
+            ref={restoreButtonTooltipRef}
+          >
+            Restore
+          </Button>
+        </>
       );
     }
 
@@ -100,10 +114,18 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         Create run
       </Button>
     );
-  }, [runType, selectedIds.length, navigate, isExperimentsAvailable, experimentId, namespace]);
+  }, [
+    runType,
+    selectedIds.length,
+    navigate,
+    isExperimentsAvailable,
+    experimentId,
+    namespace,
+    isExperimentArchived,
+  ]);
 
   const compareRunsAction =
-    isExperimentsAvailable && experimentId ? (
+    isExperimentsAvailable && experimentId && !isExperimentArchived ? (
       <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"

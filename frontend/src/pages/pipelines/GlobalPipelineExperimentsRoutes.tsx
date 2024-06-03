@@ -13,6 +13,7 @@ import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails
 import { experimentsBaseRoute } from '~/routes';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
+import ExperimentRunsContextProvider from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 import { GlobalExperimentDetails } from './global/GlobalPipelineCoreDetails';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 import { ExperimentRunsListBreadcrumb } from './global/experiments/ExperimentRunsListBreadcrumb';
@@ -35,52 +36,59 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
       <Route index element={<GlobalExperiments tab={ExperimentListTabs.ACTIVE} />} />
       <Route path="active" element={<GlobalExperiments tab={ExperimentListTabs.ACTIVE} />} />
       <Route path="archived" element={<GlobalExperiments tab={ExperimentListTabs.ARCHIVED} />} />
-      <Route
-        path=":experimentId/runs"
-        element={
-          <GlobalPipelineRuns
-            breadcrumb={<ExperimentRunsListBreadcrumb />}
-            description="Manage your experiment runs and schedules."
-            getRedirectPath={experimentsBaseRoute}
-          />
-        }
-      />
-      <Route
-        path=":experimentId/runs/:runId"
-        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={PipelineRunDetails} />}
-      />
-      <Route
-        path=":experimentId/schedules/:recurringRunId"
-        element={
-          <GlobalExperimentDetails BreadcrumbDetailsComponent={PipelineRunJobDetails} isSchedule />
-        }
-      />
-      <Route
-        path=":experimentId/runs/create"
-        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CreateRunPage} />}
-      />
-      <Route
-        path=":experimentId/schedules/create"
-        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CreateRunPage} isSchedule />}
-      />
-      <Route
-        path=":experimentId/runs/clone/:runId"
-        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CloneRunPage} />}
-      />
-      <Route
-        path=":experimentId/schedules/clone/:recurringRunId"
-        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CloneRunPage} isSchedule />}
-      />
-      <Route path=":experimentId/compareRuns" element={<GlobalComparePipelineRunsLoader />}>
+      <Route path=":experimentId" element={<ExperimentRunsContextProvider />}>
         <Route
-          index
-          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CompareRunsPage} />}
+          path="runs"
+          element={
+            <GlobalPipelineRuns
+              breadcrumb={<ExperimentRunsListBreadcrumb />}
+              description="Manage your experiment runs and schedules."
+              getRedirectPath={experimentsBaseRoute}
+            />
+          }
+        />
+        <Route
+          path="runs/:runId"
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={PipelineRunDetails} />}
+        />
+        <Route
+          path="schedules/:recurringRunId"
+          element={
+            <GlobalExperimentDetails
+              BreadcrumbDetailsComponent={PipelineRunJobDetails}
+              isSchedule
+            />
+          }
+        />
+        <Route
+          path="runs/create"
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CreateRunPage} />}
+        />
+        <Route
+          path="schedules/create"
+          element={
+            <GlobalExperimentDetails BreadcrumbDetailsComponent={CreateRunPage} isSchedule />
+          }
+        />
+        <Route
+          path="runs/clone/:runId"
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CloneRunPage} />}
+        />
+        <Route
+          path="schedules/clone/:recurringRunId"
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CloneRunPage} isSchedule />}
+        />
+        <Route path="compareRuns" element={<GlobalComparePipelineRunsLoader />}>
+          <Route
+            index
+            element={<GlobalExperimentDetails BreadcrumbDetailsComponent={CompareRunsPage} />}
+          />
+        </Route>
+        <Route
+          path="compareRuns/add"
+          element={<GlobalExperimentDetails BreadcrumbDetailsComponent={ManageRunsPage} />}
         />
       </Route>
-      <Route
-        path=":experimentId/compareRuns/add"
-        element={<GlobalExperimentDetails BreadcrumbDetailsComponent={ManageRunsPage} />}
-      />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </ProjectsRoutes>

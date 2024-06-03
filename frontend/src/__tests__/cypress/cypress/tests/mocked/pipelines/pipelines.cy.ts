@@ -959,7 +959,7 @@ describe('Pipelines', () => {
     pipelineRow.findExpandButton().click();
     pipelineRow
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
-      .findKebabAction('Schedule run')
+      .findKebabAction('Create schedule')
       .click();
 
     verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
@@ -1176,7 +1176,7 @@ export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): vo
   pipelinesTable.find();
   pipelinesTable
     .getRowById(initialMockPipeline.pipeline_id)
-    .findKebabAction('Schedule run')
+    .findKebabAction('Create schedule')
     .click();
 
   verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
@@ -1196,10 +1196,10 @@ export const viewPipelineServerDetailsTest = (visitPipelineProjects: () => void)
     }),
   );
   visitPipelineProjects();
-  viewPipelinelineDetails();
+  viewPipelineDetails();
 };
 
-const viewPipelinelineDetails = (
+const viewPipelineDetails = (
   accessKey = 'sdsd',
   secretKey = 'sdsd',
   endpoint = 'https://s3.amazonaws.com',
