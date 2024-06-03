@@ -1,4 +1,4 @@
-import { ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { createModelRegistryLabelsObject } from './utils';
 
 type MockModelVersionType = {
@@ -7,7 +7,7 @@ type MockModelVersionType = {
   registeredModelId?: string;
   name?: string;
   labels?: string[];
-  state?: ModelVersionState;
+  state?: ModelState;
   description?: string;
 };
 
@@ -17,7 +17,7 @@ export const mockModelVersion = ({
   name = 'new model version',
   labels = [],
   id = '1',
-  state = ModelVersionState.LIVE,
+  state = ModelState.LIVE,
   description = 'Description of model version',
 }: MockModelVersionType): ModelVersion => ({
   author,

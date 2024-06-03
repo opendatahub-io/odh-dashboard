@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Text, TextVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -97,7 +97,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               .patchModelVersion(
                 {},
                 // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForModelVersion(mv, { state: ModelVersionState.ARCHIVED }),
+                getPatchBodyForModelVersion(mv, { state: ModelState.ARCHIVED }),
                 mv.id,
               )
               .then(refresh)
@@ -112,7 +112,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               .patchModelVersion(
                 {},
                 // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForModelVersion(mv, { state: ModelVersionState.LIVE }),
+                getPatchBodyForModelVersion(mv, { state: ModelState.LIVE }),
                 mv.id,
               )
               .then(() =>

@@ -1,10 +1,6 @@
 import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
 import { handleModelRegistryFailures } from '~/api/modelRegistry/errorUtils';
-import {
-  RegisteredModelState,
-  ModelVersionState,
-  ModelArtifactState,
-} from '~/concepts/modelRegistry/types';
+import { ModelState, ModelArtifactState } from '~/concepts/modelRegistry/types';
 import {
   createModelArtifact,
   createModelVersion,
@@ -51,7 +47,7 @@ describe('createRegisteredModel', () => {
         description: 'test',
         externalID: '1',
         name: 'test new registered model',
-        state: RegisteredModelState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       }),
     ).toBe(mockResultPromise);
@@ -63,7 +59,7 @@ describe('createRegisteredModel', () => {
         description: 'test',
         externalID: '1',
         name: 'test new registered model',
-        state: RegisteredModelState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       },
       {},
@@ -83,7 +79,7 @@ describe('createModelVersion', () => {
         author: 'test author',
         registeredModelId: '1',
         name: 'test new model version',
-        state: ModelVersionState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       }),
     ).toBe(mockResultPromise);
@@ -97,7 +93,7 @@ describe('createModelVersion', () => {
         author: 'test author',
         registeredModelId: '1',
         name: 'test new model version',
-        state: ModelVersionState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       },
       {},

@@ -44,7 +44,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
         </Breadcrumb>
       }
       title={rm?.name}
-      headerAction={<ModelVersionsHeaderActions />}
+      headerAction={rm && <ModelVersionsHeaderActions rm={rm} />}
       description={rm?.description}
       loadError={loadError}
       loaded={loaded}

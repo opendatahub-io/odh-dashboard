@@ -7,8 +7,7 @@ import {
   ModelRegistryMetadataType,
   RegisteredModel,
   ModelVersion,
-  RegisteredModelState,
-  ModelVersionState,
+  ModelState,
 } from '~/concepts/modelRegistry/types';
 import {
   filterModelVersions,
@@ -19,6 +18,9 @@ import {
   getPatchBody,
   filterArchiveVersions,
   filterLiveVersions,
+  filterArchiveModels,
+  filterLiveModels,
+  filterRegisteredModels,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 
@@ -271,7 +273,7 @@ describe('getPatchBody', () => {
       name: 'test-model',
       description: 'Description here',
       labels: [],
-      state: RegisteredModelState.LIVE,
+      state: ModelState.LIVE,
     });
     const result = getPatchBody(
       registeredModel,
@@ -287,7 +289,7 @@ describe('getPatchBody', () => {
       customProperties: {
         label1: { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
       },
-      state: RegisteredModelState.LIVE,
+      state: ModelState.LIVE,
       externalID: '1234132asdfasdf',
     } satisfies Partial<RegisteredModel>);
   });
@@ -303,7 +305,7 @@ describe('getPatchBody', () => {
       registeredModelId: '1',
       description: 'New description',
       customProperties: {},
-      state: ModelVersionState.LIVE,
+      state: ModelState.LIVE,
     } satisfies Partial<ModelVersion>);
   });
 
@@ -319,20 +321,20 @@ describe('getPatchBody', () => {
       author: 'Test author',
       description: 'New description',
       customProperties: {},
-      state: ModelVersionState.LIVE,
+      state: ModelState.LIVE,
     } satisfies Partial<ModelVersion>);
   });
 });
 
 describe('filterModelVersions', () => {
   const modelVersions: ModelVersion[] = [
-    mockModelVersion({ name: 'Test 1', state: ModelVersionState.ARCHIVED }),
+    mockModelVersion({ name: 'Test 1', state: ModelState.ARCHIVED }),
     mockModelVersion({
       name: 'Test 2',
       description: 'Description2',
     }),
-    mockModelVersion({ name: 'Test 3', author: 'Author3', state: ModelVersionState.ARCHIVED }),
-    mockModelVersion({ name: 'Test 4', state: ModelVersionState.ARCHIVED }),
+    mockModelVersion({ name: 'Test 3', author: 'Author3', state: ModelState.ARCHIVED }),
+    mockModelVersion({ name: 'Test 4', state: ModelState.ARCHIVED }),
     mockModelVersion({ name: 'Test 5' }),
   ];
 
@@ -351,11 +353,6 @@ describe('filterModelVersions', () => {
     expect(filtered).toEqual([modelVersions[2]]);
   });
 
-  test('filters archived model versions', () => {
-    const filtered = filterModelVersions(modelVersions, '', SearchType.KEYWORD, true);
-    expect(filtered).toEqual([modelVersions[0], modelVersions[2], modelVersions[3]]);
-  });
-
   test('does not filter when search is empty', () => {
     const filtered = filterModelVersions(modelVersions, '', SearchType.KEYWORD);
     expect(filtered).toEqual(modelVersions);
@@ -364,15 +361,15 @@ describe('filterModelVersions', () => {
 
 describe('Filter model version state', () => {
   const modelVersions: ModelVersion[] = [
-    mockModelVersion({ name: 'Test 1', state: ModelVersionState.ARCHIVED }),
+    mockModelVersion({ name: 'Test 1', state: ModelState.ARCHIVED }),
     mockModelVersion({
       name: 'Test 2',
-      state: ModelVersionState.LIVE,
+      state: ModelState.LIVE,
       description: 'Description2',
     }),
-    mockModelVersion({ name: 'Test 3', author: 'Author3', state: ModelVersionState.ARCHIVED }),
-    mockModelVersion({ name: 'Test 4', state: ModelVersionState.ARCHIVED }),
-    mockModelVersion({ name: 'Test 5', state: ModelVersionState.LIVE }),
+    mockModelVersion({ name: 'Test 3', author: 'Author3', state: ModelState.ARCHIVED }),
+    mockModelVersion({ name: 'Test 4', state: ModelState.ARCHIVED }),
+    mockModelVersion({ name: 'Test 5', state: ModelState.LIVE }),
   ];
 
   describe('filterArchiveVersions', () => {
@@ -394,7 +391,73 @@ describe('Filter model version state', () => {
     });
 
     it('should return an empty array if the input array is empty', () => {
-      const result = filterArchiveVersions([]);
+      const result = filterLiveVersions([]);
+      expect(result).toEqual([]);
+    });
+  });
+});
+
+describe('filterRegisteredModels', () => {
+  const registeredModels: RegisteredModel[] = [
+    mockRegisteredModel({ name: 'Test 1', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({
+      name: 'Test 2',
+      description: 'Description2',
+    }),
+    mockRegisteredModel({ name: 'Test 3', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({ name: 'Test 4', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({ name: 'Test 5' }),
+  ];
+
+  test('filters by name', () => {
+    const filtered = filterRegisteredModels(registeredModels, 'Test 1', SearchType.KEYWORD);
+    expect(filtered).toEqual([registeredModels[0]]);
+  });
+
+  test('filters by description', () => {
+    const filtered = filterRegisteredModels(registeredModels, 'Description2', SearchType.KEYWORD);
+    expect(filtered).toEqual([registeredModels[1]]);
+  });
+
+  test('does not filter when search is empty', () => {
+    const filtered = filterRegisteredModels(registeredModels, '', SearchType.KEYWORD);
+    expect(filtered).toEqual(registeredModels);
+  });
+});
+
+describe('Filter model state', () => {
+  const models: RegisteredModel[] = [
+    mockRegisteredModel({ name: 'Test 1', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({
+      name: 'Test 2',
+      state: ModelState.LIVE,
+      description: 'Description2',
+    }),
+    mockRegisteredModel({ name: 'Test 3', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({ name: 'Test 4', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({ name: 'Test 5', state: ModelState.LIVE }),
+  ];
+
+  describe('filterArchiveModels', () => {
+    it('should filter out only the archived versions', () => {
+      const archivedModels = filterArchiveModels(models);
+      expect(archivedModels).toEqual([models[0], models[2], models[3]]);
+    });
+
+    it('should return an empty array if the input array is empty', () => {
+      const result = filterArchiveModels([]);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('filterLiveModels', () => {
+    it('should filter out only the live models', () => {
+      const liveModels = filterLiveModels(models);
+      expect(liveModels).toEqual([models[1], models[4]]);
+    });
+
+    it('should return an empty array if the input array is empty', () => {
+      const result = filterLiveModels([]);
       expect(result).toEqual([]);
     });
   });

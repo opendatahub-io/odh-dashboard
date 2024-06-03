@@ -1,11 +1,6 @@
 import { K8sAPIOptions } from '~/k8sTypes';
 
-export enum RegisteredModelState {
-  LIVE = 'LIVE',
-  ARCHIVED = 'ARCHIVED',
-}
-
-export enum ModelVersionState {
+export enum ModelState {
   LIVE = 'LIVE',
   ARCHIVED = 'ARCHIVED',
 }
@@ -109,13 +104,13 @@ export type ModelArtifact = ModelRegistryBase & {
 };
 
 export type ModelVersion = ModelRegistryBase & {
-  state?: ModelVersionState;
+  state?: ModelState;
   author?: string;
   registeredModelId: string;
 };
 
 export type RegisteredModel = ModelRegistryBase & {
-  state?: RegisteredModelState;
+  state?: ModelState;
 };
 
 export type InferenceService = ModelRegistryBase & {

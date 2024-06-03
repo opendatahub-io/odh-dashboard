@@ -369,6 +369,12 @@ declare global {
       ): Cypress.Chainable<null>;
 
       interceptOdh(
+        type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+        options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+        response: OdhResponse<RegisteredModel | undefined>,
+      ): Cypress.Chainable<null>;
+
+      interceptOdh(
         type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId`,
         options: {
           path: {

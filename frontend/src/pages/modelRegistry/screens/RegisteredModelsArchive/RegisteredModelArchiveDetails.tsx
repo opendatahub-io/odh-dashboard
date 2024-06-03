@@ -2,26 +2,26 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Text } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
-import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
+import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
 import { ModelState } from '~/concepts/modelRegistry/types';
-import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
+import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
+import ModelVersionsTabs from '~/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
+import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
+import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import RegisteredModelArchiveDetailsBreadcrumb from './RegisteredModelArchiveDetailsBreadcrumb';
 
-type ModelVersionsArchiveDetailsProps = {
-  tab: ModelVersionDetailsTab;
+type RegisteredModelsArchiveDetailsProps = {
+  tab: ModelVersionsTab;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
 >;
 
-const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = ({
+const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsProps> = ({
   tab,
   ...pageProps
 }) => {
@@ -30,9 +30,9 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
 
   const navigate = useNavigate();
 
-  const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
-  const [rm] = useRegisteredModelById(rmId);
-  const [mv, mvLoaded, mvLoadError, refresh] = useModelVersionById(mvId);
+  const { registeredModelId: rmId } = useParams();
+  const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
+  const [modelVersions, mvLoaded, mvLoadError, refresh] = useModelVersionsByRegisteredModel(rmId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
 
   return (
@@ -40,17 +40,16 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
       <ApplicationsPage
         {...pageProps}
         breadcrumb={
-          <ModelVersionArchiveDetailsBreadcrumb
+          <RegisteredModelArchiveDetailsBreadcrumb
             preferredModelRegistry={preferredModelRegistry?.metadata.name}
             registeredModel={rm}
-            modelVersionName={mv?.name}
           />
         }
         title={
-          mv && (
+          rm && (
             <Flex>
               <FlexItem>
-                <Text>{mv.name}</Text>
+                <Text>{rm.name}</Text>
               </FlexItem>
               <FlexItem>
                 <Label>Archived</Label>
@@ -60,37 +59,45 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
         }
         headerAction={
           <Button data-testid="restore-button" onClick={() => setIsRestoreModalOpen(true)}>
-            Restore version
+            Restore model
           </Button>
         }
-        description={mv?.description}
-        loadError={mvLoadError}
-        loaded={mvLoaded}
+        description={rm?.description}
+        loadError={rmLoadError}
+        loaded={rmLoaded}
         provideChildrenPadding
       >
-        {mv !== null && <ModelVersionDetailsTabs tab={tab} modelVersion={mv} refresh={refresh} />}
+        {rm !== null && mvLoaded && !mvLoadError && (
+          <ModelVersionsTabs
+            tab={tab}
+            registeredModel={rm}
+            modelVersions={modelVersions.items}
+            refresh={rmRefresh}
+            mvRefresh={refresh}
+          />
+        )}
       </ApplicationsPage>
-      {mv !== null && (
-        <RestoreModelVersionModal
+      {rm !== null && (
+        <RestoreRegisteredModelModal
           onCancel={() => setIsRestoreModalOpen(false)}
           onSubmit={() =>
             apiState.api
-              .patchModelVersion(
+              .patchRegisteredModel(
                 {},
                 // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForModelVersion(mv, { state: ModelState.LIVE }),
-                mv.id,
+                getPatchBodyForRegisteredModel(rm, { state: ModelState.LIVE }),
+                rm.id,
               )
               .then(() =>
-                navigate(modelVersionUrl(mv.id, rm?.id, preferredModelRegistry?.metadata.name)),
+                navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
               )
           }
           isOpen={isRestoreModalOpen}
-          modelVersionName={mv.name}
+          registeredModelName={rm.name}
         />
       )}
     </>
   );
 };
 
-export default ModelVersionsArchiveDetails;
+export default RegisteredModelsArchiveDetails;

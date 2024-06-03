@@ -12,6 +12,9 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router';
+import { registeredModelArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 
 type RegisteredModelsTableToolbarProps = {
   toggleGroupItems?: React.ReactNode;
@@ -20,6 +23,8 @@ type RegisteredModelsTableToolbarProps = {
 const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> = ({
   toggleGroupItems: tableToggleGroupItems,
 }) => {
+  const navigate = useNavigate();
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const [isRegisterNewVersionOpen, setIsRegisterNewVersionOpen] = React.useState(false);
   const [isArchivedModelKebabOpen, setIsArchivedModelKebabOpen] = React.useState(false);
 
@@ -83,6 +88,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
             onOpenChange={(isOpen: boolean) => setIsArchivedModelKebabOpen(isOpen)}
             toggle={(tr: React.Ref<MenuToggleElement>) => (
               <MenuToggle
+                data-testid="registered-models-table-kebab-action"
                 ref={tr}
                 variant="plain"
                 onClick={() => setIsArchivedModelKebabOpen(!isArchivedModelKebabOpen)}
@@ -95,7 +101,13 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
             shouldFocusToggleOnSelect
           >
             <DropdownList>
-              <DropdownItem isDisabled>View archived models</DropdownItem>
+              <DropdownItem
+                onClick={() =>
+                  navigate(registeredModelArchiveUrl(preferredModelRegistry?.metadata.name))
+                }
+              >
+                View archived models
+              </DropdownItem>
             </DropdownList>
           </Dropdown>
         </ToolbarItem>

@@ -1,44 +1,56 @@
 import * as React from 'react';
 import { SearchInput, ToolbarFilter, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import { registeredModelArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
 
 type RegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
+  refresh: () => void;
 };
 
 const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   registeredModels: unfilteredRegisteredModels,
+  refresh,
 }) => {
+  const navigate = useNavigate();
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = React.useMemo(() => [SearchType.KEYWORD], []); // TODO Add owner once RHOAIENG-5066 is completed.
+  const searchTypes = React.useMemo(() => [SearchType.KEYWORD], []); // TODO Add owner once RHOAIENG-7566 is completed.
 
-  const filteredRegisteredModels = unfilteredRegisteredModels.filter((rm) => {
-    if (!search) {
-      return true;
-    }
+  if (unfilteredRegisteredModels.length === 0) {
+    return (
+      <EmptyModelRegistryState
+        testid="empty-registered-models"
+        title="No models in selected registry"
+        description={`${preferredModelRegistry?.metadata.name} has no models registered to it. Register model to this registry, or select a different one.`}
+        primaryActionText="Register model"
+        secondaryActionText="View archived models"
+        primaryActionOnClick={() => {
+          // TODO: Add primary action
+        }}
+        secondaryActionOnClick={() => {
+          navigate(registeredModelArchiveUrl(preferredModelRegistry?.metadata.name));
+        }}
+      />
+    );
+  }
 
-    switch (searchType) {
-      case SearchType.KEYWORD:
-        return (
-          rm.name.toLowerCase().includes(search.toLowerCase()) ||
-          (rm.description && rm.description.toLowerCase().includes(search.toLowerCase()))
-        );
-
-      case SearchType.OWNER:
-        // TODO Implement owner search functionality once RHOAIENG-5066 is completed.
-        return;
-
-      default:
-        return true;
-    }
-  });
+  const filteredRegisteredModels = filterRegisteredModels(
+    unfilteredRegisteredModels,
+    search,
+    searchType,
+  );
 
   const resetFilters = () => {
     setSearch('');
@@ -81,6 +93,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
 
   return (
     <RegisteredModelTable
+      refresh={refresh}
       clearFilters={resetFilters}
       registeredModels={filteredRegisteredModels}
       toolbarContent={<RegisteredModelsTableToolbar toggleGroupItems={toggleGroupItems} />}

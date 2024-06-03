@@ -3,7 +3,7 @@ import { Dropdown, DropdownList, MenuToggle, DropdownItem } from '@patternfly/re
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { modelVersionArchiveDetailsUrl } from '~/pages/modelRegistry/screens/routeUtils';
@@ -72,7 +72,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
             .patchModelVersion(
               {},
               // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-              getPatchBodyForModelVersion(mv, { state: ModelVersionState.ARCHIVED }),
+              getPatchBodyForModelVersion(mv, { state: ModelState.ARCHIVED }),
               mv.id,
             )
             .then(() =>

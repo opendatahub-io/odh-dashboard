@@ -1,42 +1,84 @@
 import * as React from 'react';
-import { Dropdown, DropdownList, MenuToggle, DropdownItem } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownList,
+  MenuToggle,
+  DropdownItem,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
+import { useNavigate } from 'react-router';
+import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
+import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
+import { registeredModelsUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
 
-const ModelVersionsHeaderActions: React.FC = () => {
+interface ModelVersionsHeaderActionsProps {
+  rm: RegisteredModel;
+}
+
+const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({ rm }) => {
+  const { apiState } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+
+  const navigate = useNavigate();
   const [isOpen, setOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
 
   return (
     <>
-      <Dropdown
-        isOpen={isOpen}
-        onSelect={() => setOpen(false)}
-        onOpenChange={(open) => setOpen(open)}
-        toggle={(toggleRef) => (
-          <MenuToggle
-            variant="primary"
-            ref={toggleRef}
-            onClick={() => setOpen(!isOpen)}
-            isExpanded={isOpen}
-            aria-label="Model version action toggle"
-            data-testid="model-version-action-toggle"
+      <Flex>
+        <FlexItem>
+          <Dropdown
+            isOpen={isOpen}
+            onSelect={() => setOpen(false)}
+            onOpenChange={(open) => setOpen(open)}
+            popperProps={{ position: 'end' }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                variant="primary"
+                ref={toggleRef}
+                onClick={() => setOpen(!isOpen)}
+                isExpanded={isOpen}
+                aria-label="Model version action toggle"
+                data-testid="model-version-action-toggle"
+              >
+                Actions
+              </MenuToggle>
+            )}
           >
-            Actions
-          </MenuToggle>
-        )}
-      >
-        <DropdownList>
-          <DropdownItem
-            id="archive-model-button"
-            aria-label="Archive model"
-            key="archive-model-button"
-            onClick={() => undefined}
-            ref={tooltipRef}
-            isDisabled // This feature is currently disabled but will be enabled in a future PR post-summit release.
-          >
-            Archive model
-          </DropdownItem>
-        </DropdownList>
-      </Dropdown>
+            <DropdownList>
+              <DropdownItem
+                id="archive-model-button"
+                aria-label="Archive model"
+                key="archive-model-button"
+                onClick={() => setIsArchiveModalOpen(true)}
+                ref={tooltipRef}
+              >
+                Archive model
+              </DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </FlexItem>
+      </Flex>
+      <ArchiveRegisteredModelModal
+        onCancel={() => setIsArchiveModalOpen(false)}
+        onSubmit={() =>
+          apiState.api
+            .patchRegisteredModel(
+              {},
+              // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
+              getPatchBodyForRegisteredModel(rm, { state: ModelState.ARCHIVED }),
+              rm.id,
+            )
+            .then(() => navigate(registeredModelsUrl(preferredModelRegistry?.metadata.name)))
+        }
+        isOpen={isArchiveModalOpen}
+        registeredModelName={rm.name}
+      />
     </>
   );
 };

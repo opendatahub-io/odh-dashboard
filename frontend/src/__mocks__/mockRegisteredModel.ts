@@ -1,17 +1,17 @@
-import { RegisteredModel, RegisteredModelState } from '~/concepts/modelRegistry/types';
+import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
 import { createModelRegistryLabelsObject } from './utils';
 
 type MockRegisteredModelType = {
   id?: string;
   name?: string;
-  state?: RegisteredModelState;
+  state?: ModelState;
   description?: string;
   labels?: string[];
 };
 
 export const mockRegisteredModel = ({
   name = 'test',
-  state = RegisteredModelState.LIVE,
+  state = ModelState.LIVE,
   description = '',
   labels = [],
   id = '1',

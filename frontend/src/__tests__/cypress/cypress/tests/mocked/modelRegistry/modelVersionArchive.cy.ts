@@ -7,7 +7,7 @@ import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { ModelRegistryModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { ModelVersion, ModelVersionState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import {
@@ -39,9 +39,9 @@ const initIntercepts = ({
         'Test label y',
         'Test label z',
       ],
-      state: ModelVersionState.ARCHIVED,
+      state: ModelState.ARCHIVED,
     }),
-    mockModelVersion({ id: '2', name: 'model version 2', state: ModelVersionState.ARCHIVED }),
+    mockModelVersion({ id: '2', name: 'model version 2', state: ModelState.ARCHIVED }),
     mockModelVersion({ id: '3', name: 'model version 3' }),
   ],
 }: HandlersProps) => {
@@ -100,7 +100,7 @@ const initIntercepts = ({
         modelVersionId: 2,
       },
     },
-    mockModelVersion({ id: '2', name: 'model version 2', state: ModelVersionState.ARCHIVED }),
+    mockModelVersion({ id: '2', name: 'model version 2', state: ModelState.ARCHIVED }),
   );
 
   cy.interceptOdh(
@@ -112,7 +112,7 @@ const initIntercepts = ({
         modelVersionId: 3,
       },
     },
-    mockModelVersion({ id: '3', name: 'model version 3', state: ModelVersionState.LIVE }),
+    mockModelVersion({ id: '3', name: 'model version 3', state: ModelState.LIVE }),
   );
 };
 
