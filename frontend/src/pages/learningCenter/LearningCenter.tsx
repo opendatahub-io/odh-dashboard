@@ -31,7 +31,7 @@ import './LearningCenter.scss';
 const description = `Access all learning resources for ${ODH_PRODUCT_NAME} and supported applications.`;
 const docText = ` To learn more about ${ODH_PRODUCT_NAME}, `;
 
-export const LearningCenter: React.FC = () => {
+const LearningCenter: React.FC = () => {
   const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);
   const queryParams = useQueryParams();
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;

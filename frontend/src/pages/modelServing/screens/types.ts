@@ -1,8 +1,6 @@
 import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
-import { TimeframeStepType } from '~/concepts/metrics/types';
-import { ModelMetricType, ServerMetricType } from './metrics/ModelServingMetricsContext';
 
 export enum PerformanceMetricType {
   SERVER = 'server',
@@ -14,10 +12,6 @@ export enum MetricType {
   MODEL = 'model',
   BIAS = 'bias',
 }
-
-export type QueryTimeframeStepType = {
-  [key in ServerMetricType | ModelMetricType]: TimeframeStepType;
-};
 
 export enum ServingRuntimeTableTabs {
   TYPE = 1,

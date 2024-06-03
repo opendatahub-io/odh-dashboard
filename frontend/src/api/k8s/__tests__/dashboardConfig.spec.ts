@@ -1,8 +1,4 @@
-import {
-  k8sGetResource,
-  k8sPatchResource,
-  k8sUpdateResource,
-} from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import {
   getDashboardConfig,
@@ -10,7 +6,6 @@ import {
   getDashboardConfigTemplateOrder,
   patchDashboardConfigTemplateDisablement,
   patchDashboardConfigTemplateOrder,
-  updateDashboardConfig,
 } from '~/api/k8s/dashboardConfig';
 import { ODHDashboardConfigModel } from '~/api/models';
 import { DashboardConfigKind } from '~/k8sTypes';
@@ -23,7 +18,6 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 }));
 
 const k8sGetResourceMock = jest.mocked(k8sGetResource<DashboardConfigKind>);
-const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<DashboardConfigKind>);
 const k8sPatchResourceMock = jest.mocked(k8sPatchResource<DashboardConfigKind>);
 const projectName = 'project-test';
 
@@ -118,33 +112,6 @@ describe('getDashboardConfigTemplateDisablement', () => {
       queryOptions: { name: DASHBOARD_CONFIG, ns: projectName },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('updateDashboardConfig', () => {
-  it('should update dashboard config', async () => {
-    const dashboardConfigurationMock = mockDashboardConfig({});
-    k8sUpdateResourceMock.mockResolvedValue(dashboardConfigurationMock);
-
-    const result = await updateDashboardConfig(dashboardConfigurationMock);
-    expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
-      model: ODHDashboardConfigModel,
-      resource: dashboardConfigurationMock,
-    });
-    expect(result).toStrictEqual(dashboardConfigurationMock);
-  });
-
-  it('should handle errors and rethrow', async () => {
-    const dashboardConfigurationMock = mockDashboardConfig({});
-    k8sUpdateResourceMock.mockRejectedValue(new Error('error'));
-
-    await expect(updateDashboardConfig(dashboardConfigurationMock)).rejects.toThrow('error');
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
-      model: ODHDashboardConfigModel,
-      resource: dashboardConfigurationMock,
-    });
-    expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
   });
 });
 

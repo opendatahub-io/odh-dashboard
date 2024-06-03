@@ -66,9 +66,6 @@ export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
   refresh: () => undefined,
 };
 
-export const REPOSITORY_URL_REGEX =
-  /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
-
 export const DASHBOARD_MAIN_CONTAINER_ID = 'dashboard-page-main';
 
 // Quick starts drawer creates a new scroll container within its DrawerContentBody.

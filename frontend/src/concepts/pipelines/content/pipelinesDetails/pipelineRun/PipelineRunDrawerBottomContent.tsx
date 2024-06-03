@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { DrawerPanelContent } from '@patternfly/react-core';
-import {
-  PipelineRunDrawerBottomTabs,
+import PipelineRunDrawerBottomTabs, {
   RunDetailsTabSelection,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
 

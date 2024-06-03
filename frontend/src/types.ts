@@ -111,8 +111,6 @@ export type ConfigMap = {
   data?: Record<string, string>;
 } & K8sResourceCommon;
 
-export type EnvVarResource = Secret | ConfigMap;
-
 export enum EnvVarResourceType {
   Secret = 'Secret',
   ConfigMap = 'ConfigMap',
@@ -384,13 +382,6 @@ export type NotebookRunningState = {
   notebookLink: string;
 };
 
-export type NotebookList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: Notebook[];
-} & K8sResourceCommon;
-
 export type Route = {
   apiVersion?: string;
   kind?: string;
@@ -529,13 +520,6 @@ export type ImageStream = {
   status?: ImageStreamStatus;
 } & K8sResourceCommon;
 
-export type ImageStreamList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: ImageStream[];
-} & K8sResourceCommon;
-
 export type NameVersionPair = {
   name: string;
   version: string;
@@ -581,13 +565,6 @@ export type PersistentVolumeClaim = K8sResourceCommon & {
   status?: Record<string, any>; // eslint-disable-line
 };
 
-export type PersistentVolumeClaimList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: PersistentVolumeClaim[];
-};
-
 export type Volume = {
   name: string;
   emptyDir?: Record<string, unknown>;
@@ -631,10 +608,6 @@ export type ResourceGetter<T extends K8sResourceCommon> = (
 ) => Promise<T>;
 
 export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
-
-export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
-
-export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
   involvedObject: {

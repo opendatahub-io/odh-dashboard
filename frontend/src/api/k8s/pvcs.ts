@@ -2,9 +2,7 @@ import * as _ from 'lodash-es';
 import {
   k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sListResourceItems,
-  k8sPatchResource,
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
@@ -58,12 +56,6 @@ export const assemblePvc = (
   };
 };
 
-export const getPvc = (projectName: string, pvcName: string): Promise<PersistentVolumeClaimKind> =>
-  k8sGetResource<PersistentVolumeClaimKind>({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: projectName },
-  });
-
 export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeClaimKind[]> =>
   k8sListResourceItems<PersistentVolumeClaimKind>({
     model: PVCModel,
@@ -72,16 +64,6 @@ export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeC
       queryParams: { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
     },
   });
-
-export const getAvailableMultiUsePvcs = (
-  projectName: string,
-): Promise<PersistentVolumeClaimKind[]> =>
-  getDashboardPvcs(projectName).then((pvcs) =>
-    pvcs.filter((pvc) => {
-      const { accessModes } = pvc.spec;
-      return accessModes.includes('ReadOnlyMany') || accessModes.includes('ReadWriteMany');
-    }),
-  );
 
 export const createPvc = (
   data: CreatingStorageObject,
@@ -114,28 +96,3 @@ export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus
     model: PVCModel,
     queryOptions: { name: pvcName, ns: namespace },
   });
-
-export const updatePvcSize = (
-  pvcName: string,
-  namespace: string,
-  size: string,
-  opts?: K8sAPIOptions,
-): Promise<PersistentVolumeClaimKind> =>
-  k8sPatchResource(
-    applyK8sAPIOptions(
-      {
-        model: PVCModel,
-        queryOptions: { name: pvcName, ns: namespace },
-        patches: [
-          {
-            op: 'replace',
-            path: '/spec/resources/requests',
-            value: {
-              storage: size,
-            },
-          },
-        ],
-      },
-      opts,
-    ),
-  );

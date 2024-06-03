@@ -14,11 +14,6 @@ export type NotebookImage =
       imageDisplayName?: string;
     };
 
-export type ImageData = {
-  imageStream: ImageStreamKind;
-  imageVersion: ImageStreamSpecTagType;
-};
-
 export type NotebookImageData =
   | [data: null, loaded: false, loadError: undefined]
   | [data: null, loaded: false, loadError: Error]
