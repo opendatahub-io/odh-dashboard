@@ -1,13 +1,13 @@
 declare namespace jest {
   interface Expect {
-    isIdentityEqual<T>(expected: T): T;
+    isIdentityEqual: <T>(expected: T) => T;
   }
 
   interface Matchers<R, T> {
-    hookToBe(expected: unknown): R;
-    hookToStrictEqual(expected: unknown): R;
-    hookToHaveUpdateCount(expected: number): R;
-    hookToBeStable<
+    hookToBe: (expected: unknown) => R;
+    hookToStrictEqual: (expected: unknown) => R;
+    hookToHaveUpdateCount: (expected: number) => R;
+    hookToBeStable: <
       V extends T extends Pick<
         import('~/__tests__/unit/testUtils/hooks').RenderHookResultExt<
           infer Result,
@@ -20,10 +20,10 @@ declare namespace jest {
         : never,
     >(
       expected?: V,
-    ): R;
+    ) => R;
   }
 
   interface Expect {
-    isIdentityEqual(expected: unknown): AsymmetricMatcher;
+    isIdentityEqual: (expected: unknown) => AsymmetricMatcher;
   }
 }

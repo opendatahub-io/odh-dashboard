@@ -7,10 +7,10 @@ declare global {
       /**
        * Send data to through websockets to all matching connections.
        */
-      wsSend(
+      wsSend: (
         matcher: string | { pathname: string; searchParams?: URLSearchParams },
         data: string | object,
-      ): void;
+      ) => void;
     }
   }
 }
