@@ -38,6 +38,7 @@ const initialMockPipelineVersion = buildMockPipelineVersionV2({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
+const tooLargePipelineYAMLPath = './cypress/tests/mocked/pipelines/not-a-pipeline-2-megabytes.yaml';
 
 describe('Pipelines', () => {
   it('Empty state', () => {
@@ -578,6 +579,22 @@ describe('Pipelines', () => {
 
     // Verify the uploaded pipeline is in the table
     pipelinesTable.getRowById(uploadedMockPipeline.pipeline_id).find().should('exist');
+  });
+
+  it('fails to import a too-large file', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findImportPipelineButton().click();
+
+    pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.findUploadError().should('not.exist');
+    pipelineImportModal.findSubmitButton().should('be.disabled');
+    pipelineImportModal.uploadPipelineYaml(tooLargePipelineYAMLPath);
+    pipelineImportModal.findUploadError().should('exist');
+    pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
+    pipelineImportModal.findUploadError().should('not.exist');
+    pipelineImportModal.findSubmitButton().should('be.enabled');
   });
 
   it('imports a new pipeline by url', () => {
