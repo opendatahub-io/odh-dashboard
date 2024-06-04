@@ -10,11 +10,11 @@ export default proxyService<DSPipelineKind>(
   },
   {
     port: 8443,
-    prefix: 'ds-pipeline-metadata-envoy-',
+    prefix: 'ds-pipeline-md-',
   },
   {
     // Use port forwarding for local development:
-    // kubectl port-forward -n <namespace> svc/ds-pipeline-metadata-envoy-dspa 10001:8443
+    // kubectl port-forward -n <namespace> svc/ds-pipeline-md-dspa 10001:8443
     host: process.env.METADATA_ENVOY_SERVICE_HOST,
     port: process.env.METADATA_ENVOY_SERVICE_PORT,
   },
