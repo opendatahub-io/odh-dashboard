@@ -183,7 +183,7 @@ describe('Pipeline topology', () => {
       });
 
       it('navigates to "Schedule run" page on "Schedule run" click', () => {
-        pipelineDetails.selectActionDropdownItem('Schedule run');
+        pipelineDetails.selectActionDropdownItem('Create schedule');
         verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create?runType=scheduled`);
       });
 

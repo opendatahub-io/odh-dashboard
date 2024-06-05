@@ -8,11 +8,15 @@ import {
   buildMockPipelines,
   mockProjectK8sResource,
   mockRouteK8sResource,
+  buildMockRunKF,
+  buildMockJobKF,
 } from '~/__mocks__';
 import {
+  archivedRunsTable,
   archiveExperimentModal,
   bulkArchiveExperimentModal,
   bulkRestoreExperimentModal,
+  pipelineRunJobTable,
   pipelineRunsGlobal,
   restoreExperimentModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
@@ -23,6 +27,7 @@ import {
   ProjectModel,
   RouteModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { RecurringRunStatus, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -199,7 +204,7 @@ describe('Experiments', () => {
     });
   });
 
-  describe('Runs page', () => {
+  describe('Runs page for active experiment', () => {
     const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
     const [mockExperiment] = mockExperiments;
 
@@ -237,6 +242,67 @@ describe('Experiments', () => {
       pipelineRunsGlobal.findScheduleRunButton().click();
       cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
     });
+  });
+});
+
+describe('Runs page for archived experiment', () => {
+  const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
+  const mockExperiment = { ...mockExperiments[0], storage_state: StorageStateKF.ARCHIVED };
+
+  beforeEach(() => {
+    initIntercepts();
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      {
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          experimentId: mockExperiment.experiment_id,
+        },
+      },
+      mockExperiment,
+    );
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
+      {
+        path: { namespace: projectName, serviceName: 'dspa' },
+      },
+      { runs: [buildMockRunKF({ storage_state: StorageStateKF.ARCHIVED })] },
+    );
+
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      {
+        path: { namespace: projectName, serviceName: 'dspa' },
+      },
+      { recurringRuns: [buildMockJobKF({ status: RecurringRunStatus.DISABLED })] },
+    );
+    experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
+    experimentsTabs.visit(projectName);
+    experimentsTabs.findArchivedTab().click();
+    archivedExperimentsTable.getRowByName(mockExperiment.display_name).find().find('a').click();
+  });
+
+  it('navigates to the runs page when clicking an experiment name', () => {
+    verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+    cy.findByLabelText('Breadcrumb').findByText('Experiments');
+  });
+
+  it('has empty state on active runs tab', () => {
+    pipelineRunsGlobal.findActiveRunsTab().click();
+    cy.findByTestId('experiment-archived-empty-state').should('be.visible');
+  });
+
+  it('has restore button disabled on archived runs tab', () => {
+    pipelineRunsGlobal.findArchivedRunsTab().click();
+    archivedRunsTable.getRowByName('Test run').findCheckbox().click();
+    pipelineRunsGlobal.findRestoreRunButton().should('have.class', 'pf-m-aria-disabled');
+  });
+
+  it('has create schedule button disabled on schedules tab', () => {
+    pipelineRunsGlobal.findSchedulesTab().click();
+    pipelineRunJobTable.getRowByName('Test job').findCheckbox().click();
+    pipelineRunsGlobal.findScheduleRunButton().should('have.class', 'pf-m-aria-disabled');
   });
 });
 

@@ -26,6 +26,7 @@ import {
 } from '~/concepts/pipelines/content/tables/utils';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
@@ -132,6 +133,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
 }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
+  const isExperimentArchived = useContextExperimentArchived();
 
   const isEnabled = job.mode === RecurringRunMode.ENABLE;
   React.useEffect(() => {
@@ -145,7 +147,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
         <Switch
           id={`${job.recurring_run_id}-toggle`}
           aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
-          isDisabled={isChangingFlag}
+          isDisabled={isChangingFlag || isExperimentArchived}
           onChange={(e, checked) => {
             setIsChangingFlag(true);
             setError(null);

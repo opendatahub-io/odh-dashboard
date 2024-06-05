@@ -4,7 +4,10 @@ import { experimentsRootPath } from '~/routes';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
-export const useExperimentByParams = (): ExperimentKFv2 | null => {
+export const useExperimentByParams = (): {
+  experiment: ExperimentKFv2 | null;
+  isExperimentLoaded: boolean;
+} => {
   const navigate = useNavigate();
   const { experimentId } = useParams();
   const [experiment, isExperimentLoaded, experimentError] = useExperimentById(experimentId);
@@ -16,5 +19,5 @@ export const useExperimentByParams = (): ExperimentKFv2 | null => {
     }
   }, [experimentError, isExperimentLoaded, navigate]);
 
-  return experiment;
+  return { experiment, isExperimentLoaded };
 };

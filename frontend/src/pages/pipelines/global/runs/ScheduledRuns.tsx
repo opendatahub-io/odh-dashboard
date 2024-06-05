@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import {
   Bullseye,
@@ -8,7 +8,6 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateHeader,
-  Button,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
@@ -16,17 +15,12 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
 import { usePipelineScheduledRunsTable } from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { scheduleRunRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PipelineRunType } from './types';
+import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
 
 const ScheduledRuns: React.FC = () => {
-  const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
+  const { experimentId } = useParams();
   const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineScheduledRunsTable({ experimentId });
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (error) {
     return (
@@ -67,21 +61,7 @@ const ScheduledRuns: React.FC = () => {
 
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button
-              data-testid="schedule-run-button"
-              variant="primary"
-              onClick={() =>
-                navigate({
-                  pathname: scheduleRunRoute(
-                    namespace,
-                    isExperimentsAvailable ? experimentId : undefined,
-                  ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                })
-              }
-            >
-              Create schedule
-            </Button>
+            <CreateScheduleButton />
           </EmptyStateActions>
         </EmptyStateFooter>
       </EmptyState>

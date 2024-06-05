@@ -12,13 +12,14 @@ import {
   EmptyStateActions,
   Button,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { createRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
@@ -27,6 +28,25 @@ export const ActiveRuns: React.FC = () => {
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable({ experimentId });
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const isExperimentArchived = useContextExperimentArchived();
+
+  if (isExperimentArchived) {
+    return (
+      <Bullseye>
+        <EmptyState data-testid="experiment-archived-empty-state">
+          <EmptyStateHeader
+            titleText="Experiment archived"
+            icon={<EmptyStateIcon icon={CubesIcon} />}
+            headingLevel="h2"
+          />
+          <EmptyStateBody>
+            When an experiment is archived, its runs are moved to the {PipelineRunTabTitle.ARCHIVED}{' '}
+            tab.
+          </EmptyStateBody>
+        </EmptyState>
+      </Bullseye>
+    );
+  }
 
   if (error) {
     return (

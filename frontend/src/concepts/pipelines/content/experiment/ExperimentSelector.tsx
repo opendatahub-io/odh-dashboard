@@ -20,7 +20,10 @@ import { TableBase, getTableColumnSort } from '~/components/table';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { useExperimentSelector } from '~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
+import {
+  useActiveExperimentSelector,
+  useAllExperimentSelector,
+} from '~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
 import { experimentSelectorColumns } from '~/concepts/pipelines/content/experiment/columns';
 
 type ExperimentSelectorProps = {
@@ -28,20 +31,22 @@ type ExperimentSelectorProps = {
   onSelect: (experiment: ExperimentKFv2) => void;
 };
 
-const ExperimentSelector: React.FC<ExperimentSelectorProps> = ({ selection, onSelect }) => {
+const InnerExperimentSelector: React.FC<
+  ReturnType<typeof useAllExperimentSelector> & ExperimentSelectorProps
+> = ({
+  fetchedSize,
+  totalSize,
+  searchProps,
+  onSearchClear,
+  onLoadMore,
+  sortProps,
+  loaded,
+  initialLoaded,
+  data: experiments,
+  selection,
+  onSelect,
+}) => {
   const [isOpen, setOpen] = React.useState(false);
-
-  const {
-    fetchedSize,
-    totalSize,
-    searchProps,
-    onSearchClear,
-    onLoadMore,
-    sortProps,
-    loaded,
-    initialLoaded,
-    data: experiments,
-  } = useExperimentSelector();
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
@@ -140,4 +145,12 @@ const ExperimentSelector: React.FC<ExperimentSelectorProps> = ({ selection, onSe
   );
 };
 
-export default ExperimentSelector;
+export const AllExperimentSelector: React.FC<ExperimentSelectorProps> = (props) => {
+  const selectorProps = useAllExperimentSelector();
+  return <InnerExperimentSelector {...props} {...selectorProps} />;
+};
+
+export const ActiveExperimentSelector: React.FC<ExperimentSelectorProps> = (props) => {
+  const selectorProps = useActiveExperimentSelector();
+  return <InnerExperimentSelector {...props} {...selectorProps} />;
+};

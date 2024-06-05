@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
-import useExperimentTable from '~/concepts/pipelines/content/tables/experiment/useExperimentTable';
+import useExperimentTable, {
+  useActiveExperimentTable,
+} from '~/concepts/pipelines/content/tables/experiment/useExperimentTable';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import {
   LoadMoreProps,
@@ -35,14 +37,19 @@ type UsePipelineSelectorData<DataType> = {
   };
 };
 
-export const useExperimentSelector = (): UsePipelineSelectorData<ExperimentKFv2> => {
-  const experimentsTable = useExperimentTable();
-  const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = experimentsTable;
-  return useCreateSelector<ExperimentKFv2>(
-    experimentsTable,
-    useExperimentLoadMore({ initialData, initialPageToken, loaded }),
-  );
-};
+export const getExperimentSelector =
+  (useTable: typeof useExperimentTable) => (): UsePipelineSelectorData<ExperimentKFv2> => {
+    const experimentsTable = useTable();
+    const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = experimentsTable;
+    return useCreateSelector<ExperimentKFv2>(
+      experimentsTable,
+      useExperimentLoadMore({ initialData, initialPageToken, loaded }),
+    );
+  };
+
+export const useAllExperimentSelector = getExperimentSelector(useExperimentTable);
+
+export const useActiveExperimentSelector = getExperimentSelector(useActiveExperimentTable);
 
 export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKFv2> => {
   const pipelinesTable = usePipelinesTable();
