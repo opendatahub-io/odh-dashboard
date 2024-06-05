@@ -7,9 +7,11 @@ import {
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 
 export const useGetEventsByExecutionId = (
-  executionId?: string,
-): FetchState<GetEventsByExecutionIDsResponse | null> =>
-  useGetEventsByExecutionIds([Number(executionId)]);
+  executionId: number,
+): FetchState<GetEventsByExecutionIDsResponse | null> => {
+  const ids = React.useMemo(() => [executionId], [executionId]);
+  return useGetEventsByExecutionIds(ids);
+};
 
 export const useGetEventsByExecutionIds = (
   executionIds: number[],

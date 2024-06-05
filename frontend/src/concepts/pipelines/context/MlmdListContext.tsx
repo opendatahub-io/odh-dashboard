@@ -5,7 +5,7 @@ interface MlmdOrderBy {
   direction: 'asc' | 'desc';
 }
 
-interface MlmdListContextProps {
+export interface MlmdListContextProps {
   filterQuery: string | undefined;
   pageToken: string | undefined;
   maxResultSize: number;
