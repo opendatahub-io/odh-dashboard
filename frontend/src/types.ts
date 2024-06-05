@@ -551,20 +551,6 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = K8sResourceCommon & {
-  spec: {
-    accessModes: string[];
-    resources: {
-      requests: {
-        storage: string;
-      };
-    };
-    storageClassName?: string;
-    volumeMode: 'Filesystem' | 'Block';
-  };
-  status?: Record<string, any>; // eslint-disable-line
-};
-
 export type Volume = {
   name: string;
   emptyDir?: Record<string, unknown>;
@@ -577,19 +563,6 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string };
-
-/**
- * @deprecated -- use K8sStatus
- * Copy from partial of V1Status that will returned by the delete CoreV1Api
- */
-export type DeleteStatus = {
-  apiVersion?: string;
-  code?: number;
-  kind?: string;
-  message?: string;
-  reason?: string;
-  status?: string;
-};
 
 export type RoleBindingSubject = {
   kind: string;

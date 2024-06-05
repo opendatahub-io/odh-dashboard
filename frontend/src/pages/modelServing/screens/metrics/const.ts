@@ -1,4 +1,3 @@
-import { ChartThemeColor, getCustomTheme } from '@patternfly/react-charts';
 import { BiasMetricType } from '~/api';
 import { BiasChartConfigMap, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
@@ -26,10 +25,6 @@ export const EMPTY_BIAS_CHART_SELECTION_DESC =
 
 export const BIAS_THRESHOLD_COLOR = 'var(--pf-chart-global--danger--Color--100, #c9190b)';
 export const BIAS_DOMAIN_PADDING = 0.1;
-export const DEFAULT_BIAS_THRESHOLD_DELTAS: { [key in BiasMetricType]: number } = {
-  [BiasMetricType.SPD]: 0.1,
-  [BiasMetricType.DIR]: 0.2,
-};
 
 export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {
   [BiasMetricType.SPD]: {
@@ -77,18 +72,3 @@ export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {
     },
   },
 };
-
-const colorScale = [
-  'var(--pf-chart-color-green-300, #4cb140)',
-  'var(--pf-chart-global--danger--Color--100, #c9190b)',
-];
-
-const themeProps = {
-  bar: { colorScale },
-  chart: { colorScale },
-  group: { colorScale },
-  legend: { colorScale },
-  stack: { colorScale },
-};
-
-export const SUCCESS_FAIL_CHART_THEME = getCustomTheme(ChartThemeColor.default, themeProps);

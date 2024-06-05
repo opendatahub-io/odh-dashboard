@@ -1,10 +1,4 @@
-import {
-  PipelineRunJobKFv2,
-  PipelineRunKFv2,
-  PipelineCoreResourceKF,
-  ResourceTypeKF,
-  ResourceReferenceKF,
-} from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
@@ -16,16 +10,6 @@ export const getRunDuration = (run: PipelineRunKFv2): number => {
   const createdDate = new Date(run.created_at);
   return finishedDate.getTime() - createdDate.getTime();
 };
-
-/**
- * @deprecated
- * Uses v1 api where resource references existed
- */
-export const getResourceRef = (
-  resource: PipelineCoreResourceKF | null | undefined,
-  type: ResourceTypeKF,
-): ResourceReferenceKF | undefined =>
-  resource?.resource_references?.find((ref) => ref.key.type === type);
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKFv2): Date | null => {
   const startTime =

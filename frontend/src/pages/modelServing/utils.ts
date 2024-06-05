@@ -24,7 +24,6 @@ import {
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
-  DataScienceClusterKindStatus,
   InferenceServiceKind,
   ServiceAccountKind,
 } from '~/k8sTypes';
@@ -297,11 +296,6 @@ export const isModelServerEditInfoChanged = (
           createData.tokens.map((token) => token.name).toSorted(),
         ))
     : true;
-
-export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus): string =>
-  status.conditions.find(
-    (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
-  )?.message || '';
 
 export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';

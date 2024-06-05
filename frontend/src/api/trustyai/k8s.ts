@@ -4,9 +4,8 @@ import {
   k8sGetResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, RouteKind, TrustyAIKind } from '~/k8sTypes';
-import { getRoute } from '~/api';
-import { TRUSTYAI_DEFINITION_NAME, TRUSTYAI_ROUTE_NAME } from '~/concepts/trustyai/const';
+import { K8sAPIOptions, TrustyAIKind } from '~/k8sTypes';
+import { TRUSTYAI_DEFINITION_NAME } from '~/concepts/trustyai/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { TrustyAIApplicationsModel } from '~/api/models/trustyai';
 
@@ -24,11 +23,6 @@ const trustyAIDefaultCRSpec: TrustyAIKind['spec'] = {
     schedule: '5s',
   },
 };
-
-export const getTrustyAIAPIRoute = async (
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<RouteKind> => getRoute(TRUSTYAI_ROUTE_NAME, namespace, opts);
 
 export const getTrustyAICR = async (
   namespace: string,
