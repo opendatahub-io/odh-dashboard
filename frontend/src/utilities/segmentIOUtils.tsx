@@ -15,7 +15,54 @@ export const fireTrackingEventRaw = (eventType: string, properties?: any): void 
       }`,
     );
   } else if (window.analytics) {
-    window.analytics.track(eventType, { ...properties, clusterID });
+    window.analytics.track(
+      eventType,
+      {
+        ...properties,
+        clusterID,
+      },
+      {
+        app: {
+          version: INTERNAL_DASHBOARD_VERSION,
+        },
+      },
+    );
+  }
+};
+
+export type IdentifyProps = {
+  anonymousID: string;
+  canCreate: boolean;
+  canDelete: boolean;
+  canUpdate: boolean;
+  isAdmin: boolean;
+};
+
+export const fireIdentifyEvent = (properties?: {
+  anonymousID: string;
+  canUpdate: boolean;
+  canDelete: boolean;
+  isAdmin: boolean;
+  canCreate: boolean;
+}): void => {
+  const clusterID = window.clusterID ?? '';
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(
+      `Telemetry identify triggered: ${properties ? ` - ${JSON.stringify(properties)}` : ''}`,
+    );
+  } else if (window.analytics) {
+    const canCreate = properties?.canCreate || false;
+    const canDelete = properties?.canDelete || false;
+    const canUpdate: boolean = properties?.canUpdate || false;
+    const isAdmin = properties?.isAdmin || false;
+    window.analytics.identify(properties?.anonymousID, {
+      clusterID,
+      canCreate,
+      canDelete,
+      canUpdate,
+      isAdmin,
+    });
   }
 };
 
@@ -39,20 +86,45 @@ export const fireTrackingEvent = (
         window.analytics.identify(properties?.anonymousID, { clusterID });
         break;
       case 'page':
-        window.analytics.page(undefined, { clusterID });
+        window.analytics.page(
+          undefined,
+          {
+            clusterID,
+          },
+          {
+            app: {
+              version: INTERNAL_DASHBOARD_VERSION,
+            },
+          },
+        );
         break;
       default:
-        window.analytics.track(eventType, { ...properties, clusterID });
+        window.analytics.track(
+          eventType,
+          {
+            ...properties,
+            clusterID,
+          },
+          {
+            app: {
+              version: INTERNAL_DASHBOARD_VERSION,
+            },
+          },
+        );
     }
   }
 };
 
 export const initSegment = async (props: {
   segmentKey: string;
-  username: string;
+  isAdmin: boolean;
+  canCreate: boolean;
+  canDelete: boolean;
+  canUpdate: boolean;
   enabled: boolean;
+  username: string;
 }): Promise<void> => {
-  const { segmentKey, username, enabled } = props;
+  const { segmentKey, username, enabled, canCreate, canDelete, canUpdate, isAdmin } = props;
   const analytics = (window.analytics = window.analytics || []);
   if (analytics.initialize) {
     return;
@@ -126,7 +198,7 @@ export const initSegment = async (props: {
     );
     const anonymousIDArray = Array.from(new Uint8Array(anonymousIDBuffer));
     const anonymousID = anonymousIDArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    fireTrackingEvent('identify', { anonymousID });
+    fireIdentifyEvent({ anonymousID, canCreate, canDelete, canUpdate, isAdmin });
     fireTrackingEvent('page');
   }
 };

@@ -58,7 +58,7 @@ Run the tests.
 
 For in-depth testing guidance review the [testing guidelines](./testing.md)
 
-## Deploying the ODH Dashbard
+## Deploying the ODH Dashboard
 
 ### Official Image Builds
 
