@@ -12,7 +12,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
-import { CreateRunPageSections, runPageSectionTitles } from './const';
+import { CreateRunPageSections, RUN_NAME_CHARACTER_LIMIT, runPageSectionTitles } from './const';
 import { getInputDefinitionParams } from './utils';
 
 type RunFormProps = {
@@ -72,6 +72,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
           descriptionFieldId="run-description"
           data={data.nameDesc}
           setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
+          maxLength={RUN_NAME_CHARACTER_LIMIT}
         />
 
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (
