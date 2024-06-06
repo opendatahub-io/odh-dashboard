@@ -329,18 +329,6 @@ export type PodContainer = {
   securityContext?: unknown;
 };
 
-export type PodContainerStatus = {
-  name?: string;
-  ready: boolean;
-  state?: {
-    running?: boolean | undefined;
-    waiting?: boolean | undefined;
-    terminated?: boolean | undefined;
-  };
-};
-
-export type PodContainerStatuses = (PodContainerStatus | undefined)[];
-
 export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };

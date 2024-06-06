@@ -1,5 +1,5 @@
-import { PodKind } from '~/k8sTypes';
-import { PodContainer, PodContainerStatuses } from '~/types';
+import { PodKind, PodContainerStatus } from '~/k8sTypes';
+import { PodContainer } from '~/types';
 import { getPodContainerLogText } from '~/api';
 import { downloadString } from '~/utilities/string';
 
@@ -9,7 +9,7 @@ export const getPodContainers = (
   pod: PodKind | null,
 ): {
   containers: PodContainer[];
-  containerStatuses: PodContainerStatuses;
+  containerStatuses: PodContainerStatus[];
   initContainers: PodContainer[];
 } => ({
   containers: pod?.spec.containers ?? [],
