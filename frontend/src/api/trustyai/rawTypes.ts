@@ -58,7 +58,3 @@ export type BaseMetricCreationResponse = {
   requestId: string;
   timestamp: string;
 };
-
-export type BaseMetricDeletionRequest = {
-  requestId: string;
-};
