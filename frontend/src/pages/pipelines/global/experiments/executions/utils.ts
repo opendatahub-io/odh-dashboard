@@ -1,10 +1,5 @@
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import {
-  Event,
-  Execution,
-  GetEventsByExecutionIDsResponse,
-  Value as MlmdValue,
-} from '~/third_party/mlmd';
+import { Event, Execution, Value as MlmdValue } from '~/third_party/mlmd';
 
 export type MlmdMetadataValueType = string | number | Struct | undefined;
 
@@ -30,9 +25,7 @@ export const getMlmdMetadataValue = (value?: MlmdValue): MlmdMetadataValueType =
   }
 };
 
-export const parseEventsByType = (
-  response: GetEventsByExecutionIDsResponse | null,
-): Record<Event.Type, Event[]> => {
+export const parseEventsByType = (response: Event[] | null): Record<Event.Type, Event[]> => {
   const events: Record<Event.Type, Event[]> = {
     [Event.Type.UNKNOWN]: [],
     [Event.Type.DECLARED_INPUT]: [],
@@ -48,7 +41,7 @@ export const parseEventsByType = (
     return events;
   }
 
-  response.getEventsList().forEach((event) => {
+  response.forEach((event) => {
     const type = event.getType();
     const id = event.getArtifactId();
     if (type >= 0 && id > 0) {

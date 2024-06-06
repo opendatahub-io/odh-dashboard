@@ -17,6 +17,7 @@ export type PipelineTaskParam = {
 export type PipelineTaskArtifact = {
   label: string;
   type: string;
+  value?: Artifact;
 };
 
 export type PipelineTaskStep = {

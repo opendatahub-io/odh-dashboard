@@ -69,6 +69,8 @@ spec:
                       type: boolean
                     disablePipelineExperiments:
                       type: boolean
+                    disableS3Endpoint:
+                      type: boolean
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelRegistry:

@@ -54,7 +54,7 @@ describe('useGetEventsByExecutionId', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current).toStrictEqual(
-      standardUseFetchState(mockEventsResponse, true),
+      standardUseFetchState(mockEventsResponse.getEventsList(), true),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
 
@@ -108,7 +108,7 @@ describe('useGetEventsByExecutionIds', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current).toStrictEqual(
-      standardUseFetchState(mockEventsResponse, true),
+      standardUseFetchState(mockEventsResponse.getEventsList(), true),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
 

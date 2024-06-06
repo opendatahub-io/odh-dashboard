@@ -1,11 +1,14 @@
 import React from 'react';
 
 import {
+  Alert,
+  Bullseye,
   EmptyState,
   EmptyStateBody,
   EmptyStateHeader,
   EmptyStateVariant,
   Flex,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -23,13 +26,57 @@ import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
 import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
 import { isConfusionMatrix } from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
+import {
+  MAX_STORAGE_OBJECT_SIZE,
+  fetchStorageObject,
+  fetchStorageObjectSize,
+} from '~/services/storageService';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { extractS3UriComponents } from '~/concepts/pipelines/content/artifacts/utils';
+import MarkdownView from '~/components/MarkdownView';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { bytesAsRoundedGiB } from '~/utilities/number';
 
 interface ArtifactVisualizationProps {
   artifact: Artifact;
 }
 
 export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ artifact }) => {
+  const [downloadedArtifact, setDownloadedArtifact] = React.useState<string | null>(null);
+  const [downloadedArtifactSize, setDownloadedArtifactSize] = React.useState<number | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(false);
+  const { namespace } = usePipelinesAPI();
+  const isS3EndpointAvailable = useIsAreaAvailable(SupportedArea.S3_ENDPOINT).status;
+
   const artifactType = artifact.getType();
+
+  React.useEffect(() => {
+    if (!isS3EndpointAvailable) {
+      return;
+    }
+
+    if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
+      const uri = artifact.getUri();
+      if (uri) {
+        const uriComponents = extractS3UriComponents(uri);
+        if (uriComponents) {
+          const downloadArtifact = async (path: string) => {
+            await fetchStorageObjectSize(namespace, path)
+              .then((size) => setDownloadedArtifactSize(size))
+              .catch(() => null);
+            await fetchStorageObject(namespace, path)
+              .then((text) => setDownloadedArtifact(text))
+              .catch(() => null);
+            setLoading(false);
+          };
+          setLoading(true);
+          setDownloadedArtifact(null);
+          setDownloadedArtifactSize(null);
+          downloadArtifact(uriComponents.path);
+        }
+      }
+    }
+  }, [artifact, artifactType, isS3EndpointAvailable, namespace]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');
@@ -132,13 +179,43 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
     );
   }
 
-  if (artifactType === ArtifactType.HTML || artifactType === ArtifactType.MARKDOWN) {
-    return (
-      <EmptyState variant={EmptyStateVariant.xs}>
-        <EmptyStateHeader titleText="Content is not available yet." headingLevel="h4" />
-      </EmptyState>
-    );
+  if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
+    if (loading) {
+      return (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      );
+    }
+    if (downloadedArtifact) {
+      return (
+        <Stack className="pf-v5-u-pt-lg pf-v5-u-pb-lg" hasGutter>
+          {downloadedArtifactSize && downloadedArtifactSize > MAX_STORAGE_OBJECT_SIZE && (
+            <StackItem>
+              <Alert isInline variant="warning" title="Oversized file">
+                {`This file is ${bytesAsRoundedGiB(
+                  downloadedArtifactSize,
+                )} GB in size but we do not fetch files over 100MB. To view the full file, please download it from your S3 bucket.`}
+              </Alert>
+            </StackItem>
+          )}
+          <StackItem>
+            <Title headingLevel="h3">Artifact details</Title>
+          </StackItem>
+          <StackItem>
+            <MarkdownView markdown={downloadedArtifact} />
+          </StackItem>
+        </Stack>
+      );
+    }
   }
 
-  return null;
+  return (
+    <EmptyState variant={EmptyStateVariant.xs}>
+      <EmptyStateHeader
+        titleText="There are no metric artifacts available in this step."
+        headingLevel="h4"
+      />
+    </EmptyState>
+  );
 };

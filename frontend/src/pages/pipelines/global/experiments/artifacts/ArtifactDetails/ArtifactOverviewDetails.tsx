@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 
 import { Artifact } from '~/third_party/mlmd';
+import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 import { ArtifactPropertyDescriptionList } from './ArtifactPropertyDescriptionList';
 
 interface ArtifactOverviewDetailsProps {
@@ -32,7 +33,9 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
             {artifact?.uri && (
               <>
                 <DescriptionListTerm>URI</DescriptionListTerm>
-                <DescriptionListDescription>{artifact.uri}</DescriptionListDescription>
+                <DescriptionListDescription>
+                  <ArtifactUriLink uri={artifact.uri} />
+                </DescriptionListDescription>
               </>
             )}
           </DescriptionListGroup>

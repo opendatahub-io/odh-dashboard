@@ -15,7 +15,7 @@ import {
 import { CompressIcon, ExpandIcon } from '@patternfly/react-icons';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
-type ArtifactDisplayConfig<T> = { config: T; title: string };
+type ArtifactDisplayConfig<T> = { config: T; title: string; fileSize?: number };
 
 type PipelineRunArtifactSelectProps<T> = {
   run?: PipelineRunKFv2;

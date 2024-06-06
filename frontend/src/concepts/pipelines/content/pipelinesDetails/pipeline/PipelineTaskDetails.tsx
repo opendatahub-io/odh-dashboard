@@ -32,7 +32,7 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
         <StackItem>
           <TaskDetailsInputOutput
             type="Input"
-            artifacts={task.inputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            artifacts={task.inputs.artifacts}
             params={task.inputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
           />
         </StackItem>
@@ -41,7 +41,7 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
         <StackItem>
           <TaskDetailsInputOutput
             type="Output"
-            artifacts={task.outputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            artifacts={task.outputs.artifacts}
             params={task.outputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
           />
         </StackItem>

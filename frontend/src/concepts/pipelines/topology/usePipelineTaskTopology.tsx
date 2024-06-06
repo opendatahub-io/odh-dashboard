@@ -13,9 +13,14 @@ import { createNode } from '~/concepts/topology';
 import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
 import { createArtifactNode, createGroupNode } from '~/concepts/topology/utils';
 import { Artifact, Execution, Event } from '~/third_party/mlmd';
+import { LinkedArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { parseEventsByType } from '~/pages/pipelines/global/experiments/executions/utils';
 import {
   ComponentArtifactMap,
   composeArtifactType,
+  filterEventWithInputArtifact,
+  filterEventWithOutputArtifact,
+  getExecutionLinkedArtifactMap,
   idForTaskArtifact,
   parseComponentsForArtifactRelationship,
   parseInputOutput,
@@ -100,6 +105,7 @@ const getNodesForTasks = (
   executors: PipelineExecutorsKF,
   componentArtifactMap: ComponentArtifactMap,
   taskArtifactMap: TaskArtifactMap,
+  executionLinkedArtifactMap: Record<number, LinkedArtifact[]>,
   runDetails?: RunDetailsKF,
   executions?: Execution[] | null,
   inputArtifacts?: InputOutputDefinitionArtifacts,
@@ -129,12 +135,33 @@ const getNodesForTasks = (
     const executorLabel = component?.executorLabel;
     const executor = executorLabel ? executors[executorLabel] : undefined;
 
+    let linkedArtifacts: LinkedArtifact[] = [];
+    if (executions) {
+      const execution = executions.find(
+        (e) =>
+          e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
+      );
+      if (execution) {
+        linkedArtifacts = executionLinkedArtifactMap[execution.getId()] ?? [];
+      }
+    }
+
     const pipelineTask: PipelineTask = {
       type: 'groupTask',
       name: taskName,
       steps: executor?.container ? [executor.container] : undefined,
-      inputs: parseInputOutput(component?.inputDefinitions),
-      outputs: parseInputOutput(component?.outputDefinitions),
+      inputs: component?.inputDefinitions
+        ? parseInputOutput(
+            component.inputDefinitions,
+            filterEventWithInputArtifact(linkedArtifacts),
+          )
+        : undefined,
+      outputs: component?.outputDefinitions
+        ? parseInputOutput(
+            component.outputDefinitions,
+            filterEventWithOutputArtifact(linkedArtifacts),
+          )
+        : undefined,
       status,
       volumeMounts: parseVolumeMounts(spec.platform_spec, executorLabel),
     };
@@ -187,6 +214,7 @@ const getNodesForTasks = (
         executors,
         componentArtifactMap,
         subTasksArtifactMap,
+        executionLinkedArtifactMap,
         runDetails,
         executions,
         component?.inputDefinitions?.artifacts,
@@ -214,7 +242,7 @@ export const usePipelineTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
   executions?: Execution[] | null,
-  events?: Event[],
+  events?: Event[] | null,
   artifacts?: Artifact[] | undefined,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
@@ -232,8 +260,11 @@ export const usePipelineTaskTopology = (
       },
     } = pipelineSpec;
 
+    const outputEvents = parseEventsByType(events ?? [])[Event.Type.OUTPUT];
+
     const componentArtifactMap = parseComponentsForArtifactRelationship(components);
     const taskArtifactMap = parseTasksForArtifactRelationship('root', tasks);
+    const executionLinkedArtifactMap = getExecutionLinkedArtifactMap(artifacts, events);
 
     // There are some duplicated nodes, remove them
     return _.uniqBy(
@@ -245,10 +276,11 @@ export const usePipelineTaskTopology = (
         executors,
         componentArtifactMap,
         taskArtifactMap,
+        executionLinkedArtifactMap,
         runDetails,
         executions,
         inputDefinitions?.artifacts,
-        events,
+        outputEvents,
         artifacts,
       )[0],
       (node) => node.id,

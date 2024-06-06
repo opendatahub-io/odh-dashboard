@@ -11,6 +11,7 @@ import {
   ResourceType,
   parseRuntimeInfoFromExecutions,
   parseVolumeMounts,
+  getExecutionLinkedArtifactMap,
 } from '~/concepts/pipelines/topology/parseUtils';
 import {
   ArtifactStateKF,
@@ -25,21 +26,16 @@ import {
   TaskKF,
   TriggerStrategy,
 } from '~/concepts/pipelines/kfTypes';
-import { Artifact, Execution, Value } from '~/third_party/mlmd';
+import { Artifact, Execution, Value, Event } from '~/third_party/mlmd';
 
 describe('pipeline topology parseUtils', () => {
   describe('parseInputOutput', () => {
-    it('returns undefined when no definition is provided', () => {
-      const result = parseInputOutput();
-      expect(result).toBeUndefined();
-    });
-
     it('returns data with params when the definition includes parameters', () => {
       const testDefinition = {
         parameters: { 'some-string-param': { parameterType: InputDefinitionParameterType.STRING } },
       };
 
-      const result = parseInputOutput(testDefinition);
+      const result = parseInputOutput(testDefinition, []);
       expect(result).toEqual({ params: [{ label: 'some-string-param', type: 'STRING' }] });
     });
 
@@ -55,7 +51,7 @@ describe('pipeline topology parseUtils', () => {
         },
       };
 
-      const result = parseInputOutput(testDefinition);
+      const result = parseInputOutput(testDefinition, []);
       expect(result).toEqual({
         artifacts: [{ label: 'some-artifact', type: 'system.Artifact (v1)' }],
       });
@@ -611,6 +607,41 @@ describe('pipeline topology parseUtils', () => {
       };
       const result = parseVolumeMounts(testPlatformSpec, testExecutorLabel);
       expect(result).toEqual([{ mountPath: 'path-1', name: 'test-task-1' }]);
+    });
+  });
+});
+
+describe('getExecutionLinkedArtifactMap', () => {
+  it('returns an empty object when artifacts or events are not provided', () => {
+    const result = getExecutionLinkedArtifactMap(undefined, undefined);
+    expect(result).toEqual({});
+  });
+
+  it('returns an empty object when artifacts or events are empty', () => {
+    const result = getExecutionLinkedArtifactMap([], []);
+    expect(result).toEqual({});
+  });
+
+  it('returns the correct linked artifact map', () => {
+    const artifacts = [new Artifact().setId(1), new Artifact().setId(2), new Artifact().setId(3)];
+    const events = [
+      new Event().setArtifactId(1).setExecutionId(1),
+      new Event().setArtifactId(2).setExecutionId(1),
+      new Event().setArtifactId(3).setExecutionId(2),
+      new Event().setArtifactId(1).setExecutionId(2),
+    ];
+
+    const result = getExecutionLinkedArtifactMap(artifacts, events);
+
+    expect(result).toEqual({
+      1: [
+        { event: events[0], artifact: artifacts[0] },
+        { event: events[1], artifact: artifacts[1] },
+      ],
+      2: [
+        { event: events[2], artifact: artifacts[2] },
+        { event: events[3], artifact: artifacts[0] },
+      ],
     });
   });
 });

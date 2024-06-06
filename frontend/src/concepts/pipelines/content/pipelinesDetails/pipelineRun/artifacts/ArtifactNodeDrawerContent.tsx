@@ -60,10 +60,7 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
               title={<TabTitleText>Artifact details</TabTitleText>}
               aria-label="Artifact details"
             >
-              <ArtifactNodeDetails
-                artifact={artifact.toObject()}
-                upstreamTaskName={upstreamTaskName}
-              />
+              <ArtifactNodeDetails artifact={artifact} upstreamTaskName={upstreamTaskName} />
             </Tab>
             <Tab
               eventKey={ArtifactNodeDrawerTab.Visualization}

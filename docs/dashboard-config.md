@@ -61,7 +61,8 @@ spec:
     disableKServeMetrics: true
     disableBiasMetrics: false
     disablePerformanceMetrics: false
-    disablePipelineExperiments: false
+    disablePipelineExperiments: true
+    disableS3Endpoint: true
     disableDistributedWorkloads: false
 ```
 
@@ -157,6 +158,7 @@ spec:
     disableBiasMetrics: false
     disablePerformanceMetrics: false
     disablePipelineExperiments: true
+    disableS3Endpoint: true
   notebookController:
     enabled: true
     gpuSetting: autodetect

@@ -40,11 +40,9 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [execution, executionLoaded, executionError] = useGetExecutionById(executionId);
-  const [eventsResponse, eventsLoaded, eventsError] = useGetEventsByExecutionId(
-    Number(executionId),
-  );
+  const [events, eventsLoaded, eventsError] = useGetEventsByExecutionId(Number(executionId));
   const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
-  const allEvents = parseEventsByType(eventsResponse);
+  const allEvents = parseEventsByType(events);
 
   const artifactTypeMap = artifactTypes.reduce((acc, artifactType) => {
     acc[artifactType.getId()] = artifactType.getName();
