@@ -11,21 +11,22 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import './CreateModal.scss';
 import PasswordInput from '~/components/PasswordInput';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ModelRegistryKind } from '~/k8sTypes';
 import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import { ModelRegistryModel } from '~/api';
-import { createModelRegistryBackend } from '~/services/modelRegistryService';
+import { createModelRegistryBackend } from '~/services/modelRegistrySettingsService';
 import { isValidK8sName } from '~/concepts/k8s/utils';
+import './CreateModal.scss';
 
 type CreateModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  refresh: () => Promise<unknown>;
 };
 
-const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose }) => {
+const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [name, setName] = React.useState('');
@@ -88,7 +89,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose }) => {
       },
     };
     try {
-      await createModelRegistryBackend(data);
+      await createModelRegistryBackend({ modelRegistry: data, databasePassword: password });
+      await refresh();
       onBeforeClose();
     } catch (e) {
       if (e instanceof Error) {

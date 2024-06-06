@@ -1,3 +1,4 @@
+import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import { ModelRegistryKind } from '~/k8sTypes';
 
 type MockModelRegistryType = {
@@ -7,7 +8,7 @@ type MockModelRegistryType = {
 
 export const mockModelRegistry = ({
   name = 'modelregistry-sample',
-  namespace = 'odh-model-registries',
+  namespace = MODEL_REGISTRY_DEFAULT_NAMESPACE,
 }: MockModelRegistryType): ModelRegistryKind => ({
   apiVersion: 'modelregistry.opendatahub.io/v1alpha1',
   kind: 'ModelRegistry',
