@@ -169,8 +169,10 @@ export const isEnumMember = <T extends object>(
   e: T,
 ): member is T[keyof T] => {
   if (member != null) {
-    const values = Object.values(e);
-    return values.slice(values.length / 2).includes(member);
+    return Object.entries(e)
+      .filter(([key]) => Number.isNaN(Number(key)))
+      .map(([, value]) => value)
+      .includes(member);
   }
   return false;
 };
