@@ -17,6 +17,7 @@ spec:
     disableProjects: true
     disablePipelines: true
     disablePipelineExperiments: true
+    disableS3Endpoint: true
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: true

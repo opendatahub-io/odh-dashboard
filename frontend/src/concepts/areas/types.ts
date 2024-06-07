@@ -24,11 +24,15 @@ export enum SupportedArea {
   HOME = 'home',
 
   /* Standalone areas */
-  DS_PIPELINES = 'ds-pipelines',
   // TODO: Jupyter Tile Support? (outside of feature flags today)
   WORKBENCHES = 'workbenches',
   // TODO: Support Applications/Tile area
   // TODO: Support resources area
+
+  /* Pipelines areas */
+  DS_PIPELINES = 'ds-pipelines',
+  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
+  S3_ENDPOINT = 's3-endpoint',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
@@ -50,7 +54,6 @@ export enum SupportedArea {
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
-  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

@@ -39,8 +39,6 @@ import { routePipelineRunsNamespace } from '~/routes';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
-import { parseEventsByType } from '~/pages/pipelines/global/experiments/executions/utils';
-import { Event } from '~/third_party/mlmd';
 import { usePipelineRunArtifacts } from './artifacts';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
@@ -63,15 +61,14 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
   const [artifacts] = usePipelineRunArtifacts(run);
-  const [eventsResponse] = useGetEventsByExecutionIds(
+  const [events] = useGetEventsByExecutionIds(
     React.useMemo(() => executions.map((execution) => execution.getId()), [executions]),
   );
-  const events = parseEventsByType(eventsResponse);
   const nodes = usePipelineTaskTopology(
     pipelineSpec,
     run?.run_details,
     executions,
-    events[Event.Type.OUTPUT],
+    events,
     artifacts,
   );
 

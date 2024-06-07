@@ -12,7 +12,9 @@ import {
   TaskDetailKF,
 } from '~/concepts/pipelines/kfTypes';
 import { VolumeMount } from '~/types';
-import { Artifact, Execution } from '~/third_party/mlmd';
+import { Artifact, Event, Execution } from '~/third_party/mlmd';
+import { LinkedArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { getArtifactNameFromEvent } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { PipelineTaskInputOutput, PipelineTaskRunStatus } from './pipelineTaskTypes';
 
 export const composeArtifactType = (data: InputOutputArtifactType): string =>
@@ -88,35 +90,47 @@ export const parseTasksForArtifactRelationship = (
     {},
   );
 
+export function filterEventWithInputArtifact(linkedArtifact: LinkedArtifact[]): LinkedArtifact[] {
+  return linkedArtifact.filter((obj) => obj.event.getType() === Event.Type.INPUT);
+}
+
+export function filterEventWithOutputArtifact(linkedArtifact: LinkedArtifact[]): LinkedArtifact[] {
+  return linkedArtifact.filter((obj) => obj.event.getType() === Event.Type.OUTPUT);
+}
+
 export const parseInputOutput = (
-  definition?: InputOutputDefinition,
+  definition: InputOutputDefinition,
+  linkedArtifacts: LinkedArtifact[],
 ): PipelineTaskInputOutput | undefined => {
   let data: PipelineTaskInputOutput | undefined;
-  if (definition) {
-    const { artifacts, parameters } = definition;
-    data = {};
+  const { artifacts, parameters } = definition;
+  data = {};
 
-    if (parameters) {
-      data = {
-        ...data,
-        params: Object.entries(parameters).map(([paramLabel, { parameterType }]) => ({
-          label: paramLabel,
-          type: parameterType,
-          // TODO: support value
-        })),
-      };
-    }
+  if (parameters) {
+    data = {
+      ...data,
+      params: Object.entries(parameters).map(([paramLabel, { parameterType }]) => ({
+        label: paramLabel,
+        type: parameterType,
+        // TODO: support value
+      })),
+    };
+  }
 
-    if (artifacts) {
-      data = {
-        ...data,
-        artifacts: Object.entries(artifacts).map(([paramLabel, { artifactType }]) => ({
+  if (artifacts) {
+    data = {
+      ...data,
+      artifacts: Object.entries(artifacts).map(([paramLabel, { artifactType }]) => {
+        const linkedArtifact = linkedArtifacts.find(
+          (obj) => getArtifactNameFromEvent(obj.event) === paramLabel,
+        );
+        return {
           label: paramLabel,
           type: composeArtifactType(artifactType),
-          // TODO: support value
-        })),
-      };
-    }
+          value: linkedArtifact?.artifact,
+        };
+      }),
+    };
   }
 
   return data;
@@ -338,3 +352,31 @@ export const idForTaskArtifact = (
   groupId
     ? `GROUP.${groupId}.ARTIFACT.${taskId}.${artifactId}`
     : `ARTIFACT.${taskId}.${artifactId}`;
+
+export const getExecutionLinkedArtifactMap = (
+  artifacts?: Artifact[] | null,
+  events?: Event[] | null,
+): Record<number, LinkedArtifact[]> => {
+  if (!artifacts || !events) {
+    return {};
+  }
+  const executionMap: Record<number, LinkedArtifact[]> = {};
+
+  const artifactMap: Record<number, Artifact> = {};
+  artifacts.forEach((artifact) => {
+    artifactMap[artifact.getId()] = artifact;
+  });
+
+  events.forEach((event) => {
+    const artifact = artifactMap[event.getArtifactId()];
+    const executionId = event.getExecutionId();
+
+    if (!(executionId in executionMap)) {
+      executionMap[executionId] = [];
+    }
+
+    executionMap[executionId].push({ event, artifact });
+  });
+
+  return executionMap;
+};

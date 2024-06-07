@@ -13,6 +13,7 @@ import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '~/routes';
+import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import { getArtifactName } from './utils';
 
@@ -149,7 +150,9 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
         </Td>
         <Td>{artifact.id}</Td>
         <Td>{artifact.type}</Td>
-        <Td>{artifact.uri}</Td>
+        <Td>
+          <ArtifactUriLink uri={artifact.uri} />
+        </Td>
         <Td>
           <PipelinesTableRowTime date={new Date(artifact.createTimeSinceEpoch)} />
         </Td>

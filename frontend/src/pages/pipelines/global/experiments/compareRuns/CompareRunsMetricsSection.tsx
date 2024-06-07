@@ -17,6 +17,7 @@ import ScalarMetricTable from '~/concepts/pipelines/content/compareRuns/metricsS
 import RocCurveCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/roc/RocCurveCompare';
 import ConfusionMatrixCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/ConfusionMatrixCompare';
 import MarkdownCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const { runs, selectedRuns } = useCompareRuns();
@@ -26,6 +27,7 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     MetricSectionTabLabels.SCALAR,
   );
+  const isS3EndpointAvailable = useIsAreaAvailable(SupportedArea.S3_ENDPOINT).status;
 
   const selectedMlmdPackages = React.useMemo(
     () =>
@@ -91,15 +93,16 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
             <RocCurveCompare runArtifacts={rocCurveArtifactData} isLoaded={isLoaded} />
           </TabContentBody>
         </Tab>
-        <Tab
-          eventKey={MetricSectionTabLabels.MARKDOWN}
-          title={<TabTitleText>{MetricSectionTabLabels.MARKDOWN}</TabTitleText>}
-          isDisabled // TODO enable when markdown can be fetched from storage (s3): https://issues.redhat.com/browse/RHOAIENG-7206
-        >
-          <TabContentBody hasPadding>
-            <MarkdownCompare runArtifacts={markdownArtifactData} isLoaded={isLoaded} />
-          </TabContentBody>
-        </Tab>
+        {isS3EndpointAvailable && (
+          <Tab
+            eventKey={MetricSectionTabLabels.MARKDOWN}
+            title={<TabTitleText>{MetricSectionTabLabels.MARKDOWN}</TabTitleText>}
+          >
+            <TabContentBody hasPadding>
+              <MarkdownCompare runArtifacts={markdownArtifactData} isLoaded={isLoaded} />
+            </TabContentBody>
+          </Tab>
+        )}
       </Tabs>
     </ExpandableSection>
   );

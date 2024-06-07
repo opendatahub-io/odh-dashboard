@@ -22,6 +22,7 @@ type MockDashboardConfigType = {
   disablePerformanceMetrics?: boolean;
   disableBiasMetrics?: boolean;
   disablePipelineExperiments?: boolean;
+  disableS3Endpoint?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
   disableNotebookController?: boolean;
@@ -49,6 +50,7 @@ export const mockDashboardConfig = ({
   disablePerformanceMetrics = false,
   disableBiasMetrics = false,
   disablePipelineExperiments = true,
+  disableS3Endpoint = true,
   disableDistributedWorkloads = false,
   disableModelRegistry = true,
   disableNotebookController = false,
@@ -87,6 +89,7 @@ export const mockDashboardConfig = ({
       disableModelMesh,
       disableAcceleratorProfiles,
       disablePipelineExperiments,
+      disableS3Endpoint,
       disableDistributedWorkloads,
       disableModelRegistry,
     },

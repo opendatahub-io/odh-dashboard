@@ -16,6 +16,15 @@ jest.mock('~/redux/selectors', () => ({
   useUser: jest.fn(() => ({ isAdmin: true })),
 }));
 
+jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+  status: true,
+  featureFlags: {},
+  reliantAreas: {},
+  requiredComponents: {},
+  requiredCapabilities: {},
+  customCondition: jest.fn(),
+}));
+
 jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
   usePipelinesAPI: jest.fn(() => ({
     pipelinesServer: {

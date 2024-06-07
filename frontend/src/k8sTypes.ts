@@ -1212,6 +1212,7 @@ export type DashboardCommonConfig = {
   disableAcceleratorProfiles: boolean;
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
   disablePipelineExperiments: boolean;
+  disableS3Endpoint: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
 };

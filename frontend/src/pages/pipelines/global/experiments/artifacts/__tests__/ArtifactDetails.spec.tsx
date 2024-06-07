@@ -9,10 +9,20 @@ import { artifactsBaseRoute } from '~/routes';
 import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import * as fetchStorageObjectSize from '~/services/storageService';
 
 jest.mock('~/redux/selectors', () => ({
   ...jest.requireActual('~/redux/selectors'),
   useUser: jest.fn(() => ({ isAdmin: true })),
+}));
+
+jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+  status: true,
+  featureFlags: {},
+  reliantAreas: {},
+  requiredComponents: {},
+  requiredCapabilities: {},
+  customCondition: jest.fn(),
 }));
 
 jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
@@ -37,6 +47,7 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
 
 describe('ArtifactDetails', () => {
   const useGetArtifactByIdSpy = jest.spyOn(useGetArtifactById, 'useGetArtifactById');
+  const fetchStorageObjectSizeSpy = jest.spyOn(fetchStorageObjectSize, 'fetchStorageObjectSize');
 
   beforeEach(() => {
     useGetArtifactByIdSpy.mockReturnValue([
@@ -45,7 +56,7 @@ describe('ArtifactDetails', () => {
           id: 1,
           typeId: 14,
           type: 'system.Artifact',
-          uri: 'https://test-artifact!-aiplatform.googleapis.com/v1/12.15',
+          uri: 's3://namespace/bucket/path/to/artifact',
           propertiesMap: [],
           customPropertiesMap: [
             [
@@ -109,6 +120,22 @@ describe('ArtifactDetails', () => {
     expect(overviewTab).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('renders warning on oversized file', async () => {
+    fetchStorageObjectSizeSpy.mockResolvedValue(1e9);
+
+    render(
+      <BrowserRouter>
+        <GlobalPipelineCoreDetails
+          pageName="Artifacts"
+          redirectPath={artifactsBaseRoute}
+          BreadcrumbDetailsComponent={ArtifactDetails}
+        />
+      </BrowserRouter>,
+    );
+
+    expect(await screen.findByTestId('storage-file-oversized-warning')).toBeVisible();
+  });
+
   it('renders Overview tab metadata contents', () => {
     render(
       <BrowserRouter>
@@ -126,7 +153,7 @@ describe('ArtifactDetails', () => {
     const datasetDescriptionList = screen.getByTestId('dataset-description-list');
     expect(within(datasetDescriptionList).getByRole('term')).toHaveTextContent('URI');
     expect(within(datasetDescriptionList).getByRole('definition')).toHaveTextContent(
-      'https://test-artifact!-aiplatform.googleapis.com/v1/12.15',
+      's3://namespace/bucket/path/to/artifact',
     );
 
     const customPropsDescriptionList = screen.getByTestId('custom-props-description-list');

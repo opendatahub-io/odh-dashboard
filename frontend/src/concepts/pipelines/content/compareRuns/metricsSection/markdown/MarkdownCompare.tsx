@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Bullseye,
   Divider,
   EmptyState,
@@ -9,6 +10,8 @@ import {
   Flex,
   FlexItem,
   Spinner,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
@@ -22,6 +25,14 @@ import {
 import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
 import { PipelineRunArtifactSelect } from '~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
 import MarkdownView from '~/components/MarkdownView';
+import {
+  MAX_STORAGE_OBJECT_SIZE,
+  fetchStorageObject,
+  fetchStorageObjectSize,
+} from '~/services/storageService';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { extractS3UriComponents } from '~/concepts/pipelines/content/artifacts/utils';
+import { bytesAsRoundedGiB } from '~/utilities/number';
 
 type MarkdownCompareProps = {
   runArtifacts?: RunArtifact[];
@@ -31,10 +42,12 @@ type MarkdownCompareProps = {
 export type MarkdownAndTitle = {
   title: string;
   config: string;
+  fileSize?: number;
 };
 
 const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoaded }) => {
   const [expandedGraph, setExpandedGraph] = React.useState<MarkdownAndTitle | undefined>(undefined);
+  const { namespace } = usePipelinesAPI();
 
   const fullArtifactPaths: FullArtifactPath[] = React.useMemo(() => {
     if (!runArtifacts) {
@@ -56,13 +69,25 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
       }))
       .filter((markdown) => !!markdown.uri)
       .forEach(async ({ uri, title, run }) => {
-        const data = uri; // TODO: fetch data from uri: https://issues.redhat.com/browse/RHOAIENG-7206
+        const uriComponents = extractS3UriComponents(uri);
+        if (!uriComponents) {
+          return;
+        }
+        const sizeBytes = await fetchStorageObjectSize(namespace, uriComponents.path).catch(
+          () => undefined,
+        );
+        const text = await fetchStorageObject(namespace, uriComponents.path).catch(() => null);
+
+        if (text === null) {
+          return;
+        }
 
         runMapBuilder[run.run_id] = run;
 
         const config = {
           title,
-          config: data,
+          config: text,
+          fileSize: sizeBytes,
         };
 
         if (run.run_id in configMapBuilder) {
@@ -73,7 +98,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
       });
 
     return { configMap: configMapBuilder, runMap: runMapBuilder };
-  }, [fullArtifactPaths]);
+  }, [fullArtifactPaths, namespace]);
 
   if (!isLoaded) {
     return (
@@ -97,6 +122,23 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
     );
   }
 
+  const renderMarkdownWithSize = (config: MarkdownAndTitle) => (
+    <Stack hasGutter>
+      {config.fileSize && config.fileSize > MAX_STORAGE_OBJECT_SIZE && (
+        <StackItem>
+          <Alert isInline variant="warning" title="Oversized file">
+            {`This file is ${bytesAsRoundedGiB(
+              config.fileSize,
+            )} GiB in size but we do not fetch files over 100MB. To view the full file, please download it from your S3 bucket.`}
+          </Alert>
+        </StackItem>
+      )}
+      <StackItem>
+        <MarkdownView markdown={config.config} />
+      </StackItem>
+    </Stack>
+  );
+
   return (
     <div style={{ overflowX: 'auto' }}>
       {expandedGraph ? (
@@ -105,7 +147,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
             data={[expandedGraph]}
             setExpandedGraph={(config) => setExpandedGraph(config)}
             expandedGraph={expandedGraph}
-            renderArtifact={(config) => <MarkdownView markdown={config.config} />}
+            renderArtifact={renderMarkdownWithSize}
           />
         </Bullseye>
       ) : (
@@ -118,7 +160,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
                   data={configs}
                   setExpandedGraph={(config) => setExpandedGraph(config)}
                   expandedGraph={expandedGraph}
-                  renderArtifact={(config) => <MarkdownView markdown={config.config} />}
+                  renderArtifact={renderMarkdownWithSize}
                 />
               </FlexItem>
               <Divider

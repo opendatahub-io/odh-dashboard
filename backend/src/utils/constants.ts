@@ -62,6 +62,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableModelMesh: false,
       disableAcceleratorProfiles: false,
       disablePipelineExperiments: true,
+      disableS3Endpoint: true,
       disableDistributedWorkloads: false,
       disableModelRegistry: true,
     },

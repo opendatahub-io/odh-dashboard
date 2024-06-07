@@ -127,7 +127,7 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
         <StackItem>
           <TaskDetailsInputOutput
             type="Input"
-            artifacts={task.inputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            artifacts={task.inputs.artifacts}
             params={getParams(task.inputs.params, getExecutionFieldsMap('inputs'))}
           />
         </StackItem>
@@ -136,7 +136,7 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
         <StackItem>
           <TaskDetailsInputOutput
             type="Output"
-            artifacts={task.outputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            artifacts={task.outputs.artifacts}
             params={getParams(task.outputs.params, getExecutionFieldsMap('outputs'))}
           />
         </StackItem>

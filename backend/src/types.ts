@@ -37,6 +37,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disablePipelineExperiments: boolean;
+      disableS3Endpoint: boolean;
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
     };
@@ -1014,9 +1015,83 @@ export type K8sCondition = {
   lastHeartbeatTime?: string;
 };
 
+export type DSPipelineExternalStorageKind = {
+  bucket: string;
+  host: string;
+  port?: '';
+  scheme: string;
+  region: string;
+  s3CredentialsSecret: {
+    accessKey: string;
+    secretKey: string;
+    secretName: string;
+  };
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   spec: {
     dspVersion: string;
+    apiServer?: Partial<{
+      apiServerImage: string;
+      artifactImage: string;
+      artifactScriptConfigMap: Partial<{
+        key: string;
+        name: string;
+      }>;
+      enableSamplePipeline: boolean;
+    }>;
+    database?: Partial<{
+      externalDB: Partial<{
+        host: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        port: string;
+        username: string;
+      }>;
+      image: string;
+      mariaDB: Partial<{
+        image: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        username: string;
+      }>;
+    }>;
+    mlpipelineUI?: {
+      configMap?: string;
+      image: string;
+    };
+    persistentAgent?: Partial<{
+      image: string;
+      pipelineAPIServerName: string;
+    }>;
+    scheduledWorkflow?: Partial<{
+      image: string;
+    }>;
+    objectStorage: Partial<{
+      externalStorage: DSPipelineExternalStorageKind;
+      minio: Partial<{
+        bucket: string;
+        image: string;
+        s3CredentialsSecret: Partial<{
+          accessKey: string;
+          secretKey: string;
+          secretName: string;
+        }>;
+      }>;
+    }>;
+    viewerCRD?: Partial<{
+      image: string;
+    }>;
   };
   status?: {
     conditions?: K8sCondition[];
