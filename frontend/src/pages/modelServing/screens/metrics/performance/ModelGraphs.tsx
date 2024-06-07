@@ -1,40 +1,14 @@
 import * as React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import {
-  ModelMetricType,
-  ModelServingMetricsContext,
-} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { InferenceServiceKind } from '~/k8sTypes';
+import { isModelMesh } from '~/pages/modelServing/utils';
+import ModelMeshMetrics from '~/pages/modelServing/screens/metrics/performance/ModelMeshMetrics';
+import KserveMetrics from '~/pages/modelServing/screens/metrics/performance/KserveMetrics';
 
-const ModelGraphs: React.FC = () => {
-  const { data } = React.useContext(ModelServingMetricsContext);
-
-  return (
-    <Stack hasGutter>
-      <StackItem>
-        <MetricsChart
-          metrics={[
-            {
-              name: 'Successful',
-              metric: data[
-                ModelMetricType.REQUEST_COUNT_SUCCESS
-              ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-            },
-            {
-              name: 'Failed',
-              metric: data[
-                ModelMetricType.REQUEST_COUNT_FAILED
-              ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-            },
-          ]}
-          color="blue"
-          title="HTTP requests per 5 minutes"
-          isStack
-        />
-      </StackItem>
-    </Stack>
-  );
+type ModelGraphProps = {
+  model: InferenceServiceKind;
 };
+
+const ModelGraphs: React.FC<ModelGraphProps> = ({ model }) =>
+  isModelMesh(model) ? <ModelMeshMetrics /> : <KserveMetrics />;
 
 export default ModelGraphs;

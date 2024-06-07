@@ -495,7 +495,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
     modelServingGlobal.getModelMetricLink('Test Inference Service').should('be.visible');
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
-    cy.findByTestId('kserve-metrics-page').should('be.visible');
+    cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
 
   describe('Table filter and pagination', () => {

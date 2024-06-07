@@ -7,30 +7,28 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { PendingIcon } from '@patternfly/react-icons';
+import { WarningTriangleIcon } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ModelGraphs from '~/pages/modelServing/screens/metrics/performance/ModelGraphs';
-import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 
 type PerformanceTabsProps = {
   model: InferenceServiceKind;
 };
 
 const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
-  const kserve = !isModelMesh(model);
+  const modelMesh = isModelMesh(model);
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
-  if (kserve && kserveMetricsEnabled) {
+  if (!modelMesh && !kserveMetricsEnabled) {
     return (
-      <EmptyState variant="full" data-testid="kserve-metrics-page">
+      <EmptyState variant="full">
         <EmptyStateHeader
-          titleText="Single-model serving platform model metrics coming soon."
+          titleText="Single-model serving platform model metrics are not enabled."
           headingLevel="h4"
-          icon={<EmptyStateIcon icon={PendingIcon} />}
+          icon={<EmptyStateIcon icon={WarningTriangleIcon} />}
           alt=""
         />
       </EmptyState>
@@ -38,19 +36,14 @@ const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
   }
 
   return (
-    <EnsureMetricsAvailable
-      metrics={[ModelMetricType.REQUEST_COUNT_SUCCESS, ModelMetricType.REQUEST_COUNT_FAILED]}
-      accessDomain="model metrics"
-    >
-      <Stack data-testid="performance-metrics-loaded">
-        <StackItem>
-          <MetricsPageToolbar />
-        </StackItem>
-        <PageSection isFilled>
-          <ModelGraphs />
-        </PageSection>
-      </Stack>
-    </EnsureMetricsAvailable>
+    <Stack data-testid="performance-metrics-loaded">
+      <StackItem>
+        <MetricsPageToolbar />
+      </StackItem>
+      <PageSection isFilled>
+        <ModelGraphs model={model} />
+      </PageSection>
+    </Stack>
   );
 };
 

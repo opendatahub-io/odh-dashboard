@@ -305,7 +305,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.getKserveModelMetricLink('Test Inference Service').should('be.visible');
       projectDetails.getKserveModelMetricLink('Test Inference Service').click();
-      cy.findByTestId('kserve-metrics-page').should('be.visible');
+      cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
     });
     it('Multi model serving platform is enabled', () => {
       initIntercepts({ templates: true, disableKServeConfig: true, disableModelConfig: false });
