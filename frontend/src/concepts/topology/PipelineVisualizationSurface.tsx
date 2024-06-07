@@ -10,6 +10,8 @@ import {
   useVisualizationController,
   VisualizationSurface,
   addSpacerNodes,
+  DEFAULT_SPACER_NODE_TYPE,
+  DEFAULT_EDGE_TYPE,
 } from '@patternfly/react-topology';
 import {
   EmptyState,
@@ -18,6 +20,7 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
 type PipelineVisualizationSurfaceProps = {
   nodes: PipelineNodeModel[];
@@ -62,6 +65,55 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       }
     }
   }, [controller, nodes]);
+
+  const collapseAllCallback = React.useCallback(
+    (collapseAll: boolean) => {
+      // First, expand/collapse all nodes
+      if (collapseAll) {
+        controller.getGraph().collapseAll();
+      } else {
+        controller.getGraph().expandAll();
+      }
+      // We must recreate the model based on what is visible
+      const model = controller.toModel();
+
+      // Get all the non-spacer nodes, mark them all visible again
+      const nonSpacerNodes = model
+        .nodes!.filter((n) => n.type !== DEFAULT_SPACER_NODE_TYPE)
+        .map((n) => ({
+          ...n,
+          visible: true,
+        }));
+
+      // If collapsing, set the size of the collapsed group nodes
+      if (collapseAll) {
+        nonSpacerNodes.forEach((node) => {
+          const newNode = node;
+          if (node.group && node.collapsed) {
+            newNode.width = NODE_WIDTH;
+            newNode.height = NODE_HEIGHT;
+          }
+        });
+      }
+      // Determine the new set of nodes, including the spacer nodes
+      const pipelineNodes = addSpacerNodes(nonSpacerNodes);
+
+      // Determine the new edges
+      const edges = getEdgesFromNodes(
+        pipelineNodes,
+        DEFAULT_SPACER_NODE_TYPE,
+        DEFAULT_EDGE_TYPE,
+        DEFAULT_EDGE_TYPE,
+      );
+
+      // Apply the new model and run the layout
+      controller.fromModel({ nodes: pipelineNodes, edges }, true);
+      controller.getGraph().layout();
+      controller.getGraph().fit(80);
+    },
+    [controller],
+  );
+
   if (error) {
     return (
       <EmptyState data-id="error-empty-state">
@@ -81,6 +133,8 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         <TopologyControlBar
           controlButtons={createTopologyControlButtons({
             ...defaultControlButtonsOptions,
+            expandAll: !!collapseAllCallback,
+            collapseAll: !!collapseAllCallback,
             zoomInCallback: action(() => {
               controller.getGraph().scaleBy(4 / 3);
             }),
@@ -93,6 +147,12 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
             resetViewCallback: action(() => {
               controller.getGraph().reset();
               controller.getGraph().layout();
+            }),
+            expandAllCallback: action(() => {
+              collapseAllCallback(false);
+            }),
+            collapseAllCallback: action(() => {
+              collapseAllCallback(true);
             }),
             legend: false,
           })}
