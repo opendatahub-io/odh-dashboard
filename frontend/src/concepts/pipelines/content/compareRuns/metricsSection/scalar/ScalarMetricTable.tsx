@@ -70,7 +70,7 @@ const ScalarMetricTable: React.FC<ScalarMetricTableProps> = ({ runArtifacts, isL
   }
 
   if (!runArtifacts || runArtifacts.length === 0) {
-    return <CompareRunsEmptyState />;
+    return <CompareRunsEmptyState data-testid="compare-runs-scalar-metrics-empty-state" />;
   }
   if (!hasScalarMetrics) {
     return (

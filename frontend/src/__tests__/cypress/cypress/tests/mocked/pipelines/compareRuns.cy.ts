@@ -21,8 +21,10 @@ import {
   compareRunsGlobal,
   compareRunsListTable,
   compareRunParamsTable,
+  compareRunsMetricsContent,
 } from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
 import { mockCancelledGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
+import { initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -195,6 +197,51 @@ describe('Compare runs', () => {
       compareRunParamsTable.findParamName('paramThree').should('exist');
     });
   });
+
+  describe('Metrics', () => {
+    beforeEach(() => {
+      initIntercepts();
+      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+        mockRun.run_id,
+        mockRun2.run_id,
+      ]);
+    });
+
+    it('shows empty state when the Runs list has no selections', () => {
+      compareRunsListTable.findSelectAllCheckbox().click(); // Uncheck all
+      compareRunsMetricsContent.findScalarMetricsEmptyState().should('exist');
+    });
+
+    it('displays scalar metrics table data based on selections from Run list', () => {
+      compareRunsMetricsContent.findScalarMetricsTable().should('exist');
+      compareRunsMetricsContent.findScalarMetricsColumnByName('Run name').should('exist');
+      compareRunsMetricsContent.findScalarMetricsColumnByName('Run 1').should('exist');
+      compareRunsMetricsContent.findScalarMetricsColumnByName('Run 2').should('exist');
+
+      compareRunsMetricsContent
+        .findScalarMetricsColumnByName('Execution name > Artifact name')
+        .should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsColumnByName('digit-classification > metrics')
+        .should('exist');
+
+      compareRunsMetricsContent.findScalarMetricName('accuracy').should('exist');
+      compareRunsMetricsContent.findScalarMetricCell('accuracy', 1).should('contain.text', '92');
+      compareRunsMetricsContent.findScalarMetricCell('accuracy', 2).should('contain.text', '92');
+
+      compareRunsMetricsContent.findScalarMetricName('displayName').should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricCell('displayName', 1)
+        .should('contain.text', '"metrics"');
+      compareRunsMetricsContent
+        .findScalarMetricCell('displayName', 2)
+        .should('contain.text', '"metrics"');
+    });
+
+    // TODO tests for Confusion matrix tab
+    // TODO tests for ROC curve tab
+    // TODO tests for Markdown tab
+  });
 });
 
 const initIntercepts = () => {
@@ -256,4 +303,6 @@ const initIntercepts = () => {
     },
     mockRun2,
   );
+
+  initMlmdIntercepts(projectName);
 };
