@@ -55,3 +55,7 @@ jobs:
           name: frontend
           directory: ./frontend/coverage
           verbose: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results
+          path: ./frontend/src/__tests__/cypress/results/
