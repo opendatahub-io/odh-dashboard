@@ -27,6 +27,7 @@ type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
   onDelete?: () => void;
   run: PipelineRunKFv2;
+  customCells?: React.ReactNode;
   hasExperiments?: boolean;
   hasRowActions?: boolean;
 };
@@ -35,6 +36,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   hasRowActions = true,
   hasExperiments = true,
   checkboxProps,
+  customCells,
   onDelete,
   run,
 }) => {
@@ -123,7 +125,17 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   return (
     <Tr>
       <CheckboxTd id={run.run_id} {...checkboxProps} />
-      <Td dataLabel="Name">
+      <Td
+        dataLabel="Name"
+        {...(isExperimentsAvailable &&
+          experimentId &&
+          customCells && {
+            isStickyColumn: true,
+            hasRightBorder: true,
+            stickyMinWidth: '200px',
+            stickyLeftOffset: '45px',
+          })}
+      >
         <PipelineRunTableRowTitle run={run} />
       </Td>
       {hasExperiments && <PipelineRunTableRowExperiment experimentId={run.experiment_id} />}
@@ -144,6 +156,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td dataLabel="Status">
         <RunStatus justIcon run={run} />
       </Td>
+      {customCells}
       {hasRowActions && (
         <Td isActionCell dataLabel="Kebab">
           <ActionsColumn items={actions} />
