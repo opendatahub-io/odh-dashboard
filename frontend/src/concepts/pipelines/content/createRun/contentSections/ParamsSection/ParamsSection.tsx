@@ -108,6 +108,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
       data-testid={CreateRunPageSections.PARAMS}
       title={runPageSectionTitles[CreateRunPageSections.PARAMS]}
     >
+      Specify parameters required by pipelines.
       {renderContent()}
     </FormSection>
   );

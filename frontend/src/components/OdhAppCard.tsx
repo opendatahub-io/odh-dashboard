@@ -105,7 +105,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     <CardFooter className="odh-card__footer">
       {odhApp.metadata.name === 'jupyter' ? (
         odhApp.spec.internalRoute ? (
-          <Link to={odhApp.spec.internalRoute} className="odh-card__footer__link">
+          <Link
+            data-testid="jupyter-app-link"
+            to="/notebookController"
+            className="odh-card__footer__link"
+          >
             Launch application
           </Link>
         ) : null

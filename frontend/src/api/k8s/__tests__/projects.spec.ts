@@ -7,7 +7,6 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import axios from 'axios';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockAxiosError } from '~/__mocks__/mockAxiosError';
 import {
@@ -15,14 +14,12 @@ import {
   createProject,
   deleteProject,
   getModelServingProjects,
-  getModelServingProjectsAvailable,
   getProjects,
   updateProject,
   useProjects,
 } from '~/api/k8s/projects';
 import { ProjectModel } from '~/api/models';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { listServingRuntimes } from '~/api/k8s/servingRuntimes';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ProjectKind } from '~/k8sTypes';
 import { groupVersionKind } from '~/api/k8sUtils';
@@ -42,7 +39,6 @@ jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
 jest.mock('axios');
 
 const mockedAxios = jest.mocked(axios);
-const listServingRuntimesMock = jest.mocked(listServingRuntimes);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<ProjectKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<ProjectKind>);
@@ -254,47 +250,6 @@ describe('getModelServingProjects', () => {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
-  });
-});
-
-describe('getModelServingProjectsAvailable', () => {
-  it('should successfully return model serving when project associated to it is available', async () => {
-    const projectMock = mockProjectK8sResource({});
-    listServingRuntimesMock.mockResolvedValue([mockServingRuntimeK8sResource({})]);
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([projectMock]));
-    const result = await getModelServingProjectsAvailable();
-    expect(result).toStrictEqual([projectMock]);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(listServingRuntimesMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenLastCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: ProjectModel,
-      queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
-      },
-    });
-  });
-
-  it('should return empty array when no serving runtime is associated with  project', async () => {
-    listServingRuntimesMock.mockResolvedValue([]);
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockProjectK8sResource({})]));
-    const result = await getModelServingProjectsAvailable();
-    expect(result).toStrictEqual([]);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(listServingRuntimesMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: ProjectModel,
-      queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
-      },
-    });
-  });
-
-  it('should handle errors and rethrows', async () => {
-    k8sListResourceMock.mockRejectedValue(new Error('error'));
-    await expect(getModelServingProjectsAvailable()).rejects.toThrow('error');
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
   });
 });
 

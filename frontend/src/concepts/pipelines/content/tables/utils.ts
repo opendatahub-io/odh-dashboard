@@ -1,15 +1,4 @@
-import {
-  PipelineRunJobKFv2,
-  PipelineRunKFv2,
-  PipelineRunStatusesKF,
-  PipelineCoreResourceKF,
-  ResourceTypeKF,
-  ResourceReferenceKF,
-  PipelineRunKF,
-} from '~/concepts/pipelines/kfTypes';
-import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
-
-export const getLastRun = (runs: PipelineRunKFv2[]): PipelineRunKFv2 | undefined => runs[0];
+import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
@@ -21,64 +10,6 @@ export const getRunDuration = (run: PipelineRunKFv2): number => {
   const createdDate = new Date(run.created_at);
   return finishedDate.getTime() - createdDate.getTime();
 };
-
-/**
- * @deprecated
- *  v2 api now uses RuntimeStateKF
- */
-export const getStatusWeight = (run: PipelineRunKF): number => {
-  const weights: Record<PipelineRunStatusesKF | string, number | undefined> = {
-    [PipelineRunStatusesKF.CANCELLED]: 0,
-    [PipelineRunStatusesKF.COMPLETED]: 1,
-    [PipelineRunStatusesKF.FAILED]: 2,
-    [PipelineRunStatusesKF.RUNNING]: 3,
-    [PipelineRunStatusesKF.STARTED]: 4,
-  };
-
-  return weights[run.status] ?? Infinity;
-};
-
-/**
- * @deprecated
- * Uses v1 api where resource references existed
- */
-export const getResourceRef = (
-  resource: PipelineCoreResourceKF | null | undefined,
-  type: ResourceTypeKF,
-): ResourceReferenceKF | undefined =>
-  resource?.resource_references?.find((ref) => ref.key.type === type);
-
-/**
- * @deprecated
- * Uses v1 api where resource references existed
- */
-export const getJobResourceRef = (
-  resource: Parameters<typeof getResourceRef>[0],
-): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.JOB);
-
-/**
- * @deprecated
- * Uses v1 api where resource references existed
- */
-export const getPipelineVersionResourceRef = (
-  resource: PipelineCoreResourceKF | null | undefined,
-): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE_VERSION);
-
-/**
- * @deprecated
- * Uses v1 api where resource references existed
- */
-export const getPipelineResourceRef = (
-  resource: PipelineCoreResourceKF | null,
-): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE);
-
-/**
- * @deprecated
- * Uses v1 api where resource references existed
- */
-export const getExperimentResourceRef = (
-  resource: Parameters<typeof getResourceRef>[0],
-): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.EXPERIMENT);
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKFv2): Date | null => {
   const startTime =
@@ -127,43 +58,6 @@ export const getPipelineRunJobScheduledState = (
   }
 
   return [state, startDate, endDate];
-};
-
-export const getScheduledStateWeight = (job: PipelineRunJobKFv2): number => {
-  const [state] = getPipelineRunJobScheduledState(job);
-
-  const weights: Record<ScheduledState, number> = {
-    [ScheduledState.UNBOUNDED_END]: 0,
-    [ScheduledState.STARTED_NOT_ENDED]: 1,
-    [ScheduledState.NOT_STARTED]: 2,
-    [ScheduledState.ENDED]: 3,
-  };
-
-  return weights[state];
-};
-
-export const isJobWithinDateRange = (
-  job: PipelineRunJobKFv2,
-  dateRange: DateRangeString,
-): boolean => {
-  const jobStart = getPipelineRunJobStartTime(job);
-  const jobEnd = getPipelineRunJobEndTime(job);
-
-  if (!jobStart && !jobEnd) {
-    // No start or end, it's within'
-    return true;
-  }
-  const jobStartNumber = jobStart?.getTime() ?? 0;
-  const jobEndNumber = jobEnd?.getTime() ?? Infinity;
-
-  const [startValue, endValue] = splitDateRange(dateRange);
-  const startNumber = startValue ? new Date(startValue).getTime() : 0;
-  const endNumber = endValue ? new Date(endValue).getTime() : Infinity;
-
-  return (
-    (startNumber >= jobStartNumber && startNumber <= jobEndNumber) ||
-    (endNumber >= jobStartNumber && endNumber <= jobEndNumber)
-  );
 };
 
 export const getPipelineJobExecutionCount = (resourceName: string): string | null => {

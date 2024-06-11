@@ -10,10 +10,8 @@ import {
   Timestamp,
   TimestampTooltipVariant,
   Tooltip,
-  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
   PipelineRunKFv2,
@@ -26,27 +24,15 @@ import {
   getPipelineRunJobScheduledState,
   ScheduledState,
 } from '~/concepts/pipelines/content/tables/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
 type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKFv2 } & P>;
-
-export const RunNameForPipeline: RunUtil = ({ run }) => {
-  const { namespace } = usePipelinesAPI();
-  return (
-    // TODO: get link path
-    // TODO: check if this could be removed with the `expandedRowRenderUtils.tsx`
-    // Not going to refactor the link here
-    <Link to={`/pipelines/${namespace}/pipelineRun/view/${run.run_id}`}>
-      <Truncate content={run.display_name} />
-    </Link>
-  );
-};
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
   const { icon, status, label, details, createdAt } = computeRunStatus(run);
@@ -147,6 +133,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
 }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
+  const isExperimentArchived = useContextExperimentArchived();
 
   const isEnabled = job.mode === RecurringRunMode.ENABLE;
   React.useEffect(() => {
@@ -160,7 +147,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
         <Switch
           id={`${job.recurring_run_id}-toggle`}
           aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
-          isDisabled={isChangingFlag}
+          isDisabled={isChangingFlag || isExperimentArchived}
           onChange={(e, checked) => {
             setIsChangingFlag(true);
             setError(null);

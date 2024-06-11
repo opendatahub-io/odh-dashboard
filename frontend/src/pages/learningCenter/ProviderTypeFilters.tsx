@@ -69,7 +69,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
       showAll={showAll}
     >
       {Object.keys(providerTypes)
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           if (a.toLowerCase().includes(`${ODH_PRODUCT_NAME}`)) {
             return -1;
           }

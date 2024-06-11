@@ -2,7 +2,7 @@ import { ApplicationLauncher } from './appLauncher';
 
 class AppChrome {
   visit() {
-    cy.visit('/');
+    cy.visitWithLogin('/');
     this.wait();
   }
 

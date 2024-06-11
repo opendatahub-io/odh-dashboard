@@ -1,9 +1,11 @@
+/* eslint-disable camelcase */
 import { ModelVersionList } from '~/concepts/modelRegistry/types';
-import { mockModelVersion } from './mockModelVersion';
 
-export const mockModelVersionList = (): ModelVersionList => ({
-  items: [mockModelVersion({ author: 'Author 1', registeredModelID: '1' })],
+export const mockModelVersionList = ({
+  items = [],
+}: Partial<ModelVersionList>): ModelVersionList => ({
+  items,
   nextPageToken: '',
   pageSize: 0,
-  size: 1,
+  size: items.length,
 });

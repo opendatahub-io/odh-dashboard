@@ -1,8 +1,43 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+
+class TaskDrawer extends Contextual<HTMLElement> {
+  findInputArtifacts() {
+    return this.find().findByTestId('Input-artifacts');
+  }
+
+  findCommandCodeBlock() {
+    return this.find().findByTestId('command-task-detail-code-block').findByRole('code');
+  }
+
+  findTaskImage() {
+    return this.find().findByTestId('task-detail-image');
+  }
+
+  findArgumentCodeBlock() {
+    return this.find().findByTestId('arguments-task-detail-code-block').findByRole('code');
+  }
+
+  findOutputArtifacts() {
+    return this.find().findByTestId('Output-artifacts');
+  }
+
+  findOutputParameters() {
+    return this.find().findByTestId('Output-parameters');
+  }
+
+  findCloseDrawerButton() {
+    return this.find().findByRole('button', { name: 'Close drawer panel' });
+  }
+
+  shouldHaveTaskName(name: string) {
+    return this.find().findByTestId('pipeline-task-name').should('have.text', name);
+  }
+}
 
 class PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
-    cy.visit(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
     this.wait();
   }
 
@@ -12,14 +47,6 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
-  }
-
-  findTaskDrawer() {
-    return cy.findByTestId('task-drawer');
-  }
-
-  findCloseDrawerButton() {
-    return this.findTaskDrawer().findByRole('button', { name: 'Close drawer panel' });
   }
 }
 
@@ -45,7 +72,7 @@ class PipelineRunRightDrawer extends Contextual<HTMLDivElement> {
   }
 
   findRightDrawerDetailItem(key: string) {
-    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`).parent());
+    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`));
   }
 }
 
@@ -71,11 +98,41 @@ class DetailsItem extends Contextual<HTMLElement> {
 
 class PipelineDetails extends PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
-    cy.visit(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
     this.wait();
   }
 
-  findActionsDropdown() {
+  private findPipelineVersionSelect() {
+    return cy.findByTestId('pipeline-version-toggle-button');
+  }
+
+  selectPipelineVersionByName(name: string): void {
+    this.findPipelineVersionSelect()
+      .click()
+      .parents()
+      .findByTestId('pipeline-version-selector-table-list')
+      .find('td')
+      .contains(name)
+      .click();
+  }
+
+  findYamlTab() {
+    return cy.findByTestId('pipeline-yaml-tab');
+  }
+
+  getPipelineDashboardCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('pipeline-dashboard-code-editor'));
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  getTaskDrawer() {
+    return new TaskDrawer(() => cy.findByTestId('task-drawer'));
+  }
+
+  private findActionsDropdown() {
     return cy.findByTestId('pipeline-version-details-actions');
   }
 
@@ -114,7 +171,7 @@ class PipelineDetails extends PipelinesTopology {
 
 class PipelineRunJobDetails extends RunDetails {
   visit(namespace: string, pipelineId: string) {
-    cy.visit(`/pipelineRuns/${namespace}/pipelineRunJob/view/${pipelineId}`);
+    cy.visitWithLogin(`/pipelineRuns/${namespace}/pipelineRunJob/view/${pipelineId}`);
     this.wait();
   }
 
@@ -129,7 +186,7 @@ class PipelineRunJobDetails extends RunDetails {
 
 class PipelineRunDetails extends RunDetails {
   visit(namespace: string, pipelineId: string) {
-    cy.visit(`/pipelineRuns/${namespace}/pipelineRun/view/${pipelineId}`);
+    cy.visitWithLogin(`/pipelineRuns/${namespace}/pipelineRun/view/${pipelineId}`);
     this.wait();
   }
 
@@ -175,6 +232,18 @@ class PipelineRunDetails extends RunDetails {
 
   selectActionDropdownItem(label: string) {
     this.findActionsDropdown().findDropdownItem(label).click();
+  }
+
+  findYamlOutput() {
+    return cy.findByTestId('pipeline-dashboard-code-editor');
+  }
+
+  findInputArtifacts() {
+    return cy.findByTestId('Input-artifacts');
+  }
+
+  findOutputArtifacts() {
+    return cy.findByTestId('Output-artifacts');
   }
 }
 

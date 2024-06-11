@@ -235,6 +235,9 @@ export const stopPipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId)
     proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:terminate`, {}, opts),
   );
 
+export const retryPipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>
+  handlePipelineFailures(proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:retry`, {}, opts));
+
 export const updatePipelineRunJob: UpdatePipelineRunJobAPI = (hostPath) => (opts, jobId, enabled) =>
   handlePipelineFailures(
     proxyENDPOINT(

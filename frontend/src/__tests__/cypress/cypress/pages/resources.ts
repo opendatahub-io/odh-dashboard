@@ -2,7 +2,7 @@ import { Contextual } from './components/Contextual';
 
 class Resources {
   visit() {
-    cy.visit('/resources');
+    cy.visitWithLogin('/resources');
     this.wait();
   }
 

@@ -2,68 +2,70 @@ import { act } from '@testing-library/react';
 import axios from 'axios';
 import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { WorkloadKind } from '~/k8sTypes';
-import { getWorkloadOwnerJobName } from '~/concepts/distributedWorkloads/utils';
+import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
+import { getWorkloadOwner } from '~/concepts/distributedWorkloads/utils';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { POLL_INTERVAL } from '~/utilities/const';
 import {
   DWProjectCurrentMetrics,
+  EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER,
   TopWorkloadsByUsage,
   WorkloadCurrentUsage,
+  WorkloadMetricIndexedByOwner,
   WorkloadMetricPromQueryResponse,
   getTopResourceConsumingWorkloads,
   getTotalUsage,
-  indexNumericValuesByJobName,
+  indexWorkloadMetricByOwner,
   useDWProjectCurrentMetrics,
 } from '~/api/prometheus/distributedWorkloads';
 
 const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
   {
     metric: {
-      workload: 'test-job-1',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-1', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.00000150000000000'],
   },
   {
     metric: {
-      workload: 'test-job-2',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-2', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.00000163333333333'],
   },
   {
     metric: {
-      workload: 'test-job-3',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-3', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.0120015'],
   },
   {
     metric: {
-      workload: 'test-job-4',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-4', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.04300163333333333'],
   },
   {
     metric: {
-      workload: 'test-job-5',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.RayCluster, // eslint-disable-line camelcase
+      owner_name: 'test-rc-1', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.01100163333333333'],
   },
   {
     metric: {
-      workload: 'test-job-6',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.RayCluster, // eslint-disable-line camelcase
+      owner_name: 'test-rc-2', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.01300163333333333'],
   },
   {
     metric: {
-      workload: 'test-job-7',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.RayCluster, // eslint-disable-line camelcase
+      owner_name: 'test-rc-3', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.01500163333333333'],
   },
@@ -72,50 +74,50 @@ const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
 const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
   {
     metric: {
-      workload: 'test-job-1',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-1', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '8237056'],
   },
   {
     metric: {
-      workload: 'test-job-2',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-2', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '8249344'],
   },
   {
     metric: {
-      workload: 'test-job-3',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-3', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '9349344'],
   },
   {
     metric: {
-      workload: 'test-job-4',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.Job, // eslint-disable-line camelcase
+      owner_name: 'test-job-4', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '82493440'],
   },
   {
     metric: {
-      workload: 'test-job-5',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.RayCluster, // eslint-disable-line camelcase
+      owner_name: 'test-rc-1', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '42493440'],
   },
   {
     metric: {
-      workload: 'test-job-6',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.RayCluster, // eslint-disable-line camelcase
+      owner_name: 'test-rc-2', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '8237036'],
   },
   {
     metric: {
-      workload: 'test-job-7',
-      workload_type: 'job', // eslint-disable-line camelcase
+      owner_kind: WorkloadOwnerType.RayCluster, // eslint-disable-line camelcase
+      owner_name: 'test-rc-3', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '10337050'],
   },
@@ -125,67 +127,90 @@ const mockWorkloads = [
   mockWorkloadK8sResource({
     k8sName: 'test-job-1-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-1',
+    ownerKind: WorkloadOwnerType.Job,
+    ownerName: 'test-job-1',
   }),
   mockWorkloadK8sResource({
     k8sName: 'test-job-2-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-2',
+    ownerKind: WorkloadOwnerType.Job,
+    ownerName: 'test-job-2',
   }),
   mockWorkloadK8sResource({
     k8sName: 'test-job-3-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-3',
+    ownerKind: WorkloadOwnerType.Job,
+    ownerName: 'test-job-3',
   }),
   mockWorkloadK8sResource({
     k8sName: 'test-job-4-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-4',
+    ownerKind: WorkloadOwnerType.Job,
+    ownerName: 'test-job-4',
   }),
   mockWorkloadK8sResource({
-    k8sName: 'test-job-5-wl',
+    k8sName: 'test-rc-1-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-5',
+    ownerKind: WorkloadOwnerType.RayCluster,
+    ownerName: 'test-rc-1',
   }),
   mockWorkloadK8sResource({
-    k8sName: 'test-job-6-wl',
+    k8sName: 'test-rc-2-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-6',
+    ownerKind: WorkloadOwnerType.RayCluster,
+    ownerName: 'test-rc-2',
   }),
   mockWorkloadK8sResource({
-    k8sName: 'test-job-7-wl',
+    k8sName: 'test-rc-3-wl',
     namespace: 'test-project',
-    ownerJobName: 'test-job-7',
+    ownerKind: WorkloadOwnerType.RayCluster,
+    ownerName: 'test-rc-3',
   }),
 ];
 
 const mockGetWorkloadCurrentUsage = (workload: WorkloadKind): WorkloadCurrentUsage => {
-  const jobName = getWorkloadOwnerJobName(workload);
+  const owner = getWorkloadOwner(workload);
   return {
-    cpuCoresUsed: jobName
-      ? Number(mockCpuUsageResults.find(({ metric }) => metric.workload === jobName)?.value[1])
+    cpuCoresUsed: owner
+      ? Number(
+          mockCpuUsageResults.find(
+            (
+              { metric: { owner_kind, owner_name } }, // eslint-disable-line camelcase
+            ) => owner_kind === owner.kind && owner_name === owner.name, // eslint-disable-line camelcase
+          )?.value[1],
+        )
       : undefined,
-    memoryBytesUsed: jobName
-      ? Number(mockMemoryUsageResults.find(({ metric }) => metric.workload === jobName)?.value[1])
+    memoryBytesUsed: owner
+      ? Number(
+          mockMemoryUsageResults.find(
+            (
+              { metric: { owner_kind, owner_name } }, // eslint-disable-line camelcase
+            ) => owner_kind === owner.kind && owner_name === owner.name, // eslint-disable-line camelcase
+          )?.value[1],
+        )
       : undefined,
   };
 };
 
-describe('indexNumericValuesByJobName', () => {
+describe('indexWorkloadMetricByOwner', () => {
   it('converts Prometheus response data to an indexed structure', () => {
     const promResponse = mockPrometheusQueryVectorResponse({
       result: mockCpuUsageResults,
     });
-    const indexedValues: Record<string, number> = {
-      'test-job-1': 0.0000015,
-      'test-job-2': 0.00000163333333333,
-      'test-job-3': 0.0120015,
-      'test-job-4': 0.04300163333333333,
-      'test-job-5': 0.01100163333333333,
-      'test-job-6': 0.01300163333333333,
-      'test-job-7': 0.01500163333333333,
+    const indexedValues: WorkloadMetricIndexedByOwner = {
+      [WorkloadOwnerType.Job]: {
+        'test-job-1': 0.0000015,
+        'test-job-2': 0.00000163333333333,
+        'test-job-3': 0.0120015,
+        'test-job-4': 0.04300163333333333,
+      },
+      [WorkloadOwnerType.RayCluster]: {
+        'test-rc-1': 0.01100163333333333,
+        'test-rc-2': 0.01300163333333333,
+        'test-rc-3': 0.01500163333333333,
+      },
     };
-    expect(indexNumericValuesByJobName(promResponse)).toEqual(indexedValues);
+    expect(indexWorkloadMetricByOwner(promResponse)).toEqual(indexedValues);
   });
 });
 
@@ -211,8 +236,8 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[5], usage: 0.01300163333333333 },
           { workload: mockWorkloads[2], usage: 0.0120015 },
           { workload: mockWorkloads[4], usage: 0.01100163333333333 },
-          { workload: 'other', usage: 0.00000313333333333 },
         ],
+        otherUsage: 0.00000313333333333,
       },
       memoryBytesUsed: {
         totalUsage: 169396710,
@@ -222,8 +247,8 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[6], usage: 10337050 },
           { workload: mockWorkloads[2], usage: 9349344 },
           { workload: mockWorkloads[1], usage: 8249344 },
-          { workload: 'other', usage: 16474092 },
         ],
+        otherUsage: 16474092,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -242,6 +267,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[1], usage: 0.00000163333333333 },
           { workload: mockWorkloads[0], usage: 0.0000015 },
         ],
+        otherUsage: undefined,
       },
       memoryBytesUsed: {
         totalUsage: 159059660,
@@ -253,6 +279,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[0], usage: 8237056 },
           { workload: mockWorkloads[5], usage: 8237036 },
         ],
+        otherUsage: undefined,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -268,6 +295,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[1], usage: 0.00000163333333333 },
           { workload: mockWorkloads[0], usage: 0.0000015 },
         ],
+        otherUsage: undefined,
       },
       memoryBytesUsed: {
         totalUsage: 25835744,
@@ -276,6 +304,7 @@ describe('getTopResourceConsumingWorkloads', () => {
           { workload: mockWorkloads[1], usage: 8249344 },
           { workload: mockWorkloads[0], usage: 8237056 },
         ],
+        otherUsage: undefined,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -308,14 +337,14 @@ describe('useDWProjectCurrentMetrics', () => {
     );
     expect(renderResult).hookToStrictEqual({
       data: {
-        cpuCoresUsedByJobName: {
-          data: {},
+        cpuCoresUsedByWorkloadOwner: {
+          data: EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER,
           error: undefined,
           loaded: false,
           refresh: expect.any(Function),
         },
-        memoryBytesUsedByJobName: {
-          data: {},
+        memoryBytesUsedByWorkloadOwner: {
+          data: EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER,
           error: undefined,
           loaded: false,
           refresh: expect.any(Function),
@@ -326,18 +355,18 @@ describe('useDWProjectCurrentMetrics', () => {
       error: undefined,
       getWorkloadCurrentUsage: expect.any(Function),
       topWorkloadsByUsage: {
-        cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
-        memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
+        cpuCoresUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
+        memoryBytesUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
       },
     } satisfies DWProjectCurrentMetrics);
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
       query:
-        'namespace=test-project&query=sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster="", namespace="test-project"} * on(namespace,pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster="", namespace="test-project", workload_type="job"}) by (workload, workload_type)',
+        'namespace=test-project&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)',
     });
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
       query:
-        'namespace=test-project&query=sum(container_memory_working_set_bytes{job="kubelet", metrics_path="/metrics/cadvisor", cluster="", namespace="test-project", container!="", image!=""} * on(namespace,pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster="", namespace="test-project", workload_type="job"}) by (workload, workload_type)',
+        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)',
     });
     expect(renderResult).hookToHaveUpdateCount(1);
 
@@ -345,29 +374,37 @@ describe('useDWProjectCurrentMetrics', () => {
     await renderResult.waitForNextUpdate();
     const expectedResult: DWProjectCurrentMetrics = {
       data: {
-        cpuCoresUsedByJobName: {
+        cpuCoresUsedByWorkloadOwner: {
           data: {
-            'test-job-1': 0.0000015,
-            'test-job-2': 0.00000163333333333,
-            'test-job-3': 0.0120015,
-            'test-job-4': 0.04300163333333333,
-            'test-job-5': 0.01100163333333333,
-            'test-job-6': 0.01300163333333333,
-            'test-job-7': 0.01500163333333333,
+            [WorkloadOwnerType.Job]: {
+              'test-job-1': 0.0000015,
+              'test-job-2': 0.00000163333333333,
+              'test-job-3': 0.0120015,
+              'test-job-4': 0.04300163333333333,
+            },
+            [WorkloadOwnerType.RayCluster]: {
+              'test-rc-1': 0.01100163333333333,
+              'test-rc-2': 0.01300163333333333,
+              'test-rc-3': 0.01500163333333333,
+            },
           },
           error: undefined,
           loaded: true,
           refresh: expect.any(Function),
         },
-        memoryBytesUsedByJobName: {
+        memoryBytesUsedByWorkloadOwner: {
           data: {
-            'test-job-1': 8237056,
-            'test-job-2': 8249344,
-            'test-job-3': 9349344,
-            'test-job-4': 82493440,
-            'test-job-5': 42493440,
-            'test-job-6': 8237036,
-            'test-job-7': 10337050,
+            [WorkloadOwnerType.Job]: {
+              'test-job-1': 8237056,
+              'test-job-2': 8249344,
+              'test-job-3': 9349344,
+              'test-job-4': 82493440,
+            },
+            [WorkloadOwnerType.RayCluster]: {
+              'test-rc-1': 42493440,
+              'test-rc-2': 8237036,
+              'test-rc-3': 10337050,
+            },
           },
           error: undefined,
           loaded: true,
@@ -386,8 +423,8 @@ describe('useDWProjectCurrentMetrics', () => {
             { workload: mockWorkloads[5], usage: 0.01300163333333333 },
             { workload: mockWorkloads[2], usage: 0.0120015 },
             { workload: mockWorkloads[4], usage: 0.01100163333333333 },
-            { workload: 'other', usage: 0.00000313333333333 },
           ],
+          otherUsage: 0.00000313333333333,
           totalUsage: 0.09401116666666666,
         },
         memoryBytesUsed: {
@@ -397,8 +434,8 @@ describe('useDWProjectCurrentMetrics', () => {
             { workload: mockWorkloads[6], usage: 10337050 },
             { workload: mockWorkloads[2], usage: 9349344 },
             { workload: mockWorkloads[1], usage: 8249344 },
-            { workload: 'other', usage: 16474092 },
           ],
+          otherUsage: 16474092,
           totalUsage: 169396710,
         },
       },

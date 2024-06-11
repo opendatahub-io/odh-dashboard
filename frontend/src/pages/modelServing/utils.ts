@@ -1,9 +1,9 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
-  isCpuLimitEqual,
+  isCpuResourceEqual,
   isCpuLimitLarger,
-  isMemoryLimitEqual,
+  isMemoryResourceEqual,
   isMemoryLimitLarger,
 } from '~/utilities/valueUnits';
 import {
@@ -24,7 +24,6 @@ import {
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
-  DataScienceClusterKindStatus,
   InferenceServiceKind,
   ServiceAccountKind,
 } from '~/k8sTypes';
@@ -34,7 +33,7 @@ import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   ServingRuntimeEditInfo,
-  ServingRuntimeSize,
+  ModelServingSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
@@ -164,15 +163,22 @@ export const getTokenNames = (servingRuntimeName: string, namespace: string): To
   return { serviceAccountName, roleBindingName };
 };
 
-export const getServingRuntimeSize = (
-  sizes: ServingRuntimeSize[],
-  servingRuntime?: ServingRuntimeKind,
-): ServingRuntimeSize => {
-  const existingResources = servingRuntime?.spec.containers[0]?.resources || sizes[0].resources;
+export const getResourceSize = (
+  sizes: ModelServingSize[],
+  existingResources: ContainerResources,
+): ModelServingSize => {
   const size = sizes.find(
     (currentSize) =>
-      isCpuLimitEqual(currentSize.resources.limits?.cpu, existingResources.limits?.cpu) &&
-      isMemoryLimitEqual(currentSize.resources.limits?.memory, existingResources.limits?.memory),
+      isCpuResourceEqual(currentSize.resources.limits?.cpu, existingResources.limits?.cpu) &&
+      isMemoryResourceEqual(
+        currentSize.resources.limits?.memory,
+        existingResources.limits?.memory,
+      ) &&
+      isCpuResourceEqual(currentSize.resources.requests?.cpu, existingResources.requests?.cpu) &&
+      isMemoryResourceEqual(
+        currentSize.resources.requests?.memory,
+        existingResources.requests?.memory,
+      ),
   );
   return (
     size || {
@@ -180,6 +186,52 @@ export const getServingRuntimeSize = (
       resources: existingResources,
     }
   );
+};
+
+export const getInferenceServiceSizeOrReturnEmpty = (
+  inferenceService?: InferenceServiceKind,
+): ContainerResources | undefined => {
+  if (
+    inferenceService?.spec.predictor.model.resources &&
+    Object.keys(inferenceService.spec.predictor.model.resources).length === 0
+  ) {
+    return undefined;
+  }
+
+  return inferenceService?.spec.predictor.model.resources;
+};
+
+export const getServingRuntimeOrReturnEmpty = (
+  servingRuntime?: ServingRuntimeKind,
+): ContainerResources | undefined => {
+  if (
+    servingRuntime?.spec.containers[0]?.resources &&
+    Object.keys(servingRuntime.spec.containers[0]?.resources).length === 0
+  ) {
+    return undefined;
+  }
+
+  return servingRuntime?.spec.containers[0]?.resources;
+};
+
+export const getServingRuntimeSize = (
+  sizes: ModelServingSize[],
+  servingRuntime?: ServingRuntimeKind,
+): ModelServingSize => {
+  const existingResources = getServingRuntimeOrReturnEmpty(servingRuntime) || sizes[0].resources;
+  return getResourceSize(sizes, existingResources);
+};
+
+export const getInferenceServiceSize = (
+  sizes: ModelServingSize[],
+  inferenceService?: InferenceServiceKind,
+  servingRuntime?: ServingRuntimeKind,
+): ModelServingSize => {
+  const existingResources =
+    getInferenceServiceSizeOrReturnEmpty(inferenceService) ||
+    getServingRuntimeOrReturnEmpty(servingRuntime) ||
+    sizes[0].resources;
+  return getResourceSize(sizes, existingResources);
 };
 
 export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeToken[] =>
@@ -223,7 +275,7 @@ const isAcceleratorProfileChanged = (
 
 export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
-  sizes: ServingRuntimeSize[],
+  sizes: ModelServingSize[],
   acceleratorProfileState: AcceleratorProfileState,
   editInfo?: ServingRuntimeEditInfo,
 ): boolean =>
@@ -240,15 +292,10 @@ export const isModelServerEditInfoChanged = (
         !_.isEqual(
           getServingRuntimeTokens(editInfo.secrets)
             .map((token) => token.name)
-            .sort(),
-          createData.tokens.map((token) => token.name).sort(),
+            .toSorted(),
+          createData.tokens.map((token) => token.name).toSorted(),
         ))
     : true;
-
-export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus): string =>
-  status.conditions.find(
-    (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
-  )?.message || '';
 
 export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';

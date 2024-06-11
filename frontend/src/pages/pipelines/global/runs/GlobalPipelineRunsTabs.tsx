@@ -29,7 +29,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
 
   return (
     <Tabs
-      activeKey={runType || PipelineRunType.Active}
+      activeKey={runType || PipelineRunType.ACTIVE}
       onSelect={(_event, tabId) => setSearchParams({ runType: tabId as PipelineRunType })}
       aria-label="Pipeline run page tabs"
       role="region"
@@ -37,9 +37,9 @@ const GlobalPipelineRunsTab: React.FC = () => {
       data-testid="pipeline-runs-global-tabs"
     >
       <Tab
-        eventKey={PipelineRunType.Active}
-        title={<TabTitleText>{PipelineRunTabTitle.Active}</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Active} tab`}
+        eventKey={PipelineRunType.ACTIVE}
+        title={<TabTitleText>{PipelineRunTabTitle.ACTIVE}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.ACTIVE} tab`}
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="active-runs-tab"
       >
@@ -49,26 +49,26 @@ const GlobalPipelineRunsTab: React.FC = () => {
       </Tab>
 
       <Tab
-        eventKey={PipelineRunType.Scheduled}
-        title={<TabTitleText>{PipelineRunTabTitle.Schedules}</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Schedules} tab`}
-        className="odh-pipeline-runs-page-tabs__content"
-        data-testid="schedules-tab"
-      >
-        <PageSection isFilled variant="light">
-          <ScheduledRuns />
-        </PageSection>
-      </Tab>
-
-      <Tab
-        eventKey={PipelineRunType.Archived}
-        title={<TabTitleText>{PipelineRunTabTitle.Archived}</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Archived} tab`}
+        eventKey={PipelineRunType.ARCHIVED}
+        title={<TabTitleText>{PipelineRunTabTitle.ARCHIVED}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.ARCHIVED} tab`}
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="archived-runs-tab"
       >
         <PageSection isFilled variant="light">
           <ArchivedRuns />
+        </PageSection>
+      </Tab>
+
+      <Tab
+        eventKey={PipelineRunType.SCHEDULED}
+        title={<TabTitleText>{PipelineRunTabTitle.SCHEDULES}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.SCHEDULES} tab`}
+        className="odh-pipeline-runs-page-tabs__content"
+        data-testid="schedules-tab"
+      >
+        <PageSection isFilled variant="light">
+          <ScheduledRuns />
         </PageSection>
       </Tab>
     </Tabs>

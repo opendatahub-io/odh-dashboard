@@ -159,13 +159,15 @@ There are two commands to run Cypress mock tests (always use the `:mock` variant
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
 ```bash
-npm run cypress:open:mock -- -- --config numTestsKeptInMemory=0
+npm run cypress:open:mock -- --config numTestsKeptInMemory=0
 ```
 
 ### Structure
 ```
 /frontend/src/__tests__/cypress
-  /e2e           - All test case files
+  /tests         - Tests
+    /e2e         - Live cluster tests
+    /mocked      - Mocked tests
   /pages         - Page objects
     /components  - Generic objects eg. modal, table
   /support       - Custom commands and test wrappers

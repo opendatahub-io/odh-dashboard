@@ -111,8 +111,6 @@ export type ConfigMap = {
   data?: Record<string, string>;
 } & K8sResourceCommon;
 
-export type EnvVarResource = Secret | ConfigMap;
-
 export enum EnvVarResourceType {
   Secret = 'Secret',
   ConfigMap = 'ConfigMap',
@@ -181,6 +179,7 @@ export enum OdhDocumentType {
 }
 
 export type OdhDocument = {
+  kind?: string;
   metadata: {
     name: string;
     annotations?: { [key: string]: string };
@@ -330,14 +329,6 @@ export type PodContainer = {
   securityContext?: unknown;
 };
 
-export type PodStepState = { stepName: string; state: PodStepStateType };
-
-export enum PodStepStateType {
-  success = 'Success',
-  error = 'Error',
-  loading = 'Loading',
-}
-
 export type PodContainerStatus = {
   name?: string;
   ready: boolean;
@@ -390,13 +381,6 @@ export type NotebookRunningState = {
   podUID: string;
   notebookLink: string;
 };
-
-export type NotebookList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: Notebook[];
-} & K8sResourceCommon;
 
 export type Route = {
   apiVersion?: string;
@@ -536,13 +520,6 @@ export type ImageStream = {
   status?: ImageStreamStatus;
 } & K8sResourceCommon;
 
-export type ImageStreamList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: ImageStream[];
-} & K8sResourceCommon;
-
 export type NameVersionPair = {
   name: string;
   version: string;
@@ -574,27 +551,6 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = K8sResourceCommon & {
-  spec: {
-    accessModes: string[];
-    resources: {
-      requests: {
-        storage: string;
-      };
-    };
-    storageClassName?: string;
-    volumeMode: 'Filesystem' | 'Block';
-  };
-  status?: Record<string, any>; // eslint-disable-line
-};
-
-export type PersistentVolumeClaimList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: PersistentVolumeClaim[];
-};
-
 export type Volume = {
   name: string;
   emptyDir?: Record<string, unknown>;
@@ -607,19 +563,6 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string };
-
-/**
- * @deprecated -- use K8sStatus
- * Copy from partial of V1Status that will returned by the delete CoreV1Api
- */
-export type DeleteStatus = {
-  apiVersion?: string;
-  code?: number;
-  kind?: string;
-  message?: string;
-  reason?: string;
-  status?: string;
-};
 
 export type RoleBindingSubject = {
   kind: string;
@@ -638,10 +581,6 @@ export type ResourceGetter<T extends K8sResourceCommon> = (
 ) => Promise<T>;
 
 export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
-
-export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
-
-export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
   involvedObject: {
@@ -726,3 +665,8 @@ export enum ServingRuntimeAPIProtocol {
   REST = 'REST',
   GRPC = 'gRPC',
 }
+
+export type KeyValuePair = {
+  key: string;
+  value: string;
+};

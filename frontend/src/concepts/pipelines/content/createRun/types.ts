@@ -60,7 +60,7 @@ export type SafeRunFormData = RunFormData & {
 };
 
 export const runTypeCategory: Record<PipelineRunType, 'run' | 'schedule'> = {
-  [PipelineRunType.Active]: 'run',
-  [PipelineRunType.Archived]: 'run',
-  [PipelineRunType.Scheduled]: 'schedule',
+  [PipelineRunType.ACTIVE]: 'run',
+  [PipelineRunType.ARCHIVED]: 'run',
+  [PipelineRunType.SCHEDULED]: 'schedule',
 };

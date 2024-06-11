@@ -16,13 +16,16 @@ type MockDashboardConfigType = {
   disableCustomServingRuntimes?: boolean;
   disableKServe?: boolean;
   disableKServeAuth?: boolean;
+  disableKServeMetrics?: boolean;
   disableModelMesh?: boolean;
   disableAcceleratorProfiles?: boolean;
   disablePerformanceMetrics?: boolean;
   disableBiasMetrics?: boolean;
   disablePipelineExperiments?: boolean;
+  disableS3Endpoint?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
+  disableNotebookController?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -34,20 +37,23 @@ export const mockDashboardConfig = ({
   disableISVBadges = false,
   disableAppLauncher = false,
   disableUserManagement = false,
-  disableHome = true,
+  disableHome = false,
   disableProjects = false,
   disableModelServing = false,
   disableCustomServingRuntimes = false,
   disablePipelines = false,
   disableKServe = false,
   disableKServeAuth = false,
+  disableKServeMetrics = true,
   disableModelMesh = false,
   disableAcceleratorProfiles = false,
   disablePerformanceMetrics = false,
   disableBiasMetrics = false,
   disablePipelineExperiments = true,
+  disableS3Endpoint = true,
   disableDistributedWorkloads = false,
   disableModelRegistry = true,
+  disableNotebookController = false,
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -79,14 +85,16 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       disableKServeAuth,
+      disableKServeMetrics,
       disableModelMesh,
       disableAcceleratorProfiles,
       disablePipelineExperiments,
+      disableS3Endpoint,
       disableDistributedWorkloads,
       disableModelRegistry,
     },
     notebookController: {
-      enabled: true,
+      enabled: !disableNotebookController,
       notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,

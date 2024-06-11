@@ -12,7 +12,9 @@ import {
   TaskDetailKF,
 } from '~/concepts/pipelines/kfTypes';
 import { VolumeMount } from '~/types';
-import { Artifact, Execution } from '~/third_party/mlmd';
+import { Artifact, Event, Execution } from '~/third_party/mlmd';
+import { LinkedArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { getArtifactNameFromEvent } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { PipelineTaskInputOutput, PipelineTaskRunStatus } from './pipelineTaskTypes';
 
 export const composeArtifactType = (data: InputOutputArtifactType): string =>
@@ -44,65 +46,91 @@ export const parseComponentsForArtifactRelationship = (
   );
 
 export type TaskArtifactMap = {
-  [taskName: string]: { outputArtifactKey: string; artifactId: string }[] | undefined;
+  [taskName: string]: { artifactNodeId: string }[] | undefined;
 };
-export const parseTasksForArtifactRelationship = (tasks: DAG['tasks']): TaskArtifactMap =>
-  Object.values(tasks).reduce<TaskArtifactMap>(
-    (map, taskValue) =>
-      Object.entries(taskValue.inputs?.artifacts ?? {}).reduce(
-        (artifactItems, [artifactId, value]) => {
-          const { producerTask: taskId, outputArtifactKey } = value.taskOutputArtifact || {};
-          if (!taskId || !outputArtifactKey) {
-            // eslint-disable-next-line no-console
-            console.warn('Issue constructing artifact node', value);
-            return artifactItems;
-          }
-
+export const parseTasksForArtifactRelationship = (
+  groupId: string | undefined,
+  tasks: DAG['tasks'],
+): TaskArtifactMap =>
+  Object.entries(tasks).reduce<TaskArtifactMap>(
+    (map, [taskId, taskValue]) =>
+      Object.entries(taskValue.inputs?.artifacts ?? {}).reduce((artifactItems, [, value]) => {
+        // artifact without inputs
+        if (value.componentInputArtifact) {
           return {
             ...artifactItems,
             [taskId]: [
               ...(artifactItems[taskId] ?? []),
               {
-                outputArtifactKey,
-                artifactId,
+                artifactNodeId: idForTaskArtifact(groupId, '', value.componentInputArtifact),
               },
             ],
           };
-        },
-        map,
-      ),
+        }
+
+        // else, artifacts with inputs from tasks
+        const { producerTask, outputArtifactKey } = value.taskOutputArtifact || {};
+
+        if (!producerTask || !outputArtifactKey) {
+          // eslint-disable-next-line no-console
+          console.warn('Issue constructing artifact node', value);
+          return artifactItems;
+        }
+
+        return {
+          ...artifactItems,
+          [taskId]: [
+            ...(artifactItems[taskId] ?? []),
+            {
+              artifactNodeId: idForTaskArtifact(groupId, producerTask, outputArtifactKey),
+            },
+          ],
+        };
+      }, map),
     {},
   );
 
+export function filterEventWithInputArtifact(linkedArtifact: LinkedArtifact[]): LinkedArtifact[] {
+  return linkedArtifact.filter((obj) => obj.event.getType() === Event.Type.INPUT);
+}
+
+export function filterEventWithOutputArtifact(linkedArtifact: LinkedArtifact[]): LinkedArtifact[] {
+  return linkedArtifact.filter((obj) => obj.event.getType() === Event.Type.OUTPUT);
+}
+
 export const parseInputOutput = (
-  definition?: InputOutputDefinition,
+  definition: InputOutputDefinition,
+  linkedArtifacts: LinkedArtifact[],
 ): PipelineTaskInputOutput | undefined => {
   let data: PipelineTaskInputOutput | undefined;
-  if (definition) {
-    const { artifacts, parameters } = definition;
-    data = {};
+  const { artifacts, parameters } = definition;
+  data = {};
 
-    if (parameters) {
-      data = {
-        ...data,
-        params: Object.entries(parameters).map(([paramLabel, { parameterType }]) => ({
-          label: paramLabel,
-          type: parameterType,
-          // TODO: support value
-        })),
-      };
-    }
+  if (parameters) {
+    data = {
+      ...data,
+      params: Object.entries(parameters).map(([paramLabel, { parameterType }]) => ({
+        label: paramLabel,
+        type: parameterType,
+        // TODO: support value
+      })),
+    };
+  }
 
-    if (artifacts) {
-      data = {
-        ...data,
-        artifacts: Object.entries(artifacts).map(([paramLabel, { artifactType }]) => ({
+  if (artifacts) {
+    data = {
+      ...data,
+      artifacts: Object.entries(artifacts).map(([paramLabel, { artifactType }]) => {
+        const linkedArtifact = linkedArtifacts.find(
+          (obj) => getArtifactNameFromEvent(obj.event) === paramLabel,
+        );
+        return {
           label: paramLabel,
           type: composeArtifactType(artifactType),
-          // TODO: support value
-        })),
-      };
-    }
+          value: linkedArtifact?.artifact,
+        };
+      }),
+    };
   }
 
   return data;
@@ -133,7 +161,7 @@ export const lowestProgress = (details: TaskDetailKF[]): PipelineTaskRunStatus['
     }
   };
 
-  return details.sort(
+  return details.toSorted(
     ({ state: stateA }, { state: stateB }) => statusWeight(stateB) - statusWeight(stateA),
   )[0].state;
 };
@@ -168,6 +196,7 @@ export const parseRuntimeInfoFromRunDetails = (
 
 export const parseRuntimeInfoFromExecutions = (
   taskId: string,
+  taskName: string,
   executions?: Execution[] | null,
 ): PipelineTaskRunStatus | undefined => {
   if (!executions) {
@@ -175,7 +204,7 @@ export const parseRuntimeInfoFromExecutions = (
   }
 
   const execution = executions.find(
-    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskId,
+    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
   );
 
   if (!execution) {
@@ -313,4 +342,41 @@ export const parseVolumeMounts = (
     mountPath: pvc.mountPath,
     name: pvc.taskOutputParameter?.producerTask ?? '',
   }));
+};
+
+export const idForTaskArtifact = (
+  groupId: string | undefined,
+  taskId: string,
+  artifactId: string,
+): string =>
+  groupId
+    ? `GROUP.${groupId}.ARTIFACT.${taskId}.${artifactId}`
+    : `ARTIFACT.${taskId}.${artifactId}`;
+
+export const getExecutionLinkedArtifactMap = (
+  artifacts?: Artifact[] | null,
+  events?: Event[] | null,
+): Record<number, LinkedArtifact[]> => {
+  if (!artifacts || !events) {
+    return {};
+  }
+  const executionMap: Record<number, LinkedArtifact[]> = {};
+
+  const artifactMap: Record<number, Artifact> = {};
+  artifacts.forEach((artifact) => {
+    artifactMap[artifact.getId()] = artifact;
+  });
+
+  events.forEach((event) => {
+    const artifact = artifactMap[event.getArtifactId()];
+    const executionId = event.getExecutionId();
+
+    if (!(executionId in executionMap)) {
+      executionMap[executionId] = [];
+    }
+
+    executionMap[executionId].push({ event, artifact });
+  });
+
+  return executionMap;
 };

@@ -86,11 +86,11 @@ export const ElyraInvalidVersionAlerts: React.FC<ElyraInvalidVersionProps> = ({
           <Alert
             data-testid="elyra-invalid-version-alert"
             variant="info"
-            title="Images denoted with (i) don't support the latest pipeline version. To use Elyra for pipelines, update the images to the latest version"
+            title="Images denoted with (i) don't support the latest pipeline version. To use Elyra for pipelines, update the images to the recommended version."
             isInline
             actionLinks={
               <Checkbox
-                label="View impacted images"
+                label="Show icons"
                 isChecked={viewImpactedImages}
                 onChange={(_e, checked) => setViewImpactedImages(checked)}
                 id="impacted-images-checkbox"

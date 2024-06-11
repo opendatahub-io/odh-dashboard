@@ -1,74 +1,117 @@
 import * as React from 'react';
 import { Card, CardBody, CardTitle, Gallery, GalleryItem } from '@patternfly/react-core';
-import { ChartLegend, ChartLabel, ChartDonut, ChartThemeColor } from '@patternfly/react-charts';
+import {
+  ChartLegend,
+  ChartLabel,
+  ChartDonut,
+  ChartThemeColor,
+  ChartTooltip,
+} from '@patternfly/react-charts';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { WorkloadStatusType, getStatusInfo } from '~/concepts/distributedWorkloads/utils';
+import {
+  TopWorkloadUsageType,
+  WorkloadStatusType,
+  getStatusInfo,
+  getWorkloadName,
+} from '~/concepts/distributedWorkloads/utils';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
 import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
 import { truncateString } from '~/utilities/string';
 import { bytesAsPreciseGiB, roundNumber } from '~/utilities/number';
-import { WorkloadWithUsage } from '~/api';
-import { WorkloadKind } from '~/k8sTypes';
 
 interface TopResourceConsumingWorkloadsChartProps {
   metricLabel: string;
   unitLabel: string;
-  data: { totalUsage: number; topWorkloads: WorkloadWithUsage[] };
+  data: TopWorkloadUsageType;
   convertUnits?: (num?: number) => number;
 }
-
-const getWorkloadName = (workload: WorkloadKind | 'other') =>
-  workload === 'other' ? 'Other' : workload.metadata?.name || 'Unnamed';
 
 const TopResourceConsumingWorkloadsChart: React.FC<TopResourceConsumingWorkloadsChartProps> = ({
   metricLabel,
   unitLabel,
   data,
   convertUnits = (num) => num || 0,
-}) => (
-  <ChartDonut
-    ariaTitle={`${metricLabel} chart`}
-    constrainToVisibleArea
-    data={
-      data.topWorkloads.length
-        ? data.topWorkloads.map(({ workload, usage }) => ({
-            x: getWorkloadName(workload),
-            y: roundNumber(convertUnits(usage), 3),
-          }))
-        : [{ x: `No workload is consuming ${unitLabel}`, y: 1 }]
+}) => {
+  const [extraWidth, setExtraWidth] = React.useState(0);
+  const chartBaseWidth = 375;
+  const legendBaseWidth = 260;
+  const chartHeight = 150;
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const updateWidth = () => {
+    if (containerRef.current) {
+      setExtraWidth(Math.max(chartBaseWidth, containerRef.current.clientWidth) - chartBaseWidth);
     }
-    height={150}
-    labels={
-      data.topWorkloads.length
-        ? ({ datum }) => `${datum.x}: ${datum.y} ${unitLabel}`
-        : ({ datum }) => datum.x
+  };
+  React.useEffect(() => {
+    if (!containerRef.current) {
+      return;
     }
-    legendComponent={
-      <ChartLegend
-        data={data.topWorkloads.map(({ workload }) => ({
-          name: truncateString(getWorkloadName(workload), 16),
-        }))}
-        gutter={5}
-        labelComponent={<ChartLabel style={{ fontSize: 10 }} />}
-        itemsPerRow={Math.ceil(data.topWorkloads.length / 2)}
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+    resizeObserver.observe(containerRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+  const { topWorkloads, otherUsage, totalUsage } = data;
+
+  return (
+    <div ref={containerRef} style={{ height: `${chartHeight}px` }}>
+      <ChartDonut
+        constrainToVisibleArea
+        labelRadius={50}
+        labelComponent={<ChartTooltip center={{ x: 150, y: 0 }} />}
+        height={chartHeight}
+        ariaTitle={`${metricLabel} chart`}
+        data={
+          topWorkloads.length
+            ? [
+                ...topWorkloads.map(({ workload, usage }) => ({
+                  x: getWorkloadName(workload),
+                  y: roundNumber(convertUnits(usage), 3),
+                })),
+                ...(otherUsage
+                  ? [{ x: 'Other', y: roundNumber(convertUnits(otherUsage), 3) }]
+                  : []),
+              ]
+            : [{ x: `No workload is consuming ${unitLabel}`, y: 1 }]
+        }
+        labels={
+          topWorkloads.length
+            ? ({ datum }) => `${datum.x}: ${datum.y} ${unitLabel}`
+            : ({ datum }) => datum.x
+        }
+        legendComponent={
+          <ChartLegend
+            data={[
+              ...topWorkloads.map(({ workload }) => ({
+                name: truncateString(getWorkloadName(workload), 13 + extraWidth / 15),
+              })),
+              ...(otherUsage ? [{ name: 'Other' }] : []),
+            ]}
+            gutter={15}
+            labelComponent={<ChartLabel style={{ fontSize: 14 }} />}
+            itemsPerRow={Math.ceil(topWorkloads.length / 2)}
+          />
+        }
+        legendOrientation="vertical"
+        legendPosition="right"
+        name={`topResourceConsuming${metricLabel}`}
+        padding={{
+          bottom: 0,
+          left: 0,
+          right: legendBaseWidth + extraWidth,
+          top: 0,
+        }}
+        subTitle={unitLabel}
+        title={String(roundNumber(convertUnits(totalUsage)))}
+        themeColor={topWorkloads.length ? ChartThemeColor.multi : ChartThemeColor.gray}
+        width={chartBaseWidth + extraWidth}
       />
-    }
-    legendOrientation="vertical"
-    legendPosition="right"
-    name={`topResourceConsuming${metricLabel}`}
-    padding={{
-      bottom: 0,
-      left: 0,
-      right: 260, // Adjusted to accommodate legend
-      top: 0,
-    }}
-    subTitle={unitLabel}
-    title={String(roundNumber(convertUnits(data.totalUsage)))}
-    themeColor={data.topWorkloads.length ? ChartThemeColor.multi : ChartThemeColor.gray}
-    width={375}
-  />
-);
+    </div>
+  );
+};
 
 export const TopResourceConsumingWorkloads: React.FC = () => {
   const { workloads, projectCurrentMetrics } = React.useContext(DistributedWorkloadsContext);
@@ -109,7 +152,7 @@ export const TopResourceConsumingWorkloads: React.FC = () => {
   }
 
   return (
-    <Gallery minWidths={{ default: '100%', md: '50%' }}>
+    <Gallery minWidths={{ default: '100%', xl: '50%' }}>
       <GalleryItem>
         <Card isPlain isCompact>
           <CardTitle>CPU</CardTitle>

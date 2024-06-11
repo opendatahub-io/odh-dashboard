@@ -1,7 +1,7 @@
 import React from 'react';
 import { getModelRegistryCR } from '~/api';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ModelRegistryKind } from '~/k8sTypes';
+import useModelRegistryEnabled from '~/pages/modelRegistry/useModelRegistryEnabled';
 import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '~/utilities/const';
 import useFetchState, {
   FetchState,
@@ -18,7 +18,7 @@ export const isModelRegistryAvailable = ([state, loaded]: FetchState<State>): bo
   loaded && !!state && isModelRegistryCRStatusAvailable(state);
 
 export const useModelRegistryNamespaceCR = (namespace: string, name: string): FetchState<State> => {
-  const modelRegistryAreaAvailable = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY).status;
+  const modelRegistryAreaAvailable = useModelRegistryEnabled();
 
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {

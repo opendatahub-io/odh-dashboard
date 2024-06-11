@@ -1,5 +1,5 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { EitherNotBoth, EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
@@ -15,7 +15,7 @@ import {
   VolumeMount,
   ContainerResourceAttributes,
 } from './types';
-import { ServingRuntimeSize } from './pages/modelServing/screens/types';
+import { ModelServingSize } from './pages/modelServing/screens/types';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -364,10 +364,6 @@ export type ProjectKind = K8sResourceCommon & {
   status?: {
     phase: 'Active' | 'Terminating';
   };
-};
-
-export type DashboardProjectKind = ProjectKind & {
-  labels: DashboardLabels & Partial<ModelServingProjectLabels>;
 };
 
 export type ServiceAccountKind = K8sResourceCommon & {
@@ -919,6 +915,11 @@ export type WorkloadPodSet = {
   };
 };
 
+export enum WorkloadOwnerType {
+  RayCluster = 'RayCluster',
+  Job = 'Job',
+}
+
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-Workload
 export type WorkloadKind = K8sResourceCommon & {
   apiVersion: 'kueue.x-k8s.io/v1beta1';
@@ -1206,19 +1207,14 @@ export type DashboardCommonConfig = {
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableKServeAuth: boolean;
+  disableKServeMetrics: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
   disablePipelineExperiments: boolean;
+  disableS3Endpoint: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
-};
-
-export type OperatorStatus = {
-  /** Operator is installed and will be cloned to the namespace on creation */
-  available: boolean;
-  /** Has a detection gone underway or is the available a static default */
-  queriedForStatus: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -1229,7 +1225,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
-    modelServerSizes?: ServingRuntimeSize[];
+    modelServerSizes?: ModelServingSize[];
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
@@ -1294,24 +1290,35 @@ export type ModelRegistryKind = K8sResourceCommon & {
       port: number;
       serviceRoute: string;
     };
-    mysql?: {
-      database: string;
-      host: string;
-      port?: number;
-    };
-    postgres: {
-      database: string;
-      host?: string;
-      passwordSecret?: {
-        key: string;
-        name: string;
+  } & EitherNotBoth<
+    {
+      mysql?: {
+        database: string;
+        host: string;
+        passwordSecret?: {
+          key: string;
+          name: string;
+        };
+        port?: number;
+        skipDBCreation?: boolean;
+        username?: string;
       };
-      port: number;
-      skipDBCreation?: boolean;
-      sslMode?: string;
-      username?: string;
-    };
-  };
+    },
+    {
+      postgres?: {
+        database: string;
+        host?: string;
+        passwordSecret?: {
+          key: string;
+          name: string;
+        };
+        port: number;
+        skipDBCreation?: boolean;
+        sslMode?: string;
+        username?: string;
+      };
+    }
+  >;
   status?: {
     conditions?: K8sCondition[];
   };

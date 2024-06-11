@@ -99,6 +99,7 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
             />
           ) : null
         }
+        data-testid="pipeline-versions-table"
       />
       <DeletePipelinesModal
         isOpen={deleteVersions.length !== 0}

@@ -3,12 +3,12 @@ approvers:
 - lucferbux
 - alexcreasy
 - christianvogt
+- mturley
 - Gkrumbach07
 
 reviewers:
 - alexcreasy
 - christianvogt
-- uidoyen
 - Gkrumbach07
 - lucferbux
 - DaoDaoNoCode
@@ -16,3 +16,4 @@ reviewers:
 - pnaik1
 - ppadti
 - dpanshug
+- mturley

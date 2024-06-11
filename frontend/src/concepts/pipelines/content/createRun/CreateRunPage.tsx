@@ -9,7 +9,7 @@ import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 
 const CreateRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
-  const title = `${runType === PipelineRunType.Scheduled ? 'Schedule' : 'Create'} run`;
+  const title = `${runType === PipelineRunType.SCHEDULED ? 'Schedule' : 'Create'} run`;
 
   return (
     <ApplicationsPage

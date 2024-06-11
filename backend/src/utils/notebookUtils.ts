@@ -1,4 +1,5 @@
 import { getDashboardConfig } from './resourceUtils';
+import { mergeWith } from 'lodash';
 import {
   ContainerResourceAttributes,
   EnvironmentVariable,
@@ -30,6 +31,7 @@ import {
 import { DEFAULT_NOTEBOOK_SIZES, DEFAULT_PVC_SIZE, MOUNT_PATH } from './constants';
 import { FastifyRequest } from 'fastify';
 import { verifyEnvVars } from './envUtils';
+import { smartMergeArraysWithNameObjects } from './objUtils';
 import { getImageInfo } from '../routes/api/images/imageUtils';
 
 export const generateNotebookNameFromUsername = (username: string): string =>
@@ -510,6 +512,7 @@ export const updateNotebook = async (
   username: string,
   url: string,
   notebookData: NotebookData,
+  oldNotebook: Notebook,
 ): Promise<Notebook> => {
   if (!notebookData) {
     const error = createCustomError(
@@ -521,7 +524,42 @@ export const updateNotebook = async (
     throw error;
   }
   try {
-    const notebookAssembled = await generateNotebookResources(fastify, username, url, notebookData);
+    const serverNotebook = await generateNotebookResources(fastify, username, url, notebookData);
+
+    // Fix for Workbench Certs that get overridden
+    // We are intentionally applying on some details as to avoid implementing logic to properly
+    // manage the notebook the same way as workbench
+    const importantOldNotebookDetails: RecursivePartial<Notebook> = {
+      spec: {
+        template: {
+          spec: {
+            containers: [
+              {
+                // Drop all env vars we added in the past, because we will just add them back if they are still there
+                env: oldNotebook.spec.template.spec.containers[0].env.filter(({ valueFrom }) => {
+                  if (!valueFrom) {
+                    return true;
+                  } else {
+                    const value = valueFrom.secretKeyRef ?? valueFrom.configMapKeyRef;
+                    return !value?.name?.startsWith('jupyterhub-singleuser-profile');
+                  }
+                }),
+                volumeMounts: oldNotebook.spec.template.spec.containers[0].volumeMounts,
+              },
+            ],
+            volumes: oldNotebook.spec.template.spec.volumes,
+          },
+        },
+      },
+    };
+
+    const notebookAssembled = mergeWith(
+      {},
+      importantOldNotebookDetails,
+      serverNotebook,
+      smartMergeArraysWithNameObjects,
+    );
+
     const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
       'kubeflow.org',
       'v1',

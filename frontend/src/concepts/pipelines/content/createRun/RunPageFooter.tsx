@@ -72,7 +72,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                   });
               }}
             >
-              {`${runType === PipelineRunType.Scheduled ? 'Schedule' : 'Create'} run`}
+              {`${runType === PipelineRunType.SCHEDULED ? 'Schedule' : 'Create'} run`}
             </Button>
           </SplitItem>
           <SplitItem>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormSection, Text } from '@patternfly/react-core';
+import { Form, FormSection } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
@@ -9,8 +9,7 @@ import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLates
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import ExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ExperimentSection';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
@@ -26,8 +25,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   const selectedVersion = data.version || latestVersion;
   const paramsRef = React.useRef(data.params);
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
-  const isSchedule = runType === PipelineRunType.Scheduled;
+  const isSchedule = runType === PipelineRunType.SCHEDULED;
 
   const updateInputParams = React.useCallback(
     (version: PipelineVersionKFv2 | undefined) =>
@@ -55,19 +53,12 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
     <Form onSubmit={(e) => e.preventDefault()} maxWidth="500px">
       <RunTypeSection runType={runType} />
 
-      <FormSection
-        id={CreateRunPageSections.PROJECT}
-        title={runPageSectionTitles[CreateRunPageSections.PROJECT]}
-      >
-        <Text>{getProjectDisplayName(data.project)}</Text>
-      </FormSection>
-
-      {isExperimentsAvailable && (
-        <ExperimentSection
-          value={data.experiment}
-          onChange={(experiment) => onValueChange('experiment', experiment)}
-        />
-      )}
+      <ProjectAndExperimentSection
+        projectName={getProjectDisplayName(data.project)}
+        value={data.experiment}
+        onChange={(experiment) => onValueChange('experiment', experiment)}
+        isSchedule={isSchedule}
+      />
 
       <FormSection
         id={isSchedule ? CreateRunPageSections.SCHEDULE_DETAILS : CreateRunPageSections.RUN_DETAILS}

@@ -5,8 +5,7 @@ import { SectionType } from '~/concepts/design/utils';
 
 type AIFlowCardProps = {
   title: string;
-  imgSrc: string;
-  imgAlt: string;
+  image: React.ReactNode;
   sectionType: SectionType;
   selected: boolean;
   onSelect: () => void;
@@ -14,8 +13,7 @@ type AIFlowCardProps = {
 
 const AIFlowCard: React.FC<AIFlowCardProps> = ({
   title,
-  imgSrc,
-  imgAlt,
+  image,
   sectionType,
   selected,
   onSelect,
@@ -38,9 +36,7 @@ const AIFlowCard: React.FC<AIFlowCardProps> = ({
   >
     <CardBody>
       <Stack hasGutter>
-        <Bullseye>
-          <img style={{ height: 32 }} src={imgSrc} alt={imgAlt} />
-        </Bullseye>
+        <Bullseye>{image}</Bullseye>
         <Bullseye>
           <TextContent>
             <Text component="p" style={{ textAlign: 'center' }}>

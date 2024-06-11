@@ -8,7 +8,7 @@ import { TableToolbar } from './components/TableToolbar';
 class ModelServingToolbar extends TableToolbar {}
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visit(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
     this.wait();
   }
 
@@ -59,6 +59,10 @@ class ModelServingGlobal {
 
   getModelRow(name: string) {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
+  }
+
+  getModelMetricLink(name: string) {
+    return this.findModelsTable().findByTestId(`metrics-link-${name}`);
   }
 
   findEmptyResults() {
@@ -157,6 +161,10 @@ class ServingRuntimeModal extends Modal {
 
   findModelServerNameInput() {
     return this.find().findByTestId('serving-runtime-name-input');
+  }
+
+  findModelServerSizeValue() {
+    return this.find().findByLabelText('Model server size');
   }
 
   findServingRuntimeTemplateDropdown() {

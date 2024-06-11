@@ -61,11 +61,15 @@ spec:
                       type: boolean
                     disableKServeAuth:
                       type: boolean
+                    disableKServeMetrics:
+                      type: boolean
                     disableModelMesh:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
                     disablePipelineExperiments:
+                      type: boolean
+                    disableS3Endpoint:
                       type: boolean
                     disableDistributedWorkloads:
                       type: boolean

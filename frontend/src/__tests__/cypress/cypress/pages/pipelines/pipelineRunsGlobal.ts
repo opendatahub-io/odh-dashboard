@@ -3,7 +3,7 @@ import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 
 class PipelineRunsGlobal {
   visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
-    cy.visit(
+    cy.visitWithLogin(
       `/pipelineRuns/${projectName}${
         runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : ''
       }`,
@@ -25,11 +25,11 @@ class PipelineRunsGlobal {
   }
 
   findActiveRunsTab() {
-    return cy.findByRole('tab', { name: 'Active tab' });
+    return cy.findByTestId('active-runs-tab');
   }
 
   findArchivedRunsTab() {
-    return cy.findByRole('tab', { name: 'Archived tab' });
+    return cy.findByTestId('archived-runs-tab');
   }
 
   findProjectSelect() {

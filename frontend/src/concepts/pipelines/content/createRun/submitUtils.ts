@@ -15,6 +15,7 @@ import {
   PipelineVersionKFv2,
   RecurringRunMode,
   RuntimeConfigParameters,
+  StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import {
@@ -97,7 +98,10 @@ const createJob = async (
           : undefined,
     },
     max_concurrency: String(formData.runType.data.maxConcurrency),
-    mode: RecurringRunMode.ENABLE,
+    mode:
+      formData.experiment?.storage_state === StorageStateKF.ARCHIVED
+        ? RecurringRunMode.DISABLE
+        : RecurringRunMode.ENABLE,
     no_catchup: !formData.runType.data.catchUp,
     service_account: '',
     experiment_id: formData.experiment?.experiment_id || '',

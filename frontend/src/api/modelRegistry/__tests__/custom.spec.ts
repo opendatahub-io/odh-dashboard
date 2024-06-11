@@ -1,10 +1,6 @@
 import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
 import { handleModelRegistryFailures } from '~/api/modelRegistry/errorUtils';
-import {
-  RegisteredModelState,
-  ModelVersionState,
-  ModelArtifactState,
-} from '~/concepts/modelRegistry/types';
+import { ModelState, ModelArtifactState } from '~/concepts/modelRegistry/types';
 import {
   createModelArtifact,
   createModelVersion,
@@ -19,6 +15,7 @@ import {
   patchModelArtifact,
   patchModelVersion,
   patchRegisteredModel,
+  getModelArtifactsByModelVersion,
 } from '~/api/modelRegistry/custom';
 import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 
@@ -50,7 +47,7 @@ describe('createRegisteredModel', () => {
         description: 'test',
         externalID: '1',
         name: 'test new registered model',
-        state: RegisteredModelState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       }),
     ).toBe(mockResultPromise);
@@ -62,7 +59,7 @@ describe('createRegisteredModel', () => {
         description: 'test',
         externalID: '1',
         name: 'test new registered model',
-        state: RegisteredModelState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       },
       {},
@@ -80,9 +77,9 @@ describe('createModelVersion', () => {
         description: 'test',
         externalID: '1',
         author: 'test author',
-        registeredModelID: '1',
+        registeredModelId: '1',
         name: 'test new model version',
-        state: ModelVersionState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       }),
     ).toBe(mockResultPromise);
@@ -94,9 +91,9 @@ describe('createModelVersion', () => {
         description: 'test',
         externalID: '1',
         author: 'test author',
-        registeredModelID: '1',
+        registeredModelId: '1',
         name: 'test new model version',
-        state: ModelVersionState.LIVE,
+        state: ModelState.LIVE,
         customProperties: {},
       },
       {},
@@ -246,6 +243,21 @@ describe('getModelVersionsByRegisteredModel', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
       `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
+      {},
+      K8sAPIOptionsMock,
+    );
+    expect(handleModelRegistryFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handleModelRegistryFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('getModelArtifactsByModelVersion', () => {
+  it('should call proxyGET and handleModelRegistryFailures to list models artifacts by model version', () => {
+    expect(getModelArtifactsByModelVersion('hostPath')({}, '1')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/1/artifacts`,
       {},
       K8sAPIOptionsMock,
     );

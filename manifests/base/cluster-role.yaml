@@ -172,3 +172,23 @@ rules:
       - get
     resources:
       - datascienceclusters
+  - apiGroups:
+      - dscinitialization.opendatahub.io
+    verbs:
+      - list
+      - watch
+      - get
+    resources:
+      - dscinitializations
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - modelregistries

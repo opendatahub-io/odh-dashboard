@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Grid, GridItem, Truncate } from '@patternfly/react-core';
 
 type TaskDetailsPrintKeyValuesProps = {
-  items: { label: string; value: string }[];
+  items: { label: string; value: React.ReactNode; preview?: React.ReactNode }[];
 };
 
 const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ items }) => (
@@ -15,6 +15,7 @@ const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ i
           </b>
         </GridItem>
         <GridItem span={6}>{result.value}</GridItem>
+        {result.preview && <GridItem span={12}>{result.preview}</GridItem>}
       </React.Fragment>
     ))}
   </Grid>

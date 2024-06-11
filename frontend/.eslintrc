@@ -77,6 +77,7 @@
       "always",
       { "exceptAfterSingleLine": false }
     ],
+    "@typescript-eslint/method-signature-style": "error",
     "@typescript-eslint/naming-convention": [
       "error",
       {
@@ -199,6 +200,10 @@
         "object": "Promise",
         "property": "allSettled",
         "message": "Avoid using Promise.allSettled, use allSettledPromises utility function instead."
+      },
+      {
+        "property": "sort",
+        "message": "Avoid using .sort, use .toSorted instead."
       }
     ],
     "import/newline-after-import": "error",
@@ -278,7 +283,38 @@
         "plugin:prettier/recommended",
         "prettier",
         "plugin:cypress/recommended"
+      ],
+      "overrides": [
+        {
+          "files": ["./src/__tests__/cypress/cypress/pages/*.ts", "./src/__tests__/cypress/cypress/tests/e2e/*.ts"],
+          "rules": {
+            "no-restricted-syntax": [
+              "error",
+              {
+                "selector": "CallExpression[callee.property.name='visit'][callee.object.name='cy']",
+                "message": "Use `cy.visitWithLogin` in page objects and e2e tests instead of `cy.visit`."
+              }
+            ]
+          }
+        }
       ]
+    },
+    {
+      "files": ["*.ts", "*.tsx"],
+      "excludedFiles": ["src/__mocks__/**", "src/__tests__/**"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "Literal[value=/\\bRed Hat OpenShift AI\\b/i],JSXText[value=/\\bRed Hat OpenShift AI\\b/i]",
+            "message": "Do not hard code product name `Red Hat OpenShift AI`. Use `~/utilities/const#ODH_PRODUCT_NAME` instead."
+          },
+          {
+            "selector": "Literal[value=/\\bOpen Data Hub\\b/i],JSXText[value=/\\bOpen Data Hub\\b/i]",
+            "message": "Do not hard code product name `Open Data Hub`. Use `~/utilities/const#ODH_PRODUCT_NAME` instead."
+          }
+        ]
+      }
     }
   ]
 }

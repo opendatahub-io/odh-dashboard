@@ -41,35 +41,6 @@ export enum ProjectObjectType {
   group = 'group',
 }
 
-export const typedBorderColor = (objectType: ProjectObjectType): string => {
-  switch (objectType) {
-    case ProjectObjectType.project:
-      return 'var(--ai-project--BorderColor)';
-    case ProjectObjectType.notebook:
-      return 'var(--ai-notebook--BorderColor)';
-    case ProjectObjectType.pipeline:
-    case ProjectObjectType.pipelineRun:
-      return 'var(--ai-pipeline--BorderColor)';
-    case ProjectObjectType.pipelineSetup:
-      return 'var(--ai-set-up--BorderColor)';
-    case ProjectObjectType.clusterStorage:
-      return 'var(--ai-cluster-storage--BorderColor)';
-    case ProjectObjectType.modelServer:
-    case ProjectObjectType.registeredModels:
-    case ProjectObjectType.deployedModels:
-    case ProjectObjectType.deployingModels:
-      return 'var(--ai-model-server--BorderColor)';
-    case ProjectObjectType.dataConnection:
-      return 'var(--ai-data-connection--BorderColor)';
-    case ProjectObjectType.user:
-      return 'var(--ai-user--BorderColor)';
-    case ProjectObjectType.group:
-      return 'var(--ai-group--BorderColor)';
-    default:
-      return '';
-  }
-};
-
 export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
   switch (objectType) {
     case ProjectObjectType.project:

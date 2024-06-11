@@ -76,6 +76,7 @@ export const PipelineDropdown = ({
   };
   return (
     <Dropdown
+      data-testid="select-data-connection"
       menuAppendTo="parent"
       position={DropdownPosition.right}
       toggle={<MenuToggle onClick={onToggle} icon={<KeyIcon />} />}

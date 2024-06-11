@@ -89,7 +89,7 @@ const useTableColumnSort = <T>(
         return data;
       }
 
-      return [...data].sort((a, b) => {
+      return data.toSorted((a, b) => {
         const columnField =
           activeSortIndex < columns.length
             ? columns[activeSortIndex]

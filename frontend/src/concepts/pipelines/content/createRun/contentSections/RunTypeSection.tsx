@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { Alert, AlertActionCloseButton, Button, FormSection } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Alert, AlertActionCloseButton, FormSection } from '@patternfly/react-core';
+import { useParams, Link } from 'react-router-dom';
 
 import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
 import {
@@ -16,27 +16,43 @@ interface RunTypeSectionProps {
 }
 
 export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
-  const navigate = useNavigate();
   const { namespace, experimentId } = useParams();
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
-  let runTypeValue = 'Run once immediately after creation';
-  let alertProps = {
-    title: 'Go to Schedules to create schedules that execute recurring runs',
-    label: `Go to ${PipelineRunTabTitle.Schedules}`,
-    search: '?runType=scheduled',
-    pathname: scheduleRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined),
-  };
+  const runTypeValue = 'Run once immediately after creation';
+  let alertTitle = (
+    <>
+      To create a schedule that executes recurring runs,{' '}
+      <Link
+        to={`${scheduleRunRoute(
+          namespace,
+          isExperimentsAvailable ? experimentId : undefined,
+        )}?runType=${PipelineRunType.SCHEDULED}`}
+        data-testid="run-type-section-alert-link"
+      >
+        go to the {PipelineRunTabTitle.SCHEDULES} tab
+      </Link>
+      .
+    </>
+  );
 
-  if (runType === PipelineRunType.Scheduled) {
-    runTypeValue = 'Schedule recurring run';
-    alertProps = {
-      title: 'Go to Active runs to create a run that executes once immediately after creation.',
-      label: `Go to ${PipelineRunTabTitle.Active} runs`,
-      search: '?runType=active',
-      pathname: createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined),
-    };
+  if (runType === PipelineRunType.SCHEDULED) {
+    alertTitle = (
+      <>
+        To create a non-recurring run,{' '}
+        <Link
+          to={`${createRunRoute(
+            namespace,
+            isExperimentsAvailable ? experimentId : undefined,
+          )}?runType=${PipelineRunType.ACTIVE}`}
+          data-testid="run-type-section-alert-link"
+        >
+          go to the {PipelineRunTabTitle.ACTIVE} tab
+        </Link>
+        .
+      </>
+    );
   }
 
   return (
@@ -50,17 +66,7 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
         <Alert
           isInline
           variant="info"
-          title={alertProps.title}
-          actionLinks={
-            <Button
-              isInline
-              variant="link"
-              onClick={() => navigate({ pathname: alertProps.pathname, search: alertProps.search })}
-              data-testid="run-type-section-alert-link"
-            >
-              {alertProps.label}
-            </Button>
-          }
+          title={alertTitle}
           actionClose={<AlertActionCloseButton onClose={() => setIsAlertOpen(false)} />}
         />
       )}

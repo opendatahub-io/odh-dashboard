@@ -131,10 +131,10 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
 
   const contextValue = React.useMemo(
     () => ({
-      projects: projects.sort(projectSorter),
-      dataScienceProjects: dataScienceProjects.sort(projectSorter),
-      modelServingProjects: modelServingProjects.sort(projectSorter),
-      nonActiveProjects: nonActiveProjects.sort(projectSorter),
+      projects: projects.toSorted(projectSorter),
+      dataScienceProjects: dataScienceProjects.toSorted(projectSorter),
+      modelServingProjects: modelServingProjects.toSorted(projectSorter),
+      nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
       preferredProject,
       updatePreferredProject,
       loaded,

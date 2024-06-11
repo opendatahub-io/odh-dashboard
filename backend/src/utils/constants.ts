@@ -48,7 +48,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableISVBadges: false,
       disableAppLauncher: false,
       disableUserManagement: false,
-      disableHome: true,
+      disableHome: false,
       disableProjects: false,
       disableModelServing: false,
       disableProjectSharing: false,
@@ -58,9 +58,11 @@ export const blankDashboardCR: DashboardConfig = {
       disablePipelines: false,
       disableKServe: false,
       disableKServeAuth: false,
+      disableKServeMetrics: true,
       disableModelMesh: false,
       disableAcceleratorProfiles: false,
       disablePipelineExperiments: true,
+      disableS3Endpoint: true,
       disableDistributedWorkloads: false,
       disableModelRegistry: true,
     },
@@ -141,3 +143,5 @@ export const THANOS_RBAC_PORT = '9092';
 export const THANOS_INSTANCE_NAME = 'thanos-querier';
 export const THANOS_NAMESPACE = 'openshift-monitoring';
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;
+
+export const MODEL_REGISTRY_NAMESPACE = 'odh-model-registries';

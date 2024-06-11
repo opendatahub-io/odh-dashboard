@@ -7,7 +7,7 @@ import {
   createSpdRequest,
   deleteDirRequest,
   deleteSpdRequest,
-  getAllRequests,
+  getAllBiasRequests,
   getDirRequests,
   getSpdRequests,
 } from '~/api';
@@ -24,7 +24,7 @@ const useTrustyAIAPIState = (
       deleteDirRequest: deleteDirRequest(path),
       deleteSpdRequest: deleteSpdRequest(path),
       listDirRequests: getDirRequests(path),
-      listRequests: getAllRequests(path),
+      listRequests: getAllBiasRequests(path),
       listSpdRequests: getSpdRequests(path),
     }),
     [],

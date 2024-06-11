@@ -66,7 +66,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   return (
     <>
       <Tbody isExpanded={isExpanded}>
-        <Tr>
+        <Tr data-testid={`pipeline-row ${pipeline.pipeline_id}`}>
           <Td
             expand={{
               rowIndex,
@@ -115,12 +115,12 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   },
                 },
                 {
-                  title: 'Schedule run',
+                  title: 'Create schedule',
                   onClick: () => {
                     navigate(
                       {
                         pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                       },
                       {
                         state: { lastPipeline: pipeline },

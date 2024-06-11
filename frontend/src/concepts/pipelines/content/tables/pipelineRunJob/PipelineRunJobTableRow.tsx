@@ -93,7 +93,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
                     job.recurring_run_id,
                     isExperimentsAvailable ? experimentId : undefined,
                   ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                 });
               },
             },

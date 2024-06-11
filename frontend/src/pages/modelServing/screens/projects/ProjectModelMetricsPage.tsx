@@ -26,6 +26,7 @@ const ProjectModelMetricsPage: React.FC = () => {
         },
       ]}
       type={PerformanceMetricType.MODEL}
+      model={model}
     />
   );
 };

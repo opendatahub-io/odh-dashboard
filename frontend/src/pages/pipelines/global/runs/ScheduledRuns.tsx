@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import {
   Bullseye,
@@ -8,25 +8,19 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateHeader,
-  Button,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
-import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { scheduleRunRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PipelineRunType } from './types';
+import { usePipelineScheduledRunsTable } from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
+import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
 
 const ScheduledRuns: React.FC = () => {
-  const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
+  const { experimentId } = useParams();
   const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineRunJobTable();
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+    usePipelineScheduledRunsTable({ experimentId });
 
   if (error) {
     return (
@@ -61,27 +55,13 @@ const ScheduledRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          Schedules dictate when and how many times a run is executed. To get started, schedule
-          runs.
+          Schedules dictate when and how many times a run is executed. To get started, create a
+          schedule.
         </EmptyStateBody>
 
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button
-              data-testid="schedule-run-button"
-              variant="primary"
-              onClick={() =>
-                navigate({
-                  pathname: scheduleRunRoute(
-                    namespace,
-                    isExperimentsAvailable ? experimentId : undefined,
-                  ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
-                })
-              }
-            >
-              Schedule run
-            </Button>
+            <CreateScheduleButton />
           </EmptyStateActions>
         </EmptyStateFooter>
       </EmptyState>

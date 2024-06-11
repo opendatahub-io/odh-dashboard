@@ -13,7 +13,7 @@ spec:
     disableSupport: false
     disableTracking: false
     enablement: true
-    disableHome: false
+    disableHome: true
     disableProjects: false
     disablePipelines: false
     disableModelServing: false
@@ -24,6 +24,7 @@ spec:
     disableAcceleratorProfiles: false
     disableKServe: false
     disableKServeAuth: false
+    disableKServeMetrics: true
     disableModelMesh: false
     disableDistributedWorkloads: false
     disableModelRegistry: true

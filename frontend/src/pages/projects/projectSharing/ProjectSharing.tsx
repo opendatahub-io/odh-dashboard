@@ -21,7 +21,7 @@ import { filterRoleBindingSubjects } from './utils';
 const ProjectSharing: React.FC = () => {
   const {
     projectSharingRB: { data: roleBindings, loaded, error: loadError, refresh: refreshRB },
-    groups: { data: groups },
+    groups: [groups],
   } = React.useContext(ProjectDetailsContext);
 
   if (loadError) {

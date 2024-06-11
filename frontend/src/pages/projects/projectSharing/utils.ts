@@ -1,11 +1,5 @@
 import { RoleBindingKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
-
-export const getRoleBindingResourceName = (roleBinding: RoleBindingKind): string =>
-  roleBinding.metadata.name || '';
-export const getRoleBindingDisplayName = (roleBinding: RoleBindingKind): string =>
-  getDisplayNameFromK8sResource(roleBinding);
 
 export const filterRoleBindingSubjects = (
   roleBindings: RoleBindingKind[],

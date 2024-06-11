@@ -14,6 +14,7 @@ import { GlobeAmericasIcon } from '@patternfly/react-icons';
 import { DateTimeKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
 import { PodKind } from '~/k8sTypes';
 import { PodContainer } from '~/types';
+import { NoValue } from '~/components/NoValue';
 
 export type DetailItem = {
   key: string;
@@ -32,11 +33,7 @@ export const renderDetailItems = (details: DetailItem[]): React.ReactNode => (
       <DescriptionListGroup key={detail.key} data-testid={`detail-item-${detail.key}`}>
         <DescriptionListTerm>{detail.key}</DescriptionListTerm>
         <DescriptionListDescription data-testid="detail-item-value">
-          {!detail.value && detail.value !== 0 ? (
-            <span className="pf-v5-u-disabled-color-100">No value</span>
-          ) : (
-            detail.value
-          )}
+          {!detail.value && detail.value !== 0 ? <NoValue /> : detail.value}
         </DescriptionListDescription>
       </DescriptionListGroup>
     ))}

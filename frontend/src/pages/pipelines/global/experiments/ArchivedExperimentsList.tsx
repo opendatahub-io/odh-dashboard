@@ -11,6 +11,7 @@ import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
 import { useArchivedExperiments } from '~/concepts/pipelines/apiHooks/useExperiments';
 import ArchivedExperimentTable from '~/concepts/pipelines/content/tables/experiment/ArchivedExperimentTable';
+import { ExperimentListTabTitle } from '~/pages/pipelines/global/experiments/const';
 
 const ArchivedExperimentsList: React.FC = () => {
   const [[{ items: experiments, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
@@ -48,8 +49,8 @@ const ArchivedExperimentsList: React.FC = () => {
           headingLevel="h4"
         />
         <EmptyStateBody>
-          When you are finished with an experiment, you can archive it in the Active tab. You can
-          view the archived experiment here.
+          When you are finished with an experiment, you can archive it in the{' '}
+          {ExperimentListTabTitle.ACTIVE} tab. You can view the archived experiment here.
         </EmptyStateBody>
       </EmptyState>
     );

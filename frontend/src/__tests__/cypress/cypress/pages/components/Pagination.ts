@@ -26,6 +26,16 @@ class Pagination {
   findInput() {
     return this.find().findByRole('spinbutton', { name: 'Current page' });
   }
+
+  private findMenuToggleButton() {
+    return this.find()
+      .find(this.top ? '#table-pagination-top-toggle' : '#table-pagination-bottom-toggle')
+      .click();
+  }
+
+  selectToggleOption(name: string) {
+    return this.findMenuToggleButton().parents().findByRole('menuitem', { name }).click();
+  }
 }
 
 export const tablePagination = {

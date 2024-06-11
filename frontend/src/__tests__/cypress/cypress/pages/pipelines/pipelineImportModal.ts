@@ -51,11 +51,15 @@ class PipelineImportModal extends Modal {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
+  findUploadError() {
+    return this.find().findByTestId('pipeline-file-upload-error');
+  }
+
   mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/create',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/create`,
+        path: { namespace, serviceName: 'dspa' },
         times: 1,
       },
       buildMockPipelineV2(params.pipeline),
@@ -63,12 +67,9 @@ class PipelineImportModal extends Modal {
   }
 
   mockUploadPipeline(params: Partial<PipelineKFv2>, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/upload`,
-        times: 1,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload',
+      { path: { namespace, serviceName: 'dspa' }, times: 1 },
       buildMockPipelineV2(params),
     );
   }

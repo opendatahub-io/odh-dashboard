@@ -29,6 +29,13 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
   const isActive = !!children.find((c) => checkLinkActiveStatus(pathname, c.href));
   const [expanded, setExpanded] = React.useState(isActive);
 
+  // Whenever the group becomes active, it should also be expanded
+  React.useEffect(() => {
+    if (isActive) {
+      setExpanded(true);
+    }
+  }, [isActive]);
+
   return (
     <NavExpandable
       data-id={group.id}

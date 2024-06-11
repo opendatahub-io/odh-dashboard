@@ -26,7 +26,7 @@ type PipelineRunBottomDrawerProps = {
   pipelineRunDetails?: PipelineRunKFv2 | PipelineRunJobKFv2;
 };
 
-export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps> = ({
+const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps> = ({
   selection,
   onSelection,
   pipelineRunDetails,

@@ -17,14 +17,6 @@ export const getDashboardConfigTemplateDisablementBackend = (ns: string): Promis
     (dashboardConfig) => dashboardConfig.spec.templateDisablement || [],
   );
 
-export const updateDashboardConfigBackend = (
-  resource: DashboardConfigKind,
-): Promise<DashboardConfigKind> =>
-  axios
-    .put('/api/dashboardConfig/', resource)
-    .then((response) => response.data)
-    .catch((e) => Promise.reject(e));
-
 export const patchDashboardConfigTemplateOrderBackend = (
   templateOrder: string[],
   namespace: string,

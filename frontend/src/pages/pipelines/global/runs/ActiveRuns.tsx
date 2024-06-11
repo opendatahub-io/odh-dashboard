@@ -12,13 +12,14 @@ import {
   EmptyStateActions,
   Button,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { createRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
@@ -27,6 +28,25 @@ export const ActiveRuns: React.FC = () => {
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable({ experimentId });
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const isExperimentArchived = useContextExperimentArchived();
+
+  if (isExperimentArchived) {
+    return (
+      <Bullseye>
+        <EmptyState data-testid="experiment-archived-empty-state">
+          <EmptyStateHeader
+            titleText="Experiment archived"
+            icon={<EmptyStateIcon icon={CubesIcon} />}
+            headingLevel="h2"
+          />
+          <EmptyStateBody>
+            When an experiment is archived, its runs are moved to the {PipelineRunTabTitle.ARCHIVED}{' '}
+            tab.
+          </EmptyStateBody>
+        </EmptyState>
+      </Bullseye>
+    );
+  }
 
   if (error) {
     return (
@@ -55,14 +75,14 @@ export const ActiveRuns: React.FC = () => {
     return (
       <EmptyState data-testid="active-runs-empty-state">
         <EmptyStateHeader
-          titleText="No active runs"
+          titleText="No runs"
           icon={<EmptyStateIcon icon={PlusCircleIcon} />}
           headingLevel="h2"
         />
 
         <EmptyStateBody>
           To get started, create a run. Alternatively, go to the{' '}
-          <b>{PipelineRunTabTitle.Schedules}</b> tab and create a schedule to execute recurring
+          <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring
           runs.
         </EmptyStateBody>
 
@@ -77,7 +97,7 @@ export const ActiveRuns: React.FC = () => {
                     namespace,
                     isExperimentsAvailable ? experimentId : undefined,
                   ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                 })
               }
             >
@@ -94,7 +114,7 @@ export const ActiveRuns: React.FC = () => {
       runs={runs}
       loading={!loaded}
       totalSize={totalSize}
-      runType={PipelineRunType.Active}
+      runType={PipelineRunType.ACTIVE}
       {...tableProps}
     />
   );

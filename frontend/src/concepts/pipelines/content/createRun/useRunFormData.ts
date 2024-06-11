@@ -15,6 +15,7 @@ import {
   PipelineRunJobKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
+  StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -98,10 +99,25 @@ const useUpdateExperimentFormData = (
   const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
-    if (!formData.experiment && experiment) {
+    // on create run page, we always check the experiment archived state
+    // no matter it's duplicated or carried from the create schedules pages
+    if (formData.runType.type === RunTypeOption.ONE_TRIGGER) {
+      if (formData.experiment) {
+        if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
+          setFormValue('experiment', null);
+        }
+      } else if (experiment) {
+        if (experiment.storage_state === StorageStateKF.ARCHIVED) {
+          setFormValue('experiment', null);
+        } else {
+          setFormValue('experiment', experiment);
+        }
+      }
+    } else if (!formData.experiment && experiment) {
+      // else, on create schedules page, we do what we did before
       setFormValue('experiment', experiment);
     }
-  }, [formData.experiment, setFormValue, experiment]);
+  }, [formData.experiment, setFormValue, experiment, formData.runType.type]);
 };
 
 const useUpdatePipelineFormData = (

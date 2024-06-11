@@ -88,7 +88,7 @@ export const isEqual = (
   units: UnitOption[],
 ): boolean => calculateDelta(value1, value2, units) === 0;
 
-export const isCpuLimitEqual = (cpu1?: ValueUnitCPU, cpu2?: ValueUnitCPU): boolean => {
+export const isCpuResourceEqual = (cpu1?: ValueUnitCPU, cpu2?: ValueUnitCPU): boolean => {
   const cpu1String = typeof cpu1 === 'number' ? `${cpu1}` : cpu1;
   const cpu2String = typeof cpu2 === 'number' ? `${cpu2}` : cpu2;
 
@@ -103,7 +103,7 @@ export const isCpuLimitEqual = (cpu1?: ValueUnitCPU, cpu2?: ValueUnitCPU): boole
   return isEqual(cpu1String, cpu2String, CPU_UNITS);
 };
 
-export const isMemoryLimitEqual = (
+export const isMemoryResourceEqual = (
   memory1?: ValueUnitString,
   memory2?: ValueUnitString,
 ): boolean => {

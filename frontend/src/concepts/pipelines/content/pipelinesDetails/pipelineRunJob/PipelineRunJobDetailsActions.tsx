@@ -52,7 +52,7 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
                       job.recurring_run_id,
                       isExperimentsAvailable ? experimentId : undefined,
                     ),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                   })
                 }
               >

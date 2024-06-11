@@ -2,7 +2,7 @@ import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sReso
 import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
 import {
-  getWorkloadOwnerJobName,
+  getWorkloadOwner,
   WorkloadStatusColorAndIcon,
   WorkloadStatusType,
   getStatusCounts,
@@ -12,7 +12,7 @@ import {
   getQueueRequestedResources,
   getTotalSharedQuota,
 } from '~/concepts/distributedWorkloads/utils';
-import { WorkloadPodSet } from '~/k8sTypes';
+import { WorkloadOwnerType, WorkloadPodSet } from '~/k8sTypes';
 import { PodContainer } from '~/types';
 
 describe('getStatusInfo', () => {
@@ -96,14 +96,28 @@ describe('getStatusCounts', () => {
   });
 });
 
-describe('getWorkloadOwnerJobName', () => {
-  it('returns the name of the job found in ownerReferences of a workload if present', () => {
+describe('getWorkloadOwner', () => {
+  it('returns the name of a job found in ownerReferences of a workload if present', () => {
     const mockWorkload = mockWorkloadK8sResource({
       k8sName: 'test-workload',
       namespace: 'test-project',
-      ownerJobName: 'test-job',
+      ownerKind: WorkloadOwnerType.Job,
+      ownerName: 'test-job',
     });
-    expect(getWorkloadOwnerJobName(mockWorkload)).toBe('test-job');
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({ kind: 'Job', name: 'test-job' });
+  });
+
+  it('returns the name of a raycluster found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.RayCluster,
+      ownerName: 'test-raycluster',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'RayCluster',
+      name: 'test-raycluster',
+    });
   });
 
   it('returns undefined if there is no job in ownerReferences', () => {
@@ -111,7 +125,7 @@ describe('getWorkloadOwnerJobName', () => {
       k8sName: 'test-workload',
       namespace: 'test-project',
     });
-    expect(getWorkloadOwnerJobName(mockWorkload)).toBe(undefined);
+    expect(getWorkloadOwner(mockWorkload)).toBe(undefined);
   });
 });
 

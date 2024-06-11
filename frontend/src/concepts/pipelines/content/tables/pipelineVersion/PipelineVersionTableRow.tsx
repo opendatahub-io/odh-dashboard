@@ -37,7 +37,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   const createdDate = new Date(version.created_at);
 
   return (
-    <Tr>
+    <Tr data-testid={`pipeline-version-row ${version.pipeline_version_id}`}>
       <CheckboxTd
         id={version.pipeline_version_id}
         isChecked={isChecked}
@@ -59,7 +59,6 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
           }
           description={version.description}
           descriptionAsMarkdown
-          testId={`table-row-title-${version.display_name}`}
         />
       </Td>
       <Td>
@@ -77,12 +76,12 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               },
             },
             {
-              title: 'Schedule run',
+              title: 'Create schedule',
               onClick: () => {
                 navigate(
                   {
                     pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                   },
                   {
                     state: { lastPipeline: pipeline, lastVersion: version },
@@ -99,7 +98,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                 navigate(
                   {
                     pathname: routePipelineRunsNamespace(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                   },
                   {
                     state: { lastVersion: version },
@@ -113,7 +112,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                 navigate(
                   {
                     pathname: routePipelineRunsNamespace(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                   },
                   {
                     state: { lastVersion: version },

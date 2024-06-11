@@ -116,7 +116,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
 
       <DeletePipelineRunsModal
         toDeleteResources={deleteResources}
-        type={PipelineRunType.Scheduled}
+        type={PipelineRunType.SCHEDULED}
         onClose={(deleted) => {
           if (deleted) {
             refreshAllAPI();

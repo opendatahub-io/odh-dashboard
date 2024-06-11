@@ -51,7 +51,12 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
     usePipelineVersionById(pipelineId, pipelineVersionId);
   const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
 
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersion?.pipeline_spec);
+  const nodes = usePipelineTaskTopology(pipelineVersion?.pipeline_spec);
+
+  const selectedNode = React.useMemo(
+    () => nodes.find((n) => n.id === selectedId),
+    [selectedId, nodes],
+  );
   const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && !!pipelineVersion?.pipeline_spec;
 
   if (pipelineVersionLoadError || pipelineLoadError) {
@@ -76,11 +81,11 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
 
   return (
     <>
-      <Drawer isExpanded={!!selectedId}>
+      <Drawer isExpanded={!!selectedNode}>
         <DrawerContent
           panelContent={
             <SelectedTaskDrawerContent
-              task={selectedId ? taskMap[selectedId] : undefined}
+              task={selectedNode?.data.pipelineTask}
               onClose={() => setSelectedId(null)}
             />
           }
@@ -161,6 +166,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                 <Tab
                   eventKey={PipelineDetailsTab.YAML}
                   title={<TabTitleText>YAML</TabTitleText>}
+                  data-testid="pipeline-yaml-tab"
                   aria-label="Pipeline YAML Tab"
                   tabContentId={`tabContent-${PipelineDetailsTab.YAML}`}
                 />

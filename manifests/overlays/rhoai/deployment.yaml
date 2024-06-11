@@ -20,9 +20,6 @@
   path: /spec/template/spec/containers/0/image
   value: $(odh-dashboard-image)
 - op: replace
-  path: /spec/template/spec/containers/1/args/11
-  value: '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "rhods-dashboard", "namespace": "$(NAMESPACE)"}}'
-- op: replace
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
 - op: replace

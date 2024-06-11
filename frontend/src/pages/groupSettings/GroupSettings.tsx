@@ -64,9 +64,11 @@ const GroupSettings: React.FC = () => {
         <StackItem>
           <SettingSection
             title="Data Science administrator groups"
+            testId="data-science-administrator-groups"
             description={adminDesc}
             footer={
               <Alert
+                data-testid="data-science-administrator-info"
                 variant="info"
                 isInline
                 isPlain
@@ -102,7 +104,11 @@ const GroupSettings: React.FC = () => {
           </SettingSection>
         </StackItem>
         <StackItem>
-          <SettingSection title="Data Science user groups" description={userDesc}>
+          <SettingSection
+            title="Data Science user groups"
+            description={userDesc}
+            testId="data-science-user-groups"
+          >
             <MultiSelection
               ariaLabel={userDesc}
               value={groupSettings.allowedGroups}
@@ -133,6 +139,7 @@ const GroupSettings: React.FC = () => {
         <StackItem>
           <Button
             data-id="save-button"
+            data-testid="save-button"
             isDisabled={
               isLoading ||
               !isGroupSettingsChanged ||

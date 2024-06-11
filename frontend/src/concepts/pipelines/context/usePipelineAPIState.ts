@@ -30,6 +30,7 @@ import {
   archiveExperiment,
   unarchiveExperiment,
   deleteExperiment,
+  retryPipelineRun,
 } from '~/api';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { APIState } from '~/concepts/proxy/types';
@@ -66,6 +67,7 @@ const usePipelineAPIState = (
       listPipelineVersions: listPipelineVersions(path),
       archivePipelineRun: archivePipelineRun(path),
       unarchivePipelineRun: unarchivePipelineRun(path),
+      retryPipelineRun: retryPipelineRun(path),
       archiveExperiment: archiveExperiment(path),
       unarchiveExperiment: unarchiveExperiment(path),
       stopPipelineRun: stopPipelineRun(path),

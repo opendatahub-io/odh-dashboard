@@ -35,7 +35,7 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
     return [];
   }
 
-  const listItems = notebooks.sort(notebookSorter).slice(0, 5);
+  const listItems = notebooks.toSorted(notebookSorter).slice(0, 5);
 
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>

@@ -28,6 +28,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
 
   const DropdownComponent = (
     <Dropdown
+      data-testid="pipeline-server-action"
       onSelect={() => setOpen(false)}
       toggle={
         variant === 'kebab' ? (

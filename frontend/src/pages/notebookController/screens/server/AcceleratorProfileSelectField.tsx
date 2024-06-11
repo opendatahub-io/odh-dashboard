@@ -98,7 +98,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   };
 
   const options: SimpleDropdownOption[] = enabledAcceleratorProfiles
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const aSupported = isAcceleratorProfileSupported(a);
       const bSupported = isAcceleratorProfileSupported(b);
       if (aSupported && !bSupported) {

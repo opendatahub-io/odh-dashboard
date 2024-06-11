@@ -9,8 +9,6 @@ import { EitherNotBoth, ExactlyOne } from '~/typeHelpers';
 export type DateTimeKF = string;
 
 export enum PipelinesFilterOp {
-  UNKNOWN = 'UNKNOWN',
-
   // Operators on scalar values. Only applies to one of |int_value|,
   // |long_value|, |string_value| or |timestamp_value|.
   EQUALS = 'EQUALS',
@@ -57,6 +55,21 @@ export enum ArtifactType {
   SLICED_CLASSIFICATION_METRICS = 'system.SlicedClassificationMetrics',
   HTML = 'system.HTML',
   MARKDOWN = 'system.Markdown',
+}
+
+export enum ExecutionType {
+  CONTAINER_EXECUTION = 'system.ContainerExecution',
+  DAG_EXECUTION = 'system.DAGExecution',
+}
+
+export enum ExecutionStatus {
+  UNKNOWN = 'Unknown',
+  NEW = 'New',
+  RUNNING = 'Running',
+  COMPLETE = 'Complete',
+  FAILED = 'Failed',
+  CACHED = 'Cached',
+  CANCELED = 'Canceled',
 }
 
 /** @deprecated resource type is no longer a concept in v2 */
@@ -160,14 +173,16 @@ export type InputOutputArtifactType = {
 };
 
 export type InputOutputDefinition = {
-  artifacts?: Record<
-    string,
-    {
-      artifactType: InputOutputArtifactType;
-    }
-  >;
+  artifacts?: InputOutputDefinitionArtifacts;
   parameters?: ParametersKF;
 };
+
+export type InputOutputDefinitionArtifacts = Record<
+  string,
+  {
+    artifactType: InputOutputArtifactType;
+  }
+>;
 
 type GroupNodeComponent = {
   dag: DAG;
@@ -219,17 +234,22 @@ export type TaskKF = {
   inputs?: {
     artifacts?: Record<
       string,
-      {
-        taskOutputArtifact?: {
-          /** Artifact node name */
-          outputArtifactKey: string;
-          /**
-           * The task string for runAfter
-           * @see DAG.tasks
-           */
-          producerTask: string;
-        };
-      }
+      EitherNotBoth<
+        {
+          taskOutputArtifact?: {
+            /** Artifact node name */
+            outputArtifactKey: string;
+            /**
+             * The task string for runAfter
+             * @see DAG.tasks
+             */
+            producerTask: string;
+          };
+        },
+        {
+          componentInputArtifact: string;
+        }
+      >
     >;
     parameters?: Record<
       string,
@@ -311,9 +331,7 @@ export type PipelineSpec = {
   };
   root: {
     dag: DAG;
-    inputDefinitions?: {
-      parameters: ParametersKF;
-    };
+    inputDefinitions?: InputOutputDefinition;
   };
   schemaVersion: string;
   sdkVersion: string;

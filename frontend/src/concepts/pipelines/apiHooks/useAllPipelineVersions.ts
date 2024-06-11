@@ -4,7 +4,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
 import { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
+import { useAllPipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
 /**
@@ -15,7 +15,7 @@ export const useAllPipelineVersions = (
   refreshRate = 0,
 ): FetchState<PipelineListPaged<PipelineVersionKFv2>> => {
   const { api } = usePipelinesAPI();
-  const [{ items: pipelines }, pipelinesLoaded] = usePipelines();
+  const [{ items: pipelines }, pipelinesLoaded] = useAllPipelines();
   const pipelineIds = useDeepCompareMemoize(pipelines.map((pipeline) => pipeline.pipeline_id));
 
   return usePipelineQuery<PipelineVersionKFv2>(

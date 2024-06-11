@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Text, TextContent } from '@patternfly/react-core';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -37,7 +38,8 @@ const ConfigurationSection: React.FC = () => {
     <CollapsibleSection
       title="Project configuration"
       data-testid="section-config"
-      onOpenChange={setOpen}
+      open={open}
+      setOpen={setOpen}
       showChildrenWhenClosed
     >
       <DividedGallery
@@ -52,7 +54,14 @@ const ConfigurationSection: React.FC = () => {
           sectionType={SectionType.setup}
           imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
           title="Cluster storage"
-          description="To save your project data, you can add cluster storage and optionally connect the storage to a workbench."
+          description={
+            <TextContent>
+              <Text component="small">
+                To save your project data, you can add cluster storage and optionally connect the
+                storage to a workbench.
+              </Text>
+            </TextContent>
+          }
           isOpen={open}
           onClick={() =>
             navigate(
@@ -64,7 +73,15 @@ const ConfigurationSection: React.FC = () => {
           sectionType={SectionType.setup}
           imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
           title="Data connections"
-          description="You can add data connections to workbenches to connect your project to data inputs and object storage buckets. You can also use data connections to specify the location of your models during deployment."
+          description={
+            <TextContent>
+              <Text component="small">
+                You can add data connections to workbenches to connect your project to data inputs
+                and object storage buckets. You can also use data connections to specify the
+                location of your models during deployment.
+              </Text>
+            </TextContent>
+          }
           isOpen={open}
           onClick={() =>
             navigate(
@@ -77,7 +94,11 @@ const ConfigurationSection: React.FC = () => {
             sectionType={SectionType.setup}
             title="Permissions"
             imgSrc={typedObjectImage(ProjectObjectType.group)}
-            description="Add users and groups to share access to your project."
+            description={
+              <TextContent>
+                <Text component="small">Add users and groups to share access to your project.</Text>
+              </TextContent>
+            }
             isOpen={open}
             onClick={() =>
               navigate(

@@ -15,7 +15,7 @@ import {
   DropdownItem,
 } from '@patternfly/react-core/deprecated';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE } from '~/utilities/const';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
@@ -57,7 +57,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     </DropdownItem>,
   ];
 
-  if (DEV_MODE && !isImpersonating) {
+  if (!EXT_CLUSTER && DEV_MODE && !isImpersonating) {
     userMenuItems.unshift(
       <DropdownItem
         key="impersonate"

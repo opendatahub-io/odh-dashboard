@@ -1,8 +1,4 @@
-import {
-  k8sGetResource,
-  k8sPatchResource,
-  k8sUpdateResource,
-} from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { DashboardConfigKind } from '~/k8sTypes';
 import { DASHBOARD_CONFIG } from '~/utilities/const';
 import { ODHDashboardConfigModel } from '~/api/models';
@@ -18,14 +14,6 @@ export const getDashboardConfigTemplateOrder = (ns: string): Promise<string[]> =
 
 export const getDashboardConfigTemplateDisablement = (ns: string): Promise<string[]> =>
   getDashboardConfig(ns).then((dashboardConfig) => dashboardConfig.spec.templateDisablement || []);
-
-export const updateDashboardConfig = (
-  resource: DashboardConfigKind,
-): Promise<DashboardConfigKind> =>
-  k8sUpdateResource<DashboardConfigKind>({
-    model: ODHDashboardConfigModel,
-    resource,
-  });
 
 export const patchDashboardConfigTemplateOrder = (
   templateOrder: string[],

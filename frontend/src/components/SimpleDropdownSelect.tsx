@@ -58,8 +58,8 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
       shouldFocusToggleOnSelect
     >
       <DropdownList>
-        {[...options]
-          .sort((a, b) => (a.isPlaceholder === b.isPlaceholder ? 0 : a.isPlaceholder ? -1 : 1))
+        {options
+          .toSorted((a, b) => (a.isPlaceholder === b.isPlaceholder ? 0 : a.isPlaceholder ? -1 : 1))
           .map(({ key, dropdownLabel, label, description, isPlaceholder }) => (
             <DropdownItem
               data-testid={`dropdown-item ${key}`}

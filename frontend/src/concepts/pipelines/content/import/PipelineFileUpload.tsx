@@ -1,42 +1,90 @@
 import * as React from 'react';
-import { FileUpload } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  FileUpload,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 
 type PipelineFileUploadProps = {
   fileContents: string;
   onUpload: (fileContents: string) => void;
 };
 
+const MAX_SIZE_AS_MB = 1;
+const MAX_SIZE = MAX_SIZE_AS_MB * 1024 * 1024; // as bytes
+
 const PipelineFileUpload: React.FC<PipelineFileUploadProps> = ({ fileContents, onUpload }) => {
   const [filename, setFilename] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
+  const [dropRejectedError, setDropRejectedError] = React.useState('');
+
+  const resetSelection = () => {
+    setFilename('');
+    setDropRejectedError('');
+    setIsLoading(false);
+    onUpload('');
+  };
 
   return (
-    <FileUpload
-      id="text-file-simple"
-      type="text"
-      isReadOnly
-      value={fileContents}
-      filename={filename}
-      filenamePlaceholder="Drag and drop a file or upload one"
-      onDataChange={(e, content) => onUpload(content)}
-      onFileInputChange={(e, file) => setFilename(file.name)}
-      onReadStarted={() => setIsLoading(true)}
-      onReadFinished={() => {
-        setIsLoading(false);
-      }}
-      onClearClick={() => {
-        setFilename('');
-        onUpload('');
-      }}
-      dropzoneProps={{
-        accept: { 'application/x-yaml': ['.yml', '.yaml'] },
-      }}
-      isLoading={isLoading}
-      isRequired
-      allowEditingUploadedText={false}
-      browseButtonText="Upload"
-      data-testid="pipeline-file-upload"
-    />
+    <Stack hasGutter>
+      <StackItem>
+        <FileUpload
+          id="text-file-simple"
+          type="text"
+          isReadOnly
+          value={fileContents}
+          filename={filename}
+          filenamePlaceholder="Drag and drop a file or upload one"
+          onDataChange={(e, content) => onUpload(content)}
+          onFileInputChange={(e, file) => setFilename(file.name)}
+          onReadStarted={() => {
+            setDropRejectedError('');
+            setIsLoading(true);
+          }}
+          onReadFinished={() => {
+            setIsLoading(false);
+          }}
+          onClearClick={resetSelection}
+          dropzoneProps={{
+            accept: { 'application/x-yaml': ['.yml', '.yaml'] },
+            // TODO: consider updating this value if we change the fastify server configs
+            maxSize: MAX_SIZE,
+            onDropRejected: (rejections) => {
+              resetSelection();
+              const error = rejections[0]?.errors?.[0] ?? {};
+
+              let reason = error.message || 'Unknown reason';
+              // TODO: Find out from PF how to get access to ErrorCode.FileTooLarge
+              if (error.code === 'file-too-large') {
+                reason = `File size exceeds ${MAX_SIZE_AS_MB} MB`;
+              }
+
+              setDropRejectedError(reason);
+            },
+          }}
+          isLoading={isLoading}
+          isRequired
+          allowEditingUploadedText={false}
+          browseButtonText="Upload"
+          data-testid="pipeline-file-upload"
+        />
+      </StackItem>
+      {dropRejectedError && (
+        <StackItem>
+          <Alert
+            data-testId="pipeline-file-upload-error"
+            isInline
+            title="Issue with file upload"
+            variant="danger"
+            actionClose={<AlertActionCloseButton onClose={() => setDropRejectedError('')} />}
+          >
+            {dropRejectedError}
+          </Alert>
+        </StackItem>
+      )}
+    </Stack>
   );
 };
 

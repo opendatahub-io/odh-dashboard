@@ -29,11 +29,10 @@ type IconTaskNodeProps = {
 
 const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected, onSelect }) => {
   const data = element.getData();
-  const status = data?.status;
   const bounds = element.getBounds();
   const iconSize = bounds.height - ICON_PADDING * 2;
 
-  const runStatusModifier = status && getRunStatusModifier(status);
+  const runStatusModifier = data?.runStatus && getRunStatusModifier(data.runStatus);
 
   useAnchor(
     React.useCallback(
@@ -97,12 +96,20 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
     const detailsLevel = element.getGraph().getDetailsLevel();
     const data = element.getData();
     const scale = element.getGraph().getScale();
-    const iconSize = 24;
-    const whenDecorator = data?.whenStatus ? (
-      <WhenDecorator element={element} status={data.whenStatus} leftOffset={DEFAULT_WHEN_OFFSET} />
+    const iconSize = 16;
+    const iconPadding = 4;
+
+    const whenDecorator = data?.pipelineTask.whenStatus ? (
+      <WhenDecorator
+        element={element}
+        status={data.pipelineTask.whenStatus}
+        leftOffset={DEFAULT_WHEN_OFFSET}
+      />
     ) : null;
     const upScale = 1 / scale;
 
+    const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
+    const translateY = iconPadding * upScale;
     return (
       <g
         className={css('pf-topology__pipelines__task-node')}
@@ -118,28 +125,23 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
               hover
               selected={selected}
               onSelect={onSelect}
-              status={data?.status}
+              hiddenDetailsShownStatuses={[]}
+              status={data?.runStatus}
               scaleNode={isHover}
               {...rest}
             >
               {whenDecorator}
             </TaskNode>
-            {!isHover && detailsLevel !== ScaleDetailsLevel.high ? (
-              <g
-                transform={`translate(0, ${
-                  (bounds.height - iconSize * upScale) / 2
-                }) scale(${upScale})`}
-              >
-                <g transform="translate(4, 4)">
-                  <g
-                    color={
-                      selected
-                        ? 'var(--pf-v5-global--icon--Color--dark--light)'
-                        : 'var(--pf-v5-global--icon--Color--light)'
-                    }
-                  >
-                    {data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />}
-                  </g>
+            {!isHover ? (
+              <g transform={`translate(${translateX}, ${translateY}) scale(${upScale})`}>
+                <g
+                  color={
+                    selected
+                      ? 'var(--pf-v5-global--icon--Color--dark--light)'
+                      : 'var(--pf-v5-global--icon--Color--light)'
+                  }
+                >
+                  {data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />}
                 </g>
               </g>
             ) : null}

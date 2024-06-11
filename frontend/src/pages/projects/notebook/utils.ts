@@ -72,7 +72,7 @@ const filterEvents = (
 ): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeriod: boolean] => {
   const thisInstanceEvents = allEvents
     .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
-    .sort((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
+    .toSorted((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
   if (thisInstanceEvents.length === 0) {
     // Filtered out all of the events, exit early
     return [[], [], false];

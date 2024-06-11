@@ -37,6 +37,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.K_SERVE],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
+  [SupportedArea.K_SERVE_METRICS]: {
+    featureFlags: ['disableKServeMetrics'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
   [SupportedArea.MODEL_MESH]: {
     featureFlags: ['disableModelMesh'],
     requiredComponents: [StackComponent.MODEL_MESH],
@@ -59,7 +63,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PERFORMANCE_METRICS]: {
     featureFlags: ['disablePerformanceMetrics'],
-    requiredComponents: [StackComponent.MODEL_MESH], // TODO: remove when KServe support is added
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.TRUSTY_AI]: {
@@ -70,6 +73,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelineExperiments'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
+  [SupportedArea.S3_ENDPOINT]: {
+    featureFlags: ['disableS3Endpoint'],
+    reliantAreas: [SupportedArea.DS_PIPELINES],
+  },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],
     requiredComponents: [StackComponent.KUEUE],
@@ -77,5 +84,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
+    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
 };

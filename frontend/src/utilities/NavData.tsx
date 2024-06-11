@@ -3,6 +3,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useUser } from '~/redux/selectors';
 import {
   artifactsRootPath,
+  executionsRootPath,
   experimentsRootPath,
   routePipelineRuns,
   routePipelines,
@@ -87,6 +88,11 @@ const useDSPipelinesNav = (): NavDataItem[] => {
                 href: experimentsRootPath,
               },
               {
+                id: 'executions',
+                label: 'Executions',
+                href: executionsRootPath,
+              },
+              {
                 id: 'artifacts',
                 label: 'Artifacts',
                 href: artifactsRootPath,
@@ -144,6 +150,15 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useModelRegisterySettingsNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
+    {
+      id: 'settings-model-registry',
+      label: 'Model registry settings',
+      href: '/modelRegistrySettings',
+    },
+  ]);
+
 const useUserManagementNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
     {
@@ -168,6 +183,7 @@ const useSettingsNav = (): NavDataGroup[] => {
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
+    ...useModelRegisterySettingsNav(),
     ...useUserManagementNav(),
   ];
 

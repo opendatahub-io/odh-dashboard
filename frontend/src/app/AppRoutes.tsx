@@ -6,6 +6,7 @@ import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
 import {
   globArtifactsAll,
+  globExecutionsAll,
   globExperimentsAll,
   globPipelineRunsAll,
   globPipelinesAll,
@@ -38,6 +39,9 @@ const GlobalPipelineRunsRoutes = React.lazy(
 const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
+const GlobalPipelineExecutionsRoutes = React.lazy(
+  () => import('../pages/pipelines/GlobalPipelineExecutionsRoutes'),
+);
 
 const GlobalArtifactsRoutes = React.lazy(() => import('../pages/pipelines/GlobalArtifactsRoutes'));
 
@@ -48,6 +52,9 @@ const GlobalDistributedWorkloadsRoutes = React.lazy(
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const CustomServingRuntimeRoutes = React.lazy(
   () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
+);
+const ModelRegistrySettingsPage = React.lazy(
+  () => import('../pages/modelRegistrySettings/ModelRegistrySettings'),
 );
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
@@ -111,6 +118,7 @@ const AppRoutes: React.FC = () => {
         <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
         <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
+        <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 
@@ -122,6 +130,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
+            <Route path="/modelRegistrySettings" element={<ModelRegistrySettingsPage />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}

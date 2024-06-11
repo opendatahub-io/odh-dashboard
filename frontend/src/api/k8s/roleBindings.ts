@@ -16,37 +16,6 @@ import {
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
-export const generateRoleBindingData = (
-  rbName: string,
-  dashboardNamespace: string,
-  projectName: string,
-): RoleBindingKind => {
-  const roleBindingObject: RoleBindingKind = {
-    apiVersion: 'rbac.authorization.k8s.io/v1',
-    kind: 'RoleBinding',
-    metadata: {
-      name: rbName,
-      namespace: dashboardNamespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-      },
-    },
-    roleRef: {
-      apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'ClusterRole',
-      name: 'system:image-puller',
-    },
-    subjects: [
-      {
-        apiGroup: 'rbac.authorization.k8s.io',
-        kind: 'Group',
-        name: `system:serviceaccounts:${projectName}`,
-      },
-    ],
-  };
-  return roleBindingObject;
-};
-
 export const generateRoleBindingServingRuntime = (
   name: string,
   serviceAccountName: string,
@@ -150,23 +119,6 @@ export const deleteRoleBinding = (
       opts,
     ),
   );
-
-export const patchRoleBindingName = (
-  rbName: string,
-  namespace: string,
-  rbRoleRefType: ProjectSharingRoleType,
-): Promise<RoleBindingKind> =>
-  k8sPatchResource<RoleBindingKind>({
-    model: RoleBindingModel,
-    queryOptions: { name: rbName, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/roleRef/name',
-        value: rbRoleRefType,
-      },
-    ],
-  });
 
 export const patchRoleBindingOwnerRef = (
   rbName: string,

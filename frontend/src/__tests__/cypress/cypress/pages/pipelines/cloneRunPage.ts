@@ -15,21 +15,19 @@ class CloneRunPage extends CreateRunPage {
   }
 
   mockGetRun(namespace: string, run: PipelineRunKFv2) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${run.run_id}`,
+        path: { namespace, serviceName: 'dspa', runId: run.run_id },
       },
       run,
     );
   }
 
   mockGetRecurringRun(namespace: string, recurringRun: PipelineRunJobKFv2) {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${recurringRun.recurring_run_id}`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      { path: { namespace, serviceName: 'dspa', recurringRunId: recurringRun.recurring_run_id } },
       recurringRun,
     );
   }
@@ -38,31 +36,32 @@ class CloneRunPage extends CreateRunPage {
     namespace: string,
     pipelineVersion: PipelineVersionKFv2,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipelineVersion.pipeline_id}/versions/${pipelineVersion.pipeline_version_id}`,
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          pipelineId: pipelineVersion.pipeline_id,
+          pipelineVersionId: pipelineVersion.pipeline_version_id,
+        },
       },
       pipelineVersion,
     );
   }
 
   mockGetPipeline(namespace: string, pipeline: PipelineKFv2): Cypress.Chainable<null> {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipeline.pipeline_id}`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+      { path: { namespace, serviceName: 'dspa', pipelineId: pipeline.pipeline_id } },
       pipeline,
     );
   }
 
   mockGetExperiment(namespace: string, experiment: ExperimentKFv2): Cypress.Chainable<null> {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments/${experiment.experiment_id}`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      { path: { namespace, serviceName: 'dspa', experimentId: experiment.experiment_id } },
       experiment,
     );
   }

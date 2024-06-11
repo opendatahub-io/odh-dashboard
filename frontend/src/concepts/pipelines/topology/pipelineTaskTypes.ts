@@ -1,10 +1,11 @@
+import { WhenStatus } from '@patternfly/react-topology';
 import {
   ArtifactStateKF,
   ExecutionStateKF,
   InputDefinitionParameterType,
   RuntimeStateKF,
 } from '~/concepts/pipelines/kfTypes';
-import { createNode } from '~/concepts/topology';
+import { Artifact } from '~/third_party/mlmd';
 import { VolumeMount } from '~/types';
 
 export type PipelineTaskParam = {
@@ -16,6 +17,7 @@ export type PipelineTaskParam = {
 export type PipelineTaskArtifact = {
   label: string;
   type: string;
+  value?: Artifact;
 };
 
 export type PipelineTaskStep = {
@@ -46,20 +48,10 @@ export type PipelineTask = {
   steps?: PipelineTaskStep[];
   inputs?: PipelineTaskInputOutput;
   outputs?: PipelineTaskInputOutput;
+  metadata?: Artifact | undefined;
   /** Run Status */
   status?: PipelineTaskRunStatus;
   /** Volume Mounts */
   volumeMounts?: VolumeMount[];
-};
-
-export type KubeFlowTaskTopology = {
-  /**
-   * Details of a selected node.
-   * [Task.name]: Task
-   */
-  taskMap: Record<string, PipelineTask | undefined>;
-  /**
-   * Nodes to render in topology.
-   */
-  nodes: ReturnType<typeof createNode>[];
+  whenStatus?: WhenStatus;
 };
