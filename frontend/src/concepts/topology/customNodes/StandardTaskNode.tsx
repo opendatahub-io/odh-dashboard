@@ -12,7 +12,9 @@ import {
   WithContextMenuProps,
   WithSelectionProps,
 } from '@patternfly/react-topology';
+import { AngleDoubleRightIcon } from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
+import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 
 type StandardTaskNodeProps = {
   element: GraphElement<PipelineNodeModelExpanded>;
@@ -29,6 +31,14 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
   const [hover, hoverRef] = useHover();
   const detailsLevel = element.getGraph().getDetailsLevel();
 
+  // Set the cached node status to Succeeded
+  const getNodeStatus = () => {
+    if (data?.pipelineTask.status?.state === ExecutionStateKF.CACHED) {
+      return RunStatus.Succeeded;
+    }
+    return data?.runStatus;
+  };
+
   const whenDecorator = data?.pipelineTask.whenStatus ? (
     <WhenDecorator
       element={element}
@@ -44,7 +54,12 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
         onSelect={onSelect}
         selected={selected}
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
-        status={data?.runStatus}
+        status={getNodeStatus()}
+        customStatusIcon={
+          data?.pipelineTask.status?.state === ExecutionStateKF.CACHED ? (
+            <AngleDoubleRightIcon />
+          ) : undefined
+        }
         hideDetailsAtMedium
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
