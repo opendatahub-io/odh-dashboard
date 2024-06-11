@@ -1,10 +1,24 @@
 import { Client as MinioClient } from 'minio';
-import { DSPipelineKind, KubeFastifyInstance } from '../../../types';
+import {
+  DSPipelineKind,
+  K8sResourceCommon,
+  K8sResourceListResult,
+  KubeFastifyInstance,
+  OauthFastifyRequest,
+  SecretKind,
+} from '../../../types';
 import { Transform, TransformOptions } from 'stream';
+import { passThroughResource } from '../k8s/pass-through';
 
 export interface PreviewStreamOptions extends TransformOptions {
   peek: number;
 }
+const DataSciencePipelineApplicationModel = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
+  kind: 'DataSciencePipelinesApplication',
+  plural: 'datasciencepipelinesapplications',
+};
 
 /**
  * Transform stream that only stream the first X number of bytes.
@@ -34,40 +48,37 @@ export class PreviewStream extends Transform {
 
 export async function getDspa(
   fastify: KubeFastifyInstance,
-  token: string,
+  request: OauthFastifyRequest,
   namespace: string,
 ): Promise<DSPipelineKind> {
-  const dspaResponse = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'datasciencepipelinesapplications.opendatahub.io',
-      'v1alpha1',
-      namespace,
-      'datasciencepipelinesapplications',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      },
-    )
-    .catch((e) => {
-      throw `A ${e.statusCode} error occurred when trying to fetch dspa aws storage credentials: ${
-        e.response?.body?.message || e?.response?.statusMessage
-      }`;
-    });
+  const kc = fastify.kube.config;
+  const cluster = kc.getCurrentCluster();
 
-  const dspas = (
-    dspaResponse?.body as {
-      items: DSPipelineKind[];
-    }
-  )?.items;
+  // retreive the gating resource by name and namespace
+  const dspaResponse = await passThroughResource<K8sResourceListResult<DSPipelineKind>>(
+    fastify,
+    request,
+    {
+      url: `${cluster.server}/apis/${DataSciencePipelineApplicationModel.apiGroup}/${DataSciencePipelineApplicationModel.apiVersion}/namespaces/${namespace}/${DataSciencePipelineApplicationModel.plural}`,
+      method: 'GET',
+    },
+  ).catch((e) => {
+    throw `A ${e.statusCode} error occurred when trying to fetch dspa aws storage credentials: ${
+      e.response?.body?.message || e?.response?.statusMessage
+    }`;
+  });
+
+  function isK8sResourceList<T extends K8sResourceCommon>(
+    data: any,
+  ): data is K8sResourceListResult<T> {
+    return data && data.items !== undefined;
+  }
+
+  if (!isK8sResourceList(dspaResponse)) {
+    throw `A ${dspaResponse.code} error occurred when trying to fetch dspa aws storage credentials: ${dspaResponse.message}`;
+  }
+
+  const dspas = dspaResponse.items;
 
   if (!dspas || !dspas.length) {
     throw 'No Data Science Pipeline Application found';
@@ -78,29 +89,30 @@ export async function getDspa(
 
 async function getDspaSecretKeys(
   fastify: KubeFastifyInstance,
-  token: string,
+  request: OauthFastifyRequest,
   namespace: string,
   dspa: DSPipelineKind,
 ): Promise<{ accessKey: string; secretKey: string }> {
   try {
-    const secret = await fastify.kube.coreV1Api.readNamespacedSecret(
-      dspa.spec.objectStorage.externalStorage.s3CredentialsSecret.secretName,
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      },
-    );
+    const kc = fastify.kube.config;
+    const cluster = kc.getCurrentCluster();
+
+    const secretResp = await passThroughResource<SecretKind>(fastify, request, {
+      url: `${cluster.server}/api/v1/namespaces/${namespace}/secrets/${dspa.spec.objectStorage.externalStorage.s3CredentialsSecret.secretName}`,
+      method: 'GET',
+    }).catch((e) => {
+      throw `A ${e.statusCode} error occurred when trying to fetch secret for aws credentials: ${
+        e.response?.body?.message || e?.response?.statusMessage
+      }`;
+    });
+
+    const secret = secretResp as SecretKind;
 
     const accessKey = atob(
-      secret.body.data[dspa.spec.objectStorage.externalStorage.s3CredentialsSecret.accessKey],
+      secret.data[dspa.spec.objectStorage.externalStorage.s3CredentialsSecret.accessKey],
     );
     const secretKey = atob(
-      secret.body.data[dspa.spec.objectStorage.externalStorage.s3CredentialsSecret.secretKey],
+      secret.data[dspa.spec.objectStorage.externalStorage.s3CredentialsSecret.secretKey],
     );
 
     if (!accessKey || !secretKey) {
@@ -120,11 +132,11 @@ async function getDspaSecretKeys(
  */
 export async function setupMinioClient(
   fastify: KubeFastifyInstance,
-  token: string,
+  request: OauthFastifyRequest,
   namespace: string,
 ): Promise<{ client: MinioClient; bucket: string }> {
   try {
-    const dspa = await getDspa(fastify, token, namespace);
+    const dspa = await getDspa(fastify, request, namespace);
 
     // check if object storage connection is available
     if (
@@ -139,7 +151,7 @@ export async function setupMinioClient(
     const externalStorage = dspa.spec.objectStorage.externalStorage;
     if (externalStorage) {
       const { region, host: endPoint, bucket } = externalStorage;
-      const { accessKey, secretKey } = await getDspaSecretKeys(fastify, token, namespace, dspa);
+      const { accessKey, secretKey } = await getDspaSecretKeys(fastify, request, namespace, dspa);
       return {
         client: new MinioClient({ accessKey, secretKey, endPoint, region }),
         bucket,
