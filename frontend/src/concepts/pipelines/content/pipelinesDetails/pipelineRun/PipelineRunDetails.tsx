@@ -14,7 +14,7 @@ import {
   Truncate,
   EmptyStateHeader,
 } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import MarkdownView from '~/components/MarkdownView';
@@ -35,7 +35,7 @@ import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import { routePipelineRunsNamespace } from '~/routes';
+import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~/routes';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
@@ -158,6 +158,21 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
+                      <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                        {version ? (
+                          <Link
+                            to={routePipelineVersionRunsNamespace(
+                              namespace,
+                              version.pipeline_id,
+                              version.pipeline_version_id,
+                            )}
+                          >
+                            {version.display_name}
+                          </Link>
+                        ) : (
+                          'Loading...'
+                        )}
+                      </BreadcrumbItem>
                       <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                         <Truncate content={run?.display_name ?? 'Loading...'} />
                       </BreadcrumbItem>

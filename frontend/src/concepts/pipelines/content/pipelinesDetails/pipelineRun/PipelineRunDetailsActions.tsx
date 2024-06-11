@@ -6,7 +6,7 @@ import {
   DropdownSeparator,
   DropdownToggle,
 } from '@patternfly/react-core/deprecated';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
@@ -33,6 +33,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
   const isRunActive = run?.storage_state === StorageStateKF.AVAILABLE;
   const [experiment] = useExperimentById(run?.experiment_id);
   const isExperimentActive = experiment?.storage_state === StorageStateKF.AVAILABLE;
+  const { experimentId } = useParams();
 
   const RestoreDropdownItem = (
     <DropdownItem
@@ -83,7 +84,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                     cloneRunRoute(
                       namespace,
                       run.run_id,
-                      isExperimentsAvailable ? run.experiment_id : undefined,
+                      isExperimentsAvailable ? experimentId : undefined,
                     ),
                   )
                 }
@@ -101,7 +102,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
               >
                 Stop
               </DropdownItem>,
-              isExperimentsAvailable && run.experiment_id && isRunActive ? (
+              isExperimentsAvailable && experimentId && isRunActive ? (
                 <DropdownItem
                   key="compare-runs"
                   onClick={() =>

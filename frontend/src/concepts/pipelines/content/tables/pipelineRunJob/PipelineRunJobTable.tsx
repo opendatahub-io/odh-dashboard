@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
+import { useParams } from 'react-router-dom';
 import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
 import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
@@ -41,6 +42,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
   ...tableProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
+  const { pipelineVersionId } = useParams();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const {
     selections,
@@ -52,6 +54,15 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
   const [deleteResources, setDeleteResources] = React.useState<PipelineRunJobKFv2[]>([]);
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
+
+  const getColumns = () => {
+    let columns = pipelineRunJobColumns;
+    if (pipelineVersionId) {
+      columns = columns.filter((column) => column.field !== 'pipeline_version');
+    }
+
+    return columns;
+  };
 
   return (
     <>
@@ -68,7 +79,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
         data={jobs}
-        columns={pipelineRunJobColumns}
+        columns={getColumns()}
         enablePagination
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />

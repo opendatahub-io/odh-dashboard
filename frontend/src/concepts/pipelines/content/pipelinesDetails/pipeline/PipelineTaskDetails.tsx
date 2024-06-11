@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import TaskDetailsCodeBlock from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
 import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
@@ -10,16 +10,9 @@ type TaskDetailsProps = {
 };
 
 const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
-  let groupAlert: React.ReactNode | null = null;
-  if (task.type === 'groupTask') {
-    // TODO: remove when we support group details
-    groupAlert = <Alert isInline variant="info" title="Content may be missing" />;
-  }
-
   if (!task.inputs && !task.outputs && !task.steps) {
     return (
       <Stack hasGutter>
-        {groupAlert && <StackItem>{groupAlert}</StackItem>}
         <StackItem>No content</StackItem>
       </Stack>
     );
@@ -27,7 +20,6 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
 
   return (
     <Stack hasGutter>
-      {groupAlert && <StackItem>{groupAlert}</StackItem>}
       {task.inputs && (
         <StackItem>
           <TaskDetailsInputOutput

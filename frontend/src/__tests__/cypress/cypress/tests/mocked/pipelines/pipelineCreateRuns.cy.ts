@@ -57,7 +57,11 @@ const initialMockRecurringRuns = [
 describe('Pipeline create runs', () => {
   beforeEach(() => {
     initIntercepts();
-    pipelineRunsGlobal.visit(projectName);
+    pipelineRunsGlobal.visit(
+      projectName,
+      mockPipelineVersion.pipeline_id,
+      mockPipelineVersion.pipeline_version_id,
+    );
   });
 
   it('renders the page with scheduled and active runs table data', () => {
@@ -81,7 +85,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
       createRunPage.find();
       createRunPage.findRunTypeSwitchLink().click();
       cy.url().should('include', '?runType=scheduled');
@@ -112,7 +116,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
       createRunPage.find();
 
       // Fill out the form without a schedule and submit
@@ -151,7 +155,7 @@ describe('Pipeline create runs', () => {
       });
 
       // Should be redirected to the run details page
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${createRunParams.run_id}`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/view/${createRunParams.run_id}`);
     });
 
     it('duplicates an active run', () => {
@@ -182,7 +186,7 @@ describe('Pipeline create runs', () => {
       // Navigate to clone run page for a given active run
       pipelineRunsGlobal.findActiveRunsTab().click();
       activeRunsTable.getRowByName(mockRun.display_name).findKebabAction('Duplicate').click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/clone/${mockRun.run_id}`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
       cloneRunPage.findExperimentSelect().should('have.text', mockExperiment.display_name);
@@ -217,7 +221,7 @@ describe('Pipeline create runs', () => {
       });
 
       // Should redirect to the details of the newly cloned active run
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/view/${mockDuplicateRun.run_id}`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/view/${mockDuplicateRun.run_id}`);
     });
 
     it('create run with default and optional parameters', () => {
@@ -487,7 +491,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findScheduleRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
       createSchedulePage.find();
       createSchedulePage.findRunTypeSwitchLink().click();
       cy.url().should('include', '?runType=active');
@@ -518,7 +522,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findScheduleRunButton().click();
-      verifyRelativeURL(`/pipelineRuns/${projectName}/pipelineRun/create?runType=scheduled`);
+      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
       createSchedulePage.find();
 
       // Fill out the form with a schedule and submit
@@ -562,7 +566,7 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/pipelineRuns/${projectName}/pipelineRunJob/view/${createRecurringRunParams.recurring_run_id}`,
+        `/pipelines/${projectName}/pipelineRunJob/view/${createRecurringRunParams.recurring_run_id}`,
       );
     });
 
@@ -594,7 +598,7 @@ describe('Pipeline create runs', () => {
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/pipelineRuns/${projectName}/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
+        `/pipelines/${projectName}/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
       );
 
       // Verify pre-populated values & submit
@@ -640,7 +644,7 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/pipelineRuns/${projectName}/pipelineRunJob/view/${mockDuplicateRecurringRun.recurring_run_id}`,
+        `/pipelines/${projectName}/pipelineRunJob/view/${mockDuplicateRecurringRun.recurring_run_id}`,
       );
     });
 
@@ -730,5 +734,20 @@ const initIntercepts = () => {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
     { runs: initialMockRuns, total_size: initialMockRuns.length },
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: mockPipelineVersion.pipeline_id,
+        pipelineVersionId: mockPipelineVersion.pipeline_version_id,
+      },
+    },
+    buildMockPipelineVersionV2({
+      pipeline_id: mockPipelineVersion.pipeline_id,
+      pipeline_version_id: mockPipelineVersion.pipeline_version_id,
+    }),
   );
 };

@@ -41,7 +41,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   run,
 }) => {
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
@@ -139,14 +139,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <PipelineRunTableRowTitle run={run} />
       </Td>
       {hasExperiments && <PipelineRunTableRowExperiment experimentId={run.experiment_id} />}
-      <Td modifier="truncate" dataLabel="Pipeline">
-        <PipelineVersionLink
-          displayName={version?.display_name}
-          version={version}
-          error={versionError}
-          loaded={isVersionLoaded}
-        />
-      </Td>
+      {!pipelineVersionId && (
+        <Td modifier="truncate" dataLabel="Pipeline">
+          <PipelineVersionLink
+            displayName={version?.display_name}
+            version={version}
+            error={versionError}
+            loaded={isVersionLoaded}
+          />
+        </Td>
+      )}
       <Td dataLabel="Created">
         <RunCreated run={run} />
       </Td>

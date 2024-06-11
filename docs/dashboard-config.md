@@ -157,7 +157,7 @@ spec:
     disableKServeMetrics: true
     disableBiasMetrics: false
     disablePerformanceMetrics: false
-    disablePipelineExperiments: true
+    disablePipelineExperiments: false
     disableS3Endpoint: true
   notebookController:
     enabled: true

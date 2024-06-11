@@ -18,9 +18,10 @@ import { usePipelineScheduledRunsTable } from '~/concepts/pipelines/content/tabl
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
 
 const ScheduledRuns: React.FC = () => {
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId } = useParams();
+
   const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineScheduledRunsTable({ experimentId });
+    usePipelineScheduledRunsTable({ experimentId, pipelineVersionId });
 
   if (error) {
     return (

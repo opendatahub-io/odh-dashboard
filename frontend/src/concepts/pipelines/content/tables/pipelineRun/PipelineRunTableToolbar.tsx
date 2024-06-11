@@ -27,7 +27,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId } = useParams();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState, ...statusRuntimeStates } =
     runtimeStateLabels;
@@ -39,11 +39,13 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
       ...(!(isExperimentsAvailable && experimentId) && {
         [FilterOptions.EXPERIMENT]: 'Experiment',
       }),
-      [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+      ...(!pipelineVersionId && {
+        [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+      }),
       [FilterOptions.CREATED_AT]: 'Started',
       [FilterOptions.STATUS]: 'Status',
     }),
-    [experimentId, isExperimentsAvailable],
+    [experimentId, isExperimentsAvailable, pipelineVersionId],
   );
 
   return (

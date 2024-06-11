@@ -23,6 +23,7 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
+import { buildMockPipelineVersionV2 } from '~/__mocks__';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -71,6 +72,21 @@ const initIntercepts = () => {
   );
   cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+    {
+      path: {
+        namespace: 'test-project',
+        serviceName: 'dspa',
+        pipelineId: 'pipeline_id',
+        pipelineVersionId: 'version_id',
+      },
+    },
+    buildMockPipelineVersionV2({
+      pipeline_id: 'pipeline_id',
+      pipeline_version_id: 'version_id',
+    }),
+  );
 };
 
 describe('Pipeline runs', () => {
@@ -78,7 +94,7 @@ describe('Pipeline runs', () => {
     it('Test delete a single schedule', () => {
       initIntercepts();
 
-      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findSchedulesTab().click();
@@ -113,7 +129,12 @@ describe('Pipeline runs', () => {
       cy.wait('@deleteJobPipeline');
 
       cy.wait('@getRuns').then((interception) => {
-        expect(interception.request.query).to.eql({ sort_by: 'created_at desc', page_size: '10' });
+        expect(interception.request.query).to.eql({
+          sort_by: 'created_at desc',
+          page_size: '10',
+          filter:
+            '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+        });
 
         pipelineRunJobTable.findEmptyState().should('not.exist');
       });
@@ -122,7 +143,7 @@ describe('Pipeline runs', () => {
     it('Test delete multiple schedules', () => {
       initIntercepts();
 
-      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findSchedulesTab().click();
@@ -169,7 +190,12 @@ describe('Pipeline runs', () => {
       cy.wait('@deleteJobPipeline-2');
 
       cy.wait('@getRuns').then((interception) => {
-        expect(interception.request.query).to.eql({ sort_by: 'created_at desc', page_size: '10' });
+        expect(interception.request.query).to.eql({
+          sort_by: 'created_at desc',
+          page_size: '10',
+          filter:
+            '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+        });
       });
       pipelineRunJobTable.findEmptyState().should('exist');
     });
@@ -177,7 +203,7 @@ describe('Pipeline runs', () => {
     it('Test delete a single archived run', () => {
       initIntercepts();
 
-      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findArchivedRunsTab().click();
@@ -213,7 +239,7 @@ describe('Pipeline runs', () => {
           sort_by: 'created_at desc',
           page_size: '10',
           filter:
-            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
         });
       });
       archivedRunsTable.findEmptyState().should('not.exist');
@@ -222,7 +248,7 @@ describe('Pipeline runs', () => {
     it('Test delete multiple archived runs', () => {
       initIntercepts();
 
-      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findArchivedRunsTab().click();
@@ -269,7 +295,7 @@ describe('Pipeline runs', () => {
           sort_by: 'created_at desc',
           page_size: '10',
           filter:
-            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
+            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
         });
       });
       archivedRunsTable.findEmptyState().should('exist');

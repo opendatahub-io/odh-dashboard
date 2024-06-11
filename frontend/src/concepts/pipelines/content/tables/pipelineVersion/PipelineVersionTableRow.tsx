@@ -7,7 +7,12 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { routePipelineRunCreateNamespacePipelinesPage, routePipelineRunsNamespace } from '~/routes';
+import {
+  routePipelineRunCreateNamespacePipelinesPage,
+  routePipelineRunsNamespace,
+  routePipelineVersionRunsNamespace,
+} from '~/routes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
@@ -35,6 +40,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const createdDate = new Date(version.created_at);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
     <Tr data-testid={`pipeline-version-row ${version.pipeline_version_id}`}>
@@ -97,7 +103,13 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               onClick: () => {
                 navigate(
                   {
-                    pathname: routePipelineRunsNamespace(namespace),
+                    pathname: isExperimentsAvailable
+                      ? routePipelineVersionRunsNamespace(
+                          namespace,
+                          pipeline.pipeline_id,
+                          version.pipeline_version_id,
+                        )
+                      : routePipelineRunsNamespace(namespace),
                     search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
                   },
                   {
@@ -111,7 +123,13 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               onClick: () => {
                 navigate(
                   {
-                    pathname: routePipelineRunsNamespace(namespace),
+                    pathname: isExperimentsAvailable
+                      ? routePipelineVersionRunsNamespace(
+                          namespace,
+                          pipeline.pipeline_id,
+                          version.pipeline_version_id,
+                        )
+                      : routePipelineRunsNamespace(namespace),
                     search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                   },
                   {
