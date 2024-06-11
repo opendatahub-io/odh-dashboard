@@ -126,7 +126,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
+              host: 's3.amazonaws.com/',
               scheme: 'https',
               bucket: 'sdsd',
               region: 'us-east-1',
@@ -167,7 +167,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.findConfigurePipelineServerButton().click();
     configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
     configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
-    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com');
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
     configurePipelineServerModal.findSubmitButton().should('be.enabled');
@@ -202,7 +202,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
+              host: 's3.amazonaws.com',
               scheme: 'https',
               bucket: 'test-bucket',
               region: 'us-east-1',
@@ -244,7 +244,7 @@ describe('Pipelines', () => {
 
     configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
     configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
-    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com');
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
@@ -302,7 +302,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
+              host: 's3.amazonaws.com',
               scheme: 'https',
               bucket: 'test-bucket',
               region: 'us-east-1',

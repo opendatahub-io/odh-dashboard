@@ -108,7 +108,7 @@ export const createDSPipelineResourceSpec = (
     dspVersion: 'v2',
     objectStorage: {
       externalStorage: {
-        host: convertAWSHostForRegion(externalStorageHost, externalStorageRegion),
+        host: externalStorageHost,
         scheme: externalStorageScheme || 'https',
         bucket: awsRecord.AWS_S3_BUCKET || '',
         region: externalStorageRegion,
@@ -156,9 +156,4 @@ export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boo
 export const getLabelName = (index: string): string => {
   const field = PIPELINE_AWS_FIELDS.find((currentField) => currentField.key === index);
   return field ? field.label : '';
-};
-
-const convertAWSHostForRegion = (endpoint: string, region: string): string => {
-  const host = endpoint.replace(/\/$/, '') || '';
-  return host === 's3.amazonaws.com' && region !== '' ? `s3.${region}.amazonaws.com` : host;
 };
