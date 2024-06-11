@@ -6,8 +6,8 @@ import {
   ScheduledType,
 } from '~/concepts/pipelines/content/createRun/types';
 import { ParametersKF, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
-
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
+import { convertToDate } from '~/utilities/time';
 
 const runTypeSafeData = (runType: RunFormData['runType']): boolean =>
   runType.type !== RunTypeOption.SCHEDULED ||
@@ -18,10 +18,8 @@ export const isStartBeforeEnd = (start?: RunDateTime, end?: RunDateTime): boolea
   if (!start || !end) {
     return true;
   }
-
-  const startDate = new Date(`${start.date} ${start.time}`);
-  const endDate = new Date(`${end.date} ${end.time}`);
-
+  const startDate = convertToDate(start);
+  const endDate = convertToDate(end);
   return endDate.getTime() - startDate.getTime() > 0;
 };
 
@@ -29,8 +27,7 @@ const isValidDate = (value?: RunDateTime): boolean => {
   if (!value) {
     return true;
   }
-
-  const date = new Date(`${value.date} ${value.time}`);
+  const date = convertToDate(value);
   return date.toString() !== 'Invalid Date';
 };
 

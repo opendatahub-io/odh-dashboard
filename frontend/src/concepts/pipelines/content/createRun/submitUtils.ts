@@ -22,7 +22,7 @@ import {
   getInputDefinitionParams,
   isFilledRunFormData,
 } from '~/concepts/pipelines/content/createRun/utils';
-import { convertPeriodicTimeToSeconds } from '~/utilities/time';
+import { convertPeriodicTimeToSeconds, convertToDate } from '~/utilities/time';
 
 const createRun = async (
   formData: SafeRunFormData,
@@ -47,12 +47,11 @@ const createRun = async (
   return createPipelineRun({}, data);
 };
 
-const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
+export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
   if (!dateData) {
     return null;
   }
-
-  const date = new Date(`${dateData.date} ${dateData.time}`);
+  const date = convertToDate(dateData);
   return date.toISOString();
 };
 
