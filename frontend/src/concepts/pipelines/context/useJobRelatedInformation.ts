@@ -46,6 +46,10 @@ const useJobRelatedInformation = (
           .catch((e) => {
             // eslint-disable-next-line no-console
             console.error('Could not fetch job reference', e);
+            setJobStorage((jobState) => ({
+              ...jobState,
+              [jobId]: { loading: false, data: null },
+            }));
             loadedIds.current = loadedIds.current.filter((i) => i !== jobId);
             return null;
           });
