@@ -35,7 +35,6 @@ export const createArtifactNode = (
   label: string,
   pipelineTask: PipelineTask,
   runAfterTasks?: string[],
-  runStatus?: RunStatus,
   artifactType?: string,
 ): PipelineNodeModelExpanded => ({
   id,
@@ -47,7 +46,7 @@ export const createArtifactNode = (
   data: {
     pipelineTask,
     artifactType,
-    runStatus,
+    runStatus: pipelineTask.metadata ? RunStatus.Succeeded : undefined,
   },
 });
 
