@@ -1,8 +1,6 @@
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { getObjectSize, getObjectStream, setupMinioClient } from './storageUtils';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
-import { getDirectCallOptions } from '../../../utils/directCallUtils';
-import { getAccessToken } from '../../../utils/directCallUtils';
 import { OauthFastifyRequest } from '../../../types';
 
 export default async (fastify: FastifyInstance): Promise<void> => {
@@ -25,10 +23,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
         const { namespace } = request.params;
         const { key } = request.query;
 
-        const requestOptions = await getDirectCallOptions(fastify, request, request.url);
-        const token = getAccessToken(requestOptions);
-
-        const { client, bucket } = await setupMinioClient(fastify, token, namespace);
+        const { client, bucket } = await setupMinioClient(fastify, request, namespace);
 
         const size = await getObjectSize({
           client,
@@ -63,10 +58,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
         const { namespace } = request.params;
         const { key, peek } = request.query;
 
-        const requestOptions = await getDirectCallOptions(fastify, request, request.url);
-        const token = getAccessToken(requestOptions);
-
-        const { client, bucket } = await setupMinioClient(fastify, token, namespace);
+        const { client, bucket } = await setupMinioClient(fastify, request, namespace);
 
         const stream = await getObjectStream({
           client,
