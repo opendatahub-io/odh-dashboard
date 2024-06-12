@@ -12,6 +12,18 @@ export const ExperimentCreated: ExperimentUtil = ({ experiment }) => {
   return <PipelinesTableRowTime date={createdDate} />;
 };
 
+export const LastExperimentRunsStarted: ExperimentUtil = ({ experiment }) => {
+  const lastRunCreatedAt = experiment.last_run_created_at;
+
+  // Check if last_run_created_at is not set or has a default invalid date
+  if (!lastRunCreatedAt || lastRunCreatedAt === '1970-01-01T00:00:00Z') {
+    return '-';
+  }
+
+  const lastRunStarted = new Date(lastRunCreatedAt);
+  return Number.isNaN(lastRunStarted) ? '-' : <PipelinesTableRowTime date={lastRunStarted} />;
+};
+
 export const LastExperimentRuns: ExperimentUtil = ({ experiment }) => {
   const [runs] = usePipelineRunsByExperiment(experiment.experiment_id, {
     sortDirection: 'desc',

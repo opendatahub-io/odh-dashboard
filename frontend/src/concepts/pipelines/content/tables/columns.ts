@@ -77,6 +77,11 @@ export const experimentColumns: SortableData<ExperimentKFv2>[] = [
     sortable: true,
   },
   {
+    label: 'Last run started',
+    field: 'last_run_created_at',
+    sortable: true,
+  },
+  {
     label: 'Last 5 runs',
     field: 'last_5_runs',
     sortable: false,
