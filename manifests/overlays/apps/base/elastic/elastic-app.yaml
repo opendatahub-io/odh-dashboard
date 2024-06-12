@@ -40,7 +40,7 @@ spec:
   support: third party support
   quickStart: ''
   getStartedLink: https://www.elastic.co/guide/en/esre/current/index.html
-  csvName: elasticsearch-eck-operator-certified
+  csvName: elasticsearch-eck
   getStartedMarkDown: >-
     <p>Prototype and integrate with LLMs faster: Implement generative AI to build scalable, cost-effective applications across solutions using the Elastic Search AI Platform.</p>
 
