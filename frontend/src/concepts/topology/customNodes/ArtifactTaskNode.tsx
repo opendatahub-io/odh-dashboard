@@ -68,6 +68,15 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
         rx={bounds.height / 2}
       />
       <g
+        className={
+          data?.runStatus
+            ? css(
+                'pf-topology-pipelines__pill-status',
+                selected && 'pf-m-selected',
+                runStatusModifier,
+              )
+            : undefined
+        }
         transform={`translate(${(bounds.width - iconSize) / 2}, ${ICON_PADDING})`}
         color={
           selected
@@ -120,6 +129,9 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
             <TaskNode
               nameLabelClass="artifact-node-label"
               hideDetailsAtMedium
+              customStatusIcon={
+                data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />
+              }
               truncateLength={30}
               element={element}
               hover
