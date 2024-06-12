@@ -349,6 +349,7 @@ export const mockPodK8sResource = ({
     startTime: '2023-02-14T22:06:45Z',
     containerStatuses: [
       {
+        name,
         state: {
           running: isRunning,
         },

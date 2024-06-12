@@ -2,17 +2,22 @@ import React, { useEffect } from 'react';
 import {
   Button,
   Checkbox,
+  DropdownGroup,
+  Dropdown,
+  DropdownItem,
   DropdownList,
+  MenuToggle,
   Spinner,
   Stack,
   StackItem,
+  Divider,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
   Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, KebabToggle } from '@patternfly/react-core/deprecated';
 import { OutlinedPlayCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
 import { PauseIcon } from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
@@ -25,7 +30,6 @@ import {
   OutlinedWindowRestoreIcon,
 } from '@patternfly/react-icons';
 import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import useFetchLogs from '~/concepts/k8s/pods/useFetchLogs';
 import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodContainerLogState';
 import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
@@ -61,23 +65,20 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     podStatus,
     podError,
     podContainers,
-    podContainerStatuses,
     selectedContainer,
+    defaultContainerName,
     setSelectedContainer,
   } = usePodContainerLogState(podName);
   const [isPaused, setIsPaused] = React.useState(false);
   const containerName = selectedContainer?.name ?? '';
+  const [open, setOpen] = React.useState(false);
   const [logs, logsLoaded, logsError] = useFetchLogs(
     podName,
     containerName,
     !isPaused,
     LOG_TAIL_LINES,
   );
-  const sortedContainerStatuses = podContainers.map((podContainer) =>
-    podContainerStatuses.find(
-      (podContainerStatus) => podContainerStatus?.name === podContainer.name,
-    ),
-  );
+
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
   const logViewerRef = React.useRef<{ scrollToBottom: () => void }>();
@@ -148,6 +149,11 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     downloadCurrentStepLog(namespace, podName, selectedContainer.name, podStatus?.completed)
       .catch((e) => setDownloadError(e))
       .finally(() => setDownloading(false));
+  };
+
+  const onChange = (selectedContainerName: string) => {
+    setSelectedContainer(podContainers.find((c) => c.name === selectedContainerName) ?? null);
+    setOpen(false);
   };
 
   const onToggleExpand = (
@@ -236,19 +242,67 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                     >
                       {!showSearchbar && (
                         <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
-                          <SimpleDropdownSelect
-                            dataTestId="logs-step-select"
-                            isDisabled={sortedContainerStatuses.length <= 1}
-                            options={sortedContainerStatuses.map((containerStatus) => ({
-                              key: containerStatus?.name || '',
-                              label: containerStatus?.name || '',
-                            }))}
-                            value={containerName}
-                            placeholder="Select container..."
-                            onChange={(v) => {
-                              setSelectedContainer(podContainers.find((c) => c.name === v) ?? null);
-                            }}
-                          />
+                          <Dropdown
+                            isOpen={open}
+                            onSelect={() => setOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setOpen(isOpen)}
+                            toggle={(toggleRef) => (
+                              <MenuToggle
+                                data-testid="logs-step-select"
+                                ref={toggleRef}
+                                isDisabled={podContainers.length <= 1}
+                                onClick={() => setOpen(!open)}
+                                isExpanded={open}
+                              >
+                                <Truncate
+                                  content={
+                                    podContainers.find((key) => key.name === containerName)?.name ??
+                                    'Select container...'
+                                  }
+                                  className="truncate-no-min-width"
+                                />
+                              </MenuToggle>
+                            )}
+                            shouldFocusToggleOnSelect
+                          >
+                            {defaultContainerName && (
+                              <>
+                                <DropdownGroup label="Task output logs" key="Task output logs">
+                                  <DropdownList>
+                                    <DropdownItem
+                                      key={defaultContainerName}
+                                      onClick={() => onChange(defaultContainerName)}
+                                    >
+                                      {defaultContainerName}
+                                    </DropdownItem>
+                                  </DropdownList>
+                                </DropdownGroup>
+                                <Divider component="li" />
+                              </>
+                            )}
+                            <DropdownGroup
+                              label="Operation output logs"
+                              key="Operation output logs"
+                            >
+                              <DropdownList>
+                                {podContainers
+                                  .filter(
+                                    (podContainer) => podContainer.name !== defaultContainerName,
+                                  )
+                                  .map((container) => (
+                                    <DropdownItem
+                                      data-testid={`dropdown-item ${container.name}`}
+                                      key={container.name}
+                                      onClick={() => {
+                                        onChange(container.name);
+                                      }}
+                                    >
+                                      {container.name}
+                                    </DropdownItem>
+                                  ))}
+                              </DropdownList>
+                            </DropdownGroup>
+                          </Dropdown>
                         </ToolbarItem>
                       )}
                       <ToolbarItem spacer={{ default: 'spacerNone' }} style={{ maxWidth: '300px' }}>
@@ -323,25 +377,28 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                       </ToolbarItem>
                       <ToolbarItem spacer={{ default: 'spacerNone' }}>
                         <Dropdown
-                          isPlain
-                          position="right"
+                          popperProps={{ position: 'right' }}
                           isOpen={isKebabOpen}
-                          toggle={
-                            <KebabToggle
+                          onOpenChange={(isOpen: boolean) => setIsKebabOpen(isOpen)}
+                          toggle={(toggleRef) => (
+                            <MenuToggle
+                              ref={toggleRef}
+                              variant="plain"
                               data-testid="logs-kebab-toggle"
-                              onToggle={() => {
+                              onClick={() => {
                                 setIsKebabOpen(!isKebabOpen);
                               }}
+                              isExpanded={isKebabOpen}
                             >
                               <EllipsisVIcon />
-                            </KebabToggle>
-                          }
+                            </MenuToggle>
+                          )}
+                          shouldFocusToggleOnSelect
                         >
                           <DropdownList>
                             <DropdownItem
                               isDisabled={!logs}
-                              href={`${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`}
-                              component="a"
+                              to={`${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               icon={<OutlinedWindowRestoreIcon />}
@@ -354,7 +411,6 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                               onClick={onExpandClick}
                               key="action"
                               icon={!isFullScreen ? <ExpandIcon /> : <CompressIcon />}
-                              component="button"
                             >
                               {!isFullScreen ? 'Expand' : 'Collapse'}
                             </DropdownItem>
