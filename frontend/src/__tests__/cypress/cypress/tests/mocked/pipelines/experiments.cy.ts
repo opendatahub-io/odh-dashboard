@@ -35,14 +35,17 @@ const mockExperiments = [
   buildMockExperimentKF({
     display_name: 'Test experiment 1',
     experiment_id: '1',
+    last_run_created_at: '2024-02-31T15:46:33Z',
   }),
   buildMockExperimentKF({
     display_name: 'Test experiment 2',
     experiment_id: '2',
+    last_run_created_at: '1970-01-01T00:00:00Z',
   }),
   buildMockExperimentKF({
     display_name: 'Test experiment 3',
     experiment_id: '3',
+    last_run_created_at: '',
   }),
 ];
 
@@ -61,6 +64,27 @@ describe('Experiments', () => {
       experimentsTabs.getActiveExperimentsTable().findEmptyState().should('exist');
       experimentsTabs.findArchivedTab().click();
       experimentsTabs.getArchivedExperimentsTable().findEmptyState().should('exist');
+    });
+
+    it('experiments table time', () => {
+      experimentsTabs.findActiveTab().click();
+      const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
+      activeExperimentsTable
+        .getRowByName('Test experiment 1')
+        .findExperimentLastRunTime()
+        .contains('3 months ago');
+
+      // Last run time when experiment is just created
+      activeExperimentsTable
+        .getRowByName('Test experiment 2')
+        .findExperimentLastRunTime()
+        .contains('-');
+
+      // Last run time when empty
+      activeExperimentsTable
+        .getRowByName('Test experiment 3')
+        .findExperimentLastRunTime()
+        .contains('-');
     });
 
     it('filters by experiment name', () => {

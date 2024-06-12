@@ -62,6 +62,14 @@ class ExperimentsRow extends TableRow {
   findCheckbox() {
     return this.find().find(`[data-label=Checkbox]`).find('input');
   }
+
+  findExperimentCreatedTime() {
+    return this.find().find(`[data-label="Created"]`);
+  }
+
+  findExperimentLastRunTime() {
+    return this.find().find(`[data-label="Last run started"]`);
+  }
 }
 
 class ExperimentsTable {
