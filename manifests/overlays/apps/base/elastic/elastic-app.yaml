@@ -48,17 +48,15 @@ spec:
 
     - Through features like chunking, [connectors](https://www.elastic.co/guide/en/enterprise-search/current/connectors.html), and web crawlers, Elastic ensures a seamless process for ingesting diverse datasets into the search 'layer'.
 
-    - Semantic search with ELSER, the built-in machine learning model, and use the [E5 embedding model](https://www.elastic.co/search-labs/blog/articles/multilingual-vector-search-e5-embedding-model) for multilingual vector search.  These models, and others,  address the need to ground LLMs, help prompt large language models like OpenAI, and pave the way for generative AI experiences.
+    - Semantic search with ELSER - Elastic Learned Sparse EncodeR, the built-in machine learning model, and use the [E5 embedding model](https://www.elastic.co/search-labs/blog/articles/multilingual-vector-search-e5-embedding-model) for multilingual vector search.  These models, and others, address the need to ground LLMs, help prompt large language models like OpenAI, and pave the way for generative AI experiences.
 
-    - Elastic's API-first approach is enhanced by the Elastic Open Inference API, which streamlines code and manages inference for developers, providing flexibility to change models.
+    - Elastic's API-first approach is enhanced by the Elastic Open Inference API, which streamlines code and manages inference for developers, providing flexibility to change models. Whether you use the built-in ELSER model or integrate with embedding models from the ecosystem via Red Hat Openshift AI, Hugging Face, Cohere, OpenAI, or others for RAG workloads, a single, straightforward API call ensures clean code for managing hybrid inference deployment.
 
-    - Whether you use the built in ELSER model or integrate with embedding models from the ecosystem via Red Hat Openshift AI, Hugging Face, Cohere, OpenAI, or others for RAG workloads, a single, straightforward API call ensures clean code for managing hybrid inference deployment.
-
-    - With document and field-level security, Elasticsearch supports implementing permissions and entitlements that map to your organization’s role-based access control.
+    - With document and field-level security, Elasticsearch supports implementing permissions and entitlements that map to your organization's role-based access control.
 
     - Elasticsearch can be deployed where your apps are: on-prem, your cloud provider of choice, or air-gapped environments.
 
-    - Enjoy being part of a worldwide community of developers where inspiration and support are never far away. Find the Elastic community on [Slack](elasticstack.slack.com), our [discuss](https://discuss.elastic.co/) forums, or social media.
+    - Enjoy being part of a worldwide community of developers where inspiration and support are never far away. Find the Elastic community on [Slack](https://elasticstack.slack.com), our [discuss](https://discuss.elastic.co/) forums, or social media.
 
     ## Quick links
 
