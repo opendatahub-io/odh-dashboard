@@ -7,7 +7,7 @@ import {
   QuestionCircleIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { Icon } from '@patternfly/react-core';
+import { Icon, LabelProps } from '@patternfly/react-core';
 import {
   PipelineCoreResourceKFv2,
   PipelineRunJobKFv2,
@@ -20,6 +20,7 @@ import { relativeTime } from '~/utilities/time';
 export type RunStatusDetails = {
   icon: React.ReactNode;
   label: PipelineRunKFv2['state'] | string;
+  color?: LabelProps['color'];
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
   createdAt?: string;
@@ -36,6 +37,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
   let status: React.ComponentProps<typeof Icon>['status'];
   let details: string | undefined;
   let label: string;
+  let color: LabelProps['color'];
   const createdAt = relativeTime(Date.now(), new Date(run.created_at).getTime());
 
   switch (run.state) {
@@ -56,11 +58,13 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
     case RuntimeStateKF.SUCCEEDED:
       icon = <CheckCircleIcon />;
       status = 'success';
+      color = 'green';
       label = runtimeStateLabels[RuntimeStateKF.SUCCEEDED];
       break;
     case RuntimeStateKF.FAILED:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
+      color = 'red';
       label = runtimeStateLabels[RuntimeStateKF.FAILED];
       details = run.error?.message;
       break;
@@ -83,7 +87,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
       details = run.state;
   }
 
-  return { icon, label, status, details, createdAt };
+  return { icon, label, color, status, details, createdAt };
 };
 
 export const getPipelineAndVersionDeleteString = (

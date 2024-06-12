@@ -15,7 +15,7 @@ const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
   statusIcon,
   pipelineRunLabel,
 }) => {
-  const { icon, label } = computeRunStatus(run);
+  const { icon, label, color } = computeRunStatus(run);
 
   const isArchived = run.storage_state === StorageStateKF.ARCHIVED;
 
@@ -30,7 +30,9 @@ const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
         )}
         {statusIcon && (
           <SplitItem>
-            <Label icon={icon}>{label}</Label>
+            <Label color={color} icon={icon}>
+              {label}
+            </Label>
           </SplitItem>
         )}
         {isArchived && (
