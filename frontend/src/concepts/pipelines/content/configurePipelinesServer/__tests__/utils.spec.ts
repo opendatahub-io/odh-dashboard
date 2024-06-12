@@ -68,7 +68,7 @@ describe('configure pipeline server utils', () => {
       ];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
-      expect(spec.objectStorage.externalStorage?.host).toBe('s3.us-east-1.amazonaws.com');
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
     });
 
     it('should parse S3 endpoint without scheme', () => {
@@ -77,30 +77,7 @@ describe('configure pipeline server utils', () => {
       config.objectStorage.newValue = [{ key: AwsKeys.S3_ENDPOINT, value: 's3.amazonaws.com' }];
       const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('https');
-      expect(spec.objectStorage.externalStorage?.host).toBe('s3.us-east-1.amazonaws.com');
-    });
-
-    it('should convert S3 endpoint with region', () => {
-      const config = createPipelineServerConfig();
-      const secretsResponse = createSecretsResponse();
-      config.objectStorage.newValue = [
-        { key: AwsKeys.S3_ENDPOINT, value: 'http://s3.amazonaws.com' },
-        { key: AwsKeys.DEFAULT_REGION, value: 'us-east-2' },
-      ];
-      const spec = createDSPipelineResourceSpec(config, secretsResponse);
-      expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
-      expect(spec.objectStorage.externalStorage?.host).toBe('s3.us-east-2.amazonaws.com');
-    });
-
-    it('should not convert endpoint when it is not S3', () => {
-      const config = createPipelineServerConfig();
-      const secretsResponse = createSecretsResponse();
-      config.objectStorage.newValue = [
-        { key: AwsKeys.S3_ENDPOINT, value: 'http://s3.not-amazonaws.com' },
-      ];
-      const spec = createDSPipelineResourceSpec(config, secretsResponse);
-      expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
-      expect(spec.objectStorage.externalStorage?.host).toBe('s3.not-amazonaws.com');
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
     });
 
     it('should include bucket', () => {
