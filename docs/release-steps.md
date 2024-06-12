@@ -1,4 +1,4 @@
-[base/kustomization.yaml]: ../manifests/base/kustomization.yaml
+[base/kustomization.yaml]: ../manifests/common/base/kustomization.yaml
 [quay repo]: https://quay.io/repository/opendatahub/odh-dashboard?tab=tags
 [drafting a new release]: https://github.com/opendatahub-io/odh-dashboard/releases/new
 [semver]: https://semver.org/

@@ -1,32 +1,26 @@
-# Dashboard
+# Manifests
 
-The Open Data Hub Dashboard component installs a UI which 
+The Dashboard manifests run on Kustomize. There are 3 types of deployments for the Dashboard component.
 
-- Shows what's installed
-- Show's what's available for installation
-- Links to component UIs
-- Links to component documentation
+- Open Data Hub (`./odh`)
+- Red Hat OpenShift AI
+  - RHOAI Managed (`./rhoai/addon`)
+  - RHOAI Self Managed (`./rhoai/onprem`)
 
-For more information, visit the project [GitHub repo](https://github.com/opendatahub-io/odh-dashboard).
+## Adding new Manifests
 
-### Folders
-1. base: contains all the necessary yaml files to install the dashboard
+Starting at the deployment type folders (see above) there will be a `kustomization.yaml` file -- consider this an "index file". Each reference in these "index files" reference other "index files" in other folders until they reach a folder that contains specific manifest yamls. Maintain this structure for cleanness.
 
-##### Installation
+The operator will start from one of the deployment type folders, so we are in control of all the references from there. Keep sane references & be sure to read the README files in each of the root folders for guidelines.
+
+## Installation
+
 Use the `kustomize` tool to process the manifest for the `oc apply` command.
 
 ```
 # Parse the base manifest to deploy ODH Dashboard WITHOUT the required configs for groups
-cd manifests/base
-kustomize edit set namespace <DESTINATION NAMESPACE>   # Set the namespace in the manifest where you want to deploy the dashboard
+cd manifests/common/base
+# Set the namespace in the manifest where you want to deploy the dashboard
+kustomize edit set namespace <DESTINATION NAMESPACE>
 kustomize build . | oc apply -f -
-```
-
-```
-# Deploy ODH Dashboard with authentication AND the default configs for groups and ODHDashboardConfig
-cd manifests/overlays/odhdashboardconfig
-kustomize edit set namespace <DESTINATION NAMESPACE>   # Set the namespace in the manifest where you want to deploy the dashboard
-kustomize build . | oc apply -f -
-# You will need to re-run the previous step if you receive the error below
-# error: unable to recognize "STDIN": no matches for kind "OdhDashboardConfig" in version "opendatahub.io/v1alpha"
 ```

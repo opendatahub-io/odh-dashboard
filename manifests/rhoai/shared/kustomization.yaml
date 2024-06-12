@@ -4,11 +4,8 @@ commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
 resources:
-  - ../../../apps
-  - ./aikit
-  - ./anaconda-ce
-  - ./elastic
-  - ./openvino
-  - ./pachyderm
-  - ./watson-x
-  - ./rhoai
+  - ../../common
+  - ./apps
+  - ./base
+  - ./consolelink
+  - ./odhdashboardconfig
