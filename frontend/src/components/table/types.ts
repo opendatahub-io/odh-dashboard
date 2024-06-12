@@ -4,7 +4,14 @@ export type GetColumnSort = (columnIndex: number) => ThProps['sort'];
 
 export type SortableData<T> = Pick<
   ThProps,
-  'hasRightBorder' | 'isStickyColumn' | 'modifier' | 'width' | 'info' | 'className'
+  | 'hasRightBorder'
+  | 'isStickyColumn'
+  | 'stickyMinWidth'
+  | 'stickyLeftOffset'
+  | 'modifier'
+  | 'width'
+  | 'info'
+  | 'className'
 > & {
   label: string;
   field: string;

@@ -8,7 +8,7 @@ type CheckboxTrProps = {
   onToggle: () => void;
   isDisabled?: boolean;
   tooltip?: string;
-};
+} & React.ComponentProps<typeof Td>;
 
 const CheckboxTd: React.FC<CheckboxTrProps> = ({
   id,
@@ -16,6 +16,7 @@ const CheckboxTd: React.FC<CheckboxTrProps> = ({
   onToggle,
   isDisabled,
   tooltip,
+  ...props
 }) => {
   let content = (
     <Checkbox
@@ -31,7 +32,11 @@ const CheckboxTd: React.FC<CheckboxTrProps> = ({
     content = <Tooltip content={tooltip}>{content}</Tooltip>;
   }
 
-  return <Td dataLabel="Checkbox">{content}</Td>;
+  return (
+    <Td dataLabel="Checkbox" {...props}>
+      {content}
+    </Td>
+  );
 };
 
 export default CheckboxTd;

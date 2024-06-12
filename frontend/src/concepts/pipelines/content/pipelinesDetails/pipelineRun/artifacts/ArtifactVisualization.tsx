@@ -36,6 +36,7 @@ import { extractS3UriComponents } from '~/concepts/pipelines/content/artifacts/u
 import MarkdownView from '~/components/MarkdownView';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { bytesAsRoundedGiB } from '~/utilities/number';
+import { getArtifactProperties } from './utils';
 
 interface ArtifactVisualizationProps {
   artifact: Artifact;
@@ -116,24 +117,7 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
   }
 
   if (artifactType === ArtifactType.METRICS) {
-    const scalarMetrics = artifact
-      .toObject()
-      .customPropertiesMap.reduce(
-        (
-          acc: { name: string; value: string }[],
-          [customPropKey, { stringValue, intValue, doubleValue, boolValue }],
-        ) => {
-          if (customPropKey !== 'display_name') {
-            acc.push({
-              name: customPropKey,
-              value: stringValue || (intValue || doubleValue || boolValue).toString(),
-            });
-          }
-
-          return acc;
-        },
-        [],
-      );
+    const artifactProperties = getArtifactProperties(artifact);
 
     return (
       <Stack className="pf-v5-u-pt-lg pf-v5-u-pb-lg">
@@ -141,7 +125,7 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
 
         <StackItem>
           <Table
-            data={scalarMetrics}
+            data={artifactProperties}
             columns={[
               {
                 label: 'Name',
