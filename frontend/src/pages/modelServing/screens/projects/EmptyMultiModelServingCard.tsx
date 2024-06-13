@@ -24,7 +24,7 @@ const EmptyMultiModelServingCard: React.FC = () => {
 
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
-    servingRuntimeTemplates: { data: templates },
+    servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     serverSecrets: { refresh: refreshTokens },

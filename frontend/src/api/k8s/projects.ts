@@ -5,9 +5,8 @@ import {
   k8sListResource,
   K8sResourceCommon,
   k8sUpdateResource,
-  useK8sWatchResource,
-  WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { CustomWatchK8sResult } from '~/types';
 import { K8sAPIOptions, ProjectKind } from '~/k8sTypes';
 import { ProjectModel, ProjectRequestModel } from '~/api/models';
 import { throwErrorFromAxios } from '~/api/errorUtils';
@@ -17,9 +16,10 @@ import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { groupVersionKind } from '~/api/k8sUtils';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
 
-export const useProjects = (): WatchK8sResult<ProjectKind[]> =>
-  useK8sWatchResource<ProjectKind[]>(
+export const useProjects = (): CustomWatchK8sResult<ProjectKind[]> =>
+  useK8sWatchResourceList(
     {
       isList: true,
       groupVersionKind: groupVersionKind(ProjectModel),

@@ -1,6 +1,11 @@
 /*
  * Common types, should be kept up to date with backend types
  */
+
+import {
+  WatchK8sResult,
+  K8sResourceCommon as SDKK8sResourceCommon,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
@@ -622,6 +627,13 @@ export type ImageStreamAndVersion = {
   imageStream?: ImageStreamKind;
   imageVersion?: ImageStreamSpecTagType;
 };
+
+// This is the workaround to use K8sResourceCommon | K8sResourceCommon[] from SDK to work with utils.
+export type CustomWatchK8sResult<R extends SDKK8sResourceCommon | SDKK8sResourceCommon[]> = [
+  data: WatchK8sResult<R>[0],
+  loaded: WatchK8sResult<R>[1],
+  loadError: Error | undefined,
+];
 
 export type FetchStateObject<T, E = Error> = {
   data: T;

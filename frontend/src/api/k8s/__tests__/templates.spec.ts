@@ -1,13 +1,21 @@
-import { K8sStatus, k8sDeleteResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { assembleServingRuntimeTemplate, deleteTemplate, listTemplates } from '~/api';
+import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import {
+  assembleServingRuntimeTemplate,
+  deleteTemplate,
+  groupVersionKind,
+  useTemplates,
+} from '~/api';
 import { TemplateModel } from '~/api/models';
 import { K8sDSGResource, TemplateKind } from '~/k8sTypes';
+import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { genRandomChars } from '~/utilities/string';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -18,9 +26,26 @@ jest.mock('~/utilities/string', () => ({
   genRandomChars: jest.fn(),
 }));
 
-const k8sListResourceMock = jest.mocked(k8sListResource<TemplateKind>);
+jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/pages/modelServing/useModelServingEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const useModelServingEnabledMock = jest.mocked(useModelServingEnabled);
+const useCustomServingRuntimesEnabledMock = jest.mocked(useCustomServingRuntimesEnabled);
 const genRandomCharsMock = jest.mocked(genRandomChars);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<TemplateKind, K8sStatus>);
+const useK8sWatchResourceListMock = jest.mocked(useK8sWatchResourceList<TemplateKind[]>);
 
 const templateMock = mockServingRuntimeTemplateK8sResource({});
 const { namespace } = templateMock.metadata;
@@ -75,37 +100,74 @@ describe('assembleServingRuntimeTemplate', () => {
   });
 });
 
-describe('listTemplates', () => {
-  it('should list templates without namespace and label selector', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([templateMock]));
-    const result = await listTemplates();
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: TemplateModel,
-      queryOptions: {},
-    });
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual([templateMock]);
+describe('useTemplates', () => {
+  it('should wrap useK8sWatchResource to watch templates', () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useCustomServingRuntimesEnabledMock.mockReturnValue(true);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+    const { result } = testHook(useTemplates)(namespace);
+    expect(result.current).toStrictEqual(mockReturnValue);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(TemplateModel),
+        namespace,
+      },
+      TemplateModel,
+    );
   });
 
-  it('should list templates with namespace and label selector', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([templateMock]));
-    const result = await listTemplates(namespace, 'labelSelector');
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: TemplateModel,
-      queryOptions: { ns: namespace, queryParams: { labelSelector: 'labelSelector' } },
-    });
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual([templateMock]);
+  it('should throw error when namespace is not provided', () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useCustomServingRuntimesEnabledMock.mockReturnValue(true);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+    const { result } = testHook(useTemplates)();
+    expect(result.current).toStrictEqual(mockReturnValue);
   });
 
-  it('should handle errors and rethrow', async () => {
-    k8sListResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(listTemplates()).rejects.toThrow('error1');
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: TemplateModel,
-      queryOptions: {},
-    });
+  it('should throw error when model serving is not enabled', () => {
+    useModelServingEnabledMock.mockReturnValue(false);
+    useCustomServingRuntimesEnabledMock.mockReturnValue(true);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+    const { result } = testHook(useTemplates)(namespace);
+    expect(result.current).toStrictEqual(mockReturnValue);
+  });
+
+  it('should return empty array when template data is undefined', () => {
+    useModelServingEnabledMock.mockReturnValue(false);
+    useCustomServingRuntimesEnabledMock.mockReturnValue(true);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+    const { result } = testHook(useTemplates)(namespace);
+    expect(result.current).toStrictEqual(mockReturnValue);
+  });
+
+  it('should filter templates when custom serving runtime is not enabled', () => {
+    const templatesMock = {
+      ...templateMock,
+      metadata: { ...templateMock.metadata, labels: { 'opendatahub.io/ootb': 'true' } },
+    };
+    useModelServingEnabledMock.mockReturnValue(true);
+    useCustomServingRuntimesEnabledMock.mockReturnValue(false);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [
+      [templatesMock],
+      false,
+      undefined,
+    ];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+    const { result } = testHook(useTemplates)(namespace);
+    expect(result.current).toStrictEqual(mockReturnValue);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(TemplateModel),
+        namespace,
+      },
+      TemplateModel,
+    );
   });
 });
 

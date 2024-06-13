@@ -16,7 +16,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
   ...buttonProps
 }) => {
   const {
-    servingRuntimeTemplates: { loaded: templatesLoaded },
+    servingRuntimeTemplates: [, templatesLoaded],
   } = React.useContext(ProjectDetailsContext);
 
   const actionButton = () => (

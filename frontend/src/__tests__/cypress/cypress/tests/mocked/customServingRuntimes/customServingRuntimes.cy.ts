@@ -1,4 +1,3 @@
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
@@ -6,10 +5,8 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import {
-  customServingRuntimesInitialMock,
-  customServingRuntimesIntercept,
-} from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
+import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
+import { TemplateModel } from '~/__tests__/cypress/cypress/utils/models';
 
 const addfilePath = '../../__mocks__/mock-custom-serving-runtime-add.yaml';
 const editfilePath = '../../__mocks__/mock-custom-serving-runtime-edit.yaml';
@@ -81,7 +78,6 @@ describe('Custom serving runtimes', () => {
 
     servingRuntimes.findSubmitButton().should('be.enabled');
     servingRuntimes.findSubmitButton().click();
-
     cy.wait('@createSingleModelServingRuntime').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
@@ -112,6 +108,19 @@ describe('Custom serving runtimes', () => {
         ],
       });
     });
+
+    cy.wsK8s(
+      'ADDED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-new',
+        displayName: 'New OVMS Server',
+        platforms: [ServingRuntimePlatform.SINGLE],
+        apiProtocol: ServingRuntimeAPIProtocol.REST,
+      }),
+    );
+
+    servingRuntimes.getRowById('template-new').shouldBeSingleModel(true);
   });
 
   it('should add a new multi model serving runtime', () => {
@@ -172,6 +181,18 @@ describe('Custom serving runtimes', () => {
         ],
       });
     });
+
+    cy.wsK8s(
+      'ADDED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-new',
+        displayName: 'New OVMS Server',
+        platforms: [ServingRuntimePlatform.MULTI],
+      }),
+    );
+
+    servingRuntimes.getRowById('template-new').shouldBeMultiModel(true);
   });
 
   it('should duplicate a serving runtime', () => {
@@ -184,19 +205,6 @@ describe('Custom serving runtimes', () => {
     cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
       'duplicateTemplate',
     );
-
-    const ServingRuntimeTemplateMock = mockServingRuntimeTemplateK8sResource({
-      name: 'serving-runtime-template-1',
-      displayName: 'Multi platform',
-      platforms: [ServingRuntimePlatform.SINGLE],
-      apiProtocol: ServingRuntimeAPIProtocol.GRPC,
-    });
-
-    cy.interceptOdh(
-      'GET /api/templates/:namespace',
-      { path: { namespace: 'opendatahub' } },
-      mockK8sResourceList([...customServingRuntimesInitialMock, ServingRuntimeTemplateMock]),
-    ).as('refreshServingRuntime');
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();
     servingRuntimes.findAppTitle().should('have.text', 'Duplicate serving runtime');
@@ -236,10 +244,20 @@ describe('Custom serving runtimes', () => {
         ],
       });
     });
-    cy.wait('@refreshServingRuntime');
+
+    cy.wsK8s(
+      'ADDED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-1-copy',
+        displayName: 'Copy of Multi platform',
+        platforms: [ServingRuntimePlatform.SINGLE],
+        apiProtocol: ServingRuntimeAPIProtocol.GRPC,
+      }),
+    );
 
     servingRuntimes
-      .getRowById('serving-runtime-template-1')
+      .getRowById('template-1-copy')
       .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
   });
 
@@ -310,5 +328,16 @@ describe('Custom serving runtimes', () => {
     deleteModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@deleteServingRuntime');
+    cy.wsK8s(
+      'DELETED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-1',
+        displayName: 'Multi platform',
+        platforms: [ServingRuntimePlatform.SINGLE],
+        apiProtocol: ServingRuntimeAPIProtocol.REST,
+      }),
+    );
+    servingRuntimes.getRowById('template-1').find().should('not.exist');
   });
 });
