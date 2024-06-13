@@ -77,6 +77,11 @@ export const experimentColumns: SortableData<ExperimentKFv2>[] = [
     sortable: true,
   },
   {
+    label: 'Last run started',
+    field: 'last_run_created_at',
+    sortable: true,
+  },
+  {
     label: 'Last 5 runs',
     field: 'last_5_runs',
     sortable: false,
@@ -123,6 +128,54 @@ export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
   },
   kebabTableColumn(),
 ];
+
+export function getExperimentRunColumns(
+  metricsColumnNames: string[],
+): SortableData<PipelineRunKFv2>[] {
+  return [
+    { ...checkboxTableColumn(), isStickyColumn: true, stickyMinWidth: '45px' },
+    {
+      label: 'Run',
+      field: 'name',
+      sortable: true,
+      isStickyColumn: true,
+      hasRightBorder: true,
+      stickyMinWidth: '200px',
+      stickyLeftOffset: '45px',
+      width: 20,
+    },
+    {
+      label: 'Pipeline version',
+      field: 'pipeline_version',
+      sortable: false,
+      width: 15,
+    },
+    {
+      label: 'Started',
+      field: 'created_at',
+      sortable: true,
+      width: 15,
+    },
+    {
+      label: 'Duration',
+      field: 'duration',
+      sortable: false,
+      width: 15,
+    },
+    {
+      label: 'Status',
+      field: 'status',
+      sortable: true,
+      width: 10,
+    },
+    ...metricsColumnNames.map((metricName: string) => ({
+      label: metricName,
+      field: metricName,
+      sortable: false,
+    })),
+    kebabTableColumn(),
+  ];
+}
 
 export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
   checkboxTableColumn(),

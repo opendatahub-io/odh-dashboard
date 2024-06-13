@@ -11,18 +11,46 @@ const globPipeline = 'pipeline';
 const globPipelines = `${globPipeline}s`;
 export const routePipelineDetails = (pipelineId: string, versionId: string): string =>
   `${globPipeline}/view/${pipelineId}/${versionId}`;
+export const routePipelineVersionRuns = (pipelineId: string, versionId: string): string =>
+  `${globPipeline}/runs/${pipelineId}/${versionId}`;
 export const routePipelines = (): string => `/${globPipelines}`;
 export const globPipelinesAll = `${routePipelines()}/*`;
 export const globPipelineDetails = routePipelineDetails(globPipelineId, globPipelineVersionId);
-export const routePipelinesNamespace = (namespace: string): string =>
-  `/${globPipelines}/${namespace}`;
+export const globPipelineVersionRuns = routePipelineVersionRuns(
+  globPipelineId,
+  globPipelineVersionId,
+);
+export const routePipelinesNamespace = (namespace?: string): string =>
+  namespace ? `/${globPipelines}/${namespace}` : routePipelines();
 export const routePipelineDetailsNamespace = (
   namespace: string,
   pipelineId: string,
   versionId: string,
 ): string => `${routePipelinesNamespace(namespace)}/${routePipelineDetails(pipelineId, versionId)}`;
-export const routePipelineRunCreateNamespacePipelinesPage = (namespace: string): string =>
+export const routePipelineVersionRunsNamespace = (
+  namespace: string,
+  pipelineId: string,
+  versionId: string,
+): string =>
+  `${routePipelinesNamespace(namespace)}/${routePipelineVersionRuns(pipelineId, versionId)}`;
+export const routePipelineRunCreateNamespacePipelinesPage = (namespace?: string): string =>
   `${routePipelinesNamespace(namespace)}/${globPipelineRunCreate}`;
+export const routePipelineRunCloneNamespacePipelinesPage = (
+  namespace: string,
+  runId: string,
+): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunClone(runId)}`;
+export const routePipelineRunJobCloneNamespacePipelinesPage = (
+  namespace: string,
+  jobId: string,
+): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunJobClone(jobId)}`;
+export const routePipelineRunDetailsNamespacePipelinesPage = (
+  namespace: string,
+  runId: string,
+): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunDetails(runId)}`;
+export const routePipelineRunJobDetailsNamespacePipelinesPage = (
+  namespace: string,
+  jobId: string,
+): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunJobDetails(jobId)}`;
 
 // pipeline runs
 const globPipelineRun = 'pipelineRun';

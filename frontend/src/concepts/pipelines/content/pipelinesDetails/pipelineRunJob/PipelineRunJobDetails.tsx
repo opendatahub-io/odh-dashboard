@@ -13,7 +13,7 @@ import {
   Spinner,
   DrawerContentBody,
 } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
@@ -31,7 +31,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import { routePipelineRunsNamespace } from '~/routes';
+import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~/routes';
 import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
 import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
 
@@ -120,6 +120,21 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
+                      <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                        {version ? (
+                          <Link
+                            to={routePipelineVersionRunsNamespace(
+                              namespace,
+                              version.pipeline_id,
+                              version.pipeline_version_id,
+                            )}
+                          >
+                            {version.display_name}
+                          </Link>
+                        ) : (
+                          'Loading...'
+                        )}
+                      </BreadcrumbItem>
                       <BreadcrumbItem isActive>{job?.display_name ?? 'Loading...'}</BreadcrumbItem>
                     </Breadcrumb>
                   }

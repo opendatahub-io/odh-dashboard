@@ -22,6 +22,7 @@ type NameDescriptionFieldProps = {
   autoFocusName?: boolean;
   showK8sName?: boolean;
   disableK8sName?: boolean;
+  maxLength?: number;
 };
 
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
@@ -32,6 +33,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   autoFocusName,
   showK8sName,
   disableK8sName,
+  maxLength,
 }) => {
   const autoSelectNameRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -61,7 +63,13 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             name={nameFieldId}
             value={data.name}
             onChange={(e, name) => setData({ ...data, name })}
+            maxLength={maxLength}
           />
+          {maxLength && (
+            <HelperText>
+              <HelperTextItem>{`Cannot exceed ${maxLength} characters`}</HelperTextItem>
+            </HelperText>
+          )}
         </FormGroup>
       </StackItem>
       {showK8sName && (

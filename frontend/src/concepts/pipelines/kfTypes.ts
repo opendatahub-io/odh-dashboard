@@ -664,6 +664,7 @@ export type ExperimentKFv2 = {
   created_at: string;
   namespace?: string;
   storage_state: StorageStateKF;
+  last_run_created_at: string;
 };
 
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{
@@ -697,7 +698,7 @@ export type CreatePipelineVersionKFData = Omit<
 
 export type CreateExperimentKFData = Omit<
   ExperimentKFv2,
-  'experiment_id' | 'created_at' | 'namespace' | 'storage_state'
+  'experiment_id' | 'created_at' | 'namespace' | 'storage_state' | 'last_run_created_at'
 >;
 export type CreatePipelineRunKFData = Omit<
   PipelineRunKFv2,

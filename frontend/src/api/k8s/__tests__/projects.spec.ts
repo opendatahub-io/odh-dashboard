@@ -3,7 +3,6 @@ import {
   k8sCreateResource,
   k8sUpdateResource,
   k8sDeleteResource,
-  useK8sWatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import axios from 'axios';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
@@ -23,13 +22,18 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ProjectKind } from '~/k8sTypes';
 import { groupVersionKind } from '~/api/k8sUtils';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sUpdateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
-  useK8sWatchResource: jest.fn(),
+}));
+
+jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
@@ -43,14 +47,14 @@ const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<ProjectKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<ProjectKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<ProjectKind>);
-const useK8sWatchResourceMock = jest.mocked(useK8sWatchResource<ProjectKind[]>);
+const useK8sWatchResourceListMock = jest.mocked(useK8sWatchResourceList<ProjectKind[]>);
 
 describe('useProjects', () => {
   it('should wrap useK8sWatchResource to watch projects', async () => {
-    const mockReturnValue: ReturnType<typeof useK8sWatchResourceMock> = [[], false, false];
-    useK8sWatchResourceMock.mockReturnValue(mockReturnValue);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
     expect(useProjects()).toBe(mockReturnValue);
-    expect(useK8sWatchResourceMock).toHaveBeenCalledWith(
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
       {
         isList: true,
         groupVersionKind: groupVersionKind(ProjectModel),

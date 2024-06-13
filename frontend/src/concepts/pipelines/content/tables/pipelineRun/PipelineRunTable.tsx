@@ -1,11 +1,16 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Tooltip } from '@patternfly/react-core';
-import { TableVariant } from '@patternfly/react-table';
+import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
+import { TableVariant, Td } from '@patternfly/react-table';
+import { ColumnsIcon } from '@patternfly/react-icons';
+
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
-import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
+import { ArtifactType, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import {
+  getExperimentRunColumns,
+  pipelineRunColumns,
+} from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
@@ -21,6 +26,15 @@ import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetV
 import { createRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { useGetArtifactsByRuns } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
+import { ArtifactProperty } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
+import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
+import { RunWithMetrics } from './types';
+import { UnavailableMetricValue } from './UnavailableMetricValue';
+import { useMetricColumnNames } from './useMetricColumnNames';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKFv2[];
@@ -38,20 +52,32 @@ type PipelineRunTableProps = {
   runType: PipelineRunType.ACTIVE | PipelineRunType.ARCHIVED;
 };
 
-const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
+interface PipelineRunTableInternalProps extends Omit<PipelineRunTableProps, 'runs'> {
+  runs: RunWithMetrics[];
+  artifactsLoaded: boolean;
+  artifactsError: Error | undefined;
+  metricsNames: Set<string>;
+}
+
+const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   runs,
   loading,
   totalSize,
   page,
   pageSize,
   runType,
+  metricsNames,
+  artifactsLoaded,
+  artifactsError,
   setPage,
   setPageSize,
   setFilter,
   ...tableProps
 }) => {
   const navigate = useNavigate();
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId, pipelineId } = useParams();
+  const [pipeline] = usePipelineById(pipelineId);
+  const [pipelineVersion] = usePipelineVersionById(pipelineId, pipelineVersionId);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const {
@@ -65,6 +91,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [isCustomColModalOpen, setIsCustomColModalOpen] = React.useState(false);
   const selectedRuns = selectedIds.reduce((acc: PipelineRunKFv2[], selectedId) => {
     const selectedRun = runs.find((run) => run.run_id === selectedId);
 
@@ -74,9 +101,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
     return acc;
   }, []);
-
   const restoreButtonTooltipRef = React.useRef(null);
   const isExperimentArchived = useContextExperimentArchived();
+  const isExperimentsEnabled = isExperimentsAvailable && experimentId;
+  const metricsColumnNames = useMetricColumnNames(experimentId ?? '', metricsNames);
 
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
@@ -108,7 +136,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         data-testid="create-run-button"
         variant="primary"
         onClick={() =>
-          navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined))
+          navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined), {
+            state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
+          })
         }
       >
         Create run
@@ -116,16 +146,18 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     );
   }, [
     runType,
+    isExperimentArchived,
     selectedIds.length,
     navigate,
+    namespace,
     isExperimentsAvailable,
     experimentId,
-    namespace,
-    isExperimentArchived,
+    pipeline,
+    pipelineVersion,
   ]);
 
   const compareRunsAction =
-    isExperimentsAvailable && experimentId && !isExperimentArchived ? (
+    isExperimentsEnabled && !isExperimentArchived ? (
       <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"
@@ -169,10 +201,25 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
+  const getColumns = () => {
+    let columns = isExperimentsEnabled
+      ? getExperimentRunColumns(metricsColumnNames)
+      : pipelineRunColumns;
+    if (isExperimentsAvailable && experimentId) {
+      columns = columns.filter((column) => column.field !== 'experiment');
+    }
+    if (pipelineVersionId) {
+      columns = columns.filter((column) => column.field !== 'pipeline_version');
+    }
+
+    return columns;
+  };
+
   return (
     <>
       <TableBase
         {...checkboxTableProps}
+        {...(isExperimentsEnabled && { hasStickyColumns: true })}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -184,11 +231,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
         data={runs}
-        columns={
-          isExperimentsAvailable && experimentId
-            ? pipelineRunColumns.filter((column) => column.field !== 'experiment')
-            : pipelineRunColumns
-        }
+        columns={getColumns()}
         enablePagination="compact"
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
@@ -201,6 +244,30 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               primaryToolbarAction,
               ...(compareRunsAction ? [compareRunsAction] : []),
               toolbarDropdownAction,
+              isExperimentsEnabled
+                ? [
+                    <Tooltip
+                      key="custom-metrics-columns"
+                      content={
+                        !artifactsLoaded
+                          ? 'Customize metrics columns: Loading metrics...'
+                          : !(metricsColumnNames.length || metricsNames.size)
+                          ? 'Customize metrics columns: No metrics available'
+                          : 'Customize metrics columns'
+                      }
+                    >
+                      <Button
+                        variant="plain"
+                        aria-label="Customize metrics column button"
+                        isAriaDisabled={
+                          !artifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
+                        }
+                        onClick={() => setIsCustomColModalOpen(true)}
+                        icon={<ColumnsIcon />}
+                      />
+                    </Tooltip>,
+                  ]
+                : [],
             ]}
           />
         }
@@ -210,17 +277,33 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             checkboxProps={{
               isChecked: isSelected(run.run_id),
               onToggle: () => toggleSelection(run.run_id),
+              isStickyColumn: !!isExperimentsEnabled,
+              stickyMinWidth: '45px',
             }}
             onDelete={() => {
               setSelectedIds([run.run_id]);
               setIsDeleteModalOpen(true);
             }}
             run={run}
-            hasExperiments={!(isExperimentsAvailable && experimentId)}
+            hasExperiments={!isExperimentsEnabled}
+            customCells={metricsColumnNames.map((metricName: string) => (
+              <Td key={metricName} dataLabel={metricName}>
+                {!artifactsLoaded && !artifactsError ? (
+                  <Skeleton />
+                ) : (
+                  run.metrics.find((metric) => metric.name === metricName)?.value ?? (
+                    <UnavailableMetricValue />
+                  )
+                )}
+              </Td>
+            ))}
           />
         )}
         variant={TableVariant.compact}
-        getColumnSort={getTableColumnSort({ columns: pipelineRunColumns, ...tableProps })}
+        getColumnSort={getTableColumnSort({
+          columns: getColumns(),
+          ...tableProps,
+        })}
         data-testid={`${runType}-runs-table`}
         id={`${runType}-runs-table`}
       />
@@ -253,7 +336,55 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           }}
         />
       )}
+      {isCustomColModalOpen && (
+        <CustomMetricsColumnsModal
+          key={metricsNames.size}
+          experimentId={experimentId}
+          columns={[...new Set([...metricsColumnNames, ...metricsNames])].map((metricName) => ({
+            id: metricName,
+            content: metricName,
+            props: { checked: metricsColumnNames.includes(metricName) },
+          }))}
+          onClose={() => setIsCustomColModalOpen(false)}
+        />
+      )}
     </>
+  );
+};
+
+const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs, page, ...props }) => {
+  const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(runs);
+  const metricsNames = new Set<string>();
+
+  const runsWithMetrics = runs.map((run) => ({
+    ...run,
+    metrics: runArtifacts.reduce((acc: ArtifactProperty[], runArtifactseMap) => {
+      const artifacts = Object.entries(runArtifactseMap).find(
+        ([runId]) => run.run_id === runId,
+      )?.[1];
+
+      artifacts?.forEach((artifact) => {
+        if (artifact.getType() === ArtifactType.METRICS) {
+          const artifactProperties = getArtifactProperties(artifact);
+
+          artifactProperties.map((artifactProp) => metricsNames.add(artifactProp.name));
+          acc.push(...artifactProperties);
+        }
+      });
+
+      return acc;
+    }, []),
+  }));
+
+  return (
+    <PipelineRunTableInternal
+      runs={runsWithMetrics}
+      page={page}
+      metricsNames={metricsNames}
+      artifactsLoaded={runArtifactsLoaded && !!runArtifacts.length}
+      artifactsError={runArtifactsError}
+      {...props}
+    />
   );
 };
 

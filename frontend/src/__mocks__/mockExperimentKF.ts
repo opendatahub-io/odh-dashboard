@@ -7,6 +7,7 @@ export const buildMockExperimentKF = (experiment?: Partial<ExperimentKFv2>): Exp
   description: 'All runs created without specifying an experiment will be grouped here.',
   created_at: '2024-01-31T15:46:33Z',
   storage_state: StorageStateKF.AVAILABLE,
+  last_run_created_at: '2024-01-31T15:46:33Z',
   ...experiment,
 });
 

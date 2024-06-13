@@ -53,8 +53,7 @@ type ProjectsProviderProps = {
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
-  const [projectData, loaded, error] = useProjects();
-  const loadError = error as Error | undefined;
+  const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
 
   const { projects, dataScienceProjects, modelServingProjects, nonActiveProjects } = React.useMemo(

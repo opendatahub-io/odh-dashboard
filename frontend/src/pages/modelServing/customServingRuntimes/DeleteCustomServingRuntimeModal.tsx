@@ -25,7 +25,7 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
 
   const {
     servingRuntimeTemplateDisablement: { data: templateDisablement },
-    servingRuntimeTemplates: { data: templates },
+    servingRuntimeTemplates: [templates],
   } = React.useContext(CustomServingRuntimeContext);
 
   const { dashboardNamespace } = useDashboardNamespace();

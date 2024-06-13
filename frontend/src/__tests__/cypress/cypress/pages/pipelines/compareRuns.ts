@@ -44,7 +44,7 @@ class CompareRunParamsTable {
   }
 
   findEmptyState() {
-    return this.find().parent().findByTestId('compare-runs-params-empty-state');
+    return this.find().parent().parent().findByTestId('compare-runs-params-empty-state');
   }
 
   findColumnByName(name: string) {

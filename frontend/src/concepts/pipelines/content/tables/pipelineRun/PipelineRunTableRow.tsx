@@ -27,6 +27,7 @@ type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
   onDelete?: () => void;
   run: PipelineRunKFv2;
+  customCells?: React.ReactNode;
   hasExperiments?: boolean;
   hasRowActions?: boolean;
 };
@@ -35,11 +36,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   hasRowActions = true,
   hasExperiments = true,
   checkboxProps,
+  customCells,
   onDelete,
   run,
 }) => {
   const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
@@ -123,18 +125,30 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   return (
     <Tr>
       <CheckboxTd id={run.run_id} {...checkboxProps} />
-      <Td dataLabel="Name">
+      <Td
+        dataLabel="Name"
+        {...(isExperimentsAvailable &&
+          experimentId &&
+          customCells && {
+            isStickyColumn: true,
+            hasRightBorder: true,
+            stickyMinWidth: '200px',
+            stickyLeftOffset: '45px',
+          })}
+      >
         <PipelineRunTableRowTitle run={run} />
       </Td>
       {hasExperiments && <PipelineRunTableRowExperiment experimentId={run.experiment_id} />}
-      <Td modifier="truncate" dataLabel="Pipeline">
-        <PipelineVersionLink
-          displayName={version?.display_name}
-          version={version}
-          error={versionError}
-          loaded={isVersionLoaded}
-        />
-      </Td>
+      {!pipelineVersionId && (
+        <Td modifier="truncate" dataLabel="Pipeline">
+          <PipelineVersionLink
+            displayName={version?.display_name}
+            version={version}
+            error={versionError}
+            loaded={isVersionLoaded}
+          />
+        </Td>
+      )}
       <Td dataLabel="Created">
         <RunCreated run={run} />
       </Td>
@@ -144,6 +158,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td dataLabel="Status">
         <RunStatus justIcon run={run} />
       </Td>
+      {customCells}
       {hasRowActions && (
         <Td isActionCell dataLabel="Kebab">
           <ActionsColumn items={actions} />

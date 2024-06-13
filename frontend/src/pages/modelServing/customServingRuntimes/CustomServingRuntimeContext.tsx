@@ -10,24 +10,24 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { TemplateKind } from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
-import { ContextResourceData } from '~/types';
+import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
+import { ContextResourceData, CustomWatchK8sResult } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
-import useTemplates from './useTemplates';
+import { useTemplates } from '~/api';
 import useTemplateOrder from './useTemplateOrder';
 import useTemplateDisablement from './useTemplateDisablement';
 
 type CustomServingRuntimeContextType = {
   refreshData: () => void;
-  servingRuntimeTemplates: ContextResourceData<TemplateKind>;
+  servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
   servingRuntimeTemplateDisablement: ContextResourceData<string>;
 };
 
 export const CustomServingRuntimeContext = React.createContext<CustomServingRuntimeContextType>({
   refreshData: () => undefined,
-  servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
 });
@@ -35,10 +35,7 @@ export const CustomServingRuntimeContext = React.createContext<CustomServingRunt
 const CustomServingRuntimeContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
 
-  // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
-  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
-    useTemplates(dashboardNamespace, true),
-  );
+  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
   // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
@@ -52,19 +49,13 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     2 * 60 * 1000,
   );
 
-  const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateOrder.refresh;
 
   const refreshData = React.useCallback(() => {
-    servingRuntimeTemplateRefresh();
     servingRuntimeTemplateOrderRefresh();
     servingRuntimeTemplateDisablementRefresh();
-  }, [
-    servingRuntimeTemplateRefresh,
-    servingRuntimeTemplateOrderRefresh,
-    servingRuntimeTemplateDisablementRefresh,
-  ]);
+  }, [servingRuntimeTemplateOrderRefresh, servingRuntimeTemplateDisablementRefresh]);
 
   const contextValue = React.useMemo(
     () => ({
@@ -82,7 +73,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   );
 
   if (
-    servingRuntimeTemplates.error ||
+    servingRuntimeTemplates[2] ||
     servingRuntimeTemplateOrder.error ||
     servingRuntimeTemplateDisablement.error
   ) {
@@ -95,7 +86,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
             headingLevel="h2"
           />
           <EmptyStateBody>
-            {servingRuntimeTemplates.error?.message || servingRuntimeTemplateOrder.error?.message}
+            {servingRuntimeTemplates[2]?.message || servingRuntimeTemplateOrder.error?.message}
           </EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -103,7 +94,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   }
 
   if (
-    !servingRuntimeTemplates.loaded ||
+    !servingRuntimeTemplates[1] ||
     !servingRuntimeTemplateOrder.loaded ||
     !servingRuntimeTemplateDisablement.loaded
   ) {

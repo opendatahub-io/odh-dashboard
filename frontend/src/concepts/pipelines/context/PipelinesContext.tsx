@@ -19,6 +19,7 @@ import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSec
 import { deleteServer } from '~/concepts/pipelines/utils';
 import useJobRelatedInformation from '~/concepts/pipelines/context/useJobRelatedInformation';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
+import { DEV_MODE } from '~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
@@ -99,10 +100,18 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     [refreshRoute, refreshCR],
   );
 
-  const metadataStoreServiceClient = React.useMemo(
-    () => new MetadataStoreServicePromiseClient(`/api/service/mlmd/${namespace}/${dspaName}`),
-    [namespace, dspaName],
-  );
+  const metadataStoreServiceClient = React.useMemo(() => {
+    const client = new MetadataStoreServicePromiseClient(
+      `/api/service/mlmd/${namespace}/${dspaName}`,
+    );
+    if (DEV_MODE) {
+      // Enables the use of this browser extension: https://github.com/SafetyCulture/grpc-web-devtools
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-empty-function
+      const enableDevTools = (window as any).__GRPCWEB_DEVTOOLS__ || (() => {});
+      enableDevTools([client]);
+    }
+    return client;
+  }, [namespace, dspaName]);
 
   const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
   const { getJobInformation } = useJobRelatedInformation(apiState);

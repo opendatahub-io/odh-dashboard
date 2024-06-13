@@ -2,9 +2,14 @@ import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelineRunsGlobal {
-  visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
+  visit(
+    projectName: string,
+    pipelineId: string,
+    versionId: string,
+    runType?: 'active' | 'archived' | 'scheduled',
+  ) {
     cy.visitWithLogin(
-      `/pipelineRuns/${projectName}${
+      `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${versionId}${
         runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : ''
       }`,
     );

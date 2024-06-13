@@ -7,7 +7,7 @@ import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import { experimentRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentCreated, LastExperimentRuns } from './renderUtils';
+import { ExperimentCreated, LastExperimentRuns, LastExperimentRunsStarted } from './renderUtils';
 
 type ExperimentTableRowProps = {
   isChecked: boolean;
@@ -42,6 +42,9 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
       <Td dataLabel="Description">{experiment.description}</Td>
       <Td dataLabel="Created">
         <ExperimentCreated experiment={experiment} />
+      </Td>
+      <Td dataLabel="Last run started">
+        <LastExperimentRunsStarted experiment={experiment} />
       </Td>
       <Td dataLabel="Last 5 runs">
         <LastExperimentRuns experiment={experiment} />

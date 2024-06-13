@@ -126,7 +126,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
+              host: 's3.amazonaws.com/',
               scheme: 'https',
               bucket: 'sdsd',
               region: 'us-east-1',
@@ -167,7 +167,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.findConfigurePipelineServerButton().click();
     configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
     configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
-    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com');
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
     configurePipelineServerModal.findSubmitButton().should('be.enabled');
@@ -202,7 +202,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
+              host: 's3.amazonaws.com',
               scheme: 'https',
               bucket: 'test-bucket',
               region: 'us-east-1',
@@ -244,7 +244,7 @@ describe('Pipelines', () => {
 
     configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
     configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
-    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com/');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com');
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
@@ -302,7 +302,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.us-east-1.amazonaws.com',
+              host: 's3.amazonaws.com',
               scheme: 'https',
               bucket: 'test-bucket',
               region: 'us-east-1',
@@ -994,7 +994,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('View runs')
       .click();
-    verifyRelativeURL(`/pipelineRuns/${projectName}?runType=active`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=active`,
+    );
   });
 
   it('navigates to "Schedules" page from pipeline version row', () => {
@@ -1008,7 +1010,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('View schedules')
       .click();
-    verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=scheduled`,
+    );
   });
 
   it('Table pagination', () => {

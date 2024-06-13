@@ -1,5 +1,6 @@
 import {
   PeriodicOptions,
+  RunDateTime,
   periodicOptionAsSeconds,
 } from '~/concepts/pipelines/content/createRun/types';
 
@@ -40,6 +41,21 @@ export const convertDateToTimeString = (date?: Date): string | null => {
   const hoursIn12 = (hours >= 12 ? hours - 12 : hours) || 12;
 
   return `${hoursIn12}:${leadZero(date.getMinutes())} ${hours >= 12 ? 'PM' : 'AM'}`;
+};
+
+export const convertToDate = ({ date, time }: RunDateTime): Date =>
+  new Date(`${date}T${convertToTwentyFourHourTime(time)}:00.000`);
+
+/* Return HH:MM from HH:MM *M */
+export const convertToTwentyFourHourTime = (time: string): string => {
+  const timeArray = time.trim().split(' ');
+  const hourMinutesArray = timeArray[0].trim().split(':');
+  const hour = Number(hourMinutesArray[0]);
+  const minutes = hourMinutesArray[1];
+  if (timeArray[1] === 'AM') {
+    return `${hour === 12 ? 0 : hour}:${minutes}`.padStart(5, '0');
+  }
+  return `${hour === 12 ? hour : hour + 12}:${minutes}`;
 };
 
 /** The TimeField component can sometimes cause '6:00PM' instead of '6:00 PM' if the user edits directly */

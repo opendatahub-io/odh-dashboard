@@ -171,7 +171,7 @@ class PipelineDetails extends PipelinesTopology {
 
 class PipelineRunJobDetails extends RunDetails {
   visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelineRuns/${namespace}/pipelineRunJob/view/${pipelineId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRunJob/view/${pipelineId}`);
     this.wait();
   }
 
@@ -186,7 +186,7 @@ class PipelineRunJobDetails extends RunDetails {
 
 class PipelineRunDetails extends RunDetails {
   visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelineRuns/${namespace}/pipelineRun/view/${pipelineId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRun/view/${pipelineId}`);
     this.wait();
   }
 

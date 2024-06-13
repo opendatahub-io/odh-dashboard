@@ -1,15 +1,11 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
+import { useParams } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
-
-const options = {
-  [FilterOptions.NAME]: 'Schedule',
-  [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-};
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -25,6 +21,15 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { pipelineVersionId } = useParams();
+
+  const options = {
+    [FilterOptions.NAME]: 'Schedule',
+    [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+    ...(!pipelineVersionId && {
+      [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+    }),
+  };
 
   return (
     <PipelineFilterBar<keyof typeof options>

@@ -1,5 +1,6 @@
 import {
   K8sResourceCommon,
+  K8sResourceListResult,
   K8sStatus,
   KubeFastifyInstance,
   OauthFastifyRequest,
@@ -51,7 +52,9 @@ export const passThroughText = (
   );
 };
 
-export const passThroughResource = <T extends K8sResourceCommon>(
+export const passThroughResource = <
+  T extends K8sResourceCommon | K8sResourceListResult<K8sResourceCommon>,
+>(
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   data: PassThroughData,

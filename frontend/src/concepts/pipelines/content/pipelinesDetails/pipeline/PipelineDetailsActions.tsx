@@ -15,8 +15,8 @@ import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import {
   routePipelineDetailsNamespace,
-  routePipelineRunCreateNamespace,
-  routePipelineRunsNamespace,
+  routePipelineRunCreateNamespacePipelinesPage,
+  routePipelineVersionRunsNamespace,
 } from '~/routes';
 
 type PipelineDetailsActionsProps = {
@@ -55,7 +55,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           <DropdownItem
             key="create-run"
             onClick={() =>
-              navigate(routePipelineRunCreateNamespace(namespace), {
+              navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
                 state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
               })
             }
@@ -67,7 +67,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             onClick={() =>
               navigate(
                 {
-                  pathname: routePipelineRunCreateNamespace(namespace),
+                  pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
                   search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
                 },
                 {
@@ -78,39 +78,52 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           >
             Create schedule
           </DropdownItem>,
-          <DropdownSeparator key="separator-view" />,
-          <DropdownItem
-            key="view-runs"
-            onClick={() =>
-              navigate(
-                {
-                  pathname: routePipelineRunsNamespace(namespace),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
-                },
-                {
-                  state: { lastVersion: pipelineVersion },
-                },
-              )
-            }
-          >
-            View runs
-          </DropdownItem>,
-          <DropdownItem
-            key="view-schedules"
-            onClick={() =>
-              navigate(
-                {
-                  pathname: routePipelineRunsNamespace(namespace),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                },
-                {
-                  state: { lastVersion: pipelineVersion },
-                },
-              )
-            }
-          >
-            View schedules
-          </DropdownItem>,
+          ...(pipeline && pipelineVersion
+            ? [
+                <DropdownSeparator key="separator-view" />,
+                <DropdownItem
+                  key="view-runs"
+                  onClick={() =>
+                    navigate(
+                      {
+                        pathname: routePipelineVersionRunsNamespace(
+                          namespace,
+                          pipeline.pipeline_id,
+                          pipelineVersion.pipeline_version_id,
+                        ),
+                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
+                      },
+                      {
+                        state: { lastVersion: pipelineVersion },
+                      },
+                    )
+                  }
+                >
+                  View runs
+                </DropdownItem>,
+                <DropdownItem
+                  key="view-schedules"
+                  onClick={() =>
+                    navigate(
+                      {
+                        pathname: routePipelineVersionRunsNamespace(
+                          namespace,
+                          pipeline.pipeline_id,
+                          pipelineVersion.pipeline_version_id,
+                        ),
+                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
+                      },
+                      {
+                        state: { lastVersion: pipelineVersion },
+                      },
+                    )
+                  }
+                >
+                  View schedules
+                </DropdownItem>,
+              ]
+            : []),
+
           <DropdownSeparator key="separator-delete" />,
           <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
             Delete pipeline version

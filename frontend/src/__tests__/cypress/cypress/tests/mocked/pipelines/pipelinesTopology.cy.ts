@@ -179,22 +179,26 @@ describe('Pipeline topology', () => {
     describe('Navigation', () => {
       it('Test pipeline details create run navigation', () => {
         pipelineDetails.selectActionDropdownItem('Create run');
-        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create`);
+        verifyRelativeURL(`/pipelines/${projectId}/pipelineRun/create`);
       });
 
       it('navigates to "Schedule run" page on "Schedule run" click', () => {
         pipelineDetails.selectActionDropdownItem('Create schedule');
-        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/create?runType=scheduled`);
+        verifyRelativeURL(`/pipelines/${projectId}/pipelineRun/create?runType=scheduled`);
       });
 
       it('Test pipeline details view runs navigation', () => {
         pipelineDetails.selectActionDropdownItem('View runs');
-        verifyRelativeURL(`/pipelineRuns/${projectId}?runType=active`);
+        verifyRelativeURL(
+          `/pipelines/${projectId}/pipeline/runs/test-pipeline/test-version-id?runType=active`,
+        );
       });
 
       it('navigates to "Schedules" on "View schedules" click', () => {
         pipelineDetails.selectActionDropdownItem('View schedules');
-        verifyRelativeURL(`/pipelineRuns/${projectId}?runType=scheduled`);
+        verifyRelativeURL(
+          `/pipelines/${projectId}/pipeline/runs/test-pipeline/test-version-id?runType=scheduled`,
+        );
       });
     });
 
@@ -308,14 +312,14 @@ describe('Pipeline topology', () => {
       it('Test pipeline run duplicate navigation', () => {
         pipelineRunDetails.visit(projectId, mockRun.run_id);
         pipelineRunDetails.selectActionDropdownItem('Duplicate');
-        verifyRelativeURL(`/pipelineRuns/${projectId}/pipelineRun/clone/${mockRun.run_id}`);
+        verifyRelativeURL(`/pipelines/${projectId}/pipelineRun/clone/${mockRun.run_id}`);
       });
 
       it('Test pipeline job duplicate navigation', () => {
         pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
         pipelineRunJobDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(
-          `/pipelineRuns/${projectId}/pipelineRun/cloneJob/${mockJob.recurring_run_id}?runType=scheduled`,
+          `/pipelines/${projectId}/pipelineRun/cloneJob/${mockJob.recurring_run_id}?runType=scheduled`,
         );
       });
 

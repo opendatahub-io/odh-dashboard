@@ -148,6 +148,15 @@ export type K8sResourceCommon = {
   };
 } & K8sResourceBase;
 
+export type K8sResourceListResult<TResource extends K8sResourceCommon> = {
+  apiVersion: string;
+  items: TResource[];
+  metadata: {
+    resourceVersion: string;
+    continue: string;
+  };
+};
+
 /**
  * A status object when Kube backend can't handle a request.
  */
@@ -158,6 +167,16 @@ export type K8sStatus = {
   message: string;
   reason: string;
   status: string;
+};
+
+export type SecretKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  data?: Record<string, string>;
+  stringData?: Record<string, string>;
+  type?: string;
 };
 
 export enum BUILD_PHASE {

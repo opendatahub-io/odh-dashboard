@@ -1,3 +1,4 @@
+import { RunDateTime } from '~/concepts/pipelines/content/createRun/types';
 import {
   convertPeriodicTimeToSeconds,
   convertSecondsToPeriodicTime,
@@ -7,6 +8,8 @@ import {
   ensureTimeFormat,
   printSeconds,
   relativeTime,
+  convertToTwentyFourHourTime,
+  convertToDate,
 } from '~/utilities/time';
 
 describe('relativeDuration', () => {
@@ -48,6 +51,53 @@ describe('convertDateToTimeString', () => {
   it('should convert to 12:00 AM if time entered on date is 0', () => {
     const date = new Date('2021-01-01T00:00:00');
     expect(convertDateToTimeString(date)).toBe('12:00 AM');
+  });
+});
+
+describe('convertToDate', () => {
+  it('should convert to local date', () => {
+    const value: RunDateTime = {
+      date: '2024-01-04',
+      time: '11:55 PM',
+    };
+    expect(convertToDate(value)).toStrictEqual(new Date('2024-01-04T23:55:00.000'));
+  });
+
+  it('should convert to local date using convertToTwentyFourHourTime function', () => {
+    const value: RunDateTime = {
+      date: '2024-01-04',
+      time: '12:30 PM',
+    };
+    expect(convertToDate(value)).toStrictEqual(
+      new Date(`${value.date}T${convertToTwentyFourHourTime(value.time)}:00.000`),
+    );
+  });
+});
+
+describe('convertToTwentyFourHourTime', () => {
+  it('should convert 12 hour time to 24 hour time', () => {
+    const time = '1:30 AM';
+    expect(convertToTwentyFourHourTime(time)).toBe('01:30');
+  });
+
+  it('should convert past 12', () => {
+    const time = '2:55 PM';
+    expect(convertToTwentyFourHourTime(time)).toBe('14:55');
+  });
+
+  it('should convert from 10 AM <= x < 12PM to 24 hour time', () => {
+    const time = '11:24 AM';
+    expect(convertToTwentyFourHourTime(time)).toBe('11:24');
+  });
+
+  it('should convert from 12:30 PM to 12:30', () => {
+    const time = '12:30 PM';
+    expect(convertToTwentyFourHourTime(time)).toBe('12:30');
+  });
+
+  it('should convert from 12:30 AM to 00:30', () => {
+    const time = '12:30 AM';
+    expect(convertToTwentyFourHourTime(time)).toBe('00:30');
   });
 });
 

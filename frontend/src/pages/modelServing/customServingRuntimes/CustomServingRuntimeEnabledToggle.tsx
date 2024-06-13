@@ -20,7 +20,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
       loaded: templateDisablementLoaded,
       refresh: refreshDisablement,
     },
-    servingRuntimeTemplates: { data: templates },
+    servingRuntimeTemplates: [templates],
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
   const [isEnabled, setEnabled] = React.useState(true);

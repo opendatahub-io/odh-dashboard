@@ -7,7 +7,7 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 const CustomServingRuntimeView: React.FC = () => {
   const {
-    servingRuntimeTemplates: { data: servingRuntimeTemplates },
+    servingRuntimeTemplates: [servingRuntimeTemplates],
   } = React.useContext(CustomServingRuntimeContext);
 
   return (

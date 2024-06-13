@@ -70,3 +70,6 @@ export const EMPTY_DATABASE_CONNECTION: EnvVariableDataEntry[] = [
     value: '',
   },
 ];
+
+export const storingDataHelpLink =
+  'https://access.redhat.com/documentation/en-us/red_hat_openshift_ai_cloud_service/1/html/working_on_data_science_projects/working-with-data-science-pipelines_ds-pipelines#storing-data-with-data-science-pipelines_ds-pipelines';

@@ -1,9 +1,9 @@
 import {
-  routePipelineRunCloneNamespace,
-  routePipelineRunCreateNamespace,
-  routePipelineRunDetailsNamespace,
-  routePipelineRunJobCloneNamespace,
-  routePipelineRunJobDetailsNamespace,
+  routePipelineRunCloneNamespacePipelinesPage,
+  routePipelineRunCreateNamespacePipelinesPage,
+  routePipelineRunDetailsNamespacePipelinesPage,
+  routePipelineRunJobCloneNamespacePipelinesPage,
+  routePipelineRunJobDetailsNamespacePipelinesPage,
 } from './global';
 import {
   experimentRunDetailsRoute,
@@ -21,7 +21,7 @@ export const cloneScheduleRoute = (
 ): string =>
   experimentId
     ? experimentsCloneScheduleRoute(namespace, experimentId, recurringRunId)
-    : routePipelineRunJobCloneNamespace(namespace, recurringRunId);
+    : routePipelineRunJobCloneNamespacePipelinesPage(namespace, recurringRunId);
 
 export const scheduleRunRoute = (
   namespace: string | undefined,
@@ -29,7 +29,7 @@ export const scheduleRunRoute = (
 ): string =>
   experimentId
     ? experimentsScheduleRunRoute(namespace, experimentId)
-    : routePipelineRunCreateNamespace(namespace);
+    : routePipelineRunCreateNamespacePipelinesPage(namespace);
 
 export const createRunRoute = (
   namespace: string | undefined,
@@ -37,7 +37,7 @@ export const createRunRoute = (
 ): string =>
   experimentId
     ? experimentsCreateRunRoute(namespace, experimentId)
-    : routePipelineRunCreateNamespace(namespace);
+    : routePipelineRunCreateNamespacePipelinesPage(namespace);
 
 export const scheduleDetailsRoute = (
   namespace: string,
@@ -46,7 +46,7 @@ export const scheduleDetailsRoute = (
 ): string =>
   experimentId
     ? experimentScheduleDetailsRoute(namespace, experimentId, recurringRunId)
-    : routePipelineRunJobDetailsNamespace(namespace, recurringRunId);
+    : routePipelineRunJobDetailsNamespacePipelinesPage(namespace, recurringRunId);
 
 export const runDetailsRoute = (
   namespace: string,
@@ -55,7 +55,7 @@ export const runDetailsRoute = (
 ): string =>
   experimentId
     ? experimentRunDetailsRoute(namespace, experimentId, runId)
-    : routePipelineRunDetailsNamespace(namespace, runId);
+    : routePipelineRunDetailsNamespacePipelinesPage(namespace, runId);
 
 export const cloneRunRoute = (
   namespace: string,
@@ -64,4 +64,4 @@ export const cloneRunRoute = (
 ): string =>
   experimentId
     ? experimentsCloneRunRoute(namespace, experimentId, runId)
-    : routePipelineRunCloneNamespace(namespace, runId);
+    : routePipelineRunCloneNamespacePipelinesPage(namespace, runId);

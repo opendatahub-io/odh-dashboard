@@ -344,11 +344,17 @@ export type PodKind = K8sResourceCommon & {
   status?: {
     phase: string;
     conditions: K8sCondition[];
-    containerStatuses?: {
-      name?: string;
-      ready: boolean;
-      state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
-    }[];
+    containerStatuses?: PodContainerStatus[];
+  };
+};
+
+export type PodContainerStatus = {
+  name: string;
+  ready: boolean;
+  state?: {
+    running?: boolean | undefined;
+    waiting?: boolean | undefined;
+    terminated?: boolean | undefined;
   };
 };
 

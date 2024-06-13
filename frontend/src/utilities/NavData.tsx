@@ -68,14 +68,18 @@ const useDSPipelinesNav = (): NavDataItem[] => {
   }
 
   return [
-    {
-      id: 'pipelines',
-      group: { id: 'pipelines', title: 'Data Science Pipelines' },
-      children: [
-        { id: 'global-pipelines', label: 'Pipelines', href: routePipelines() },
-        { id: 'global-pipeline-runs', label: 'Runs', href: routePipelineRuns() },
-      ],
-    },
+    ...(isExperimentsAvailable
+      ? [{ id: 'pipelines', label: 'Data Science Pipelines', href: routePipelines() }]
+      : [
+          {
+            id: 'pipelines',
+            group: { id: 'pipelines', title: 'Data Science Pipelines' },
+            children: [
+              { id: 'global-pipelines', label: 'Pipelines', href: routePipelines() },
+              { id: 'global-pipeline-runs', label: 'Runs', href: routePipelineRuns() },
+            ],
+          },
+        ]),
     ...(isExperimentsAvailable
       ? [
           {

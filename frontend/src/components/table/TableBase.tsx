@@ -19,6 +19,7 @@ import {
   Tbody,
   Td,
   TbodyProps,
+  InnerScrollContainer,
 } from '@patternfly/react-table';
 import { EitherNotBoth } from '~/typeHelpers';
 import { GetColumnSort, SortableData } from './types';
@@ -47,6 +48,7 @@ type Props<DataType> = {
   };
   getColumnSort?: GetColumnSort;
   disableItemCount?: boolean;
+  hasStickyColumns?: boolean;
 } & EitherNotBoth<
   { disableRowRenderSupport?: boolean },
   { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
@@ -109,6 +111,7 @@ const TableBase = <T,>({
   loading,
   toggleTemplate,
   disableItemCount = false,
+  hasStickyColumns,
   ...props
 }: Props<T>): React.ReactElement => {
   const selectAllRef = React.useRef(null);
@@ -159,6 +162,8 @@ const TableBase = <T,>({
             ref={selectAllRef}
             colSpan={col.colSpan}
             rowSpan={col.rowSpan}
+            isStickyColumn={col.isStickyColumn}
+            stickyMinWidth={col.stickyMinWidth}
             select={{
               isSelected: selectAll.selected,
               onSelect: (e, value) => selectAll.onSelect(value),
@@ -182,6 +187,8 @@ const TableBase = <T,>({
         info={col.info}
         isSubheader={isSubheader}
         isStickyColumn={col.isStickyColumn}
+        stickyMinWidth={col.stickyMinWidth}
+        stickyLeftOffset={col.stickyLeftOffset}
         hasRightBorder={col.hasRightBorder}
         modifier={col.modifier}
         className={col.className}
@@ -246,6 +253,20 @@ const TableBase = <T,>({
           })
       : data.map((row, rowIndex) => rowRenderer(row, rowIndex));
 
+  const table = (
+    <Table {...props} {...(hasStickyColumns && { gridBreakPoint: '' })} ref={tableRef}>
+      {caption && <Caption>{caption}</Caption>}
+      <Thead noWrap hasNestedHeader={hasNestedHeader}>
+        <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>
+        {subColumns?.length ? (
+          <Tr>{subColumns.map((col, i) => renderColumnHeader(col, columns.length + i, true))}</Tr>
+        ) : null}
+      </Thead>
+      {disableRowRenderSupport ? renderRows() : <Tbody {...tbodyProps}>{renderRows()}</Tbody>}
+      {footerRow && footerRow(page)}
+    </Table>
+  );
+
   return (
     <>
       {(toolbarContent || showPagination) && (
@@ -268,17 +289,9 @@ const TableBase = <T,>({
           </ToolbarContent>
         </Toolbar>
       )}
-      <Table {...props} ref={tableRef}>
-        {caption && <Caption>{caption}</Caption>}
-        <Thead noWrap hasNestedHeader={hasNestedHeader}>
-          <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>
-          {subColumns?.length ? (
-            <Tr>{subColumns.map((col, i) => renderColumnHeader(col, columns.length + i, true))}</Tr>
-          ) : null}
-        </Thead>
-        {disableRowRenderSupport ? renderRows() : <Tbody {...tbodyProps}>{renderRows()}</Tbody>}
-        {footerRow && footerRow(page)}
-      </Table>
+
+      {hasStickyColumns ? <InnerScrollContainer>{table}</InnerScrollContainer> : table}
+
       {!loading && emptyTableView && data.length === 0 && (
         <div style={{ padding: 'var(--pf-global--spacer--2xl) 0', textAlign: 'center' }}>
           {emptyTableView}
