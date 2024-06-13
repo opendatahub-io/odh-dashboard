@@ -22,6 +22,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
@@ -161,7 +162,11 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       {customCells}
       {hasRowActions && (
         <Td isActionCell dataLabel="Kebab">
-          <ActionsColumn items={actions} />
+          <ActionsColumn
+            data-testid="pipeline-run-table-row-actions"
+            items={actions}
+            popperProps={{ appendTo: getDashboardMainContainer, position: 'right' }}
+          />
           <RestoreRunModal
             isOpen={isRestoreModalOpen}
             runs={[run]}

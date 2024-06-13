@@ -10,15 +10,21 @@ class PipelineRunsRow extends TableRow {
   findColumnName(name: string) {
     return this.find().find(`[data-label=Name]`).contains(name);
   }
+}
 
-  findColumnVersion(name: string) {
-    return this.find().find(`[data-label="Pipeline"]`).contains(name);
+class PipelineRunTableRow extends PipelineRunsRow {
+  findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.find().findKebab().click();
+    return cy.findByTestId('pipeline-run-table-row-actions').findByRole('menuitem', { name });
   }
+}
 
+class PipelineRunJobTableRow extends PipelineRunsRow {
   findStatusSwitchByRowName() {
     return this.find().findByTestId('job-status-switch');
   }
 }
+
 class PipelineRunsTable {
   protected testId = '';
 
@@ -31,12 +37,6 @@ class PipelineRunsTable {
 
   find() {
     return cy.findByTestId(this.testId);
-  }
-
-  getRowByName(name: string) {
-    return new PipelineRunsRow(() =>
-      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
-    );
   }
 
   shouldRowNotBeVisible(name: string) {
@@ -120,6 +120,12 @@ class ActiveRunsTable extends PipelineRunsTable {
   mockGetActiveRuns(runs: PipelineRunKFv2[], namespace: string, times?: number) {
     return this.mockGetRuns(runs, [], namespace, times);
   }
+
+  getRowByName(name: string) {
+    return new PipelineRunTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
 }
 class ArchivedRunsTable extends PipelineRunsTable {
   constructor() {
@@ -129,11 +135,23 @@ class ArchivedRunsTable extends PipelineRunsTable {
   mockGetArchivedRuns(runs: PipelineRunKFv2[], namespace: string, times?: number) {
     return this.mockGetRuns([], runs, namespace, times);
   }
+
+  getRowByName(name: string) {
+    return new PipelineRunTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
 }
 
 class PipelineRunJobTable extends PipelineRunsTable {
   constructor() {
     super('schedules');
+  }
+
+  getRowByName(name: string) {
+    return new PipelineRunJobTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
   }
 
   findEmptyState() {
