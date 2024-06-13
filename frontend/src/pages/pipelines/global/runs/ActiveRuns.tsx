@@ -20,15 +20,19 @@ import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { createRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
   const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
+  const { namespace, experimentId, pipelineVersionId, pipelineId } = useParams();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineActiveRunsTable({ experimentId });
+    usePipelineActiveRunsTable({ experimentId, pipelineVersionId });
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentArchived = useContextExperimentArchived();
+  const [pipeline] = usePipelineById(pipelineId);
+  const [pipelineVersion] = usePipelineVersionById(pipelineId, pipelineVersionId);
 
   if (isExperimentArchived) {
     return (
@@ -92,13 +96,16 @@ export const ActiveRuns: React.FC = () => {
               data-testid="create-run-button"
               variant="primary"
               onClick={() =>
-                navigate({
-                  pathname: createRunRoute(
-                    namespace,
-                    isExperimentsAvailable ? experimentId : undefined,
-                  ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
-                })
+                navigate(
+                  {
+                    pathname: createRunRoute(
+                      namespace,
+                      isExperimentsAvailable ? experimentId : undefined,
+                    ),
+                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
+                  },
+                  { state: { lastPipeline: pipeline, lastVersion: pipelineVersion } },
+                )
               }
             >
               Create run

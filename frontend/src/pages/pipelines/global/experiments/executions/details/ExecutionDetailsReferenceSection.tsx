@@ -4,7 +4,7 @@ import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { Execution } from '~/third_party/mlmd';
 import { useGetPipelineRunContextByExecution } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
-import { executionDetailsRoute, routePipelineRunDetailsNamespace } from '~/routes';
+import { executionDetailsRoute, routePipelineRunDetailsNamespacePipelinesPage } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type ExecutionDetailsReferenceSectionProps = {
@@ -41,7 +41,12 @@ const ExecutionDetailsReferenceSection: React.FC<ExecutionDetailsReferenceSectio
               <Td dataLabel="Link">
                 {contextLoaded ? (
                   context ? (
-                    <Link to={routePipelineRunDetailsNamespace(namespace, context.getName())}>
+                    <Link
+                      to={routePipelineRunDetailsNamespacePipelinesPage(
+                        namespace,
+                        context.getName(),
+                      )}
+                    >
                       {`runs/details/${context.getName()}`}
                     </Link>
                   ) : (

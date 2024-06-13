@@ -18,10 +18,13 @@ import {
   globPipelineRunClone,
   globPipelineRunCreate,
   globPipelineRunDetails,
+  globPipelineRunJobClone,
   globPipelineRunJobDetails,
+  globPipelineVersionRuns,
   routePipelinesNamespace,
 } from '~/routes';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
+import GlobalPipelineVersionRuns from './global/runs/GlobalPipelineVersionRuns';
 
 const GlobalPipelinesRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -36,6 +39,16 @@ const GlobalPipelinesRoutes: React.FC = () => (
       }
     >
       <Route index element={<GlobalPipelines />} />
+      <Route
+        path={globPipelineVersionRuns}
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={GlobalPipelineVersionRuns}
+            pageName="Pipelines"
+            redirectPath={routePipelinesNamespace}
+          />
+        }
+      />
       <Route
         path={globPipelineDetails}
         element={
@@ -78,6 +91,16 @@ const GlobalPipelinesRoutes: React.FC = () => (
       />
       <Route
         path={globPipelineRunClone}
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={CloneRunPage}
+            pageName="Pipelines"
+            redirectPath={routePipelinesNamespace}
+          />
+        }
+      />
+      <Route
+        path={globPipelineRunJobClone}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CloneRunPage}

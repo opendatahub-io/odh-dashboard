@@ -14,9 +14,10 @@ import { usePipelineArchivedRunsTable } from '~/concepts/pipelines/content/table
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ArchivedRuns: React.FC = () => {
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId } = useParams();
+
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineArchivedRunsTable({ experimentId });
+    usePipelineArchivedRunsTable({ experimentId, pipelineVersionId });
 
   if (error) {
     return (

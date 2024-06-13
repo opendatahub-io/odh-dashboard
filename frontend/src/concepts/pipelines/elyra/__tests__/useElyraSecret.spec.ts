@@ -122,6 +122,6 @@ describe('generateElyraSecret', () => {
       JSON.parse(elyraSecret.stringData?.[ELYRA_SECRET_DATA_KEY] ?? '').metadata[
         ELYRA_SECRET_DATA_ENDPOINT
       ],
-    ).toBe(`${location.origin}/pipelineRuns/test-project/pipelineRun/view/`);
+    ).toBe(`${location.origin}/experiments/test-project/`);
   });
 });

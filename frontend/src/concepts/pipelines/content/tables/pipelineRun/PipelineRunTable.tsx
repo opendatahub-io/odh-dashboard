@@ -29,6 +29,8 @@ import { useContextExperimentArchived } from '~/pages/pipelines/global/experimen
 import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { useGetArtifactsByRuns } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
 import { ArtifactProperty } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
+import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { RunWithMetrics } from './types';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
@@ -73,7 +75,9 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   ...tableProps
 }) => {
   const navigate = useNavigate();
-  const { experimentId } = useParams();
+  const { experimentId, pipelineVersionId, pipelineId } = useParams();
+  const [pipeline] = usePipelineById(pipelineId);
+  const [pipelineVersion] = usePipelineVersionById(pipelineId, pipelineVersionId);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const {
@@ -101,10 +105,6 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   const isExperimentArchived = useContextExperimentArchived();
   const isExperimentsEnabled = isExperimentsAvailable && experimentId;
   const metricsColumnNames = useMetricColumnNames(experimentId ?? '', metricsNames);
-
-  const columns = isExperimentsEnabled
-    ? getExperimentRunColumns(metricsColumnNames)
-    : pipelineRunColumns;
 
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
@@ -136,7 +136,9 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         data-testid="create-run-button"
         variant="primary"
         onClick={() =>
-          navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined))
+          navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined), {
+            state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
+          })
         }
       >
         Create run
@@ -144,12 +146,14 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
     );
   }, [
     runType,
+    isExperimentArchived,
     selectedIds.length,
     navigate,
+    namespace,
     isExperimentsAvailable,
     experimentId,
-    namespace,
-    isExperimentArchived,
+    pipeline,
+    pipelineVersion,
   ]);
 
   const compareRunsAction =
@@ -197,6 +201,20 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
+  const getColumns = () => {
+    let columns = isExperimentsEnabled
+      ? getExperimentRunColumns(metricsColumnNames)
+      : pipelineRunColumns;
+    if (isExperimentsAvailable && experimentId) {
+      columns = columns.filter((column) => column.field !== 'experiment');
+    }
+    if (pipelineVersionId) {
+      columns = columns.filter((column) => column.field !== 'pipeline_version');
+    }
+
+    return columns;
+  };
+
   return (
     <>
       <TableBase
@@ -213,7 +231,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
         data={runs}
-        columns={columns}
+        columns={getColumns()}
         enablePagination="compact"
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
@@ -283,7 +301,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         )}
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({
-          columns,
+          columns: getColumns(),
           ...tableProps,
         })}
         data-testid={`${runType}-runs-table`}

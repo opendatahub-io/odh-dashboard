@@ -10,14 +10,19 @@ export const usePipelineActiveRuns = (
 ): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
+  const pipelineVersionId = options?.pipelineVersionId;
 
   return usePipelineQuery<PipelineRunKFv2>(
     React.useCallback(
       (opts, params) =>
         api
-          .listPipelineActiveRuns(opts, { ...params, ...(experimentId && { experimentId }) })
+          .listPipelineActiveRuns(opts, {
+            ...params,
+            ...(experimentId && { experimentId }),
+            ...(pipelineVersionId && { pipelineVersionId }),
+          })
           .then((result) => ({ ...result, items: result.runs })),
-      [api, experimentId],
+      [api, experimentId, pipelineVersionId],
     ),
     options,
   );
@@ -28,14 +33,19 @@ export const usePipelineArchivedRuns = (
 ): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
+  const pipelineVersionId = options?.pipelineVersionId;
 
   return usePipelineQuery<PipelineRunKFv2>(
     React.useCallback(
       (opts, params) =>
         api
-          .listPipelineArchivedRuns(opts, { ...params, ...(experimentId && { experimentId }) })
+          .listPipelineArchivedRuns(opts, {
+            ...params,
+            ...(experimentId && { experimentId }),
+            ...(pipelineVersionId && { pipelineVersionId }),
+          })
           .then((result) => ({ ...result, items: result.runs })),
-      [api, experimentId],
+      [api, experimentId, pipelineVersionId],
     ),
     options,
   );

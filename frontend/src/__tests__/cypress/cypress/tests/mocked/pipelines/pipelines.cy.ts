@@ -994,7 +994,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('View runs')
       .click();
-    verifyRelativeURL(`/pipelineRuns/${projectName}?runType=active`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=active`,
+    );
   });
 
   it('navigates to "Schedules" page from pipeline version row', () => {
@@ -1008,7 +1010,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('View schedules')
       .click();
-    verifyRelativeURL(`/pipelineRuns/${projectName}?runType=scheduled`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=scheduled`,
+    );
   });
 
   it('Table pagination', () => {

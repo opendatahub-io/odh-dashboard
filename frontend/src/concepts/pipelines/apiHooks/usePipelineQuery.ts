@@ -41,7 +41,7 @@ const usePipelineQuery = <T extends PipelineCoreResourceKFv2>(
         nextPageToken: result.next_page_token,
       };
     },
-    [apiFetch, page, pageSize, sortField, sortDirection, filter],
+    [page, apiFetch, pageSize, sortField, sortDirection, filter],
   );
 
   const [result, loaded, error, refresh] = useFetchState<PipelineListPaged<T>>(
