@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   FormSection,
   Title,
@@ -7,14 +8,17 @@ import {
   InputGroup,
   Tooltip,
   InputGroupItem,
+  Alert,
+  Popover,
 } from '@patternfly/react-core';
-import React from 'react';
 import { DataConnection } from '~/pages/projects/types';
-import { PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
+import ExternalLink from '~/components/ExternalLink';
+import { PipelineDropdown } from './PipelineDropdown';
 import { PipelineServerConfigType } from './types';
 import './ConfigurePipelinesServerModal.scss';
-import { PipelineDropdown } from './PipelineDropdown';
+import { storingDataHelpLink } from './const';
 
 export type FieldOptions = {
   key: string;
@@ -85,14 +89,42 @@ export const ObjectStorageSection = ({
             </InputGroup>
           </FormGroup>
         ) : (
-          <FieldListField
-            key={field.key}
-            value={
-              config.objectStorage.newValue.find((data) => data.key === field.key)?.value || ''
-            }
-            options={field}
-            onChange={onChange}
-          />
+          <>
+            <FieldListField
+              key={field.key}
+              value={
+                config.objectStorage.newValue.find((data) => data.key === field.key)?.value || ''
+              }
+              options={field}
+              onChange={onChange}
+            />
+
+            {field.key === AwsKeys.AWS_S3_BUCKET && (
+              <Popover
+                aria-label="bucket tooltip"
+                headerContent="Where is my data stored within the bucket?"
+                position="right"
+                hasAutoWidth
+                bodyContent={
+                  <div className="pf-v5-u-mt-md">
+                    Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
+                    <br />
+                    When running a pipeline, artifacts will be stored in dedicated folders at the{' '}
+                    <b>/root</b> directory.
+                  </div>
+                }
+                footerContent={<ExternalLink text="Learn more" to={storingDataHelpLink} />}
+              >
+                <Alert
+                  variant="info"
+                  isInline
+                  isPlain
+                  title="Where is my data stored within the bucket?"
+                  style={{ width: 'fit-content' }}
+                />
+              </Popover>
+            )}
+          </>
         ),
       )}
     </FormSection>
