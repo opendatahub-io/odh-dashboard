@@ -3,6 +3,13 @@ import fs from 'fs';
 import { defineConfig } from 'cypress';
 import dotenv from 'dotenv';
 import coverage from '@cypress/code-coverage/task';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore no types available
+import cypressHighResolution from 'cypress-high-resolution';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore no types available
+import { beforeRunHook, afterRunHook } from 'cypress-mochawesome-reporter/lib';
+import { mergeFiles } from 'junit-report-merger';
 import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 
@@ -17,11 +24,32 @@ import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/we
   }),
 );
 
+const resultsDir = `results/${process.env.MOCK ? 'mocked' : 'e2e'}`;
+
 export default defineConfig({
+  // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
+  reporter: '../../../node_modules/cypress-multi-reporters',
+  reporterOptions: {
+    reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
+    mochaJunitReporterReporterOptions: {
+      mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
+    },
+    cypressMochawesomeReporterReporterOptions: {
+      charts: true,
+      embeddedScreenshots: false,
+      ignoreVideos: false,
+      inlineAssets: true,
+      reportDir: resultsDir,
+      videoOnFailOnly: true,
+    },
+  },
   chromeWebSecurity: false,
-  viewportWidth: 1440,
-  viewportHeight: 900,
+  viewportWidth: 1920,
+  viewportHeight: 1080,
   numTestsKeptInMemory: 1,
+  video: true,
+  screenshotsFolder: `${resultsDir}/screenshots`,
+  videosFolder: `${resultsDir}/videos`,
   env: {
     MOCK: !!process.env.MOCK,
     LOGIN_USERNAME: process.env.LOGIN_USERNAME,
@@ -34,6 +62,7 @@ export default defineConfig({
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
     ODH_PRODUCT_NAME: process.env.ODH_PRODUCT_NAME,
+    resolution: 'high',
   },
   defaultCommandTimeout: 10000,
   e2e: {
@@ -45,6 +74,7 @@ export default defineConfig({
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      cypressHighResolution(on, config);
       coverage(on, config);
       setupWebsockets(on, config);
       on('task', {
@@ -87,6 +117,36 @@ export default defineConfig({
           }
         });
       }
+
+      // Delete videos for specs without failing or retried tests
+      on('after:spec', (_, results) => {
+        if (results.video) {
+          // Do we have failures for any retry attempts?
+          const failures = results.tests.some((test) =>
+            test.attempts.some((attempt) => attempt.state === 'failed'),
+          );
+          if (!failures) {
+            // delete the video if the spec passed and no tests retried
+            fs.unlinkSync(results.video);
+          }
+        }
+      });
+
+      on('before:run', async (details) => {
+        // cypress-mochawesome-reporter
+        await beforeRunHook(details);
+      });
+
+      on('after:run', async () => {
+        // cypress-mochawesome-reporter
+        await afterRunHook();
+
+        // merge junit reports into a single report
+        const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
+        const inputFiles = [`./${resultsDir}/junit/*.xml`];
+        await mergeFiles(outputFile, inputFiles);
+      });
+
       return config;
     },
   },
