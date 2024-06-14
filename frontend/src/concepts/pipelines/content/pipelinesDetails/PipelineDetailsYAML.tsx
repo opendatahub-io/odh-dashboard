@@ -9,13 +9,23 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import PipelineVersionError from './PipelineVersionError';
 
 type PipelineDetailsYAMLProps = {
   filename?: string;
   content?: Record<string, unknown> | null;
+  versionError?: Error;
 };
 
-const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({ filename, content }) => {
+const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({
+  versionError,
+  filename,
+  content,
+}) => {
+  if (versionError) {
+    return <PipelineVersionError />;
+  }
+
   if (!content) {
     return (
       <EmptyState>

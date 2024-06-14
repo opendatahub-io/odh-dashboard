@@ -68,8 +68,8 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     [selectedId, nodes],
   );
 
-  const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec);
-  const error = versionError || runError;
+  const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
+  const error = runError;
 
   if (error) {
     return (
@@ -160,10 +160,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           >
             <PipelineRunDetailsTabs
               run={run}
+              versionError={versionError}
               pipelineSpec={version?.pipeline_spec}
               graphContent={
                 <PipelineTopology
                   nodes={nodes}
+                  versionError={versionError}
                   selectedIds={selectedId ? [selectedId] : []}
                   onSelectionChange={(ids) => {
                     const firstId = ids[0];

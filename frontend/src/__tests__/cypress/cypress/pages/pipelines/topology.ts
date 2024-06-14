@@ -89,6 +89,14 @@ class RunDetails extends PipelinesTopology {
     return cy.findByTestId('pipeline-run-tab-spec');
   }
 
+  findPipelineSpecTabItem() {
+    return new PipelineSpecTabItem(() => cy.findByTestId('pipeline-spec-tab'));
+  }
+
+  findGraphTabItem() {
+    return new GraphTabItem(() => cy.findByTestId('pipeline-graph-tab'));
+  }
+
   findDetailItem(key: string) {
     return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
@@ -97,6 +105,18 @@ class RunDetails extends PipelinesTopology {
     return new PipelineRunRightDrawer(() =>
       cy.findByTestId('pipeline-run-drawer-right-content').parent(),
     );
+  }
+}
+
+class PipelineSpecTabItem extends Contextual<HTMLElement> {
+  findErrorState() {
+    return this.find().findByTestId('error-state-title');
+  }
+}
+
+class GraphTabItem extends Contextual<HTMLElement> {
+  findErrorState() {
+    return this.find().findByTestId('error-state-title');
   }
 }
 
