@@ -77,10 +77,20 @@ class PipelineRunRightDrawer extends Contextual<HTMLDivElement> {
 }
 
 class RunDetails extends PipelinesTopology {
-  findBottomDrawer() {
-    return new PipelineRunBottomDrawer(() =>
-      cy.findByTestId('pipeline-run-drawer-bottom').parent(),
-    );
+  findGraphTab() {
+    return cy.findByTestId('pipeline-run-tab-graph');
+  }
+
+  findDetailsTab() {
+    return cy.findByTestId('pipeline-run-tab-details');
+  }
+
+  findPipelineSpecTab() {
+    return cy.findByTestId('pipeline-run-tab-spec');
+  }
+
+  findDetailItem(key: string) {
+    return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
 
   findRightDrawer() {
@@ -244,24 +254,6 @@ class PipelineRunDetails extends RunDetails {
 
   findOutputArtifacts() {
     return cy.findByTestId('Output-artifacts');
-  }
-}
-
-class PipelineRunBottomDrawer extends Contextual<HTMLDivElement> {
-  findBottomDrawerDetailsTab() {
-    return this.find().findByTestId('bottom-drawer-tab-details');
-  }
-
-  findBottomDrawerYamlTab() {
-    return this.find().findByTestId('bottom-drawer-tab-run-output');
-  }
-
-  findBottomDrawerInputTab() {
-    return this.find().findByTestId('bottom-drawer-tab-input-parameters');
-  }
-
-  findBottomDrawerDetailItem(key: string) {
-    return new DetailsItem(() => this.find().findByTestId(`detail-item-${key}`));
   }
 }
 
