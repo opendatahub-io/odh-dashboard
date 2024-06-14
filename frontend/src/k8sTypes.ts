@@ -384,9 +384,9 @@ export type ServiceAccountKind = K8sResourceCommon & {
 };
 
 export type ServingContainer = {
-  args: string[];
-  image: string;
   name: string;
+  args?: string[];
+  image?: string;
   affinity?: PodAffinity;
   resources?: ContainerResources;
   volumeMounts?: VolumeMount[];
@@ -400,13 +400,13 @@ export type ServingRuntimeKind = K8sResourceCommon & {
   };
   spec: {
     builtInAdapter?: {
-      serverType: string;
-      runtimeManagementPort: number;
+      serverType?: string;
+      runtimeManagementPort?: number;
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
     containers: ServingContainer[];
-    supportedModelFormats: SupportedModelFormats[];
+    supportedModelFormats?: SupportedModelFormats[];
     replicas?: number;
     tolerations?: Toleration[];
     volumes?: Volume[];
@@ -443,8 +443,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
   spec: {
     predictor: {
       tolerations?: Toleration[];
-      model: {
-        modelFormat: {
+      model?: {
+        modelFormat?: {
           name: string;
           version?: string;
         };
@@ -452,9 +452,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
         runtime?: string;
         storageUri?: string;
         storage?: {
-          key: string;
+          key?: string;
           parameters?: Record<string, string>;
-          path: string;
+          path?: string;
           schemaPath?: string;
         };
       };
@@ -463,33 +463,33 @@ export type InferenceServiceKind = K8sResourceCommon & {
     };
   };
   status?: {
-    components: {
+    components?: {
       predictor?: {
-        grpcUrl: string;
-        restUrl: string;
-        url: string;
+        grpcUrl?: string;
+        restUrl?: string;
+        url?: string;
       };
     };
-    conditions: {
-      lastTransitionTime: string;
+    conditions?: {
+      lastTransitionTime?: string;
       status: string;
       type: string;
     }[];
-    modelStatus: {
-      copies: {
-        failedCopies: number;
-        totalCopies: number;
+    modelStatus?: {
+      copies?: {
+        failedCopies?: number;
+        totalCopies?: number;
       };
       lastFailureInfo?: {
-        location: string;
-        message: string;
-        modelRevisionName: string;
-        reason: string;
-        time: string;
+        location?: string;
+        message?: string;
+        modelRevisionName?: string;
+        reason?: string;
+        time?: string;
       };
-      states: {
+      states?: {
         activeModelState: string;
-        targetModelState: string;
+        targetModelState?: string;
       };
       transitionStatus: string;
     };

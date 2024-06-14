@@ -280,6 +280,14 @@ class InferenceServiceRow extends TableRow {
   findAPIProtocol() {
     return this.find().find(`[data-label="API protocol"]`);
   }
+
+  findInternalServiceButton() {
+    return this.find().findByTestId('internal-service-button');
+  }
+
+  findInternalServicePopover() {
+    return cy.findByTestId('internal-service-popover');
+  }
 }
 class ServingPlatformCard extends Contextual<HTMLElement> {
   findDeployModelButton() {

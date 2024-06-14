@@ -1740,154 +1740,213 @@ describe('Serving Runtime List', () => {
     });
   });
 
-  it('Check model size rendered with ServingRuntime size and no InferenceServiceSize', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableKServeConfig: true,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          modelName: 'llama-service',
-          isModelMesh: false,
-          resources: undefined,
-        }),
-      ],
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          namespace: 'test-project',
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
+  describe('Model size', () => {
+    it('Check model size rendered with ServingRuntime size and no InferenceServiceSize', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            modelName: 'llama-service',
+            isModelMesh: false,
+            resources: undefined,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            namespace: 'test-project',
+            resources: {
+              limits: {
+                cpu: '2',
+                memory: '8Gi',
+              },
+              requests: {
+                cpu: '1',
+                memory: '4Gi',
+              },
             },
-            requests: {
-              cpu: '1',
-              memory: '4Gi',
-            },
-          },
-        }),
-      ],
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Service');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Model server size')
+        .next('dd')
+        .should('contain.text', 'Small');
+
+      // click on the toggle button and open edit model server
+      kserveRow.find().findKebabAction('Edit').click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelServerSizeSelect().invoke('text').should('equal', 'Small');
     });
 
-    projectDetails.visitSection('test-project', 'model-server');
-    const kserveRow = modelServingSection.getKServeRow('Llama Service');
-    kserveRow.findExpansion().should(be.collapsed);
-    kserveRow.findToggleButton().click();
-    kserveRow
-      .findDescriptionListItem('Model server size')
-      .next('dd')
-      .should('contain.text', 'Small');
+    it('Check model size rendered with InferenceService size', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            modelName: 'llama-service',
+            isModelMesh: false,
+            resources: {
+              limits: {
+                cpu: '2',
+                memory: '8Gi',
+              },
+              requests: {
+                cpu: '1',
+                memory: '4Gi',
+              },
+            },
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            namespace: 'test-project',
+            resources: undefined,
+          }),
+        ],
+      });
 
-    // click on the toggle button and open edit model server
-    kserveRow.find().findKebabAction('Edit').click();
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Service');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Model server size')
+        .next('dd')
+        .should('contain.text', 'Small');
 
-    kserveModal.shouldBeOpen();
+      // click on the toggle button and open edit model server
+      kserveRow.find().findKebabAction('Edit').click();
 
-    kserveModal.findModelServerSizeSelect().invoke('text').should('equal', 'Small');
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelServerSizeSelect().invoke('text').should('equal', 'Small');
+    });
+
+    it('Check model size rendered with InferenceService custom size', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            modelName: 'llama-service',
+            isModelMesh: false,
+            resources: {
+              limits: {
+                cpu: '1',
+                memory: '10Gi',
+              },
+              requests: {
+                cpu: '1',
+                memory: '4Gi',
+              },
+            },
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'llama-service',
+            displayName: 'Llama Service',
+            namespace: 'test-project',
+            resources: undefined,
+            disableResources: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Service');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Model server size')
+        .next('dd')
+        .should('contain.text', 'Custom');
+
+      // click on the toggle button and open edit model server
+      modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelServerSizeSelect().invoke('text').should('equal', 'Custom');
+    });
   });
 
-  it('Check model size rendered with InferenceService size', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableKServeConfig: true,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          modelName: 'llama-service',
-          isModelMesh: false,
-          resources: {
-            limits: {
-              cpu: '2',
-              memory: '8Gi',
+  describe('Internal service', () => {
+    it('Check internal service is rendered when the model is loaded', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            auth: true,
+            route: false,
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'model-loaded',
+            displayName: 'Loaded model',
+            isModelMesh: true,
+            statusPredictor: {
+              grpcUrl: 'grpc://modelmesh-serving.modelmesh:8033',
+              restUrl: 'http://modelmesh-serving.modelmesh:8008',
+              url: 'grpc://modelmesh-serving.modelmesh:8033',
             },
-            requests: {
-              cpu: '1',
-              memory: '4Gi',
-            },
-          },
-        }),
-      ],
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          namespace: 'test-project',
-          resources: undefined,
-        }),
-      ],
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'model-not-loaded',
+            displayName: 'Model not loaded',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Expand the model serving section
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .findDeployedModelExpansionButton()
+        .click();
+      modelServingSection.findInferenceServiceTable().should('exist');
+
+      // Get modal of inference service when is loaded
+      const loadedInferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
+      loadedInferenceServiceRow.findInternalServiceButton().click();
+      loadedInferenceServiceRow.findInternalServicePopover().findByText('grpcUrl').should('exist');
+
+      // Get modal of inference service when is not loaded
+      const notLoadedInferenceServiceRow =
+        modelServingSection.getInferenceServiceRow('Model not loaded');
+      notLoadedInferenceServiceRow.findInternalServiceButton().click();
+      notLoadedInferenceServiceRow
+        .findInternalServicePopover()
+        .findByText('Could not find any internal service enabled')
+        .should('exist');
     });
-
-    projectDetails.visitSection('test-project', 'model-server');
-    const kserveRow = modelServingSection.getKServeRow('Llama Service');
-    kserveRow.findExpansion().should(be.collapsed);
-    kserveRow.findToggleButton().click();
-    kserveRow
-      .findDescriptionListItem('Model server size')
-      .next('dd')
-      .should('contain.text', 'Small');
-
-    // click on the toggle button and open edit model server
-    kserveRow.find().findKebabAction('Edit').click();
-
-    kserveModal.shouldBeOpen();
-
-    kserveModal.findModelServerSizeSelect().invoke('text').should('equal', 'Small');
-  });
-
-  it('Check model size rendered with InferenceService custom size', () => {
-    initIntercepts({
-      projectEnableModelMesh: false,
-      disableKServeConfig: true,
-      disableModelMeshConfig: true,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          modelName: 'llama-service',
-          isModelMesh: false,
-          resources: {
-            limits: {
-              cpu: '1',
-              memory: '10Gi',
-            },
-            requests: {
-              cpu: '1',
-              memory: '4Gi',
-            },
-          },
-        }),
-      ],
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          name: 'llama-service',
-          displayName: 'Llama Service',
-          namespace: 'test-project',
-          resources: undefined,
-          disableResources: true,
-        }),
-      ],
-    });
-
-    projectDetails.visitSection('test-project', 'model-server');
-    const kserveRow = modelServingSection.getKServeRow('Llama Service');
-    kserveRow.findExpansion().should(be.collapsed);
-    kserveRow.findToggleButton().click();
-    kserveRow
-      .findDescriptionListItem('Model server size')
-      .next('dd')
-      .should('contain.text', 'Custom');
-
-    // click on the toggle button and open edit model server
-    modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
-
-    kserveModal.shouldBeOpen();
-
-    kserveModal.findModelServerSizeSelect().invoke('text').should('equal', 'Custom');
   });
 });

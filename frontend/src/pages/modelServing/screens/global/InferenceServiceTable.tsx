@@ -54,7 +54,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
             <InferenceServiceTableRow
               obj={is}
               servingRuntime={servingRuntimes.find(
-                (sr) => sr.metadata.name === is.spec.predictor.model.runtime,
+                (sr) => sr.metadata.name === is.spec.predictor.model?.runtime,
               )}
               isGlobal={isGlobal}
               showServingRuntime={isGlobal}
@@ -70,7 +70,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         servingRuntime={
           deleteInferenceService && !isModelMesh(deleteInferenceService)
             ? servingRuntimes.find(
-                (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model.runtime,
+                (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model?.runtime,
               )
             : undefined
         }
@@ -98,7 +98,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           servingRuntimeEditInfo: {
             servingRuntime: editInferenceService
               ? servingRuntimes.find(
-                  (sr) => sr.metadata.name === editInferenceService.spec.predictor.model.runtime,
+                  (sr) => sr.metadata.name === editInferenceService.spec.predictor.model?.runtime,
                 )
               : undefined,
             secrets: [],

@@ -73,7 +73,7 @@ export const getInferenceServiceFromServingRuntime = (
 ): InferenceServiceKind[] =>
   inferenceServices.filter(
     (inferenceService) =>
-      inferenceService.spec.predictor.model.runtime === servingRuntime.metadata.name,
+      inferenceService.spec.predictor.model?.runtime === servingRuntime.metadata.name,
   );
 
 export const useCreateServingRuntimeObject = (existingData?: {
@@ -196,11 +196,11 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.name ||
     '';
   const existingStorage =
-    useDeepCompareMemoize(existingData?.spec.predictor.model.storage) || undefined;
-  const existingServingRuntime = existingData?.spec.predictor.model.runtime || '';
+    useDeepCompareMemoize(existingData?.spec.predictor.model?.storage) || undefined;
+  const existingServingRuntime = existingData?.spec.predictor.model?.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
   const existingFormat =
-    useDeepCompareMemoize(existingData?.spec.predictor.model.modelFormat) || undefined;
+    useDeepCompareMemoize(existingData?.spec.predictor.model?.modelFormat) || undefined;
   const existingMinReplicas =
     existingData?.spec.predictor.minReplicas || existingServingRuntimeData?.spec.replicas || 1;
   const existingMaxReplicas =

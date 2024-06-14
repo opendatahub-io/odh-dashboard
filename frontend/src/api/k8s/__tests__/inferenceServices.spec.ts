@@ -157,8 +157,8 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.tolerations?.[0].key).toBe(
       mockAcceleratorProfile({}).spec.tolerations?.[0].key,
     );
-    expect(inferenceService.spec.predictor.model.resources?.limits?.['nvidia.com/gpu']).toBe(1);
-    expect(inferenceService.spec.predictor.model.resources?.requests?.['nvidia.com/gpu']).toBe(1);
+    expect(inferenceService.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
+    expect(inferenceService.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
   });
 
   it('should not add accelerator if modelmesh and accelerator found', async () => {
@@ -181,7 +181,7 @@ describe('assembleInferenceService', () => {
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
-    expect(inferenceService.spec.predictor.model.resources).toBeUndefined();
+    expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
   });
 
   it('should provide max and min replicas if provided', async () => {
@@ -268,16 +268,16 @@ describe('assembleInferenceService', () => {
       acceleratorProfileState,
     );
 
-    expect(inferenceService.spec.predictor.model.resources?.requests?.cpu).toBe(
+    expect(inferenceService.spec.predictor.model?.resources?.requests?.cpu).toBe(
       modelSize.resources.requests?.cpu,
     );
-    expect(inferenceService.spec.predictor.model.resources?.requests?.memory).toBe(
+    expect(inferenceService.spec.predictor.model?.resources?.requests?.memory).toBe(
       modelSize.resources.requests?.memory,
     );
-    expect(inferenceService.spec.predictor.model.resources?.limits?.cpu).toBe(
+    expect(inferenceService.spec.predictor.model?.resources?.limits?.cpu).toBe(
       modelSize.resources.limits?.cpu,
     );
-    expect(inferenceService.spec.predictor.model.resources?.limits?.memory).toBe(
+    expect(inferenceService.spec.predictor.model?.resources?.limits?.memory).toBe(
       modelSize.resources.limits?.memory,
     );
   });
@@ -315,7 +315,7 @@ describe('assembleInferenceService', () => {
       acceleratorProfileState,
     );
 
-    expect(inferenceService.spec.predictor.model.resources).toBeUndefined();
+    expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
   });
 });
 

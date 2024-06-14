@@ -192,13 +192,13 @@ export const getInferenceServiceSizeOrReturnEmpty = (
   inferenceService?: InferenceServiceKind,
 ): ContainerResources | undefined => {
   if (
-    inferenceService?.spec.predictor.model.resources &&
+    inferenceService?.spec.predictor.model?.resources &&
     Object.keys(inferenceService.spec.predictor.model.resources).length === 0
   ) {
     return undefined;
   }
 
-  return inferenceService?.spec.predictor.model.resources;
+  return inferenceService?.spec.predictor.model?.resources;
 };
 
 export const getServingRuntimeOrReturnEmpty = (
