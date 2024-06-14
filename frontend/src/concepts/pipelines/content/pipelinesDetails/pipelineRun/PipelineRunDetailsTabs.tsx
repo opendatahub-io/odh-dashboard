@@ -21,12 +21,14 @@ interface PipelineRunDetailsTabsProps {
   run: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
   pipelineSpec: PipelineSpecVariable | undefined;
   graphContent: React.ReactNode;
+  versionError?: Error;
 }
 
 export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
   run,
   pipelineSpec,
   graphContent,
+  versionError,
 }) => {
   const [activeKey, setActiveKey] = React.useState<string | number>(DetailsTabKey.Graph);
   const isRecurringRun = run && isPipelineRecurringRun(run);
@@ -57,7 +59,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
           </TabContentBody>
         </Tab>
 
-        {!isRecurringRun && pipelineSpec && (
+        {!isRecurringRun && (
           <Tab
             eventKey={DetailsTabKey.Spec}
             tabContentId={DetailsTabKey.Spec}
@@ -73,6 +75,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
           id={DetailsTabKey.Graph}
           eventKey={DetailsTabKey.Graph}
           className="pf-v5-u-h-100"
+          data-testid="pipeline-graph-tab"
         >
           <TabContentBody className="pf-v5-u-h-100">{graphContent}</TabContentBody>
         </TabContent>
@@ -83,9 +86,14 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
         eventKey={DetailsTabKey.Spec}
         hidden={activeKey !== DetailsTabKey.Spec}
         style={{ flex: 1 }}
+        data-testid="pipeline-spec-tab"
       >
-        <TabContentBody className="pf-v5-u-h-100" hasPadding>
-          <PipelineDetailsYAML filename={run?.display_name} content={pipelineSpec} />
+        <TabContentBody className="pf-v5-u-h-100">
+          <PipelineDetailsYAML
+            filename={run?.display_name}
+            content={pipelineSpec}
+            versionError={versionError}
+          />
         </TabContentBody>
       </TabContent>
     </>
