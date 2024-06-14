@@ -17,7 +17,9 @@ export const useMetricColumnNames = (experimentId: string, metricsNames: Set<str
     ],
     [firstDefaultMetricColumn, secondDefaultMetricColumn],
   );
-  const metricsColumnNames = storedMetricsColumnNames ?? defaultMetricsColumnNames;
+  const metricsColumnNames = experimentId
+    ? storedMetricsColumnNames ?? defaultMetricsColumnNames
+    : [];
 
   // Set default metric columns in localStorage when no prior stored
   // columns exist and at least 1 metric exists to use as a default.
