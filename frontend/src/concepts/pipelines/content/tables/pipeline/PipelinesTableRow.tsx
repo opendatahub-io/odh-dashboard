@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Td, Tbody, Tr, ActionsColumn, TableText } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
@@ -43,6 +43,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   const [isExpanded, setExpanded] = React.useState(false);
   const [importTarget, setImportTarget] = React.useState<PipelineKFv2 | null>(null);
   const {
+    version,
     totalSize,
     updatedDate,
     loading,
@@ -84,7 +85,23 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           />
           <Td>
             <TableRowTitleDescription
-              title={<TableText wrapModifier="truncate">{pipeline.display_name}</TableText>}
+              title={
+                loading ? (
+                  <Skeleton />
+                ) : version?.pipeline_version_id ? (
+                  <Link
+                    to={pipelineDetailsPath(
+                      namespace,
+                      pipeline.pipeline_id,
+                      version.pipeline_version_id,
+                    )}
+                  >
+                    <TableText wrapModifier="truncate">{pipeline.display_name}</TableText>
+                  </Link>
+                ) : (
+                  <TableText wrapModifier="truncate">{pipeline.display_name}</TableText>
+                )
+              }
               description={pipeline.description}
               descriptionAsMarkdown
             />

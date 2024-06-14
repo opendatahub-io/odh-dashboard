@@ -24,6 +24,10 @@ class PipelinesTableRow extends TableRow {
         ]) as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
+
+  findPipelineNameLink(value: string) {
+    return this.find().findByTestId('table-row-title').contains(value);
+  }
 }
 
 class PipelineVersionsTableRow extends TableRow {
