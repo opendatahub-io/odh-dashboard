@@ -32,7 +32,7 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
   allowCreate,
   createNewToken,
 }) => (
-  <FormSection title="Token authorization">
+  <FormSection title="Token authentication" id="auth-section" data-testid="auth-section">
     <FormGroup>
       <Checkbox
         label="Require token authentication"

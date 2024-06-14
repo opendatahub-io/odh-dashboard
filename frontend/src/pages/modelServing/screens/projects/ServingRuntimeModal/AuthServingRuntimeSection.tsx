@@ -49,21 +49,21 @@ const AuthServingRuntimeSection: React.FC<AuthServingRuntimeSectionProps> = ({
   }, [data.tokens, setData]);
 
   return (
-    <Stack>
+    <Stack hasGutter>
       {!allowCreate && (
         <StackItem>
           <Popover
             showClose
             bodyContent={
               publicRoute
-                ? 'Model route and token authorization can only be changed by administrator users.'
-                : 'Token authorization can only be changed by administrator users and component Authorino needs to be installed.'
+                ? 'Model route and token authentication can only be changed by administrator users.'
+                : 'Token authentication can only be changed by administrator users and component Authorino needs to be installed.'
             }
           >
             <Button variant="link" icon={<OutlinedQuestionCircleIcon />} isInline>
               {publicRoute
-                ? "Why can't I change the model route and token authorization fields?"
-                : "Why can't I change the token authorization field?"}
+                ? "Why can't I change the model route and token authentication fields?"
+                : "Why can't I change the token authentication field?"}
             </Button>
           </Popover>
         </StackItem>

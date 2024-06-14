@@ -257,14 +257,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 isExpandable
                 isInline
                 variant="warning"
-                title="Token authorization service not installed"
+                title="Token authentication service not installed"
                 actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
               >
                 <p>
                   The single model serving platform used by this project allows deployed models to
-                  be accessible via external routes. It is recommended that token authorization be
+                  be accessible via external routes. It is recommended that token authentication be
                   enabled to protect these routes. The serving platform requires the Authorino
-                  operator be installed on the cluster for token authorization. Contact a cluster
+                  operator be installed on the cluster for token authentication. Contact a cluster
                   administrator to install the operator.
                 </p>
               </Alert>
