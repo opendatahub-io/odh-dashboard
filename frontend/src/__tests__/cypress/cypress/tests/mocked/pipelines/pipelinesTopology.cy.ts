@@ -345,85 +345,45 @@ describe('Pipeline topology', () => {
         cy.wait('@deletepipelineRunJob');
       });
 
-      it('Test pipeline job bottom drawer project navigation', () => {
+      it('Test pipeline job details project navigation', () => {
         pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
 
-        pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
-        pipelineRunJobDetails
-          .findBottomDrawer()
-          .findBottomDrawerDetailItem('Project')
-          .findValue()
-          .find('a')
-          .click();
+        pipelineRunJobDetails.findDetailsTab().click();
+        pipelineRunJobDetails.findDetailItem('Project').findValue().find('a').click();
         verifyRelativeURL(`/projects/${projectId}?section=overview`);
       });
 
-      it('Test pipeline job bottom drawer pipeline version navigation', () => {
+      it('Test pipeline job details pipeline version navigation', () => {
         pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
 
-        pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
-        pipelineRunJobDetails
-          .findBottomDrawer()
-          .findBottomDrawerDetailItem('Pipeline version')
-          .findValue()
-          .find('a')
-          .click();
+        pipelineRunJobDetails.findDetailsTab().click();
+        pipelineRunJobDetails.findDetailItem('Pipeline version').findValue().find('a').click();
         verifyRelativeURL(
           `/pipelines/${projectId}/pipeline/view/${mockJob.pipeline_version_reference.pipeline_id}/${mockJob.pipeline_version_reference.pipeline_version_id}`,
         );
       });
     });
 
-    it('Test pipeline job bottom drawer details', () => {
+    it('Test pipeline job tab details', () => {
       initIntercepts();
 
       pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
 
-      pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
+      pipelineRunJobDetails.findDetailsTab().click();
+      pipelineRunJobDetails.findDetailItem('Name').findValue().contains(mockJob.display_name);
+      pipelineRunJobDetails.findDetailItem('Project').findValue().contains('Test Project');
+      pipelineRunJobDetails.findDetailItem('Run ID').findValue().contains(mockJob.display_name);
       pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Name')
+        .findDetailItem('Pipeline version')
         .findValue()
-        .contains(mockJob.display_name);
-      pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Project')
-        .findValue()
-        .contains('Test Project');
-      pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Run ID')
-        .findValue()
-        .contains(mockJob.display_name);
-      pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Workflow name')
-        .findValue()
-        .contains('test-pipeline');
+        .contains('test-version-name');
+      pipelineRunJobDetails.findDetailItem('Pipeline').findValue().contains('test-pipeline');
+      pipelineRunJobDetails.findDetailItem('Workflow name').findValue().contains('test-pipeline');
+      pipelineRunJobDetails.findDetailItem('Created').findValue().contains('February 8, 2024');
+      pipelineRunJobDetails.findDetailItem('Run trigger enabled').findValue().contains('Yes');
+      pipelineRunJobDetails.findDetailItem('Trigger').findValue().contains('Every 1 minute');
     });
 
-    it('Test pipeline job bottom drawer parameters', () => {
-      initIntercepts();
-
-      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
-
-      pipelineRunJobDetails.findBottomDrawer().findBottomDrawerInputTab().click();
-      pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('min_max_scaler')
-        .findValue()
-        .contains('False');
-      pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('neighbors')
-        .findValue()
-        .contains('0');
-      pipelineRunJobDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('standard_scaler')
-        .findValue()
-        .contains('yes');
-    });
     it('Ensure that clicking on a node will open a right-side drawer', () => {
       initIntercepts();
 
@@ -442,63 +402,32 @@ describe('Pipeline topology', () => {
       taskDrawer.find().should('not.exist');
     });
 
-    it('Test pipeline triggered run bottom drawer details', () => {
+    it('Test pipeline triggered run tab details', () => {
       initIntercepts();
 
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
-      pipelineRunJobDetails.findBottomDrawer().findBottomDrawerYamlTab();
-      pipelineRunDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
+      pipelineRunJobDetails.findPipelineSpecTab();
+      pipelineRunDetails.findDetailsTab().click();
+      pipelineRunDetails.findDetailItem('Name').findValue().contains(mockJob.display_name);
       pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Name')
+        .findDetailItem('Pipeline version')
         .findValue()
-        .contains(mockJob.display_name);
-      pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Project')
-        .findValue()
-        .contains('Test Project');
-      pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Run ID')
-        .findValue()
-        .contains(mockJob.display_name);
-      pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('Workflow name')
-        .findValue()
-        .contains('test-pipeline');
+        .contains('test-version-name');
+      pipelineRunDetails.findDetailItem('Pipeline').findValue().contains('test-pipeline');
+      pipelineRunDetails.findDetailItem('Project').findValue().contains('Test Project');
+      pipelineRunDetails.findDetailItem('Run ID').findValue().contains(mockJob.display_name);
+      pipelineRunDetails.findDetailItem('Workflow name').findValue().contains('test-pipeline');
+      pipelineRunDetails.findDetailItem('Started').findValue().contains('March 15, 2024');
+      pipelineRunDetails.findDetailItem('Finished').findValue().contains('March 15, 2024');
+      pipelineRunDetails.findDetailItem('Duration').findValue().contains('0:50');
     });
 
-    it('Test pipeline triggered run bottom drawer parameters', () => {
-      initIntercepts();
-
-      pipelineRunDetails.visit(projectId, mockRun.run_id);
-
-      pipelineRunDetails.findBottomDrawer().findBottomDrawerInputTab().click();
-      pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('min_max_scaler')
-        .findValue()
-        .contains('False');
-      pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('neighbors')
-        .findValue()
-        .contains('1');
-      pipelineRunDetails
-        .findBottomDrawer()
-        .findBottomDrawerDetailItem('standard_scaler')
-        .findValue()
-        .contains('False');
-    });
-
-    it('Test pipeline triggered run bottom drawer output', () => {
+    it('Test pipeline triggered run YAML output', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
-      pipelineRunDetails.findBottomDrawer().findBottomDrawerYamlTab().click();
+      pipelineRunDetails.findPipelineSpecTab().click();
       pipelineRunDetails.findYamlOutput().click();
       const pipelineDashboardCodeEditor = pipelineDetails.getPipelineDashboardCodeEditor();
       pipelineDashboardCodeEditor.findInput().should('not.be.empty');
