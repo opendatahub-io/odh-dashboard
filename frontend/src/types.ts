@@ -644,6 +644,7 @@ export type FetchStateObject<T, E = Error> = {
 
 // TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
 export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
+export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };
 
 export type BreadcrumbItemType = {
   label: string;

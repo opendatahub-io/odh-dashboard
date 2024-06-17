@@ -100,7 +100,7 @@ const ModelServingPlatform: React.FC = () => {
           title={modelMeshEnabled ? 'Start by adding a model server' : 'Start by deploying a model'}
           description={
             modelMeshEnabled
-              ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authorization, the serving runtime, and how the project that the model server belongs to is accessed.\n'
+              ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed.\n'
               : 'Each model is deployed on its own model server.'
           }
           createButton={

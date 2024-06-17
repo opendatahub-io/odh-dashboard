@@ -1,99 +1,103 @@
-import { homePage } from '~/__tests__/cypress/cypress/pages/home';
+import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 
 describe('Home page AI Flows', () => {
+  const homeAISection = homePage.getHomeAISection();
   beforeEach(() => {
     homePage.initHomeIntercepts();
     homePage.visit();
   });
   it('should show the appropriate AI flow cards', () => {
-    cy.findByTestId('ai-flow-projects-card').should('be.visible');
-    cy.findByTestId('ai-flow-train-card').should('be.visible');
-    cy.findByTestId('ai-flow-models-card').should('be.visible');
+    homeAISection.getProjectCard().find().should('be.visible');
+    homeAISection.getTrainFlowCard().find().should('be.visible');
+    homeAISection.getModelsFlowCard().find().should('be.visible');
   });
+
   it('should show the appropriate info cards', () => {
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('ai-flows-projects-info').should('be.visible');
-    cy.findByTestId('ai-flows-connections-info').should('be.visible');
-    cy.findByTestId('ai-flows-storage-info').should('be.visible');
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findProjectsAIFlowInfo().should('be.visible');
+    homeAISection.findConnectionsAIFlowInfo().should('be.visible');
+    homeAISection.findStorageAIFlowInfo().should('be.visible');
+    homeAISection.getTrainFlowCard().find().click();
+    homeAISection.findWorkbenchesAIFlowInfo().should('be.visible');
+    homeAISection.findPipelinesAIFlowInfo().should('be.visible');
+    homeAISection.findRunsAIFlowInfo().should('be.visible');
 
-    homePage.getTrainFlowCard().click();
-    cy.findByTestId('ai-flows-workbenches-info').should('be.visible');
-    cy.findByTestId('ai-flows-pipelines-info').should('be.visible');
-    cy.findByTestId('ai-flows-runs-info').should('be.visible');
-
-    homePage.getModelsFlowCard().click();
-    cy.findByTestId('ai-flows-model-servers-info').should('be.visible');
-    cy.findByTestId('ai-flows-model-deploy-info').should('be.visible');
+    homeAISection.getModelsFlowCard().find().click();
+    homeAISection.findModelServerAIFlowInfo().should('be.visible');
+    homeAISection.findModelDeployAIFlowInfo().should('be.visible');
   });
+
   it('should close the info cards on re-click', () => {
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('ai-flows-projects-info').should('be.visible');
-    cy.findByTestId('ai-flows-connections-info').should('be.visible');
-    cy.findByTestId('ai-flows-storage-info').should('be.visible');
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findProjectsAIFlowInfo().should('be.visible');
+    homeAISection.findConnectionsAIFlowInfo().should('be.visible');
+    homeAISection.findStorageAIFlowInfo().should('be.visible');
 
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('ai-flows-projects-info').should('not.exist');
-    cy.findByTestId('ai-flows-connections-info').should('not.exist');
-    cy.findByTestId('ai-flows-storage-info').should('not.exist');
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findProjectsAIFlowInfo().should('not.exist');
+    homeAISection.findConnectionsAIFlowInfo().should('not.exist');
+    homeAISection.findStorageAIFlowInfo().should('not.exist');
   });
+
   it('should close the info cards on close button click', () => {
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('ai-flows-projects-info').should('be.visible');
-    cy.findByTestId('ai-flows-connections-info').should('be.visible');
-    cy.findByTestId('ai-flows-storage-info').should('be.visible');
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findProjectsAIFlowInfo().should('be.visible');
+    homeAISection.findConnectionsAIFlowInfo().should('be.visible');
+    homeAISection.findStorageAIFlowInfo().should('be.visible');
 
-    homePage.clickAIFlowClose();
-    cy.findByTestId('ai-flows-projects-info').should('not.exist');
-    cy.findByTestId('ai-flows-connections-info').should('not.exist');
-    cy.findByTestId('ai-flows-storage-info').should('not.exist');
+    homeAISection.findAIFlowClose().click();
+    homeAISection.findProjectsAIFlowInfo().should('not.exist');
+    homeAISection.findConnectionsAIFlowInfo().should('not.exist');
+    homeAISection.findStorageAIFlowInfo().should('not.exist');
   });
+
   it('should hide sections that are disabled', () => {
     homePage.initHomeIntercepts({ disableProjects: true });
     homePage.visit();
 
-    homePage.getProjectsFlowCard().should('not.exist');
+    homeAISection.getProjectCard().find().should('not.exist');
 
     homePage.initHomeIntercepts({ disableModelServing: true });
     homePage.visit();
 
-    homePage.getModelsFlowCard().should('not.exist');
+    homeAISection.getModelsFlowCard().find().should('not.exist');
   });
+
   it('should hide info cards that are disabled', () => {
     homePage.initHomeIntercepts({ disablePipelines: true });
     homePage.visit();
 
-    homePage.getTrainFlowCard().click();
+    homeAISection.getTrainFlowCard().find().click();
 
-    cy.findByTestId('ai-flows-workbenches-info').should('be.visible');
-    cy.findByTestId('ai-flows-pipelines-info').should('not.exist');
-    cy.findByTestId('ai-flows-runs-info').should('not.exist');
+    homeAISection.findWorkbenchesAIFlowInfo().should('be.visible');
+    homeAISection.findPipelinesAIFlowInfo().should('not.exist');
+    homeAISection.findRunsAIFlowInfo().should('not.exist');
   });
-  it('should render projects content specific to feature availability', () => {
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('project-workbenches--trailer-model-mesh').scrollIntoView();
 
+  it('should render projects content specific to feature availability', () => {
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findModelMeshDescriptionAdditionalText().scrollIntoView();
     homePage.initHomeIntercepts({ disableModelMesh: true });
     homePage.visit();
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('project-workbenches--trailer-no-model-mesh').scrollIntoView();
-
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findNoModelMeshDescriptionAdditionalText().scrollIntoView();
     homePage.initHomeIntercepts({ disableModelServing: true });
     homePage.visit();
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('project-workbenches--trailer-no-model-serving').scrollIntoView();
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findNoModelServingDescriptionAdditionalText().scrollIntoView();
 
     homePage.initHomeIntercepts({ disablePipelines: true });
     homePage.visit();
-    homePage.getProjectsFlowCard().click();
-    cy.findByTestId('project-workbenches--trailer-no-pipelines').scrollIntoView();
+    homeAISection.getProjectCard().find().click();
+    homeAISection.findNoPipelinesDescriptionAdditionalText().scrollIntoView();
   });
-  it('should render workbenches content specific to feature availability', () => {
-    homePage.getTrainFlowCard().click();
-    cy.findByTestId('create-and-train-pipelines-trailer').scrollIntoView();
 
+  it('should render workbenches content specific to feature availability', () => {
+    homeAISection.getTrainFlowCard().find().click();
+    homeAISection.findPipelinesTrainDescriptionText().should('exist');
     homePage.initHomeIntercepts({ disablePipelines: true });
     homePage.visit();
-    homePage.getTrainFlowCard().click();
-    cy.findByTestId('create-and-train-no-pipelines-trailer').scrollIntoView();
+    homeAISection.getTrainFlowCard().find().click();
+    homeAISection.findPipelinesTrainDescriptionText().should('not.exist');
   });
 });

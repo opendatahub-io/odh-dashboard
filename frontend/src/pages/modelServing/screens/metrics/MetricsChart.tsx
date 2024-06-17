@@ -109,7 +109,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   );
 
   const error = metrics.find((line) => line.metric.error)?.metric.error;
-  const isAllLoaded = metrics.every((line) => line.metric.loaded);
+  const isAllLoaded = error || metrics.every((line) => line.metric.loaded);
   const hasSomeData = graphLines.some((line) => line.points.length > 0);
 
   const ChartGroupWrapper = React.useMemo(() => (isStack ? ChartStack : ChartGroup), [isStack]);

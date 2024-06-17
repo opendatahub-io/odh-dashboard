@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { KubeFastifyInstance, ServingRuntime } from '../../../types';
+import { KubeFastifyInstance, ServingRuntimeKind } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -9,7 +9,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       async (
         request: FastifyRequest<{
           Querystring: { dryRun?: string };
-          Body: ServingRuntime;
+          Body: ServingRuntimeKind;
         }>,
         reply: FastifyReply,
       ) => {

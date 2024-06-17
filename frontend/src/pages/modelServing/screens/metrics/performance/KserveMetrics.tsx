@@ -1,22 +1,20 @@
 import * as React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
-import MetricsPlaceHolder from '~/pages/modelServing/screens/metrics/performance/MetricsPlaceHolder';
+import { ModelServingMetricsContext } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { KserveMetricsContextProvider } from '~/concepts/metrics/kserve/KserveMetricsContext';
+import KserveMetricsContent from '~/concepts/metrics/kserve/content/KserveMetricsContent';
 
-const KserveMetrics: React.FC = () => (
-  <Stack hasGutter>
-    <StackItem>
-      <MetricsPlaceHolder title="HTTP requests per 5 minutes" />
-    </StackItem>
-    <StackItem>
-      <MetricsPlaceHolder title="Average response time (ms)" />
-    </StackItem>
-    <StackItem>
-      <MetricsPlaceHolder title="CPU utilization %" />
-    </StackItem>
-    <StackItem>
-      <MetricsPlaceHolder title="Memory utilization %" />
-    </StackItem>
-  </Stack>
-);
+type KserveMetricsProps = {
+  modelName: string;
+};
+
+const KserveMetrics: React.FC<KserveMetricsProps> = ({ modelName }) => {
+  const { namespace } = React.useContext(ModelServingMetricsContext);
+
+  return (
+    <KserveMetricsContextProvider namespace={namespace} modelName={modelName}>
+      <KserveMetricsContent />
+    </KserveMetricsContextProvider>
+  );
+};
 
 export default KserveMetrics;

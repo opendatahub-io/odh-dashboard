@@ -72,7 +72,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
         try {
           const modelPods = await (!isModelMesh(deployedModel)
             ? getPodsForKserve
-            : getPodsForModelMesh)(namespace, deployedModel.spec.predictor.model.runtime ?? '');
+            : getPodsForModelMesh)(namespace, deployedModel.spec.predictor.model?.runtime ?? '');
           if (!canceled) {
             updateServiceState(deployedModel, checkModelStatus(modelPods[0]));
           }
@@ -133,7 +133,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
             key={model.metadata.uid}
             inferenceService={model}
             servingRuntime={servingRuntimes.find(
-              (sr) => sr.metadata.name === model.spec.predictor.model.runtime,
+              (sr) => sr.metadata.name === model.spec.predictor.model?.runtime,
             )}
           />
         ))}

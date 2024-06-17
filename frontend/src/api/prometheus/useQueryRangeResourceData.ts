@@ -1,6 +1,6 @@
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import { TimeframeStep, TimeframeTimeRange } from '~/concepts/metrics/const';
-import { PrometheusQueryRangeResultValue } from '~/types';
+import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
 import { FetchOptions } from '~/utilities/useFetchState';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
@@ -15,7 +15,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   namespace: string,
   apiPath = '/api/prometheus/serving',
   fetchOptions?: Partial<FetchOptions>,
-): ReturnType<typeof useRestructureContextResourceData<T>> =>
+): PendingContextResourceData<T> =>
   useRestructureContextResourceData<T>(
     usePrometheusQueryRange<T>(
       active,

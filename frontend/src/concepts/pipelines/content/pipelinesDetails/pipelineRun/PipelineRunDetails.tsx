@@ -4,7 +4,6 @@ import {
   BreadcrumbItem,
   Drawer,
   DrawerContent,
-  DrawerContentBody,
   EmptyState,
   EmptyStateIcon,
   EmptyStateVariant,
@@ -20,18 +19,12 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import MarkdownView from '~/components/MarkdownView';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import {
-  RunDetailsTabs,
-  RunDetailsTabSelection,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
-import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
@@ -39,7 +32,9 @@ import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
+import { PipelineTopology } from '~/concepts/topology';
 import { usePipelineRunArtifacts } from './artifacts';
+import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
 const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { runId } = useParams();
@@ -53,10 +48,6 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   const pipelineSpec = version?.pipeline_spec ?? run?.pipeline_spec;
   const [deleting, setDeleting] = React.useState(false);
   const [archiving, setArchiving] = React.useState(false);
-
-  const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
-    RunDetailsTabs.DETAILS,
-  );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
@@ -76,8 +67,6 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     () => nodes.find((n) => n.id === selectedId),
     [selectedId, nodes],
   );
-
-  const getFirstNode = (firstId: string) => nodes.find((n) => n.id === firstId);
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec);
   const error = versionError || runError;
@@ -116,98 +105,78 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             />
           }
         >
-          <DrawerContentBody>
-            <Drawer isInline isExpanded position="bottom">
-              <DrawerContent
-                panelContent={
-                  <PipelineRunDrawerBottomContent
-                    detailsTab={detailsTab}
-                    onSelectionChange={(selection) => {
-                      setDetailsTab(selection);
-                      setSelectedId(null);
-                    }}
-                    pipelineRunDetails={run && pipelineSpec ? run : undefined}
-                  />
-                }
-              >
-                <ApplicationsPage
-                  title={
-                    run ? (
-                      <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
-                    ) : (
-                      'Error loading run'
-                    )
-                  }
-                  subtext={
-                    run && (
-                      <PipelineJobReferenceName
-                        runName={run.display_name}
-                        recurringRunId={run.recurring_run_id}
-                      />
-                    )
-                  }
-                  description={
-                    run?.description ? (
-                      <MarkdownView conciseDisplay markdown={run.description} />
-                    ) : (
-                      ''
-                    )
-                  }
-                  loaded={loaded}
-                  loadError={error}
-                  breadcrumb={
-                    <Breadcrumb>
-                      {breadcrumbPath}
-                      <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                        {version ? (
-                          <Link
-                            to={routePipelineVersionRunsNamespace(
-                              namespace,
-                              version.pipeline_id,
-                              version.pipeline_version_id,
-                            )}
-                          >
-                            {version.display_name}
-                          </Link>
-                        ) : (
-                          'Loading...'
-                        )}
-                      </BreadcrumbItem>
-                      <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                        <Truncate content={run?.display_name ?? 'Loading...'} />
-                      </BreadcrumbItem>
-                    </Breadcrumb>
-                  }
-                  headerAction={
-                    <PipelineRunDetailsActions
-                      run={run}
-                      onDelete={() => setDeleting(true)}
-                      onArchive={() => setArchiving(true)}
-                    />
-                  }
-                  empty={false}
-                >
-                  {nodes.length === 0 ? (
-                    <PipelineTopologyEmpty />
+          <ApplicationsPage
+            title={
+              run ? (
+                <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
+              ) : (
+                'Error loading run'
+              )
+            }
+            subtext={
+              run && (
+                <PipelineJobReferenceName
+                  runName={run.display_name}
+                  recurringRunId={run.recurring_run_id}
+                />
+              )
+            }
+            description={
+              run?.description ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
+            }
+            loaded={loaded}
+            loadError={error}
+            breadcrumb={
+              <Breadcrumb>
+                {breadcrumbPath}
+                <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                  {version ? (
+                    <Link
+                      to={routePipelineVersionRunsNamespace(
+                        namespace,
+                        version.pipeline_id,
+                        version.pipeline_version_id,
+                      )}
+                    >
+                      {version.display_name}
+                    </Link>
                   ) : (
-                    <PipelineTopology
-                      nodes={nodes}
-                      selectedIds={selectedId ? [selectedId] : []}
-                      onSelectionChange={(ids) => {
-                        const firstId = ids[0];
-                        if (ids.length === 0) {
-                          setSelectedId(null);
-                        } else if (getFirstNode(firstId)) {
-                          setDetailsTab(null);
-                          setSelectedId(firstId);
-                        }
-                      }}
-                    />
+                    'Loading...'
                   )}
-                </ApplicationsPage>
-              </DrawerContent>
-            </Drawer>
-          </DrawerContentBody>
+                </BreadcrumbItem>
+                <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                  <Truncate content={run?.display_name ?? 'Loading...'} />
+                </BreadcrumbItem>
+              </Breadcrumb>
+            }
+            headerAction={
+              <PipelineRunDetailsActions
+                run={run}
+                onDelete={() => setDeleting(true)}
+                onArchive={() => setArchiving(true)}
+              />
+            }
+            empty={false}
+          >
+            <PipelineRunDetailsTabs
+              run={run}
+              pipelineSpec={version?.pipeline_spec}
+              graphContent={
+                <PipelineTopology
+                  nodes={nodes}
+                  selectedIds={selectedId ? [selectedId] : []}
+                  onSelectionChange={(ids) => {
+                    const firstId = ids[0];
+                    if (ids.length === 0) {
+                      setSelectedId(null);
+                    } else if (nodes.find((node) => node.id === firstId)) {
+                      setSelectedId(firstId);
+                    }
+                  }}
+                />
+              }
+            />
+          </ApplicationsPage>
         </DrawerContent>
       </Drawer>
       <DeletePipelineRunsModal

@@ -14,11 +14,9 @@ import {
 import { DataConnection } from '~/pages/projects/types';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
-import ExternalLink from '~/components/ExternalLink';
 import { PipelineDropdown } from './PipelineDropdown';
 import { PipelineServerConfigType } from './types';
 import './ConfigurePipelinesServerModal.scss';
-import { storingDataHelpLink } from './const';
 
 export type FieldOptions = {
   key: string;
@@ -113,7 +111,6 @@ export const ObjectStorageSection = ({
                     <b>/root</b> directory.
                   </div>
                 }
-                footerContent={<ExternalLink text="Learn more" to={storingDataHelpLink} />}
               >
                 <Alert
                   variant="info"

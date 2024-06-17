@@ -34,6 +34,7 @@ export * from './pipelines/k8s';
 export * from './prometheus/pvcs';
 export * from './prometheus/serving';
 export * from './prometheus/distributedWorkloads';
+export * from './prometheus/kservePerformanceMetrics';
 
 // Network error handling
 export * from './errorUtils';

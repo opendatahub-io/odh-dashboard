@@ -59,8 +59,11 @@ describe('getConfigMap', () => {
     expect(result).toStrictEqual(configMapMock);
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
       model: ConfigMapModel,
-      queryOptions: { name: configMapName, ns: namespace },
+      queryOptions: { name: configMapName, ns: namespace, queryParams: {} },
     });
   });
 
@@ -70,8 +73,11 @@ describe('getConfigMap', () => {
     await expect(getConfigMap(namespace, configMapName)).rejects.toThrow('error1');
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
       model: ConfigMapModel,
-      queryOptions: { name: configMapName, ns: namespace },
+      queryOptions: { name: configMapName, ns: namespace, queryParams: {} },
     });
   });
 });

@@ -43,11 +43,11 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     servingRuntimes: { data: servingRuntimes },
   } = React.useContext(ProjectDetailsContext);
 
-  const frameworkName = obj.spec.predictor.model.modelFormat.name;
-  const frameworkVersion = obj.spec.predictor.model.modelFormat.version;
+  const frameworkName = obj.spec.predictor.model?.modelFormat?.name;
+  const frameworkVersion = obj.spec.predictor.model?.modelFormat?.version;
 
   const servingRuntime = servingRuntimes.find(
-    (sr) => sr.metadata.name === obj.spec.predictor.model.runtime,
+    (sr) => sr.metadata.name === obj.spec.predictor.model?.runtime,
   );
 
   return (
@@ -109,7 +109,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                 <StackItem>
                   <DescriptionList>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Token authorization</DescriptionListTerm>
+                      <DescriptionListTerm>Token authentication</DescriptionListTerm>
                       <DescriptionListDescription>
                         <ServingRuntimeTokensTable
                           obj={obj}

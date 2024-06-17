@@ -11,7 +11,7 @@ const useServingAcceleratorProfile = (
   const acceleratorProfileName =
     servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
   const resources =
-    inferenceService?.spec.predictor.model.resources ||
+    inferenceService?.spec.predictor.model?.resources ||
     servingRuntime?.spec.containers[0].resources;
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;

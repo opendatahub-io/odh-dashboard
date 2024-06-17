@@ -171,6 +171,10 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('serving-runtime-template-selection');
   }
 
+  findAuthenticationSection() {
+    return this.find().findByTestId('auth-section');
+  }
+
   findModelRouteCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-route');
   }
@@ -275,6 +279,14 @@ class InferenceServiceRow extends TableRow {
 
   findAPIProtocol() {
     return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findInternalServiceButton() {
+    return this.find().findByTestId('internal-service-button');
+  }
+
+  findInternalServicePopover() {
+    return cy.findByTestId('internal-service-popover');
   }
 }
 class ServingPlatformCard extends Contextual<HTMLElement> {

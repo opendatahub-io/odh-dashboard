@@ -19,6 +19,7 @@ type MockResourceConfigType = {
   maxReplicas?: number;
   lastFailureInfoMessage?: string;
   resources?: ContainerResources;
+  statusPredictor?: Record<string, string>;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -74,6 +75,7 @@ export const mockInferenceServiceK8sResource = ({
   maxReplicas = 1,
   lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
   resources,
+  statusPredictor = undefined,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -131,7 +133,9 @@ export const mockInferenceServiceK8sResource = ({
     },
   },
   status: {
-    components: {},
+    components: {
+      ...(statusPredictor && { predictor: statusPredictor }),
+    },
     url,
     conditions: [
       {

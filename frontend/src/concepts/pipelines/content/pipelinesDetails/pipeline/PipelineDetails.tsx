@@ -10,6 +10,7 @@ import {
   FlexItem,
   Tab,
   TabContent,
+  TabContentBody,
   Tabs,
   TabTitleText,
   Truncate,
@@ -30,9 +31,11 @@ import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
+import { PipelineSummaryDescriptionList } from './PipelineSummaryDescriptionList';
 
 enum PipelineDetailsTab {
   GRAPH,
+  SUMMARY,
   YAML,
 }
 
@@ -163,9 +166,20 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   aria-label="Pipeline Graph Tab"
                   tabContentId={`tabContent-${PipelineDetailsTab.GRAPH}`}
                 />
+
+                <Tab
+                  eventKey={PipelineDetailsTab.SUMMARY}
+                  title={<TabTitleText>Summary</TabTitleText>}
+                  aria-label="Pipeline Summary Tab"
+                >
+                  <TabContentBody hasPadding>
+                    <PipelineSummaryDescriptionList pipeline={pipeline} version={pipelineVersion} />
+                  </TabContentBody>
+                </Tab>
+
                 <Tab
                   eventKey={PipelineDetailsTab.YAML}
-                  title={<TabTitleText>YAML</TabTitleText>}
+                  title={<TabTitleText>Pipeline spec</TabTitleText>}
                   data-testid="pipeline-yaml-tab"
                   aria-label="Pipeline YAML Tab"
                   tabContentId={`tabContent-${PipelineDetailsTab.YAML}`}
@@ -202,15 +216,17 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   eventKey={PipelineDetailsTab.YAML}
                   activeKey={activeTabKey}
                   hidden={PipelineDetailsTab.YAML !== activeTabKey}
-                  style={{ height: '100%' }}
+                  className="pf-v5-u-h-100"
                 >
-                  <PipelineDetailsYAML
-                    filename={`Pipeline ${
-                      getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??
-                      'details'
-                    }`}
-                    content={pipelineVersion?.pipeline_spec}
-                  />
+                  <TabContentBody hasPadding className="pf-v5-u-h-100">
+                    <PipelineDetailsYAML
+                      filename={`Pipeline ${
+                        getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??
+                        'details'
+                      }`}
+                      content={pipelineVersion?.pipeline_spec}
+                    />
+                  </TabContentBody>
                 </TabContent>
               </div>
             </ApplicationsPage>

@@ -27,11 +27,20 @@ export const assembleConfigMap = (
   data: configMapData,
 });
 
-export const getConfigMap = (projectName: string, configMapName: string): Promise<ConfigMapKind> =>
-  k8sGetResource<ConfigMapKind>({
-    model: ConfigMapModel,
-    queryOptions: { name: configMapName, ns: projectName },
-  });
+export const getConfigMap = (
+  projectName: string,
+  configMapName: string,
+  opts?: K8sAPIOptions,
+): Promise<ConfigMapKind> =>
+  k8sGetResource<ConfigMapKind>(
+    applyK8sAPIOptions(
+      {
+        model: ConfigMapModel,
+        queryOptions: { name: configMapName, ns: projectName },
+      },
+      opts,
+    ),
+  );
 
 export const createConfigMap = (
   data: ConfigMapKind,

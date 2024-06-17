@@ -9,7 +9,7 @@ import {
   SelfSubjectAccessReviewModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockProjectsK8sList } from '~/__mocks__';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home';
+import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 
 const interceptAccessReview = (allowed: boolean) => {
   cy.interceptK8s(
@@ -24,32 +24,39 @@ describe('Home page Projects section', () => {
     homePage.initHomeIntercepts({ disableProjects: true });
     homePage.visit();
 
-    cy.findByTestId('landing-page-projects').should('not.exist');
+    homePage.getHomeProjectSection().find().should('not.exist');
   });
+
   it('should show the empty state w/ create button when privileged', () => {
     homePage.initHomeIntercepts();
     homePage.visit();
 
-    cy.findByTestId('landing-page-projects-empty').should('be.visible');
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findEmptyProjectCard().should('be.visible');
   });
+
   it('should show allow project creation from the empty state when privileged', () => {
     homePage.initHomeIntercepts();
     homePage.visit();
 
-    cy.findByTestId('landing-page-projects-empty').should('be.visible');
-    cy.findByTestId('create-project-button').click();
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findEmptyProjectCard().should('be.visible');
+    homeProjectSection.findCreateProjectButton().click();
     createProjectModal.shouldBeOpen();
     createProjectModal.findCancelButton().click();
     createProjectModal.shouldBeOpen(false);
   });
+
   it('should show not allow project creation from the empty state when not privileged', () => {
     homePage.initHomeIntercepts();
     interceptAccessReview(false);
     homePage.visit();
 
-    cy.findByTestId('landing-page-projects-empty').should('be.visible');
-    cy.findByTestId('create-project-button').should('not.exist');
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findEmptyProjectCard().should('be.visible');
+    homeProjectSection.findCreateProjectButton().should('not.exist');
   });
+
   it('should show create project button when more projects exist', () => {
     homePage.initHomeIntercepts();
     const projectsMock = mockProjectsK8sList();
@@ -58,9 +65,11 @@ describe('Home page Projects section', () => {
 
     homePage.visit();
 
-    cy.findByTestId('create-project').should('be.visible');
-    cy.findByTestId('create-project-card').should('not.exist');
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findSectionHeaderCreateProjectButton().should('be.visible');
+    homeProjectSection.findCreateProjectCard().should('not.exist');
   });
+
   it('should not show create project button when more projects exist but user is not allowed', () => {
     homePage.initHomeIntercepts();
     interceptAccessReview(false);
@@ -70,11 +79,13 @@ describe('Home page Projects section', () => {
 
     homePage.visit();
 
-    cy.findByTestId('create-project').should('not.exist');
-    cy.findByTestId('create-project-card').should('not.exist');
-    cy.findByTestId('request-project-help').should('be.visible');
-    cy.findByTestId('request-project-card').should('not.exist');
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findSectionHeaderCreateProjectButton().should('not.exist');
+    homeProjectSection.findCreateProjectCard().should('not.exist');
+    homeProjectSection.findProjectRequestIcon().should('be.visible');
+    homeProjectSection.findRequestProjectCard().should('not.exist');
   });
+
   it('should show create project card when no more projects exist', () => {
     homePage.initHomeIntercepts();
     const projectsMock = mockProjectsK8sList();
@@ -85,10 +96,12 @@ describe('Home page Projects section', () => {
 
     homePage.visit();
 
-    cy.findByTestId('create-project').should('not.exist');
-    cy.findByTestId('create-project-card').should('be.visible');
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findSectionHeaderCreateProjectButton().should('not.exist');
+    homeProjectSection.findCreateProjectCard().should('be.visible');
   });
-  it('should show a request project card when no more projects exist but user is not allowed', () => {
+
+  it('should show a request project card when more projects exist but user is not allowed', () => {
     homePage.initHomeIntercepts();
     interceptAccessReview(false);
     const projectsMock = mockProjectsK8sList();
@@ -99,11 +112,13 @@ describe('Home page Projects section', () => {
 
     homePage.visit();
 
-    cy.findByTestId('create-project').should('not.exist');
-    cy.findByTestId('create-project-card').should('not.exist');
-    cy.findByTestId('request-project-card').should('be.visible');
-    cy.findByTestId('request-project-help').should('not.exist');
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findSectionHeaderCreateProjectButton().should('not.exist');
+    homeProjectSection.findCreateProjectCard().should('not.exist');
+    homeProjectSection.findRequestProjectCard().should('be.visible');
+    homeProjectSection.findProjectRequestIcon().should('not.exist');
   });
+
   it('should navigate to the project when the name is clicked', () => {
     homePage.initHomeIntercepts();
     interceptAccessReview(false);
@@ -115,7 +130,8 @@ describe('Home page Projects section', () => {
 
     homePage.visit();
 
-    cy.findByTestId(`project-link-${projects[0].metadata.name}`).click();
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findProjectLinkButton(projects[0].metadata.name).click();
     cy.url().should('include', projects[0].metadata.name);
     projectDetails.findComponent('overview').should('be.visible');
   });
@@ -130,7 +146,8 @@ describe('Home page Projects section', () => {
 
     homePage.visit();
 
-    cy.findByTestId('goto-projects-link').click();
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findGoToProjectLink().click();
     projectListPage.findProjectsTable().should('be.visible');
   });
 });

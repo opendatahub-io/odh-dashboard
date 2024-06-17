@@ -24,8 +24,8 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
             <Text component="small">
               Use model servers to deploy models for testing and implementing in intelligent
               applications. Configuring a model server includes specifying the number of replicas
-              being deployed, the server size, the token authorization, the serving runtime, and how
-              the project that the model server belongs to is accessed.
+              being deployed, the server size, the token authentication, the serving runtime, and
+              how the project that the model server belongs to is accessed.
             </Text>
           </TextContent>
         }

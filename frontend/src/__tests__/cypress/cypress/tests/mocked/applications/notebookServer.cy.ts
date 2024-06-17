@@ -7,7 +7,7 @@ import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 import { notebookController } from '~/__tests__/cypress/cypress/pages/administration';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home';
+import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 
 const groupSubjects: RoleBindingSubject[] = [
   {

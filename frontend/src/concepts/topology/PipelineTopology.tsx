@@ -7,6 +7,7 @@ import {
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
+import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 
 type PipelineTopologyProps = {
   selectedIds?: string[];
@@ -35,6 +36,10 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
 
     return undefined;
   }, [controller, onSelectionChange]);
+
+  if (!nodes.length) {
+    return <PipelineTopologyEmpty />;
+  }
 
   if (!controller) {
     return (
