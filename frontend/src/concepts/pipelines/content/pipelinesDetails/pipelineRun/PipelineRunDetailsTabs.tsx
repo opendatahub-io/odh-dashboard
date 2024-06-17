@@ -1,6 +1,15 @@
 import React from 'react';
 
-import { Tabs, Tab, TabTitleText, TabContentBody, TabContent } from '@patternfly/react-core';
+import {
+  Tabs,
+  Tab,
+  TabTitleText,
+  TabContentBody,
+  TabContent,
+  PageSection,
+  FlexItem,
+  Flex,
+} from '@patternfly/react-core';
 
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import {
@@ -34,68 +43,80 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
   const isRecurringRun = run && isPipelineRecurringRun(run);
 
   return (
-    <>
-      <Tabs
-        activeKey={activeKey}
-        onSelect={(_, eventKey) => setActiveKey(eventKey)}
-        aria-label="Pipeline run details tabs"
+    <PageSection
+      isFilled
+      padding={{ default: 'noPadding' }}
+      style={{ flexBasis: 0, overflowY: 'hidden' }}
+      variant="light"
+    >
+      <Flex
+        direction={{ default: 'column' }}
+        style={{ height: '100%' }}
+        spaceItems={{ default: 'spaceItemsNone' }}
       >
-        <Tab
-          eventKey={DetailsTabKey.Graph}
-          tabContentId={DetailsTabKey.Graph}
-          title={<TabTitleText>Graph</TabTitleText>}
-          aria-label="Run graph tab"
-          data-testid="pipeline-run-tab-graph"
-        />
+        <FlexItem>
+          <Tabs
+            activeKey={activeKey}
+            onSelect={(_, eventKey) => setActiveKey(eventKey)}
+            aria-label="Pipeline run details tabs"
+          >
+            <Tab
+              eventKey={DetailsTabKey.Graph}
+              tabContentId={DetailsTabKey.Graph}
+              title={<TabTitleText>Graph</TabTitleText>}
+              aria-label="Run graph tab"
+              data-testid="pipeline-run-tab-graph"
+            />
+            <Tab
+              eventKey={DetailsTabKey.Details}
+              title={<TabTitleText>Details</TabTitleText>}
+              aria-label="Run details tab"
+              data-testid="pipeline-run-tab-details"
+            >
+              <TabContentBody hasPadding>
+                <PipelineRunTabDetails workflowName={run?.display_name} run={run} />
+              </TabContentBody>
+            </Tab>
 
-        <Tab
-          eventKey={DetailsTabKey.Details}
-          title={<TabTitleText>Details</TabTitleText>}
-          aria-label="Run details tab"
-          data-testid="pipeline-run-tab-details"
-        >
-          <TabContentBody hasPadding>
-            <PipelineRunTabDetails workflowName={run?.display_name} run={run} />
-          </TabContentBody>
-        </Tab>
+            {!isRecurringRun && (
+              <Tab
+                eventKey={DetailsTabKey.Spec}
+                tabContentId={DetailsTabKey.Spec}
+                title={<TabTitleText>Pipeline spec</TabTitleText>}
+                aria-label="Run spec tab"
+                data-testid="pipeline-run-tab-spec"
+              />
+            )}
+          </Tabs>
+        </FlexItem>
+        <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
+          <TabContent
+            id={DetailsTabKey.Graph}
+            eventKey={DetailsTabKey.Graph}
+            className="pf-v5-u-h-100"
+            data-testid="pipeline-graph-tab"
+            hidden={activeKey !== DetailsTabKey.Graph}
+          >
+            <TabContentBody className="pf-v5-u-h-100">{graphContent}</TabContentBody>
+          </TabContent>
 
-        {!isRecurringRun && (
-          <Tab
+          <TabContent
+            id={DetailsTabKey.Spec}
             eventKey={DetailsTabKey.Spec}
-            tabContentId={DetailsTabKey.Spec}
-            title={<TabTitleText>Pipeline spec</TabTitleText>}
-            aria-label="Run spec tab"
-            data-testid="pipeline-run-tab-spec"
-          />
-        )}
-      </Tabs>
-
-      <div style={{ flex: 1 }} hidden={activeKey !== DetailsTabKey.Graph}>
-        <TabContent
-          id={DetailsTabKey.Graph}
-          eventKey={DetailsTabKey.Graph}
-          className="pf-v5-u-h-100"
-          data-testid="pipeline-graph-tab"
-        >
-          <TabContentBody className="pf-v5-u-h-100">{graphContent}</TabContentBody>
-        </TabContent>
-      </div>
-
-      <TabContent
-        id={DetailsTabKey.Spec}
-        eventKey={DetailsTabKey.Spec}
-        hidden={activeKey !== DetailsTabKey.Spec}
-        style={{ flex: 1 }}
-        data-testid="pipeline-spec-tab"
-      >
-        <TabContentBody className="pf-v5-u-h-100">
-          <PipelineDetailsYAML
-            filename={run?.display_name}
-            content={pipelineSpec}
-            versionError={versionError}
-          />
-        </TabContentBody>
-      </TabContent>
-    </>
+            hidden={activeKey !== DetailsTabKey.Spec}
+            style={{ flex: 1 }}
+            data-testid="pipeline-spec-tab"
+          >
+            <TabContentBody className="pf-v5-u-h-100" hasPadding>
+              <PipelineDetailsYAML
+                filename={run?.display_name}
+                content={pipelineSpec}
+                versionError={versionError}
+              />
+            </TabContentBody>
+          </TabContent>
+        </FlexItem>
+      </Flex>
+    </PageSection>
   );
 };
