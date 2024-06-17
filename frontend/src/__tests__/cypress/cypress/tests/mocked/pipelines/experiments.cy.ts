@@ -31,11 +31,13 @@ import { RecurringRunStatus, StorageStateKF } from '~/concepts/pipelines/kfTypes
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
+const currentTime = new Date();
+currentTime.setMonth(currentTime.getMonth() - 3);
 const mockExperiments = [
   buildMockExperimentKF({
     display_name: 'Test experiment 1',
     experiment_id: '1',
-    last_run_created_at: '2024-02-31T15:46:33Z',
+    last_run_created_at: currentTime.toISOString(),
   }),
   buildMockExperimentKF({
     display_name: 'Test experiment 2',
