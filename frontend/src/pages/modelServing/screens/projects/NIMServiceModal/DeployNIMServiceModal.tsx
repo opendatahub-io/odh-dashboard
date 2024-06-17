@@ -37,7 +37,8 @@ import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
-import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { getProjectDisplayName } from '~/concepts/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
