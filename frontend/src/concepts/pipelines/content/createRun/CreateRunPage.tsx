@@ -16,7 +16,9 @@ const CreateRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => 
       title={title}
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath}
+          {breadcrumbPath(
+            runType === PipelineRunType.SCHEDULED ? PipelineRunType.SCHEDULED : undefined,
+          )}
           <BreadcrumbItem isActive>{title}</BreadcrumbItem>
         </Breadcrumb>
       }

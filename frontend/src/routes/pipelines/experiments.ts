@@ -36,7 +36,7 @@ export const experimentsCloneScheduleRoute = (
 export const experimentRunsRoute = (
   namespace: string | undefined,
   experimentId: string | undefined,
-  runType?: PipelineRunType,
+  runType?: PipelineRunType | null,
 ): string =>
   !experimentId
     ? experimentsBaseRoute(namespace)

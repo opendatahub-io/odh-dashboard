@@ -93,6 +93,9 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     );
   }
 
+  const runType =
+    run?.storage_state === StorageStateKF.ARCHIVED ? PipelineRunType.ARCHIVED : undefined;
+
   return (
     <>
       <Drawer isExpanded={!!selectedNode}>
@@ -129,7 +132,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             loadError={error}
             breadcrumb={
               <Breadcrumb>
-                {breadcrumbPath}
+                {breadcrumbPath(runType)}
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                   {version ? (
                     <Link
@@ -137,9 +140,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         namespace,
                         version.pipeline_id,
                         version.pipeline_version_id,
-                        run?.storage_state === StorageStateKF.ARCHIVED
-                          ? PipelineRunType.ARCHIVED
-                          : undefined,
+                        runType,
                       )}
                     >
                       <Truncate content={version.display_name} />

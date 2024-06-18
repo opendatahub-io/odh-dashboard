@@ -94,7 +94,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
             loadError={error}
             breadcrumb={
               <Breadcrumb>
-                {breadcrumbPath}
+                {breadcrumbPath(PipelineRunType.SCHEDULED)}
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                   {version ? (
                     <Link

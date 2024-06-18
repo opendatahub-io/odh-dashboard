@@ -29,7 +29,7 @@ const GlobalPipelineVersionRuns: PipelineCoreDetailsPageComponent = ({ breadcrum
       <ApplicationsPage
         breadcrumb={
           <Breadcrumb>
-            {breadcrumbPath}
+            {breadcrumbPath()}
             <BreadcrumbItem isActive>{title}</BreadcrumbItem>
           </Breadcrumb>
         }
@@ -46,7 +46,7 @@ const GlobalPipelineVersionRuns: PipelineCoreDetailsPageComponent = ({ breadcrum
     <ApplicationsPage
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath}
+          {breadcrumbPath()}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
             <Link to={routePipelineDetailsNamespace(namespace, pipelineId, pipelineVersionId)}>
               <Truncate content={pipelineVersion?.display_name || 'Loading...'} />

@@ -8,7 +8,6 @@ import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { experimentRunsRoute, experimentSchedulesRoute, experimentsBaseRoute } from '~/routes';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -27,7 +26,7 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
     <EnsureAPIAvailability>
       <EnsureCompatiblePipelineServer>
         <BreadcrumbDetailsComponent
-          breadcrumbPath={[
+          breadcrumbPath={() => [
             <BreadcrumbItem
               key="home"
               render={() => (
@@ -57,7 +56,7 @@ export const GlobalExperimentDetails: React.FC<
     <EnsureAPIAvailability>
       <EnsureCompatiblePipelineServer>
         <BreadcrumbDetailsComponent
-          breadcrumbPath={[
+          breadcrumbPath={(runType) => [
             <BreadcrumbItem key="experiments">
               <Link to={experimentsBaseRoute(namespace)}>
                 Experiments - {getProjectDisplayName(project)}
@@ -65,13 +64,7 @@ export const GlobalExperimentDetails: React.FC<
             </BreadcrumbItem>,
             <BreadcrumbItem key="experiment">
               {experiment?.display_name ? (
-                <Link
-                  to={experimentRunsRoute(
-                    namespace,
-                    experimentId,
-                    isSchedule ? PipelineRunType.SCHEDULED : undefined,
-                  )}
-                >
+                <Link to={experimentRunsRoute(namespace, experimentId, runType)}>
                   {experiment.display_name}
                 </Link>
               ) : (

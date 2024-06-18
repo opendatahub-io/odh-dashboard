@@ -96,7 +96,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       loaded
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath}
+          {breadcrumbPath()}
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
         </Breadcrumb>
       }

@@ -21,7 +21,7 @@ const CloneRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
       title={title}
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath}
+          {breadcrumbPath(runType)}
           <BreadcrumbItem isActive>
             {run ? `Duplicate of ${run.display_name}` : 'Duplicate'}
           </BreadcrumbItem>
