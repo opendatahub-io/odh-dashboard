@@ -56,6 +56,7 @@ jobs:
           directory: ./frontend/coverage
           verbose: true
       - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: cypress-results
           path: ./frontend/src/__tests__/cypress/results/
