@@ -138,7 +138,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         version.pipeline_version_id,
                       )}
                     >
-                      {version.display_name}
+                      <Truncate content={version.display_name} />
                     </Link>
                   ) : (
                     'Loading...'

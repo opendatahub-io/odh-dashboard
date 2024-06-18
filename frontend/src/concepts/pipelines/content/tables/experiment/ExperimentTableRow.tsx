@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-
+import { Truncate } from '@patternfly/react-core';
 import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import { experimentRunsRoute } from '~/routes';
@@ -36,7 +35,7 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
           }`}
           state={{ experiment }}
         >
-          {experiment.display_name}
+          <Truncate content={experiment.display_name} />
         </Link>
       </Td>
       <Td dataLabel="Description">{experiment.description}</Td>

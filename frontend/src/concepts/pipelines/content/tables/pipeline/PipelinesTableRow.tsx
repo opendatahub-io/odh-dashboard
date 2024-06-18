@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Td, Tbody, Tr, ActionsColumn } from '@patternfly/react-table';
+import { Td, Tbody, Tr, ActionsColumn, TableText } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
@@ -84,7 +84,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           />
           <Td>
             <TableRowTitleDescription
-              title={pipeline.display_name}
+              title={<TableText wrapModifier="truncate">{pipeline.display_name}</TableText>}
               description={pipeline.description}
               descriptionAsMarkdown
             />
