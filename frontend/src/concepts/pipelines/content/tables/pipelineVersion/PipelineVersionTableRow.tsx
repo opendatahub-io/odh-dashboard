@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
@@ -53,15 +53,17 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
       <Td>
         <TableRowTitleDescription
           title={
-            <Link
-              to={pipelineVersionDetailsPath(
-                namespace,
-                version.pipeline_id,
-                version.pipeline_version_id,
-              )}
-            >
-              {version.display_name}
-            </Link>
+            <TableText wrapModifier="truncate">
+              <Link
+                to={pipelineVersionDetailsPath(
+                  namespace,
+                  version.pipeline_id,
+                  version.pipeline_version_id,
+                )}
+              >
+                {version.display_name}
+              </Link>
+            </TableText>
           }
           description={version.description}
           descriptionAsMarkdown

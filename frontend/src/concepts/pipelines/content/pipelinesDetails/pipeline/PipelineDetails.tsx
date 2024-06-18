@@ -98,7 +98,9 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               breadcrumb={
                 <Breadcrumb>
                   {breadcrumbPath}
-                  <BreadcrumbItem>{pipeline?.display_name || 'Loading...'}</BreadcrumbItem>
+                  <BreadcrumbItem style={{ maxWidth: 300 }}>
+                    <Truncate content={pipeline?.display_name || 'Loading...'} />
+                  </BreadcrumbItem>
                   <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                     <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
                   </BreadcrumbItem>
