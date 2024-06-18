@@ -64,6 +64,9 @@ export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind)
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
+export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
+
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
 
@@ -206,7 +209,8 @@ export const useCreateInferenceServiceObject = (
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
 
-  const existingExternalRoute = false; // TODO: Change this in the future in case we have an External Route
+  const existingExternalRoute =
+    existingData?.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
   const existingTokenAuth =
     existingData?.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
@@ -523,7 +527,13 @@ export const submitServingRuntimeResourcesWithDryRun = async (
 
 export const getUrlFromKserveInferenceService = (
   inferenceService: InferenceServiceKind,
-): string | undefined => inferenceService.status?.url;
+): string | undefined =>
+  isUrlInternalService(inferenceService.status?.url) || !inferenceService.status?.url
+    ? undefined
+    : inferenceService.status.url;
+
+export const isUrlInternalService = (url: string | undefined): boolean =>
+  url !== undefined && url.endsWith('.svc.cluster.local');
 
 export const filterOutConnectionsWithoutBucket = (
   connections: DataConnection[],
