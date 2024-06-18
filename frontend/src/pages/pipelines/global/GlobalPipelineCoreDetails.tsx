@@ -8,6 +8,7 @@ import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { experimentRunsRoute, experimentSchedulesRoute, experimentsBaseRoute } from '~/routes';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -64,7 +65,13 @@ export const GlobalExperimentDetails: React.FC<
             </BreadcrumbItem>,
             <BreadcrumbItem key="experiment">
               {experiment?.display_name ? (
-                <Link to={experimentRunsRoute(namespace, experimentId)}>
+                <Link
+                  to={experimentRunsRoute(
+                    namespace,
+                    experimentId,
+                    isSchedule ? PipelineRunType.SCHEDULED : undefined,
+                  )}
+                >
                   {experiment.display_name}
                 </Link>
               ) : (

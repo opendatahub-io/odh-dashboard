@@ -1,3 +1,5 @@
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+
 export const experimentsRootPath = '/experiments';
 export const globExperimentsAll = `${experimentsRootPath}/*`;
 
@@ -34,10 +36,13 @@ export const experimentsCloneScheduleRoute = (
 export const experimentRunsRoute = (
   namespace: string | undefined,
   experimentId: string | undefined,
+  runType?: PipelineRunType,
 ): string =>
   !experimentId
     ? experimentsBaseRoute(namespace)
-    : `${experimentsBaseRoute(namespace)}/${experimentId}/runs`;
+    : `${experimentsBaseRoute(namespace)}/${experimentId}/runs${
+        runType ? `?runType=${runType}` : ''
+      }`;
 
 export const experimentSchedulesRoute = (
   namespace: string | undefined,

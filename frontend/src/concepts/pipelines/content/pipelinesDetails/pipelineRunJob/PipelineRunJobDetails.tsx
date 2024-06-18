@@ -102,6 +102,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                         namespace,
                         version.pipeline_id,
                         version.pipeline_version_id,
+                        PipelineRunType.SCHEDULED,
                       )}
                     >
                       {version.display_name}

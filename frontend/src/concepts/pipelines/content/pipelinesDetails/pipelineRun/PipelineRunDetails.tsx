@@ -33,6 +33,7 @@ import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobRe
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '~/concepts/topology';
+import { StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -136,6 +137,9 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         namespace,
                         version.pipeline_id,
                         version.pipeline_version_id,
+                        run?.storage_state === StorageStateKF.ARCHIVED
+                          ? PipelineRunType.ARCHIVED
+                          : undefined,
                       )}
                     >
                       <Truncate content={version.display_name} />
