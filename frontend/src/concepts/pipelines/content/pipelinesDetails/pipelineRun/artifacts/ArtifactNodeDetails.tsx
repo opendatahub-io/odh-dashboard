@@ -10,7 +10,6 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
-  StackItem,
 } from '@patternfly/react-core';
 
 import { Artifact } from '~/third_party/mlmd';
@@ -21,7 +20,6 @@ import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/Pipelines
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
-import ArtifactPreview from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/ArtifactPreview';
 
 type ArtifactNodeDetailsProps = Pick<
   React.ComponentProps<typeof PipelineRunDrawerRightContent>,
@@ -90,14 +88,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
             <DescriptionListGroup>
               <DescriptionListTerm>{artifactName}</DescriptionListTerm>
               <DescriptionListDescription>
-                <Stack hasGutter>
-                  <StackItem>
-                    <ArtifactUriLink uri={artifact.getUri()} />
-                  </StackItem>
-                  <StackItem>
-                    <ArtifactPreview artifact={artifact} />
-                  </StackItem>
-                </Stack>
+                <ArtifactUriLink uri={artifact.getUri()} />
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>

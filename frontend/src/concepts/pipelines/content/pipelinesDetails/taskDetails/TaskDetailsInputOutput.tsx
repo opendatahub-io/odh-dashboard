@@ -4,7 +4,6 @@ import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/ta
 import TaskDetailsPrintKeyValues from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsPrintKeyValues';
 import { PipelineTaskArtifact } from '~/concepts/pipelines/topology';
 import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
-import ArtifactPreview from './ArtifactPreview';
 
 type TaskDetailsInputOutputProps = {
   type: 'Input' | 'Output';
@@ -29,7 +28,6 @@ const TaskDetailsInputOutput: React.FC<TaskDetailsInputOutputProps> = ({
         return {
           label: artifactInputOutput.label,
           value: <ArtifactUriLink uri={artifact.getUri()} />,
-          preview: <ArtifactPreview artifact={artifact} />,
         };
       }
 
