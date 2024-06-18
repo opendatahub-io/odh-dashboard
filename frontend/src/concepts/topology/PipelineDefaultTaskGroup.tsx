@@ -8,10 +8,7 @@ import {
   Node,
   GraphElement,
   RunStatus,
-  DEFAULT_LAYER,
-  Layer,
   ScaleDetailsLevel,
-  TOP_LAYER,
   NodeModel,
   useHover,
   PipelineNodeModel,
@@ -65,7 +62,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         hideDetailsAtMedium
         showStatusState
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
-        showLabel={detailsLevel === ScaleDetailsLevel.high}
+        showLabelOnHover
         status={element.getData()?.runStatus}
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
@@ -79,23 +76,21 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     );
 
     return (
-      <Layer id={detailsLevel !== ScaleDetailsLevel.high && hover ? TOP_LAYER : DEFAULT_LAYER}>
-        <g ref={hoverRef}>
-          {element.isCollapsed() ? (
-            <Popover
-              triggerRef={popoverRef}
-              triggerAction="hover"
-              aria-label="Hoverable popover"
-              headerContent={element.getLabel()}
-              bodyContent={getPopoverTasksList(element.getAllNodeChildren())}
-            >
-              <g ref={popoverRef}>{groupNode}</g>
-            </Popover>
-          ) : (
-            groupNode
-          )}
-        </g>
-      </Layer>
+      <g ref={hoverRef}>
+        {element.isCollapsed() ? (
+          <Popover
+            triggerRef={popoverRef}
+            triggerAction="hover"
+            aria-label="Hoverable popover"
+            headerContent={element.getLabel()}
+            bodyContent={getPopoverTasksList(element.getAllNodeChildren())}
+          >
+            <g ref={popoverRef}>{groupNode}</g>
+          </Popover>
+        ) : (
+          groupNode
+        )}
+      </g>
     );
   },
 );
