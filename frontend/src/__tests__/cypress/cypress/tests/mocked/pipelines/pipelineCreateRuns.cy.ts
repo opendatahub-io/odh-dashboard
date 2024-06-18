@@ -267,7 +267,7 @@ describe('Pipeline create runs', () => {
                     },
                     double_param: {
                       parameterType: InputDefinitionParameterType.DOUBLE,
-                      defaultValue: 0.1,
+                      defaultValue: 7.0,
                       description: 'Some double helper text',
                       isOptional: true,
                     },
@@ -313,7 +313,7 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('string_param').should('have.value', 'String default value');
       cy.findByTestId('string_param-helper-text').should('have.text', 'Some string helper text');
 
-      paramsSection.findParamById('double_param').should('have.value', '0.1');
+      paramsSection.findParamById('double_param').should('have.value', '7.0');
       cy.findByTestId('double_param-form-group').should('not.have.text', '*', { exact: false });
       cy.findByTestId('double_param-helper-text').should('have.text', 'Some double helper text');
 
