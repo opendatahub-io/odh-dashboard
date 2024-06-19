@@ -5,3 +5,5 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 resources:
   - ../common
+  - ../overrides/base
+  - ../overrides/consolelink

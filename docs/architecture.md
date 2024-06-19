@@ -1,4 +1,4 @@
-[Dashboard Deployment `containers`]: ../manifests/common/base/deployment.yaml
+[Dashboard Deployment `containers`]: ../manifests/overrides/base/deployment.yaml
 [OpenShift OAuth Proxy repo]: https://github.com/openshift/oauth-proxy
 [OpenShift SDK]: https://github.com/openshift/dynamic-plugin-sdk
 [SDK tidbits]: SDK.md
