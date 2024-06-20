@@ -108,7 +108,7 @@ export const createDSPipelineResourceSpec = (
     dspVersion: 'v2',
     objectStorage: {
       externalStorage: {
-        host: externalStorageHost,
+        host: cleanupEndpointHost(externalStorageHost),
         scheme: externalStorageScheme || 'https',
         bucket: awsRecord.AWS_S3_BUCKET || '',
         region: externalStorageRegion,
@@ -157,3 +157,5 @@ export const getLabelName = (index: string): string => {
   const field = PIPELINE_AWS_FIELDS.find((currentField) => currentField.key === index);
   return field ? field.label : '';
 };
+
+const cleanupEndpointHost = (endpoint: string): string => endpoint.replace(/\/$/, '') || '';
