@@ -1,3 +1,5 @@
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+
 const globNamespace = ':namespace';
 export const globNamespaceAll = `/${globNamespace}?/*`;
 
@@ -31,8 +33,11 @@ export const routePipelineVersionRunsNamespace = (
   namespace: string,
   pipelineId: string,
   versionId: string,
+  runType?: PipelineRunType,
 ): string =>
-  `${routePipelinesNamespace(namespace)}/${routePipelineVersionRuns(pipelineId, versionId)}`;
+  `${routePipelinesNamespace(namespace)}/${routePipelineVersionRuns(pipelineId, versionId)}${
+    runType ? `?runType=${runType}` : ''
+  }`;
 export const routePipelineRunCreateNamespacePipelinesPage = (namespace?: string): string =>
   `${routePipelinesNamespace(namespace)}/${globPipelineRunCreate}`;
 export const routePipelineRunCloneNamespacePipelinesPage = (

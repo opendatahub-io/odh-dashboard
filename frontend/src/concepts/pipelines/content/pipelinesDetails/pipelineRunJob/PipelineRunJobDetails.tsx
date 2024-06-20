@@ -94,7 +94,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
             loadError={error}
             breadcrumb={
               <Breadcrumb>
-                {breadcrumbPath}
+                {breadcrumbPath(PipelineRunType.SCHEDULED)}
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                   {version ? (
                     <Link
@@ -102,6 +102,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                         namespace,
                         version.pipeline_id,
                         version.pipeline_version_id,
+                        PipelineRunType.SCHEDULED,
                       )}
                     >
                       {version.display_name}
