@@ -7,7 +7,7 @@ ODH requires the following to run:
 - [NodeJS and NPM](https://nodejs.org/)
   - Node recommended version -> `18.16.0`
   - NPM recommended version -> `9.6.7`
-- [OpenShift CLI](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html)
+- [OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html)
 - [kustomize](https://github.com/kubernetes-sigs/kustomize) (if you need to do deployment)
 
 ### Additional tooling
