@@ -12,9 +12,9 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
-import { getPvcDisplayName } from '~/pages/projects/utils';
 import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
 import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type NotebookStorageBarsProps = {
   notebook: NotebookKind;
@@ -43,7 +43,7 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook, onA
               <ListItem key={pvc.metadata.name}>
                 <Stack>
                   <StackItem>
-                    <Text component="small">{getPvcDisplayName(pvc)}</Text>
+                    <Text component="small">{getDisplayNameFromK8sResource(pvc)}</Text>
                   </StackItem>
                   <StackItem>
                     <StorageSizeBar pvc={pvc} />

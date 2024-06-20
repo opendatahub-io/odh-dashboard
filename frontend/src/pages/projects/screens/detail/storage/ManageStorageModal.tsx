@@ -12,8 +12,8 @@ import useRelatedNotebooks, {
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 type AddStorageModalProps = {
@@ -64,8 +64,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     if (existingData) {
       const pvcName = existingData.metadata.name;
       if (
-        getPvcDisplayName(existingData) !== createData.nameDesc.name ||
-        getPvcDescription(existingData) !== createData.nameDesc.description ||
+        getDisplayNameFromK8sResource(existingData) !== createData.nameDesc.name ||
+        getDescriptionFromK8sResource(existingData) !== createData.nameDesc.description ||
         existingData.spec.resources.requests.storage !== createData.size
       ) {
         pvcPromises.push(updatePvc(createData, existingData, namespace, { dryRun }));

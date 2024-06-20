@@ -3,17 +3,16 @@ import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getServerMetricsQueries } from '~/pages/modelServing/screens/metrics/utils';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ProjectServerMetricsPathWrapper from './ProjectServerMetricsPathWrapper';
-import { getModelServerDisplayName } from './utils';
 
 const ProjectServerMetricsWrapper: React.FC = () => (
   <ProjectServerMetricsPathWrapper>
     {(servingRuntime, currentProject) => {
       const queries = getServerMetricsQueries(servingRuntime);
-      const projectDisplayName = getProjectDisplayName(currentProject);
-      const serverName = getModelServerDisplayName(servingRuntime);
+      const projectDisplayName = getDisplayNameFromK8sResource(currentProject);
+      const serverName = getDisplayNameFromK8sResource(servingRuntime);
       return (
         <MetricsCommonContextProvider>
           <ModelServingMetricsProvider

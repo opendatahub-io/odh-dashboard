@@ -25,7 +25,6 @@ import {
   experimentsCreateRunRoute,
 } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineFilter, {
   FilterOptions,
@@ -34,6 +33,7 @@ import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ManageRunsTable } from './ManageRunsTable';
 
 interface ManageRunsPageInternalProps {
@@ -121,7 +121,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
         <Breadcrumb data-testid="manage-runs-page-breadcrumb">
           <BreadcrumbItem key="experiments">
             <Link to={experimentsBaseRoute(namespace)}>
-              Experiments - {getProjectDisplayName(project)}
+              Experiments - {getDisplayNameFromK8sResource(project)}
             </Link>
           </BreadcrumbItem>
 

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { getPvcDisplayName } from '~/pages/projects/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { deletePvc, removeNotebookPVC } from '~/api';
 import useRelatedNotebooks, {
@@ -7,6 +6,7 @@ import useRelatedNotebooks, {
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import DeleteModalConnectedAlert from '~/pages/projects/components/DeleteModalConnectedAlert';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeletePVCModalProps = {
   pvcToDelete?: PersistentVolumeClaimKind;
@@ -28,7 +28,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
     setError(undefined);
   };
 
-  const displayName = pvcToDelete ? getPvcDisplayName(pvcToDelete) : 'this storage';
+  const displayName = pvcToDelete ? getDisplayNameFromK8sResource(pvcToDelete) : 'this storage';
 
   return (
     <DeleteModal

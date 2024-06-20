@@ -1,5 +1,5 @@
 import { SortableData } from '~/components/table';
-import { getPvcDisplayName } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 
 export const columns: SortableData<PersistentVolumeClaimKind>[] = [
@@ -12,7 +12,8 @@ export const columns: SortableData<PersistentVolumeClaimKind>[] = [
     field: 'name',
     label: 'Name',
     width: 30,
-    sortable: (a, b) => getPvcDisplayName(a).localeCompare(getPvcDisplayName(b)),
+    sortable: (a, b) =>
+      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
   },
   {
     field: 'type',

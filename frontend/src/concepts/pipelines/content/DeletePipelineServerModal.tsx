@@ -1,8 +1,8 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { deleteServer } from '~/concepts/pipelines/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeletePipelineServerModalProps = {
   isOpen: boolean;
@@ -21,7 +21,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
     onClose(deleted);
   };
 
-  const deleteName = `${getProjectDisplayName(project)} pipeline server`;
+  const deleteName = `${getDisplayNameFromK8sResource(project)} pipeline server`;
 
   return (
     <DeleteModal

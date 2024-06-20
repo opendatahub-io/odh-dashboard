@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { NotebookKind } from '~/k8sTypes';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
 import AddExistingStorageField from '~/pages/projects/screens/spawner/storage/AddExistingStorageField';
 import { useExistingStorageDataObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
 import { getNotebookMountPaths } from '~/pages/projects/notebook/utils';
 import { attachNotebookPVC } from '~/api';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import MountPathField from './MountPathField';
 
 type AddNotebookStorageProps = {
@@ -19,7 +19,7 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
   const [existingData, setExistingData, resetDefaults] = useExistingStorageDataObjectForNotebook();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const notebookDisplayName = notebook ? getNotebookDisplayName(notebook) : 'this notebook';
+  const notebookDisplayName = notebook ? getDisplayNameFromK8sResource(notebook) : 'this notebook';
   const inUseMountPaths = getNotebookMountPaths(notebook);
   const restartNotebooks = useWillNotebooksRestart([notebook?.metadata.name || '']);
 

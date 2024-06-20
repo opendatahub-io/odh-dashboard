@@ -2,12 +2,12 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { experimentRunsRoute, experimentSchedulesRoute, experimentsBaseRoute } from '~/routes';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -31,7 +31,7 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
               key="home"
               render={() => (
                 <Link to={redirectPath(namespace)}>
-                  {pageName} - {getProjectDisplayName(project)}
+                  {pageName} - {getDisplayNameFromK8sResource(project)}
                 </Link>
               )}
             />,
@@ -59,7 +59,7 @@ export const GlobalExperimentDetails: React.FC<
           breadcrumbPath={[
             <BreadcrumbItem key="experiments">
               <Link to={experimentsBaseRoute(namespace)}>
-                Experiments - {getProjectDisplayName(project)}
+                Experiments - {getDisplayNameFromK8sResource(project)}
               </Link>
             </BreadcrumbItem>,
             <BreadcrumbItem key="experiment">

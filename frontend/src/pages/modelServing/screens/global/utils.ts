@@ -1,13 +1,6 @@
-import { InferenceServiceKind, ProjectKind, SecretKind, PodKind } from '~/k8sTypes';
+import { InferenceServiceKind, ProjectKind, PodKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
-
-export const getInferenceServiceDisplayName = (is: InferenceServiceKind): string =>
-  getDisplayNameFromK8sResource(is);
-
-export const getTokenDisplayName = (secret: SecretKind): string =>
-  getDisplayNameFromK8sResource(secret);
 
 export const getInferenceServiceActiveModelState = (
   is: InferenceServiceKind,
@@ -34,7 +27,7 @@ export const getInferenceServiceProjectDisplayName = (
   projects: ProjectKind[],
 ): string => {
   const project = projects.find(({ metadata: { name } }) => name === is.metadata.namespace);
-  return project ? getProjectDisplayName(project) : 'Unknown';
+  return project ? getDisplayNameFromK8sResource(project) : 'Unknown';
 };
 
 export const checkModelStatus = (model: PodKind): ModelStatus => {

@@ -8,7 +8,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import { getInferenceServiceDisplayName } from './utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -39,7 +39,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
 
-  const displayName = getInferenceServiceDisplayName(inferenceService);
+  const displayName = getDisplayNameFromK8sResource(inferenceService);
 
   return (
     <>

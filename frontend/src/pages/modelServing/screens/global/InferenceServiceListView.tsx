@@ -3,7 +3,8 @@ import { ToolbarItem } from '@patternfly/react-core';
 import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { getInferenceServiceDisplayName, getInferenceServiceProjectDisplayName } from './utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
 import ServeModelButton from './ServeModelButton';
 
@@ -31,7 +32,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
 
     switch (searchType) {
       case SearchType.NAME:
-        return getInferenceServiceDisplayName(project).toLowerCase().includes(search.toLowerCase());
+        return getDisplayNameFromK8sResource(project).toLowerCase().includes(search.toLowerCase());
       case SearchType.PROJECT:
         return getInferenceServiceProjectDisplayName(project, projects)
           .toLowerCase()

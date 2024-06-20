@@ -3,8 +3,11 @@ import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-
 import { createProject, updateProject } from '~/api';
 import { useUser } from '~/redux/selectors';
 import { ProjectKind } from '~/k8sTypes';
-import { getProjectDescription, getProjectDisplayName } from '~/concepts/projects/utils';
-import { isValidK8sName } from '~/concepts/k8s/utils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+  isValidK8sName,
+} from '~/concepts/k8s/utils';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -35,8 +38,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const canSubmit =
     !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
 
-  const editNameValue = editProjectData ? getProjectDisplayName(editProjectData) : '';
-  const editDescriptionValue = editProjectData ? getProjectDescription(editProjectData) : '';
+  const editNameValue = editProjectData ? getDisplayNameFromK8sResource(editProjectData) : '';
+  const editDescriptionValue = editProjectData
+    ? getDescriptionFromK8sResource(editProjectData)
+    : '';
   const editResourceNameValue = editProjectData ? editProjectData.metadata.name : undefined;
   React.useEffect(() => {
     setNameDesc({

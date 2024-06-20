@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import useNotification from '~/utilities/useNotification';
-import { getPvcDisplayName } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getFullStatusFromPercentage } from './utils';
 
 type PercentageStorageStatus = {
@@ -33,7 +33,7 @@ const useStorageStatusAlert = (pvc: PersistentVolumeClaimKind, percentageFull: n
       if (lastStatus !== currentStatus) {
         if (currentStatus) {
           notification[currentStatus](
-            `Cluster storage "${getPvcDisplayName(pvc)}" is ${percentageFull}% full`,
+            `Cluster storage "${getDisplayNameFromK8sResource(pvc)}" is ${percentageFull}% full`,
           );
           const newValue = {
             ...percentageStorageStatuses,

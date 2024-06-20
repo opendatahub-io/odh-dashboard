@@ -11,8 +11,7 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
@@ -125,7 +124,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext.currentProject)) ||
+                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
                 editInfo?.metadata.namespace ||
                 ''
               }
