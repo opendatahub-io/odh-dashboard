@@ -126,7 +126,7 @@ describe('Pipelines', () => {
           dspVersion: 'v2',
           objectStorage: {
             externalStorage: {
-              host: 's3.amazonaws.com/',
+              host: 's3.amazonaws.com',
               scheme: 'https',
               bucket: 'sdsd',
               region: 'us-east-1',
