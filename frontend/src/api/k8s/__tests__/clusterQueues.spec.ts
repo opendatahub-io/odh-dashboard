@@ -2,6 +2,7 @@ import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
 import { ClusterQueueKind } from '~/k8sTypes';
 import { listClusterQueues } from '~/api/k8s/clusterQueues';
+import { ClusterQueueModel } from '~/api/models/kueue';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
@@ -16,12 +17,7 @@ describe('listClusterQueues', () => {
     k8sListResourceItemsMock.mockResolvedValue([clusterQueueMock]);
     const result = await listClusterQueues();
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'kueue.x-k8s.io',
-        apiVersion: 'v1beta1',
-        kind: 'ClusterQueue',
-        plural: 'clusterqueues',
-      },
+      model: ClusterQueueModel,
       queryOptions: {},
     });
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
@@ -33,12 +29,7 @@ describe('listClusterQueues', () => {
     await expect(listClusterQueues()).rejects.toThrow('error1');
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'kueue.x-k8s.io',
-        apiVersion: 'v1beta1',
-        kind: 'ClusterQueue',
-        plural: 'clusterqueues',
-      },
+      model: ClusterQueueModel,
       queryOptions: {},
     });
   });

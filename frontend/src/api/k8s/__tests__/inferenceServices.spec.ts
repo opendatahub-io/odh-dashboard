@@ -328,12 +328,7 @@ describe('listInferenceService', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: { queryParams: {} },
     });
   });
@@ -344,12 +339,7 @@ describe('listInferenceService', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: { queryParams: {} },
     });
   });
@@ -598,12 +588,7 @@ describe('deleteInferenceService', () => {
       fetchOptions: {
         requestInit: {},
       },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: {
         name: 'test',
         ns: 'test-project',
@@ -622,12 +607,7 @@ describe('deleteInferenceService', () => {
       fetchOptions: {
         requestInit: {},
       },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: {
         name: 'test',
         ns: 'test-project',
@@ -645,12 +625,7 @@ describe('deleteInferenceService', () => {
       fetchOptions: {
         requestInit: {},
       },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: {
         name: 'test',
         ns: 'test-project',
