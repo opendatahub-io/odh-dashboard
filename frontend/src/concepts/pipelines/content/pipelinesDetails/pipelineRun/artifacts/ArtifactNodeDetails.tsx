@@ -88,7 +88,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
             <DescriptionListGroup>
               <DescriptionListTerm>{artifactName}</DescriptionListTerm>
               <DescriptionListDescription>
-                <ArtifactUriLink uri={artifact.getUri()} />
+                <ArtifactUriLink uri={artifact.getUri()} type={artifact.getType()} />
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
