@@ -48,6 +48,7 @@ export const useBrowserStorage = <T,>(
     [isSessionStorage, jsonify, setJSONValue, setStringValue, storageKey],
   );
 
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return [(getValue(storageKey, jsonify, isSessionStorage) as T) ?? defaultValue, setValue];
 };
 

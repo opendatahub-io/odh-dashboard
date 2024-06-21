@@ -13,6 +13,7 @@ import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import { asEnumMember } from '~/utilities/utils';
 import RegisteredModelsArchiveTable from './RegisteredModelsArchiveTable';
 
 type RegisteredModelsArchiveListViewProps = {
@@ -68,7 +69,10 @@ const RegisteredModelsArchiveListView: React.FC<RegisteredModelsArchiveListViewP
                   }))}
                   value={searchType}
                   onChange={(newSearchType) => {
-                    setSearchType(newSearchType as SearchType);
+                    const newSearchTypeInput = asEnumMember(newSearchType, SearchType);
+                    if (newSearchTypeInput !== null) {
+                      setSearchType(newSearchTypeInput);
+                    }
                   }}
                   icon={<FilterIcon />}
                 />

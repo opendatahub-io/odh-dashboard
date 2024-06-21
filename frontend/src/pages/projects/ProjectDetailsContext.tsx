@@ -52,6 +52,7 @@ type ProjectDetailsContextType = {
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   // We never will get into a case without a project, so fudge the default value
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   currentProject: null as unknown as ProjectKind,
   refreshAllProjectData: () => undefined,
   filterTokens: () => [],

@@ -14,6 +14,7 @@ import {
   BIAS_THRESHOLD_COLOR,
 } from '~/pages/modelServing/screens/metrics/const';
 import { PROMETHEUS_REQUEST_RESOLUTION } from '~/concepts/metrics/const';
+import { isEnumMember } from '~/utilities/utils';
 import {
   BiasSelectOption,
   DomainCalculator,
@@ -219,8 +220,7 @@ export const checkConfigurationFieldsValid = (
 
 export const isMetricType = (
   metricType: string | SelectOptionObject,
-): metricType is BiasMetricType =>
-  Object.values(BiasMetricType).includes(metricType as BiasMetricType);
+): metricType is BiasMetricType => isEnumMember(metricType.toString(), BiasMetricType);
 
 export const byId =
   <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>

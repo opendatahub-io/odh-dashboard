@@ -2,6 +2,7 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
+import { asEnumMember } from '~/utilities/utils';
 
 export const getTemplateEnabled = (
   template: TemplateKind,
@@ -142,8 +143,12 @@ export const getAPIProtocolFromTemplate = (
   if (!template.metadata.annotations?.['opendatahub.io/apiProtocol']) {
     return undefined;
   }
-
-  return template.metadata.annotations['opendatahub.io/apiProtocol'] as ServingRuntimeAPIProtocol;
+  return (
+    asEnumMember(
+      template.metadata.annotations['opendatahub.io/apiProtocol'],
+      ServingRuntimeAPIProtocol,
+    ) ?? undefined
+  );
 };
 
 export const getAPIProtocolFromServingRuntime = (
@@ -152,5 +157,10 @@ export const getAPIProtocolFromServingRuntime = (
   if (!resource.metadata.annotations?.['opendatahub.io/apiProtocol']) {
     return undefined;
   }
-  return resource.metadata.annotations['opendatahub.io/apiProtocol'] as ServingRuntimeAPIProtocol;
+  return (
+    asEnumMember(
+      resource.metadata.annotations['opendatahub.io/apiProtocol'],
+      ServingRuntimeAPIProtocol,
+    ) ?? undefined
+  );
 };

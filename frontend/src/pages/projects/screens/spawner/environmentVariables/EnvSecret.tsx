@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { EnvironmentVariableType, EnvVariableData, SecretCategory } from '~/pages/projects/types';
+import { asEnumMember } from '~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
@@ -18,7 +19,9 @@ const DEFAULT_ENV: EnvVariableData = {
 const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) => (
   <EnvDataTypeField
     selection={env.category || ''}
-    onSelection={(value) => onUpdate({ ...env, category: value as SecretCategory, data: [] })}
+    onSelection={(value) =>
+      onUpdate({ ...env, category: asEnumMember(value, SecretCategory), data: [] })
+    }
     options={{
       [SecretCategory.GENERIC]: {
         label: 'Key / value',

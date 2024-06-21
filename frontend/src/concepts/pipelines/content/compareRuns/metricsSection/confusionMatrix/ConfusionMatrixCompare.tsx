@@ -49,13 +49,16 @@ const ConfusionMatrixCompare: React.FC<ConfusionMatrixCompareProps> = ({
 
   const { configMap, runMap } = React.useMemo(
     () =>
-      fullArtifactPaths.reduce(
+      fullArtifactPaths.reduce<{
+        runMap: Record<string, PipelineRunKFv2>;
+        configMap: Record<string, { title: string; config: ConfusionMatrixConfig }[]>;
+      }>(
         (acc, fullPath) => {
           const customProperties = fullPath.linkedArtifact.artifact.getCustomPropertiesMap();
           const data = customProperties.get('confusionMatrix')?.getStructValue()?.toJavaScript();
 
           if (data) {
-            const confusionMatrixData = data.struct as unknown;
+            const confusionMatrixData = data.struct;
             if (isConfusionMatrix(confusionMatrixData)) {
               const runId = fullPath.run.run_id;
               const title = getFullArtifactPathLabel(fullPath);
@@ -78,10 +81,7 @@ const ConfusionMatrixCompare: React.FC<ConfusionMatrixCompareProps> = ({
 
           return acc;
         },
-        {
-          runMap: {} as Record<string, PipelineRunKFv2>,
-          configMap: {} as Record<string, { title: string; config: ConfusionMatrixConfig }[]>,
-        },
+        { runMap: {}, configMap: {} },
       ),
     [fullArtifactPaths],
   );

@@ -26,20 +26,17 @@ const useManageTrustyAICR = (namespace: string): UseManageTrustyAICRReturnType =
     showSuccess.current = true;
   }
 
-  const installCR = React.useCallback(
-    () =>
-      createTrustyAICR(namespace)
-        .then(refresh)
-        .catch((e) => setInstallReqError(e)),
-    [namespace, refresh],
-  );
+  const installCR = React.useCallback(async () => {
+    await createTrustyAICR(namespace)
+      .then(refresh)
+      .catch((e) => setInstallReqError(e));
+  }, [namespace, refresh]);
 
-  const deleteCR = React.useCallback(
-    () => deleteTrustyAICR(namespace).then(refresh),
-    [namespace, refresh],
-  );
+  const deleteCR = React.useCallback(async () => {
+    await deleteTrustyAICR(namespace).then(refresh);
+  }, [namespace, refresh]);
 
-  return <UseManageTrustyAICRReturnType>{
+  return {
     error,
     isProgressing,
     isAvailable,

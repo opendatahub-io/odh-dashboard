@@ -8,13 +8,7 @@ type AppContextProps = {
   storageClasses: StorageClassKind[];
 };
 
-const defaultAppContext: AppContextProps = {
-  buildStatuses: [],
-  // At runtime dashboardConfig is never null -- DO NOT DO THIS usually
-  dashboardConfig: null as unknown as DashboardConfigKind,
-  storageClasses: [] as StorageClassKind[],
-};
-
-export const AppContext = React.createContext(defaultAppContext);
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+export const AppContext = React.createContext({} as AppContextProps);
 
 export const useAppContext = (): AppContextProps => React.useContext(AppContext);

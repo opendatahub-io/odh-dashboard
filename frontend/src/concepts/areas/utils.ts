@@ -15,8 +15,7 @@ const getFlags = (dashboardConfigSpec: DashboardConfigKind['spec']): FlagState =
     typeof value === 'boolean';
 
   return {
-    ...Object.keys(flags).reduce<FlagState>((acc, key) => {
-      const value = flags[key as FeatureFlag];
+    ...Object.entries(flags).reduce<FlagState>((acc, [key, value]) => {
       if (isFeatureFlag(key, value)) {
         acc[key] = key.startsWith('disable') ? !value : value;
       }

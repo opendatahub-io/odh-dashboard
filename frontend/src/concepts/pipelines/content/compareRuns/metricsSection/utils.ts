@@ -58,7 +58,7 @@ export const getRunArtifacts = (mlmdPackages: PipelineRunRelatedMlmd[]): RunArti
           linkedArtifacts.push({
             event,
             artifact,
-          } as LinkedArtifact);
+          });
         } else {
           throw new Error(`The artifact with the following ID was not found: ${artifactId}`);
         }
@@ -66,12 +66,12 @@ export const getRunArtifacts = (mlmdPackages: PipelineRunRelatedMlmd[]): RunArti
       return {
         execution,
         linkedArtifacts,
-      } as ExecutionArtifact;
+      };
     });
     return {
       run: mlmdPackage.run,
       executionArtifacts,
-    } as RunArtifact;
+    };
   });
 
 export const filterRunArtifactsByType = (
@@ -102,14 +102,14 @@ export const filterRunArtifactsByType = (
         typeExecutions.push({
           execution: e.execution,
           linkedArtifacts: typeArtifacts,
-        } as ExecutionArtifact);
+        });
       }
     }
     if (typeExecutions.length > 0) {
       typeRuns.push({
         run: runArtifact.run,
         executionArtifacts: typeExecutions,
-      } as RunArtifact);
+      });
     }
   }
   return typeRuns;

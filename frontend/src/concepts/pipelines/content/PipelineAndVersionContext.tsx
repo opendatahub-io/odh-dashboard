@@ -77,12 +77,13 @@ const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProvi
       }),
       getResourcesForDeletion: () => ({
         pipelines: selectedPipelines,
-        versions: (Object.values(selectedVersions) as SelectedVersion[])
-          .map((selectedVersion) =>
-            selectedVersion.versions.map((version) => ({
-              pipelineName: selectedVersion.pipelineName,
-              version,
-            })),
+        versions: Object.values(selectedVersions)
+          .map(
+            (selectedVersion) =>
+              selectedVersion?.versions.map((version) => ({
+                pipelineName: selectedVersion.pipelineName,
+                version,
+              })) ?? [],
           )
           .flat()
           .filter((selection) => {

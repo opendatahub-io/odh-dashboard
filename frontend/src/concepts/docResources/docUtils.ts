@@ -30,6 +30,7 @@ export const getQuickStartDocs = (
   // Get doc cards for the quick starts
   const docs: OdhDocument[] = quickStarts.map(
     (quickStart) =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       _.merge({}, quickStart, {
         spec: {
           type: OdhDocumentType.QuickStart,

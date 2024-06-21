@@ -1,4 +1,4 @@
-import React, { LegacyRef } from 'react';
+import React from 'react';
 import {
   TaskNode,
   DEFAULT_WHEN_OFFSET,
@@ -15,6 +15,7 @@ import {
   TaskNodeSourceAnchor,
   TaskNodeTargetAnchor,
   GraphElement,
+  isNode,
 } from '@patternfly/react-topology';
 import { ListIcon, MonitoringIcon } from '@patternfly/react-icons';
 import { TaskNodeProps } from '@patternfly/react-topology/dist/esm/pipelines/components/nodes/TaskNode';
@@ -101,7 +102,7 @@ type ArtifactTaskNodeInnerProps = WithSelectionProps & {
 const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
   ({ element, selected, onSelect, ...rest }) => {
     const bounds = element.getBounds();
-    const [isHover, hoverRef] = useHover();
+    const [isHover, hoverRef] = useHover<SVGGElement>();
     const detailsLevel = element.getGraph().getDetailsLevel();
     const data = element.getData();
     const scale = element.getGraph().getScale();
@@ -120,10 +121,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
     const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
     const translateY = iconPadding * upScale;
     return (
-      <g
-        className={css('pf-topology__pipelines__task-node')}
-        ref={hoverRef as LegacyRef<SVGGElement>}
-      >
+      <g className={css('pf-topology__pipelines__task-node')} ref={hoverRef}>
         {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
           <g>
             <TaskNode
@@ -170,8 +168,11 @@ type ArtifactTaskNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
-const ArtifactTaskNode: React.FC<ArtifactTaskNodeProps> = ({ element, ...rest }) => (
-  <ArtifactTaskNodeInner element={element as Node} {...rest} />
-);
+const ArtifactTaskNode: React.FC<ArtifactTaskNodeProps> = ({ element, ...rest }) => {
+  if (!isNode(element)) {
+    throw new Error('Element is not Node');
+  }
+  return <ArtifactTaskNodeInner element={element} {...rest} />;
+};
 
 export default ArtifactTaskNode;

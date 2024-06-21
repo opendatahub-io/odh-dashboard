@@ -10,7 +10,6 @@ import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
-  DatabaseConnectionKeys,
   EMPTY_DATABASE_CONNECTION,
   ExternalDatabaseSecret,
 } from './const';
@@ -48,7 +47,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     : config.database.value.every(({ key, value }) =>
         DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
           .map((field) => field.key)
-          .includes(key as DatabaseConnectionKeys)
+          .includes(key)
           ? !!value
           : true,
       );

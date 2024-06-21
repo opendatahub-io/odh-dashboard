@@ -113,7 +113,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   const onSortTypeSelect = React.useCallback(
     (e: React.MouseEvent | React.ChangeEvent) => {
       setIsSortTypeDropdownOpen(false);
-      const selection = (e.target as Element).getAttribute('data-key') ?? '';
+      const selection = e.target instanceof Element ? e.target.getAttribute('data-key') ?? '' : '';
       setQueryArgument(navigate, DOC_SORT_KEY, selection);
     },
     [navigate],
@@ -133,7 +133,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   const onSortOrderSelect = React.useCallback(
     (e: React.MouseEvent | React.ChangeEvent) => {
       setIsSortOrderDropdownOpen(false);
-      const selection = (e.target as Element).getAttribute('data-key') ?? '';
+      const selection = e.target instanceof Element ? e.target.getAttribute('data-key') ?? '' : '';
       setQueryArgument(navigate, DOC_SORT_ORDER_KEY, selection);
     },
     [navigate],

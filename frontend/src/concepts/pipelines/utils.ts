@@ -32,4 +32,4 @@ export const isGeneratedDSPAExternalStorageSecret = (name: string): boolean =>
 
 export const isRunSchedule = (
   resource: PipelineRunKFv2 | PipelineRunJobKFv2,
-): resource is PipelineRunJobKFv2 => !!(resource as PipelineRunJobKFv2).trigger;
+): resource is PipelineRunJobKFv2 => 'trigger' in resource;

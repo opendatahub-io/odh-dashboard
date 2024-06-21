@@ -1,3 +1,5 @@
+import { isEnumMember } from '~/utilities/utils';
+
 /**
  * The type `{}` doesn't mean "any empty object", it means "any non-nullish value".
  *
@@ -162,7 +164,7 @@ export type ExactlyOne<T> = AtMostOne<T> & AtLeastOne<T>;
 export const isInEnum =
   <T extends { [s: string]: unknown }>(e: T) =>
   (token: unknown): token is T[keyof T] =>
-    Object.values(e).includes(token as T[keyof T]);
+    isEnumMember(token, e);
 
 /**
  * Pick keys from enum types

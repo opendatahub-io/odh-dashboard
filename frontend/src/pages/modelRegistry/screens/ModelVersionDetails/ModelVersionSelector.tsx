@@ -53,8 +53,10 @@ const ModelVersionSelector: React.FC<ModelVersionSelectorProps> = ({
   const menu = (
     <Menu
       onSelect={(_e, itemId) => {
-        onSelect(itemId as string);
-        setOpen(false);
+        if (typeof itemId === 'string') {
+          onSelect(itemId);
+          setOpen(false);
+        }
       }}
       data-id="model-version-selector-menu"
       ref={menuRef}
