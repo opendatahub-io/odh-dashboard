@@ -143,14 +143,19 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         runType,
                       )}
                     >
-                      <Truncate content={version.display_name} />
+                      {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                      <Truncate content={version.display_name} className="truncate-no-min-width" />
                     </Link>
                   ) : (
                     'Loading...'
                   )}
                 </BreadcrumbItem>
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                  <Truncate content={run?.display_name ?? 'Loading...'} />
+                  {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                  <Truncate
+                    content={run?.display_name ?? 'Loading...'}
+                    className="truncate-no-min-width"
+                  />
                 </BreadcrumbItem>
               </Breadcrumb>
             }
