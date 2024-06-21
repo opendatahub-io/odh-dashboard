@@ -49,7 +49,11 @@ const GlobalPipelineVersionRuns: PipelineCoreDetailsPageComponent = ({ breadcrum
           {breadcrumbPath}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
             <Link to={routePipelineDetailsNamespace(namespace, pipelineId, pipelineVersionId)}>
-              <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
+              {/* TODO: Remove the custom className after upgrading to PFv6 */}
+              <Truncate
+                content={pipelineVersion?.display_name || 'Loading...'}
+                className="truncate-no-min-width"
+              />
             </Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>Runs</BreadcrumbItem>
