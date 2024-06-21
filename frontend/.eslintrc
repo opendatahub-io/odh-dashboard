@@ -111,18 +111,25 @@
     "no-restricted-imports": [
       "error",
       {
+        "paths": [
+          {
+            "name": "^axios$",
+            "importNames": ["default"],
+            "message": "Import from `~/utilities/axios` instead."
+          }
+        ],
         "patterns": [
           {
             "group": ["~/api/**"],
-            "message": "Read from '~/api' instead."
+            "message": "Import from '~/api' instead."
           },
           {
             "group": ["~/components/table/**", "!~/components/table/useTableColumnSort"],
-            "message": "Read from '~/components/table' instead."
+            "message": "Import from '~/components/table' instead."
           },
           {
             "group": ["~/concepts/area/**"],
-            "message": "Read from '~/concepts/area' instead."
+            "message": "Import from '~/concepts/area' instead."
           },
           {
             "group": ["~/components/table/useTableColumnSort"],
@@ -286,7 +293,10 @@
       ],
       "overrides": [
         {
-          "files": ["./src/__tests__/cypress/cypress/pages/*.ts", "./src/__tests__/cypress/cypress/tests/e2e/*.ts"],
+          "files": [
+            "./src/__tests__/cypress/cypress/pages/*.ts",
+            "./src/__tests__/cypress/cypress/tests/e2e/*.ts"
+          ],
           "rules": {
             "no-restricted-syntax": [
               "error",

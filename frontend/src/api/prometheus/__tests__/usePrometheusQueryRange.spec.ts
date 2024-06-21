@@ -1,11 +1,11 @@
-import axios from 'axios';
 import { act } from '@testing-library/react';
+import axios from '~/utilities/axios';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockPrometheusServing } from '~/__mocks__/mockPrometheusServing';
 import usePrometheusQueryRange from '~/api/prometheus/usePrometheusQueryRange';
 import { PrometheusQueryRangeResponseData } from '~/types';
 
-jest.mock('axios', () => ({
+jest.mock('~/utilities/axios', () => ({
   post: jest.fn(),
 }));
 

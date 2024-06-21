@@ -4,7 +4,7 @@ import {
   k8sUpdateResource,
   k8sDeleteResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockAxiosError } from '~/__mocks__/mockAxiosError';
@@ -40,7 +40,7 @@ jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
   listServingRuntimes: jest.fn(),
 }));
 
-jest.mock('axios');
+jest.mock('~/utilities/axios');
 
 const mockedAxios = jest.mocked(axios);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);

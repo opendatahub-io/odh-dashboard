@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { Route } from '~/types';
 
 export const getRoute = (namespace: string, routeName: string): Promise<Route> => {

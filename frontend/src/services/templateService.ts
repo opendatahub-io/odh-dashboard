@@ -1,6 +1,6 @@
 // TODO: Delete once we refactor Admin panel to support Passthrough API
-import axios from 'axios';
 import YAML from 'yaml';
+import axios from '~/utilities/axios';
 import { assembleServingRuntimeTemplate } from '~/api';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';

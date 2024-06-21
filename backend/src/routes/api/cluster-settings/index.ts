@@ -7,7 +7,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get(
     '/',
     secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      return getClusterSettings(fastify)
+      return getClusterSettings(fastify, request)
         .then((res) => {
           return res;
         })

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { ODHSegmentKey } from '~/types';
 
 export const fetchSegmentKey = (): Promise<ODHSegmentKey> => {

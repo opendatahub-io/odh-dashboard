@@ -8,8 +8,20 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import {
+  AcceleratorProfileKind,
+  DashboardCommonConfig,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+} from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+
+export type DevFeatureFlags = {
+  devFeatureFlags: Partial<DashboardCommonConfig> | null;
+  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
+  resetDevFeatureFlags: () => void;
+  setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+};
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
   data: {

@@ -38,7 +38,7 @@ export const updateClusterSettings = async (
     notebookTolerationSettings,
     modelServingPlatformEnabled,
   } = request.body;
-  const dashConfig = getDashboardConfig();
+  const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
     if (
@@ -124,10 +124,11 @@ export const updateClusterSettings = async (
 
 export const getClusterSettings = async (
   fastify: KubeFastifyInstance,
+  request: FastifyRequest,
 ): Promise<ClusterSettings | string> => {
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
-  const dashConfig = getDashboardConfig();
+  const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,

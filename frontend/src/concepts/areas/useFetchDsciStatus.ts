@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import useFetchState, { FetchState } from '~/utilities/useFetchState';
 import { DataScienceClusterInitializationKindStatus } from '~/k8sTypes';
 

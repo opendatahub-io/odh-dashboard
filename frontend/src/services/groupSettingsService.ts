@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 
 export const fetchGroupsSettings = (): Promise<GroupsConfig> => {

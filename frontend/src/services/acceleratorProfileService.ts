@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import { ResponseStatus } from '~/types';
 
