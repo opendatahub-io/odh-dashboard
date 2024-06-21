@@ -2,6 +2,7 @@ import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from '@testing-library/react';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
+import { PVCModel } from '~/api';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
@@ -16,11 +17,7 @@ describe('useProjectPVCs', () => {
   it('should return dashboard PVCs', async () => {
     const mockedPVC = [mockPVCK8sResource({})];
     const options = {
-      model: {
-        apiVersion: 'v1',
-        kind: 'PersistentVolumeClaim',
-        plural: 'persistentvolumeclaims',
-      },
+      model: PVCModel,
       queryOptions: {
         ns: 'namespace',
         queryParams: { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },

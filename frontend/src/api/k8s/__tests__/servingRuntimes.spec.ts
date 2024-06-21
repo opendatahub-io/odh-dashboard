@@ -23,6 +23,7 @@ import {
   listServingRuntimes,
   updateServingRuntime,
 } from '~/api/k8s/servingRuntimes';
+import { ProjectModel, ServingRuntimeModel } from '~/api/models';
 import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
@@ -211,12 +212,7 @@ describe('listServingRuntimes', () => {
     const result = await listServingRuntimes();
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -228,12 +224,7 @@ describe('listServingRuntimes', () => {
     const result = await listServingRuntimes('namespace', 'labelselector');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'namespace', queryParams: { labelSelector: 'labelselector' } },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -246,12 +237,7 @@ describe('listServingRuntimes', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'namespace', queryParams: { labelSelector: 'labelselector' } },
     });
   });
@@ -269,24 +255,14 @@ describe('listScopedServingRuntimes', () => {
     expect(result).toStrictEqual([mock]);
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'project.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Project',
-        plural: 'projects',
-      },
+      model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'test-model', queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
@@ -301,24 +277,14 @@ describe('listScopedServingRuntimes', () => {
     expect(result).toStrictEqual([inferenceServiceMock]);
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'project.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Project',
-        plural: 'projects',
-      },
+      model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'test-model', queryParams: { labelSelector: 'labelSelector' } },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
@@ -332,24 +298,14 @@ describe('listScopedServingRuntimes', () => {
     await expect(listScopedServingRuntimes('labelSelector')).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'project.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Project',
-        plural: 'projects',
-      },
+      model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'test-project', queryParams: { labelSelector: 'labelSelector' } },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
@@ -361,12 +317,7 @@ describe('listScopedServingRuntimes', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'project.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Project',
-        plural: 'projects',
-      },
+      model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
@@ -380,12 +331,7 @@ describe('getServingRuntimeContext', () => {
     const result = await getServingRuntimeContext('namespace', 'labelSelector');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'namespace', queryParams: { labelSelector: 'labelSelector' } },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -402,24 +348,14 @@ describe('getServingRuntimeContext', () => {
     const result = await getServingRuntimeContext();
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'project.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Project',
-        plural: 'projects',
-      },
+      model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'test-model', queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
@@ -433,24 +369,14 @@ describe('getServingRuntimeContext', () => {
     await expect(getServingRuntimeContext()).rejects.toThrow('error');
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(1, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'project.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Project',
-        plural: 'projects',
-      },
+      model: ProjectModel,
       queryOptions: {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'test-project', queryParams: {} },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
@@ -462,12 +388,7 @@ describe('getServingRuntimeContext', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { ns: 'namespace', queryParams: { labelSelector: 'labelSelector' } },
     });
   });
@@ -479,12 +400,7 @@ describe('getServingRuntime', () => {
     const result = await getServingRuntime('name', 'namespace');
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
@@ -496,12 +412,7 @@ describe('getServingRuntime', () => {
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
     });
   });
@@ -527,12 +438,7 @@ describe('updateServingRuntime', () => {
     const result = await updateServingRuntime(option);
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
       resource: existingData,
     });
@@ -550,12 +456,7 @@ describe('updateServingRuntime', () => {
     const result = await updateServingRuntime(option);
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
       resource: existingData,
     });
@@ -574,12 +475,7 @@ describe('updateServingRuntime', () => {
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
       resource: existingData,
     });
@@ -613,12 +509,7 @@ describe('createServingRuntime', () => {
     const result = await createServingRuntime(option);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
       resource: {
         ...existingData,
@@ -640,12 +531,7 @@ describe('createServingRuntime', () => {
     const result = await createServingRuntime(option);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
       resource: existingData,
     });
@@ -664,12 +550,7 @@ describe('createServingRuntime', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { queryParams: {} },
       resource: existingData,
     });
@@ -683,12 +564,7 @@ describe('deleteServingRuntime', () => {
     const result = await deleteServingRuntime('name', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -701,12 +577,7 @@ describe('deleteServingRuntime', () => {
     const result = await deleteServingRuntime('name', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -719,12 +590,7 @@ describe('deleteServingRuntime', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1alpha1',
-        kind: 'ServingRuntime',
-        plural: 'servingruntimes',
-      },
+      model: ServingRuntimeModel,
       queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
     });
   });

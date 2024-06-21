@@ -2,6 +2,7 @@ import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
 import { LocalQueueKind } from '~/k8sTypes';
 import { listLocalQueues } from '~/api/k8s/localQueues';
+import { LocalQueueModel } from '~/api/models/kueue';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
@@ -19,12 +20,7 @@ describe('listLocalQueues', () => {
     k8sListResourceItemsMock.mockResolvedValue([mockedLocalQueue]);
     const result = await listLocalQueues('test-project');
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'kueue.x-k8s.io',
-        apiVersion: 'v1beta1',
-        kind: 'LocalQueue',
-        plural: 'localqueues',
-      },
+      model: LocalQueueModel,
       queryOptions: { ns: 'test-project' },
     });
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
@@ -36,12 +32,7 @@ describe('listLocalQueues', () => {
     await expect(listLocalQueues('test-project')).rejects.toThrow('error1');
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'kueue.x-k8s.io',
-        apiVersion: 'v1beta1',
-        kind: 'LocalQueue',
-        plural: 'localqueues',
-      },
+      model: LocalQueueModel,
       queryOptions: { ns: 'test-project' },
     });
   });

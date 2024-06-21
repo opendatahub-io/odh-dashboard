@@ -23,6 +23,7 @@ import {
   listRoleBindings,
   patchRoleBindingOwnerRef,
 } from '~/api/k8s/roleBindings';
+import { RoleBindingModel } from '~/api/models/k8s';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -214,12 +215,7 @@ describe('listRoleBindings', () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([roleBindingMock]));
     const result = await listRoleBindings();
     expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: {},
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -230,12 +226,7 @@ describe('listRoleBindings', () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([roleBindingMock]));
     const result = await listRoleBindings(namespace, 'labelSelector');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { ns: namespace, queryParams: { labelSelector: 'labelSelector' } },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -247,12 +238,7 @@ describe('listRoleBindings', () => {
     await expect(listRoleBindings()).rejects.toThrow('error1');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: {},
     });
   });
@@ -263,12 +249,7 @@ describe('getRoleBinding', () => {
     k8sGetResourceMock.mockResolvedValue(roleBindingMock);
     const result = await getRoleBinding('projectName', 'rbName');
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { name: 'rbName', ns: 'projectName' },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
@@ -280,12 +261,7 @@ describe('getRoleBinding', () => {
     await expect(getRoleBinding('projectName', 'rbName')).rejects.toThrow('error1');
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { name: 'rbName', ns: 'projectName' },
     });
   });
@@ -297,12 +273,7 @@ describe('createRoleBinding', () => {
     const result = await createRoleBinding(roleBindingMock);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { queryParams: {} },
       resource: roleBindingMock,
     });
@@ -316,12 +287,7 @@ describe('createRoleBinding', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { queryParams: {} },
       resource: roleBindingObject,
     });
@@ -335,12 +301,7 @@ describe('deleteRoleBinding', () => {
     const result = await deleteRoleBinding('rbName', namespace);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -353,12 +314,7 @@ describe('deleteRoleBinding', () => {
     const result = await deleteRoleBinding('rbName', namespace);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -371,12 +327,7 @@ describe('deleteRoleBinding', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
     });
   });
@@ -387,12 +338,7 @@ describe('patchRoleBindingOwnerRef', () => {
     k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
     const result = await patchRoleBindingOwnerRef('rbName', namespace, []);
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
-      model: {
-        apiGroup: 'rbac.authorization.k8s.io',
-        apiVersion: 'v1',
-        kind: 'RoleBinding',
-        plural: 'rolebindings',
-      },
+      model: RoleBindingModel,
       patches: [{ op: 'replace', path: '/metadata/ownerReferences', value: [] }],
       queryOptions: { name: 'rbName', ns: namespace },
     });

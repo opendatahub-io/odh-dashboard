@@ -8,6 +8,7 @@ import {
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { assemblePvc, createPvc, deletePvc, getDashboardPvcs, updatePvc } from '~/api/k8s/pvcs';
+import { PVCModel } from '~/api/models/k8s';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { CreatingStorageObject } from '~/pages/projects/types';
 
@@ -80,7 +81,7 @@ describe('getDashboardPvcs', () => {
     k8sListResourceItemsMock.mockResolvedValue([pvcMock]);
     const result = await getDashboardPvcs('projectName');
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: {
         ns: 'projectName',
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
@@ -94,7 +95,7 @@ describe('getDashboardPvcs', () => {
     await expect(getDashboardPvcs('projectName')).rejects.toThrow('error1');
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: {
         ns: 'projectName',
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
@@ -109,7 +110,7 @@ describe('createPvc', () => {
     const result = await createPvc(data, 'namespace');
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { queryParams: {} },
       resource: createAssemblePvcs(['ReadWriteOnce']),
     });
@@ -122,7 +123,7 @@ describe('createPvc', () => {
     await expect(createPvc(data, 'namespace')).rejects.toThrow('error1');
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { queryParams: {} },
       resource: createAssemblePvcs(['ReadWriteOnce']),
     });
@@ -136,7 +137,7 @@ describe('updatePvc', () => {
     const result = await updatePvc(data, assemblePvcResult, 'namespace');
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { queryParams: {} },
       resource: createAssemblePvcs(['ReadWriteOnce']),
     });
@@ -150,7 +151,7 @@ describe('updatePvc', () => {
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { queryParams: {} },
       resource: createAssemblePvcs(['ReadWriteOnce']),
     });
@@ -163,7 +164,7 @@ describe('deletePvc', () => {
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deletePvc('pvcName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { name: 'pvcName', ns: 'namespace' },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -175,7 +176,7 @@ describe('deletePvc', () => {
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deletePvc('pvcName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { name: 'pvcName', ns: 'namespace' },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -187,7 +188,7 @@ describe('deletePvc', () => {
     await expect(deletePvc('pvcName', 'namespace')).rejects.toThrow('error1');
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
-      model: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', plural: 'persistentvolumeclaims' },
+      model: PVCModel,
       queryOptions: { name: 'pvcName', ns: 'namespace' },
     });
   });
