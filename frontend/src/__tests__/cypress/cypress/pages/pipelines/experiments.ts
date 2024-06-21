@@ -122,7 +122,7 @@ class ExperimentsTable {
   }
 
   findActionsKebab() {
-    return cy.findByRole('button', { name: 'Actions' }).parent();
+    return cy.findByTestId('experiment-table-toolbar-actions').parent();
   }
 
   findRestoreExperimentButton() {
