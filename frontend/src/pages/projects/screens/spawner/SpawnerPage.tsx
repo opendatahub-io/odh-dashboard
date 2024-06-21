@@ -18,7 +18,6 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NameDescType } from '~/pages/projects/types';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
@@ -31,7 +30,6 @@ import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
-import { useNotebookSize } from './useNotebookSize';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
@@ -43,6 +41,7 @@ import {
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+import { useNotebookSizeState } from './useNotebookSizeState';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -61,7 +60,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
+  const { selectedSize, setSelectedSize, sizes } = useNotebookSizeState(existingNotebook);
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
     string[] | undefined
   >();
@@ -94,13 +93,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       }
     }
   }, [data, loaded, loadError]);
-
-  const { size: notebookSize } = useNotebookDeploymentSize(existingNotebook);
-  React.useEffect(() => {
-    if (notebookSize) {
-      setSelectedSize(notebookSize.name);
-    }
-  }, [notebookSize, setSelectedSize]);
 
   const [notebookAcceleratorProfileState, setNotebookAcceleratorProfileState] =
     useNotebookAcceleratorProfile(existingNotebook);

@@ -5,9 +5,7 @@ import { getNotebookSizes } from '~/pages/notebookController/screens/server/useP
 import { NotebookKind } from '~/k8sTypes';
 import { isCpuResourceEqual, isMemoryResourceEqual } from '~/utilities/valueUnits';
 
-const useNotebookDeploymentSize = (
-  notebook?: NotebookKind,
-): { size: NotebookSize | null; error: string } => {
+const useNotebookDeploymentSize = (notebook?: NotebookKind): { size: NotebookSize | null } => {
   const { dashboardConfig } = React.useContext(AppContext);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
@@ -15,7 +13,7 @@ const useNotebookDeploymentSize = (
   );
 
   if (!container) {
-    return { size: null, error: 'Failed to get workbench information.' };
+    return { size: null };
   }
 
   const sizes = getNotebookSizes(dashboardConfig);
@@ -25,18 +23,21 @@ const useNotebookDeploymentSize = (
       isMemoryResourceEqual(
         currentSize.resources.limits?.memory,
         container.resources?.limits?.memory,
+      ) &&
+      isCpuResourceEqual(currentSize.resources.requests?.cpu, container.resources?.requests?.cpu) &&
+      isMemoryResourceEqual(
+        currentSize.resources.requests?.memory,
+        container.resources?.requests?.memory,
       ),
   );
 
   if (!size) {
     return {
       size: null,
-      error:
-        'Workbench size is currently unavailable. Check your dashboard configuration to view size information.',
     };
   }
 
-  return { size, error: '' };
+  return { size };
 };
 
 export default useNotebookDeploymentSize;

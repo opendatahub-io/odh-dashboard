@@ -1,4 +1,5 @@
 import {
+  mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
   mockNotebookK8sResource,
@@ -32,20 +33,45 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import type { NotebookSize } from '~/types';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
 type HandlersProps = {
   isEmpty?: boolean;
+  notebookSizes?: NotebookSize[];
 };
 
-const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
+const initIntercepts = ({
+  isEmpty = false,
+  notebookSizes = [
+    {
+      name: 'Medium',
+      resources: {
+        limits: {
+          cpu: '6',
+          memory: '24Gi',
+        },
+        requests: {
+          cpu: '3',
+          memory: '24Gi',
+        },
+      },
+    },
+  ],
+}: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
         workbenches: true,
       },
+    }),
+  );
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      notebookSizes,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -149,7 +175,37 @@ describe('Workbench page', () => {
   });
 
   it('Create workbench', () => {
-    initIntercepts({ isEmpty: true });
+    initIntercepts({
+      isEmpty: true,
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
     createSpawnerPage.findSubmitButton().should('be.disabled');
@@ -262,7 +318,37 @@ describe('Workbench page', () => {
   });
 
   it('Create workbench with numbers', () => {
-    initIntercepts({ isEmpty: true });
+    initIntercepts({
+      isEmpty: true,
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
     createSpawnerPage.findSubmitButton().should('be.disabled');
@@ -300,7 +386,36 @@ describe('Workbench page', () => {
   });
 
   it('list workbench and table sorting', () => {
-    initIntercepts({});
+    initIntercepts({
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
@@ -397,7 +512,36 @@ describe('Workbench page', () => {
   });
 
   it('Edit workbench', () => {
-    initIntercepts({});
+    initIntercepts({
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
     editSpawnerPage.visit('test-notebook');
     editSpawnerPage.findNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
@@ -437,8 +581,39 @@ describe('Workbench page', () => {
     });
 
     cy.get('@editWorkbench.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
+      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
     });
+  });
+
+  it('Handle deleted notebook sizes in workbenches table', () => {
+    initIntercepts({
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+      ],
+    });
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.shouldHaveNotebookImageName('Test Image');
+    notebookRow.shouldHaveContainerSize('Custom');
+    notebookRow.findKebabAction('Edit workbench').click();
+    editSpawnerPage.shouldHaveContainerSizeInput('Keep custom size');
+    cy.go('back');
+    workbenchPage.findCreateButton().click();
+    verifyRelativeURL('/projects/test-project/spawner');
+    // Custom container size dropdown option should not be present for create workbench
+    createSpawnerPage.findContainerSizeInput('Keep custom size').should('not.exist');
   });
 
   it('Validate that updating invalid workbench will navigate to the new page with an error message', () => {
