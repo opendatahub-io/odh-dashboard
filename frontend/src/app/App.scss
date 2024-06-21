@@ -27,7 +27,8 @@ body,
 
   // Decrease the height of toggles when in table rows so they align better with text
   // This requires decreasing the width and the size of the toggle as well
-  td, li {
+  td,
+  li {
     .pf-v5-c-switch__toggle {
       height: 18px;
       margin-top: -1px;
@@ -46,7 +47,6 @@ body,
 // specificity targeting form elements to override --pf-v5-global--FontSize--md
 .pf-v5-c-page,
 .pf-v5-c-modal-box {
-
   .pf-v5-c-app-launcher,
   .pf-v5-c-button,
   .pf-v5-c-dropdown,
@@ -64,6 +64,14 @@ body,
   }
 }
 
+// giving a fixed width and height of the icon for app launcher
+.application-launcher-menu-item-icon {
+  .pf-v5-c-menu__item-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
 // TODO: Remove when PF bug is fixed. See https://github.com/patternfly/patternfly-react/issues/9769
 // Override to prevent drawer body content from taking over scroll container
 .pf-v5-c-drawer__body {
@@ -73,7 +81,6 @@ body,
 // temp fix until https://github.com/patternfly/patternfly-react/issues/8028 is resolved
 // Remove this file and its uses after bumping to PF5
 .checkbox-radio-fix-body-width {
-
   .pf-v5-c-check__body,
   .pf-v5-c-radio__body {
     width: 100%;

@@ -16,6 +16,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
     <ValueUnitField
       min={currentSize ?? 1}
       onBlur={(value) => setSize(value)}
+      stopPropagation
       onChange={(value) => setSize(value)}
       validated={currentSize ? 'warning' : 'default'}
       options={MEMORY_UNITS_FOR_SELECTION}

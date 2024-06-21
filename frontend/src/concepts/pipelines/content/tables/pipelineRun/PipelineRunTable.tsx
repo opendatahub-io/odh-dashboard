@@ -176,7 +176,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   const toolbarDropdownAction = (
     <SimpleMenuActions
       key="run-table-toolbar-actions"
-      data-testid="run-table-toolbar-actions"
+      testId="run-table-toolbar-actions"
       dropdownItems={[
         ...(runType === PipelineRunType.ARCHIVED
           ? [
