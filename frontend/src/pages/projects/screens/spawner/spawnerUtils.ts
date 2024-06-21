@@ -81,7 +81,10 @@ export const getImageVersionSelectOptionObject = (
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>
-  (object as ImageVersionSelectOptionObjectType | undefined)?.imageVersion !== undefined;
+  typeof object === 'object' &&
+  object !== null &&
+  'imageVersion' in object &&
+  object.imageVersion !== undefined;
 /******************* Compare utils for sorting *******************/
 const getBuildNumber = (build: BuildKind): number => {
   const buildNumber = build.metadata.annotations?.['openshift.io/build.number'] || '-1';

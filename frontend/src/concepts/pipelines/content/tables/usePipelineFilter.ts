@@ -14,13 +14,11 @@ export enum FilterOptions {
   PIPELINE_VERSION = 'pipeline_version',
 }
 
-export const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]>(
-  data: R,
-): string | undefined => {
-  if (typeof data === 'string') {
+export const getDataValue = (data: string | { value: string } | undefined): string | undefined => {
+  if (typeof data === 'string' || typeof data === 'undefined') {
     return data;
   }
-  return (data as { label: string; value: string } | undefined)?.value;
+  return data.value;
 };
 
 const defaultFilterData: FilterProps['filterData'] = {

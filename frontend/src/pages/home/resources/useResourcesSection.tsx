@@ -12,7 +12,6 @@ import {
   TextVariants,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { OdhDocument } from '~/types';
 import OdhDocCard from '~/components/OdhDocCard';
 import ScrolledGallery from '~/concepts/design/ScrolledGallery';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
@@ -65,7 +64,7 @@ export const useResourcesSection = (): React.ReactNode => {
                 <OdhDocCard
                   data-testid={`resource-card-${doc.metadata.name}`}
                   key={`${doc.metadata.name}`}
-                  odhDoc={doc as unknown as OdhDocument}
+                  odhDoc={doc}
                   showFavorite={false}
                   style={{
                     border: '1px solid var(--pf-v5-global--BorderColor--100)',

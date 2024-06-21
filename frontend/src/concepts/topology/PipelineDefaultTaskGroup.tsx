@@ -33,7 +33,7 @@ type PipelinesDefaultGroupInnerProps = Omit<PipelinesDefaultGroupProps, 'element
 
 const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerProps> = observer(
   ({ element, selected, onSelect }) => {
-    const [hover, hoverRef] = useHover();
+    const [hover, hoverRef] = useHover<SVGGElement>();
     const popoverRef = React.useRef<SVGGElement>(null);
     const detailsLevel = element.getGraph().getDetailsLevel();
 
@@ -80,7 +80,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
 
     return (
       <Layer id={detailsLevel !== ScaleDetailsLevel.high && hover ? TOP_LAYER : DEFAULT_LAYER}>
-        <g ref={hoverRef as React.LegacyRef<SVGGElement>}>
+        <g ref={hoverRef}>
           {element.isCollapsed() ? (
             <Popover
               triggerRef={popoverRef}

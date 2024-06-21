@@ -28,8 +28,9 @@ const EnsureMetricsAvailable: React.FC<EnsureMetricsAvailableProps> = ({
   let readyCount = 0;
 
   metrics.forEach((metric) => {
-    if (data[metric].error) {
-      error = data[metric].error as AxiosError;
+    const axiosError = data[metric].error;
+    if (axiosError && axiosError instanceof AxiosError) {
+      error = axiosError;
     }
     if (data[metric].loaded) {
       readyCount++;

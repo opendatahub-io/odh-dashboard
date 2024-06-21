@@ -170,7 +170,11 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
       id="multi-create-typeahead-select"
       isOpen={isOpen}
       selected={data}
-      onSelect={(ev, selection) => onSelect(selection as string)}
+      onSelect={(ev, selection) => {
+        if (typeof selection === 'string') {
+          onSelect(selection);
+        }
+      }}
       onOpenChange={() => setIsOpen(false)}
       toggle={toggle}
     >

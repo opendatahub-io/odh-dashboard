@@ -7,6 +7,7 @@ import {
 } from '~/pages/modelServing/screens/metrics/const';
 import { BiasMetricType } from '~/api';
 import { isMetricType } from '~/pages/modelServing/screens/metrics/utils';
+import { enumIterator } from '~/utilities/utils';
 
 type MetricTypeFieldProps = {
   fieldId: string;
@@ -16,6 +17,7 @@ type MetricTypeFieldProps = {
 
 const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onChange }) => {
   const [isOpen, setOpen] = React.useState(false);
+
   return (
     <FormGroup label="Metric type" fieldId={fieldId}>
       <Select
@@ -33,13 +35,9 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
         selections={value}
         menuAppendTo="parent"
       >
-        {Object.keys(BiasMetricType).map((type) => (
-          <SelectOption
-            key={type}
-            value={type}
-            description={METRIC_TYPE_DESCRIPTION[type as keyof typeof BiasMetricType]}
-          >
-            {METRIC_TYPE_DISPLAY_NAME[type as keyof typeof BiasMetricType]}
+        {enumIterator(BiasMetricType).map(([type]) => (
+          <SelectOption key={type} value={type} description={METRIC_TYPE_DESCRIPTION[type]}>
+            {METRIC_TYPE_DISPLAY_NAME[type]}
           </SelectOption>
         ))}
       </Select>

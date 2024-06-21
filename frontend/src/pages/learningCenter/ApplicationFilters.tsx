@@ -34,8 +34,7 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
     return allApplications;
   }, [categoryApps, docApps]);
 
-  const onFilterChange = (docType: string, e: React.SyntheticEvent<HTMLElement>): void => {
-    const { checked } = e.target as React.AllHTMLAttributes<HTMLInputElement>;
+  const onFilterChange = (docType: string, checked: boolean): void => {
     const updatedQuery = [...providerFilters];
     const index = updatedQuery.indexOf(docType);
     if (checked && index === -1) {
@@ -71,7 +70,7 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
             id={application}
             key={application}
             checked={providerFilters.includes(application)}
-            onClick={(e) => onFilterChange(application, e)}
+            onChange={(_, checked) => onFilterChange(application, checked)}
             title={application}
           >
             {`${application} (${applications[application]})`}

@@ -9,11 +9,6 @@ import {
   convertPrometheusNaNToZero,
   toPercentage,
 } from '~/pages/modelServing/screens/metrics/utils';
-import {
-  ContextResourceData,
-  PrometheusQueryRangeResponseDataResult,
-  PrometheusQueryRangeResultValue,
-} from '~/types';
 import { NamedMetricChartLine } from '~/pages/modelServing/screens/metrics/types';
 
 const ServerGraphs: React.FC = () => {
@@ -24,9 +19,7 @@ const ServerGraphs: React.FC = () => {
       <StackItem>
         <MetricsChart
           metrics={{
-            metric: data[
-              ServerMetricType.REQUEST_COUNT
-            ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+            metric: data[ServerMetricType.REQUEST_COUNT],
           }}
           color="blue"
           title="HTTP requests per 5 minutes"
@@ -35,11 +28,7 @@ const ServerGraphs: React.FC = () => {
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={(
-            data[
-              ServerMetricType.AVG_RESPONSE_TIME
-            ] as ContextResourceData<PrometheusQueryRangeResponseDataResult>
-          ).data.map(
+          metrics={data[ServerMetricType.AVG_RESPONSE_TIME].data.map(
             (line): NamedMetricChartLine => ({
               name: line.metric.pod || '',
               metric: {
@@ -56,9 +45,7 @@ const ServerGraphs: React.FC = () => {
       <StackItem>
         <MetricsChart
           metrics={{
-            metric: data[
-              ServerMetricType.CPU_UTILIZATION
-            ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+            metric: data[ServerMetricType.CPU_UTILIZATION],
             translatePoint: toPercentage,
           }}
           color="purple"
@@ -71,9 +58,7 @@ const ServerGraphs: React.FC = () => {
       <StackItem>
         <MetricsChart
           metrics={{
-            metric: data[
-              ServerMetricType.MEMORY_UTILIZATION
-            ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+            metric: data[ServerMetricType.MEMORY_UTILIZATION],
             translatePoint: toPercentage,
           }}
           color="orange"

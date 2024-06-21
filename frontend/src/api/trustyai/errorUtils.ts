@@ -9,8 +9,7 @@ type TrustyAIClientErrorViolation = {
 };
 
 const isTrustyAIClientError = (e: unknown): e is TrustyAIClientError =>
-  typeof e === 'object' &&
-  ['title', 'status', 'violations'].every((key) => key in (e as TrustyAIClientError));
+  typeof e === 'object' && e !== null && ['title', 'status', 'violations'].every((key) => key in e);
 
 export const handleTrustyAIFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise.then((result) => {

@@ -1,4 +1,4 @@
-import { asEnumMember, isEnumMember } from '~/utilities/utils';
+import { asEnumMember, enumIterator, isEnumMember } from '~/utilities/utils';
 
 enum Test {
   first = '1st',
@@ -85,5 +85,23 @@ describe('isEnumMember', () => {
     expect(isEnumMember('second', TestNumeric)).toBe(false);
     expect(isEnumMember('unknown', TestNumeric)).toBe(false);
     expect(isEnumMember(null, TestNumeric)).toBe(false);
+  });
+});
+
+describe('enumIterator', () => {
+  it('should iterate over enum values', () => {
+    expect(enumIterator(Test)).toEqual([
+      ['first', '1st'],
+      ['second', '2nd'],
+    ]);
+    expect(enumIterator(TestMixed)).toEqual([
+      ['first', 1],
+      ['second', '2nd'],
+      ['third', '3rd'],
+    ]);
+    expect(enumIterator(TestNumeric)).toEqual([
+      ['first', 0],
+      ['second', 1],
+    ]);
   });
 });
