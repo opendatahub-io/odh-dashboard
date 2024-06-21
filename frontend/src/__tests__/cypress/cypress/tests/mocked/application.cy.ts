@@ -30,7 +30,7 @@ describe('Application', () => {
     const applicationLauncher = appChrome.getApplicationLauncher();
     applicationLauncher.toggleAppLauncherButton();
     const applicationLauncherMenuGroup = applicationLauncher.getApplicationLauncherMenuGroup(
-      'Open Data Hub Applications',
+      `${Cypress.env('ODH_PRODUCT_NAME')} Applications`,
     );
     applicationLauncherMenuGroup.shouldHaveApplicationLauncherItem('OpenShift Cluster Manager');
     applicationLauncher.toggleAppLauncherButton();
