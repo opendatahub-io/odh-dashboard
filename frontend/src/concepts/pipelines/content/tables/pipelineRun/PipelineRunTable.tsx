@@ -381,7 +381,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs, page, ...prop
       runs={runsWithMetrics}
       page={page}
       metricsNames={metricsNames}
-      artifactsLoaded={runArtifactsLoaded && !!runArtifacts.length}
+      artifactsLoaded={runArtifactsLoaded}
       artifactsError={runArtifactsError}
       {...props}
     />
