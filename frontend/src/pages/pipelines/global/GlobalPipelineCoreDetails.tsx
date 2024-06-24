@@ -26,7 +26,7 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
     <EnsureAPIAvailability>
       <EnsureCompatiblePipelineServer>
         <BreadcrumbDetailsComponent
-          breadcrumbPath={[
+          breadcrumbPath={() => [
             <BreadcrumbItem
               key="home"
               render={() => (
@@ -56,7 +56,7 @@ export const GlobalExperimentDetails: React.FC<
     <EnsureAPIAvailability>
       <EnsureCompatiblePipelineServer>
         <BreadcrumbDetailsComponent
-          breadcrumbPath={[
+          breadcrumbPath={(runType) => [
             <BreadcrumbItem key="experiments">
               <Link to={experimentsBaseRoute(namespace)}>
                 Experiments - {getProjectDisplayName(project)}
@@ -64,7 +64,7 @@ export const GlobalExperimentDetails: React.FC<
             </BreadcrumbItem>,
             <BreadcrumbItem key="experiment">
               {experiment?.display_name ? (
-                <Link to={experimentRunsRoute(namespace, experimentId)}>
+                <Link to={experimentRunsRoute(namespace, experimentId, runType)}>
                   {experiment.display_name}
                 </Link>
               ) : (

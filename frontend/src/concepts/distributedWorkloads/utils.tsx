@@ -34,6 +34,7 @@ import {
   convertToUnit,
 } from '~/utilities/valueUnits';
 import { WorkloadWithUsage } from '~/api';
+import { isEnumMember } from '~/utilities/utils';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',
@@ -166,7 +167,7 @@ export const getWorkloadName = (workload: WorkloadKind): string =>
   workload.metadata?.name || 'Unnamed';
 
 export const isKnownWorkloadOwnerType = (s: string): s is WorkloadOwnerType =>
-  (Object.values(WorkloadOwnerType) as string[]).includes(s);
+  isEnumMember(s, WorkloadOwnerType);
 
 export const getWorkloadOwner = (
   workload: WorkloadKind,

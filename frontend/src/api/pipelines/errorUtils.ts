@@ -14,10 +14,12 @@ type ResultErrorKF = {
 };
 
 const isErrorKF = (e: unknown): e is ErrorKF =>
-  ['error', 'code', 'message'].every((key) => key in (e as ErrorKF));
+  typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
 
 const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
-  ['error_details', 'error_message'].every((key) => key in (result as ResultErrorKF));
+  typeof result === 'object' &&
+  result !== null &&
+  ['error_details', 'error_message'].every((key) => key in result);
 
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise

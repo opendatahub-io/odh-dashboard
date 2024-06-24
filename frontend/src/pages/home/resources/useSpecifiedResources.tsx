@@ -10,13 +10,13 @@ export const useSpecifiedResources = (
     if (!loaded || loadError) {
       return { docs: [], loaded, loadError };
     }
-    const foundDocs = specifiedDocs.reduce((acc, included) => {
+    const foundDocs = specifiedDocs.reduce<OdhDocument[]>((acc, included) => {
       const doc = docs.find((d) => d.metadata.name === included.name && d.kind === included.kind);
       if (doc) {
         acc.push(doc);
       }
       return acc;
-    }, [] as OdhDocument[]);
+    }, []);
     return { docs: foundDocs, loaded, loadError };
   }, [docs, specifiedDocs, loadError, loaded]);
 };

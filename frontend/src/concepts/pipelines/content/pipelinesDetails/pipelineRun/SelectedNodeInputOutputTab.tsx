@@ -48,6 +48,9 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
 
       switch (type) {
         case InputDefinitionParameterType.DOUBLE:
+          return numberValue && Number.isInteger(numberValue)
+            ? numberValue.toFixed(1)
+            : numberValue;
         case InputDefinitionParameterType.INTEGER:
           return numberValue;
         case InputDefinitionParameterType.BOOLEAN:

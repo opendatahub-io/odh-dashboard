@@ -28,7 +28,7 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
   ...rest
 }) => {
   const data = element.getData();
-  const [hover, hoverRef] = useHover();
+  const [hover, hoverRef] = useHover<SVGGElement>();
   const detailsLevel = element.getGraph().getDetailsLevel();
 
   // Set the cached node status to Succeeded
@@ -48,7 +48,7 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
   ) : null;
 
   return (
-    <g ref={hoverRef as React.LegacyRef<SVGGElement>}>
+    <g ref={hoverRef}>
       <TaskNode
         element={element}
         onSelect={onSelect}

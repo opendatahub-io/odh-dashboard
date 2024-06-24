@@ -2,6 +2,7 @@ import { InferenceServiceKind, ProjectKind, SecretKind, PodKind } from '~/k8sTyp
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
+import { asEnumMember } from '~/utilities/utils';
 
 export const getInferenceServiceDisplayName = (is: InferenceServiceKind): string =>
   getDisplayNameFromK8sResource(is);
@@ -12,8 +13,8 @@ export const getTokenDisplayName = (secret: SecretKind): string =>
 export const getInferenceServiceActiveModelState = (
   is: InferenceServiceKind,
 ): InferenceServiceModelState =>
-  <InferenceServiceModelState | undefined>is.status?.modelStatus?.states?.activeModelState ||
-  <InferenceServiceModelState | undefined>is.status?.modelStatus?.states?.targetModelState ||
+  asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
+  asEnumMember(is.status?.modelStatus?.states?.targetModelState, InferenceServiceModelState) ||
   InferenceServiceModelState.UNKNOWN;
 
 export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {

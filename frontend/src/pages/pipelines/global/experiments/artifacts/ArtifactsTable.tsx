@@ -151,7 +151,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
         <Td>{artifact.id}</Td>
         <Td>{artifact.type}</Td>
         <Td>
-          <ArtifactUriLink uri={artifact.uri} />
+          <ArtifactUriLink uri={artifact.uri} type={artifact.type} />
         </Td>
         <Td>
           <PipelinesTableRowTime date={new Date(artifact.createTimeSinceEpoch)} />

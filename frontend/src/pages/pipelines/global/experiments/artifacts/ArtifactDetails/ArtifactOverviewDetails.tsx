@@ -34,7 +34,7 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
               <>
                 <DescriptionListTerm>URI</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <ArtifactUriLink uri={artifact.uri} />
+                  <ArtifactUriLink uri={artifact.uri} type={artifact.type} />
                 </DescriptionListDescription>
               </>
             )}

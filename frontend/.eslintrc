@@ -315,6 +315,18 @@
           }
         ]
       }
+    },
+    {
+      "files": ["*.ts", "*.tsx"],
+      "excludedFiles": ["**/__mocks__/**", "**/__tests__/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ]
+      }
     }
   ]
 }

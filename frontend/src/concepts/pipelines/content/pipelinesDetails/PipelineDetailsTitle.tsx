@@ -23,7 +23,8 @@ const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
     <>
       <Split hasGutter>
         <SplitItem>
-          <Truncate content={run.display_name} />
+          {/* TODO: Remove the custom className after upgrading to PFv6 */}
+          <Truncate content={run.display_name} className="truncate-no-min-width" />
         </SplitItem>
         {pipelineRunLabel && (
           <SplitItem>

@@ -35,7 +35,8 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
           }`}
           state={{ experiment }}
         >
-          <Truncate content={experiment.display_name} />
+          {/* TODO: Remove the custom className after upgrading to PFv6 */}
+          <Truncate content={experiment.display_name} className="truncate-no-min-width" />
         </Link>
       </Td>
       <Td dataLabel="Description">{experiment.description}</Td>

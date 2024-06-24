@@ -9,6 +9,7 @@ import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { registeredModelArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { asEnumMember } from '~/utilities/utils';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
 
@@ -71,7 +72,10 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
           }))}
           value={searchType}
           onChange={(newSearchType) => {
-            setSearchType(newSearchType as SearchType);
+            const newSearchTypeInput = asEnumMember(newSearchType, SearchType);
+            if (newSearchTypeInput !== null) {
+              setSearchType(newSearchTypeInput);
+            }
           }}
           icon={<FilterIcon />}
         />

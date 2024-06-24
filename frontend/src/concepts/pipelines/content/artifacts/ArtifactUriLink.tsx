@@ -14,16 +14,19 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { MAX_STORAGE_OBJECT_SIZE, fetchStorageObjectSize } from '~/services/storageService';
 import { bytesAsRoundedGiB } from '~/utilities/number';
+import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { extractS3UriComponents, getArtifactUrlFromUri } from './utils';
 
 interface ArtifactUriLinkProps {
   uri: string;
+  type: string;
 }
 
-export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ uri }) => {
+export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ uri, type }) => {
   const { namespace } = usePipelinesAPI();
   const isS3EndpointAvailable = useIsAreaAvailable(SupportedArea.S3_ENDPOINT).status;
   const [size, setSize] = React.useState<number | null>(null);
+  const isClassificationMetrics = type === ArtifactType.CLASSIFICATION_METRICS;
 
   const url = React.useMemo(() => {
     if (!uri || !isS3EndpointAvailable) {
@@ -41,7 +44,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ uri }) => {
     return getArtifactUrlFromUri(uri, namespace);
   }, [isS3EndpointAvailable, namespace, uri]);
 
-  if (!url) {
+  if (!url || isClassificationMetrics) {
     return uri;
   }
 

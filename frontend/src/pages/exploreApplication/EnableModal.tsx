@@ -12,8 +12,8 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
+import { asEnumMember } from '~/utilities/utils';
 import EnableVariable from './EnableVariable';
-
 import './EnableModal.scss';
 
 type EnableModalProps = {
@@ -158,7 +158,9 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
               key={key}
               ref={index === 0 ? focusRef : undefined}
               label={enable.variableDisplayText?.[key] ?? ''}
-              inputType={enable.variables?.[key] as TextInputTypes}
+              inputType={
+                asEnumMember(enable.variables?.[key], TextInputTypes) ?? TextInputTypes.text
+              }
               helperText={enable.variableHelpText?.[key] ?? ''}
               validationInProgress={validationInProgress}
               value={enableValues[key]}

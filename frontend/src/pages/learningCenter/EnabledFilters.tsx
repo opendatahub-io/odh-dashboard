@@ -47,12 +47,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
         data-id="enabled-filter-checkbox"
         id="enabled-filter-checkbox"
         checked={enabledFilters.includes('true')}
-        onClick={(e) =>
-          onFilterChange(
-            'true',
-            (e.target as React.AllHTMLAttributes<HTMLInputElement>).checked || false,
-          )
-        }
+        onChange={(_, checked) => onFilterChange('true', checked)}
         title="Enabled"
       >
         {`Enabled (${enabledCount})`}
@@ -61,12 +56,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
         data-id="not-enabled-filter-checkbox"
         id="not-enabled-filter-checkbox"
         checked={enabledFilters.includes('false')}
-        onClick={(e) =>
-          onFilterChange(
-            'false',
-            (e.target as React.AllHTMLAttributes<HTMLInputElement>).checked || false,
-          )
-        }
+        onChange={(_, checked) => onFilterChange('false', checked)}
         title="Not enabled"
       >
         {`Not enabled (${notEnabledCount})`}

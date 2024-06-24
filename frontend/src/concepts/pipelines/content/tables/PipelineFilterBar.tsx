@@ -41,11 +41,13 @@ export function FilterToolbar<T extends string>({
   testId = 'filter-toolbar',
   ...toolbarGroupProps
 }: ToolbarFilterProps<T>): React.JSX.Element {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const keys = Object.keys(filterOptions) as Array<T>;
   const [open, setOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<T>(keys[0]);
   const isToolbarChip = (v: unknown): v is ToolbarChip & { key: T } =>
-    !!v && Object.keys(v as ToolbarChip).every((k) => ['key', 'node'].includes(k));
+    !!v && Object.keys(v).every((k) => ['key', 'node'].includes(k));
+  const filterItem = filterData[currentFilterType];
 
   return (
     <>
@@ -111,9 +113,7 @@ export function FilterToolbar<T extends string>({
           {filterOptionRenders[currentFilterType]({
             onChange: (value, label) =>
               onFilterUpdate(currentFilterType, label && value ? { label, value } : value),
-            ...(typeof filterData[currentFilterType] === 'string'
-              ? { value: filterData[currentFilterType] as string }
-              : (filterData[currentFilterType] as { label: string; value: string })),
+            ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
           })}
         </ToolbarFilter>
       </ToolbarGroup>

@@ -10,6 +10,7 @@ type TableDataRendererProps = {
 };
 
 const UserTableCellTransform: React.FC<TableDataRendererProps> = ({ user, userProperty }) => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const content = user[userProperty as keyof AdminViewUserData];
 
   if (isField<AdminViewUserData['serverStatus']>(content, userProperty === 'serverStatus')) {

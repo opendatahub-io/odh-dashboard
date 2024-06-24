@@ -13,6 +13,7 @@ import { ModelVersion } from '~/concepts/modelRegistry/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import { asEnumMember } from '~/utilities/utils';
 import ModelVersionsArchiveTable from './ModelVersionsArchiveTable';
 
 type ModelVersionsArchiveListViewProps = {
@@ -63,7 +64,10 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
                   }))}
                   value={searchType}
                   onChange={(newSearchType) => {
-                    setSearchType(newSearchType as SearchType);
+                    const enumMember = asEnumMember(newSearchType, SearchType);
+                    if (enumMember) {
+                      setSearchType(enumMember);
+                    }
                   }}
                   icon={<FilterIcon />}
                 />

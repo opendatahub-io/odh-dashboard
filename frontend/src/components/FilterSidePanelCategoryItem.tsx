@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { css } from '@patternfly/react-styles';
-import { Checkbox } from '@patternfly/react-core';
+import { Checkbox, CheckboxProps } from '@patternfly/react-core';
 
-export interface FilterSidePanelCategoryItemProps extends React.HTMLProps<HTMLDivElement> {
+export interface FilterSidePanelCategoryItemProps {
   id: string;
   /** Children nodes */
   children: React.ReactNode;
@@ -13,7 +13,7 @@ export interface FilterSidePanelCategoryItemProps extends React.HTMLProps<HTMLDi
   /** Optional count of the items matching the filter */
   count?: number | null;
   /** Callback for a click on the Filter Item Checkbox */
-  onClick?: (event: React.SyntheticEvent<HTMLElement>) => void;
+  onChange?: CheckboxProps['onChange'];
   /** Flag to show if the Filter Item Checkbox is checked. */
   checked?: boolean;
   /** Title of the checkbox  */
@@ -27,7 +27,7 @@ const FilterSidePanelCategoryItem: React.FunctionComponent<FilterSidePanelCatego
   className = '',
   icon = null,
   count = null,
-  onClick,
+  onChange,
   checked = false,
   title = '',
   ...props
@@ -43,8 +43,8 @@ const FilterSidePanelCategoryItem: React.FunctionComponent<FilterSidePanelCatego
   return (
     <div id={id} className={classes} {...props}>
       <Checkbox
-        onClick={onClick}
-        checked={checked}
+        onChange={onChange}
+        isChecked={checked}
         data-testid={id}
         id={`${id}--check-box`}
         label={label}

@@ -4,6 +4,7 @@ import {
   EnvironmentVariableType,
   EnvVariableData,
 } from '~/pages/projects/types';
+import { asEnumMember } from '~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
@@ -22,7 +23,9 @@ const DEFAULT_ENV: EnvVariableData = {
 const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate }) => (
   <EnvDataTypeField
     selection={env.category || ''}
-    onSelection={(value) => onUpdate({ ...env, category: value as ConfigMapCategory, data: [] })}
+    onSelection={(value) =>
+      onUpdate({ ...env, category: asEnumMember(value, ConfigMapCategory), data: [] })
+    }
     options={{
       [ConfigMapCategory.GENERIC]: {
         label: 'Key / value',

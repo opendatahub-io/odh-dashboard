@@ -82,7 +82,9 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
           onToggle={() => setTypeDropdownOpen(!typeDropdownOpen)}
           aria-labelledby="container-size"
           selections={variableRow.variableType}
-          onSelect={(e, selection) => updateVariableType(selection as string)}
+          onSelect={(e, selection) => {
+            updateVariableType(selection.toString());
+          }}
         >
           {selectOptions}
         </Select>

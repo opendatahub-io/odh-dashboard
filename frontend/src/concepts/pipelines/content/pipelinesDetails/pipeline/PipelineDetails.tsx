@@ -69,7 +69,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
       <ApplicationsPage
         breadcrumb={
           <Breadcrumb>
-            {breadcrumbPath}
+            {breadcrumbPath()}
             <BreadcrumbItem isActive>{title}</BreadcrumbItem>
           </Breadcrumb>
         }
@@ -97,16 +97,30 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
             <ApplicationsPage
               breadcrumb={
                 <Breadcrumb>
-                  {breadcrumbPath}
+                  {breadcrumbPath()}
                   <BreadcrumbItem style={{ maxWidth: 300 }}>
-                    <Truncate content={pipeline?.display_name || 'Loading...'} />
+                    {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                    <Truncate
+                      content={pipeline?.display_name || 'Loading...'}
+                      className="truncate-no-min-width"
+                    />
                   </BreadcrumbItem>
                   <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                    <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
+                    {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                    <Truncate
+                      content={pipelineVersion?.display_name || 'Loading...'}
+                      className="truncate-no-min-width"
+                    />
                   </BreadcrumbItem>
                 </Breadcrumb>
               }
-              title={<Truncate content={pipelineVersion?.display_name || 'Loading...'} />}
+              title={
+                <Truncate
+                  content={pipelineVersion?.display_name || 'Loading...'}
+                  // TODO: Remove the custom className after upgrading to PFv6
+                  className="truncate-no-min-width"
+                />
+              }
               {...(pipelineVersion && {
                 description: (
                   <MarkdownView

@@ -71,6 +71,16 @@ describe('configure pipeline server utils', () => {
       expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
     });
 
+    it('should cleanup S3 endpoint host', () => {
+      const secretsResponse = createSecretsResponse();
+      const config = createPipelineServerConfig();
+      config.objectStorage.newValue = [
+        { key: AwsKeys.S3_ENDPOINT, value: 'https://s3.amazonaws.com/' },
+      ];
+      const spec = createDSPipelineResourceSpec(config, secretsResponse);
+      expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
+    });
+
     it('should parse S3 endpoint without scheme', () => {
       const secretsResponse = createSecretsResponse();
       const config = createPipelineServerConfig();

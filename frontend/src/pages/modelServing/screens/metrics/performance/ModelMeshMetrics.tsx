@@ -5,7 +5,6 @@ import {
   ModelMetricType,
   ModelServingMetricsContext,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 
 const ModelMeshMetrics: React.FC = () => {
@@ -22,15 +21,11 @@ const ModelMeshMetrics: React.FC = () => {
             metrics={[
               {
                 name: 'Successful',
-                metric: data[
-                  ModelMetricType.REQUEST_COUNT_SUCCESS
-                ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+                metric: data[ModelMetricType.REQUEST_COUNT_SUCCESS],
               },
               {
                 name: 'Failed',
-                metric: data[
-                  ModelMetricType.REQUEST_COUNT_FAILED
-                ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+                metric: data[ModelMetricType.REQUEST_COUNT_FAILED],
               },
             ]}
             color="blue"
