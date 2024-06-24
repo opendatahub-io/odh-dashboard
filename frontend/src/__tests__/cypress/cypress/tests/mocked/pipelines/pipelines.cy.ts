@@ -479,7 +479,7 @@ describe('Pipelines', () => {
     });
   });
 
-  it('incompatible dpsa version shows error', () => {
+  it('incompatible dpsa version shows error with delete option for regular user', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
     cy.interceptK8sList(
@@ -496,10 +496,10 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     pipelinesGlobal.isApiAvailable();
     pipelinesGlobal.findIsServerIncompatible().should('exist');
-    pipelinesGlobal.findDeletePipelineServerButton().should('not.exist');
+    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
   });
 
-  it('incompatible dpsa version shows error with delete option for admins', () => {
+  it('incompatible dpsa version shows error with delete option for admin', () => {
     asProductAdminUser();
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
