@@ -33,6 +33,7 @@ import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobRe
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '~/concepts/topology';
+import { StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -92,6 +93,9 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     );
   }
 
+  const runType =
+    run?.storage_state === StorageStateKF.ARCHIVED ? PipelineRunType.ARCHIVED : undefined;
+
   return (
     <>
       <Drawer isExpanded={!!selectedNode}>
@@ -128,7 +132,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             loadError={error}
             breadcrumb={
               <Breadcrumb>
-                {breadcrumbPath}
+                {breadcrumbPath(runType)}
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                   {version ? (
                     <Link
@@ -136,16 +140,22 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         namespace,
                         version.pipeline_id,
                         version.pipeline_version_id,
+                        runType,
                       )}
                     >
-                      {version.display_name}
+                      {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                      <Truncate content={version.display_name} className="truncate-no-min-width" />
                     </Link>
                   ) : (
                     'Loading...'
                   )}
                 </BreadcrumbItem>
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                  <Truncate content={run?.display_name ?? 'Loading...'} />
+                  {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                  <Truncate
+                    content={run?.display_name ?? 'Loading...'}
+                    className="truncate-no-min-width"
+                  />
                 </BreadcrumbItem>
               </Breadcrumb>
             }

@@ -4,6 +4,7 @@ import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extensio
 import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryItem';
 import { OdhDocument, OdhDocumentType } from '~/types';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
+import { asEnumMember, enumIterator } from '~/utilities/utils';
 import { DOC_TYPE_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
 
@@ -16,10 +17,11 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
   const docTypeFilters = useQueryFilters(DOC_TYPE_FILTER_KEY);
   const docCounts = React.useMemo(
     () =>
-      categoryApps.reduce(
+      categoryApps.reduce<{ [key in OdhDocumentType]: number }>(
         (acc, docApp) => {
-          if (docApp.spec.type in acc) {
-            acc[docApp.spec.type as keyof typeof acc]++;
+          const enumMember = asEnumMember(docApp.spec.type, OdhDocumentType);
+          if (enumMember) {
+            acc[enumMember]++;
           }
           return acc;
         },
@@ -52,26 +54,18 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
 
   return (
     <FilterSidePanelCategory key="enabled-filter" title="Resource type">
-      {Object.keys(OdhDocumentType).map((docType) => {
-        const value = OdhDocumentType[docType as keyof typeof OdhDocumentType];
-        return (
-          <FilterSidePanelCategoryItem
-            data-id={value}
-            id={value}
-            key={value}
-            checked={docTypeFilters.includes(value)}
-            onClick={(e) =>
-              onFilterChange(
-                value,
-                (e.target as React.AllHTMLAttributes<HTMLInputElement>).checked || false,
-              )
-            }
-            title={docType}
-          >
-            {`${docType} (${docCounts[value]})`}
-          </FilterSidePanelCategoryItem>
-        );
-      })}
+      {enumIterator(OdhDocumentType).map(([docType, value]) => (
+        <FilterSidePanelCategoryItem
+          data-id={value}
+          id={value}
+          key={value}
+          checked={docTypeFilters.includes(value)}
+          onChange={(_, checked) => onFilterChange(value, checked)}
+          title={docType}
+        >
+          {`${docType} (${docCounts[value]})`}
+        </FilterSidePanelCategoryItem>
+      ))}
     </FilterSidePanelCategory>
   );
 };

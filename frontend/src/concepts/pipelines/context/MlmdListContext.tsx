@@ -16,6 +16,7 @@ export interface MlmdListContextProps {
   setOrderBy: (orderBy: MlmdOrderBy | undefined) => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 const MlmdListContext = React.createContext({} as MlmdListContextProps);
 
 export const MlmdListContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {

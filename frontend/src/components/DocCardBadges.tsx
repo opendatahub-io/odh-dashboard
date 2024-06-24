@@ -5,7 +5,7 @@ import { QuickStartContext, QuickStartContextValues } from '@patternfly/quicksta
 import { OdhDocument, OdhDocumentType } from '~/types';
 import { getQuickStartCompletionStatus, CompletionStatusEnum } from '~/utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '~/utilities/const';
-import { getLabelColorForDocType, getDuration } from '~/utilities/utils';
+import { getLabelColorForDocType, getDuration, asEnumMember } from '~/utilities/utils';
 import { DOC_TYPE_LABEL } from '~/pages/learningCenter/const';
 
 import './OdhCard.scss';
@@ -19,7 +19,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const [completionStatus, setCompletionStatus] = React.useState<
     CompletionStatusEnum | undefined
   >();
-  const docType = odhDoc.spec.type as OdhDocumentType;
+  const docType = asEnumMember(odhDoc.spec.type, OdhDocumentType) ?? OdhDocumentType.Documentation;
   const docName = odhDoc.metadata.name;
   const duration = odhDoc.spec.durationMinutes;
 

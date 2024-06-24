@@ -51,6 +51,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   serverTimedOut: false,
   ignoreTimedOut: () => undefined,
   namespace: '',
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
@@ -58,7 +59,9 @@ const PipelinesContext = React.createContext<PipelineContext>({
     loading: false,
     data: null,
   }),
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   apiState: { apiAvailable: false, api: null as unknown as PipelineAPIState['api'] },
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
 });
 
@@ -106,7 +109,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     );
     if (DEV_MODE) {
       // Enables the use of this browser extension: https://github.com/SafetyCulture/grpc-web-devtools
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-empty-function
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-empty-function, @typescript-eslint/consistent-type-assertions
       const enableDevTools = (window as any).__GRPCWEB_DEVTOOLS__ || (() => {});
       enableDevTools([client]);
     }

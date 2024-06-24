@@ -1,5 +1,5 @@
 import React from 'react';
-import { Label, Split, SplitItem } from '@patternfly/react-core';
+import { Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
 import { PipelineRunKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
@@ -22,7 +22,10 @@ const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
   return (
     <>
       <Split hasGutter>
-        <SplitItem>{run.display_name}</SplitItem>
+        <SplitItem>
+          {/* TODO: Remove the custom className after upgrading to PFv6 */}
+          <Truncate content={run.display_name} className="truncate-no-min-width" />
+        </SplitItem>
         {pipelineRunLabel && (
           <SplitItem>
             <PipelineRunTypeLabel run={run} />

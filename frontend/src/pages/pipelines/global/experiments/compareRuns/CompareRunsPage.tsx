@@ -21,7 +21,7 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
       title=""
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath}
+          {breadcrumbPath()}
           <BreadcrumbItem isActive>Compare runs</BreadcrumbItem>
         </Breadcrumb>
       }

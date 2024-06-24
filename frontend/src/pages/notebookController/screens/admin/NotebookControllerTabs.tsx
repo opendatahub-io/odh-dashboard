@@ -3,6 +3,7 @@ import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { NotebookControllerTabTypes } from '~/pages/notebookController/const';
 import NotebookServerRoutes from '~/pages/notebookController/screens/server/NotebookServerRoutes';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
+import { asEnumMember } from '~/utilities/utils';
 import NotebookAdmin from './NotebookAdmin';
 
 const NotebookControllerTabs: React.FC = () => {
@@ -16,7 +17,10 @@ const NotebookControllerTabs: React.FC = () => {
         unmountOnExit
         onSelect={(e, eventKey) => {
           setImpersonating();
-          setCurrentAdminTab(eventKey as NotebookControllerTabTypes);
+          const enumValue = asEnumMember(eventKey, NotebookControllerTabTypes);
+          if (enumValue !== null) {
+            setCurrentAdminTab(enumValue);
+          }
         }}
       >
         <Tab

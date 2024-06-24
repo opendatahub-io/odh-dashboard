@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { getNotebookBuildConfigs, getBuildsForBuildConfig } from '~/api';
 import useNotification from '~/utilities/useNotification';
-import { BuildConfigKind, BuildKind, BuildPhase } from '~/k8sTypes';
+import { BuildConfigKind, BuildPhase } from '~/k8sTypes';
 import { BuildStatus } from './types';
 import { compareBuilds } from './spawnerUtils';
 
@@ -26,7 +26,7 @@ const useBuildStatuses = (namespace?: string): BuildStatus[] => {
               imageStreamVersion: buildConfig.spec.output.to.name,
             };
           }
-          const mostRecent = builds.toSorted(compareBuilds).pop() as BuildKind;
+          const mostRecent = builds.toSorted(compareBuilds)[builds.length - 1];
           return {
             name: buildNotebookName,
             status: mostRecent.status.phase,

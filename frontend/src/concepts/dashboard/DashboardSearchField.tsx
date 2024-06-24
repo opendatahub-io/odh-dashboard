@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import { asEnumMember } from '~/utilities/utils';
 
 // List all the possible search fields here
 export enum SearchType {
@@ -48,7 +49,10 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
         }))}
         value={searchType}
         onChange={(key) => {
-          onSearchTypeChange(key as SearchType);
+          const enumMember = asEnumMember(key, SearchType);
+          if (enumMember !== null) {
+            onSearchTypeChange(enumMember);
+          }
         }}
         icon={icon}
       />

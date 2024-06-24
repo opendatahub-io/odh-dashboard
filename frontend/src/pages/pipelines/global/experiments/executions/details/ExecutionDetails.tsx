@@ -44,10 +44,10 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
   const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
   const allEvents = parseEventsByType(events);
 
-  const artifactTypeMap = artifactTypes.reduce((acc, artifactType) => {
+  const artifactTypeMap = artifactTypes.reduce<Record<number, string>>((acc, artifactType) => {
     acc[artifactType.getId()] = artifactType.getName();
     return acc;
-  }, {} as Record<number, string>);
+  }, {});
 
   const error = executionError || eventsError;
 
@@ -96,7 +96,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       loaded
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath}
+          {breadcrumbPath()}
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
         </Breadcrumb>
       }

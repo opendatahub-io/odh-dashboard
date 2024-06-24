@@ -28,10 +28,9 @@ export type NavDataGroup = NavDataCommon & {
 
 export type NavDataItem = NavDataHref | NavDataGroup;
 
-export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref =>
-  !!(navData as NavDataHref).href;
+export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref => 'href' in navData;
 export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
-  !!(navData as NavDataGroup).children;
+  'children' in navData;
 
 const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];

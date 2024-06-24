@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import { asEnumMember } from '~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
   selectedAPIProtocol: ServingRuntimeAPIProtocol | undefined;
@@ -50,7 +51,12 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
         isDisabled={isOnlyModelMesh}
         options={options}
         value={selectedAPIProtocol || ''}
-        onChange={(key) => setSelectedAPIProtocol(key as ServingRuntimeAPIProtocol)}
+        onChange={(key) => {
+          const enumValue = asEnumMember(key, ServingRuntimeAPIProtocol);
+          if (enumValue !== null) {
+            setSelectedAPIProtocol(enumValue);
+          }
+        }}
       />
     </FormGroup>
   );

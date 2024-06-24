@@ -118,7 +118,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
         >
           <RunForm
             data={formData}
-            runType={runType as PipelineRunType}
+            runType={asEnumMember(runType, PipelineRunType) ?? PipelineRunType.ACTIVE}
             onValueChange={onValueChange}
           />
         </GenericSidebar>

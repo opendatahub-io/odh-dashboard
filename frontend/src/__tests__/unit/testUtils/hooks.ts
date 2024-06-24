@@ -67,8 +67,8 @@ export const renderHook = <
   options?: RenderHookOptions<Props, Q, Container, BaseElement>,
 ): RenderHookResultExt<Result, Props> => {
   let updateCount = 0;
-  let prevResult: Result | undefined;
-  let currentResult: Result | undefined;
+  let prevResult: Result;
+  let currentResult: Result;
 
   const renderResult = renderHookRTL((props) => {
     updateCount++;
@@ -80,8 +80,7 @@ export const renderHook = <
   const renderResultExt: RenderHookResultExt<Result, Props> = {
     ...renderResult,
 
-    getPreviousResult: () =>
-      updateCount > 1 ? (prevResult as Result) : renderResult.result.current,
+    getPreviousResult: () => (updateCount > 1 ? prevResult : renderResult.result.current),
 
     getUpdateCount: () => updateCount,
 

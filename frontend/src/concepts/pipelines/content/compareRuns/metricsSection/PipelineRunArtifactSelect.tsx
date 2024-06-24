@@ -49,10 +49,12 @@ export const PipelineRunArtifactSelect = <T,>({
             isOpen={isOpen}
             selected={selectedItemTitles}
             onSelect={(_event, value) => {
-              if (selectedItemTitles.includes(value as string)) {
-                setSelectedItemTitles(selectedItemTitles.filter((id) => id !== value));
-              } else {
-                setSelectedItemTitles([...selectedItemTitles, value as string]);
+              if (typeof value === 'string') {
+                if (selectedItemTitles.includes(value)) {
+                  setSelectedItemTitles(selectedItemTitles.filter((id) => id !== value));
+                } else {
+                  setSelectedItemTitles([...selectedItemTitles, value]);
+                }
               }
             }}
             onOpenChange={(nextOpen: boolean) => setIsOpen(nextOpen)}

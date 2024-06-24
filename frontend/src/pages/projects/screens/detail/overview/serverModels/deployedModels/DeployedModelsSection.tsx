@@ -58,11 +58,14 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
       return;
     }
     if (isMultiPlatform) {
-      const modelInferenceServices = modelServers.reduce((acc, modelServer) => {
-        const services = getInferenceServiceFromServingRuntime(inferenceServices, modelServer);
-        acc.push(...services);
-        return acc;
-      }, [] as InferenceServiceKind[]);
+      const modelInferenceServices = modelServers.reduce<InferenceServiceKind[]>(
+        (acc, modelServer) => {
+          const services = getInferenceServiceFromServingRuntime(inferenceServices, modelServer);
+          acc.push(...services);
+          return acc;
+        },
+        [],
+      );
       setDeployedModels(modelInferenceServices);
     } else {
       setDeployedModels(inferenceServices);

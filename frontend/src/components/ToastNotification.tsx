@@ -3,6 +3,7 @@ import { Alert, AlertActionCloseButton, AlertVariant } from '@patternfly/react-c
 import { AppNotification } from '~/redux/types';
 import { ackNotification, hideNotification } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
+import { asEnumMember } from '~/utilities/utils';
 
 const TOAST_NOTIFICATION_TIMEOUT = 8 * 1000;
 
@@ -36,7 +37,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
 
   return (
     <Alert
-      variant={notification.status as AlertVariant}
+      variant={asEnumMember(notification.status, AlertVariant) ?? undefined}
       title={notification.title}
       actionClose={
         <AlertActionCloseButton onClose={() => dispatch(ackNotification(notification))} />

@@ -30,7 +30,12 @@ const GlobalPipelineRunsTab: React.FC = () => {
   return (
     <Tabs
       activeKey={runType || PipelineRunType.ACTIVE}
-      onSelect={(_event, tabId) => setSearchParams({ runType: tabId as PipelineRunType })}
+      onSelect={(_event, tabId) => {
+        const enumValue = asEnumMember(tabId, PipelineRunType);
+        if (enumValue !== null) {
+          setSearchParams({ runType: enumValue });
+        }
+      }}
       aria-label="Pipeline run page tabs"
       role="region"
       className="odh-pipeline-runs-page-tabs"

@@ -22,6 +22,7 @@ import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/Em
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { modelVersionArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { asEnumMember } from '~/utilities/utils';
 import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {
@@ -89,7 +90,10 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                   }))}
                   value={searchType}
                   onChange={(newSearchType) => {
-                    setSearchType(newSearchType as SearchType);
+                    const enumMember = asEnumMember(newSearchType, SearchType);
+                    if (enumMember !== null) {
+                      setSearchType(enumMember);
+                    }
                   }}
                   icon={<FilterIcon />}
                 />

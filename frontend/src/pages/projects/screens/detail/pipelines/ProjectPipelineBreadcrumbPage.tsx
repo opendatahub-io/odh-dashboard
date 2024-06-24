@@ -19,7 +19,7 @@ const ProjectPipelineBreadcrumbPage: React.FC<ProjectPipelineDetailsProps> = ({
   return (
     <EnsureAPIAvailability>
       <BreadcrumbDetailsComponent
-        breadcrumbPath={[
+        breadcrumbPath={() => [
           <BreadcrumbItem
             key="project-home"
             render={() => <Link to="/projects">Data Science Projects</Link>}

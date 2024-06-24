@@ -28,6 +28,7 @@ export const ModelRegistryContext = React.createContext<ModelRegistryContextType
   hasCR: false,
   crInitializing: false,
   serverTimedOut: false,
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   apiState: { apiAvailable: false, api: null as unknown as ModelRegistryAPIState['api'] },
   ignoreTimedOut: () => undefined,
   refreshState: async () => undefined,

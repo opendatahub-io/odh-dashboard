@@ -125,7 +125,7 @@ const useDraggableTable = (
         return;
       }
 
-      const curListItem = (evt.target as HTMLTableSectionElement).closest('tr');
+      const curListItem = evt.target instanceof HTMLElement ? evt.target.closest('tr') : null;
       if (
         !curListItem ||
         !bodyRef.current.contains(curListItem) ||
@@ -159,7 +159,7 @@ const useDraggableTable = (
   );
 
   const onDragEnd = React.useCallback<UseDraggableTable['rowProps']['onDrop']>((evt) => {
-    const target = evt.currentTarget as HTMLTableRowElement;
+    const target = evt.currentTarget;
     target.classList.remove(styles.modifiers.ghostRow);
     target.setAttribute('aria-pressed', 'false');
     setDraggedItemId('');
