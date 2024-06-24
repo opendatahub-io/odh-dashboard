@@ -29,7 +29,7 @@ spec:
     disableDistributedWorkloads: false
     disableModelRegistry: true
   groupsConfig:
-    adminGroups: "<admin_groups>"
+    adminGroups: "$(admin_groups)"
     allowedGroups: "system:authenticated"
   notebookController:
     enabled: true

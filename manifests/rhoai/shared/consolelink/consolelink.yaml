@@ -9,7 +9,7 @@
   value: Red Hat OpenShift AI
 - op: replace
   path: /spec/applicationMenu/section
-  value: <section-title>
+  value: $(section-title)
 - op: replace
   path: /spec/href
-  value: <dashboard-url>
+  value: $(dashboard-url)

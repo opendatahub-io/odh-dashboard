@@ -7,6 +7,8 @@ The Dashboard manifests run on Kustomize. There are 3 types of deployments for t
   - RHOAI Managed ([`./rhoai/addon`](./rhoai/addon))
   - RHOAI Self Managed ([`./rhoai/onprem`](./rhoai/onprem))
 
+Each deployment type will have a `params.env` file where the Operator can inject values for us to use.
+
 ## Adding/Modifying Manifests
 
 Rules for keeping the manifest files in a sane order:

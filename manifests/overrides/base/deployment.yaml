@@ -27,7 +27,7 @@ spec:
       serviceAccount: odh-dashboard
       containers:
       - name: odh-dashboard
-        image: odh-dashboard
+        image: $(odh-dashboard-image)
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

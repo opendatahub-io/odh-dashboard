@@ -16,9 +16,7 @@
 - op: replace
   path: /spec/template/spec/containers/0/name
   value: rhods-dashboard
-- op: replace
-  path: /spec/template/spec/containers/0/image
-  value: $(odh-dashboard-image)
+  # The image value is already an env
 - op: replace
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
