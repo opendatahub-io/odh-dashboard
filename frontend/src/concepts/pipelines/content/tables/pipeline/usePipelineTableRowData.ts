@@ -6,6 +6,7 @@ import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 const usePipelineTableRowData = (
   pipeline: PipelineKFv2,
 ): {
+  version: PipelineVersionKFv2 | undefined;
   updatedDate: Date;
   totalSize: number;
   loading: boolean;
@@ -19,10 +20,10 @@ const usePipelineTableRowData = (
       sortDirection: 'desc',
     },
   );
+  const latestVersion = isLoaded ? items[0] : undefined;
+  const updatedDate = new Date(latestVersion?.created_at || pipeline.created_at);
 
-  const updatedDate = new Date(items[0]?.created_at || pipeline.created_at);
-
-  return { updatedDate, totalSize, loading: !isLoaded, refresh };
+  return { version: latestVersion, updatedDate, totalSize, loading: !isLoaded, refresh };
 };
 
 export default usePipelineTableRowData;

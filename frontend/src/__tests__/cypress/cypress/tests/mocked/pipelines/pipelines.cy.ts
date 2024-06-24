@@ -866,6 +866,19 @@ describe('Pipelines', () => {
     );
   });
 
+  it('navigates to pipeline version details page via pipeline name', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+    pipelinesTable.find();
+
+    const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
+    pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
+
+    verifyRelativeURL(
+      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+    );
+  });
+
   it('delete pipeline and versions', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
