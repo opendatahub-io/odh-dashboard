@@ -17,7 +17,7 @@ import {
   updateProject,
   useProjects,
 } from '~/api/k8s/projects';
-import { ProjectModel } from '~/api/models';
+import { ProjectModel, ProjectRequestModel } from '~/api/models';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ProjectKind } from '~/k8sTypes';
@@ -118,12 +118,6 @@ describe('createProject', () => {
       applied,
     },
   });
-  const projectRequest = {
-    apiGroup: 'project.openshift.io',
-    apiVersion: 'v1',
-    kind: 'ProjectRequest',
-    plural: 'projectrequests',
-  };
 
   it('should create a project when k8s name is given', async () => {
     const projectMock = mockProjectK8sResource({ k8sName });
@@ -133,7 +127,7 @@ describe('createProject', () => {
     expect(result).toStrictEqual(k8sName);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
-      model: projectRequest,
+      model: ProjectRequestModel,
       resource: {
         apiVersion: 'project.openshift.io/v1',
         kind: 'ProjectRequest',
@@ -156,7 +150,7 @@ describe('createProject', () => {
     expect(result).toStrictEqual(displayName);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
-      model: projectRequest,
+      model: ProjectRequestModel,
       resource: {
         apiVersion: 'project.openshift.io/v1',
         kind: 'ProjectRequest',
