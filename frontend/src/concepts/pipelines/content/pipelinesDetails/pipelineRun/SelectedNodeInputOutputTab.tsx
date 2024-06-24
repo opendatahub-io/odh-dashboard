@@ -106,10 +106,6 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
     [getExecutionValueFromInputType],
   );
 
-  if (!task.inputs && !task.outputs) {
-    return <>No content</>;
-  }
-
   return (
     <Stack hasGutter>
       {isExperimentsAvailable && execution?.id && (
