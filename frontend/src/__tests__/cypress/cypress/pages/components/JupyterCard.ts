@@ -10,7 +10,7 @@ export class JupyterCard extends Card {
       .findByTestId('tooltip-img')
       .trigger('mouseenter')
       .then(() => {
-        cy.findByText('Open Data Hub certified and supported');
+        cy.findByText(`${Cypress.env('ODH_PRODUCT_NAME')} certified and supported`);
       });
   }
 
