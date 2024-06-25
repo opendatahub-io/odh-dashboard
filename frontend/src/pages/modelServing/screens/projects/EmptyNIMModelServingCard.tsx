@@ -7,7 +7,7 @@ import {
   CardTitle,
   Text,
   TextContent,
-  TextVariants
+  TextVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimePlatform } from '~/types';
@@ -65,7 +65,9 @@ const EmptyNIMModelServingCard: React.FC = () => {
           </TextContent>
         </CardTitle>
         <CardBody>
-          Models are deployed using NVIDIA NIM microservices. Choose this option when you want to deploy your model within a NIM container. Please provide the API key to authenticate with the NIM service.
+          Models are deployed using NVIDIA NIM microservices. Choose this option when you want to
+          deploy your model within a NIM container. Please provide the API key to authenticate with
+          the NIM service.
         </CardBody>
         <CardFooter>
           <Bullseye>
