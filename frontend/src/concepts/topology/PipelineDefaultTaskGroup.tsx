@@ -12,6 +12,8 @@ import {
   NodeModel,
   useHover,
   PipelineNodeModel,
+  TaskGroupPillLabel,
+  LabelPosition,
 } from '@patternfly/react-topology';
 import { Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '~/concepts/topology/types';
@@ -57,9 +59,12 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         element={element}
         collapsible
         recreateLayoutOnCollapseChange
+        GroupLabelComponent={TaskGroupPillLabel}
         selected={selected}
         onSelect={onSelect}
         hideDetailsAtMedium
+        centerLabelOnEdge
+        labelPosition={LabelPosition.top}
         showStatusState
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
         showLabelOnHover
