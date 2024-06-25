@@ -92,11 +92,7 @@ describe('createConfigMap', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: { queryParams: {} },
       resource: configMapMock,
     });
@@ -112,11 +108,7 @@ describe('createConfigMap', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: { queryParams: {} },
       resource: configMapMock,
     });
@@ -133,11 +125,7 @@ describe('replaceConfigMap', () => {
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: { queryParams: {} },
       resource: configMapMock,
     });
@@ -153,11 +141,7 @@ describe('replaceConfigMap', () => {
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: { queryParams: {} },
       resource: configMapMock,
     });
@@ -174,11 +158,7 @@ describe('deleteConfigMap', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: {
         name: configMapName,
         ns: namespace,
@@ -196,11 +176,7 @@ describe('deleteConfigMap', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: {
         name: configMapName,
         ns: namespace,
@@ -216,11 +192,7 @@ describe('deleteConfigMap', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        plural: 'configmaps',
-      },
+      model: ConfigMapModel,
       queryOptions: {
         name: configMapName,
         ns: namespace,

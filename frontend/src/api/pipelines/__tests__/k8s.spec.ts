@@ -9,6 +9,9 @@ import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import {
+  DataSciencePipelineApplicationModel,
+  RouteModel,
+  SecretModel,
   createPipelinesCR,
   deletePipelineCR,
   getElyraSecret,
@@ -40,7 +43,7 @@ describe('getElyraSecret', () => {
     const result = await getElyraSecret('namespace', opts);
     expect(k8sGetResourceSecretKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       payload: { dryRun: ['All'] },
       queryOptions: { name: 'ds-pipeline-config', ns: 'namespace', queryParams: { dryRun: 'All' } },
     });
@@ -54,7 +57,7 @@ describe('getElyraSecret', () => {
     expect(k8sGetResourceSecretKindMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceSecretKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       payload: { dryRun: ['All'] },
       queryOptions: { name: 'ds-pipeline-config', ns: 'namespace', queryParams: { dryRun: 'All' } },
     });
@@ -68,7 +71,7 @@ describe('getPipelineAPIRoute', () => {
     const result = await getPipelineAPIRoute('namespace', 'ds-pipeline-dspa');
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiGroup: 'route.openshift.io', apiVersion: 'v1', kind: 'Route', plural: 'routes' },
+      model: RouteModel,
       queryOptions: { name: 'ds-pipeline-dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledTimes(1);
@@ -81,12 +84,7 @@ describe('getPipelineAPIRoute', () => {
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceRouteKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'route.openshift.io',
-        apiVersion: 'v1',
-        kind: 'Route',
-        plural: 'routes',
-      },
+      model: RouteModel,
       queryOptions: {
         name: 'ds-pipeline-dspa',
         ns: 'namespace',
@@ -104,12 +102,7 @@ describe('createPipelinesCR', () => {
     const result = await createPipelinesCR('test-project', DSPipelinemock.spec);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { queryParams: {} },
       resource: DSPipelinemock,
     });
@@ -123,12 +116,7 @@ describe('createPipelinesCR', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { queryParams: {} },
       resource: DSPipelinemock,
     });
@@ -142,12 +130,7 @@ describe('getPipelinesCR', () => {
     const result = await getPipelinesCR('namespace', 'dspa');
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledTimes(1);
@@ -160,12 +143,7 @@ describe('getPipelinesCR', () => {
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceDSPipelineKindMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
   });
@@ -178,12 +156,7 @@ describe('deletePipelineCR', () => {
     const result = await deletePipelineCR('namespace', 'dspa');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -196,12 +169,7 @@ describe('deletePipelineCR', () => {
     const result = await deletePipelineCR('namespace', 'dspa');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -214,12 +182,7 @@ describe('deletePipelineCR', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-        apiVersion: 'v1alpha1',
-        kind: 'DataSciencePipelinesApplication',
-        plural: 'datasciencepipelinesapplications',
-      },
+      model: DataSciencePipelineApplicationModel,
       queryOptions: { name: 'dspa', ns: 'namespace', queryParams: {} },
     });
   });
