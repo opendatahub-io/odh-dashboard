@@ -1,5 +1,5 @@
 import { genUID } from '~/__mocks__/mockUtils';
-import { ServiceAccountKind } from '~/k8sTypes';
+import { K8sModelCommonMetadata, ServiceAccountKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -19,3 +19,9 @@ export const mockServiceAccountK8sResource = ({
     creationTimestamp: '2023-02-14T21:43:59Z',
   },
 });
+
+export const ServiceAccountModelTest: K8sModelCommonMetadata = {
+  apiVersion: 'v1',
+  kind: 'ServiceAccount',
+  metadata: { name: 'test-name-sa', namespace: 'test-project', ownerReferences: [] },
+};

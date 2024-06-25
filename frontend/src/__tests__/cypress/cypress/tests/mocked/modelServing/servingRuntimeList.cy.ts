@@ -14,7 +14,10 @@ import {
   mockRouteK8sResourceModelServing,
 } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
+import {
+  ServiceAccountModelTest,
+  mockServiceAccountK8sResource,
+} from '~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -1021,11 +1024,7 @@ describe('Serving Runtime List', () => {
       //dry run request
       cy.wait('@createServiceAccount').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
-          apiVersion: 'v1',
-          kind: 'ServiceAccount',
-          metadata: { name: 'test-name-sa', namespace: 'test-project', ownerReferences: [] },
-        });
+        expect(interception.request.body).to.eql(ServiceAccountModelTest);
       });
 
       //Actual request
@@ -1343,11 +1342,7 @@ describe('Serving Runtime List', () => {
       //dry run request
       cy.wait('@createServiceAccount').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
-          apiVersion: 'v1',
-          kind: 'ServiceAccount',
-          metadata: { name: 'test-name-sa', namespace: 'test-project', ownerReferences: [] },
-        });
+        expect(interception.request.body).to.eql(ServiceAccountModelTest);
       });
 
       // Actual request

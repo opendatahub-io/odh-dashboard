@@ -1329,3 +1329,13 @@ export type ModelRegistryKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+export type K8sModelCommonMetadata = {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    ownerReferences: string[];
+  };
+};

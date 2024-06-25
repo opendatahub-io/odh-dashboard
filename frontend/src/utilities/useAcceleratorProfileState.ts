@@ -1,14 +1,9 @@
 import React from 'react';
+import { fakeAcceleratorProfile } from '~/api';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
-import {
-  ContainerResourceAttributes,
-  ContainerResources,
-  Toleration,
-  TolerationEffect,
-  TolerationOperator,
-} from '~/types';
+import { ContainerResourceAttributes, ContainerResources, Toleration } from '~/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 import { getAcceleratorProfileCount, isEnumMember } from '~/utilities/utils';
 
@@ -96,27 +91,6 @@ const useAcceleratorProfileState = (
                 setData('additionalOptions', { useDisabled: acceleratorProfile });
               }
             } else {
-              // create a fake accelerator to use
-              const fakeAcceleratorProfile: AcceleratorProfileKind = {
-                apiVersion: 'dashboard.opendatahub.io/v1',
-                kind: 'AcceleratorProfile',
-                metadata: {
-                  name: 'migrated-gpu',
-                },
-                spec: {
-                  identifier: 'nvidia.com/gpu',
-                  displayName: 'NVIDIA GPU',
-                  enabled: true,
-                  tolerations: [
-                    {
-                      key: 'nvidia.com/gpu',
-                      operator: TolerationOperator.EXISTS,
-                      effect: TolerationEffect.NO_SCHEDULE,
-                    },
-                  ],
-                },
-              };
-
               setData('acceleratorProfile', fakeAcceleratorProfile);
               setData('acceleratorProfiles', [fakeAcceleratorProfile, ...acceleratorProfiles]);
               setData('initialAcceleratorProfile', fakeAcceleratorProfile);

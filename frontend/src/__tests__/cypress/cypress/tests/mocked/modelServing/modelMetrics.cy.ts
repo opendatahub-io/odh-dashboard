@@ -16,7 +16,10 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { mockPrometheusServing } from '~/__mocks__/mockPrometheusServing';
 import { mockPrometheusBias } from '~/__mocks__/mockPrometheusBias';
 import { mockMetricsRequest } from '~/__mocks__/mockMetricsRequests';
-import { mockTrustyAIServiceK8sResource } from '~/__mocks__/mockTrustyAIServiceK8sResource';
+import {
+  TrustyAITest,
+  mockTrustyAIServiceK8sResource,
+} from '~/__mocks__/mockTrustyAIServiceK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { projectDetailsSettingsTab } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
@@ -414,28 +417,7 @@ describe('Model Metrics', () => {
     projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
 
     cy.wait('@installTrustyAI').then((interception) => {
-      expect(interception.request.body).to.be.eql({
-        apiVersion: 'trustyai.opendatahub.io/v1alpha1',
-        kind: 'TrustyAIService',
-        metadata: {
-          name: 'trustyai-service',
-          namespace: 'test-project',
-        },
-        spec: {
-          storage: {
-            format: 'PVC',
-            folder: '/inputs',
-            size: '1Gi',
-          },
-          data: {
-            filename: 'data.csv',
-            format: 'CSV',
-          },
-          metrics: {
-            schedule: '5s',
-          },
-        },
-      });
+      expect(interception.request.body).to.be.eql(TrustyAITest);
     });
   });
 

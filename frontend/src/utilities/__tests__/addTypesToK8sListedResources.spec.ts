@@ -1,27 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { servingRuntimeTemplate } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { addTypesToK8sListedResources } from '~/utilities/addTypesToK8sListedResources';
-
-const servingRuntimeTemplate = {
-  apiVersion: 'template.openshift.io/v1',
-  kind: 'TemplateList',
-  items: [
-    {
-      metadata: {
-        name: 'test-model',
-        annotations: {
-          'openshift.io/display-name': 'New OVMS Server',
-        },
-        labels: {
-          'opendatahub.io/dashboard': 'true',
-        },
-      },
-    },
-  ],
-  metadata: {
-    resourceVersion: '24348645',
-    continue: '',
-  },
-};
 
 describe('addTypesToK8sListedResources', () => {
   it('should have apiVersion and kind as Template', () => {

@@ -1,5 +1,4 @@
-import { KnownLabels } from '~/k8sTypes';
-import { DataConnection, DataConnectionType } from '~/pages/projects/types';
+import { DataConnectionType } from '~/pages/projects/types';
 import {
   convertAWSSecretData,
   deleteDataConnection,
@@ -12,49 +11,15 @@ import {
   isSecretAWSSecretKind,
 } from '~/pages/projects/screens/detail/data-connections/utils';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { deleteSecret } from '~/api';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-
-import { genUID } from '~/__mocks__/mockUtils';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+import { dataConnection, deleteSecret } from '~/api';
 
 jest.mock('~/api', () => ({
   deleteSecret: jest.fn(),
 }));
 
 const deletesecretMock = jest.mocked(deleteSecret);
-
-const dataConnection: DataConnection = {
-  type: 0,
-  data: {
-    kind: 'Secret',
-    apiVersion: 'v1',
-    metadata: {
-      name: 'test-secret',
-      namespace: 'test-project',
-      uid: genUID('secret'),
-      resourceVersion: '5985371',
-      creationTimestamp: '2023-03-22T16:18:56Z',
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-        [KnownLabels.DATA_CONNECTION_AWS]: 'true',
-      },
-      annotations: {
-        'opendatahub.io/connection-type': 's3',
-        'openshift.io/display-name': 'Test Secret',
-      },
-    },
-    data: {
-      [AwsKeys.NAME]: 'test-secret',
-      AWS_ACCESS_KEY_ID: 'test',
-      AWS_DEFAULT_REGION: 'region',
-      AWS_S3_BUCKET: 'bucket',
-      AWS_S3_ENDPOINT: 'endpoint',
-      AWS_SECRET_ACCESS_KEY: 'test',
-    },
-    type: 'Opaque',
-  },
-};
 
 const createDataConnection = (type: DataConnectionType) => ({
   ...dataConnection,

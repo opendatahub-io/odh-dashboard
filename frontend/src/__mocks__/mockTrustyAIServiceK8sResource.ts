@@ -68,3 +68,26 @@ export const mockTrustyAIServiceK8sResource = ({
     replicas: 0,
   },
 });
+
+export const TrustyAITest: TrustyAIKind = {
+  apiVersion: 'trustyai.opendatahub.io/v1alpha1',
+  kind: 'TrustyAIService',
+  metadata: {
+    name: 'trustyai-service',
+    namespace: 'test-project',
+  },
+  spec: {
+    storage: {
+      format: 'PVC',
+      folder: '/inputs',
+      size: '1Gi',
+    },
+    data: {
+      filename: 'data.csv',
+      format: 'CSV',
+    },
+    metrics: {
+      schedule: '5s',
+    },
+  },
+};
