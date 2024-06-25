@@ -5,26 +5,15 @@ import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDe
 import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '~/concepts/pipelines/topology';
-import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
 import { Execution } from '~/third_party/mlmd';
+import { renderDetailItems } from './utils';
 
-enum PipelineRunNodeTabs {
+enum PipelineRunNodeTab {
   INPUT_OUTPUT = 'inputoutput',
-  // VISUALIZATIONS = 'Visualizations',
   DETAILS = 'details',
   VOLUMES = 'volumes',
   LOGS = 'logs',
-  // POD = 'Pod',
-  // EVENTS = 'Events',
-  // ML_METADATA = 'ML Metadata',
 }
-
-const PipelineRunNodeTabsTitles = {
-  [PipelineRunNodeTabs.INPUT_OUTPUT]: 'Input/Output',
-  [PipelineRunNodeTabs.DETAILS]: 'Task details',
-  [PipelineRunNodeTabs.VOLUMES]: 'Volumes',
-  [PipelineRunNodeTabs.LOGS]: 'Logs',
-};
 
 type PipelineRunDrawerRightTabsProps = {
   task: PipelineTask;
@@ -35,47 +24,64 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
   task,
   executions,
 }) => {
-  const [selection, setSelection] = React.useState(PipelineRunNodeTabs.INPUT_OUTPUT);
+  const hasNoInputsOutputs = !task.inputs && !task.outputs;
+  const [selection, setSelection] = React.useState<string>(
+    hasNoInputsOutputs ? PipelineRunNodeTab.DETAILS : PipelineRunNodeTab.INPUT_OUTPUT,
+  );
   const taskExecution = executions.find(
     (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === task.name,
   );
 
-  const tabContents: Record<PipelineRunNodeTabs, React.ReactNode> = {
-    [PipelineRunNodeTabs.INPUT_OUTPUT]: (
-      <SelectedNodeInputOutputTab task={task} execution={taskExecution?.toObject()} />
-    ),
-    // [PipelineRunNodeTabs.VISUALIZATIONS]: <>TBD 2</>,
-    [PipelineRunNodeTabs.DETAILS]: <SelectedNodeDetailsTab task={task} />,
-    [PipelineRunNodeTabs.VOLUMES]: <SelectedNodeVolumeMountsTab task={task} />,
-    [PipelineRunNodeTabs.LOGS]: <LogsTab task={task} />,
-    // [PipelineRunNodeTabs.POD]: <>TBD 6</>,
-    // [PipelineRunNodeTabs.EVENTS]: <>TBD 7</>,
-    // [PipelineRunNodeTabs.ML_METADATA]: <>TBD 8</>,
+  const tabs: Record<string, { title: string; isDisabled?: boolean; content: React.ReactNode }> = {
+    [PipelineRunNodeTab.INPUT_OUTPUT]: {
+      title: 'Input/Output',
+      isDisabled: hasNoInputsOutputs,
+      content: <SelectedNodeInputOutputTab task={task} execution={taskExecution?.toObject()} />,
+    },
+    [PipelineRunNodeTab.DETAILS]: {
+      title: 'Task details',
+      content: <SelectedNodeDetailsTab task={task} />,
+    },
+    [PipelineRunNodeTab.VOLUMES]: {
+      title: 'Volumes',
+      isDisabled: !task.volumeMounts || task.volumeMounts.length === 0,
+      content: renderDetailItems(
+        (task.volumeMounts ?? []).map(({ name, mountPath }) => ({ key: mountPath, value: name })),
+      ),
+    },
+    [PipelineRunNodeTab.LOGS]: {
+      title: 'Logs',
+      isDisabled: !task.status?.podName,
+      content: <LogsTab task={task} />,
+    },
   };
 
   return (
     <>
       <Tabs activeKey={selection} mountOnEnter>
-        {Object.values(PipelineRunNodeTabs).map((tab) => (
+        {Object.entries(tabs).map(([tabName, { title, isDisabled }]) => (
           <Tab
-            data-testid={`right-drawer-tab-${tab}`}
-            key={tab}
-            title={PipelineRunNodeTabsTitles[tab]}
-            eventKey={tab}
-            tabContentId={tab}
-            onClick={() => setSelection(tab)}
+            data-testid={`right-drawer-tab-${tabName}`}
+            key={tabName}
+            title={title}
+            eventKey={tabName}
+            tabContentId={tabName}
+            isDisabled={isDisabled}
+            onClick={() => setSelection(tabName)}
           />
         ))}
       </Tabs>
       <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-px-sm">
-        <TabContent
-          id={selection}
-          eventKey={selection}
-          activeKey={selection}
-          style={{ flex: '1 1 auto' }}
-        >
-          {tabContents[selection]}
-        </TabContent>
+        {!tabs[selection].isDisabled && (
+          <TabContent
+            id={selection}
+            eventKey={selection}
+            activeKey={selection}
+            style={{ flex: '1 1 auto' }}
+          >
+            {tabs[selection].content}
+          </TabContent>
+        )}
       </DrawerPanelBody>
     </>
   );

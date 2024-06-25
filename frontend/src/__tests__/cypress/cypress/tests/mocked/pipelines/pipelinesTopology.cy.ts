@@ -496,8 +496,7 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findTaskNode('create-dataset').click();
       const rightDrawer = pipelineRunDetails.findRightDrawer();
       rightDrawer.findRightDrawerVolumesTab().should('be.visible');
-      rightDrawer.findRightDrawerVolumesTab().click();
-      rightDrawer.findRightDrawerVolumesSection().should('contain.text', 'No content');
+      rightDrawer.findRightDrawerVolumesTab().should('be.disabled');
     });
 
     it('Test node with volume mounts', () => {
