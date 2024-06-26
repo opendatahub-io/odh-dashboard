@@ -7,7 +7,7 @@ resources:
   - ../shared
   - ./apps
 configMapGenerator:
-  - name: odh-dashboard-image-parameters
+  - name: rhoai-dashboard-params
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
@@ -15,28 +15,28 @@ vars:
   - name: odh-dashboard-image
     objref:
       kind: ConfigMap
-      name: odh-dashboard-image-parameters
+      name: rhoai-dashboard-params
       apiVersion: v1
     fieldref:
       fieldpath: data.odh-dashboard-image
   - name: section-title
     objref:
       kind: ConfigMap
-      name: odh-dashboard-image-parameters
+      name: rhoai-dashboard-params
       apiVersion: v1
     fieldref:
       fieldpath: data.section-title
   - name: dashboard-url
     objref:
       kind: ConfigMap
-      name: odh-dashboard-image-parameters
+      name: rhoai-dashboard-params
       apiVersion: v1
     fieldref:
       fieldpath: data.dashboard-url
   - name: admin_groups
     objref:
       kind: ConfigMap
-      name: odh-dashboard-image-parameters
+      name: rhoai-dashboard-params
       apiVersion: v1
     fieldref:
       fieldpath: data.admin_groups
