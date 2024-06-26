@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { Alert, Bullseye } from '@patternfly/react-core';
-import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import { ModelRegistryKind } from '~/k8sTypes';
 import useModelRegistries from '~/concepts/modelRegistry/apiHooks/useModelRegistries';
+import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEnabled';
 
 export type ModelRegistrySelectorContextType = {
+  modelRegistriesLoaded: boolean;
+  modelRegistriesLoadError?: Error;
   modelRegistries: ModelRegistryKind[];
   preferredModelRegistry: ModelRegistryKind | undefined;
   updatePreferredModelRegistry: (modelRegistry: ModelRegistryKind | undefined) => void;
@@ -15,57 +16,61 @@ type ModelRegistrySelectorContextProviderProps = {
 };
 
 export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySelectorContextType>({
+  modelRegistriesLoaded: false,
+  modelRegistriesLoadError: undefined,
   modelRegistries: [],
   preferredModelRegistry: undefined,
   updatePreferredModelRegistry: () => undefined,
 });
 
-export const ModelRegistrySelectorContextProvider =
-  conditionalArea<ModelRegistrySelectorContextProviderProps>(
-    SupportedArea.MODEL_REGISTRY,
-    true,
-  )(({ children }) => {
-    const [modelRegistries, isLoaded, error] = useModelRegistries();
-    const [preferredModelRegistry, setPreferredModelRegistry] =
-      React.useState<ModelRegistrySelectorContextType['preferredModelRegistry']>(undefined);
-
-    const firstModelRegistry = modelRegistries.length > 0 ? modelRegistries[0] : null;
-
-    React.useEffect(() => {
-      if (firstModelRegistry && !preferredModelRegistry) {
-        setPreferredModelRegistry(firstModelRegistry);
-      }
-    }, [firstModelRegistry, preferredModelRegistry]);
-
-    const updatePreferredModelRegistry = React.useCallback<
-      ModelRegistrySelectorContextType['updatePreferredModelRegistry']
-    >((modelRegistry) => {
-      setPreferredModelRegistry(modelRegistry);
-    }, []);
-
-    if (!isLoaded) {
-      return <Bullseye>Loading model registries...</Bullseye>;
-    }
-
-    if (error) {
-      return (
-        <Bullseye>
-          <Alert title="Model registry load error" variant="danger" isInline>
-            {error.message}
-          </Alert>
-        </Bullseye>
-      );
-    }
-
+export const ModelRegistrySelectorContextProvider: React.FC<
+  ModelRegistrySelectorContextProviderProps
+> = ({ children, ...props }) => {
+  if (useModelRegistryEnabled()) {
     return (
-      <ModelRegistrySelectorContext.Provider
-        value={{
+      <EnabledModelRegistrySelectorContextProvider {...props}>
+        {children}
+      </EnabledModelRegistrySelectorContextProvider>
+    );
+  }
+  return children;
+};
+
+const EnabledModelRegistrySelectorContextProvider: React.FC<
+  ModelRegistrySelectorContextProviderProps
+> = ({ children }) => {
+  const [modelRegistries, isLoaded, error] = useModelRegistries();
+  const [preferredModelRegistry, setPreferredModelRegistry] =
+    React.useState<ModelRegistrySelectorContextType['preferredModelRegistry']>(undefined);
+
+  const firstModelRegistry = modelRegistries.length > 0 ? modelRegistries[0] : null;
+
+  React.useEffect(() => {
+    if (firstModelRegistry && !preferredModelRegistry) {
+      setPreferredModelRegistry(firstModelRegistry);
+    }
+  }, [firstModelRegistry, preferredModelRegistry]);
+
+  const updatePreferredModelRegistry = React.useCallback<
+    ModelRegistrySelectorContextType['updatePreferredModelRegistry']
+  >((modelRegistry) => {
+    setPreferredModelRegistry(modelRegistry);
+  }, []);
+
+  return (
+    <ModelRegistrySelectorContext.Provider
+      value={React.useMemo(
+        () => ({
+          modelRegistriesLoaded: isLoaded,
+          modelRegistriesLoadError: error,
           modelRegistries,
           preferredModelRegistry,
           updatePreferredModelRegistry,
-        }}
-      >
-        {children}
-      </ModelRegistrySelectorContext.Provider>
-    );
-  });
+        }),
+        [isLoaded, error, modelRegistries, preferredModelRegistry, updatePreferredModelRegistry],
+      )}
+    >
+      {children}
+    </ModelRegistrySelectorContext.Provider>
+  );
+};
