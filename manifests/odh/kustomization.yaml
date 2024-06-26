@@ -5,5 +5,34 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 resources:
   - ../common
-  - ../overrides/base
-  - ../overrides/consolelink
+  - ../core-bases/base
+  - ../core-bases/consolelink
+configMapGenerator:
+  - name: odh-dashboard-image-parameters
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+vars:
+  - name: odh-dashboard-image
+    objref:
+      kind: ConfigMap
+      name: odh-dashboard-image-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.odh-dashboard-image
+  - name: section-title
+    objref:
+      kind: ConfigMap
+      name: odh-dashboard-image-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.section-title
+  - name: dashboard-url
+    objref:
+      kind: ConfigMap
+      name: odh-dashboard-image-parameters
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.dashboard-url
+configurations:
+  - params.yaml
