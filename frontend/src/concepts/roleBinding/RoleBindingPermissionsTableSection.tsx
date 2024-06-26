@@ -10,26 +10,41 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { RoleBindingKind } from '~/k8sTypes';
+import { RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import ProjectSharingTable from './ProjectSharingTable';
-import { ProjectSharingRBType } from './types';
+import RoleBindingPermissionsTable from './RoleBindingPermissionsTable';
+import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 
-export type ProjectSharingTableSectionAltProps = {
+export type RoleBindingPermissionsTableSectionAltProps = {
   roleBindings: RoleBindingKind[];
-  projectSharingTableType: ProjectSharingRBType;
+  projectName: string;
+  roleKind: RoleBindingSubject['kind'];
+  roleRef?: string;
+  roleBindingPermissionsTableType: RoleBindingPermissionsRBType;
+  permissionOptions: {
+    type: RoleBindingPermissionsRoleType;
+    description: string;
+  }[];
   typeAhead?: string[];
   refresh: () => void;
   typeModifier?: string;
+  defaultRoleBindingName?: string;
+  labels?: { [key: string]: string };
 };
 
-const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionAltProps> = ({
+const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSectionAltProps> = ({
   roleBindings,
-  projectSharingTableType,
+  projectName,
+  roleKind,
+  roleRef,
+  roleBindingPermissionsTableType,
+  permissionOptions,
   typeAhead,
   refresh,
   typeModifier,
+  defaultRoleBindingName,
+  labels,
 }) => {
   const [addField, setAddField] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
@@ -45,22 +60,34 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionAltProps> =
         >
           <HeaderIcon
             type={
-              projectSharingTableType === ProjectSharingRBType.USER
+              roleBindingPermissionsTableType === RoleBindingPermissionsRBType.USER
                 ? ProjectObjectType.user
                 : ProjectObjectType.group
             }
           />
           <FlexItem>
-            <Title id={`user-permission-${projectSharingTableType}`} headingLevel="h2" size="xl">
-              {projectSharingTableType === ProjectSharingRBType.USER ? 'Users' : 'Groups'}
+            <Title
+              id={`user-permission-${roleBindingPermissionsTableType}`}
+              headingLevel="h2"
+              size="xl"
+            >
+              {roleBindingPermissionsTableType === RoleBindingPermissionsRBType.USER
+                ? 'Users'
+                : 'Groups'}
             </Title>
           </FlexItem>
         </Flex>
       </StackItem>
       <StackItem>
-        <ProjectSharingTable
+        <RoleBindingPermissionsTable
+          defaultRoleBindingName={defaultRoleBindingName}
           permissions={roleBindings}
-          type={projectSharingTableType}
+          permissionOptions={permissionOptions}
+          projectName={projectName}
+          roleKind={roleKind}
+          roleRef={roleRef}
+          labels={labels}
+          type={roleBindingPermissionsTableType}
           typeAhead={typeAhead}
           isAdding={addField}
           onDismissNewRow={() => {
@@ -88,7 +115,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionAltProps> =
       )}
       <StackItem>
         <Button
-          data-testid={`add-button ${projectSharingTableType}`}
+          data-testid={`add-button ${roleBindingPermissionsTableType}`}
           variant="link"
           isInline
           icon={<PlusCircleIcon />}
@@ -96,11 +123,13 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionAltProps> =
           onClick={() => setAddField(true)}
           style={{ paddingLeft: 'var(--pf-v5-global--spacer--lg)' }}
         >
-          {projectSharingTableType === ProjectSharingRBType.USER ? 'Add user' : 'Add group'}
+          {roleBindingPermissionsTableType === RoleBindingPermissionsRBType.USER
+            ? 'Add user'
+            : 'Add group'}
         </Button>
       </StackItem>
     </Stack>
   );
 };
 
-export default ProjectSharingTableSection;
+export default RoleBindingPermissionsTableSection;

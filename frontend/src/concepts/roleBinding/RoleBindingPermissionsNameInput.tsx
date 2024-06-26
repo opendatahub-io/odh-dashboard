@@ -1,10 +1,10 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
-import { ProjectSharingRBType } from '~/pages/projects/projectSharing/types';
+import { RoleBindingPermissionsRBType } from './types';
 
-type ProjectSharingNameInputProps = {
-  type: ProjectSharingRBType;
+type RoleBindingPermissionsNameInputProps = {
+  type: RoleBindingPermissionsRBType;
   value: string;
   onChange: (selection: string) => void;
   onClear: () => void;
@@ -12,7 +12,7 @@ type ProjectSharingNameInputProps = {
   typeAhead?: string[];
 };
 
-const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
+const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputProps> = ({
   type,
   value,
   onChange,
@@ -25,12 +25,14 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
   if (!typeAhead) {
     return (
       <TextInput
-        data-testid={`project-sharing-name-input ${value}`}
+        data-testid={`role-binding-name-input ${value}`}
         isRequired
-        aria-label="project-sharing-name-input"
+        aria-label="role-binding-name-input"
         type="text"
         value={value}
-        placeholder={`Type ${type === ProjectSharingRBType.GROUP ? 'group name' : 'username'}`}
+        placeholder={`Type ${
+          type === RoleBindingPermissionsRBType.GROUP ? 'group name' : 'username'
+        }`}
         onChange={(e, newValue) => onChange(newValue)}
       />
     );
@@ -63,4 +65,4 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
   );
 };
 
-export default ProjectSharingNameInput;
+export default RoleBindingPermissionsNameInput;

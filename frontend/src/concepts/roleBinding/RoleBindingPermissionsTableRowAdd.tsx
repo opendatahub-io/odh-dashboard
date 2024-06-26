@@ -1,36 +1,41 @@
 import * as React from 'react';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
-import { Button, Split, SplitItem } from '@patternfly/react-core';
+import { Button, Split, SplitItem, Text } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
-import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
-import ProjectSharingNameInput from './ProjectSharingNameInput';
-import ProjectSharingPermissionSelection from './ProjectSharingPermissionSelection';
+import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
+import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
+import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
+import { roleLabel } from './utils';
 
-type ProjectSharingTableRowPropsAdd = {
+type RoleBindingPermissionsTableRowPropsAdd = {
   typeAhead?: string[];
-  type: ProjectSharingRBType;
-  onChange: (name: string, roleType: ProjectSharingRoleType) => void;
+  type: RoleBindingPermissionsRBType;
+  permissionOptions: {
+    type: RoleBindingPermissionsRoleType;
+    description: string;
+  }[];
+  onChange: (name: string, roleType: RoleBindingPermissionsRoleType) => void;
   onCancel: () => void;
 };
 
-/** @deprecated - this should use ProjectSharingTableRow */
-const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
+/** @deprecated - this should use RoleBindingPermissionsTableRow */
+const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRowPropsAdd> = ({
   typeAhead,
   type,
+  permissionOptions,
   onChange,
   onCancel,
 }) => {
   const [roleBindingName, setRoleBindingName] = React.useState('');
-  const [roleBindingRoleRef, setRoleBindingRoleRef] = React.useState<ProjectSharingRoleType>(
-    ProjectSharingRoleType.EDIT,
-  );
+  const [roleBindingRoleRef, setRoleBindingRoleRef] =
+    React.useState<RoleBindingPermissionsRoleType>(permissionOptions[0]?.type);
   const [isLoading, setIsLoading] = React.useState(false);
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Username">
-          <ProjectSharingNameInput
+          <RoleBindingPermissionsNameInput
             type={type}
             value={roleBindingName}
             onChange={(selection: React.SetStateAction<string>) => {
@@ -42,12 +47,17 @@ const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
           />
         </Td>
         <Td dataLabel="Permission">
-          <ProjectSharingPermissionSelection
-            selection={roleBindingRoleRef}
-            onSelect={(selection) => {
-              setRoleBindingRoleRef(selection);
-            }}
-          />
+          {permissionOptions.length > 1 ? (
+            <RoleBindingPermissionsPermissionSelection
+              permissionOptions={permissionOptions}
+              selection={roleBindingRoleRef}
+              onSelect={(selection) => {
+                setRoleBindingRoleRef(selection);
+              }}
+            />
+          ) : (
+            <Text>{roleLabel(roleBindingRoleRef)}</Text>
+          )}
         </Td>
         <Td dataLabel="Date added" />
         <Td isActionCell modifier="nowrap">
@@ -85,4 +95,4 @@ const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
   );
 };
 
-export default ProjectSharingTableRowAdd;
+export default RoleBindingPermissionsTableRowAdd;

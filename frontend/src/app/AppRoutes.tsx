@@ -13,6 +13,7 @@ import {
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -48,9 +49,6 @@ const GlobalDistributedWorkloadsRoutes = React.lazy(
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const CustomServingRuntimeRoutes = React.lazy(
   () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
-);
-const ModelRegistrySettingsPage = React.lazy(
-  () => import('../pages/modelRegistrySettings/ModelRegistrySettings'),
 );
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
@@ -125,7 +123,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
-            <Route path="/modelRegistrySettings" element={<ModelRegistrySettingsPage />} />
+            <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}
