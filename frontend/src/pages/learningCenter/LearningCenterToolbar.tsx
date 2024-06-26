@@ -26,6 +26,7 @@ import {
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { SearchTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -60,7 +61,7 @@ const fireSearchedEvent = _.debounce((val: string) => {
   if (val) {
     fireTrackingEvent('Resource Searched', {
       term: val,
-    });
+    } as SearchTrackingEventProperties);
   }
 }, 1000);
 

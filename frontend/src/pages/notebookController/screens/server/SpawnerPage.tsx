@@ -51,6 +51,7 @@ import StartServerModal from './StartServerModal';
 import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 import '~/pages/notebookController/NotebookController.scss';
+import { NotebookTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -240,7 +241,7 @@ const SpawnerPage: React.FC = () => {
       acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-    });
+    } as NotebookTrackingEventProperties);
   };
 
   const handleNotebookAction = async () => {

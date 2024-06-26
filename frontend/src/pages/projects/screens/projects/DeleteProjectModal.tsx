@@ -4,7 +4,8 @@ import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
+
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
