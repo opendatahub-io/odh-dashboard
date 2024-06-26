@@ -54,17 +54,21 @@ const initialMockRecurringRuns = [
   }),
 ];
 
+const visitLegacyRunsPage = (pipelineId?: string, versionId?: string) =>
+  pipelineRunsGlobal.visit(
+    projectName,
+    pipelineId || mockPipelineVersion.pipeline_id,
+    versionId || mockPipelineVersion.pipeline_version_id,
+  );
+
 describe('Pipeline create runs', () => {
   beforeEach(() => {
     initIntercepts();
-    pipelineRunsGlobal.visit(
-      projectName,
-      mockPipelineVersion.pipeline_id,
-      mockPipelineVersion.pipeline_version_id,
-    );
   });
 
   it('renders the page with scheduled and active runs table data', () => {
+    visitLegacyRunsPage();
+
     pipelineRunsGlobal.findSchedulesTab().click();
     pipelineRunJobTable.getRowByName('Test job').find().should('exist');
 
@@ -74,6 +78,8 @@ describe('Pipeline create runs', () => {
 
   describe('Runs', () => {
     it('switches to scheduled runs from triggered', () => {
+      visitLegacyRunsPage();
+
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
       createRunPage.mockGetPipelines(projectName, [mockPipeline]);
@@ -92,6 +98,8 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates an active run', () => {
+      visitLegacyRunsPage();
+
       const createRunParams: Partial<PipelineRunKFv2> = {
         display_name: 'New run',
         description: 'New run description',
@@ -184,9 +192,10 @@ describe('Pipeline create runs', () => {
       activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun], projectName);
 
       // Navigate to clone run page for a given active run
+      cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findActiveRunsTab().click();
       activeRunsTable.getRowByName(mockRun.display_name).findKebabAction('Duplicate').click();
-      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/clone/${mockRun.run_id}`);
+      verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
       cloneRunPage.findExperimentSelect().should('have.text', mockExperiment.display_name);
@@ -221,10 +230,12 @@ describe('Pipeline create runs', () => {
       });
 
       // Should redirect to the details of the newly cloned active run
-      verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/view/${mockDuplicateRun.run_id}`);
+      verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/${mockDuplicateRun.run_id}`);
     });
 
     it('create run with default and optional parameters', () => {
+      visitLegacyRunsPage();
+
       const createRunParams: Partial<PipelineRunKFv2> = {
         display_name: 'New run',
         description: 'New run description',
@@ -348,6 +359,8 @@ describe('Pipeline create runs', () => {
     });
 
     it('create run with all parameter types', () => {
+      visitLegacyRunsPage();
+
       const createRunParams: Partial<PipelineRunKFv2> = {
         display_name: 'New run',
         description: 'New run description',
@@ -475,11 +488,12 @@ describe('Pipeline create runs', () => {
           experiment,
         );
       });
-
-      pipelineRunsGlobal.findSchedulesTab().click();
     });
 
     it('switches to scheduled runs from triggered', () => {
+      visitLegacyRunsPage();
+      pipelineRunsGlobal.findSchedulesTab().click();
+
       // Mock experiments, pipelines & versions for form select dropdowns
       createSchedulePage.mockGetExperiments(projectName, mockExperiments);
       createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
@@ -498,6 +512,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates a schedule', () => {
+      visitLegacyRunsPage();
+      pipelineRunsGlobal.findSchedulesTab().click();
+
       const createRecurringRunParams: Partial<PipelineRunJobKFv2> = {
         display_name: 'New job',
         description: 'New job description',
@@ -593,12 +610,14 @@ describe('Pipeline create runs', () => {
       cloneSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
       // Navigate to clone run page for a given schedule
+      cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunJobTable
         .getRowByName(mockRecurringRun.display_name)
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/pipelines/${projectName}/pipelineRun/cloneJob/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
+        `/experiments/${projectName}/experiment-1/schedules/clone/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
       );
 
       // Verify pre-populated values & submit
@@ -644,11 +663,14 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/pipelines/${projectName}/pipelineRunJob/view/${mockDuplicateRecurringRun.recurring_run_id}`,
+        `/experiments/${projectName}/experiment-1/schedules/${mockDuplicateRecurringRun.recurring_run_id}`,
       );
     });
 
     it('shows cron & periodic fields', () => {
+      visitLegacyRunsPage();
+
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findScheduledRunTypeSelector().click();
@@ -663,6 +685,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('should start concurrent at the max, 10', () => {
+      visitLegacyRunsPage();
+
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldMinus().should('be.enabled');
@@ -671,6 +696,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('should allow the concurrency to update via +/-', () => {
+      visitLegacyRunsPage();
+
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldMinus().click();
@@ -682,6 +710,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('should not allow concurrency to go under or above the bounds', () => {
+      visitLegacyRunsPage();
+
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findMaxConcurrencyFieldValue().fill('0');
@@ -692,6 +723,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('should hide and show date toggles', () => {
+      visitLegacyRunsPage();
+
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findStartDatePickerDate().should('not.be.visible');
@@ -708,6 +742,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('should see catch up is enabled by default', () => {
+      visitLegacyRunsPage();
+
+      pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       createSchedulePage.findCatchUpSwitchValue().should('be.checked');
