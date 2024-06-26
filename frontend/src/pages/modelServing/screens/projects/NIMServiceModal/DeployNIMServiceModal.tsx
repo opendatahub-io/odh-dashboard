@@ -163,46 +163,46 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
     setActionInProgress(true);
     onSuccess();
 
-    // const servingRuntimeName = 'nim';
+    const servingRuntimeName = 'nim';
 
-    // const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
-    //   servingRuntimeSelected,
-    //   createDataServingRuntime,
-    //   customServingRuntimesEnabled,
-    //   namespace,
-    //   editInfo?.servingRuntimeEditInfo,
-    //   false,
-    //   acceleratorProfileState,
-    //   NamespaceApplicationCase.KSERVE_PROMOTION,
-    //   projectContext?.currentProject,
-    //   servingRuntimeName,
-    //   false,
-    // );
+    const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
+      servingRuntimeSelected,
+      createDataServingRuntime,
+      customServingRuntimesEnabled,
+      namespace,
+      editInfo?.servingRuntimeEditInfo,
+      false,
+      acceleratorProfileState,
+      NamespaceApplicationCase.KSERVE_PROMOTION,
+      projectContext?.currentProject,
+      servingRuntimeName,
+      false,
+    );
 
-    // const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
-    //   createDataInferenceService,
-    //   editInfo?.inferenceServiceEditInfo,
-    //   servingRuntimeName,
-    //   false,
-    //   acceleratorProfileState,
-    //   allowCreate,
-    //   editInfo?.secrets,
-    // );
+    const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
+      createDataInferenceService,
+      editInfo?.inferenceServiceEditInfo,
+      servingRuntimeName,
+      false,
+      acceleratorProfileState,
+      allowCreate,
+      editInfo?.secrets,
+    );
 
-    // Promise.all([
-    //   submitServingRuntimeResources({ dryRun: true }),
-    //   submitInferenceServiceResource({ dryRun: true }),
-    // ])
-    //   .then(() =>
-    //     Promise.all([
-    //       submitServingRuntimeResources({ dryRun: false }),
-    //       submitInferenceServiceResource({ dryRun: false }),
-    //     ]),
-    //   )
-    //   .then(() => onSuccess())
-    //   .catch((e) => {
-    //     setErrorModal(e);
-    //   });
+    Promise.all([
+      submitServingRuntimeResources({ dryRun: true }),
+      submitInferenceServiceResource({ dryRun: true }),
+    ])
+      .then(() =>
+        Promise.all([
+          submitServingRuntimeResources({ dryRun: false }),
+          submitInferenceServiceResource({ dryRun: false }),
+        ]),
+      )
+      .then(() => onSuccess())
+      .catch((e) => {
+        setErrorModal(e);
+      });
   };
 
   return (
