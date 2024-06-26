@@ -20,6 +20,7 @@ import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
+import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -29,6 +30,7 @@ import { useApplicationSettings } from './useApplicationSettings';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
 import QuickStarts from './QuickStarts';
+import DevFeatureFlagsBanner from './DevFeatureFlagsBanner';
 
 import './App.scss';
 
@@ -38,10 +40,13 @@ const App: React.FC = () => {
 
   const buildStatuses = useWatchBuildStatus();
   const {
-    dashboardConfig,
+    dashboardConfig: dashboardConfigFromServer,
     loaded: configLoaded,
     loadError: fetchConfigError,
   } = useApplicationSettings();
+
+  const { dashboardConfig, ...devFeatureFlagsProps } =
+    useDevFeatureFlags(dashboardConfigFromServer);
 
   const [storageClasses] = useStorageClasses();
 
@@ -115,6 +120,10 @@ const App: React.FC = () => {
             data-testid={DASHBOARD_MAIN_CONTAINER_ID}
           >
             <ErrorBoundary>
+              <DevFeatureFlagsBanner
+                dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                {...devFeatureFlagsProps}
+              />
               <ProjectsContextProvider>
                 <QuickStarts>
                   <AppRoutes />

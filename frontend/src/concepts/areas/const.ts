@@ -1,4 +1,34 @@
+import { DashboardCommonConfig } from '~/k8sTypes';
 import { StackCapability, StackComponent, SupportedArea, SupportedAreasState } from './types';
+
+export const allFeatureFlags: string[] = Object.keys({
+  enablement: false,
+  disableInfo: false,
+  disableSupport: false,
+  disableClusterManager: false,
+  disableTracking: false,
+  disableBYONImageStream: false,
+  disableISVBadges: false,
+  disableAppLauncher: false,
+  disableUserManagement: false,
+  disableHome: false,
+  disableProjects: false,
+  disableModelServing: false,
+  disableProjectSharing: false,
+  disableCustomServingRuntimes: false,
+  disablePipelines: false,
+  disableBiasMetrics: false,
+  disablePerformanceMetrics: false,
+  disableKServe: false,
+  disableKServeAuth: false,
+  disableKServeMetrics: false,
+  disableModelMesh: false,
+  disableAcceleratorProfiles: false,
+  disablePipelineExperiments: false,
+  disableS3Endpoint: false,
+  disableDistributedWorkloads: false,
+  disableModelRegistry: false,
+} satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {

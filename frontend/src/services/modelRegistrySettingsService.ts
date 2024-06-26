@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { ModelRegistryKind } from '~/k8sTypes';
 import { RecursivePartial } from '~/typeHelpers';
 

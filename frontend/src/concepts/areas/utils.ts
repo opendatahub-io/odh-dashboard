@@ -4,19 +4,17 @@ import {
   DataScienceClusterKindStatus,
 } from '~/k8sTypes';
 import { IsAreaAvailableStatus, FeatureFlag, SupportedArea } from './types';
-import { SupportedAreasStateMap } from './const';
+import { SupportedAreasStateMap, allFeatureFlags } from './const';
+
+export const isFeatureFlag = (key: string): key is FeatureFlag => allFeatureFlags.includes(key);
 
 type FlagState = { [flag in FeatureFlag]?: boolean };
 const getFlags = (dashboardConfigSpec: DashboardConfigKind['spec']): FlagState => {
   const flags = dashboardConfigSpec.dashboardConfig;
 
-  // TODO: Improve to be a list of items
-  const isFeatureFlag = (key: string, value: unknown): key is FeatureFlag =>
-    typeof value === 'boolean';
-
   return {
     ...Object.entries(flags).reduce<FlagState>((acc, [key, value]) => {
-      if (isFeatureFlag(key, value)) {
+      if (isFeatureFlag(key)) {
         acc[key] = key.startsWith('disable') ? !value : value;
       }
       return acc;

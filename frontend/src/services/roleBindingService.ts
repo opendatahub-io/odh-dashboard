@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { RoleBinding } from '~/types';
 
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBinding> => {

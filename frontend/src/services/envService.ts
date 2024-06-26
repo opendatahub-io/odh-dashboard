@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { ConfigMap, Secret } from '~/types';
 
 export const getEnvSecret = (namespace: string, name: string): Promise<Secret> => {

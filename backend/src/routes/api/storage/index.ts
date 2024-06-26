@@ -14,7 +14,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       reply: FastifyReply,
     ) => {
       try {
-        const dashConfig = getDashboardConfig();
+        const dashConfig = getDashboardConfig(request);
         if (dashConfig?.spec.dashboardConfig.disableS3Endpoint !== false) {
           reply.code(404).send('Not found');
           return reply;
@@ -49,7 +49,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       reply: FastifyReply,
     ) => {
       try {
-        const dashConfig = getDashboardConfig();
+        const dashConfig = getDashboardConfig(request);
         if (dashConfig?.spec.dashboardConfig.disableS3Endpoint !== false) {
           reply.code(404).send('Not found');
           return reply;

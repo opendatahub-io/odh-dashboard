@@ -34,6 +34,7 @@ import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from '.
 import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 import { RecursivePartial } from '../typeHelpers';
+import { FastifyRequest } from 'fastify';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -548,8 +549,32 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
 
-export const getDashboardConfig = (): DashboardConfig => {
-  return dashboardConfigWatcher.getResources()?.[0];
+const FEATURE_FLAGS_HEADER = 'x-odh-feature-flags';
+
+// if inspecting feature flags, provide the request to ensure overridden feature flags are considered
+export const getDashboardConfig = (request?: FastifyRequest): DashboardConfig => {
+  const dashboardConfig = dashboardConfigWatcher.getResources()?.[0];
+  if (request) {
+    const flagsHeader = request.headers[FEATURE_FLAGS_HEADER];
+    if (typeof flagsHeader === 'string') {
+      try {
+        const featureFlags = JSON.parse(flagsHeader);
+        return {
+          ...dashboardConfig,
+          spec: {
+            ...dashboardConfig.spec,
+            dashboardConfig: {
+              ...dashboardConfig.spec.dashboardConfig,
+              ...featureFlags,
+            },
+          },
+        };
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return dashboardConfig;
 };
 
 export const updateDashboardConfig = (): Promise<void> => {
