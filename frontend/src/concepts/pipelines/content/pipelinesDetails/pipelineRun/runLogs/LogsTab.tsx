@@ -41,24 +41,14 @@ import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 
-// TODO: If this gets large enough we should look to make this its own component file
-const LogsTab: React.FC<{ task: PipelineTask }> = ({ task }) => {
-  const podName = task.status?.podName;
-  const isFailedPod = task.status?.state === ExecutionStateKF.FAILED;
+interface LogsTabProps {
+  task: PipelineTask;
+}
 
-  if (!podName) {
-    return <>No content</>;
-  }
-
-  return <LogsTabForPodName podName={podName} isFailedPod={isFailedPod} />;
-};
-
-/** Must be a non-empty podName -- use LogsTabForTask for safer usage */
-const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = ({
-  podName,
-  isFailedPod,
-}) => {
+const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
   const { namespace } = usePipelinesAPI();
+  const podName = task.status?.podName ?? '';
+  const isFailedPod = task.status?.state === ExecutionStateKF.FAILED;
   const {
     pod,
     podLoaded,
