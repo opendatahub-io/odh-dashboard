@@ -56,6 +56,33 @@ class CompareRunParamsTable {
   }
 }
 
+class CompareMetricsContent {
+  find() {
+    return cy.findByTestId('compare-runs-metrics-content');
+  }
+
+  findScalarMetricsTable() {
+    return cy.findByTestId('compare-runs-scalar-metrics-table');
+  }
+
+  findScalarMetricsColumnByName(name: string) {
+    return this.findScalarMetricsTable().contains('th', name);
+  }
+
+  findScalarMetricName(name: string) {
+    return this.findScalarMetricsTable().find(`[data-label="${name}"]`);
+  }
+
+  findScalarMetricCell(metricName: string, columnIndex: number) {
+    return this.findScalarMetricName(metricName).closest('tr').children().eq(columnIndex);
+  }
+
+  findScalarMetricsEmptyState() {
+    return cy.findByTestId('compare-runs-scalar-metrics-empty-state');
+  }
+}
+
 export const compareRunsGlobal = new CompareRunsGlobal();
 export const compareRunsListTable = new CompareRunsListTable();
 export const compareRunParamsTable = new CompareRunParamsTable();
+export const compareRunsMetricsContent = new CompareMetricsContent();

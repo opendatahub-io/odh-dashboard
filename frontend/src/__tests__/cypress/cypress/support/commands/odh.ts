@@ -46,6 +46,7 @@ import {
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
+import { GrpcResponse } from '~/__mocks__/mlmd/utils';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -463,6 +464,31 @@ declare global {
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
           options: { path: { namespace: string; serviceName: string } },
           response: OdhResponse<ListPipelineRunJobsResourceKF>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactTypes`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextByTypeAndName`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByContext`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByContext`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
