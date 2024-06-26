@@ -3,10 +3,11 @@ import { useProjects } from '~/api';
 import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { getProjectDisplayName, isAvailableProject } from '~/concepts/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { isAvailableProject } from './utils';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
-  getProjectDisplayName(projectA).localeCompare(getProjectDisplayName(projectB));
+  getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
 type ProjectsContextType = {

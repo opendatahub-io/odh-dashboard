@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Chip, ChipGroup, FormGroup, Spinner, Text } from '@patternfly/react-core';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type ExistingConnectedNotebooksProps = {
   connectedNotebooks: NotebookKind[];
@@ -32,7 +32,7 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
     content = (
       <ChipGroup>
         {notebooksToShow.map((notebook) => {
-          const notebookDisplayName = getNotebookDisplayName(notebook);
+          const notebookDisplayName = getDisplayNameFromK8sResource(notebook);
           return (
             <Chip
               key={notebookDisplayName}

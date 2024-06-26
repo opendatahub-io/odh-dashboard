@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useNotification from '~/utilities/useNotification';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 const useCheckLogoutParams = (): void => {
   const [queryParams, setQueryParams] = useSearchParams();
@@ -22,7 +22,9 @@ const useCheckLogoutParams = (): void => {
     if (notebookLogout) {
       if (notebook) {
         notification.success(
-          `Logged out of workbench "${getNotebookDisplayName(notebook.notebook)}" successfully`,
+          `Logged out of workbench "${getDisplayNameFromK8sResource(
+            notebook.notebook,
+          )}" successfully`,
         );
         deleteLogoutParam();
       } else if (loaded) {

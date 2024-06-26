@@ -40,8 +40,7 @@ import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceNameSection';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
@@ -274,7 +273,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext.currentProject)) ||
+                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
                 editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
                 ''
               }

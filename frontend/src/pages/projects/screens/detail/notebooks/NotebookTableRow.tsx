@@ -13,7 +13,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
-import { getNotebookDescription, getNotebookDisplayName } from '~/pages/projects/utils';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle';
 import { NotebookKind } from '~/k8sTypes';
@@ -22,6 +21,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '~/components/table';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -82,12 +82,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 src={typedObjectImage(ProjectObjectType.notebook)}
                 alt="workbenches"
               />
-              <div style={{ whiteSpace: 'nowrap' }}>{getNotebookDisplayName(obj.notebook)}</div>
+              <div style={{ whiteSpace: 'nowrap' }}>
+                {getDisplayNameFromK8sResource(obj.notebook)}
+              </div>
             </div>
           ) : (
             <TableRowTitleDescription
-              title={getNotebookDisplayName(obj.notebook)}
-              description={getNotebookDescription(obj.notebook)}
+              title={getDisplayNameFromK8sResource(obj.notebook)}
+              description={getDescriptionFromK8sResource(obj.notebook)}
               resource={obj.notebook}
             />
           )}

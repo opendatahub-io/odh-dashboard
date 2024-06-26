@@ -9,7 +9,7 @@ import {
   DataConnectionAWS,
   DataConnectionType,
 } from '~/pages/projects/types';
-import { getSecretDescription, getSecretDisplayName } from '~/pages/projects/utils';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
 
 export const isSecretAWSSecretKind = (secret: SecretKind): secret is AWSSecretKind =>
@@ -37,7 +37,7 @@ export const getDataConnectionResourceName = (dataConnection: DataConnection): s
 
 export const getDataConnectionDisplayName = (dataConnection: DataConnection): string => {
   if (isDataConnectionAWS(dataConnection)) {
-    return getSecretDisplayName(dataConnection.data);
+    return getDisplayNameFromK8sResource(dataConnection.data);
   }
 
   throw new Error('Invalid data connection type');
@@ -45,7 +45,7 @@ export const getDataConnectionDisplayName = (dataConnection: DataConnection): st
 
 export const getDataConnectionDescription = (dataConnection: DataConnection): string => {
   if (isDataConnectionAWS(dataConnection)) {
-    return getSecretDescription(dataConnection.data);
+    return getDescriptionFromK8sResource(dataConnection.data);
   }
 
   return '';

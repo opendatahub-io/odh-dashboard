@@ -14,7 +14,6 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { relativeDuration } from '~/utilities/time';
 import {
   asTimestamp,
@@ -27,6 +26,7 @@ import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersio
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { RunJobTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type PipelineRunTabDetailsProps = {
   run?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
@@ -56,7 +56,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
     { key: 'Name', value: <Truncate content={run.display_name} /> },
     {
       key: 'Project',
-      value: <Link to={`/projects/${namespace}`}>{getProjectDisplayName(project)}</Link>,
+      value: <Link to={`/projects/${namespace}`}>{getDisplayNameFromK8sResource(project)}</Link>,
     },
     ...(version
       ? [
