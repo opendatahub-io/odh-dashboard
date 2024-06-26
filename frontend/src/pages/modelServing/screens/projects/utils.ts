@@ -7,19 +7,15 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import {
-  DataConnection,
-  NamespaceApplicationCase,
-  UpdateObjectAtPropAndValue,
-} from '~/pages/projects/types';
+import { DataConnection, NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
+  ModelServingSize,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
-  ModelServingSize,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
@@ -41,11 +37,15 @@ import {
   createInferenceService,
   createSecret,
   createServingRuntime,
+  getConfigMap,
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
+
+const NAMESPACE = 'redhat-ods-applications';
+const CONFIGMAP = 'nvidia-nim-images-data';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -533,3 +533,33 @@ export const filterOutConnectionsWithoutBucket = (
   connections.filter(
     (obj) => isDataConnectionAWS(obj) && obj.data.data.AWS_S3_BUCKET.trim() !== '',
   );
+
+export interface ModelInfo {
+  name: string;
+  displayName: string;
+  shortDescription: string;
+  namespace: string;
+  tags: string[];
+  latestTag: string;
+  updatedDate: string;
+}
+
+export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
+  const configMap = await getConfigMap(NAMESPACE, CONFIGMAP);
+  if (configMap.data) {
+    const modelInfos: ModelInfo[] = Object.entries(configMap.data).map(([key, value]) => {
+      const modelData = JSON.parse(value); // Parse the JSON string
+      return {
+        name: key,
+        displayName: modelData.displayName,
+        shortDescription: modelData.shortDescription,
+        namespace: modelData.namespace,
+        tags: modelData.tags,
+        latestTag: modelData.latestTag,
+        updatedDate: modelData.updatedDate,
+      };
+    });
+    return modelInfos;
+  }
+  return undefined;
+};
