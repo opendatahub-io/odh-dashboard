@@ -19,8 +19,9 @@ import TruncatedText from '~/components/TruncatedText';
 import { SectionType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { getProjectOwner } from '~/concepts/projects/utils';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { HomeCardTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 interface ProjectCardProps {
   project: ProjectKind;
@@ -38,10 +39,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           isInline
           onClick={() => {
             navigate(`/projects/${project.metadata.name}`);
-            fireTrackingEventRaw('HomeCardClicked', {
+            fireTrackingEvent('HomeCardClicked', {
               to: `/projects/${project.metadata.name}`,
               type: 'project',
-            });
+            } as HomeCardTrackingEventProperties);
           }}
           style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
         >

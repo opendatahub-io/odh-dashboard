@@ -20,8 +20,11 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { fireTrackingEvent, fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import {
+  WorkbenchTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -84,7 +87,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { acceleratorProfile, notebookSize, image } = startNotebookData;
-    fireTrackingEventRaw(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, {
+    const tep: WorkbenchTrackingEventProperties = {
       acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
@@ -107,16 +110,18 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnectionEnabled: dataConnection.enabled,
       outcome: TrackingOutcome.submit,
       success: true,
-    });
+    };
+    fireTrackingEvent(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, tep);
     refreshAllProjectData();
     navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
   };
   const handleError = (e: Error) => {
-    fireTrackingEvent('Workbench Created', {
+    const ep: WorkbenchTrackingEventProperties = {
       outcome: TrackingOutcome.submit,
       success: false,
       error: e.message,
-    });
+    };
+    fireTrackingEvent('Workbench Created', ep);
     setErrorMessage(e.message || 'Error creating workbench');
     setCreateInProgress(false);
   };

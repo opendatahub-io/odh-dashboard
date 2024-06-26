@@ -11,8 +11,12 @@ import {
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+
+import {
+  ProjectTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -54,23 +58,23 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const onBeforeClose = (newProjectName?: string) => {
     onClose(newProjectName);
     if (newProjectName) {
-      fireTrackingEventRaw(editProjectData ? 'Project Edited' : 'NewProject Created', {
+      fireTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
         outcome: TrackingOutcome.submit,
         success: true,
         projectName: newProjectName,
-      });
+      } as ProjectTrackingEventProperties);
     }
     setFetching(false);
     setError(undefined);
     setNameDesc({ name: '', k8sName: undefined, description: '' });
   };
   const handleError = (e: Error) => {
-    fireTrackingEventRaw(editProjectData ? 'Project Edited' : 'NewProject Created', {
+    fireTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
       outcome: TrackingOutcome.submit,
       success: false,
       projectName: '',
       error: e.message,
-    });
+    } as ProjectTrackingEventProperties);
     setError(e);
     setFetching(false);
   };
@@ -110,7 +114,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
           variant="link"
           onClick={() => {
             onBeforeClose();
-            fireTrackingEventRaw(editProjectData ? 'Project Edited' : 'NewProject Created', {
+            fireTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
               outcome: TrackingOutcome.cancel,
             });
           }}

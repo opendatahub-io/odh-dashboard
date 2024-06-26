@@ -3,8 +3,9 @@ import { ProjectKind } from '~/k8sTypes';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;

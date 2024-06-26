@@ -10,6 +10,7 @@ export enum Actions {
   ACK_NOTIFICATION = 'ACK_NOTIFICATION',
   REMOVE_NOTIFICATION = 'REMOVE_NOTIFICATION',
   FORCE_COMPONENTS_UPDATE = 'FORCE_COMPONENTS_UPDATE',
+  SEGMENT_READY = 'SEGMENT_READY',
 }
 
 export interface AppNotification {
@@ -53,6 +54,7 @@ export type AppState = {
   dashboardNamespace?: string;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
+  segmentInitialised?: boolean;
 };
 
 export type StatusResponse = {

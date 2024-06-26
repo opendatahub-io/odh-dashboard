@@ -22,6 +22,7 @@ import {
   LaunchStatusEnum,
 } from '~/utilities/quickStartUtils';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { DocCardTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
@@ -46,7 +47,7 @@ const fireResourceAccessedEvent =
       {
         name,
         type,
-      },
+      } as DocCardTrackingEventProperties,
     );
   };
 

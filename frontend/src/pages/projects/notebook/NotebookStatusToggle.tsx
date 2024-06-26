@@ -12,6 +12,7 @@ import useRefreshNotebookUntilStartOrStop from './useRefreshNotebookUntilStartOr
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusText from './NotebookStatusText';
+import { WorkbenchTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
@@ -69,7 +70,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         ...(action === 'stopped' && {
           lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
         }),
-      });
+      } as WorkbenchTrackingEventProperties);
     },
     [acceleratorProfile, notebook, size],
   );
