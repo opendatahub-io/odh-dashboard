@@ -104,6 +104,11 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         ...state,
         forceComponentsUpdate: state.forceComponentsUpdate + 1,
       };
+    case Actions.SEGMENT_READY:
+      return {
+        ...state,
+        segmentInitialised: true,
+      };
     default:
       return state;
   }

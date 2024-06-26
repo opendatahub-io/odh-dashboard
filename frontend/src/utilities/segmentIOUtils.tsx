@@ -1,27 +1,12 @@
-import { TrackingEventProperties } from '~/types';
+import {
+  BaseTrackingEventProperties,
+  IdentifyEventProperties,
+} from '~/concepts/analyticsTracking/trackingProperties';
 import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from './const';
-
-// The following is like the original method below, but allows for more 'free form' properties.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/explicit-module-boundary-types
-export const fireTrackingEventRaw = (eventType: string, properties?: any): void => {
-  const clusterID = window.clusterID ?? '';
-  if (DEV_MODE) {
-    /* eslint-disable-next-line no-console */
-    console.log(
-      `Telemetry event triggered: ${eventType}${
-        properties
-          ? ` - ${JSON.stringify(properties)} for version ${INTERNAL_DASHBOARD_VERSION}`
-          : ''
-      }`,
-    );
-  } else if (window.analytics) {
-    window.analytics.track(eventType, { ...properties, clusterID });
-  }
-};
 
 export const fireTrackingEvent = (
   eventType: string,
-  properties?: TrackingEventProperties,
+  properties?: BaseTrackingEventProperties,
 ): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
@@ -33,17 +18,49 @@ export const fireTrackingEvent = (
           : ''
       }`,
     );
+    if (!(eventType === 'track')) {
+      /* eslint-disable-next-line no-console */
+      console.warn(`Event of type ${eventType} is not supported`);
+    }
   } else if (window.analytics) {
     switch (eventType) {
       case 'identify':
         window.analytics.identify(properties?.anonymousID, { clusterID });
+        /* eslint-disable-next-line no-console */
+        console.warn('Identify event triggered through fireTrackingEvent, must not happen');
         break;
       case 'page':
+        /* eslint-disable-next-line no-console */
+        console.warn('Page event triggered through fireTrackingEvent, must not happen');
         window.analytics.page(undefined, { clusterID });
         break;
       default:
         window.analytics.track(eventType, { ...properties, clusterID });
     }
+  }
+};
+
+export const firePageEvent = (): void => {
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(`Page  event triggered:  for version ${INTERNAL_DASHBOARD_VERSION}`);
+  } else if (window.analytics) {
+    const clusterID = window.clusterID ?? '';
+    window.analytics.page(undefined, { clusterID });
+  }
+};
+
+export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => {
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(
+      `Identify  event triggered:  ${JSON.stringify(
+        properties,
+      )} for version ${INTERNAL_DASHBOARD_VERSION}`,
+    );
+  } else if (window.analytics) {
+    const clusterID = window.clusterID ?? '';
+    window.analytics.identify(properties.anonymousID, { clusterID });
   }
 };
 
@@ -120,13 +137,13 @@ export const initSegment = async (props: {
         },
       });
     }
-    const anonymousIDBuffer = await crypto.subtle.digest(
-      'SHA-1',
-      new TextEncoder().encode(username),
-    );
-    const anonymousIDArray = Array.from(new Uint8Array(anonymousIDBuffer));
-    const anonymousID = anonymousIDArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    fireTrackingEvent('identify', { anonymousID });
-    fireTrackingEvent('page');
+    // const anonymousIDBuffer = await crypto.subtle.digest(
+    //   'SHA-1',
+    //   new TextEncoder().encode(username),
+    // );
+    // const anonymousIDArray = Array.from(new Uint8Array(anonymousIDBuffer));
+    // const anonymousID = anonymousIDArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    // fireIdentifyEvent({ anonymousID });
+    // firePageEvent();
   }
 };

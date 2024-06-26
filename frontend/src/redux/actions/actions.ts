@@ -70,3 +70,11 @@ export const forceComponentsUpdate =
       type: Actions.FORCE_COMPONENTS_UPDATE,
     });
   };
+
+export const segmentReady =
+  (): ThunkAction<void, AppState, unknown, Action<string>> =>
+  (dispatch) => {
+    dispatch({
+      type: Actions.SEGMENT_READY,
+    });
+  };

@@ -23,7 +23,8 @@ import {
   getProjectDisplayName,
   getProjectOwner,
 } from '~/concepts/projects/utils';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { HomeCardTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 interface ProjectCardProps {
   project: ProjectKind;
@@ -41,10 +42,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           isInline
           onClick={() => {
             navigate(`/projects/${project.metadata.name}`);
-            fireTrackingEventRaw('HomeCardClicked', {
+            fireTrackingEvent('HomeCardClicked', {
               to: `/projects/${project.metadata.name}`,
               type: 'project',
-            });
+            } as HomeCardTrackingEventProperties);
           }}
           style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
         >
