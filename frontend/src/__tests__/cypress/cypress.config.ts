@@ -27,6 +27,7 @@ import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/we
 const resultsDir = `results/${process.env.MOCK ? 'mocked' : 'e2e'}`;
 
 export default defineConfig({
+  experimentalMemoryManagement: true,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
   reporter: '../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
