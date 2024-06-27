@@ -45,18 +45,6 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<
 
   const firstModelRegistry = modelRegistries.length > 0 ? modelRegistries[0] : null;
 
-  React.useEffect(() => {
-    if (firstModelRegistry && !preferredModelRegistry) {
-      setPreferredModelRegistry(firstModelRegistry);
-    }
-  }, [firstModelRegistry, preferredModelRegistry]);
-
-  const updatePreferredModelRegistry = React.useCallback<
-    ModelRegistrySelectorContextType['updatePreferredModelRegistry']
-  >((modelRegistry) => {
-    setPreferredModelRegistry(modelRegistry);
-  }, []);
-
   return (
     <ModelRegistrySelectorContext.Provider
       value={React.useMemo(
@@ -64,10 +52,10 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<
           modelRegistriesLoaded: isLoaded,
           modelRegistriesLoadError: error,
           modelRegistries,
-          preferredModelRegistry,
-          updatePreferredModelRegistry,
+          preferredModelRegistry: preferredModelRegistry ?? firstModelRegistry ?? undefined,
+          updatePreferredModelRegistry: setPreferredModelRegistry,
         }),
-        [isLoaded, error, modelRegistries, preferredModelRegistry, updatePreferredModelRegistry],
+        [isLoaded, error, modelRegistries, preferredModelRegistry, firstModelRegistry],
       )}
     >
       {children}
