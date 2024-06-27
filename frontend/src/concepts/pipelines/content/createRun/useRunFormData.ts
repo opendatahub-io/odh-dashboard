@@ -12,7 +12,7 @@ import {
   DateTimeKF,
   ExperimentKFv2,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
   StorageStateKF,
@@ -26,7 +26,7 @@ import {
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString, convertSecondsToPeriodicTime } from '~/utilities/time';
-import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
 
 const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   if (!kfTime) {
@@ -40,10 +40,10 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 
 const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  initialData?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
 ): void => {
   React.useEffect(() => {
-    if (!initialData || !isPipelineRunJob(initialData)) {
+    if (!initialData || !isPipelineRecurringRun(initialData)) {
       return;
     }
 
@@ -139,7 +139,7 @@ const useUpdatePipelineFormData = (
 };
 
 const useRunFormData = (
-  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  run?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();

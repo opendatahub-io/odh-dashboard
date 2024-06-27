@@ -9,11 +9,11 @@ import {
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { buildMockJobKF } from '~/__mocks__/mockJobKF';
+import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
 import { mockPodLogs } from '~/__mocks__/mockPodLogs';
 import {
   pipelineDetails,
-  pipelineRunJobDetails,
+  pipelineRecurringRunDetails,
   pipelineRunDetails,
   pipelineVersionImportModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
@@ -53,7 +53,7 @@ const mockRun = buildMockRunKF({
     pipeline_version_id: mockVersion.pipeline_version_id,
   },
 });
-const mockJob = buildMockJobKF({
+const mockRecurringRun = buildMockRecurringRunKF({
   display_name: 'test-pipeline',
   recurring_run_id: 'test-pipeline',
   pipeline_version_reference: {
@@ -120,9 +120,13 @@ const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
     {
-      path: { namespace: projectId, serviceName: 'dspa', recurringRunId: mockJob.recurring_run_id },
+      path: {
+        namespace: projectId,
+        serviceName: 'dspa',
+        recurringRunId: mockRecurringRun.recurring_run_id,
+      },
     },
-    mockJob,
+    mockRecurringRun,
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
@@ -315,17 +319,17 @@ describe('Pipeline topology', () => {
         verifyRelativeURL(`/pipelines/${projectId}/pipelineRun/clone/${mockRun.run_id}`);
       });
 
-      it('Test pipeline job duplicate navigation', () => {
-        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
-        pipelineRunJobDetails.selectActionDropdownItem('Duplicate');
+      it('Test pipeline recurring run duplicate navigation', () => {
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
+        pipelineRecurringRunDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(
-          `/pipelines/${projectId}/pipelineRun/cloneJob/${mockJob.recurring_run_id}?runType=scheduled`,
+          `/pipelines/${projectId}/pipelineRun/cloneRecurringRun/${mockRecurringRun.recurring_run_id}?runType=scheduled`,
         );
       });
 
-      it('Test pipeline job delete navigation', () => {
-        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
-        pipelineRunJobDetails.selectActionDropdownItem('Delete');
+      it('Test pipeline recurring run delete navigation', () => {
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
+        pipelineRecurringRunDetails.selectActionDropdownItem('Delete');
         deleteModal.shouldBeOpen();
         deleteModal.findInput().type(mockPipeline.display_name);
 
@@ -339,55 +343,71 @@ describe('Pipeline topology', () => {
             },
           },
           {},
-        ).as('deletepipelineRunJob');
+        ).as('deletepipelineRecurringRun');
 
         deleteModal.findSubmitButton().click();
-        cy.wait('@deletepipelineRunJob');
+        cy.wait('@deletepipelineRecurringRun');
       });
 
-      it('Test pipeline job details project navigation', () => {
-        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+      it('Test pipeline recurring run details project navigation', () => {
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
-        pipelineRunJobDetails.findDetailsTab().click();
-        pipelineRunJobDetails.findDetailItem('Project').findValue().find('a').click();
+        pipelineRecurringRunDetails.findDetailsTab().click();
+        pipelineRecurringRunDetails.findDetailItem('Project').findValue().find('a').click();
         verifyRelativeURL(`/projects/${projectId}?section=overview`);
       });
 
-      it('Test pipeline job details pipeline version navigation', () => {
-        pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+      it('Test pipeline recurring run details pipeline version navigation', () => {
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
-        pipelineRunJobDetails.findDetailsTab().click();
-        pipelineRunJobDetails.findDetailItem('Pipeline version').findValue().find('a').click();
+        pipelineRecurringRunDetails.findDetailsTab().click();
+        pipelineRecurringRunDetails
+          .findDetailItem('Pipeline version')
+          .findValue()
+          .find('a')
+          .click();
         verifyRelativeURL(
-          `/pipelines/${projectId}/pipeline/view/${mockJob.pipeline_version_reference.pipeline_id}/${mockJob.pipeline_version_reference.pipeline_version_id}`,
+          `/pipelines/${projectId}/pipeline/view/${mockRecurringRun.pipeline_version_reference.pipeline_id}/${mockRecurringRun.pipeline_version_reference.pipeline_version_id}`,
         );
       });
     });
 
-    it('Test pipeline job tab details', () => {
+    it('Test pipeline recurring run tab details', () => {
       initIntercepts();
 
-      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
-      pipelineRunJobDetails.findDetailsTab().click();
-      pipelineRunJobDetails.findDetailItem('Name').findValue().contains(mockJob.display_name);
-      pipelineRunJobDetails.findDetailItem('Project').findValue().contains('Test Project');
-      pipelineRunJobDetails.findDetailItem('Run ID').findValue().contains(mockJob.display_name);
-      pipelineRunJobDetails
+      pipelineRecurringRunDetails.findDetailsTab().click();
+      pipelineRecurringRunDetails
+        .findDetailItem('Name')
+        .findValue()
+        .contains(mockRecurringRun.display_name);
+      pipelineRecurringRunDetails.findDetailItem('Project').findValue().contains('Test Project');
+      pipelineRecurringRunDetails
+        .findDetailItem('Run ID')
+        .findValue()
+        .contains(mockRecurringRun.display_name);
+      pipelineRecurringRunDetails
         .findDetailItem('Pipeline version')
         .findValue()
         .contains('test-version-name');
-      pipelineRunJobDetails.findDetailItem('Pipeline').findValue().contains('test-pipeline');
-      pipelineRunJobDetails.findDetailItem('Workflow name').findValue().contains('test-pipeline');
-      pipelineRunJobDetails.findDetailItem('Created').findValue().contains('February 8, 2024');
-      pipelineRunJobDetails.findDetailItem('Run trigger enabled').findValue().contains('Yes');
-      pipelineRunJobDetails.findDetailItem('Trigger').findValue().contains('Every 1 minute');
+      pipelineRecurringRunDetails.findDetailItem('Pipeline').findValue().contains('test-pipeline');
+      pipelineRecurringRunDetails
+        .findDetailItem('Workflow name')
+        .findValue()
+        .contains('test-pipeline');
+      pipelineRecurringRunDetails
+        .findDetailItem('Created')
+        .findValue()
+        .contains('February 8, 2024');
+      pipelineRecurringRunDetails.findDetailItem('Run trigger enabled').findValue().contains('Yes');
+      pipelineRecurringRunDetails.findDetailItem('Trigger').findValue().contains('Every 1 minute');
     });
 
     it('Ensure that clicking on a node will open a right-side drawer', () => {
       initIntercepts();
 
-      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
       pipelineDetails.findTaskNode('create-dataset').click();
       const taskDrawer = pipelineDetails.getTaskDrawer();
@@ -407,16 +427,19 @@ describe('Pipeline topology', () => {
 
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
-      pipelineRunJobDetails.findPipelineSpecTab();
+      pipelineRecurringRunDetails.findPipelineSpecTab();
       pipelineRunDetails.findDetailsTab().click();
-      pipelineRunDetails.findDetailItem('Name').findValue().contains(mockJob.display_name);
+      pipelineRunDetails.findDetailItem('Name').findValue().contains(mockRecurringRun.display_name);
       pipelineRunDetails
         .findDetailItem('Pipeline version')
         .findValue()
         .contains('test-version-name');
       pipelineRunDetails.findDetailItem('Pipeline').findValue().contains('test-pipeline');
       pipelineRunDetails.findDetailItem('Project').findValue().contains('Test Project');
-      pipelineRunDetails.findDetailItem('Run ID').findValue().contains(mockJob.display_name);
+      pipelineRunDetails
+        .findDetailItem('Run ID')
+        .findValue()
+        .contains(mockRecurringRun.display_name);
       pipelineRunDetails.findDetailItem('Workflow name').findValue().contains('test-pipeline');
       pipelineRunDetails.findDetailItem('Started').findValue().contains('March 15, 2024');
       pipelineRunDetails.findDetailItem('Finished').findValue().contains('March 15, 2024');

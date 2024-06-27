@@ -17,15 +17,17 @@ import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineSe
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import { deleteServer } from '~/concepts/pipelines/utils';
-import useJobRelatedInformation from '~/concepts/pipelines/context/useJobRelatedInformation';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import { DEV_MODE } from '~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
+import useRecurringRunRelatedInformation from './useRecurringRunRelatedInformation';
 
-type GetJobInformationType = ReturnType<typeof useJobRelatedInformation>['getJobInformation'];
+type GetRecurringRunInformationType = ReturnType<
+  typeof useRecurringRunRelatedInformation
+>['getRecurringRunInformation'];
 
 type PipelineContext = {
   hasCR: boolean;
@@ -38,7 +40,7 @@ type PipelineContext = {
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
-  getJobInformation: GetJobInformationType;
+  getRecurringRunInformation: GetRecurringRunInformationType;
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
 };
@@ -55,7 +57,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
-  getJobInformation: () => ({
+  getRecurringRunInformation: () => ({
     loading: false,
     data: null,
   }),
@@ -117,7 +119,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   }, [namespace, dspaName]);
 
   const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
-  const { getJobInformation } = useJobRelatedInformation(apiState);
+  const { getRecurringRunInformation } = useRecurringRunRelatedInformation(apiState);
   let error = crLoadError || routeLoadError;
   if (error || !project) {
     error = error || new Error('Project not found');
@@ -144,7 +146,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         namespace,
         refreshState,
         refreshAPIState,
-        getJobInformation,
+        getRecurringRunInformation,
         metadataStoreServiceClient,
       }}
     >
@@ -170,7 +172,7 @@ type UsePipelinesAPI = PipelineAPIState & {
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
    */
-  getJobInformation: GetJobInformationType;
+  getRecurringRunInformation: GetRecurringRunInformationType;
   refreshAllAPI: () => void;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
 };
@@ -186,7 +188,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     namespace,
     project,
     refreshAPIState: refreshAllAPI,
-    getJobInformation,
+    getRecurringRunInformation,
     metadataStoreServiceClient,
   } = React.useContext(PipelinesContext);
 
@@ -203,7 +205,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     namespace,
     project,
     refreshAllAPI,
-    getJobInformation,
+    getRecurringRunInformation,
     metadataStoreServiceClient,
     ...apiState,
   };

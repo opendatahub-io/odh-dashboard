@@ -9,14 +9,14 @@ import {
   mockProjectK8sResource,
   mockRouteK8sResource,
   buildMockRunKF,
-  buildMockJobKF,
+  buildMockRecurringRunKF,
 } from '~/__mocks__';
 import {
   archivedRunsTable,
   archiveExperimentModal,
   bulkArchiveExperimentModal,
   bulkRestoreExperimentModal,
-  pipelineRunJobTable,
+  pipelineRecurringRunTable,
   pipelineRunsGlobal,
   restoreExperimentModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
@@ -301,7 +301,7 @@ describe('Runs page for archived experiment', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      { recurringRuns: [buildMockJobKF({ status: RecurringRunStatus.DISABLED })] },
+      { recurringRuns: [buildMockRecurringRunKF({ status: RecurringRunStatus.DISABLED })] },
     );
     experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
     experimentsTabs.visit(projectName);
@@ -327,7 +327,7 @@ describe('Runs page for archived experiment', () => {
 
   it('has no create schedule button on schedules tab', () => {
     pipelineRunsGlobal.findSchedulesTab().click();
-    pipelineRunJobTable.getRowByName('Test job').findCheckbox().click();
+    pipelineRecurringRunTable.getRowByName('Test recurring run').findCheckbox().click();
     pipelineRunsGlobal.findScheduleRunButton().should('not.exist');
   });
 });

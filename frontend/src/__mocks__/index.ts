@@ -5,7 +5,7 @@ export * from './mockProjectK8sResource';
 export * from './mockRouteK8sResource';
 export * from './mockStatus';
 export * from './mockRunKF';
-export * from './mockJobKF';
+export * from './mockRecurringRunKF';
 export * from './mockExperimentKF';
 export * from './mockPipelineVersionsProxy';
 export * from './mockPipelinesProxy';

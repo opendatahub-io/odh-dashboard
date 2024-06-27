@@ -37,12 +37,12 @@ import type {
   ExperimentKFv2,
   GoogleRpcStatusKF,
   ListExperimentsResponseKF,
-  ListPipelineRunJobsResourceKF,
+  ListPipelineRecurringRunsResourceKF,
   ListPipelineRunsResourceKF,
   ListPipelineVersionsKF,
   ListPipelinesResponseKF,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
@@ -403,7 +403,7 @@ declare global {
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
           options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
-          response: OdhResponse<PipelineRunJobKFv2>,
+          response: OdhResponse<PipelineRecurringRunKFv2>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
@@ -463,12 +463,12 @@ declare global {
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineRunJobKFv2>,
+          response: OdhResponse<PipelineRecurringRunKFv2>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
           options: { path: { namespace: string; serviceName: string } },
-          response: OdhResponse<ListPipelineRunJobsResourceKF>,
+          response: OdhResponse<ListPipelineRecurringRunsResourceKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactTypes`,

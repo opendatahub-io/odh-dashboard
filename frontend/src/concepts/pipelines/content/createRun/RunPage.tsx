@@ -3,7 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 
 import { PageSection } from '@patternfly/react-core';
 
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
   CreateRunPageSections,
@@ -31,7 +31,7 @@ import { routePipelineRunsNamespace } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type RunPageProps = {
-  cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
+  cloneRun?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
   contextPath?: string;
   testId?: string;
 };

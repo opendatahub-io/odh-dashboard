@@ -9,7 +9,7 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
-import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
+import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
 import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
@@ -19,7 +19,7 @@ import {
   globPipelineRunClone,
   globPipelineRunCreate,
   globPipelineRunDetails,
-  globPipelineRunJobDetails,
+  globPipelineRecurringRunDetails,
 } from '~/routes';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
@@ -72,9 +72,11 @@ const ProjectViewRoutes: React.FC = () => {
           }
         />
         <Route
-          path={globPipelineRunJobDetails}
+          path={globPipelineRecurringRunDetails}
           element={
-            <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunJobDetails} />
+            <ProjectPipelineBreadcrumbPage
+              BreadcrumbDetailsComponent={PipelineRecurringRunDetails}
+            />
           }
         />
         <Route

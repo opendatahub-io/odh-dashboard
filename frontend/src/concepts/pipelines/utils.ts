@@ -5,7 +5,7 @@ import {
 } from '~/concepts/pipelines/content/configurePipelinesServer/const';
 import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from './kfTypes';
+import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from './kfTypes';
 
 export const deleteServer = async (namespace: string, crName: string): Promise<void> => {
   const dspa = await getPipelinesCR(namespace, crName);
@@ -31,5 +31,5 @@ export const isGeneratedDSPAExternalStorageSecret = (name: string): boolean =>
   /^secret-[a-z0-9]{6}$/.test(name);
 
 export const isRunSchedule = (
-  resource: PipelineRunKFv2 | PipelineRunJobKFv2,
-): resource is PipelineRunJobKFv2 => 'trigger' in resource;
+  resource: PipelineRunKFv2 | PipelineRecurringRunKFv2,
+): resource is PipelineRecurringRunKFv2 => 'trigger' in resource;

@@ -2,14 +2,15 @@
 import type {
   ExperimentKFv2,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
-import { buildMockExperiments, buildMockJobKF, buildMockRunKF } from '~/__mocks__';
+import { buildMockExperiments, buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
 
 class ParamsSection extends Contextual<HTMLElement> {
   findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -222,7 +223,7 @@ export class CreateRunPage {
   mockCreateRecurringRun(
     namespace: string,
     pipelineVersion: PipelineVersionKFv2,
-    { recurring_run_id, ...recurringRun }: Partial<PipelineRunJobKFv2>,
+    { recurring_run_id, ...recurringRun }: Partial<PipelineRecurringRunKFv2>,
   ): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -242,7 +243,7 @@ export class CreateRunPage {
         expect(JSON.stringify(req.body.runtime_config)).to.equal(
           JSON.stringify(recurringRun.runtime_config),
         );
-        req.reply(buildMockJobKF({ ...data, recurring_run_id }));
+        req.reply(buildMockRecurringRunKF({ ...data, recurring_run_id }));
       },
     );
   }

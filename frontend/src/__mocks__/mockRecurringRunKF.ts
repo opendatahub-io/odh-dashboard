@@ -1,13 +1,15 @@
 /* eslint-disable camelcase */
 import {
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   RecurringRunMode,
   RecurringRunStatus,
 } from '~/concepts/pipelines/kfTypes';
 
-export const buildMockJobKF = (job?: Partial<PipelineRunJobKFv2>): PipelineRunJobKFv2 => ({
-  recurring_run_id: 'test-job',
-  display_name: 'Test job',
+export const buildMockRecurringRunKF = (
+  recurringRun?: Partial<PipelineRecurringRunKFv2>,
+): PipelineRecurringRunKFv2 => ({
+  recurring_run_id: 'test-recurring-run',
+  display_name: 'Test recurring run',
   pipeline_version_reference: {
     pipeline_id: '3195ec84-69d1-4c10-b8ac-6e2334319444',
     pipeline_version_id: '29d12191-3a34-4e2a-b05f-6224b6fa7de8',
@@ -34,5 +36,5 @@ export const buildMockJobKF = (job?: Partial<PipelineRunJobKFv2>): PipelineRunJo
   status: RecurringRunStatus.ENABLED,
   namespace: 'jps-fun-world',
   experiment_id: 'f1353050-6b31-424d-859e-1fd95feb2cb8',
-  ...job,
+  ...recurringRun,
 });
