@@ -16,12 +16,12 @@ import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
   PipelineRunKFv2,
   runtimeStateLabels,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   RecurringRunMode,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
-  getPipelineRunJobScheduledState,
+  getPipelineRecurringRunScheduledState,
   ScheduledState,
 } from '~/concepts/pipelines/content/tables/utils';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
@@ -32,7 +32,7 @@ export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
-type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKFv2 } & P>;
+type RecurringRunUtil<P = ExtraProps> = React.FC<{ recurringRun: PipelineRecurringRunKFv2 } & P>;
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
   const { icon, status, label, details, createdAt } = computeRunStatus(run);
@@ -78,25 +78,27 @@ export const RunCreated: RunUtil = ({ run }) => {
   return <PipelinesTableRowTime date={createdDate} />;
 };
 
-export const JobCreated: RunJobUtil = ({ job }) => {
-  const createdDate = new Date(job.created_at);
+export const RecurringRunCreated: RecurringRunUtil = ({ recurringRun }) => {
+  const createdDate = new Date(recurringRun.created_at);
   return <PipelinesTableRowTime date={createdDate} />;
 };
 
-export const RunJobTrigger: RunJobUtil = ({ job }) => {
-  if (job.trigger.periodic_schedule) {
-    return <>Every {printSeconds(parseInt(job.trigger.periodic_schedule.interval_second))}</>;
+export const RecurringRunTrigger: RecurringRunUtil = ({ recurringRun }) => {
+  if (recurringRun.trigger.periodic_schedule) {
+    return (
+      <>Every {printSeconds(parseInt(recurringRun.trigger.periodic_schedule.interval_second))}</>
+    );
   }
-  if (job.trigger.cron_schedule) {
+  if (recurringRun.trigger.cron_schedule) {
     // TODO: convert Cron into readable text
-    return <>Cron {job.trigger.cron_schedule.cron}</>;
+    return <>Cron {recurringRun.trigger.cron_schedule.cron}</>;
   }
 
   return <NoRunContent />;
 };
 
-export const RunJobScheduled: RunJobUtil = ({ job }) => {
-  const [state, startDate, endDate] = getPipelineRunJobScheduledState(job);
+export const RecurringRunScheduled: RecurringRunUtil = ({ recurringRun }) => {
+  const [state, startDate, endDate] = getPipelineRecurringRunScheduledState(recurringRun);
 
   switch (state) {
     case ScheduledState.ENDED:
@@ -127,15 +129,14 @@ export const RunJobScheduled: RunJobUtil = ({ job }) => {
   return <NoRunContent />;
 };
 
-export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<void> }> = ({
-  job,
-  onToggle,
-}) => {
+export const RecurringRunStatus: RecurringRunUtil<{
+  onToggle: (value: boolean) => Promise<void>;
+}> = ({ recurringRun, onToggle }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
   const isExperimentArchived = useContextExperimentArchived();
 
-  const isEnabled = job.mode === RecurringRunMode.ENABLE;
+  const isEnabled = recurringRun.mode === RecurringRunMode.ENABLE;
   React.useEffect(() => {
     // When the network updates, if we are currently locked fetching, disable it so we can accept the change
     setIsChangingFlag((v) => (v ? false : v));
@@ -143,9 +144,9 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
 
   return (
     <Level hasGutter>
-      <LevelItem data-testid="job-status-switch">
+      <LevelItem data-testid="recurring-run-status-switch">
         <Switch
-          id={`${job.recurring_run_id}-toggle`}
+          id={`${recurringRun.recurring_run_id}-toggle`}
           aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
           isDisabled={isChangingFlag || isExperimentArchived}
           onChange={(e, checked) => {

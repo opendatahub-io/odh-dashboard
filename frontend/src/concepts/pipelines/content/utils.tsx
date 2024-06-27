@@ -10,7 +10,7 @@ import {
 import { Icon, LabelProps } from '@patternfly/react-core';
 import {
   PipelineCoreResourceKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   RuntimeStateKF,
   runtimeStateLabels,
@@ -101,6 +101,7 @@ export const getPipelineResourceUniqueID = (resource: PipelineCoreResourceKFv2):
 export const isPipelineRun = (resource: PipelineCoreResourceKFv2): resource is PipelineRunKFv2 =>
   'run_id' in resource;
 
-export const isPipelineRunJob = (
+export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKFv2,
-): resource is PipelineRunJobKFv2 => 'recurring_run_id' in resource && !('run_id' in resource);
+): resource is PipelineRecurringRunKFv2 =>
+  'recurring_run_id' in resource && !('run_id' in resource);

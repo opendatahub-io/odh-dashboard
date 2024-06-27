@@ -21,25 +21,26 @@ import MarkdownView from '~/components/MarkdownView';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~/routes';
 import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
 import { PipelineRunDetailsTabs } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsTabs';
-import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
+import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
+import PipelineRecurringRunDetailsActions from './PipelineRecurringRunDetailsActions';
 
-const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
+const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
   breadcrumbPath,
   contextPath,
 }) => {
   const { recurringRunId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [job, jobLoaded, jobError] = usePipelineRunJobById(recurringRunId);
+  const [recurringRun, recurringRunLoaded, recurringRunError] =
+    usePipelineRecurringRunById(recurringRunId);
   const [version, versionLoaded, versionError] = usePipelineVersionById(
-    job?.pipeline_version_reference.pipeline_id,
-    job?.pipeline_version_reference.pipeline_version_id,
+    recurringRun?.pipeline_version_reference.pipeline_id,
+    recurringRun?.pipeline_version_reference.pipeline_version_id,
   );
   const [deleting, setDeleting] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -53,8 +54,8 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
 
   const getFirstNode = (firstId: string) => nodes.find((n) => n.id === firstId)?.data?.pipelineTask;
 
-  const loaded = versionLoaded && jobLoaded;
-  const error = versionError || jobError;
+  const loaded = versionLoaded && recurringRunLoaded;
+  const error = versionError || recurringRunError;
 
   if (!loaded && !error) {
     return (
@@ -88,8 +89,14 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
           }
         >
           <ApplicationsPage
-            title={job?.display_name}
-            description={job ? <MarkdownView conciseDisplay markdown={job.description} /> : ''}
+            title={recurringRun?.display_name}
+            description={
+              recurringRun ? (
+                <MarkdownView conciseDisplay markdown={recurringRun.description} />
+              ) : (
+                ''
+              )
+            }
             loaded={loaded}
             loadError={error}
             breadcrumb={
@@ -111,13 +118,15 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
                     'Loading...'
                   )}
                 </BreadcrumbItem>
-                <BreadcrumbItem isActive>{job?.display_name ?? 'Loading...'}</BreadcrumbItem>
+                <BreadcrumbItem isActive>
+                  {recurringRun?.display_name ?? 'Loading...'}
+                </BreadcrumbItem>
               </Breadcrumb>
             }
             headerAction={
               loaded && (
-                <PipelineRunJobDetailsActions
-                  job={job ?? undefined}
+                <PipelineRecurringRunDetailsActions
+                  recurringRun={recurringRun ?? undefined}
                   onDelete={() => setDeleting(true)}
                 />
               )
@@ -125,7 +134,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
             empty={false}
           >
             <PipelineRunDetailsTabs
-              run={job}
+              run={recurringRun}
               pipelineSpec={version?.pipeline_spec}
               graphContent={
                 <PipelineTopology
@@ -148,7 +157,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
 
       <DeletePipelineRunsModal
         type={PipelineRunType.SCHEDULED}
-        toDeleteResources={deleting && job ? [job] : []}
+        toDeleteResources={deleting && recurringRun ? [recurringRun] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
             navigate(contextPath ?? routePipelineRunsNamespace(namespace));
@@ -161,4 +170,4 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   );
 };
 
-export default PipelineRunJobDetails;
+export default PipelineRecurringRunDetails;

@@ -2,19 +2,19 @@ import {
   GetPipeline,
   DeletePipeline,
   ListPipelineRuns,
-  ListPipelineRunJobs,
+  ListPipelineRecurringRuns,
   ListPipelines,
   UploadPipeline,
-  UpdatePipelineRunJob,
+  UpdatePipelineRecurringRun,
   GetPipelineRun,
   UpdatePipelineRun,
   ListExperiments,
   CreateExperiment,
   GetExperiment,
   CreatePipelineRun,
-  CreatePipelineRunJob,
-  GetPipelineRunJob,
-  DeletePipelineRunJob,
+  CreatePipelineRecurringRun,
+  GetPipelineRecurringRun,
+  DeletePipelineRecurringRun,
   DeletePipelineRun,
   UploadPipelineVersion,
   GetPipelineVersion,
@@ -36,24 +36,24 @@ export type CreatePipelineVersionAPI = KubeflowAPICall<CreatePipelineVersion>;
 export type CreatePipelineAndVersionAPI = KubeflowAPICall<CreatePipelineAndVersion>;
 export type CreateExperimentAPI = KubeflowAPICall<CreateExperiment>;
 export type CreatePipelineRunAPI = KubeflowAPICall<CreatePipelineRun>;
-export type CreatePipelineRunJobAPI = KubeflowAPICall<CreatePipelineRunJob>;
+export type CreatePipelineRecurringRunAPI = KubeflowAPICall<CreatePipelineRecurringRun>;
 export type GetExperimentAPI = KubeflowAPICall<GetExperiment>;
 export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
 export type GetPipelineRunAPI = KubeflowAPICall<GetPipelineRun>;
-export type GetPipelineRunJobAPI = KubeflowAPICall<GetPipelineRunJob>;
+export type GetPipelineRecurringRunAPI = KubeflowAPICall<GetPipelineRecurringRun>;
 export type GetPipelineVersionAPI = KubeflowAPICall<GetPipelineVersion>;
 export type DeletePipelineAPI = KubeflowAPICall<DeletePipeline>;
 export type DeletePipelineRunAPI = KubeflowAPICall<DeletePipelineRun>;
-export type DeletePipelineRunJobAPI = KubeflowAPICall<DeletePipelineRunJob>;
+export type DeletePipelineRecurringRunAPI = KubeflowAPICall<DeletePipelineRecurringRun>;
 export type DeletePipelineVersionAPI = KubeflowAPICall<DeletePipelineVersion>;
 export type DeleteExperimentAPI = KubeflowAPICall<DeleteExperiment>;
 export type ListExperimentsAPI = KubeflowAPICall<ListExperiments>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelinesRunAPI = KubeflowAPICall<ListPipelineRuns>;
-export type ListPipelinesRunJobAPI = KubeflowAPICall<ListPipelineRunJobs>;
+export type ListPipelineRecurringRunsAPI = KubeflowAPICall<ListPipelineRecurringRuns>;
 export type ListPipelineVersionsAPI = KubeflowAPICall<ListPipelineVersions>;
 export type UpdatePipelineRunAPI = KubeflowAPICall<UpdatePipelineRun>;
-export type UpdatePipelineRunJobAPI = KubeflowAPICall<UpdatePipelineRunJob>;
+export type UpdatePipelineRecurringRunAPI = KubeflowAPICall<UpdatePipelineRecurringRun>;
 export type UpdateExperimentAPI = KubeflowAPICall<UpdateExperiment>;
 export type UploadPipelineAPI = KubeflowAPICall<UploadPipeline>;
 export type UploadPipelineVersionAPI = KubeflowAPICall<UploadPipelineVersion>;

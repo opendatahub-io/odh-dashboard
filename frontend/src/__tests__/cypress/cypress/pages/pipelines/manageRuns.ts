@@ -38,7 +38,7 @@ class ManageRunsRow extends TableRow {
   }
 
   findStatusSwitchByRowName() {
-    return this.find().findByTestId('job-status-switch');
+    return this.find().findByTestId('recurring-run-status-switch');
   }
 }
 

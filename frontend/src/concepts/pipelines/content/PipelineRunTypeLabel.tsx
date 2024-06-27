@@ -1,10 +1,10 @@
 import React from 'react';
 import { Label, Tooltip } from '@patternfly/react-core';
 import { PipelineRunLabels } from '~/concepts/pipelines/content/tables/utils';
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type PipelineRunTypeLabelProps = {
-  run: PipelineRunKFv2 | PipelineRunJobKFv2;
+  run: PipelineRunKFv2 | PipelineRecurringRunKFv2;
   isCompact?: boolean;
 };
 const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ run, isCompact }) => (

@@ -12,7 +12,6 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import usePipelineRunJobs from '~/concepts/pipelines/apiHooks/usePipelineRunJobs';
 import {
   usePipelineActiveRuns,
   usePipelineArchivedRuns,
@@ -23,6 +22,7 @@ import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelinesCardItems from '~/pages/projects/screens/detail/overview/trainModels/PipelinesCardItems';
+import usePipelineRecurringRuns from '~/concepts/pipelines/apiHooks/usePipelineRecurringRuns';
 import MetricsContents from './MetricsContents';
 
 const PipelinesCardMetrics: React.FC = () => {
@@ -42,9 +42,11 @@ const PipelinesCardMetrics: React.FC = () => {
     usePipelineArchivedRuns({
       pageSize: 1,
     });
-  const [{ totalSize: scheduledCount }, scheduledLoaded, scheduledError] = usePipelineRunJobs({
-    pageSize: 1,
-  });
+  const [{ totalSize: scheduledCount }, scheduledLoaded, scheduledError] = usePipelineRecurringRuns(
+    {
+      pageSize: 1,
+    },
+  );
   const [{ totalSize: experimentsCount }, experimentsLoaded, experimentsError] = useExperiments({
     pageSize: 1,
   });

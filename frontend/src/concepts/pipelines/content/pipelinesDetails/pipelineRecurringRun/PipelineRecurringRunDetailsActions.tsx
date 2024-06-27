@@ -7,20 +7,20 @@ import {
 } from '@patternfly/react-core/deprecated';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { cloneScheduleRoute } from '~/routes';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
-type PipelineRunJobDetailsActionsProps = {
-  job?: PipelineRunJobKFv2;
+type PipelineRecurringRunDetailsActionsProps = {
+  recurringRun?: PipelineRecurringRunKFv2;
   onDelete: () => void;
 };
 
-const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> = ({
+const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsActionsProps> = ({
   onDelete,
-  job,
+  recurringRun,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
@@ -30,7 +30,7 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
 
   return (
     <Dropdown
-      data-testid="pipeline-run-job-details-actions"
+      data-testid="pipeline-recurring-run-details-actions"
       onSelect={() => setOpen(false)}
       toggle={
         <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
@@ -40,7 +40,7 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
       isOpen={open}
       position="right"
       dropdownItems={
-        !job
+        !recurringRun
           ? []
           : [
               <DropdownItem
@@ -49,7 +49,7 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
                   navigate({
                     pathname: cloneScheduleRoute(
                       namespace,
-                      job.recurring_run_id,
+                      recurringRun.recurring_run_id,
                       isExperimentsAvailable ? experimentId : undefined,
                     ),
                     search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
@@ -68,4 +68,4 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
   );
 };
 
-export default PipelineRunJobDetailsActions;
+export default PipelineRecurringRunDetailsActions;

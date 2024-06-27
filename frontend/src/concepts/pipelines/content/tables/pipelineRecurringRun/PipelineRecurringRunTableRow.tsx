@@ -1,14 +1,8 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
-import {
-  JobCreated,
-  RunJobScheduled,
-  RunJobStatus,
-  RunJobTrigger,
-} from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
@@ -16,43 +10,53 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { cloneScheduleRoute, scheduleDetailsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import {
+  RecurringRunCreated,
+  RecurringRunScheduled,
+  RecurringRunStatus,
+  RecurringRunTrigger,
+} from '~/concepts/pipelines/content/tables/renderUtils';
 
-type PipelineRunJobTableRowProps = {
+type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
   onDelete: () => void;
-  job: PipelineRunJobKFv2;
+  recurringRun: PipelineRecurringRunKFv2;
 };
 
-const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
+const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> = ({
   isChecked,
   onToggleCheck,
   onDelete,
-  job,
+  recurringRun,
 }) => {
   const navigate = useNavigate();
   const { experimentId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const { version, loaded, error } = usePipelineRunVersionInfo(job);
+  const { version, loaded, error } = usePipelineRunVersionInfo(recurringRun);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
     <Tr>
-      <CheckboxTd id={job.recurring_run_id} isChecked={isChecked} onToggle={onToggleCheck} />
+      <CheckboxTd
+        id={recurringRun.recurring_run_id}
+        isChecked={isChecked}
+        onToggle={onToggleCheck}
+      />
       <Td dataLabel="Name">
         <TableRowTitleDescription
           title={
             <Link
               to={scheduleDetailsRoute(
                 namespace,
-                job.recurring_run_id,
+                recurringRun.recurring_run_id,
                 isExperimentsAvailable ? experimentId : undefined,
               )}
             >
-              <TableText wrapModifier="truncate">{job.display_name}</TableText>
+              <TableText wrapModifier="truncate">{recurringRun.display_name}</TableText>
             </Link>
           }
-          description={job.description}
+          description={recurringRun.description}
           descriptionAsMarkdown
         />
       </Td>
@@ -67,21 +71,23 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         </Td>
       )}
       <Td dataLabel="Trigger">
-        <RunJobTrigger job={job} />
+        <RecurringRunTrigger recurringRun={recurringRun} />
       </Td>
       <Td dataLabel="Scheduled">
-        <RunJobScheduled job={job} />
+        <RecurringRunScheduled recurringRun={recurringRun} />
       </Td>
       <Td dataLabel="Status">
-        <RunJobStatus
-          job={job}
+        <RecurringRunStatus
+          recurringRun={recurringRun}
           onToggle={(checked) =>
-            api.updatePipelineRunJob({}, job.recurring_run_id, checked).then(refreshAllAPI)
+            api
+              .updatePipelineRecurringRun({}, recurringRun.recurring_run_id, checked)
+              .then(refreshAllAPI)
           }
         />
       </Td>
       <Td dataLabel="Created">
-        <JobCreated job={job} />
+        <RecurringRunCreated recurringRun={recurringRun} />
       </Td>
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
@@ -94,7 +100,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
                       navigate({
                         pathname: cloneScheduleRoute(
                           namespace,
-                          job.recurring_run_id,
+                          recurringRun.recurring_run_id,
                           isExperimentsAvailable ? experimentId : undefined,
                         ),
                         search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
@@ -119,4 +125,4 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
   );
 };
 
-export default PipelineRunJobTableRow;
+export default PipelineRecurringRunTableRow;

@@ -1,22 +1,22 @@
 import * as React from 'react';
-import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { FetchState } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineListPaged, PipelineRunOptions } from '~/concepts/pipelines/types';
 
-const usePipelineRunJobs = (
+const usePipelineRecurringRuns = (
   options?: PipelineRunOptions,
-): FetchState<PipelineListPaged<PipelineRunJobKFv2>> => {
+): FetchState<PipelineListPaged<PipelineRecurringRunKFv2>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
   const pipelineVersionId = options?.pipelineVersionId;
 
-  return usePipelineQuery<PipelineRunJobKFv2>(
+  return usePipelineQuery<PipelineRecurringRunKFv2>(
     React.useCallback(
       (opts, params) =>
         api
-          .listPipelineRunJobs(opts, {
+          .listPipelineRecurringRuns(opts, {
             ...params,
             ...(experimentId && { experimentId }),
             ...(pipelineVersionId && { pipelineVersionId }),
@@ -28,4 +28,4 @@ const usePipelineRunJobs = (
   );
 };
 
-export default usePipelineRunJobs;
+export default usePipelineRecurringRuns;

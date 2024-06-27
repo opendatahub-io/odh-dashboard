@@ -1,13 +1,13 @@
 import * as React from 'react';
 import {
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const usePipelineRunVersionInfo = (
-  run: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  run: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
 ): {
   version: PipelineVersionKFv2 | undefined;
   loaded: boolean;

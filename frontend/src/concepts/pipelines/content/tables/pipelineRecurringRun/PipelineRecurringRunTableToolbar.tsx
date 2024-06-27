@@ -12,11 +12,11 @@ export type FilterProps = Pick<
   'filterData' | 'onFilterUpdate' | 'onClearFilters'
 >;
 
-interface PipelineRunJobTableToolbarProps extends FilterProps {
+interface PipelineRecurringRunTableToolbarProps extends FilterProps {
   dropdownActions: React.ReactNode;
 }
 
-const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
+const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolbarProps> = ({
   dropdownActions,
   ...toolbarProps
 }) => {
@@ -56,9 +56,9 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
       <ToolbarItem>
         <CreateScheduleButton />
       </ToolbarItem>
-      <ToolbarItem data-testid="job-table-toolbar-item">{dropdownActions}</ToolbarItem>
+      <ToolbarItem>{dropdownActions}</ToolbarItem>
     </PipelineFilterBar>
   );
 };
 
-export default PipelineRunJobTableToolbar;
+export default PipelineRecurringRunTableToolbar;

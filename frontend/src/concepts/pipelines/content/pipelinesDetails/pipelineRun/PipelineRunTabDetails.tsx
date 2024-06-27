@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import {
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   RecurringRunStatus,
 } from '~/concepts/pipelines/kfTypes';
@@ -21,15 +21,15 @@ import {
   isEmptyDateKF,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import { isPipelineRun, isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+import { isPipelineRun, isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import { RunJobTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
 
 type PipelineRunTabDetailsProps = {
-  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
+  run?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
   workflowName?: string;
 };
 
@@ -84,7 +84,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       : []),
     { key: 'Run ID', value: runId },
     { key: 'Workflow name', value: workflowName },
-    ...(!isPipelineRunJob(run)
+    ...(!isPipelineRecurringRun(run)
       ? [
           { key: 'Started', value: asTimestamp(new Date(run.created_at)) },
           {
@@ -99,7 +99,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
             key: 'Run trigger enabled',
             value: run.status === RecurringRunStatus.ENABLED ? 'Yes' : 'No',
           },
-          { key: 'Trigger', value: <RunJobTrigger job={run} /> },
+          { key: 'Trigger', value: <RecurringRunTrigger recurringRun={run} /> },
         ]),
   ];
 
