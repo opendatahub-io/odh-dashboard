@@ -1,4 +1,5 @@
 import { FastifyRequest } from 'fastify';
+import createError from 'http-errors';
 import {
   GroupsConfig,
   GroupsConfigBody,
@@ -9,12 +10,11 @@ import {
 import { getAllGroups, getGroupsCR, updateGroupsCR } from '../../../utils/groupsUtils';
 import { getUserName } from '../../../utils/userUtils';
 import { isUserAdmin } from '../../../utils/adminUtils';
-import createError from 'http-errors';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 
 export const getGroupsConfig = async (fastify: KubeFastifyInstance): Promise<GroupsConfig> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
+  const { customObjectsApi } = fastify.kube;
 
   const groupsCluster = await getAllGroups(customObjectsApi);
   const groupsData = getGroupsCR();
@@ -24,15 +24,14 @@ export const getGroupsConfig = async (fastify: KubeFastifyInstance): Promise<Gro
   return groupsConfigProcessed.groupsConfig;
 };
 
-const transformGroupsConfig = (groupStatus: GroupStatus[]): string[] => {
-  return groupStatus.filter((group) => group.enabled).map((group) => group.name);
-};
+const transformGroupsConfig = (groupStatus: GroupStatus[]): string[] =>
+  groupStatus.filter((group) => group.enabled).map((group) => group.name);
 
 export const updateGroupsConfig = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Body: GroupsConfig }>,
 ): Promise<GroupsConfig> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
+  const { customObjectsApi } = fastify.kube;
   const { namespace } = fastify.kube;
 
   const username = await getUserName(fastify, request);
@@ -140,7 +139,9 @@ const getError = (
   }
 
   const missingItems = array.filter(predicate);
-  if (missingItems.length === 0) return undefined;
+  if (missingItems.length === 0) {
+    return undefined;
+  }
 
   error = `The group${missingItems.length === 1 ? '' : 's'} ${missingItems.join(
     ', ',

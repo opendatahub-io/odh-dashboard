@@ -5,8 +5,6 @@ import { secureRoute } from '../../../utils/route-security';
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(
     '/status',
-    secureRoute(fastify)(async () => {
-      return getClusterInitialization(fastify);
-    }),
+    secureRoute(fastify)(async () => getClusterInitialization(fastify)),
   );
 };

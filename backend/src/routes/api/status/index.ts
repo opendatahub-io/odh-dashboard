@@ -1,9 +1,10 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { status } from './statusUtils';
 import { getAllowedUsers } from './adminAllowedUsers';
 import { secureAdminRoute, secureRoute } from '../../../utils/route-security';
+import { KubeFastifyInstance } from '../../../types';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
     secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {

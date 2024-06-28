@@ -1,8 +1,9 @@
-import { FastifyInstance, FastifyRequest } from 'fastify';
+import { FastifyRequest } from 'fastify';
 import { getNotebookEvents } from './eventUtils';
 import { secureRoute } from '../../../utils/route-security';
+import { KubeFastifyInstance } from '../../../types';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   const routeHandler = secureRoute(fastify)(
     async (
       request: FastifyRequest<{

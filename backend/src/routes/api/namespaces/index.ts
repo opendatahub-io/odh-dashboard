@@ -1,6 +1,6 @@
-import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { applyNamespaceChange } from './namespaceUtils';
 import { NamespaceApplicationCase } from './const';
+import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {

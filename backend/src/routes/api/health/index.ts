@@ -3,7 +3,5 @@ import { KubeFastifyInstance } from '../../../types';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   // Unsecured route for health check
-  fastify.get('/', async () => {
-    return health(fastify);
-  });
+  fastify.get('/', async () => health(fastify));
 };

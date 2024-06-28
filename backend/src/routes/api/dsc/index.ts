@@ -5,8 +5,6 @@ import { getClusterStatus } from '../../../utils/dsc';
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(
     '/status',
-    secureRoute(fastify)(async () => {
-      return getClusterStatus(fastify);
-    }),
+    secureRoute(fastify)(async () => getClusterStatus(fastify)),
   );
 };
