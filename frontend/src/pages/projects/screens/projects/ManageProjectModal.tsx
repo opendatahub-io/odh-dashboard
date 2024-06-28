@@ -11,9 +11,10 @@ import {
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 import {
+  FormTrackingEventProperties, NotebookTrackingEventProperties,
   ProjectTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
@@ -114,9 +115,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
           variant="link"
           onClick={() => {
             onBeforeClose();
-            fireTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
+            const props : FormTrackingEventProperties = {
               outcome: TrackingOutcome.cancel,
-            });
+            }
+            fireTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', props);
           }}
         >
           Cancel

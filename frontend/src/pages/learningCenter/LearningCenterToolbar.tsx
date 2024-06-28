@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-icons';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { useQueryParams } from '~/utilities/useQueryParams';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { SearchTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 import {
   SEARCH_FILTER_KEY,
@@ -59,9 +59,10 @@ type LearningCenterToolbarProps = {
 // to avoid firing event with every single character input
 const fireSearchedEvent = _.debounce((val: string) => {
   if (val) {
-    fireTrackingEvent('Resource Searched', {
+    const props: SearchTrackingEventProperties = {
       term: val,
-    } as SearchTrackingEventProperties);
+    }
+    fireTrackingEvent('Resource Searched',  props);
   }
 }, 1000);
 

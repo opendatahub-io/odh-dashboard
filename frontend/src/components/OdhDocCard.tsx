@@ -21,7 +21,7 @@ import {
   launchQuickStart,
   LaunchStatusEnum,
 } from '~/utilities/quickStartUtils';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { DocCardTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';

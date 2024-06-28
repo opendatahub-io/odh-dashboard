@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useSegmentTracking } from '~/utilities/useSegmentTracking';
 import { useTrackHistory } from '~/utilities/useTrackHistory';
+import { useSegmentTracking } from '~/concepts/analyticsTracking/useSegmentTracking';
 
 const TelemetrySetup: React.FC = () => {
   useSegmentTracking();

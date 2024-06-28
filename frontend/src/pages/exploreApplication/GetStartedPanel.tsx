@@ -19,8 +19,9 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useAppContext } from '~/app/AppContext';
+import { NamedTrackingProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -85,10 +86,11 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
             <ActionListItem>
               <Button
                 icon={<ExternalLinkAltIcon />}
-                onClick={() =>
-                  fireTrackingEvent('Explore card get started clicked', {
-                    name: selectedApp.metadata.name,
-                  })
+                onClick={() => {
+                  const props: NamedTrackingProperties = {
+                    name: selectedApp.metadata.name };
+                  fireTrackingEvent('Explore card get started clicked', props );
+                }
                 }
                 iconPosition="right"
                 href={selectedApp.spec.getStartedLink}

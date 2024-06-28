@@ -5,7 +5,8 @@ import { useWatchComponents } from '~/utilities/useWatchComponents';
 import { OdhApplication } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import OdhAppCard from '~/components/OdhAppCard';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { NamedTrackingProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
@@ -65,10 +66,10 @@ const EnabledApplications: React.FC = () => {
         enabledComponents
           .filter((component) => component.spec.isEnabled)
           .map((c) => c.metadata.name),
-      ).forEach((name) =>
-        fireTrackingEvent('Application Enabled', {
-          name,
-        }),
+      ).forEach((name) => {
+          const props: NamedTrackingProperties = { name };
+          fireTrackingEvent('Application Enabled', props);
+        }
       );
       enabledComponents = components;
     }

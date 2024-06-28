@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Flex, Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '~/api';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
@@ -53,7 +53,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
 
   const fireNotebookTrackingEvent = React.useCallback(
     (action: 'started' | 'stopped') => {
-      fireTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
+      const props: WorkbenchTrackingEventProperties = {
         acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
         accelerator: acceleratorProfile.acceleratorProfile
           ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
@@ -70,7 +70,8 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         ...(action === 'stopped' && {
           lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
         }),
-      } as WorkbenchTrackingEventProperties);
+      }
+      fireTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`,  props);
     },
     [acceleratorProfile, notebook, size],
   );

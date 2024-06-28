@@ -1,10 +1,10 @@
 import React, { useRef } from 'react';
 import { useAppContext } from '~/app/AppContext';
-import { fireIdentifyEvent, initSegment } from '~/utilities/segmentIOUtils';
 import { useAppDispatch, useAppSelector } from '~/redux/hooks';
 import { IdentifyEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 import { segmentReady } from '~/redux/actions/actions';
 import { useWatchSegmentKey } from './useWatchSegmentKey';
+import { fireIdentifyEvent, initSegment } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();

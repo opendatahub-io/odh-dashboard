@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { LinkTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 type ExternalLinkProps = {
@@ -15,10 +15,11 @@ const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to }) => (
     isInline
     onClick={() => {
       window.open(to);
-      fireTrackingEvent('ExternalLink Clicked', {
+      const props : LinkTrackingEventProperties = {
         href: to,
         from: window.location.pathname,
-      } as LinkTrackingEventProperties);
+      }
+      fireTrackingEvent('ExternalLink Clicked',  props);
     }}
     icon={<ExternalLinkAltIcon />}
     iconPosition="right"

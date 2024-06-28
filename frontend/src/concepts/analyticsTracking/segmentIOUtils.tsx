@@ -1,12 +1,11 @@
 import {
-  BaseTrackingEventProperties,
-  IdentifyEventProperties,
+  IdentifyEventProperties, TrackingEventProperties,
 } from '~/concepts/analyticsTracking/trackingProperties';
-import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from './const';
+import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '~/utilities/const';
 
 export const fireTrackingEvent = (
   eventType: string,
-  properties?: BaseTrackingEventProperties,
+  properties?: TrackingEventProperties,
 ): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
@@ -18,9 +17,8 @@ export const fireTrackingEvent = (
           : ''
       }`,
     );
-    if (!(eventType === 'track')) {
-      /* eslint-disable-next-line no-console */
-      console.warn(`Event of type ${eventType} is not supported`);
+    if ((eventType === 'identify') || ( eventType === 'page')) {
+      window.alert(`Event of type ${eventType} is not supported`);
     }
   } else if (window.analytics) {
     switch (eventType) {
@@ -32,7 +30,7 @@ export const fireTrackingEvent = (
       case 'page':
         /* eslint-disable-next-line no-console */
         console.warn('Page event triggered through fireTrackingEvent, must not happen');
-        window.analytics.page(undefined, { clusterID });
+        firePageEvent();
         break;
       default:
         window.analytics.track(eventType, { ...properties, clusterID });
@@ -43,7 +41,7 @@ export const fireTrackingEvent = (
 export const firePageEvent = (): void => {
   if (DEV_MODE) {
     /* eslint-disable-next-line no-console */
-    console.log(`Page  event triggered:  for version ${INTERNAL_DASHBOARD_VERSION}`);
+    console.log(`Page event triggered for version ${INTERNAL_DASHBOARD_VERSION}`);
   } else if (window.analytics) {
     const clusterID = window.clusterID ?? '';
     window.analytics.page(undefined, { clusterID });
@@ -54,7 +52,7 @@ export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => 
   if (DEV_MODE) {
     /* eslint-disable-next-line no-console */
     console.log(
-      `Identify  event triggered:  ${JSON.stringify(
+      `Identify event triggered:  ${JSON.stringify(
         properties,
       )} for version ${INTERNAL_DASHBOARD_VERSION}`,
     );

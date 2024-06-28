@@ -20,10 +20,10 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   WorkbenchTrackingEventProperties,
-  TrackingOutcome,
+  TrackingOutcome, FormTrackingEventProperties,
 } from '~/concepts/analyticsTracking/trackingProperties';
 import {
   createConfigMapsAndSecretsForNotebook,
@@ -288,9 +288,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
               variant="link"
               id="cancel-button"
               onClick={() => {
-                fireTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
+                const props : FormTrackingEventProperties = {
                   outcome: TrackingOutcome.cancel,
-                });
+                }
+                fireTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, props);
                 navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
               }}
             >

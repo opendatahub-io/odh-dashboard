@@ -19,7 +19,7 @@ import TruncatedText from '~/components/TruncatedText';
 import { SectionType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { getProjectOwner } from '~/concepts/projects/utils';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { HomeCardTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 

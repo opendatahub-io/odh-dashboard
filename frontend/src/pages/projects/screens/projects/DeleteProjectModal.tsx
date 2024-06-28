@@ -2,10 +2,10 @@ import * as React from 'react';
 import { ProjectKind } from '~/k8sTypes';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { FormTrackingEventProperties, TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
@@ -19,12 +19,14 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
 
   const onBeforeClose = (deleted: boolean) => {
     if (!deleted) {
-      fireTrackingEvent(deleteProjectEventType, { outcome: TrackingOutcome.cancel });
+      const props : FormTrackingEventProperties = { outcome: TrackingOutcome.cancel };
+      fireTrackingEvent(deleteProjectEventType, props);
     } else {
-      fireTrackingEvent(deleteProjectEventType, {
+      const props : FormTrackingEventProperties = {
         outcome: TrackingOutcome.submit,
         success: true,
-      });
+      };
+      fireTrackingEvent(deleteProjectEventType,  props);
     }
     onClose(deleted);
     setDeleting(false);
@@ -46,11 +48,12 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
           deleteProject(deleteData.metadata.name)
             .then(() => onBeforeClose(true))
             .catch((e) => {
-              fireTrackingEvent(deleteProjectEventType, {
+              const props : FormTrackingEventProperties = {
                 outcome: TrackingOutcome.submit,
                 success: false,
                 error: e,
-              });
+              }
+              fireTrackingEvent(deleteProjectEventType, props);
               setError(e);
               setDeleting(false);
             });

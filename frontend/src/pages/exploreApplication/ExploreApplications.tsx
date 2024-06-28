@@ -14,12 +14,13 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { OdhApplication } from '~/types';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import GetStartedPanel from './GetStartedPanel';
 
 import './ExploreApplications.scss';
+import { NamedTrackingProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
@@ -71,9 +72,8 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                       isSelected={selectedComponent?.metadata.name === c.metadata.name}
                       onSelect={() => {
                         updateSelection(c.metadata.name);
-                        fireTrackingEvent('Explore card clicked', {
-                          name: c.metadata.name,
-                        });
+                        const props: NamedTrackingProperties = { name: c.metadata.name };
+                        fireTrackingEvent('Explore card clicked', props);
                       }}
                       disableInfo={disableInfo}
                       enableOpen={c.metadata.name === enableApp?.metadata.name}

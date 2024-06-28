@@ -5,29 +5,36 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 
-export interface IdentifyEventProperties {
-  anonymousID?: string;
-}
 
 export enum TrackingOutcome {
   submit = 'submit',
   cancel = 'cancel',
 }
 
-export interface BaseTrackingEventProperties {
-  name?: string;
+export type TrackingEventProperties = {
   anonymousID?: string;
+}
+
+export type IdentifyEventProperties = {
+} & TrackingEventProperties;
+
+export type NamedTrackingProperties = {
+  name: string;
+} & TrackingEventProperties;
+
+export type FormTrackingEventProperties = {
+  name?: string;
   outcome?: TrackingOutcome;
   success?: boolean;
   error?: string;
-}
+} & TrackingEventProperties;
 
-export interface WorkbenchTrackingEventProperties extends BaseTrackingEventProperties {
+export type WorkbenchTrackingEventProperties= {
   type?: string;
   term?: string;
   imageName?: string;
   accelerator?: string;
-  acceleratorCount?: number;
+  acceleratorCount?: number | undefined;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
   projectName?: string;
@@ -38,34 +45,34 @@ export interface WorkbenchTrackingEventProperties extends BaseTrackingEventPrope
   dataConnectionType?: EnvironmentVariableType | null;
   dataConnectionCategory?: ConfigMapCategory | SecretCategory | null;
   dataConnectionEnabled?: boolean;
-}
+} & FormTrackingEventProperties;
 
-export interface ProjectTrackingEventProperties extends BaseTrackingEventProperties {
+export type ProjectTrackingEventProperties = {
   projectName: string;
-}
+} & FormTrackingEventProperties;
 
-export interface LinkTrackingEventProperties extends BaseTrackingEventProperties {
+export type LinkTrackingEventProperties = {
   from: string;
   href: string;
-}
+} &  TrackingEventProperties ;
 
-export interface SearchTrackingEventProperties extends BaseTrackingEventProperties {
+export type SearchTrackingEventProperties = {
   term: string;
-}
+} & TrackingEventProperties ;
 
-export interface NotebookTrackingEventProperties extends BaseTrackingEventProperties {
+export type NotebookTrackingEventProperties = {
   accelerator?: string;
   acceleratorCount?: number;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
-}
+} & FormTrackingEventProperties;
 
-export interface DocCardTrackingEventProperties extends BaseTrackingEventProperties {
+export type DocCardTrackingEventProperties = {
   type: string;
-}
+} & TrackingEventProperties;
 
-export interface HomeCardTrackingEventProperties extends BaseTrackingEventProperties {
+export type HomeCardTrackingEventProperties = {
   to: string;
   type: string;
   section: string;
-}
+} & TrackingEventProperties;

@@ -13,7 +13,7 @@ import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { HomeCardTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 export const useEnableTeamSection = (): React.ReactNode => {

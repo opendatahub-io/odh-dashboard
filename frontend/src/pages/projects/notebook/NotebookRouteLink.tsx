@@ -3,9 +3,10 @@ import { Button, ButtonVariant, Flex, FlexItem, Icon, Tooltip } from '@patternfl
 import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import useRouteForNotebook from './useRouteForNotebook';
 import { hasStopAnnotation } from './utils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { FormTrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 type NotebookRouteLinkProps = {
   className?: string;
@@ -51,11 +52,12 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
               ? 'var(--pf-v5-global--FontSize--md)'
               : 'var(--pf-v5-global--FontSize--sm)',
           }}
-          onClick={() =>
-            fireTrackingEvent('Workbench Opened', {
+          onClick={() => {
+            const props : FormTrackingEventProperties = {
               name: getDisplayNameFromK8sResource(notebook),
-             })
-          }
+            }
+            fireTrackingEvent('Workbench Opened', props)
+          }}
         >
           {label ?? getDisplayNameFromK8sResource(notebook)}
         </Button>

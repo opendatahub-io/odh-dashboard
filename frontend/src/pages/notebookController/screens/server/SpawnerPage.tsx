@@ -37,7 +37,7 @@ import useNotification from '~/utilities/useNotification';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
