@@ -198,6 +198,7 @@
     },
     "@patternfly/react-topology": {
       "react": "^18.2.0"
-    }
+    },
+    "ws": "^8.17.1"
   }
 }
