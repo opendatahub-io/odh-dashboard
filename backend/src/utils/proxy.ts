@@ -50,7 +50,21 @@ export const proxyService =
         // preHandler must set the `upstream` param
         getUpstream: (request) => getParam(request, 'upstream'),
       },
-      preHandler: (request, _, done) => {
+      preHandler: (request, reply, done) => {
+        const limit = fastify.initialConfig.bodyLimit ?? 1024 * 1024;
+        const maxLimitInMiB = (limit / 1024 / 1024).toFixed();
+        const contentLength = Number(request.headers['content-length']);
+        if (contentLength > limit) {
+          reply.header('connection', 'close');
+          reply.send(
+            createCustomError(
+              'Payload Too Large',
+              `Request body is too large; the max limit is ${maxLimitInMiB} MiB`,
+              413,
+            ),
+          );
+          return;
+        }
         const kc = fastify.kube.config;
         const cluster = kc.getCurrentCluster();
 
