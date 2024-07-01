@@ -1,5 +1,6 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class TaskDrawer extends Contextual<HTMLElement> {
   findInputArtifacts() {
@@ -191,6 +192,30 @@ class PipelineRunJobDetails extends RunDetails {
 
   selectActionDropdownItem(label: string) {
     this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
+  }
+
+  mockEnableJob(job: PipelineRunJobKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      {
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: `${job.recurring_run_id}:enable`,
+        },
+      },
+      { data: {} },
+    );
+  }
+
+  mockDisableJob(job: PipelineRunJobKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      {
+        path: { namespace, serviceName: 'dspa', recurringRunId: `${job.recurring_run_id}:disable` },
+      },
+      { data: {} },
+    );
   }
 }
 

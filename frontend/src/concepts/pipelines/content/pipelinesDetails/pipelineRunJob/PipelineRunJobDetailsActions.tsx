@@ -1,13 +1,16 @@
-import * as React from 'react';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   Dropdown,
   DropdownItem,
   DropdownSeparator,
   DropdownToggle,
 } from '@patternfly/react-core/deprecated';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Spinner } from '@patternfly/react-core';
+
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 import { cloneScheduleRoute } from '~/routes';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
@@ -23,10 +26,44 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
   job,
 }) => {
   const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
-  const [open, setOpen] = React.useState(false);
   const { experimentId } = useParams();
+  const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const [open, setOpen] = React.useState(false);
+  const [isEnabled, setIsEnabled] = React.useState(job?.status === RecurringRunStatus.ENABLED);
+  const [isStatusUpdating, setIsStatusUpdating] = React.useState(false);
+
+  const updateStatus = React.useCallback(async () => {
+    if (job?.recurring_run_id) {
+      try {
+        setIsStatusUpdating(true);
+
+        await api.updatePipelineRunJob({}, job.recurring_run_id, !isEnabled);
+
+        refreshAllAPI();
+        setIsEnabled((prevValue) => !prevValue);
+        setIsStatusUpdating(false);
+      } catch (e) {
+        setIsStatusUpdating(false);
+      }
+    }
+  }, [api, isEnabled, job?.recurring_run_id, refreshAllAPI]);
+
+  const updateStatusActionLabel = React.useMemo(() => {
+    if (isStatusUpdating) {
+      if (isEnabled) {
+        return 'Disabling...';
+      }
+
+      return 'Enabling...';
+    }
+
+    if (isEnabled) {
+      return 'Disable';
+    }
+
+    return 'Enable';
+  }, [isEnabled, isStatusUpdating]);
 
   return (
     <Dropdown
@@ -43,6 +80,17 @@ const PipelineRunJobDetailsActions: React.FC<PipelineRunJobDetailsActionsProps> 
         !job
           ? []
           : [
+              <DropdownItem
+                key="update-schedule-status"
+                onClick={updateStatus}
+                isAriaDisabled={isStatusUpdating}
+                {...(isStatusUpdating && {
+                  icon: <Spinner isInline />,
+                  tooltip: 'Updating status...',
+                })}
+              >
+                {updateStatusActionLabel}
+              </DropdownItem>,
               <DropdownItem
                 key="clone-run"
                 onClick={() =>
