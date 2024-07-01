@@ -500,6 +500,22 @@ declare global {
             path: { username: string };
           },
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/storage/:namespace',
+          options: {
+            query: { key: string; peek?: number };
+            path: { namespace: string };
+          },
+          response: OdhResponse<string>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/storage/:namespace/size',
+          options: {
+            query: { key: string };
+            path: { namespace: string };
+          },
+          response: OdhResponse<number>,
         ) => Cypress.Chainable<null>);
     }
   }

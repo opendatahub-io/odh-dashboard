@@ -32,6 +32,7 @@ const RocCurveTable: React.FC<RocCurveTableBaseProps> = ({
     toolbarContent={
       <ToolbarItem>
         <TextInput
+          data-testid="roc-curve-search"
           aria-label="Search artifact"
           placeholder="Search artifact"
           onChange={(_event, value) => setSearch(value)}

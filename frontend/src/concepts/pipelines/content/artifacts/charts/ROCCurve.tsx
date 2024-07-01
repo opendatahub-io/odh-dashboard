@@ -53,7 +53,7 @@ const ROCCurve: React.FC<ROCCurveProps> = ({ configs, maxContainerWidth, maxDime
   const baseLineData = Array.from(Array(100).keys()).map((x) => ({ x: x / 100, y: x / 100 }));
 
   return (
-    <div style={{ width: maxContainerWidth || maxDimension }}>
+    <div style={{ width: maxContainerWidth || maxDimension }} data-testid="roc-curve-graph">
       <Chart
         ariaDesc="ROC Curve"
         ariaTitle="ROC Curve"
