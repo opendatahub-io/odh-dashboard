@@ -6,7 +6,7 @@ export const globNamespaceAll = `/${globNamespace}?/*`;
 const globPipelineId = ':pipelineId';
 const globPipelineVersionId = ':pipelineVersionId';
 const globPipelineRunId = ':runId';
-const globPipelineRunJobId = ':recurringRunId';
+const globPipelineRecurringRunId = ':recurringRunId';
 
 // pipelines and versions
 const globPipeline = 'pipeline';
@@ -44,18 +44,20 @@ export const routePipelineRunCloneNamespacePipelinesPage = (
   namespace: string,
   runId: string,
 ): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunClone(runId)}`;
-export const routePipelineRunJobCloneNamespacePipelinesPage = (
+export const routePipelineRecurringRunCloneNamespacePipelinesPage = (
   namespace: string,
-  jobId: string,
-): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunJobClone(jobId)}`;
+  recurringRunId: string,
+): string =>
+  `${routePipelinesNamespace(namespace)}/${routePipelineRecurringRunClone(recurringRunId)}`;
 export const routePipelineRunDetailsNamespacePipelinesPage = (
   namespace: string,
   runId: string,
 ): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunDetails(runId)}`;
-export const routePipelineRunJobDetailsNamespacePipelinesPage = (
+export const routePipelineRecurringRunDetailsNamespacePipelinesPage = (
   namespace: string,
-  jobId: string,
-): string => `${routePipelinesNamespace(namespace)}/${routePipelineRunJobDetails(jobId)}`;
+  recurringRunId: string,
+): string =>
+  `${routePipelinesNamespace(namespace)}/${routePipelineRecurringRunDetails(recurringRunId)}`;
 
 // pipeline runs
 const globPipelineRun = 'pipelineRun';
@@ -79,14 +81,25 @@ export const globPipelineRunClone = routePipelineRunClone(globPipelineRunId);
 export const routePipelineRunCloneNamespace = (namespace: string, runId: string): string =>
   `${routePipelineRunsNamespace(namespace)}/${routePipelineRunClone(runId)}`;
 
-// pipeline run jobs
-const globPipelineRunJob = 'pipelineRunJob';
-export const routePipelineRunJobDetails = (jobId: string): string =>
-  `${globPipelineRunJob}/view/${jobId}`;
-export const globPipelineRunJobDetails = routePipelineRunJobDetails(globPipelineRunJobId);
-export const routePipelineRunJobDetailsNamespace = (namespace: string, jobId: string): string =>
-  `${routePipelineRunsNamespace(namespace)}/${routePipelineRunJobDetails(jobId)}`;
-const routePipelineRunJobClone = (jobId: string): string => `${globPipelineRun}/cloneJob/${jobId}`;
-export const globPipelineRunJobClone = routePipelineRunJobClone(globPipelineRunJobId);
-export const routePipelineRunJobCloneNamespace = (namespace: string, jobId: string): string =>
-  `${routePipelineRunsNamespace(namespace)}/${routePipelineRunJobClone(jobId)}`;
+// pipeline recurring runs
+const globPipelineRecurringRun = 'pipelineRecurringRun';
+export const routePipelineRecurringRunDetails = (recurringRunId: string): string =>
+  `${globPipelineRecurringRun}/view/${recurringRunId}`;
+export const globPipelineRecurringRunDetails = routePipelineRecurringRunDetails(
+  globPipelineRecurringRunId,
+);
+export const routePipelineRecurringRunDetailsNamespace = (
+  namespace: string,
+  recurringRunId: string,
+): string =>
+  `${routePipelineRunsNamespace(namespace)}/${routePipelineRecurringRunDetails(recurringRunId)}`;
+const routePipelineRecurringRunClone = (recurringRunId: string): string =>
+  `${globPipelineRun}/cloneRecurringRun/${recurringRunId}`;
+export const globPipelineRecurringRunClone = routePipelineRecurringRunClone(
+  globPipelineRecurringRunId,
+);
+export const routePipelineRecurringRunCloneNamespace = (
+  namespace: string,
+  recurringRunId: string,
+): string =>
+  `${routePipelineRunsNamespace(namespace)}/${routePipelineRecurringRunClone(recurringRunId)}`;

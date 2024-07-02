@@ -3,13 +3,12 @@ import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockD
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import {
-  pipelineRunJobTable,
+  pipelineRecurringRunTable,
   pipelineRunsGlobal,
   archivedRunsTable,
   runsDeleteModal,
@@ -24,6 +23,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 import { buildMockPipelineVersionV2 } from '~/__mocks__';
+import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -40,8 +40,14 @@ const initIntercepts = () => {
     },
     {
       recurringRuns: [
-        buildMockJobKF({ display_name: 'test-pipeline', recurring_run_id: 'test-pipeline' }),
-        buildMockJobKF({ display_name: 'other-pipeline', recurring_run_id: 'other-pipeline' }),
+        buildMockRecurringRunKF({
+          display_name: 'test-pipeline',
+          recurring_run_id: 'test-pipeline',
+        }),
+        buildMockRecurringRunKF({
+          display_name: 'other-pipeline',
+          recurring_run_id: 'other-pipeline',
+        }),
       ],
     },
   );
@@ -98,7 +104,7 @@ describe('Pipeline runs', () => {
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findSchedulesTab().click();
-      pipelineRunJobTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
+      pipelineRecurringRunTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
 
       schedulesDeleteModal.shouldBeOpen();
       schedulesDeleteModal.findSubmitButton().should('be.disabled');
@@ -110,7 +116,7 @@ describe('Pipeline runs', () => {
           path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
         },
         mockSuccessGoogleRpcStatus({}),
-      ).as('deleteJobPipeline');
+      ).as('deleteRecurringRunPipeline');
 
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -119,14 +125,17 @@ describe('Pipeline runs', () => {
         },
         {
           recurringRuns: [
-            buildMockJobKF({ recurring_run_id: 'other-pipeline', display_name: 'other-pipeline' }),
+            buildMockRecurringRunKF({
+              recurring_run_id: 'other-pipeline',
+              display_name: 'other-pipeline',
+            }),
           ],
         },
       ).as('getRuns');
 
       schedulesDeleteModal.findSubmitButton().click();
 
-      cy.wait('@deleteJobPipeline');
+      cy.wait('@deleteRecurringRunPipeline');
 
       cy.wait('@getRuns').then((interception) => {
         expect(interception.request.query).to.eql({
@@ -136,7 +145,7 @@ describe('Pipeline runs', () => {
             '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
         });
 
-        pipelineRunJobTable.findEmptyState().should('not.exist');
+        pipelineRecurringRunTable.findEmptyState().should('not.exist');
       });
     });
 
@@ -147,10 +156,10 @@ describe('Pipeline runs', () => {
       pipelineRunsGlobal.isApiAvailable();
 
       pipelineRunsGlobal.findSchedulesTab().click();
-      pipelineRunJobTable.getRowByName('test-pipeline').findCheckbox().click();
-      pipelineRunJobTable.getRowByName('other-pipeline').findCheckbox().click();
+      pipelineRecurringRunTable.getRowByName('test-pipeline').findCheckbox().click();
+      pipelineRecurringRunTable.getRowByName('other-pipeline').findCheckbox().click();
 
-      pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete').click();
+      pipelineRecurringRunTable.findActionsKebab().findDropdownItem('Delete').click();
 
       schedulesDeleteModal.shouldBeOpen();
       schedulesDeleteModal.findSubmitButton().should('be.disabled');
@@ -162,7 +171,7 @@ describe('Pipeline runs', () => {
           path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
         },
         mockSuccessGoogleRpcStatus({}),
-      ).as('deleteJobPipeline-1');
+      ).as('deleteRecurringRunPipeline-1');
 
       cy.interceptOdh(
         'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
@@ -174,7 +183,7 @@ describe('Pipeline runs', () => {
           },
         },
         mockSuccessGoogleRpcStatus({}),
-      ).as('deleteJobPipeline-2');
+      ).as('deleteRecurringRunPipeline-2');
 
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -186,8 +195,8 @@ describe('Pipeline runs', () => {
 
       schedulesDeleteModal.findSubmitButton().click();
 
-      cy.wait('@deleteJobPipeline-1');
-      cy.wait('@deleteJobPipeline-2');
+      cy.wait('@deleteRecurringRunPipeline-1');
+      cy.wait('@deleteRecurringRunPipeline-2');
 
       cy.wait('@getRuns').then((interception) => {
         expect(interception.request.query).to.eql({
@@ -197,7 +206,7 @@ describe('Pipeline runs', () => {
             '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
         });
       });
-      pipelineRunJobTable.findEmptyState().should('exist');
+      pipelineRecurringRunTable.findEmptyState().should('exist');
     });
 
     it('Test delete a single archived run', () => {

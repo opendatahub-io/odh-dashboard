@@ -29,11 +29,11 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~/routes';
-import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '~/concepts/topology';
 import { StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import PipelineRecurringRunReferenceName from '~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -119,7 +119,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             }
             subtext={
               run && (
-                <PipelineJobReferenceName
+                <PipelineRecurringRunReferenceName
                   runName={run.display_name}
                   recurringRunId={run.recurring_run_id}
                 />

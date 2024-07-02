@@ -1,11 +1,8 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { useParams } from 'react-router-dom';
-import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
-import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
+import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
-import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
-import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -14,9 +11,12 @@ import { PipelinesFilter } from '~/concepts/pipelines/types';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
+import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
+import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
+import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
 type PipelineRunTableProps = {
-  jobs: PipelineRunJobKFv2[];
+  recurringRuns: PipelineRecurringRunKFv2[];
   loading?: boolean;
   totalSize: number;
   page: number;
@@ -30,8 +30,8 @@ type PipelineRunTableProps = {
   setFilter: (filter?: PipelinesFilter) => void;
 };
 
-const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
-  jobs,
+const PipelineRecurringRunTable: React.FC<PipelineRunTableProps> = ({
+  recurringRuns,
   loading,
   totalSize,
   page,
@@ -50,13 +50,13 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
     toggleSelection,
     isSelected,
     // eslint-disable-next-line camelcase
-  } = useCheckboxTable(jobs.map(({ recurring_run_id }) => recurring_run_id));
-  const [deleteResources, setDeleteResources] = React.useState<PipelineRunJobKFv2[]>([]);
+  } = useCheckboxTable(recurringRuns.map(({ recurring_run_id }) => recurring_run_id));
+  const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKFv2[]>([]);
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
   const getColumns = () => {
-    let columns = pipelineRunJobColumns;
+    let columns = pipelineRecurringRunColumns;
     if (pipelineVersionId) {
       columns = columns.filter((column) => column.field !== 'pipeline_version');
     }
@@ -78,14 +78,14 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
         }}
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
-        data={jobs}
+        data={recurringRuns}
         columns={getColumns()}
         enablePagination
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
         }
         toolbarContent={
-          <PipelineRunJobTableToolbar
+          <PipelineRecurringRunTableToolbar
             {...filterToolbarProps}
             data-testid="schedules-table-toolbar"
             dropdownActions={
@@ -98,11 +98,13 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
                     onClick: () =>
                       setDeleteResources(
                         selections
-                          .map<PipelineRunJobKFv2 | undefined>((selection) =>
-                            // eslint-disable-next-line camelcase
-                            jobs.find(({ recurring_run_id }) => recurring_run_id === selection),
+                          .map<PipelineRecurringRunKFv2 | undefined>((selection) =>
+                            recurringRuns.find(
+                              // eslint-disable-next-line camelcase
+                              ({ recurring_run_id }) => recurring_run_id === selection,
+                            ),
                           )
-                          .filter((v): v is PipelineRunJobKFv2 => !!v),
+                          .filter((v): v is PipelineRecurringRunKFv2 => !!v),
                       ),
                     isDisabled: !selections.length,
                   },
@@ -111,17 +113,17 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
             }
           />
         }
-        rowRenderer={(job) => (
-          <PipelineRunJobTableRow
-            key={job.recurring_run_id}
-            isChecked={isSelected(job.recurring_run_id)}
-            onToggleCheck={() => toggleSelection(job.recurring_run_id)}
-            onDelete={() => setDeleteResources([job])}
-            job={job}
+        rowRenderer={(recurringRun) => (
+          <PipelineRecurringRunTableRow
+            key={recurringRun.recurring_run_id}
+            isChecked={isSelected(recurringRun.recurring_run_id)}
+            onToggleCheck={() => toggleSelection(recurringRun.recurring_run_id)}
+            onDelete={() => setDeleteResources([recurringRun])}
+            recurringRun={recurringRun}
           />
         )}
         variant={TableVariant.compact}
-        getColumnSort={getTableColumnSort({ columns: pipelineRunJobColumns, ...tableProps })}
+        getColumnSort={getTableColumnSort({ columns: pipelineRecurringRunColumns, ...tableProps })}
         data-testid="schedules-table"
       />
 
@@ -139,4 +141,4 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
   );
 };
 
-export default PipelineRunJobTable;
+export default PipelineRecurringRunTable;

@@ -5,19 +5,19 @@ import {
   GetPipelineAPI,
   DeletePipelineAPI,
   ListPipelinesRunAPI,
-  ListPipelinesRunJobAPI,
+  ListPipelineRecurringRunsAPI,
   ListPipelinesAPI,
   UploadPipelineAPI,
-  UpdatePipelineRunJobAPI,
+  UpdatePipelineRecurringRunAPI,
   GetPipelineRunAPI,
   ListExperimentsAPI,
   CreateExperimentAPI,
   GetExperimentAPI,
   CreatePipelineRunAPI,
-  CreatePipelineRunJobAPI,
-  GetPipelineRunJobAPI,
+  CreatePipelineRecurringRunAPI,
+  GetPipelineRecurringRunAPI,
   DeletePipelineRunAPI,
-  DeletePipelineRunJobAPI,
+  DeletePipelineRecurringRunAPI,
   UploadPipelineVersionAPI,
   DeletePipelineVersionAPI,
   GetPipelineVersionAPI,
@@ -63,8 +63,9 @@ export const createPipelineVersion: CreatePipelineVersionAPI =
 export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data) =>
   handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/runs`, data, {}, opts));
 
-export const createPipelineRunJob: CreatePipelineRunJobAPI = (hostPath) => (opts, data) =>
-  handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/recurringruns`, data, {}, opts));
+export const createPipelineRecurringRun: CreatePipelineRecurringRunAPI =
+  (hostPath) => (opts, data) =>
+    handlePipelineFailures(proxyCREATE(hostPath, `/apis/v2beta1/recurringruns`, data, {}, opts));
 
 export const getExperiment: GetExperimentAPI = (hostPath) => (opts, experimentId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/experiments/${experimentId}`, {}, opts));
@@ -75,10 +76,11 @@ export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
 export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRunId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/runs/${pipelineRunId}`, {}, opts));
 
-export const getPipelineRunJob: GetPipelineRunJobAPI = (hostPath) => (opts, pipelineRunJobId) =>
-  handlePipelineFailures(
-    proxyGET(hostPath, `/apis/v2beta1/recurringruns/${pipelineRunJobId}`, {}, opts),
-  );
+export const getPipelineRecurringRun: GetPipelineRecurringRunAPI =
+  (hostPath) => (opts, pipelineRecurringRunId) =>
+    handlePipelineFailures(
+      proxyGET(hostPath, `/apis/v2beta1/recurringruns/${pipelineRecurringRunId}`, {}, opts),
+    );
 
 export const getPipelineVersion: GetPipelineVersionAPI =
   (hostPath) => (opts, pipelineId, pipelineVersionId) =>
@@ -99,10 +101,11 @@ export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId
 export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v2beta1/runs/${runId}`, {}, {}, opts));
 
-export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
-  handlePipelineFailures(
-    proxyDELETE(hostPath, `/apis/v2beta1/recurringruns/${jobId}`, {}, {}, opts),
-  );
+export const deletePipelineRecurringRun: DeletePipelineRecurringRunAPI =
+  (hostPath) => (opts, recurringRunId) =>
+    handlePipelineFailures(
+      proxyDELETE(hostPath, `/apis/v2beta1/recurringruns/${recurringRunId}`, {}, {}, opts),
+    );
 
 export const deletePipelineVersion: DeletePipelineVersionAPI =
   (hostPath) => (opts, pipelineId, pipelineVersionId) =>
@@ -205,33 +208,34 @@ export const listPipelineArchivedRuns: ListPipelinesRunAPI = (hostPath) => (opts
   });
 };
 
-export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts, params) => {
-  let predicates = params?.filter?.predicates ?? [];
-  if (params?.pipelineVersionId) {
-    predicates = [
-      ...predicates,
-      {
-        key: 'pipeline_version_id',
-        operation: PipelinesFilterOp.EQUALS,
-        // eslint-disable-next-line camelcase
-        string_value: params.pipelineVersionId,
-      },
-    ];
-  }
+export const listPipelineRecurringRuns: ListPipelineRecurringRunsAPI =
+  (hostPath) => (opts, params) => {
+    let predicates = params?.filter?.predicates ?? [];
+    if (params?.pipelineVersionId) {
+      predicates = [
+        ...predicates,
+        {
+          key: 'pipeline_version_id',
+          operation: PipelinesFilterOp.EQUALS,
+          // eslint-disable-next-line camelcase
+          string_value: params.pipelineVersionId,
+        },
+      ];
+    }
 
-  return handlePipelineFailures(
-    proxyGET(
-      hostPath,
-      '/apis/v2beta1/recurringruns',
-      {
-        ...pipelineParamsToQuery({ ...params, filter: { predicates } }),
-        // eslint-disable-next-line camelcase
-        experiment_id: params?.experimentId,
-      },
-      opts,
-    ),
-  );
-};
+    return handlePipelineFailures(
+      proxyGET(
+        hostPath,
+        '/apis/v2beta1/recurringruns',
+        {
+          ...pipelineParamsToQuery({ ...params, filter: { predicates } }),
+          // eslint-disable-next-line camelcase
+          experiment_id: params?.experimentId,
+        },
+        opts,
+      ),
+    );
+  };
 
 export const listPipelineVersions: ListPipelineVersionsAPI =
   (hostPath) => (opts, pipelineId, params) =>
@@ -274,15 +278,16 @@ export const stopPipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId)
 export const retryPipelineRun: UpdatePipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(proxyENDPOINT(hostPath, `/apis/v2beta1/runs/${runId}:retry`, {}, opts));
 
-export const updatePipelineRunJob: UpdatePipelineRunJobAPI = (hostPath) => (opts, jobId, enabled) =>
-  handlePipelineFailures(
-    proxyENDPOINT(
-      hostPath,
-      `/apis/v2beta1/recurringruns/${jobId}:${enabled ? 'enable' : 'disable'}`,
-      {},
-      opts,
-    ),
-  );
+export const updatePipelineRecurringRun: UpdatePipelineRecurringRunAPI =
+  (hostPath) => (opts, recurringRunId, enabled) =>
+    handlePipelineFailures(
+      proxyENDPOINT(
+        hostPath,
+        `/apis/v2beta1/recurringruns/${recurringRunId}:${enabled ? 'enable' : 'disable'}`,
+        {},
+        opts,
+      ),
+    );
 
 export const uploadPipeline: UploadPipelineAPI =
   (hostPath) => (opts, name, description, fileContents) =>

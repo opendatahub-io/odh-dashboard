@@ -1,19 +1,19 @@
 import { K8sAPIOptions } from '~/k8sTypes';
 import {
   ListPipelineRunsResourceKF,
-  ListPipelineRunJobsResourceKF,
+  ListPipelineRecurringRunsResourceKF,
   ListPipelinesResponseKF,
   ListExperimentsResponseKF,
   ExperimentKFv2,
   CreatePipelineRunKFData,
-  CreatePipelineRunJobKFData,
+  CreatePipelineRecurringRunKFData,
   PipelinesFilterPredicate,
   ListPipelineVersionsKF,
   PipelineKFv2,
   PipelineVersionKFv2,
   PipelineCoreResourceKFv2,
   PipelineRunKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   CreatePipelineAndVersionKFData,
   CreatePipelineVersionKFData,
   CreateExperimentKFData,
@@ -63,20 +63,20 @@ export type CreatePipelineRun = (
   opts: K8sAPIOptions,
   data: CreatePipelineRunKFData,
 ) => Promise<PipelineRunKFv2>;
-export type CreatePipelineRunJob = (
+export type CreatePipelineRecurringRun = (
   opts: K8sAPIOptions,
-  data: CreatePipelineRunJobKFData,
-) => Promise<PipelineRunJobKFv2>;
+  data: CreatePipelineRecurringRunKFData,
+) => Promise<PipelineRecurringRunKFv2>;
 export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKFv2>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKFv2>;
 export type GetPipelineRun = (
   opts: K8sAPIOptions,
   pipelineRunId: string,
 ) => Promise<PipelineRunKFv2>;
-export type GetPipelineRunJob = (
+export type GetPipelineRecurringRun = (
   opts: K8sAPIOptions,
-  pipelineRunJobId: string,
-) => Promise<PipelineRunJobKFv2>;
+  pipelineRecurringRunId: string,
+) => Promise<PipelineRecurringRunKFv2>;
 export type GetPipelineVersion = (
   opts: K8sAPIOptions,
   pipelineId: string | undefined,
@@ -84,7 +84,10 @@ export type GetPipelineVersion = (
 ) => Promise<PipelineVersionKFv2>;
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
-export type DeletePipelineRunJob = (opts: K8sAPIOptions, jobId: string) => Promise<void>;
+export type DeletePipelineRecurringRun = (
+  opts: K8sAPIOptions,
+  recurringRunId: string,
+) => Promise<void>;
 export type DeletePipelineVersion = (
   opts: K8sAPIOptions,
   pipelineId: string,
@@ -103,19 +106,19 @@ export type ListPipelineRuns = (
   opts: K8sAPIOptions,
   params?: PipelineRunParams,
 ) => Promise<ListPipelineRunsResourceKF>;
-export type ListPipelineRunJobs = (
+export type ListPipelineRecurringRuns = (
   opts: K8sAPIOptions,
   params?: PipelineRunParams,
-) => Promise<ListPipelineRunJobsResourceKF>;
+) => Promise<ListPipelineRecurringRunsResourceKF>;
 export type ListPipelineVersions = (
   opts: K8sAPIOptions,
   pipelineId: string,
   params?: PipelineParams,
 ) => Promise<ListPipelineVersionsKF>;
 export type UpdatePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
-export type UpdatePipelineRunJob = (
+export type UpdatePipelineRecurringRun = (
   opts: K8sAPIOptions,
-  jobId: string,
+  recurringRunId: string,
   enabled: boolean,
 ) => Promise<void>;
 export type UpdateExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<void>;
@@ -138,15 +141,15 @@ export type PipelineAPIs = {
   createPipelineAndVersion: CreatePipelineAndVersion;
   createExperiment: CreateExperiment;
   createPipelineRun: CreatePipelineRun;
-  createPipelineRunJob: CreatePipelineRunJob;
+  createPipelineRecurringRun: CreatePipelineRecurringRun;
   getExperiment: GetExperiment;
   getPipeline: GetPipeline;
   getPipelineRun: GetPipelineRun;
-  getPipelineRunJob: GetPipelineRunJob;
+  getPipelineRecurringRun: GetPipelineRecurringRun;
   getPipelineVersion: GetPipelineVersion;
   deletePipeline: DeletePipeline;
   deletePipelineRun: DeletePipelineRun;
-  deletePipelineRunJob: DeletePipelineRunJob;
+  deletePipelineRecurringRun: DeletePipelineRecurringRun;
   deletePipelineVersion: DeletePipelineVersion;
   deleteExperiment: DeleteExperiment;
   listExperiments: ListExperiments;
@@ -154,7 +157,7 @@ export type PipelineAPIs = {
   listPipelineRuns: ListPipelineRuns;
   listPipelineActiveRuns: ListPipelineRuns;
   listPipelineArchivedRuns: ListPipelineRuns;
-  listPipelineRunJobs: ListPipelineRunJobs;
+  listPipelineRecurringRuns: ListPipelineRecurringRuns;
   listPipelineVersions: ListPipelineVersions;
   archivePipelineRun: UpdatePipelineRun;
   retryPipelineRun: UpdatePipelineRun;
@@ -162,7 +165,7 @@ export type PipelineAPIs = {
   archiveExperiment: UpdateExperiment;
   unarchiveExperiment: UpdateExperiment;
   stopPipelineRun: UpdatePipelineRun;
-  updatePipelineRunJob: UpdatePipelineRunJob;
+  updatePipelineRecurringRun: UpdatePipelineRecurringRun;
   uploadPipeline: UploadPipeline;
   uploadPipelineVersion: UploadPipelineVersion;
 };

@@ -1,4 +1,4 @@
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
@@ -11,15 +11,22 @@ export const getRunDuration = (run: PipelineRunKFv2): number => {
   return finishedDate.getTime() - createdDate.getTime();
 };
 
-export const getPipelineRunJobStartTime = (job: PipelineRunJobKFv2): Date | null => {
+export const getPipelineRecurringRunStartTime = (
+  recurringRun: PipelineRecurringRunKFv2,
+): Date | null => {
   const startTime =
-    job.trigger.cron_schedule?.start_time || job.trigger.periodic_schedule?.start_time;
+    recurringRun.trigger.cron_schedule?.start_time ||
+    recurringRun.trigger.periodic_schedule?.start_time;
 
   return startTime ? new Date(startTime) : null;
 };
 
-export const getPipelineRunJobEndTime = (job: PipelineRunJobKFv2): Date | null => {
-  const endTime = job.trigger.cron_schedule?.end_time || job.trigger.periodic_schedule?.end_time;
+export const getPipelineRecurringRunEndTime = (
+  recurringRun: PipelineRecurringRunKFv2,
+): Date | null => {
+  const endTime =
+    recurringRun.trigger.cron_schedule?.end_time ||
+    recurringRun.trigger.periodic_schedule?.end_time;
 
   return endTime ? new Date(endTime) : null;
 };
@@ -36,11 +43,11 @@ export enum PipelineRunLabels {
 }
 
 const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
-export const getPipelineRunJobScheduledState = (
-  job: PipelineRunJobKFv2,
+export const getPipelineRecurringRunScheduledState = (
+  recurringRun: PipelineRecurringRunKFv2,
 ): [state: ScheduledState, started: Date | null, ended: Date | null] => {
-  const startDate = getPipelineRunJobStartTime(job);
-  const endDate = getPipelineRunJobEndTime(job);
+  const startDate = getPipelineRecurringRunStartTime(recurringRun);
+  const endDate = getPipelineRecurringRunEndTime(recurringRun);
   const startDateInPast = inPast(startDate);
   const endDateInPast = inPast(endDate);
 
@@ -60,7 +67,7 @@ export const getPipelineRunJobScheduledState = (
   return [state, startDate, endDate];
 };
 
-export const getPipelineJobExecutionCount = (resourceName: string): string | null => {
+export const getPipelineRecurringRunExecutionCount = (resourceName: string): string | null => {
   const regex = /(\w+)(?:-[^-]*)?$/;
   const match = resourceName.match(regex);
   return match ? match[1] : null;

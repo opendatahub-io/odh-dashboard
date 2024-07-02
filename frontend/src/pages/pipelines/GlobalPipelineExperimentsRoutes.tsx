@@ -9,7 +9,7 @@ import {
 } from '~/pages/pipelines/global/experiments/const';
 import GlobalExperiments from '~/pages/pipelines/global/experiments/GlobalExperiments';
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
-import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
+import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
 import { experimentsBaseRoute } from '~/routes';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
@@ -55,7 +55,7 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
           path="schedules/:recurringRunId"
           element={
             <GlobalExperimentDetails
-              BreadcrumbDetailsComponent={PipelineRunJobDetails}
+              BreadcrumbDetailsComponent={PipelineRecurringRunDetails}
               isSchedule
             />
           }

@@ -594,7 +594,7 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
 
 /**
  * @deprecated
- * Use PipelineRunJobKFv2 for all new stories
+ * Use PipelineRecurringRunKFv2 for all new stories
  */
 export type PipelineRunJobKF = PipelineCoreResourceKF & {
   pipeline_spec: PipelineSpecKF;
@@ -615,7 +615,7 @@ export type PipelineVersionReference = {
   pipeline_version_id: string;
 };
 
-export type PipelineRunJobKFv2 = PipelineCoreResourceKFv2 & {
+export type PipelineRecurringRunKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_spec?: PipelineSpecKF;
   service_account?: string;
   max_concurrency: string;
@@ -676,8 +676,8 @@ export type ListPipelinesResponseKF = PipelineKFCallCommon<{
 export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
   runs: PipelineRunKFv2[];
 }>;
-export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
-  recurringRuns: PipelineRunJobKFv2[];
+export type ListPipelineRecurringRunsResourceKF = PipelineKFCallCommon<{
+  recurringRuns: PipelineRecurringRunKFv2[];
 }>;
 export type ListPipelineVersionsKF = PipelineKFCallCommon<{
   pipeline_versions: PipelineVersionKFv2[];
@@ -715,8 +715,8 @@ export type CreatePipelineRunKFData = Omit<
   | 'run_details'
 >;
 
-export type CreatePipelineRunJobKFData = Omit<
-  PipelineRunJobKFv2,
+export type CreatePipelineRecurringRunKFData = Omit<
+  PipelineRecurringRunKFv2,
   | 'recurring_run_id'
   | 'status'
   | 'created_at'

@@ -13,7 +13,7 @@ import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
-import { routePipelineRunDetails, routePipelineRunJobDetails } from '~/routes';
+import { routePipelineRunDetails, routePipelineRecurringRunDetails } from '~/routes';
 
 type RunPageFooterProps = {
   data: RunFormData;
@@ -55,7 +55,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                 handleSubmit(data, api)
                   .then((resource) => {
                     let detailsPath = isRunSchedule(resource)
-                      ? routePipelineRunJobDetails(resource.recurring_run_id)
+                      ? routePipelineRecurringRunDetails(resource.recurring_run_id)
                       : routePipelineRunDetails(resource.run_id);
 
                     if (isExperimentsAvailable && experimentId) {
