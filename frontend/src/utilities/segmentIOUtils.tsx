@@ -15,7 +15,15 @@ export const fireTrackingEventRaw = (eventType: string, properties?: any): void 
       }`,
     );
   } else if (window.analytics) {
-    window.analytics.track(eventType, { ...properties, clusterID });
+    window.analytics.track(
+      eventType,
+      { ...properties, clusterID },
+      {
+        app: {
+          version: INTERNAL_DASHBOARD_VERSION,
+        },
+      },
+    );
   }
 };
 
@@ -39,10 +47,26 @@ export const fireTrackingEvent = (
         window.analytics.identify(properties?.anonymousID, { clusterID });
         break;
       case 'page':
-        window.analytics.page(undefined, { clusterID });
+        window.analytics.page(
+          undefined,
+          { clusterID },
+          {
+            app: {
+              version: INTERNAL_DASHBOARD_VERSION,
+            },
+          },
+        );
         break;
       default:
-        window.analytics.track(eventType, { ...properties, clusterID });
+        window.analytics.track(
+          eventType,
+          { ...properties, clusterID },
+          {
+            app: {
+              version: INTERNAL_DASHBOARD_VERSION,
+            },
+          },
+        );
     }
   }
 };
