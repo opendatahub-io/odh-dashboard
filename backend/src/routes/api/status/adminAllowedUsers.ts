@@ -46,7 +46,8 @@ const getUserActivityFromNotebook = async (
     .map<[string | undefined, string | undefined]>((notebook) => [
       notebook.metadata?.annotations?.['opendatahub.io/username'],
       notebook.metadata?.annotations?.['notebooks.kubeflow.org/last-activity'] ||
-        notebook.metadata?.annotations?.['kubeflow-resource-stopped'],
+        notebook.metadata?.annotations?.['kubeflow-resource-stopped'] ||
+        'Now',
     ])
     .filter(([username, lastActivity]) => username && lastActivity)
     .reduce<UserActivityMap>(
