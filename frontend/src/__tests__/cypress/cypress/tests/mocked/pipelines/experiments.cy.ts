@@ -325,10 +325,10 @@ describe('Runs page for archived experiment', () => {
     pipelineRunsGlobal.findRestoreRunButton().should('have.class', 'pf-m-aria-disabled');
   });
 
-  it('has create schedule button disabled on schedules tab', () => {
+  it('has no create schedule button on schedules tab', () => {
     pipelineRunsGlobal.findSchedulesTab().click();
     pipelineRunJobTable.getRowByName('Test job').findCheckbox().click();
-    pipelineRunsGlobal.findScheduleRunButton().should('have.class', 'pf-m-aria-disabled');
+    pipelineRunsGlobal.findScheduleRunButton().should('not.exist');
   });
 });
 

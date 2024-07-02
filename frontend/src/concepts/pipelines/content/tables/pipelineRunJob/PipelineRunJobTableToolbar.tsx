@@ -6,6 +6,7 @@ import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFi
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
+import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -21,6 +22,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const isExperimentArchived = useIsExperimentArchived();
   const { pipelineVersionId } = useParams();
 
   const options = {
@@ -53,9 +55,12 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
         ),
       }}
     >
-      <ToolbarItem>
-        <CreateScheduleButton />
-      </ToolbarItem>
+      {!isExperimentArchived && (
+        <ToolbarItem>
+          <CreateScheduleButton />
+        </ToolbarItem>
+      )}
+
       <ToolbarItem data-testid="job-table-toolbar-item">{dropdownActions}</ToolbarItem>
     </PipelineFilterBar>
   );
