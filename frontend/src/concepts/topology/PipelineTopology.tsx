@@ -5,20 +5,23 @@ import {
   VisualizationProvider,
 } from '@patternfly/react-topology';
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import PipelineVersionError from '~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
+import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
-import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 
 type PipelineTopologyProps = {
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
   nodes: PipelineNodeModel[];
+  versionError?: Error;
 };
 
 const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   nodes,
   selectedIds,
   onSelectionChange,
+  versionError,
 }) => {
   const controller = useTopologyController('g1');
 
@@ -36,6 +39,10 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
 
     return undefined;
   }, [controller, onSelectionChange]);
+
+  if (versionError) {
+    return <PipelineVersionError />;
+  }
 
   if (!nodes.length) {
     return <PipelineTopologyEmpty />;

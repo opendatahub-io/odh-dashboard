@@ -234,7 +234,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   hidden={PipelineDetailsTab.YAML !== activeTabKey}
                   className="pf-v5-u-h-100"
                 >
-                  <TabContentBody hasPadding className="pf-v5-u-h-100">
+                  <TabContentBody className="pf-v5-u-h-100">
                     <PipelineDetailsYAML
                       filename={`Pipeline ${
                         getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??
