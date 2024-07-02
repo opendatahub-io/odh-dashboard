@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { Split, SplitItem, ValidatedOptions } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import {
+  Split,
+  SplitItem,
+  ValidatedOptions,
+  Dropdown,
+  DropdownItem,
+  MenuToggle,
+  DropdownList,
+} from '@patternfly/react-core';
 import { splitValueUnit, UnitOption, ValueUnitString } from '~/utilities/valueUnits';
 import NumberInputWrapper from './NumberInputWrapper';
 
@@ -19,6 +26,7 @@ type ValueUnitFieldProps = {
   max?: number | string;
   onChange: (newValue: string) => void;
   onBlur?: (blurValue: string) => void;
+  stopPropagation?: boolean;
   options: UnitOption[];
   value: ValueUnitString;
   validated?: 'default' | 'error' | 'warning' | 'success' | ValidatedOptions | undefined;
@@ -29,6 +37,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
   max,
   onChange,
   onBlur,
+  stopPropagation,
   options,
   value: fullValue,
   validated,
@@ -59,26 +68,41 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
       </SplitItem>
       <SplitItem>
         <Dropdown
-          data-testid="value-unit-select"
-          menuAppendTo="parent"
-          toggle={
-            <DropdownToggle id="toggle-basic" onToggle={() => setOpen(!open)}>
-              {currentUnitOption.name}
-            </DropdownToggle>
-          }
-          isOpen={open}
-          dropdownItems={options.map((option) => (
-            <DropdownItem
-              key={option.unit}
-              onClick={() => {
-                onChange(`${currentValue}${option.unit}`);
-                setOpen(false);
+          shouldFocusToggleOnSelect
+          toggle={(toggleRef) => (
+            <MenuToggle
+              data-testid="value-unit-select"
+              aria-label="value unit field toggle"
+              id="toggle-basic"
+              ref={toggleRef}
+              onClick={(ev) => {
+                if (stopPropagation) {
+                  ev.stopPropagation();
+                }
+                setOpen(!open);
               }}
+              isExpanded={open}
             >
-              {option.name}
-            </DropdownItem>
-          ))}
-        />
+              {currentUnitOption.name}
+            </MenuToggle>
+          )}
+          isOpen={open}
+          onOpenChange={(isOpened) => setOpen(isOpened)}
+        >
+          <DropdownList>
+            {options.map((option) => (
+              <DropdownItem
+                key={option.unit}
+                onClick={() => {
+                  onChange(`${currentValue}${option.unit}`);
+                  setOpen(false);
+                }}
+              >
+                {option.name}
+              </DropdownItem>
+            ))}
+          </DropdownList>
+        </Dropdown>
       </SplitItem>
     </Split>
   );

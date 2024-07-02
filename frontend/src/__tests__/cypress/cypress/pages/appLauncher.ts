@@ -9,7 +9,7 @@ class ApplicationLauncherMenuGroup extends Contextual<HTMLElement> {
 
 export class ApplicationLauncher extends Contextual<HTMLElement> {
   toggleAppLauncherButton(): void {
-    this.find().findByRole('button', { name: 'Application launcher' }).click();
+    this.find().findByRole('button', { name: 'Application launcher toggle' }).click();
   }
 
   getApplicationLauncherMenuGroup(name: string): ApplicationLauncherMenuGroup {
