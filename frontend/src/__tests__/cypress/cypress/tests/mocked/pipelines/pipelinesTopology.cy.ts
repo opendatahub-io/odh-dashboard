@@ -29,6 +29,7 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipelineV2({
@@ -431,6 +432,53 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findYamlOutput().click();
       const pipelineDashboardCodeEditor = pipelineDetails.getPipelineDashboardCodeEditor();
       pipelineDashboardCodeEditor.findInput().should('not.be.empty');
+    });
+  });
+
+  describe('Pipeline job details', () => {
+    const mockDisabledJob = { ...mockJob, status: RecurringRunStatus.DISABLED };
+
+    beforeEach(() => {
+      initIntercepts();
+    });
+
+    it('disables job from action dropdown', () => {
+      pipelineRunJobDetails.mockDisableJob(mockJob, projectId);
+      pipelineRunJobDetails.visit(projectId, mockJob.recurring_run_id);
+
+      pipelineRunJobDetails.findActionsDropdown();
+      pipelineRunJobDetails.selectActionDropdownItem('Disable');
+
+      pipelineRunJobDetails
+        .findActionsDropdown()
+        .click()
+        .findByRole('menuitem', { name: 'Enable' })
+        .should('be.visible');
+    });
+
+    it('enables job from action dropdown', () => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+        {
+          path: {
+            namespace: projectId,
+            serviceName: 'dspa',
+            recurringRunId: mockDisabledJob.recurring_run_id,
+          },
+        },
+        mockDisabledJob,
+      );
+      pipelineRunJobDetails.mockEnableJob(mockDisabledJob, projectId);
+      pipelineRunJobDetails.visit(projectId, mockDisabledJob.recurring_run_id);
+
+      pipelineRunJobDetails.findActionsDropdown();
+      pipelineRunJobDetails.selectActionDropdownItem('Enable');
+
+      pipelineRunJobDetails
+        .findActionsDropdown()
+        .click()
+        .findByRole('menuitem', { name: 'Disable' })
+        .should('be.visible');
     });
   });
 

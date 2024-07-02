@@ -56,7 +56,8 @@ type SuccessErrorResponse = {
 type OdhResponse<V = SuccessErrorResponse> =
   | V
   | GenericStaticResponse<string, V>
-  | RouteHandlerController;
+  | RouteHandlerController
+  | { data: unknown };
 
 type Replacement<R extends string = string> = Record<R, string | undefined>;
 type Query<Q extends string = string> = Record<Q, string>;

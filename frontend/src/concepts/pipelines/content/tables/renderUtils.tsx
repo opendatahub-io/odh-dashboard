@@ -17,7 +17,7 @@ import {
   PipelineRunKFv2,
   runtimeStateLabels,
   PipelineRunJobKFv2,
-  RecurringRunMode,
+  RecurringRunStatus,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -135,7 +135,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
   const isExperimentArchived = useContextExperimentArchived();
 
-  const isEnabled = job.mode === RecurringRunMode.ENABLE;
+  const isEnabled = job.status === RecurringRunStatus.ENABLED;
   React.useEffect(() => {
     // When the network updates, if we are currently locked fetching, disable it so we can accept the change
     setIsChangingFlag((v) => (v ? false : v));
