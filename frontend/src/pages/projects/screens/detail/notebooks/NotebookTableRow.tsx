@@ -1,17 +1,8 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Icon,
-  Popover,
-  Split,
-  SplitItem,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle';
@@ -51,7 +42,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
-  const { size: notebookSize, error: sizeError } = useNotebookDeploymentSize(obj.notebook);
+  const { size: notebookSize } = useNotebookDeploymentSize(obj.notebook);
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
 
   return (
@@ -124,7 +115,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   }
                 >
                   <DashboardPopupIconButton
-                    aria-label="Notebook image has out of date Elrya version"
+                    aria-label="Notebook image has out of date Elyra version"
                     data-testid="outdated-elyra-info"
                     icon={
                       <Icon status="info">
@@ -143,14 +134,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               spaceItems={{ default: 'spaceItemsXs' }}
               alignItems={{ default: 'alignItemsCenter' }}
             >
-              <FlexItem>{notebookSize?.name ?? 'Unknown'}</FlexItem>
-              {sizeError && (
-                <Tooltip content={sizeError}>
-                  <Icon aria-label="error icon" role="button" status="danger" tabIndex={0}>
-                    <ExclamationCircleIcon />
-                  </Icon>
-                </Tooltip>
-              )}
+              <FlexItem>{notebookSize?.name ?? 'Custom'}</FlexItem>
             </Flex>
           </Td>
         ) : null}

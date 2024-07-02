@@ -1,4 +1,5 @@
 import {
+  mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
   mockNotebookK8sResource,
@@ -401,6 +402,60 @@ describe('Workbench page', () => {
     cy.get('@editWorkbench.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
     });
+  });
+
+  it('Handle deleted notebook sizes in workbenches table', () => {
+    initIntercepts({});
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        notebookSizes: [
+          {
+            name: 'Medium',
+            resources: {
+              limits: {
+                cpu: '6',
+                memory: '24Gi',
+              },
+              requests: {
+                cpu: '3',
+                memory: '24Gi',
+              },
+            },
+          },
+          {
+            name: 'Large',
+            resources: {
+              limits: {
+                cpu: '14',
+                memory: '56Gi',
+              },
+              requests: {
+                cpu: '7',
+                memory: '56Gi',
+              },
+            },
+          },
+          {
+            name: 'X Large',
+            resources: {
+              limits: {
+                cpu: '30',
+                memory: '120Gi',
+              },
+              requests: {
+                cpu: '15',
+                memory: '120Gi',
+              },
+            },
+          },
+        ],
+      }),
+    );
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.shouldHaveNotebookImageName('Test Image');
+    notebookRow.shouldHaveContainerSize('Custom');
   });
 
   it('Validate that updating invalid workbench will navigate to the new page with an error message', () => {
