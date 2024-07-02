@@ -26,7 +26,7 @@ import {
 } from '~/concepts/pipelines/content/tables/utils';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 

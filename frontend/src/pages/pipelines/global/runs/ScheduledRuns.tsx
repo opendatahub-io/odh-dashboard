@@ -13,14 +13,14 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
-import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
-import { usePipelineScheduledRunsTable } from '~/concepts/pipelines/content/tables/pipelineRecurringRun/usePipelineRecurringRunTable';
+import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelineRecurringRunsTable } from '~/concepts/pipelines/content/tables/pipelineRecurringRun/usePipelineRecurringRunTable';
 import PipelineRecurringRunTable from '~/concepts/pipelines/content/tables/pipelineRecurringRun/PipelineRecurringRunTable';
 
 const ScheduledRuns: React.FC = () => {
   const { experimentId, pipelineVersionId } = useParams();
   const [[{ items: recurringRuns, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineScheduledRunsTable({ experimentId, pipelineVersionId });
+    usePipelineRecurringRunsTable({ experimentId, pipelineVersionId });
   const isExperimentArchived = useIsExperimentArchived();
 
   if (error) {

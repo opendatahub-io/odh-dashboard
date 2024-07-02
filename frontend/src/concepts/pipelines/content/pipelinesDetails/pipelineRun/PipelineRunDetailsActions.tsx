@@ -33,7 +33,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
   const isRunActive = run?.storage_state === StorageStateKF.AVAILABLE;
   const [experiment] = useExperimentById(run?.experiment_id);
   const isExperimentActive = experiment?.storage_state === StorageStateKF.AVAILABLE;
-  const { experimentId } = useParams();
+  const { experimentId, pipelineId, pipelineVersionId } = useParams();
 
   const RestoreDropdownItem = (
     <DropdownItem
@@ -85,6 +85,8 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                       namespace,
                       run.run_id,
                       isExperimentsAvailable ? experimentId : undefined,
+                      pipelineId,
+                      pipelineVersionId,
                     ),
                   )
                 }

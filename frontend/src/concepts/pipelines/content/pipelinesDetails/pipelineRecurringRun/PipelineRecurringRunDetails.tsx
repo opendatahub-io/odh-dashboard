@@ -12,7 +12,7 @@ import {
   Bullseye,
   Spinner,
 } from '@patternfly/react-core';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
@@ -20,10 +20,8 @@ import { PipelineTopology } from '~/concepts/topology';
 import MarkdownView from '~/components/MarkdownView';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~/routes';
 import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
 import { PipelineRunDetailsTabs } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsTabs';
 import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
@@ -35,7 +33,6 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
 }) => {
   const { recurringRunId } = useParams();
   const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
   const [recurringRun, recurringRunLoaded, recurringRunError] =
     usePipelineRecurringRunById(recurringRunId);
   const [version, versionLoaded, versionError] = usePipelineVersionById(
@@ -101,23 +98,7 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
             loadError={error}
             breadcrumb={
               <Breadcrumb>
-                {breadcrumbPath(PipelineRunType.SCHEDULED)}
-                <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                  {version ? (
-                    <Link
-                      to={routePipelineVersionRunsNamespace(
-                        namespace,
-                        version.pipeline_id,
-                        version.pipeline_version_id,
-                        PipelineRunType.SCHEDULED,
-                      )}
-                    >
-                      {version.display_name}
-                    </Link>
-                  ) : (
-                    'Loading...'
-                  )}
-                </BreadcrumbItem>
+                {breadcrumbPath}
                 <BreadcrumbItem isActive>
                   {recurringRun?.display_name ?? 'Loading...'}
                 </BreadcrumbItem>
@@ -160,7 +141,7 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
         toDeleteResources={deleting && recurringRun ? [recurringRun] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
-            navigate(contextPath ?? routePipelineRunsNamespace(namespace));
+            navigate(contextPath);
           } else {
             setDeleting(false);
           }

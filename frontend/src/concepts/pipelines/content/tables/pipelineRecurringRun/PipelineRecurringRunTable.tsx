@@ -12,10 +12,11 @@ import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFi
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
-type PipelineRunTableProps = {
+type PipelineRecurringRunTableProps = {
   recurringRuns: PipelineRecurringRunKFv2[];
   loading?: boolean;
   totalSize: number;
@@ -30,7 +31,7 @@ type PipelineRunTableProps = {
   setFilter: (filter?: PipelinesFilter) => void;
 };
 
-const PipelineRecurringRunTable: React.FC<PipelineRunTableProps> = ({
+const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   recurringRuns,
   loading,
   totalSize,
@@ -42,8 +43,9 @@ const PipelineRecurringRunTable: React.FC<PipelineRunTableProps> = ({
   ...tableProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const { pipelineVersionId } = useParams();
+  const { experimentId, pipelineVersionId } = useParams();
   const filterToolbarProps = usePipelineFilter(setFilter);
+  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -57,6 +59,11 @@ const PipelineRecurringRunTable: React.FC<PipelineRunTableProps> = ({
 
   const getColumns = () => {
     let columns = pipelineRecurringRunColumns;
+
+    if (isExperimentsAvailable && experimentId) {
+      columns = columns.filter((column) => column.field !== 'experiment');
+    }
+
     if (pipelineVersionId) {
       columns = columns.filter((column) => column.field !== 'pipeline_version');
     }

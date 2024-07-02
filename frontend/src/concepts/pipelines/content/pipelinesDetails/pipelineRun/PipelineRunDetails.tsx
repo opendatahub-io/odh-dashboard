@@ -13,35 +13,35 @@ import {
   Truncate,
   EmptyStateHeader,
 } from '@patternfly/react-core';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import MarkdownView from '~/components/MarkdownView';
-import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
+import { PathProps } from '~/concepts/pipelines/content/types';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import { routePipelineRunsNamespace, routePipelineVersionRunsNamespace } from '~/routes';
+import PipelineRecurringRunReferenceName from '~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
 import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '~/concepts/topology';
-import { StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import PipelineRecurringRunReferenceName from '~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
+import { FetchState } from '~/utilities/useFetchState';
+import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
-const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
-  const { runId } = useParams();
+const PipelineRunDetails: React.FC<
+  PathProps & {
+    fetchedRun: FetchState<PipelineRunKFv2 | null>;
+  }
+> = ({ fetchedRun, breadcrumbPath, contextPath }) => {
   const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
-  const [run, runLoaded, runError] = usePipelineRunById(runId, true);
+  const [run, runLoaded, runError] = fetchedRun;
   const [version, versionLoaded, versionError] = usePipelineVersionById(
     run?.pipeline_version_reference?.pipeline_id,
     run?.pipeline_version_reference?.pipeline_version_id,
@@ -93,9 +93,6 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
     );
   }
 
-  const runType =
-    run?.storage_state === StorageStateKF.ARCHIVED ? PipelineRunType.ARCHIVED : undefined;
-
   return (
     <>
       <Drawer isExpanded={!!selectedNode}>
@@ -132,24 +129,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
             loadError={error}
             breadcrumb={
               <Breadcrumb>
-                {breadcrumbPath(runType)}
-                <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                  {version ? (
-                    <Link
-                      to={routePipelineVersionRunsNamespace(
-                        namespace,
-                        version.pipeline_id,
-                        version.pipeline_version_id,
-                        runType,
-                      )}
-                    >
-                      {/* TODO: Remove the custom className after upgrading to PFv6 */}
-                      <Truncate content={version.display_name} className="truncate-no-min-width" />
-                    </Link>
-                  ) : (
-                    'Loading...'
-                  )}
-                </BreadcrumbItem>
+                {breadcrumbPath}
                 <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                   {/* TODO: Remove the custom className after upgrading to PFv6 */}
                   <Truncate
@@ -194,7 +174,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
         toDeleteResources={deleting && run ? [run] : []}
         onClose={(deleteComplete) => {
           if (deleteComplete) {
-            navigate(contextPath ?? routePipelineRunsNamespace(namespace));
+            navigate(contextPath);
           } else {
             setDeleting(false);
           }

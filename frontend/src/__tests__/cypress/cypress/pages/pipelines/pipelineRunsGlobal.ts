@@ -8,8 +8,8 @@ class PipelineRunsGlobal {
     runType?: 'active' | 'archived' | 'scheduled',
   ) {
     cy.visitWithLogin(
-      `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${versionId}${
-        runType ? `?runType=${runType}` : ''
+      `/pipelines/${projectName}/${pipelineId}/${versionId}${
+        runType === 'scheduled' ? '/schedules' : `/runs${runType ? `/${runType}` : ''}`
       }`,
     );
     this.wait();

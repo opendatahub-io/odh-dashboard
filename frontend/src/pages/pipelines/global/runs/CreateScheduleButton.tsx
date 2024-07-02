@@ -2,12 +2,8 @@ import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import { scheduleRunRoute } from '~/routes';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { createRecurringRunRoute } from '~/routes';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 const CreateScheduleButton: React.FC = () => {
   const navigate = useNavigate();
@@ -15,8 +11,6 @@ const CreateScheduleButton: React.FC = () => {
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentArchived = useContextExperimentArchived();
   const tooltipRef = React.useRef(null);
-  const [pipeline] = usePipelineById(pipelineId);
-  const [pipelineVersion] = usePipelineVersionById(pipelineId, pipelineVersionId);
 
   return (
     <>
@@ -31,14 +25,12 @@ const CreateScheduleButton: React.FC = () => {
         variant="primary"
         onClick={() =>
           navigate(
-            {
-              pathname: scheduleRunRoute(
-                namespace,
-                isExperimentsAvailable ? experimentId : undefined,
-              ),
-              search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-            },
-            { state: { lastPipeline: pipeline, lastVersion: pipelineVersion } },
+            createRecurringRunRoute(
+              namespace,
+              isExperimentsAvailable ? experimentId : undefined,
+              pipelineId,
+              pipelineVersionId,
+            ),
           )
         }
         isAriaDisabled={isExperimentArchived}

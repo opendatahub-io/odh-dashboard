@@ -13,15 +13,13 @@ import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipeli
 import useNotification from '~/utilities/useNotification';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { cloneRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRunTableRowProps = {
@@ -31,6 +29,7 @@ type PipelineRunTableRowProps = {
   customCells?: React.ReactNode;
   hasExperiments?: boolean;
   hasRowActions?: boolean;
+  runType?: PipelineRunType;
 };
 
 const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
@@ -40,9 +39,9 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   customCells,
   onDelete,
   run,
+  runType,
 }) => {
-  const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
@@ -53,11 +52,18 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const isExperimentArchived = useContextExperimentArchived();
 
   const actions: IAction[] = React.useMemo(() => {
+    const isExperimentContext = experimentId && isExperimentsAvailable;
     const cloneAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
         navigate(
-          cloneRunRoute(namespace, run.run_id, isExperimentsAvailable ? experimentId : undefined),
+          cloneRunRoute(
+            namespace,
+            run.run_id,
+            isExperimentsAvailable ? experimentId : undefined,
+            pipelineId,
+            pipelineVersionId,
+          ),
         );
       },
     };
@@ -75,7 +81,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             },
           }),
         },
-        ...(version ? [cloneAction] : []),
+        ...(!version && isExperimentContext ? [] : [cloneAction]),
         {
           isSeparator: true,
         },
@@ -99,7 +105,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
         },
       },
-      ...(version ? [cloneAction] : []),
+      ...(!version && isExperimentContext ? [] : [cloneAction]),
       {
         isSeparator: true,
       },
@@ -122,6 +128,8 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     namespace,
     isExperimentsAvailable,
     experimentId,
+    pipelineId,
+    pipelineVersionId,
   ]);
 
   return (

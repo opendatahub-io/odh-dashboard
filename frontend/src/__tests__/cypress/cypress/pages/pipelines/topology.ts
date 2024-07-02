@@ -37,7 +37,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
 
 class PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/view`);
     this.wait();
   }
 
@@ -108,7 +108,7 @@ class DetailsItem extends Contextual<HTMLElement> {
 
 class PipelineDetails extends PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/view`);
     this.wait();
   }
 
@@ -180,8 +180,10 @@ class PipelineDetails extends PipelinesTopology {
 }
 
 class PipelineRecurringRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRecurringRun/view/${pipelineId}`);
+  visit(namespace: string, pipelineId: string, pipelineVersionId: string, recurringRunId?: string) {
+    cy.visitWithLogin(
+      `/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/schedules/${recurringRunId}`,
+    );
     this.wait();
   }
 
@@ -195,8 +197,8 @@ class PipelineRecurringRunDetails extends RunDetails {
 }
 
 class PipelineRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRun/view/${pipelineId}`);
+  visit(namespace: string, pipelineId: string, pipelineVersionId: string, runId?: string) {
+    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/runs/${runId}`);
     this.wait();
   }
 

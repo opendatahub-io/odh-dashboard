@@ -8,9 +8,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
-import { cloneScheduleRoute } from '~/routes';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { cloneRecurringRunRoute } from '~/routes';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type PipelineRecurringRunDetailsActionsProps = {
@@ -25,7 +23,7 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
-  const { experimentId } = useParams();
+  const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
@@ -46,14 +44,15 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
               <DropdownItem
                 key="clone-run"
                 onClick={() =>
-                  navigate({
-                    pathname: cloneScheduleRoute(
+                  navigate(
+                    cloneRecurringRunRoute(
                       namespace,
                       recurringRun.recurring_run_id,
                       isExperimentsAvailable ? experimentId : undefined,
+                      pipelineId,
+                      pipelineVersionId,
                     ),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                  })
+                  )
                 }
               >
                 Duplicate

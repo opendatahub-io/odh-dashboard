@@ -4,7 +4,7 @@ import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Truncate } from '@patternfly/react-core';
 import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
-import { experimentRunsRoute } from '~/routes';
+import { experimentArchivedRunsRoute, experimentRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentCreated, LastExperimentRuns, LastExperimentRunsStarted } from './renderUtils';
 
@@ -30,9 +30,11 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
       <CheckboxTd id={experiment.experiment_id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td dataLabel="Experiment">
         <Link
-          to={`${experimentRunsRoute(namespace, experiment.experiment_id)}${
-            isArchived ? '/?runType=archived' : ''
-          }`}
+          to={
+            isArchived
+              ? experimentArchivedRunsRoute(namespace, experiment.experiment_id)
+              : experimentRunsRoute(namespace, experiment.experiment_id)
+          }
           state={{ experiment }}
         >
           {/* TODO: Remove the custom className after upgrading to PFv6 */}

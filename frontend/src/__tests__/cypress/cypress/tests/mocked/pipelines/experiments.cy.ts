@@ -243,7 +243,7 @@ describe('Experiments', () => {
 
     it('navigates to the runs page when clicking an experiment name', () => {
       verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
-      cy.findByLabelText('Breadcrumb').findByText('Experiments');
+      cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
     });
 
     it('has "Experiment" value pre-filled when on the "Create run" page', () => {
@@ -311,7 +311,7 @@ describe('Runs page for archived experiment', () => {
 
   it('navigates to the runs page when clicking an experiment name', () => {
     verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
-    cy.findByLabelText('Breadcrumb').findByText('Experiments');
+    cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
   });
 
   it('has empty state on active runs tab', () => {

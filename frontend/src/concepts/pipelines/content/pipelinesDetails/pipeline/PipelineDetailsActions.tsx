@@ -11,12 +11,12 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import {
-  routePipelineDetailsNamespace,
-  routePipelineRunCreateNamespacePipelinesPage,
-  routePipelineVersionRunsNamespace,
+  pipelineVersionCreateRecurringRunRoute,
+  pipelineVersionCreateRunRoute,
+  pipelineVersionDetailsRoute,
+  pipelineVersionRecurringRunsRoute,
+  pipelineVersionRunsRoute,
 } from '~/routes';
 
 type PipelineDetailsActionsProps = {
@@ -55,21 +55,29 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           <DropdownItem
             key="create-run"
             onClick={() =>
-              navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
-                state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-              })
+              navigate(
+                pipelineVersionCreateRunRoute(
+                  namespace,
+                  pipeline?.pipeline_id,
+                  pipelineVersion?.pipeline_version_id,
+                ),
+                {
+                  state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
+                },
+              )
             }
           >
             Create run
           </DropdownItem>,
           <DropdownItem
-            key="schedule-run"
+            key="create-schedule"
             onClick={() =>
               navigate(
-                {
-                  pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                },
+                pipelineVersionCreateRecurringRunRoute(
+                  namespace,
+                  pipeline?.pipeline_id,
+                  pipelineVersion?.pipeline_version_id,
+                ),
                 {
                   state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
                 },
@@ -85,17 +93,11 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                   key="view-runs"
                   onClick={() =>
                     navigate(
-                      {
-                        pathname: routePipelineVersionRunsNamespace(
-                          namespace,
-                          pipeline.pipeline_id,
-                          pipelineVersion.pipeline_version_id,
-                        ),
-                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
-                      },
-                      {
-                        state: { lastVersion: pipelineVersion },
-                      },
+                      pipelineVersionRunsRoute(
+                        namespace,
+                        pipeline.pipeline_id,
+                        pipelineVersion.pipeline_version_id,
+                      ),
                     )
                   }
                 >
@@ -105,17 +107,11 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                   key="view-schedules"
                   onClick={() =>
                     navigate(
-                      {
-                        pathname: routePipelineVersionRunsNamespace(
-                          namespace,
-                          pipeline.pipeline_id,
-                          pipelineVersion.pipeline_version_id,
-                        ),
-                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                      },
-                      {
-                        state: { lastVersion: pipelineVersion },
-                      },
+                      pipelineVersionRecurringRunsRoute(
+                        namespace,
+                        pipeline.pipeline_id,
+                        pipelineVersion.pipeline_version_id,
+                      ),
                     )
                   }
                 >
@@ -138,7 +134,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             if (resource) {
               refreshAllAPI();
               navigate(
-                routePipelineDetailsNamespace(
+                pipelineVersionDetailsRoute(
                   namespace,
                   resource.pipeline_id,
                   resource.pipeline_version_id,

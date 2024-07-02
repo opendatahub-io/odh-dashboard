@@ -3,7 +3,7 @@ import { useCreatePipelineRunTable } from '~/concepts/pipelines/content/tables/u
 import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunOptions } from '~/concepts/pipelines/types';
 
-export const usePipelineScheduledRunsTable = (
+export const usePipelineRecurringRunsTable = (
   options?: PipelineRunOptions,
   limit?: number,
 ): ReturnType<typeof useCreatePipelineRunTable<PipelineRecurringRunKFv2>> =>

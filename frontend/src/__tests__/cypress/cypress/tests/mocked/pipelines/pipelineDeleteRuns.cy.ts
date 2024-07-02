@@ -22,8 +22,11 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
-import { buildMockPipelineVersionV2 } from '~/__mocks__';
-import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
+import {
+  buildMockPipelineV2,
+  buildMockPipelineVersionV2,
+  buildMockRecurringRunKF,
+} from '~/__mocks__';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -78,6 +81,19 @@ const initIntercepts = () => {
   );
   cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+    {
+      path: {
+        namespace: 'test-project',
+        serviceName: 'dspa',
+        pipelineId: 'pipeline_id',
+      },
+    },
+    buildMockPipelineV2({
+      pipeline_id: 'pipeline-id',
+    }),
+  );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
     {

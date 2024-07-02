@@ -183,7 +183,12 @@ export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKFv2>
     label: 'Schedule',
     field: 'name',
     sortable: true,
-    width: 20,
+  },
+  {
+    label: 'Experiment',
+    field: 'experiment',
+    sortable: false,
+    width: 15,
   },
   {
     label: 'Pipeline version',
