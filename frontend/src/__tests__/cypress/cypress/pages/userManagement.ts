@@ -8,7 +8,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   }
 
   clearMultiChipItem() {
-    this.find().findByRole('button', { name: 'Clear all' }).click();
+    this.find().findByRole('button', { name: 'Clear input value' }).click();
   }
 
   findMultiGroupInput() {
@@ -16,11 +16,11 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   }
 
   findMultiGroupOptions(name: string) {
-    return this.find().findByTestId('multi-group-selection').findByRole('option', { name });
+    return this.find().findByRole('option', { name });
   }
 
   private findChipGroup() {
-    return this.find().findByRole('list', { name: 'Chip group category' });
+    return this.find().findByRole('list', { name: 'Current selections' });
   }
 
   findChipItem(name: string | RegExp) {
@@ -29,7 +29,8 @@ class GroupSettingSection extends Contextual<HTMLElement> {
 
   removeChipItem(name: string) {
     this.findChipGroup()
-      .findByRole('button', { name: `Remove ${name}` })
+      .find('li')
+      .findByRole('button', { name: `close ${name}` })
       .click();
   }
 
