@@ -64,21 +64,24 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
       onToggle={(_, isOpen) => setIsSectionOpen(isOpen)}
       isExpanded={isSectionOpen}
       isIndented
+      data-testid="compare-runs-metrics-content"
     >
       <Tabs activeKey={activeTabKey} onSelect={(_e, key) => setActiveTabKey(key)}>
         <Tab
           eventKey={MetricSectionTabLabels.SCALAR}
           title={<TabTitleText>{MetricSectionTabLabels.SCALAR}</TabTitleText>}
+          data-testid="compare-runs-scalar-metrics-tab"
         >
-          <TabContentBody hasPadding>
+          <TabContentBody hasPadding data-testid="compare-runs-scalar-metrics-tab-content">
             <ScalarMetricTable runArtifacts={scalarMetricsArtifactData} isLoaded={isLoaded} />
           </TabContentBody>
         </Tab>
         <Tab
           eventKey={MetricSectionTabLabels.CONFUSION_MATRIX}
           title={<TabTitleText>{MetricSectionTabLabels.CONFUSION_MATRIX}</TabTitleText>}
+          data-testid="compare-runs-confusion-matrix-tab"
         >
-          <TabContentBody hasPadding>
+          <TabContentBody hasPadding data-testid="compare-runs-confusion-matrix-tab-content">
             <ConfusionMatrixCompare
               runArtifacts={confusionMatrixArtifactData}
               isLoaded={isLoaded}
@@ -88,8 +91,9 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
         <Tab
           eventKey={MetricSectionTabLabels.ROC_CURVE}
           title={<TabTitleText>{MetricSectionTabLabels.ROC_CURVE}</TabTitleText>}
+          data-testid="compare-runs-roc-curve-tab"
         >
-          <TabContentBody hasPadding>
+          <TabContentBody hasPadding data-testid="compare-runs-roc-curve-tab-content">
             <RocCurveCompare runArtifacts={rocCurveArtifactData} isLoaded={isLoaded} />
           </TabContentBody>
         </Tab>
@@ -97,8 +101,9 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
           <Tab
             eventKey={MetricSectionTabLabels.MARKDOWN}
             title={<TabTitleText>{MetricSectionTabLabels.MARKDOWN}</TabTitleText>}
+            data-testid="compare-runs-markdown-tab"
           >
-            <TabContentBody hasPadding>
+            <TabContentBody hasPadding data-testid="compare-runs-markdown-tab-content">
               <MarkdownCompare runArtifacts={markdownArtifactData} isLoaded={isLoaded} />
             </TabContentBody>
           </Tab>

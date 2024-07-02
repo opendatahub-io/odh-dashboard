@@ -209,43 +209,135 @@ describe('Compare runs', () => {
 
     it('shows empty state when the Runs list has no selections', () => {
       compareRunsListTable.findSelectAllCheckbox().click(); // Uncheck all
-      compareRunsMetricsContent.findScalarMetricsEmptyState().should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsEmptyState()
+        .should('exist');
     });
 
     it('displays scalar metrics table data based on selections from Run list', () => {
-      compareRunsMetricsContent.findScalarMetricsTable().should('exist');
-      compareRunsMetricsContent.findScalarMetricsColumnByName('Run name').should('exist');
-      compareRunsMetricsContent.findScalarMetricsColumnByName('Run 1').should('exist');
-      compareRunsMetricsContent.findScalarMetricsColumnByName('Run 2').should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsTable()
+        .should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsColumnByName('Run name')
+        .should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsColumnByName('Run 1')
+        .should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsColumnByName('Run 2')
+        .should('exist');
 
       compareRunsMetricsContent
+        .findScalarMetricsTabContent()
         .findScalarMetricsColumnByName('Execution name > Artifact name')
         .should('exist');
       compareRunsMetricsContent
+        .findScalarMetricsTabContent()
         .findScalarMetricsColumnByName('digit-classification > metrics')
         .should('exist');
 
-      compareRunsMetricsContent.findScalarMetricName('accuracy').should('exist');
-      compareRunsMetricsContent.findScalarMetricCell('accuracy', 1).should('contain.text', '92');
-      compareRunsMetricsContent.findScalarMetricCell('accuracy', 2).should('contain.text', '92');
-
-      compareRunsMetricsContent.findScalarMetricName('displayName').should('exist');
       compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricName('accuracy')
+        .should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricCell('accuracy', 1)
+        .should('contain.text', '92');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricCell('accuracy', 2)
+        .should('contain.text', '92');
+
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricName('displayName')
+        .should('exist');
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
         .findScalarMetricCell('displayName', 1)
         .should('contain.text', '"metrics"');
       compareRunsMetricsContent
+        .findScalarMetricsTabContent()
         .findScalarMetricCell('displayName', 2)
         .should('contain.text', '"metrics"');
     });
 
-    // TODO tests for Confusion matrix tab
-    // TODO tests for ROC curve tab
-    // TODO tests for Markdown tab
+    it('displays confusion matrix data based on selections from Run list', () => {
+      compareRunsMetricsContent.findConfusionMatrixTab().click();
+
+      const confusionMatrixCompare = compareRunsMetricsContent
+        .findConfusionMatrixTabContent()
+        .findConfusionMatrixSelect(mockRun.run_id);
+
+      // check graph data
+      const graph = confusionMatrixCompare.findConfusionMatrixGraph();
+      graph.checkLabels(['Setosa', 'Versicolour', 'Virginica']);
+      graph.checkCells([
+        [38, 0, 0],
+        [2, 19, 9],
+        [1, 17, 19],
+      ]);
+
+      // check expanded graph
+      confusionMatrixCompare.findExpandButton().click();
+      compareRunsMetricsContent
+        .findConfusionMatrixTabContent()
+        .findExpandedConfusionMatrix()
+        .find()
+        .should('exist');
+    });
+
+    it('displays ROC curve filter table with correct artifacts', () => {
+      compareRunsMetricsContent.findRocCurveTab().click();
+      const content = compareRunsMetricsContent.findRocCurveTabContent();
+
+      const row = content.getRocCurveRowByName('wine-classification > metrics');
+      row.findRunName().should('contain.text', 'Run 1');
+      content.findRocCurveGraph().should('contain.text', 'Series #1');
+
+      row.findRowCheckbox().uncheck();
+      content.findRocCurveGraph().should('not.contain.text', 'Series #1');
+    });
+
+    it('displays ROC curve empty state when no artifacts are found', () => {
+      compareRunsMetricsContent.findRocCurveTab().click();
+      const content = compareRunsMetricsContent.findRocCurveTabContent();
+      content.findRocCruveSearchBar().type('invalid');
+      content.findRocCurveEmptyState().should('exist');
+    });
+
+    it('displays markdown fetched from S3 based on selected runs', () => {
+      cy.wait('@s3Loaded', {
+        timeout: 15000,
+      });
+
+      compareRunsMetricsContent.findMarkdownTab().click();
+      const markdownCompare = compareRunsMetricsContent
+        .findMarkdownTabContent()
+        .findMarkdownSelect(mockRun.run_id);
+
+      // check markdown content
+      markdownCompare.findArtifactContent().should('contain.text', 'This is a markdown file');
+
+      // check expanded graph
+      markdownCompare.findExpandButton().click();
+      compareRunsMetricsContent.findMarkdownTabContent().findExpandedMarkdown().should('exist');
+    });
   });
 });
 
 const initIntercepts = () => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disablePipelineExperiments: false, disableS3Endpoint: false }),
+  );
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
     mockK8sResourceList([
@@ -305,4 +397,32 @@ const initIntercepts = () => {
   );
 
   initMlmdIntercepts(projectName);
+
+  cy.interceptOdh(
+    'GET /api/storage/:namespace',
+    {
+      path: {
+        namespace: projectName,
+      },
+      query: {
+        key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
+      },
+    },
+    { body: 'This is a markdown file' },
+  ).as('s3Loaded');
+
+  cy.interceptOdh(
+    'GET /api/storage/:namespace/size',
+    {
+      path: {
+        namespace: projectName,
+      },
+      query: {
+        key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
+      },
+    },
+    {
+      body: 100,
+    },
+  );
 };

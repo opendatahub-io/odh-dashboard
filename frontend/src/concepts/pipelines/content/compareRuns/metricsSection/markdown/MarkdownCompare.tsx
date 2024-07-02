@@ -113,7 +113,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
   }
   if (Object.keys(configMap).length === 0) {
     return (
-      <EmptyState variant={EmptyStateVariant.xs}>
+      <EmptyState variant={EmptyStateVariant.xs} data-testid="compare-runs-markdown-empty-state">
         <EmptyStateHeader titleText="No markdown artifacts" headingLevel="h4" />
         <EmptyStateBody>
           There are no markdown artifacts available on the selected runs.
@@ -125,7 +125,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
   const renderMarkdownWithSize = (config: MarkdownAndTitle) => (
     <Stack hasGutter>
       {config.fileSize && config.fileSize > MAX_STORAGE_OBJECT_SIZE && (
-        <StackItem>
+        <StackItem data-testid="markdown-oversized-warning">
           <Alert isInline variant="warning" title="Oversized file">
             {`This file is ${bytesAsRoundedGiB(
               config.fileSize,
@@ -142,7 +142,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
   return (
     <div style={{ overflowX: 'auto' }}>
       {expandedGraph ? (
-        <Bullseye>
+        <Bullseye data-testid="compare-runs-markdown-expanded-graph">
           <PipelineRunArtifactSelect
             data={[expandedGraph]}
             setExpandedGraph={(config) => setExpandedGraph(config)}
@@ -154,7 +154,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({ runArtifacts, isLoade
         <Flex flexWrap={{ default: 'nowrap' }}>
           {Object.entries(configMap).map(([runId, configs]) => (
             <React.Fragment key={runId}>
-              <FlexItem>
+              <FlexItem data-testid={`compare-runs-markdown-${runId}`}>
                 <PipelineRunArtifactSelect
                   run={runMap[runId]}
                   data={configs}

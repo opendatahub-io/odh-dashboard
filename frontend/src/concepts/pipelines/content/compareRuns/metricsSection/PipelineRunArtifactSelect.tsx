@@ -44,6 +44,7 @@ export const PipelineRunArtifactSelect = <T,>({
       {!expandedGraph && run && (
         <StackItem>
           <Select
+            data-testid="pipeline-run-artifact-select"
             role="menu"
             id="checkbox-select"
             isOpen={isOpen}
@@ -84,18 +85,19 @@ export const PipelineRunArtifactSelect = <T,>({
           <Skeleton shape="square" width="500px" />
         </StackItem>
       )}
-      {selectedConfigs.map((displayConfig) => (
+      {selectedConfigs.map((displayConfig, index) => (
         <React.Fragment key={displayConfig.title}>
           <StackItem>
             <Split>
               <SplitItem>
-                <Text>
+                <Text data-testid="pipeline-run-artifact-title">
                   <b>{displayConfig.title}</b>
                 </Text>
               </SplitItem>
               <SplitItem isFilled />
               <SplitItem>
                 <Button
+                  data-testid="pipeline-run-artifact-expand-button"
                   variant="link"
                   icon={expandedGraph ? <ExpandIcon /> : <CompressIcon />}
                   onClick={() => {
@@ -112,7 +114,9 @@ export const PipelineRunArtifactSelect = <T,>({
               </SplitItem>
             </Split>
           </StackItem>
-          <StackItem>{renderArtifact(displayConfig)}</StackItem>
+          <StackItem data-testid={`pipeline-run-artifact-content-${index}`}>
+            {renderArtifact(displayConfig)}
+          </StackItem>
         </React.Fragment>
       ))}
     </Stack>
