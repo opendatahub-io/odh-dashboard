@@ -34,6 +34,7 @@ export const assembleInferenceService = (
     maxReplicas,
     minReplicas,
     tokenAuth,
+    externalRoute,
   } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
   const { path, dataConnection } = storage;
@@ -54,6 +55,11 @@ export const assembleInferenceService = (
                   'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
                   ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
                 }),
+          },
+          labels: {
+            ...inferenceService.metadata.labels,
+            ...(!isModelMesh &&
+              !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
           },
         },
         spec: {
@@ -82,6 +88,8 @@ export const assembleInferenceService = (
           namespace: project,
           labels: {
             [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+            ...(!isModelMesh &&
+              !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
           },
           annotations: {
             'openshift.io/display-name': data.name.trim(),
@@ -116,6 +124,10 @@ export const assembleInferenceService = (
 
   if (!tokenAuth && updateInferenceService.metadata.annotations) {
     delete updateInferenceService.metadata.annotations['serving.knative.openshift.io/token-auth'];
+  }
+
+  if (externalRoute && updateInferenceService.metadata.labels) {
+    delete updateInferenceService.metadata.labels['networking.knative.dev/visibility'];
   }
 
   // Resource and Accelerator support for KServe

@@ -423,6 +423,10 @@ export type InferenceServiceAnnotations = Partial<{
   'security.opendatahub.io/enable-auth': string;
 }>;
 
+export type InferenceServiceLabels = Partial<{
+  'networking.knative.dev/visibility': string;
+}>;
+
 export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -494,6 +498,12 @@ export type InferenceServiceKind = K8sResourceCommon & {
       transitionStatus: string;
     };
     url: string;
+    address?: {
+      CACerts?: string;
+      audience?: string;
+      name?: string;
+      url?: string;
+    };
   };
 };
 

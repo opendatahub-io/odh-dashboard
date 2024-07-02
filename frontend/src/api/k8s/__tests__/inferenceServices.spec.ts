@@ -107,6 +107,37 @@ describe('assembleInferenceService', () => {
     );
   });
 
+  it('should have the right labels when creating for Kserve with public route', async () => {
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: false }),
+    );
+
+    expect(inferenceService.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+      'cluster-local',
+    );
+
+    const missingExternalRoute = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: true }),
+    );
+
+    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+      undefined,
+    );
+  });
+
+  it('should have the right labels when creating for Modelmesh with public route', async () => {
+    const missingExternalRoute = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: true }),
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+      undefined,
+    );
+  });
+
   it('should handle name and display name', async () => {
     const displayName = 'Llama model';
 

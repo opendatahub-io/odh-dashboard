@@ -8,7 +8,10 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { isServingRuntimeRouteEnabled } from '~/pages/modelServing/screens/projects/utils';
+import {
+  isServingRuntimeRouteEnabled,
+  isInferenceServiceRouteEnabled,
+} from '~/pages/modelServing/screens/projects/utils';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 
@@ -23,8 +26,9 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   servingRuntime,
   isKserve,
 }) => {
-  const isRouteEnabled =
-    servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime);
+  const isRouteEnabled = !isKserve
+    ? servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime)
+    : isInferenceServiceRouteEnabled(inferenceService);
 
   const [routeLink, loaded, loadError] = useRouteForInferenceService(
     inferenceService,
@@ -32,13 +36,15 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     isKserve,
   );
 
-  if (!isKserve && !isRouteEnabled) {
+  if (!isRouteEnabled) {
     return (
       <Popover
         data-testid="internal-service-popover"
         headerContent="Internal Service can be accessed inside the cluster"
         aria-label="Internal Service Info"
-        bodyContent={<InternalServicePopoverContent inferenceService={inferenceService} />}
+        bodyContent={
+          <InternalServicePopoverContent inferenceService={inferenceService} isKserve={isKserve} />
+        }
       >
         <Button data-testid="internal-service-button" isInline variant="link">
           Internal Service

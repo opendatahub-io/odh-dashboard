@@ -9,15 +9,32 @@ import { InferenceServiceKind } from '~/k8sTypes';
 
 type InternalServicePopoverContentProps = {
   inferenceService: InferenceServiceKind;
+  isKserve?: boolean;
 };
 
 const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps> = ({
   inferenceService,
+  isKserve,
 }) => {
-  const isInternalServiceEnabled = inferenceService.status?.components?.predictor;
+  const isInternalServiceEnabled = !isKserve
+    ? inferenceService.status?.components?.predictor
+    : inferenceService.status?.address?.url;
 
   if (!isInternalServiceEnabled) {
     return <>Could not find any internal service enabled</>;
+  }
+
+  if (isKserve) {
+    return (
+      <DescriptionList isCompact>
+        <DescriptionListGroup>
+          <DescriptionListTerm>route</DescriptionListTerm>
+          <DescriptionListDescription>
+            {inferenceService.status?.address?.url}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
+    );
   }
 
   return (
