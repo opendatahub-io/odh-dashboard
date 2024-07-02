@@ -8,3 +8,4 @@ resources:
   - ./pachyderm
   - ./watson-x
   - ./rhoai
+  - ./nvidia-nim
