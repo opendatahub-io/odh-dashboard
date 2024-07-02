@@ -52,6 +52,7 @@
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
     "@openshift/dynamic-plugin-sdk": "^4.0.0",
     "@openshift/dynamic-plugin-sdk-utils": "^4.0.1",
     "@patternfly/patternfly": "^5.3.1",
@@ -77,12 +78,11 @@
     "grpc-web": "^1.2.1",
     "lodash-es": "^4.17.15",
     "long": "^5.2.3",
-    "monaco-editor": "^0.31.1",
-    "monaco-editor-webpack-plugin": "^7.0.1",
+    "monaco-editor": "^0.50.0",
+    "monaco-editor-webpack-plugin": "^7.1.0",
     "react": "^18.2.0",
     "react-cool-dimensions": "^2.0.5",
     "react-dom": "^18.2.0",
-    "react-monaco-editor": "^0.51.0",
     "react-redux": "^8.0.4",
     "react-router": "^6.4.1",
     "react-router-dom": "^6.4.1",
@@ -198,9 +198,6 @@
     },
     "@patternfly/react-topology": {
       "react": "^18.2.0"
-    },
-    "react-monaco-editor": {
-      "monaco-editor": "^0.31.1"
     }
   }
 }
