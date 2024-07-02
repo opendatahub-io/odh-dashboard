@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Icon,
-  Popover,
-  Split,
-  SplitItem,
-  Truncate,
-} from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Icon, Popover, Truncate } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
@@ -78,18 +69,15 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ uri, type }) =
         <Button
           variant="link"
           isInline
+          icon={<ExternalLinkAltIcon />}
+          iconPosition="end"
+          // TODO: remove this style override after upgrading to PFv6
+          style={{ display: 'inline-flex' }}
           onClick={() => {
             window.open(url);
           }}
         >
-          <Split>
-            <SplitItem>
-              <Truncate content={uri} />
-            </SplitItem>
-            <SplitItem>
-              <ExternalLinkAltIcon />
-            </SplitItem>
-          </Split>
+          <Truncate content={uri} position="middle" trailingNumChars={30} />
         </Button>
       </FlexItem>
     </Flex>
