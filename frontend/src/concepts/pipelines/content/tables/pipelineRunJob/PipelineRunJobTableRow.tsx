@@ -86,22 +86,26 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
-            {
-              title: 'Duplicate',
-              onClick: () => {
-                navigate({
-                  pathname: cloneScheduleRoute(
-                    namespace,
-                    job.recurring_run_id,
-                    isExperimentsAvailable ? experimentId : undefined,
-                  ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                });
-              },
-            },
-            {
-              isSeparator: true,
-            },
+            ...(version
+              ? [
+                  {
+                    title: 'Duplicate',
+                    onClick: () => {
+                      navigate({
+                        pathname: cloneScheduleRoute(
+                          namespace,
+                          job.recurring_run_id,
+                          isExperimentsAvailable ? experimentId : undefined,
+                        ),
+                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
+                      });
+                    },
+                  },
+                  {
+                    isSeparator: true,
+                  },
+                ]
+              : []),
             {
               title: 'Delete',
               onClick: () => {

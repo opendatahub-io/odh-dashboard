@@ -75,7 +75,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             },
           }),
         },
-        cloneAction,
+        ...(version ? [cloneAction] : []),
         {
           isSeparator: true,
         },
@@ -99,7 +99,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
         },
       },
-      cloneAction,
+      ...(version ? [cloneAction] : []),
       {
         isSeparator: true,
       },
@@ -112,15 +112,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     runType,
     run.state,
     run.run_id,
-    navigate,
-    isExperimentsAvailable,
-    experimentId,
-    namespace,
+    version,
+    isExperimentArchived,
     onDelete,
     api,
     refreshAllAPI,
     notification,
-    isExperimentArchived,
+    navigate,
+    namespace,
+    isExperimentsAvailable,
+    experimentId,
   ]);
 
   return (

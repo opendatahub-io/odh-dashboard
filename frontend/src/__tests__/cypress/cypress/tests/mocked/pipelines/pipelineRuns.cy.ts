@@ -24,6 +24,8 @@ import {
   bulkRestoreRunModal,
   archiveRunModal,
   bulkArchiveRunModal,
+  cloneRunPage,
+  cloneSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
@@ -280,14 +282,15 @@ describe('Pipeline runs', () => {
     describe('with data', () => {
       beforeEach(() => {
         activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
       });
 
       it('renders the page with table data', () => {
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
         activeRunsTable.getRowByName('Test active run 1').find().should('exist');
       });
 
       it('archive a single run', () => {
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
         const [runToArchive] = mockActiveRuns;
 
         activeRunsTable.mockArchiveRun(runToArchive.run_id, projectName);
@@ -303,6 +306,7 @@ describe('Pipeline runs', () => {
       });
 
       it('archive multiple runs', () => {
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
         mockActiveRuns.forEach((activeRun) => {
           activeRunsTable.mockArchiveRun(activeRun.run_id, projectName);
           activeRunsTable.getRowByName(activeRun.display_name).findCheckbox().click();
@@ -322,19 +326,28 @@ describe('Pipeline runs', () => {
 
       describe('Navigation', () => {
         it('navigate to create run page', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
           pipelineRunsGlobal.findCreateRunButton().click();
           verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
         });
+
         it('navigate to clone run page', () => {
+          cloneRunPage.mockGetExperiments(projectName, mockExperiments);
+          cloneRunPage.mockGetExperiment(projectName, mockExperiments[0]);
+          cy.visitWithLogin(`/experiments/${projectName}/test-experiment-1/runs`);
+
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
             .findKebabAction('Duplicate')
             .click();
+
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipelineRun/clone/${mockActiveRuns[0].run_id}`,
+            `/experiments/${projectName}/test-experiment-1/runs/clone/${mockActiveRuns[0].run_id}`,
           );
         });
+
         it('navigate between tabs', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
           pipelineRunsGlobal.findArchivedRunsTab().click();
           verifyRelativeURL(
             `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${pipelineVersionId}?runType=archived`,
@@ -348,7 +361,9 @@ describe('Pipeline runs', () => {
             `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${pipelineVersionId}?runType=scheduled`,
           );
         });
+
         it('navigate to run details page', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
             .findColumnName(mockActiveRuns[0].display_name)
@@ -362,6 +377,8 @@ describe('Pipeline runs', () => {
 
       describe('Table filter', () => {
         it('filter by name', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
@@ -386,6 +403,8 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by experiment', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+
           // Mock initial list of experiments
           pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
 
@@ -417,6 +436,8 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by started', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
@@ -460,6 +481,8 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by status', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
@@ -521,6 +544,8 @@ describe('Pipeline runs', () => {
         });
 
         it('Sort by Name', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+
           pipelineRunFilterBar.findSortButtonForActive('Run').click();
           pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortAscending);
           pipelineRunFilterBar.findSortButtonForActive('Run').click();
@@ -919,10 +944,10 @@ describe('Pipeline runs', () => {
     describe('with data', () => {
       beforeEach(() => {
         pipelineRunJobTable.mockGetJobs(mockJobs, projectName);
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
       });
 
       it('renders the page with table rows', () => {
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
         pipelineRunJobTable.find().should('exist');
         pipelineRunJobTable.getRowByName('test-pipeline').find().should('exist');
         pipelineRunJobTable.getRowByName('other-pipeline').find().should('exist');
@@ -930,6 +955,7 @@ describe('Pipeline runs', () => {
       });
 
       it('can disable a job', () => {
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
         pipelineRunJobTable.mockDisableJob(mockJobs[0], projectName).as('disableJob');
         pipelineRunJobTable
           .getRowByName(mockJobs[0].display_name)
@@ -940,19 +966,30 @@ describe('Pipeline runs', () => {
 
       describe('Navigation', () => {
         it('navigate to create scheduled run page', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
           pipelineRunsGlobal.findScheduleRunButton().click();
           verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
         });
+
         it('navigate to clone scheduled run page', () => {
+          cloneSchedulePage.mockGetExperiments(projectName, mockExperiments);
+          cloneSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
+          cy.visitWithLogin(`/experiments/${projectName}/test-experiment-1/runs`);
+
+          pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRunJobTable
             .getRowByName(mockJobs[0].display_name)
             .findKebabAction('Duplicate')
             .click();
+
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipelineRun/cloneJob/${mockJobs[0].recurring_run_id}?runType=scheduled`,
+            `/experiments/${projectName}/test-experiment-1/schedules/clone/${mockJobs[0].recurring_run_id}?runType=scheduled`,
           );
         });
+
         it('navigate to scheduled run details page', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRunJobTable
             .getRowByName(mockJobs[0].display_name)
             .findColumnName(mockJobs[0].display_name)
@@ -965,6 +1002,9 @@ describe('Pipeline runs', () => {
 
       describe('Table filter', () => {
         it('filter by name', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.findSchedulesTab().click();
+
           // Verify initial job rows exist
           pipelineRunJobTable.findRows().should('have.length', 3);
 
@@ -984,6 +1024,9 @@ describe('Pipeline runs', () => {
         });
 
         it('Sort by Name', () => {
+          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.findSchedulesTab().click();
+
           pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();
           pipelineRunFilterBar.findSortButtonforSchedules('Schedule').should(be.sortAscending);
           pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();
