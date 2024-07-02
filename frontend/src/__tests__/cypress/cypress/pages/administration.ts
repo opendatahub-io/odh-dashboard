@@ -1,3 +1,4 @@
+import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
 class NotebookController {
@@ -95,5 +96,16 @@ class AdministrationUsersRow extends TableRow {
   }
 }
 
+class StopNotebookModal extends Modal {
+  constructor() {
+    super('Stop server modal Stop server');
+  }
+
+  findStopNotebookServerButton() {
+    return this.find().findByTestId('stop-nb-server-button');
+  }
+}
+
 export const administration = new AdministrationTab();
 export const notebookController = new NotebookController();
+export const stopNotebookModal = new StopNotebookModal();
