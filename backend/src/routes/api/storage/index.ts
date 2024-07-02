@@ -1,9 +1,9 @@
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { FastifyReply } from 'fastify';
 import { getObjectSize, getObjectStream, setupMinioClient } from './storageUtils';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
-import { OauthFastifyRequest } from '../../../types';
+import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:namespace/size',
     async (

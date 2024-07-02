@@ -1,8 +1,9 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { getConfigMap, getSecret } from '../../../utils/envUtils';
 import { secureRoute } from '../../../utils/route-security';
+import { KubeFastifyInstance } from '../../../types';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/secret/:namespace/:name',
     secureRoute(fastify)(

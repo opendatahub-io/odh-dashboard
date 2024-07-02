@@ -3,7 +3,7 @@ import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
-  BUILD_PHASE,
+  BuildPhase,
   BuildKind,
   BuildStatus,
   ConsoleLinkKind,
@@ -425,7 +425,7 @@ const getBuildNumber = (build: BuildKind): number => {
   return !!buildNumber && parseInt(buildNumber, 10);
 };
 
-const PENDING_PHASES = [BUILD_PHASE.new, BUILD_PHASE.pending, BUILD_PHASE.cancelled];
+const PENDING_PHASES = [BuildPhase.new, BuildPhase.pending, BuildPhase.cancelled];
 
 const compareBuilds = (b1: BuildKind, b2: BuildKind) => {
   const b1Pending = PENDING_PHASES.includes(b1.status.phase);
@@ -466,7 +466,7 @@ const getBuildConfigStatus = (
       if (bcBuilds.length === 0) {
         return {
           name: notebookName,
-          status: BUILD_PHASE.none,
+          status: BuildPhase.none,
         };
       }
       const mostRecent = bcBuilds.sort(compareBuilds).pop();
@@ -480,7 +480,7 @@ const getBuildConfigStatus = (
       fastify.log.error(e.response?.body?.message || e.message, 'failed to get build configs');
       return {
         name: notebookName,
-        status: BUILD_PHASE.pending,
+        status: BuildPhase.pending,
       };
     });
 };

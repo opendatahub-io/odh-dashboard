@@ -148,6 +148,18 @@ export type K8sResourceCommon = {
   };
 } & K8sResourceBase;
 
+export type K8sResourceCommonWithMetadataAndNamespace = {
+  metadata: {
+    name?: string;
+    namespace: string;
+    generateName?: string;
+    uid?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+    creationTimestamp?: Date;
+  };
+} & K8sResourceBase;
+
 export type K8sResourceListResult<TResource extends K8sResourceCommon> = {
   apiVersion: string;
   items: TResource[];
@@ -179,7 +191,7 @@ export type SecretKind = K8sResourceCommon & {
   type?: string;
 };
 
-export enum BUILD_PHASE {
+export enum BuildPhase {
   none = 'Not started',
   new = 'New',
   running = 'Running',
@@ -198,7 +210,7 @@ export type BuildKind = {
     };
   };
   status: {
-    phase: BUILD_PHASE;
+    phase: BuildPhase;
     completionTimestamp: string;
     startTimestamp: string;
   };
@@ -285,7 +297,7 @@ export type KubeDecorator = KubeStatus & {
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
-  kube?: KubeDecorator;
+  kube: KubeDecorator;
 };
 
 // TODO: constant-ize the x-forwarded header
@@ -382,7 +394,7 @@ export type OdhDocument = {
 
 export type BuildStatus = {
   name: string;
-  status: BUILD_PHASE;
+  status: BuildPhase;
   timestamp?: string;
 };
 
@@ -427,7 +439,7 @@ export type Volume = {
 
 export type Notebook = K8sResourceCommon & {
   metadata: {
-    annotations: Partial<{
+    annotations?: Partial<{
       'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/username': string; // the untranslated username behind the notebook

@@ -10,7 +10,7 @@ import { callPrometheusThanos } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
-const handleError = (e: createError.HttpError) => {
+const handleError = (e?: createError.HttpError) => {
   if (e?.code) {
     throw createCustomError(
       'Error with prometheus call',
