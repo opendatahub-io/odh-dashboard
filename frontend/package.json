@@ -201,6 +201,7 @@
     },
     "react-monaco-editor": {
       "monaco-editor": "^0.31.1"
-    }
+    },
+    "ws": "^8.17.1"
   }
 }
