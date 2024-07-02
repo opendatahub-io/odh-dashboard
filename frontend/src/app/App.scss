@@ -41,6 +41,12 @@ body,
       inset-inline-start: 12px;
     }
   }
+  .pf-topology-container {
+    overflow-y: hidden;
+    .pf-v5-c-drawer__panel.pf-m-resizable {
+      min-width: 350px;
+    }
+  }
 }
 
 // specificity targeting form elements to override --pf-v5-global--FontSize--md

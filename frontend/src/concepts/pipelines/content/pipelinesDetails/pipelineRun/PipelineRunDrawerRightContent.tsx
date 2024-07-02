@@ -33,10 +33,8 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
 
   return (
     <DrawerPanelContent
-      isResizable
-      widths={{ default: 'width_33', lg: 'width_50' }}
-      minSize="500px"
       data-testid="pipeline-run-drawer-right-content"
+      style={{ height: '100%', overflowY: 'auto' }}
     >
       {task.type === 'artifact' ? (
         <ArtifactNodeDrawerContent
