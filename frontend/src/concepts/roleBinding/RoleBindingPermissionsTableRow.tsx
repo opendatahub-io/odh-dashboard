@@ -11,26 +11,28 @@ import {
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
 import { RoleBindingKind } from '~/k8sTypes';
 import { relativeTime } from '~/utilities/time';
-import { castProjectSharingRoleType, firstSubject, roleLabel } from './utils';
-import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
-import ProjectSharingNameInput from './ProjectSharingNameInput';
-import ProjectSharingPermissionSelection from './ProjectSharingPermissionSelection';
+import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
+import { castRoleBindingPermissionsRoleType, firstSubject, roleLabel } from './utils';
+import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
+import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
+import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
 
-type ProjectSharingTableRowProps = {
+type RoleBindingPermissionsTableRowProps = {
   obj: RoleBindingKind;
-  type: ProjectSharingRBType;
+  type: RoleBindingPermissionsRBType;
   isEditing: boolean;
   typeAhead?: string[];
-  onChange: (name: string, roleType: ProjectSharingRoleType) => void;
+  onChange: (name: string, roleType: RoleBindingPermissionsRoleType) => void;
   onCancel: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
 const defaultValueName = (obj: RoleBindingKind) => firstSubject(obj);
-const defaultValueRole = (obj: RoleBindingKind) => castProjectSharingRoleType(obj.roleRef.name);
+const defaultValueRole = (obj: RoleBindingKind) =>
+  castRoleBindingPermissionsRoleType(obj.roleRef.name);
 
-const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
+const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowProps> = ({
   obj,
   type,
   isEditing,
@@ -41,18 +43,20 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   onDelete,
 }) => {
   const [roleBindingName, setRoleBindingName] = React.useState(defaultValueName(obj));
-  const [roleBindingRoleRef, setRoleBindingRoleRef] = React.useState<ProjectSharingRoleType>(
-    defaultValueRole(obj),
-  );
+  const [roleBindingRoleRef, setRoleBindingRoleRef] =
+    React.useState<RoleBindingPermissionsRoleType>(defaultValueRole(obj));
   const [isLoading, setIsLoading] = React.useState(false);
   const createdDate = new Date(obj.metadata.creationTimestamp || '');
+  const isModelRegistry = obj.metadata.namespace === MODEL_REGISTRY_DEFAULT_NAMESPACE;
+  const disableActions =
+    isModelRegistry && obj.metadata.name === `${obj.metadata.labels?.app}-users`;
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Username">
           {isEditing ? (
-            <ProjectSharingNameInput
+            <RoleBindingPermissionsNameInput
               type={type}
               value={roleBindingName}
               onChange={(selection) => {
@@ -67,8 +71,8 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Permission">
-          {isEditing ? (
-            <ProjectSharingPermissionSelection
+          {isEditing && !isModelRegistry ? (
+            <RoleBindingPermissionsPermissionSelection
               selection={roleBindingRoleRef}
               onSelect={(selection) => {
                 setRoleBindingRoleRef(selection);
@@ -123,6 +127,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
             </Split>
           ) : (
             <ActionsColumn
+              isDisabled={disableActions}
               items={[
                 {
                   title: 'Edit',
@@ -145,4 +150,4 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   );
 };
 
-export default ProjectSharingTableRow;
+export default RoleBindingPermissionsTableRow;

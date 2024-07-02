@@ -9,12 +9,12 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
-import {
-  ProjectSharingRBType,
-  ProjectSharingRoleType,
-} from '~/pages/projects/projectSharing/types';
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import {
+  RoleBindingPermissionsRBType,
+  RoleBindingPermissionsRoleType,
+} from '~/concepts/roleBinding/types';
 
 export const generateRoleBindingServingRuntime = (
   name: string,
@@ -46,11 +46,15 @@ export const generateRoleBindingServingRuntime = (
   return roleBindingObject;
 };
 
-export const generateRoleBindingProjectSharing = (
+export const generateRoleBindingPermissions = (
   namespace: string,
-  rbSubjectType: ProjectSharingRBType,
+  rbSubjectType: RoleBindingPermissionsRBType,
   rbSubjectName: string,
-  rbRoleRefType: ProjectSharingRoleType,
+  rbRoleRefType: RoleBindingPermissionsRoleType | string, //string because with MR this can include MR name
+  rbLabels: { [key: string]: string } = {
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    [KnownLabels.PROJECT_SHARING]: 'true',
+  },
 ): RoleBindingKind => {
   const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
@@ -58,10 +62,7 @@ export const generateRoleBindingProjectSharing = (
     metadata: {
       name: `dashboard-permissions-${genRandomChars()}`,
       namespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-        [KnownLabels.PROJECT_SHARING]: 'true',
-      },
+      labels: rbLabels,
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',

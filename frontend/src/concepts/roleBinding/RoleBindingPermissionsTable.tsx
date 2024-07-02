@@ -1,17 +1,23 @@
 import * as React from 'react';
 import { Table } from '~/components/table';
 import { RoleBindingKind } from '~/k8sTypes';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { deleteRoleBinding, generateRoleBindingProjectSharing, createRoleBinding } from '~/api';
-import ProjectSharingTableRow from './ProjectSharingTableRow';
-import { columnsProjectSharing } from './data';
-import { ProjectSharingRBType } from './types';
+import { deleteRoleBinding, generateRoleBindingPermissions, createRoleBinding } from '~/api';
+import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
+import { columnsRoleBindingPermissions } from './data';
+import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 import { firstSubject } from './utils';
-import ProjectSharingTableRowAdd from './ProjectSharingTableRowAdd';
+import RoleBindingPermissionsTableRowAdd from './RoleBindingPermissionsTableRowAdd';
 
-type ProjectSharingTableProps = {
-  type: ProjectSharingRBType;
+type RoleBindingPermissionsTableProps = {
+  type: RoleBindingPermissionsRBType;
+  projectName: string;
+  roleRef?: string;
+  labels?: { [key: string]: string };
   permissions: RoleBindingKind[];
+  permissionOptions?: {
+    type: RoleBindingPermissionsRoleType;
+    description: string;
+  }[];
   isAdding: boolean;
   typeAhead?: string[];
   onDismissNewRow: () => void;
@@ -19,38 +25,41 @@ type ProjectSharingTableProps = {
   refresh: () => void;
 };
 
-const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
+const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = ({
   type,
+  projectName,
+  roleRef,
+  labels,
   permissions,
+  permissionOptions,
   typeAhead,
   isAdding,
   onDismissNewRow,
   onError,
   refresh,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-
   const [editCell, setEditCell] = React.useState<string[]>([]);
-
   return (
     <Table
       variant="compact"
       data={permissions}
-      data-testid={`project-sharing-table ${type}`}
-      columns={columnsProjectSharing}
+      data-testid={`role-binding-table ${type}`}
+      columns={columnsRoleBindingPermissions}
       disableRowRenderSupport
       footerRow={() =>
         isAdding ? (
-          <ProjectSharingTableRowAdd
+          <RoleBindingPermissionsTableRowAdd
             key="add-permission-row"
             type={type}
+            permissionOptions={permissionOptions}
             typeAhead={typeAhead}
             onChange={(name, roleType) => {
-              const newRBObject = generateRoleBindingProjectSharing(
-                currentProject.metadata.name,
+              const newRBObject = generateRoleBindingPermissions(
+                projectName,
                 type,
                 name,
-                roleType,
+                roleRef || roleType,
+                labels,
               );
               createRoleBinding(newRBObject)
                 .then(() => {
@@ -66,18 +75,19 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
         ) : null
       }
       rowRenderer={(rb) => (
-        <ProjectSharingTableRow
+        <RoleBindingPermissionsTableRow
           key={rb.metadata.name || ''}
           obj={rb}
           type={type}
           isEditing={firstSubject(rb) === '' || editCell.includes(rb.metadata.name)}
           typeAhead={typeAhead}
           onChange={(name, roleType) => {
-            const newRBObject = generateRoleBindingProjectSharing(
-              currentProject.metadata.name,
+            const newRBObject = generateRoleBindingPermissions(
+              projectName,
               type,
               name,
-              roleType,
+              roleRef || roleType,
+              labels,
             );
             createRoleBinding(newRBObject)
               .then(() =>
@@ -108,4 +118,4 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
     />
   );
 };
-export default ProjectSharingTable;
+export default RoleBindingPermissionsTable;
