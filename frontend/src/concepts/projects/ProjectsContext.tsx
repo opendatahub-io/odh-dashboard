@@ -122,13 +122,6 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [],
   );
 
-  const updatePreferredProject = React.useCallback<ProjectsContextType['updatePreferredProject']>(
-    (project) => {
-      setPreferredProject(project);
-    },
-    [],
-  );
-
   const contextValue = React.useMemo(
     () => ({
       projects: projects.toSorted(projectSorter),
@@ -136,7 +129,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       modelServingProjects: modelServingProjects.toSorted(projectSorter),
       nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
       preferredProject,
-      updatePreferredProject,
+      updatePreferredProject: setPreferredProject,
       loaded,
       loadError,
       waitForProject,
@@ -147,7 +140,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       modelServingProjects,
       nonActiveProjects,
       preferredProject,
-      updatePreferredProject,
+      setPreferredProject,
       loaded,
       loadError,
       waitForProject,

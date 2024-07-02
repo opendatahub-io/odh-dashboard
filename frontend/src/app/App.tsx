@@ -18,6 +18,7 @@ import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
+import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import useDevFeatureFlags from './useDevFeatureFlags';
@@ -125,9 +126,11 @@ const App: React.FC = () => {
                 {...devFeatureFlagsProps}
               />
               <ProjectsContextProvider>
-                <QuickStarts>
-                  <AppRoutes />
-                </QuickStarts>
+                <ModelRegistrySelectorContextProvider>
+                  <QuickStarts>
+                    <AppRoutes />
+                  </QuickStarts>
+                </ModelRegistrySelectorContextProvider>
               </ProjectsContextProvider>
               <ToastNotifications />
               <TelemetrySetup />
