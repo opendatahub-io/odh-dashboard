@@ -2,7 +2,7 @@ import { mockProjectK8sResource, mockProjectsK8sList } from '~/__mocks__/mockPro
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { ProjectKind } from '~/k8sTypes';
+import type { ProjectKind } from '~/k8sTypes';
 import { incrementResourceVersion } from '~/__mocks__/mockUtils';
 import {
   NotebookModel,

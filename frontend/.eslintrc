@@ -363,6 +363,32 @@
       "rules": {
         "no-restricted-imports": "off"
       }
+    },
+    {
+      "files": ["src/__tests__/cypress/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-imports": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector":"ImportDeclaration[importKind!='type'][source.value=/^~\\u002F(?!(__tests__|__mocks__|.*(types|Types|getCorePipelineSpec|utils)).*)/]",
+            "message": "Must use 'import type' when importing. If you are importing enums that are flagged, please go to the .eslintrc file and add it to the regular expression."
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@patternfly/**"
+                ],
+                "message": "Cypress tests should only import mocks and types from outside the Cypress test directory."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

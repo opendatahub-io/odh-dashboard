@@ -1,4 +1,4 @@
-import {
+import type {
   ExperimentKFv2,
   PipelineKFv2,
   PipelineRunJobKFv2,

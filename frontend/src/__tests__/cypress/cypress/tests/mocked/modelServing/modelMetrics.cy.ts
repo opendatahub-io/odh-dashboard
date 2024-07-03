@@ -12,7 +12,7 @@ import {
   modelMetricsPerformance,
   serverMetrics,
 } from '~/__tests__/cypress/cypress/pages/modelMetrics';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { mockPrometheusServing } from '~/__mocks__/mockPrometheusServing';
 import { mockPrometheusBias } from '~/__mocks__/mockPrometheusBias';
 import { mockMetricsRequest } from '~/__mocks__/mockMetricsRequests';

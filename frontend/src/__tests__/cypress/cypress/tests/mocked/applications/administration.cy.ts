@@ -1,6 +1,6 @@
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList } from '~/__mocks__';
-import { RoleBindingSubject } from '~/types';
+import type { RoleBindingSubject } from '~/types';
 import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import {
@@ -9,7 +9,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
-import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 const groupSubjects: RoleBindingSubject[] = [

@@ -1,5 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { RefreshIntervalTitle } from '~/concepts/metrics/types';
+import type { RefreshIntervalTitle } from '~/concepts/metrics/types';
 
 class GlobalDistributedWorkloads {
   visit(wait = true) {

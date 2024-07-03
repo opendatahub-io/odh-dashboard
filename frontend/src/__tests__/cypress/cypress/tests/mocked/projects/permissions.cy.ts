@@ -4,7 +4,7 @@ import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResour
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
-import { RoleBindingSubject } from '~/types';
+import type { RoleBindingSubject } from '~/types';
 import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 
 const userSubjects: RoleBindingSubject[] = [
