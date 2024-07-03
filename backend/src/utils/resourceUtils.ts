@@ -148,8 +148,10 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionS
           };
         };
         const subs = res?.body.items?.map((sub) => ({
+          channel: sub.spec.channel,
           installedCSV: sub.status?.installedCSV,
           installPlanRefNamespace: sub.status?.installPlanRef?.namespace,
+          lastUpdated: sub.status.lastUpdated,
         }));
         remainingItemCount = res.body?.metadata?.remainingItemCount;
         _continue = res.body?.metadata?.continue;
