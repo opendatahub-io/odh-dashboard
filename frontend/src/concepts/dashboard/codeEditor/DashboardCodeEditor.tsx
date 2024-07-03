@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { CodeEditor, CodeEditorProps } from '@patternfly/react-code-editor';
+import * as monaco from 'monaco-editor';
+import { loader } from '@monaco-editor/react';
 
 import './DashboardCodeEditor.scss';
+
+loader.config({ monaco });
 
 type DashboardCodeEditorProps = Omit<CodeEditorProps, 'ref'> & {
   testId?: string;
