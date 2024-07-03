@@ -1,5 +1,5 @@
-import { Interception } from 'cypress/types/net-stubbing';
-import { InterceptSnapshot, Snapshot } from '~/__tests__/cypress/cypress/types';
+import type { Interception } from 'cypress/types/net-stubbing';
+import type { InterceptSnapshot, Snapshot } from '~/__tests__/cypress/cypress/types';
 import { interceptSnapshot, waitSnapshot } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
 
 /* eslint-disable @typescript-eslint/no-namespace */

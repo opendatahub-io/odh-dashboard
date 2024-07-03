@@ -1,6 +1,6 @@
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList, mockNotebookK8sResource } from '~/__mocks__';
-import { RoleBindingSubject } from '~/types';
+import type { RoleBindingSubject } from '~/types';
 import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';

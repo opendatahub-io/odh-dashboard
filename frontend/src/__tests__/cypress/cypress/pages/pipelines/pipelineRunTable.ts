@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class PipelineRunsRow extends TableRow {

@@ -1,5 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { ServingRuntimeAPIProtocol } from '~/types';
+import type { ServingRuntimeAPIProtocol } from '~/types';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 
 class ServingRuntimeRow {

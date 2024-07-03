@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';

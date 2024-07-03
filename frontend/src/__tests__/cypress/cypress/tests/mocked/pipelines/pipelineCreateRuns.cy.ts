@@ -1,9 +1,6 @@
 /* eslint-disable camelcase */
-import {
-  InputDefinitionParameterType,
-  PipelineRunJobKFv2,
-  PipelineRunKFv2,
-} from '~/concepts/pipelines/kfTypes';
+import type { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import {
   buildMockRunKF,
   buildMockPipelineV2,

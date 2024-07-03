@@ -14,7 +14,7 @@ import { pipelinesSection } from '~/__tests__/cypress/cypress/pages/pipelines/pi
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { DataSciencePipelineApplicationModel } from '~/__tests__/cypress/cypress/utils/models';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   initIntercepts,
   runCreateRunPageNavTest,

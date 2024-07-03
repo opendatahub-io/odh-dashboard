@@ -7,7 +7,7 @@ import {
   buildMockPipelines,
   buildMockRunKF,
 } from '~/__mocks__';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import {
   manageRunsPage,
   manageRunsTable,

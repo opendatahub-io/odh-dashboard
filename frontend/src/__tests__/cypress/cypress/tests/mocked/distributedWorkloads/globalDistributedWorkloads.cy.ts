@@ -6,14 +6,9 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockDWUsageByOwnerPrometheusResponse } from '~/__mocks__/mockDWUsageByOwnerPrometheusResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import {
-  ClusterQueueKind,
-  LocalQueueKind,
-  WorkloadKind,
-  WorkloadPodSet,
-  WorkloadOwnerType,
-} from '~/k8sTypes';
-import { PodContainer } from '~/types';
+import type { ClusterQueueKind, LocalQueueKind, WorkloadKind, WorkloadPodSet } from '~/k8sTypes';
+import { WorkloadOwnerType } from '~/k8sTypes';
+import type { PodContainer } from '~/types';
 import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';

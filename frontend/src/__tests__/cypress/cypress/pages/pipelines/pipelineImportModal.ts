@@ -1,4 +1,4 @@
-import { CreatePipelineAndVersionKFData, PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { CreatePipelineAndVersionKFData, PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelineV2 } from '~/__mocks__/mockPipelinesProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 

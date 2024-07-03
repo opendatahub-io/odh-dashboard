@@ -1,4 +1,3 @@
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelineRunsGlobal {
@@ -10,7 +9,7 @@ class PipelineRunsGlobal {
   ) {
     cy.visitWithLogin(
       `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${versionId}${
-        runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : ''
+        runType ? `?runType=${runType}` : ''
       }`,
     );
     this.wait();

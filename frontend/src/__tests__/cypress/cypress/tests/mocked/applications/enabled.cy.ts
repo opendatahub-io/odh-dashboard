@@ -1,4 +1,4 @@
-import { RoleBindingSubject } from '~/types';
+import type { RoleBindingSubject } from '~/types';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
 import { jupyterCard } from '~/__tests__/cypress/cypress/pages/components/JupyterCard';

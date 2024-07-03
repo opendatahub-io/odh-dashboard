@@ -1,7 +1,7 @@
-import { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
-import { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
-import {
+import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
+import type {
   ModelArtifactList,
   ModelVersion,
   ModelVersionList,
@@ -20,9 +20,9 @@ import type {
   ModelRegistryKind,
 } from '~/k8sTypes';
 
-import { StartNotebookData } from '~/pages/projects/types';
-import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
+import type { StartNotebookData } from '~/pages/projects/types';
+import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import type { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
@@ -33,7 +33,7 @@ import type {
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
 } from '~/types';
-import {
+import type {
   ExperimentKFv2,
   GoogleRpcStatusKF,
   ListExperimentsResponseKF,
@@ -46,7 +46,7 @@ import {
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
-import { GrpcResponse } from '~/__mocks__/mlmd/utils';
+import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -295,6 +295,11 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+          options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+          response: OdhResponse<RegisteredModel>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
           options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
           response: OdhResponse<RegisteredModel>,
         ) => Cypress.Chainable<null>) &
