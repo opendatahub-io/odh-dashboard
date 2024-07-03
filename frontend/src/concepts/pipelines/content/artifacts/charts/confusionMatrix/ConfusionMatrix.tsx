@@ -33,6 +33,7 @@ const ConfusionMatrix: React.FC<ConfusionMatrixProps> = ({
           {data.map((row, rowIndex) => (
             <tr key={labels[rowIndex]}>
               <td
+                data-testid={`confusion-matrix-label-y${rowIndex}`}
                 className="confusionMatrix-labelCell"
                 style={{
                   lineHeight: cellSize,
@@ -43,6 +44,7 @@ const ConfusionMatrix: React.FC<ConfusionMatrixProps> = ({
               </td>
               {row.map((cell, cellIndex) => (
                 <td
+                  data-testid={`confusion-matrix-cell-${rowIndex}-${cellIndex}`}
                   key={labels[cellIndex] + labels[rowIndex]}
                   className="confusionMatrix-cell"
                   style={{
@@ -66,7 +68,7 @@ const ConfusionMatrix: React.FC<ConfusionMatrixProps> = ({
               }}
             />
             {labels.map((label, i) => (
-              <th key={i}>
+              <th key={i} data-testid={`confusion-matrix-label-x${i}`}>
                 <div
                   className="confusionMatrix-verticalMarker"
                   style={{
