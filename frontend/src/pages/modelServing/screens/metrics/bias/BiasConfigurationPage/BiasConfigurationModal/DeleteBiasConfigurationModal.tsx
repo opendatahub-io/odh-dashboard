@@ -29,6 +29,7 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
   return (
     <DeleteModal
       title="Delete bias metric?"
+      trackingEventName="Bias Metric Deleted"
       isOpen={!!configurationToDelete}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete bias metric"

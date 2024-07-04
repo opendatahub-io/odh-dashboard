@@ -32,6 +32,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
 
   return (
     <DeleteModal
+      trackingEventName="Deployed Model Deleted"
       title="Delete deployed model?"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}

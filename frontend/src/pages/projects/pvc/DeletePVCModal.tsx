@@ -33,6 +33,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
   return (
     <DeleteModal
       title="Delete storage?"
+      trackingEventName="Storage Deleted"
       isOpen={!!pvcToDelete}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete storage"

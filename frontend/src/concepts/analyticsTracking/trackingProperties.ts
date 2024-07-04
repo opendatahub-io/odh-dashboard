@@ -5,7 +5,6 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 
-
 export enum TrackingOutcome {
   submit = 'submit',
   cancel = 'cancel',
@@ -13,10 +12,9 @@ export enum TrackingOutcome {
 
 export type TrackingEventProperties = {
   anonymousID?: string;
-}
+};
 
-export type IdentifyEventProperties = {
-} & TrackingEventProperties;
+export type IdentifyEventProperties = {} & TrackingEventProperties;
 
 export type NamedTrackingProperties = {
   name: string;
@@ -29,7 +27,7 @@ export type FormTrackingEventProperties = {
   error?: string;
 } & TrackingEventProperties;
 
-export type WorkbenchTrackingEventProperties= {
+export type WorkbenchTrackingEventProperties = {
   type?: string;
   term?: string;
   imageName?: string;
@@ -54,11 +52,11 @@ export type ProjectTrackingEventProperties = {
 export type LinkTrackingEventProperties = {
   from: string;
   href: string;
-} &  TrackingEventProperties ;
+} & TrackingEventProperties;
 
 export type SearchTrackingEventProperties = {
   term: string;
-} & TrackingEventProperties ;
+} & TrackingEventProperties;
 
 export type NotebookTrackingEventProperties = {
   accelerator?: string;

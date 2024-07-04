@@ -79,6 +79,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
   return (
     <DeleteModal
       title={deleteTitle}
+      trackingEventName="Pipeline Deleted"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       deleting={deleting}

@@ -6,18 +6,18 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '~/pages/projects/pvc/utils';
 import { ConfigMapRef, SecretRef } from '~/pages/projects/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { TrackedModalProps } from '~/pages/projects/components/TrackedModal';
 
 type DeleteNotebookModalProps = {
   notebook?: NotebookKind;
-  onClose: (deleted: boolean) => void;
-};
+} & TrackedModalProps;
 
 const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const onBeforeClose = (deleted: boolean) => {
-    onClose(deleted);
+  const onBeforeClose = (deleted: boolean, success?: boolean, errorText?: string) => {
+    onClose(deleted, success, errorText);
     setIsDeleting(false);
     setError(undefined);
   };
@@ -30,6 +30,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
       isOpen={!!notebook}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete workbench"
+      trackingEventName="Workbench Deleted"
       onDelete={() => {
         if (notebook) {
           setIsDeleting(true);
@@ -58,6 +59,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
             .catch((e) => {
               setError(e);
               setIsDeleting(false);
+              onBeforeClose(true, false, e);
             });
         }
       }}

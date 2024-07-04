@@ -1,19 +1,10 @@
 import * as React from 'react';
-import {
-  Alert,
-  Button,
-  Flex,
-  FlexItem,
-  Modal,
-  Stack,
-  StackItem,
-  TextInput,
-} from '@patternfly/react-core';
+import { Alert, Button, Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import TrackedModal, { TrackedModalProps } from '~/pages/projects/components/TrackedModal';
 
 type DeleteModalProps = {
   title: string;
   isOpen: boolean;
-  onClose: () => void;
   deleting: boolean;
   onDelete: () => void;
   deleteName: string;
@@ -21,7 +12,7 @@ type DeleteModalProps = {
   error?: Error;
   children: React.ReactNode;
   testId?: string;
-};
+} & TrackedModalProps;
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
   children,
@@ -45,8 +36,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const onBeforeClose = (deleted: boolean) => {
     if (deleted) {
       onDelete();
+      onClose(false, true);
     } else {
-      onClose();
+      onClose(true);
     }
   };
 
@@ -57,10 +49,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   }, [isOpen]);
 
   return (
-    <Modal
+    <TrackedModal
       title={title}
       titleIconVariant="warning"
       isOpen={isOpen}
+      trackingEventName="TODO"
       onClose={() => onBeforeClose(false)}
       actions={[
         <Button
@@ -116,7 +109,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           </StackItem>
         )}
       </Stack>
-    </Modal>
+    </TrackedModal>
   );
 };
 

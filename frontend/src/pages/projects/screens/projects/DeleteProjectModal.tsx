@@ -5,7 +5,10 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
-import { FormTrackingEventProperties, TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import {
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
@@ -19,14 +22,14 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
 
   const onBeforeClose = (deleted: boolean) => {
     if (!deleted) {
-      const props : FormTrackingEventProperties = { outcome: TrackingOutcome.cancel };
+      const props: FormTrackingEventProperties = { outcome: TrackingOutcome.cancel };
       fireTrackingEvent(deleteProjectEventType, props);
     } else {
-      const props : FormTrackingEventProperties = {
+      const props: FormTrackingEventProperties = {
         outcome: TrackingOutcome.submit,
         success: true,
       };
-      fireTrackingEvent(deleteProjectEventType,  props);
+      fireTrackingEvent(deleteProjectEventType, props);
     }
     onClose(deleted);
     setDeleting(false);
@@ -38,6 +41,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
   return (
     <DeleteModal
       title="Delete project?"
+      trackingEventName="Project Deleted"
       isOpen={!!deleteData}
       onClose={() => onBeforeClose(false)}
       deleting={deleting}
@@ -48,11 +52,11 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
           deleteProject(deleteData.metadata.name)
             .then(() => onBeforeClose(true))
             .catch((e) => {
-              const props : FormTrackingEventProperties = {
+              const props: FormTrackingEventProperties = { // TODO
                 outcome: TrackingOutcome.submit,
                 success: false,
                 error: e,
-              }
+              };
               fireTrackingEvent(deleteProjectEventType, props);
               setError(e);
               setDeleting(false);

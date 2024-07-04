@@ -22,6 +22,7 @@ const DeleteBYONImageModal: React.FC<DeleteBYONImageModalProps> = ({ image, onCl
 
   return (
     <DeleteModal
+      trackingEventName="Notebook Image Deleted"
       title="Delete notebook image?"
       isOpen={!!image}
       onClose={() => onBeforeClose(false)}

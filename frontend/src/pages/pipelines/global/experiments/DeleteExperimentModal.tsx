@@ -20,6 +20,7 @@ const DeleteExperimentModal: React.FC<DeleteExperimentModalProps> = ({ experimen
   return (
     <DeleteModal
       title="Delete experiment?"
+      trackingEventName="Experiment Deleted"
       isOpen={!!experiment}
       onClose={onCancel}
       deleting={isDeleting}

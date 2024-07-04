@@ -58,6 +58,7 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
         }}
       />
       <DeleteNotebookModal
+        trackingEventName="Notebook Deleted"
         notebook={notebookToDelete}
         onClose={(deleted) => {
           if (deleted) {

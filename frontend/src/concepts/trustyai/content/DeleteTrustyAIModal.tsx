@@ -13,6 +13,7 @@ const DeleteTrustyAIModal: React.FC<DeleteTrustyAIModalProps> = ({ isOpen, onDel
 
   return (
     <DeleteModal
+      trackingEventName="TrustyAI Deleted"
       title="Uninstall TrustyAI"
       isOpen={isOpen}
       onClose={() => {

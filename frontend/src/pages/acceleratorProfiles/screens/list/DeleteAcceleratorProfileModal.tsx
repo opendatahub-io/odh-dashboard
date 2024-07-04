@@ -25,6 +25,7 @@ const DeleteAcceleratorProfileModal: React.FC<DeleteAcceleratorProfileModalProps
 
   return (
     <DeleteModal
+      trackingEventName="Accelerator Profile Deleted"
       title="Delete accelerator profile?"
       isOpen={!!acceleratorProfile}
       onClose={() => onBeforeClose(false)}
