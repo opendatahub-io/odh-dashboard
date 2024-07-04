@@ -9,7 +9,7 @@ type AddExistingStorageFieldProps = {
   setData: (data: ExistingStorageObject) => void;
   editStorage?: string;
   selectDirection?: 'up' | 'down';
-  menuAppendTo?: HTMLElement | 'parent';
+  menuAppendTo?: HTMLElement;
 };
 
 const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({

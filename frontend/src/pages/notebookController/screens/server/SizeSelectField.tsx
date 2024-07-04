@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { NotebookSize } from '~/types';
+import { getDashboardMainContainer } from '~/utilities/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type SizeSelectFieldProps = {
   value: NotebookSize;
@@ -10,8 +11,6 @@ type SizeSelectFieldProps = {
 };
 
 const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, sizes }) => {
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
-
   const sizeOptions = () =>
     sizes.map((size) => {
       const { name } = size;
@@ -20,28 +19,30 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
         `${size.resources.limits?.memory || '??'} Memory | ` +
         `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
         `${size.resources.requests?.memory || '??'} Memory`;
-      return <SelectOption key={name} value={name} description={desc} />;
+
+      return {
+        key: name,
+        children: name,
+        description: desc,
+      };
     });
 
   return (
     <FormGroup label="Container Size" fieldId="modal-notebook-container-size">
-      <Select
-        width="70%"
-        isOpen={sizeDropdownOpen}
-        onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
-        aria-label="Select a container size"
-        selections={value.name}
+      <SimpleSelect
+        popperProps={{ appendTo: getDashboardMainContainer() }}
+        options={sizeOptions()}
+        style={{ width: '70%' }}
+        toggleLabel={value.name}
+        selected={value.name}
         onSelect={(event, selection) => {
           // We know we are setting values as a string
           if (typeof selection === 'string') {
             setValue(selection);
-            setSizeDropdownOpen(false);
           }
         }}
-        menuAppendTo="parent"
-      >
-        {sizeOptions()}
-      </Select>
+      />
+
       {value.notUserDefined ? (
         <FormHelperText>
           <HelperText>

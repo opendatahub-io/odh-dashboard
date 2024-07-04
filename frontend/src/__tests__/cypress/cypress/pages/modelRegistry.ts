@@ -88,7 +88,7 @@ class ModelRegistry {
   }
 
   shouldModelRegistrySelectorExist() {
-    cy.get('#model-registry-selector-dropdown').should('exist');
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
   }
 
   shouldtableToolbarExist() {

@@ -1,10 +1,5 @@
 import * as React from 'react';
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownSeparator,
-  DropdownToggle,
-} from '@patternfly/react-core/deprecated';
+import { Divider, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
@@ -12,6 +7,7 @@ import { cloneScheduleRoute } from '~/routes';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRecurringRunDetailsActionsProps = {
   recurringRun?: PipelineRecurringRunKFv2;
@@ -30,17 +26,26 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
 
   return (
     <Dropdown
-      data-testid="pipeline-recurring-run-details-actions"
       onSelect={() => setOpen(false)}
-      toggle={
-        <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
+      onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+      shouldFocusToggleOnSelect
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          data-testid="pipeline-recurring-run-details-actions"
+          aria-label="Actions"
+          variant="primary"
+          onClick={() => setOpen(!open)}
+          isExpanded={open}
+        >
           Actions
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={open}
-      position="right"
-      dropdownItems={
-        !recurringRun
+      popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
+    >
+      <DropdownList>
+        {!recurringRun
           ? []
           : [
               <DropdownItem
@@ -58,13 +63,13 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
               >
                 Duplicate
               </DropdownItem>,
-              <DropdownSeparator key="separator" />,
+              <Divider key="separator" />,
               <DropdownItem key="delete-run" onClick={() => onDelete()}>
                 Delete
               </DropdownItem>,
-            ]
-      }
-    />
+            ]}
+      </DropdownList>
+    </Dropdown>
   );
 };
 

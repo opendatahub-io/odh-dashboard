@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { Tooltip } from '@patternfly/react-core';
 import {
+  Tooltip,
+  Divider,
   Dropdown,
   DropdownItem,
-  DropdownSeparator,
-  DropdownToggle,
-} from '@patternfly/react-core/deprecated';
+  MenuToggle,
+  DropdownList,
+} from '@patternfly/react-core';
+
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
@@ -13,6 +15,7 @@ import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipe
 import { cloneRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRunDetailsActionsProps = {
   run?: PipelineRunKFv2 | null;
@@ -53,17 +56,26 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
 
   return (
     <Dropdown
-      data-testid="pipeline-run-details-actions"
+      onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+      shouldFocusToggleOnSelect
       onSelect={() => setOpen(false)}
-      toggle={
-        <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
+      toggle={(toggleRef) => (
+        <MenuToggle
+          data-testid="pipeline-run-details-actions"
+          ref={toggleRef}
+          variant="primary"
+          aria-label="Actions"
+          onClick={() => setOpen(!open)}
+          isExpanded={open}
+        >
           Actions
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={open}
-      position="right"
-      dropdownItems={
-        !run
+      popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
+    >
+      <DropdownList>
+        {!run
           ? []
           : [
               <DropdownItem
@@ -137,18 +149,18 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
               ),
               !isRunActive ? (
                 <React.Fragment key="delete-run">
-                  <DropdownSeparator key="separator" />
+                  <Divider />
                   <DropdownItem onClick={() => onDelete()}>Delete</DropdownItem>
                 </React.Fragment>
               ) : (
                 <React.Fragment key="archive-run">
-                  <DropdownSeparator key="separator" />
+                  <Divider />
                   <DropdownItem onClick={() => onArchive()}>Archive</DropdownItem>
                 </React.Fragment>
               ),
-            ]
-      }
-    />
+            ]}
+      </DropdownList>
+    </Dropdown>
   );
 };
 

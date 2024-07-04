@@ -1,6 +1,14 @@
 import * as React from 'react';
-import { Bullseye, Flex, FlexItem } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import {
+  Bullseye,
+  Flex,
+  FlexItem,
+  Dropdown,
+  MenuToggle,
+  DropdownItem,
+  DropdownList,
+} from '@patternfly/react-core';
+
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -42,46 +50,53 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
 
   const selector = (
     <Dropdown
-      toggle={
-        <DropdownToggle
+      onOpenChange={(isOpenChange) => setDropdownOpen(isOpenChange)}
+      shouldFocusToggleOnSelect
+      toggle={(toggleRef) => (
+        <MenuToggle
           isDisabled={projects.length === 0}
-          onToggle={() => setDropdownOpen(!dropdownOpen)}
-          toggleVariant={primary ? 'primary' : undefined}
+          ref={toggleRef}
           aria-label={`Project: ${toggleLabel}`}
+          variant={primary ? 'primary' : undefined}
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          isExpanded={dropdownOpen}
+          data-testid="project-selector-dropdown"
         >
           {toggleLabel}
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={dropdownOpen}
-      dropdownItems={[
-        ...(selectAllProjects
-          ? [
-              <DropdownItem
-                key="all-projects"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  onSelection('');
-                  updatePreferredProject(null);
-                }}
-              >
-                All projects
-              </DropdownItem>,
-            ]
-          : []),
-        ...filteredProjects.map((project) => (
-          <DropdownItem
-            key={project.metadata.name}
-            onClick={() => {
-              setDropdownOpen(false);
-              onSelection(project.metadata.name);
-            }}
-          >
-            {getDisplayNameFromK8sResource(project)}
-          </DropdownItem>
-        )),
-      ]}
-      data-testid="project-selector-dropdown"
-    />
+    >
+      <DropdownList>
+        {[
+          ...(selectAllProjects
+            ? [
+                <DropdownItem
+                  key="all-projects"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onSelection('');
+                    updatePreferredProject(null);
+                  }}
+                >
+                  All projects
+                </DropdownItem>,
+              ]
+            : []),
+          ...filteredProjects.map((project) => (
+            <DropdownItem
+              key={project.metadata.name}
+              onClick={() => {
+                setDropdownOpen(false);
+                onSelection(project.metadata.name);
+              }}
+            >
+              {getDisplayNameFromK8sResource(project)}
+            </DropdownItem>
+          )),
+        ]}
+      </DropdownList>
+    </Dropdown>
   );
   if (showTitle) {
     return (

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
@@ -13,6 +12,7 @@ import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import SimpleSelect from '~/components/SimpleSelect';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
@@ -36,7 +36,6 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   setAcceleratorProfileState,
   infoContent,
 }) => {
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
     string[] | undefined
   >();
@@ -50,7 +49,6 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   }, [servingRuntimeSelected]);
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
-
   const sizeCustom = [
     ...sizes,
     {
@@ -69,7 +67,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
             `${size.resources.requests?.memory || '??'} Memory`
           : '';
-      return <SelectOption key={name} value={name} description={desc} />;
+      return { key: name, children: name, description: desc };
     });
 
   return (
@@ -88,23 +86,19 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <Select
-              id="model-server-size-selection"
-              isOpen={sizeDropdownOpen}
-              placeholderText="Select a model server size"
-              onToggle={(e, open) => setSizeDropdownOpen(open)}
+            <SimpleSelect
+              dataTestId="model-server-size-selection"
+              isFullWidth
+              options={sizeOptions()}
+              toggleLabel={data.modelSize.name || 'Select a model server size'}
               onSelect={(_, option) => {
                 const valuesSelected = sizeCustom.find((element) => element.name === option);
                 if (valuesSelected) {
                   setData('modelSize', valuesSelected);
                 }
-                setSizeDropdownOpen(false);
               }}
-              selections={data.modelSize.name}
-              menuAppendTo={() => document.body}
-            >
-              {sizeOptions()}
-            </Select>
+              popperProps={{ appendTo: document.body }}
+            />
           </StackItem>
           {data.modelSize.name === 'Custom' && (
             <StackItem>

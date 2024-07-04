@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Alert, FormGroup, Skeleton, Text } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type InferenceServiceServingRuntimeSectionProps = {
   data: CreatingInferenceServiceObject;
@@ -16,12 +16,17 @@ type InferenceServiceServingRuntimeSectionProps = {
 const InferenceServiceServingRuntimeSection: React.FC<
   InferenceServiceServingRuntimeSectionProps
 > = ({ data, setData, currentServingRuntime }) => {
-  const [isOpen, setOpen] = React.useState(false);
-
   const [servingRuntimes, loaded, loadError] = useServingRuntimes(
     data.project,
     data.project === '' || !!currentServingRuntime,
   );
+
+  const selectedServingRuntime = servingRuntimes.find(
+    (servingRuntime) => servingRuntime.metadata.name === data.servingRuntimeName,
+  );
+
+  const placeholderText =
+    servingRuntimes.length === 0 ? 'No model servers available to select' : 'Select a model server';
 
   if (!loaded && !currentServingRuntime && data.project !== '') {
     return <Skeleton />;
@@ -45,32 +50,26 @@ const InferenceServiceServingRuntimeSection: React.FC<
 
   return (
     <FormGroup label="Model servers" isRequired>
-      <Select
-        toggleId="inference-service-model-selection"
-        id="inference-service-model-selection"
-        isOpen={isOpen}
-        placeholderText={
-          servingRuntimes.length === 0
-            ? 'No model servers available to select'
-            : 'Select a model server'
-        }
+      <SimpleSelect
+        dataTestId="inference-service-model-selection"
         isDisabled={servingRuntimes.length === 0}
-        onToggle={(e, open) => setOpen(open)}
+        options={servingRuntimes.map((servingRuntime) => ({
+          key: servingRuntime.metadata.name,
+          children: getDisplayNameFromK8sResource(servingRuntime),
+        }))}
+        isFullWidth
+        selected={data.servingRuntimeName}
+        toggleLabel={
+          (selectedServingRuntime && getDisplayNameFromK8sResource(selectedServingRuntime)) ||
+          placeholderText
+        }
         onSelect={(_, option) => {
           if (typeof option === 'string') {
             setData('servingRuntimeName', option);
             setData('format', '');
-            setOpen(false);
           }
         }}
-        selections={data.servingRuntimeName}
-      >
-        {servingRuntimes.map((servingRuntime) => (
-          <SelectOption key={servingRuntime.metadata.name} value={servingRuntime.metadata.name}>
-            {getDisplayNameFromK8sResource(servingRuntime)}
-          </SelectOption>
-        ))}
-      </Select>
+      />
     </FormGroup>
   );
 };

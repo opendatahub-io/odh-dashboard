@@ -1,10 +1,10 @@
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import React from 'react';
+import SimpleSelect from '~/components/SimpleSelect';
 import { ProjectSharingRoleType } from './types';
 import { castProjectSharingRoleType, roleLabel } from './utils';
 
 type ProjectSharingPermissionSelectionProps = {
-  selection: string;
+  selection: ProjectSharingRoleType;
   onSelect: (roleType: ProjectSharingRoleType) => void;
 };
 
@@ -22,30 +22,23 @@ const ProjectSharingPermissions = [
 const ProjectSharingPermissionSelection: React.FC<ProjectSharingPermissionSelectionProps> = ({
   selection,
   onSelect,
-}) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  return (
-    <Select
-      selections={selection}
-      isOpen={isOpen}
-      onSelect={(e, newSelection) => {
-        if (typeof newSelection === 'string') {
-          onSelect(castProjectSharingRoleType(newSelection));
-          setIsOpen(false);
-        }
-      }}
-      onToggle={(e, val) => setIsOpen(val)}
-      placeholderText={selection}
-      direction="down"
-    >
-      {ProjectSharingPermissions.map((option) => (
-        <SelectOption key={option.type} value={option.type} description={option.description}>
-          {roleLabel(option.type)}
-        </SelectOption>
-      ))}
-    </Select>
-  );
-};
+}) => (
+  <SimpleSelect
+    isFullWidth
+    options={ProjectSharingPermissions.map((option) => ({
+      key: option.type,
+      children: roleLabel(option.type),
+      description: option.description,
+    }))}
+    toggleLabel={roleLabel(selection)}
+    selected={selection}
+    onSelect={(e, newSelection) => {
+      if (typeof newSelection === 'string') {
+        onSelect(castProjectSharingRoleType(newSelection));
+      }
+    }}
+    popperProps={{ direction: 'down' }}
+  />
+);
 
 export default ProjectSharingPermissionSelection;

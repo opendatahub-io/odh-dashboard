@@ -1,11 +1,15 @@
 import * as React from 'react';
 import {
-  SelectVariant,
+  Bullseye,
+  Flex,
+  FlexItem,
+  SelectList,
   Select,
   SelectGroup,
+  Divider,
+  MenuToggle,
   SelectOption,
-} from '@patternfly/react-core/deprecated';
-import { Bullseye, Flex, FlexItem } from '@patternfly/react-core';
+} from '@patternfly/react-core';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
@@ -40,24 +44,56 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   const options = [
     <SelectGroup label="Select a model registry" key="all">
-      {modelRegistries.map((mr) => (
-        <SelectOption
-          id={mr.metadata.name}
-          key={mr.metadata.name}
-          value={getDisplayNameFromK8sResource(mr)}
-          isFavorite={favorites.includes(mr.metadata.name)}
-        />
-      ))}
+      <SelectList>
+        {modelRegistries.map((mr) => (
+          <SelectOption
+            id={mr.metadata.name}
+            key={mr.metadata.name}
+            value={getDisplayNameFromK8sResource(mr)}
+            isFavorited={favorites.includes(mr.metadata.name)}
+          >
+            {getDisplayNameFromK8sResource(mr)}
+          </SelectOption>
+        ))}
+      </SelectList>
     </SelectGroup>,
   ];
 
+  const createFavorites = (favIds: string[]) => {
+    const favorite: JSX.Element[] = [];
+
+    options.forEach((item) => {
+      if (item.type === SelectList) {
+        item.props.children.filter(
+          (child: JSX.Element) => favIds.includes(child.props.value) && favorite.push(child),
+        );
+      } else if (item.type === SelectGroup) {
+        item.props.children.props.children.filter(
+          (child: JSX.Element) => favIds.includes(child.props.value) && favorite.push(child),
+        );
+      } else if (favIds.includes(item.props.value)) {
+        favorite.push(item);
+      }
+    });
+
+    return favorite;
+  };
+
   const selector = (
     <Select
-      data-testid="model-registry-selector-dropdown"
-      toggleId="model-registry-selector-dropdown"
-      variant={SelectVariant.single}
-      onToggle={() => setIsOpen(!isOpen)}
-      isDisabled={modelRegistries.length === 0}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          data-testid="model-registry-selector-dropdown"
+          aria-label="Model registry toggle"
+          id="download-steps-logs-toggle"
+          onClick={() => setIsOpen(!isOpen)}
+          isExpanded={isOpen}
+          isDisabled={modelRegistries.length === 0}
+        >
+          {toggleLabel}
+        </MenuToggle>
+      )}
       onSelect={(_e, value) => {
         setIsOpen(false);
         updatePreferredModelRegistry(modelRegistries.find((obj) => obj.metadata.name === value));
@@ -65,18 +101,29 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
           onSelection(value);
         }
       }}
-      selections={toggleLabel}
+      selected={toggleLabel}
+      onOpenChange={(open) => setIsOpen(open)}
       isOpen={isOpen}
-      isGrouped
-      onFavorite={(itemId, isFavorite) => {
-        if (isFavorite) {
-          setFavorites(favorites.filter((id) => id !== itemId));
-        } else {
-          setFavorites([...favorites, itemId]);
+      onActionClick={(event: React.MouseEvent, value: string, actionId: string) => {
+        event.stopPropagation();
+        if (actionId === 'fav') {
+          const isFavorited = favorites.includes(value);
+          if (isFavorited) {
+            setFavorites(favorites.filter((id) => id !== value));
+          } else {
+            setFavorites([...favorites, value]);
+          }
         }
       }}
-      favorites={favorites}
     >
+      {favorites.length > 0 && (
+        <React.Fragment key="favorites-group">
+          <SelectGroup label="Favorites">
+            <SelectList>{createFavorites(favorites)}</SelectList>
+          </SelectGroup>
+          <Divider />
+        </React.Fragment>
+      )}
       {options}
     </Select>
   );

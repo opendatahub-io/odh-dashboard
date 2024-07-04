@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+
 import { isInEnum } from '~/typeHelpers';
 import { ProjectScope } from '~/pages/projects/types';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type ProjectScopeSelectProps = {
   selection: ProjectScope;
@@ -10,36 +11,30 @@ type ProjectScopeSelectProps = {
 
 const isProjectScope = isInEnum(ProjectScope);
 
-const ProjectScopeSelect: React.FC<ProjectScopeSelectProps> = ({ selection, setSelection }) => {
-  const [isOpen, setOpen] = React.useState(false);
-  return (
-    <Select
-      toggleId="project-scope-selection"
-      selections={selection}
-      width="200px"
-      onToggle={(e, open: boolean) => setOpen(open)}
-      onSelect={(_, newSelection) => {
-        if (isProjectScope(newSelection)) {
-          setSelection(newSelection);
-        }
-        setOpen(false);
-      }}
-      isOpen={isOpen}
-    >
-      {[
-        <SelectOption
-          key={ProjectScope.DS_PROJECTS}
-          value={ProjectScope.DS_PROJECTS}
-          description="Only projects created in the Data Science Dashboard are displayed."
-        />,
-        <SelectOption
-          key={ProjectScope.ALL_PROJECTS}
-          value={ProjectScope.ALL_PROJECTS}
-          description="All available projects created in the Data Science Dashboard and OpenShift are displayed."
-        />,
-      ]}
-    </Select>
-  );
-};
+const ProjectScopeSelect: React.FC<ProjectScopeSelectProps> = ({ selection, setSelection }) => (
+  <SimpleSelect
+    popperProps={{ width: '200px' }}
+    style={{ width: '200px' }}
+    toggleLabel={selection}
+    options={[
+      {
+        key: ProjectScope.DS_PROJECTS,
+        children: ProjectScope.DS_PROJECTS,
+        description: 'Only projects created in the Data Science Dashboard are displayed.',
+      },
+      {
+        key: ProjectScope.ALL_PROJECTS,
+        children: ProjectScope.ALL_PROJECTS,
+        description:
+          'All available projects created in the Data Science Dashboard and OpenShift are displayed.',
+      },
+    ]}
+    onSelect={(_, newSelection) => {
+      if (isProjectScope(newSelection)) {
+        setSelection(newSelection);
+      }
+    }}
+  />
+);
 
 export default ProjectScopeSelect;

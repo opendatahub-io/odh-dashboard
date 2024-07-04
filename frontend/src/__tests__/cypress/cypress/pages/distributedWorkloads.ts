@@ -43,7 +43,8 @@ class GlobalDistributedWorkloads {
   }
 
   selectProjectByName(name: string) {
-    this.findProjectSelect().findDropdownItem(name).click();
+    this.findProjectSelect().click();
+    cy.findByRole('menuitem', { name }).click();
   }
 
   findStatusOverviewCard() {
