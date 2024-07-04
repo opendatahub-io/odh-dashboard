@@ -14,7 +14,7 @@ import {
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+
 import {
   ThIcon,
   CheckIcon,
@@ -26,6 +26,7 @@ import {
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import SimpleSelect from '~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -88,8 +89,6 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   onToggleFiltersCollapsed,
 }) => {
   const navigate = useNavigate();
-  const [isSortTypeDropdownOpen, setIsSortTypeDropdownOpen] = React.useState(false);
-  const [isSortOrderDropdownOpen, setIsSortOrderDropdownOpen] = React.useState(false);
   const queryParams = useQueryParams();
   const categoryQuery = queryParams.get(CATEGORY_FILTER_KEY) || '';
   const enabled = queryParams.get(ENABLED_FILTER_KEY);
@@ -111,49 +110,55 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   }, [searchInputText]);
 
   const onSortTypeSelect = React.useCallback(
-    (e: React.MouseEvent | React.ChangeEvent) => {
-      setIsSortTypeDropdownOpen(false);
-      const selection = e.target instanceof Element ? e.target.getAttribute('data-key') ?? '' : '';
-      setQueryArgument(navigate, DOC_SORT_KEY, selection);
+    (_e: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        setQueryArgument(navigate, DOC_SORT_KEY, value);
+      }
     },
     [navigate],
   );
 
-  const sortTypeDropdownItems = Object.entries(sortTypes).map(([key, val]) => (
-    <SelectOption key={key} data-key={key} value={val}>
-      <CheckIcon
-        className={`odh-learning-paths__toolbar__filter-check ${
-          sortType === key ? 'odh-m-filtered' : ''
-        }`}
-        data-key={key}
-      />
-      {val}
-    </SelectOption>
-  ));
+  const sortTypeDropdownItems = Object.entries(sortTypes).map(([key, val]) => ({
+    key,
+    children: (
+      <>
+        <CheckIcon
+          className={`odh-learning-paths__toolbar__filter-check ${
+            sortType === key ? 'odh-m-filtered' : ''
+          }`}
+          data-key={key}
+        />
+        {val}
+      </>
+    ),
+  }));
   const onSortOrderSelect = React.useCallback(
-    (e: React.MouseEvent | React.ChangeEvent) => {
-      setIsSortOrderDropdownOpen(false);
-      const selection = e.target instanceof Element ? e.target.getAttribute('data-key') ?? '' : '';
-      setQueryArgument(navigate, DOC_SORT_ORDER_KEY, selection);
+    (_e: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        setQueryArgument(navigate, DOC_SORT_ORDER_KEY, value);
+      }
     },
     [navigate],
   );
 
-  const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => (
-    <SelectOption key={key} data-key={key} value={val} data-testid={key}>
-      <CheckIcon
-        className={`odh-learning-paths__toolbar__filter-check ${
-          sortOrder === key ? 'odh-m-filtered' : ''
-        }`}
-        data-key={key}
-      />
-      {key === SORT_ASC ? (
-        <PficonSortCommonAscIcon data-key={key} alt={val} />
-      ) : (
-        <PficonSortCommonDescIcon data-key={key} alt={val} />
-      )}
-    </SelectOption>
-  ));
+  const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => ({
+    key,
+    children: (
+      <>
+        <CheckIcon
+          className={`odh-learning-paths__toolbar__filter-check ${
+            sortOrder === key ? 'odh-m-filtered' : ''
+          }`}
+          data-key={key}
+        />
+        {key === SORT_ASC ? (
+          <PficonSortCommonAscIcon data-key={key} alt={val} />
+        ) : (
+          <PficonSortCommonDescIcon data-key={key} alt={val} />
+        )}
+      </>
+    ),
+  }));
 
   const handleTextChange = (val: string) => {
     if (val.length > 0) {
@@ -215,24 +220,18 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
         {viewType === CARD_VIEW ? (
           <>
             <ToolbarItem data-testid="resources-select-type">
-              <Select
-                variant={SelectVariant.single}
+              <SimpleSelect
+                options={sortTypeDropdownItems}
                 aria-label="Select sort type"
-                isOpen={isSortTypeDropdownOpen}
-                onToggle={(e, isEnabled) => setIsSortTypeDropdownOpen(isEnabled)}
-                placeholderText={`Sort by ${sortTypes[sortType]}`}
+                toggleLabel={`Sort by ${sortTypes[sortType]}`}
                 onSelect={onSortTypeSelect}
-              >
-                {sortTypeDropdownItems}
-              </Select>
+              />
             </ToolbarItem>
             <ToolbarItem data-testid="resources-order-type">
-              <Select
-                variant={SelectVariant.single}
+              <SimpleSelect
                 aria-label="Select sort order"
-                isOpen={isSortOrderDropdownOpen}
-                onToggle={(e, isEnabled) => setIsSortOrderDropdownOpen(isEnabled)}
-                placeholderText={
+                options={sortOrderDropdownItems}
+                toggleLabel={
                   sortOrder === SORT_ASC ? (
                     <PficonSortCommonAscIcon data-key={sortOrder} alt={sortOrders.ASC} />
                   ) : (
@@ -240,9 +239,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
                   )
                 }
                 onSelect={onSortOrderSelect}
-              >
-                {sortOrderDropdownItems}
-              </Select>
+              />
             </ToolbarItem>
           </>
         ) : null}

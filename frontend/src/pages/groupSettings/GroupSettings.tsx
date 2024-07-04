@@ -98,6 +98,8 @@ const GroupSettings: React.FC = () => {
                 selected: g.enabled,
               }))}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
+              selectionRequired
+              noSelectedOptionsMessage="One or more groups must be seleted"
             />
             {groupSettings.errorAdmin ? (
               <Alert
@@ -135,6 +137,8 @@ const GroupSettings: React.FC = () => {
                 selected: g.enabled,
               }))}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
+              selectionRequired
+              noSelectedOptionsMessage="One or more groups must be seleted"
             />
             {groupSettings.errorUser ? (
               <Alert

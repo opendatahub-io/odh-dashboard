@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { Tooltip } from '@patternfly/react-core';
 import {
+  Tooltip,
+  Divider,
   Dropdown,
   DropdownItem,
-  DropdownSeparator,
-  DropdownToggle,
-} from '@patternfly/react-core/deprecated';
+  MenuToggle,
+  DropdownList,
+} from '@patternfly/react-core';
+
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
@@ -56,18 +58,26 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
 
   return (
     <Dropdown
-      data-testid="pipeline-run-details-actions"
+      onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+      shouldFocusToggleOnSelect
       onSelect={() => setOpen(false)}
-      menuAppendTo={getDashboardMainContainer}
-      toggle={
-        <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
+      toggle={(toggleRef) => (
+        <MenuToggle
+          data-testid="pipeline-run-details-actions"
+          ref={toggleRef}
+          variant="primary"
+          aria-label="Actions"
+          onClick={() => setOpen(!open)}
+          isExpanded={open}
+        >
           Actions
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={open}
-      position="right"
-      dropdownItems={
-        !run
+      popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
+    >
+      <DropdownList>
+        {!run
           ? []
           : [
               ...(isPipelineSupported
@@ -147,7 +157,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                     ) : (
                       <React.Fragment key="restore-run" />
                     ),
-                    <DropdownSeparator key="separator" />,
+                    <Divider key="separator" />,
                   ]
                 : []),
               !isRunActive ? (
@@ -159,9 +169,9 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                   <DropdownItem onClick={() => onArchive()}>Archive</DropdownItem>
                 </React.Fragment>
               ),
-            ]
-      }
-    />
+            ]}
+      </DropdownList>
+    </Dropdown>
   );
 };
 

@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+import { TypeaheadSelect } from '@patternfly/react-templates';
+import { SearchIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { MultiSelection } from '~/components/MultiSelection';
 
 type SelectNotebookFieldProps = {
   loaded: boolean;
@@ -26,8 +28,6 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   isMultiSelect,
   placeholder = 'Select a workbench to connect',
 }) => {
-  const [notebookSelectOpen, setNotebookSelectOpen] = React.useState(false);
-
   const noNotebooks = notebooks.length === 0;
   const disabled = !!isDisabled || !loaded || noNotebooks;
 
@@ -46,40 +46,45 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
       fieldId="connect-existing-workbench"
       data-testid="connect-existing-workbench-group"
     >
-      <Select
-        variant={isMultiSelect ? 'typeaheadmulti' : 'typeahead'}
-        selections={selections}
-        isOpen={notebookSelectOpen}
-        isDisabled={disabled}
-        aria-label="Notebook select"
-        onClear={() => {
-          onSelect([]);
-          setNotebookSelectOpen(false);
-        }}
-        onSelect={(e, selection) => {
-          if (typeof selection !== 'string') {
-            return;
+      {isMultiSelect ? (
+        <MultiSelection
+          isDisabled={disabled}
+          ariaLabel="Notebook select"
+          value={notebooks.map((notebook) => ({
+            id: notebook.metadata.name,
+            name: getDisplayNameFromK8sResource(notebook),
+            selected: selections.includes(notebook.metadata.name),
+          }))}
+          setValue={(newState) =>
+            onSelect(newState.filter((n) => n.selected).map((n) => String(n.id)))
           }
-
-          if (selections.includes(selection)) {
-            onSelect(selections.filter((f) => f !== selection));
-          } else if (isMultiSelect) {
-            onSelect([...selections, selection]);
-          } else {
-            onSelect([selection]);
-          }
-          setNotebookSelectOpen(false);
-        }}
-        onToggle={(e, isOpen) => setNotebookSelectOpen(isOpen)}
-        placeholderText={placeholderText}
-        menuAppendTo="parent"
-      >
-        {notebooks.map((notebook) => (
-          <SelectOption key={notebook.metadata.name} value={notebook.metadata.name}>
-            {getDisplayNameFromK8sResource(notebook)}
-          </SelectOption>
-        ))}
-      </Select>
+        />
+      ) : (
+        <TypeaheadSelect
+          isDisabled={disabled}
+          initialOptions={notebooks.map((notebook) => ({
+            value: notebook.metadata.name,
+            content: getDisplayNameFromK8sResource(notebook),
+            selected: selections.includes(notebook.metadata.name),
+          }))}
+          onClearSelection={() => onSelect([])}
+          onSelect={(_ev, value) => {
+            if (typeof value === 'string') {
+              const notebook = notebooks.find((n) => n.metadata.name === value);
+              if (notebook) {
+                onSelect([value]);
+              }
+            }
+          }}
+          placeholder={placeholderText}
+          noOptionsFoundMessage="Search for a workbench name"
+          toggleProps={{
+            id: 'notebook-search-input',
+            icon: <SearchIcon style={{ marginLeft: 8 }} />,
+          }}
+          data-testid="notebook-search-select"
+        />
+      )}
       <FormHelperText>
         <HelperText>
           <HelperTextItem>{!noNotebooks && selectionHelperText}</HelperTextItem>

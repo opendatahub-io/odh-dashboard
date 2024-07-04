@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import {
   METRIC_TYPE_DESCRIPTION,
   METRIC_TYPE_DISPLAY_NAME,
 } from '~/pages/modelServing/screens/metrics/const';
 import { BiasMetricType } from '~/api';
 import { isMetricType } from '~/pages/modelServing/screens/metrics/utils';
-import { enumIterator } from '~/utilities/utils';
+import { asEnumMember, enumIterator } from '~/utilities/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type MetricTypeFieldProps = {
   fieldId: string;
@@ -15,34 +15,25 @@ type MetricTypeFieldProps = {
   onChange: (value: BiasMetricType) => void;
 };
 
-const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onChange }) => {
-  const [isOpen, setOpen] = React.useState(false);
-
-  return (
-    <FormGroup label="Metric type" fieldId={fieldId}>
-      <Select
-        id={fieldId}
-        toggleId={fieldId}
-        isOpen={isOpen}
-        placeholderText="Select"
-        onToggle={(e, open) => setOpen(open)}
-        onSelect={(_, option) => {
-          if (isMetricType(option)) {
-            onChange(option);
-            setOpen(false);
-          }
-        }}
-        selections={value}
-        menuAppendTo="parent"
-      >
-        {enumIterator(BiasMetricType).map(([type]) => (
-          <SelectOption key={type} value={type} description={METRIC_TYPE_DESCRIPTION[type]}>
-            {METRIC_TYPE_DISPLAY_NAME[type]}
-          </SelectOption>
-        ))}
-      </Select>
-    </FormGroup>
-  );
-};
+const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onChange }) => (
+  <FormGroup label="Metric type" fieldId={fieldId}>
+    <SimpleSelect
+      onSelect={(_ev, selection) => {
+        const selectedValue = asEnumMember(selection, BiasMetricType);
+        if (isMetricType(selectedValue)) {
+          onChange(selectedValue);
+        }
+      }}
+      options={enumIterator(BiasMetricType).map(([type, enumValue]) => ({
+        key: enumValue,
+        children: METRIC_TYPE_DISPLAY_NAME[type],
+        description: METRIC_TYPE_DESCRIPTION[type],
+      }))}
+      placeholder="Select"
+      toggleLabel={value}
+      toggleId={fieldId}
+    />
+  </FormGroup>
+);
 
 export default MetricTypeField;

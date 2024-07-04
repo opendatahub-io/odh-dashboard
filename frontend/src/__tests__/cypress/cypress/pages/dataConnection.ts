@@ -36,7 +36,7 @@ class DataConnectionModal extends Modal {
   findWorkbenchConnectionSelect() {
     return cy
       .findByTestId('connect-existing-workbench-group')
-      .findByRole('button', { name: 'Options menu' });
+      .findByRole('button', { name: 'Notebook select' });
   }
 
   findNotebookRestartAlert() {

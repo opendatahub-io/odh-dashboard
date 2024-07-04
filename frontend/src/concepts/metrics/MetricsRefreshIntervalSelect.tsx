@@ -1,30 +1,29 @@
 import * as React from 'react';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 import { isRefreshIntervalTitle } from '~/concepts/metrics/utils';
+import SimpleSelect from '~/components/SimpleSelect';
+import { asEnumMember, enumIterator } from '~/utilities/utils';
 
 export const MetricsRefreshIntervalSelect: React.FC = () => {
   const { currentRefreshInterval, setCurrentRefreshInterval } =
     React.useContext(MetricsCommonContext);
-  const [isOpen, setIsOpen] = React.useState(false);
+
   return (
-    <Select
-      isOpen={isOpen}
-      onToggle={(e, expanded) => setIsOpen(expanded)}
-      onSelect={(e, selection) => {
-        if (isRefreshIntervalTitle(selection)) {
-          setCurrentRefreshInterval(selection);
-          setIsOpen(false);
+    <SimpleSelect
+      onSelect={(_ev, selection) => {
+        const value = asEnumMember(selection, RefreshIntervalTitle);
+        if (isRefreshIntervalTitle(value)) {
+          setCurrentRefreshInterval(value);
         }
       }}
-      selections={currentRefreshInterval}
-      data-testid="metrics-toolbar-refresh-interval-select"
+      options={enumIterator(RefreshIntervalTitle).map(([, value]) => ({
+        key: value,
+        children: value,
+      }))}
+      toggleLabel={currentRefreshInterval}
       toggleId="metrics-toolbar-refresh-interval-select-toggle"
-    >
-      {Object.values(RefreshIntervalTitle).map((value) => (
-        <SelectOption key={value} value={value} />
-      ))}
-    </Select>
+      data-testid="metrics-toolbar-refresh-interval-select"
+    />
   );
 };

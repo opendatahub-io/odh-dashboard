@@ -5,8 +5,11 @@ import {
   ToolbarItem,
   ToolbarChip,
   Tooltip,
+  Dropdown,
+  DropdownItem,
+  MenuToggle,
+  DropdownList,
 } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { FilterIcon } from '@patternfly/react-icons';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
@@ -54,28 +57,39 @@ export function FilterToolbar<T extends string>({
       <ToolbarGroup variant="filter-group" data-testid={testId} {...toolbarGroupProps}>
         <ToolbarItem>
           <Dropdown
-            toggle={
-              <DropdownToggle id={`${testId}-toggle-button`} onToggle={() => setOpen(!open)}>
+            onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+            shouldFocusToggleOnSelect
+            toggle={(toggleRef) => (
+              <MenuToggle
+                data-testid={`${testId}-dropdown`}
+                id={`${testId}-toggle-button`}
+                ref={toggleRef}
+                aria-label="Pipeline Filter toggle"
+                onClick={() => setOpen(!open)}
+                isExpanded={open}
+              >
                 <>
                   <FilterIcon /> {filterOptions[currentFilterType]}
                 </>
-              </DropdownToggle>
-            }
+              </MenuToggle>
+            )}
             isOpen={open}
-            dropdownItems={keys.map((filterKey) => (
-              <DropdownItem
-                key={filterKey}
-                id={filterKey}
-                onClick={() => {
-                  setOpen(false);
-                  setCurrentFilterType(filterKey);
-                }}
-              >
-                {filterOptions[filterKey]}
-              </DropdownItem>
-            ))}
-            data-testid={`${testId}-dropdown`}
-          />
+          >
+            <DropdownList>
+              {keys.map((filterKey) => (
+                <DropdownItem
+                  key={filterKey}
+                  id={filterKey}
+                  onClick={() => {
+                    setOpen(false);
+                    setCurrentFilterType(filterKey);
+                  }}
+                >
+                  {filterOptions[filterKey]}
+                </DropdownItem>
+              ))}
+            </DropdownList>
+          </Dropdown>
         </ToolbarItem>
         <ToolbarFilter
           categoryName="Filters"

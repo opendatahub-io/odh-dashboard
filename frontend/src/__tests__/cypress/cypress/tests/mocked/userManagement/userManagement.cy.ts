@@ -26,7 +26,7 @@ describe('User Management', () => {
     administratorGroupSection.findChipItem(/^odh-admins$/).should('exist');
     administratorGroupSection.shouldHaveAdministratorGroupInfo();
     administratorGroupSection.clearMultiChipItem();
-    administratorGroupSection.selectMultiGroup('odh-admins');
+    administratorGroupSection.selectMultiGroup('odh-admins', true);
     administratorGroupSection.findMultiGroupInput().type('odh-admin');
     administratorGroupSection.findMultiGroupOptions('odh-admins-1').click();
     administratorGroupSection.removeChipItem('odh-admins');
@@ -44,9 +44,9 @@ describe('User Management', () => {
     userGroupSection.findChipItem('system:authenticated').should('exist');
     userGroupSection.clearMultiChipItem();
     userGroupSection.findErrorText().should('exist');
-    userGroupSection.selectMultiGroup('odh-admins');
+    userGroupSection.selectMultiGroup('odh-admins', false);
     userGroupSection.findChipItem(/^odh-admins$/).should('exist');
-    userGroupSection.findMultiGroupSelectButton().click();
+    userGroupSection.findMultiGroupSelectButton(false).click();
     userManagement.findSubmitButton().should('be.enabled');
 
     cy.interceptOdh('PUT /api/groups-config', mockGroupSettings()).as('saveGroupSetting');

@@ -528,7 +528,9 @@ describe('Pipeline topology', () => {
       pipelineRecurringRunDetails.selectActionDropdownItem('Disable');
 
       pipelineRecurringRunDetails.findActionsDropdown().click();
-      cy.findByRole('menuitem', { name: 'Enable' }).should('be.visible');
+      cy.get('[id="dashboard-page-main"]')
+        .findByRole('menuitem', { name: 'Enable' })
+        .should('be.visible');
     });
 
     it('enables recurring run from action dropdown', () => {
@@ -554,7 +556,9 @@ describe('Pipeline topology', () => {
       pipelineRecurringRunDetails.selectActionDropdownItem('Enable');
 
       pipelineRecurringRunDetails.findActionsDropdown().click();
-      cy.findByRole('menuitem', { name: 'Disable' }).should('be.visible');
+      cy.get('[id="dashboard-page-main"]')
+        .findByRole('menuitem', { name: 'Disable' })
+        .should('be.visible');
     });
   });
 

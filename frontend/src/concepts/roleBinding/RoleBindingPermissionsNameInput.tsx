@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { TypeaheadSelect } from '@patternfly/react-templates';
 import { RoleBindingSubject } from '~/k8sTypes';
 import { RoleBindingPermissionsRBType } from './types';
 
@@ -21,8 +21,6 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
   placeholderText,
   typeAhead,
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-
   if (!typeAhead) {
     return (
       <TextInput
@@ -40,29 +38,26 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
   }
 
   return (
-    <Select
-      variant={SelectVariant.typeahead}
-      typeAheadAriaLabel="Name selection"
-      selections={value}
-      onToggle={(e, isOpened) => {
-        setIsOpen(isOpened);
-      }}
-      onSelect={(e, selection) => {
+    <TypeaheadSelect
+      initialOptions={[
+        ...typeAhead.map((option) => ({
+          value: option,
+          content: option,
+          selected: option === value,
+        })),
+        ...(value && !typeAhead.find((o) => o === value)
+          ? [{ value, content: value, selected: true }]
+          : []),
+      ]}
+      onSelect={(_ev, selection) => {
         if (typeof selection === 'string') {
           onChange(selection);
-          setIsOpen(false);
         }
       }}
-      onClear={onClear}
-      isOpen={isOpen}
+      onClearSelection={onClear}
       isCreatable
-      aria-labelledby="name-selection"
-      placeholderText={placeholderText}
-    >
-      {typeAhead.map((option, index) => (
-        <SelectOption key={index} value={option} />
-      ))}
-    </Select>
+      placeholder={placeholderText}
+    />
   );
 };
 

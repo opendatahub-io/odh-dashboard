@@ -38,12 +38,16 @@ class GroupSettingSection extends Contextual<HTMLElement> {
     return this.find().findByTestId('group-selection-error-text');
   }
 
-  findMultiGroupSelectButton() {
-    return this.find().findByRole('button', { name: 'Options menu' });
+  findMultiGroupSelectButton(admin: boolean) {
+    return this.find().findByRole('button', {
+      name: admin
+        ? 'Select the OpenShift groups that contain all Data Science administrators.'
+        : 'Select the OpenShift groups that contain all Data Science users.',
+    });
   }
 
-  selectMultiGroup(name: string) {
-    this.findMultiGroupSelectButton().click();
+  selectMultiGroup(name: string, admin: boolean) {
+    this.findMultiGroupSelectButton(admin).click();
     this.findMultiGroupOptions(name).click();
   }
 }

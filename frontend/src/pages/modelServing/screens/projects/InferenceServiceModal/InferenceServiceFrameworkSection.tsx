@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, FormGroup, Skeleton } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { SupportedModelFormats } from '~/k8sTypes';
+import SimpleSelect from '~/components/SimpleSelect';
 import useModelFramework from './useModelFramework';
 
 type InferenceServiceFrameworkSectionProps = {
@@ -17,14 +17,19 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   setData,
   modelContext,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
-
   const [modelsContextLoaded, loaded, loadError] = useModelFramework(
     modelContext ? undefined : data.servingRuntimeName,
     data.project,
   );
   const models = modelContext || modelsContextLoaded;
-
+  const { name: dataFormatName, version: dataFormatVersion } = data.format;
+  const selectedDataFormat = models.find((element) =>
+    dataFormatVersion
+      ? element.name === dataFormatName && element.version === dataFormatVersion
+      : element.name === dataFormatName,
+  );
+  const placeholderText =
+    models.length === 0 ? 'No frameworks available to select' : 'Select a framework';
   if (!modelContext && !loaded && data.servingRuntimeName !== '') {
     return <Skeleton />;
   }
@@ -39,15 +44,24 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
 
   return (
     <FormGroup label="Model framework (name - version)" isRequired>
-      <Select
-        toggleId="inference-service-framework-selection"
-        id="inference-service-framework-selection"
-        isOpen={isOpen}
-        placeholderText={
-          models.length === 0 ? 'No frameworks available to select' : 'Select a framework'
-        }
+      <SimpleSelect
+        dataTestId="inference-service-framework-selection"
         isDisabled={models.length === 0}
-        onToggle={(e, open) => setOpen(open)}
+        options={models.map((framework) => {
+          const name = framework.version
+            ? `${framework.name} - ${framework.version}`
+            : `${framework.name}`;
+          return {
+            key: name,
+            children: name,
+          };
+        })}
+        isFullWidth
+        toggleLabel={
+          selectedDataFormat && dataFormatVersion
+            ? `${dataFormatName} - ${dataFormatVersion}`
+            : dataFormatName || placeholderText
+        }
         onSelect={(_, option) => {
           if (typeof option === 'string') {
             const [name, version] = option.split(' - ');
@@ -60,20 +74,9 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
             if (valueSelected) {
               setData('format', { name, version });
             }
-            setOpen(false);
           }
         }}
-        selections={
-          data.format.version ? `${data.format.name} - ${data.format.version}` : data.format.name
-        }
-      >
-        {models.map((framework) => {
-          const name = framework.version
-            ? `${framework.name} - ${framework.version}`
-            : `${framework.name}`;
-          return <SelectOption key={name} value={name} />;
-        })}
-      </Select>
+      />
     </FormGroup>
   );
 };

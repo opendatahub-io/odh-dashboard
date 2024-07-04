@@ -8,11 +8,10 @@ class StorageModal extends Modal {
   }
 
   selectExistingPersistentStorage(name: string) {
-    this.find()
-      .findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Options menu' })
-      .findSelectOption(name)
+    cy.findByTestId('persistent-storage-group')
+      .findByRole('button', { name: 'Typeahead menu toggle' })
       .click();
+    cy.findByTestId('persistent-storage-group').findByRole('option', { name }).click();
   }
 
   findSubmitButton() {
@@ -190,9 +189,9 @@ class CreateSpawnerPage {
 
   selectExistingPersistentStorage(name: string) {
     cy.findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Options menu' })
-      .findSelectOption(name)
+      .findByRole('button', { name: 'Typeahead menu toggle' })
       .click();
+    cy.get('[id="dashboard-page-main"]').findByRole('option', { name }).click();
   }
 
   selectPVSize(name: string) {
@@ -271,9 +270,9 @@ class CreateSpawnerPage {
 
   selectExistingDataConnection(name: string) {
     cy.findByTestId('data-connection-group')
-      .findByRole('button', { name: 'Options menu' })
-      .findSelectOption(name)
+      .findByRole('button', { name: 'Typeahead menu toggle' })
       .click();
+    cy.get('[id="dashboard-page-main"]').findByRole('option', { name }).click();
   }
 
   findAwsNameInput() {

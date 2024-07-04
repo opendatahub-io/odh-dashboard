@@ -1,20 +1,8 @@
 import React from 'react';
-import {
-  Select,
-  SelectGroup,
-  SelectOption,
-  SelectVariant,
-} from '@patternfly/react-core/deprecated';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
-import {
-  byId,
-  byNotId,
-  createBiasSelectOption,
-  isBiasSelectOption,
-} from '~/pages/modelServing/screens/metrics/utils';
-import { BiasSelectOption } from '~/pages/modelServing/screens/metrics/types';
+import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 
 type BiasMetricConfigSelectorProps = {
   onChange: (x: BiasMetricConfig[]) => void;
@@ -26,71 +14,70 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
   initialSelections,
 }) => {
   const { biasMetricConfigs, loaded } = useModelBiasData();
-
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  const selected = React.useMemo(
-    () => initialSelections.map(createBiasSelectOption),
-    [initialSelections],
-  );
-
+  const [uiSelections, setUISelections] = React.useState<string>();
+  const [currentSelections, setCurrentSelections] = React.useState<string>();
   const elementId = React.useId();
 
-  const changeState = React.useCallback(
-    (options: BiasSelectOption[]) => {
-      onChange(options.map((x) => x.biasMetricConfig));
-    },
-    [onChange],
-  );
+  const spdConfigs = biasMetricConfigs.filter((x) => x.metricType === BiasMetricType.SPD);
+  const dirConfigs = biasMetricConfigs.filter((x) => x.metricType === BiasMetricType.DIR);
 
   return (
     <div style={{ maxWidth: '600px' }}>
       <span id={elementId} hidden>
         Select the metrics to display charts for
       </span>
-      <Select
-        variant={SelectVariant.typeaheadMulti}
-        typeAheadAriaLabel="Select a metric"
-        onToggle={(e, val) => setIsOpen(val)}
-        onSelect={(event, item) => {
-          if (isBiasSelectOption(item)) {
-            if (selected.find(byId(item))) {
-              // User has de-selected an item.
-              changeState(selected.filter(byNotId(item)));
-            } else {
-              // User has selected an item.
-              changeState([...selected, item]);
+      <div>ALL: {biasMetricConfigs.map((c) => c.name).join(', ')}</div>
+      <div>UI: {uiSelections}</div>
+      <div>current: {currentSelections}</div>
+      <div>initialSelections: {initialSelections.map((s) => s.name).join(', ')}</div>
+      <MultiSelection
+        ariaLabel="Select a metric"
+        groupedValues={[
+          {
+            id: 'SPD',
+            name: 'SPD',
+            values: spdConfigs.map((config) => ({
+              id: config.id,
+              name: config.name,
+              selected: !!initialSelections.find((s) => s.id === config.id),
+            })),
+          },
+          {
+            id: 'DIR',
+            name: 'DIR',
+            values: dirConfigs.map((config) => ({
+              id: config.id,
+              name: config.name,
+              selected: !!initialSelections.find((s) => s.id === config.id),
+            })),
+          },
+        ]}
+        setValue={(newState: SelectionOptions[]) => {
+          setUISelections(
+            newState
+              .filter((s) => s.selected)
+              .map((s) => s.name)
+              .join(', '),
+          );
+          const selections = newState.reduce<BiasMetricConfig[]>((acc, item) => {
+            if (item.selected) {
+              const selectedConfig = biasMetricConfigs.find((s) => s.id === item.id);
+              if (selectedConfig) {
+                acc.push(selectedConfig);
+              }
             }
-          }
+            return acc;
+          }, []);
+          setCurrentSelections(selections.map((s) => s.name).join(', '));
+          onChange(selections);
         }}
-        onClear={() => {
-          changeState([]);
-          setIsOpen(false);
-        }}
-        selections={selected}
-        isOpen={isOpen}
-        aria-labelledby={elementId}
-        placeholderText="Select a metric"
+        selectionRequired
+        noSelectedOptionsMessage="One or more groups must be seleted"
+        placeholder="Select a metric"
         isDisabled={!(loaded && biasMetricConfigs.length > 0)}
-        isGrouped
         id="bias-metric-config-selector"
         toggleId="bias-metric-config-selector"
-      >
-        <SelectGroup label="SPD" key="SPD">
-          {biasMetricConfigs
-            .filter((x) => x.metricType === BiasMetricType.SPD)
-            .map((x) => (
-              <SelectOption key={x.id} value={createBiasSelectOption(x)} />
-            ))}
-        </SelectGroup>
-        <SelectGroup label="DIR" key="DIR">
-          {biasMetricConfigs
-            .filter((x) => x.metricType === BiasMetricType.DIR)
-            .map((x) => (
-              <SelectOption key={x.id} value={createBiasSelectOption(x)} />
-            ))}
-        </SelectGroup>
-      </Select>
+      />
     </div>
   );
 };

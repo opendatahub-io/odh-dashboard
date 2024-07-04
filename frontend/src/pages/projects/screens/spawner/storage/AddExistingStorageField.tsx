@@ -1,7 +1,9 @@
 import * as React from 'react';
+import { TypeaheadSelect } from '@patternfly/react-templates';
+import { Alert, FormGroup } from '@patternfly/react-core';
 import { ExistingStorageObject } from '~/pages/projects/types';
-import ExistingPVCField from '~/pages/projects/components/ExistingPVCField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useAvailablePvcs from './useAvailablePvcs';
 
 type AddExistingStorageFieldProps = {
@@ -9,7 +11,7 @@ type AddExistingStorageFieldProps = {
   setData: (data: ExistingStorageObject) => void;
   editStorage?: string;
   selectDirection?: 'up' | 'down';
-  menuAppendTo?: HTMLElement | 'parent';
+  menuAppendTo?: HTMLElement;
 };
 
 const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
@@ -23,23 +25,54 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     currentProject,
     notebooks: { data: allNotebooks },
   } = React.useContext(ProjectDetailsContext);
-  const [pvcs, loaded, loadError] = useAvailablePvcs(
+  const [storages, loaded, loadError] = useAvailablePvcs(
     currentProject.metadata.name,
     allNotebooks,
     editStorage,
   );
 
+  if (loadError) {
+    return (
+      <Alert title="Error loading pvcs" variant="danger">
+        {loadError.message}
+      </Alert>
+    );
+  }
+
+  let placeholderText: string;
+
+  if (!loaded) {
+    placeholderText = 'Loading storages...';
+  } else if (storages.length === 0) {
+    placeholderText = 'No existing storages available';
+  } else {
+    placeholderText = 'Select a persistent storage';
+  }
+
   return (
-    <ExistingPVCField
+    <FormGroup
+      isRequired
+      label="Persistent storage"
       fieldId="add-existing-storage-pv-selection"
-      storages={pvcs}
-      loaded={loaded}
-      loadError={loadError}
-      selectedStorage={data.storage}
-      setStorage={(storage) => setData({ ...data, storage: storage || '' })}
-      selectDirection={selectDirection}
-      menuAppendTo={menuAppendTo}
-    />
+      data-testid="persistent-storage-group"
+    >
+      <TypeaheadSelect
+        initialOptions={
+          loaded
+            ? storages.map((pvc) => ({
+                value: pvc.metadata.name,
+                content: getDisplayNameFromK8sResource(pvc),
+                selected: pvc.metadata.name === data.storage,
+              }))
+            : []
+        }
+        onSelect={(_ev, storage) => setData({ ...data, storage: String(storage) || '' })}
+        placeholder={placeholderText}
+        noOptionsFoundMessage={(filter) => `No persistent storage was found for "${filter}"`}
+        popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
+        isDisabled={!loaded || storages.length === 0}
+      />
+    </FormGroup>
   );
 };
 

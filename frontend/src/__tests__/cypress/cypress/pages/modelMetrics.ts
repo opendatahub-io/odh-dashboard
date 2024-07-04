@@ -96,6 +96,10 @@ class ModelMetricsBias extends ModelMetricsGlobal {
     return cy.findByTestId('bias-metric-config-toolbar').find('#bias-metric-config-selector');
   }
 
+  selectMetric(name: string) {
+    cy.findByRole('option', { name }).click();
+  }
+
   shouldNotBeConfigured() {
     cy.findByTestId('bias-metrics-empty-state').should('exist');
   }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { TypeaheadSelect, TypeaheadSelectOption } from '@patternfly/react-templates';
 import { SearchIcon } from '@patternfly/react-icons';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
@@ -12,11 +12,11 @@ type Props = {
 };
 
 const ExperimentSearchInput: React.FC<Props> = ({ selected, onChange }) => {
-  const [open, setOpen] = React.useState(false);
   const [filterText, setFilterText] = React.useState('');
   const [filter, setFilter] = React.useState<PipelinesFilter>();
   const [{ items }, loaded] = useExperiments({ pageSize: filter ? 10 : 0, filter });
-  const experiments = React.useMemo(() => (filter && loaded ? items : []), [filter, loaded, items]);
+  const experiments = React.useMemo(() => (filter ? items : []), [filter, items]);
+  const [options, setOptions] = React.useState<TypeaheadSelectOption[]>([]);
 
   const setDebouncedFilter = useDebounceCallback(setFilter);
   React.useEffect(() => {
@@ -32,55 +32,40 @@ const ExperimentSearchInput: React.FC<Props> = ({ selected, onChange }) => {
     );
   }, [setDebouncedFilter, filterText]);
 
-  const children = loaded
-    ? experiments.map((experiment) => (
-        <SelectOption key={experiment.experiment_id} value={experiment.experiment_id}>
-          {experiment.display_name}
-        </SelectOption>
-      ))
-    : [];
-
-  const hasSelection = React.useMemo(
-    () =>
-      selected?.value
-        ? experiments.find((experiment) => experiment.experiment_id === selected.value)
-        : undefined,
-    [experiments, selected?.value],
-  );
+  React.useEffect(() => {
+    if (loaded) {
+      setOptions(
+        experiments.map((experiment) => ({
+          value: experiment.experiment_id,
+          content: experiment.display_name,
+          selected: selected?.value === experiment.experiment_id,
+        })),
+      );
+    }
+  }, [experiments, loaded, selected?.value]);
 
   return (
-    <Select
-      toggleIcon={<SearchIcon />}
-      autoComplete="off"
-      isOpen={open}
-      variant={SelectVariant.typeahead}
-      onFilter={() => children}
-      onTypeaheadInputChanged={setFilterText}
-      onToggle={(e, isOpen) => setOpen(isOpen)}
-      selections={hasSelection ? selected?.value : undefined}
-      onSelect={(_, value) => {
+    <TypeaheadSelect
+      initialOptions={options}
+      onSelect={(_ev, value) => {
         if (typeof value === 'string') {
           const experiment = experiments.find((p) => p.experiment_id === value);
           if (experiment) {
             setFilterText(experiment.display_name);
             onChange({ value, label: experiment.display_name });
-            setOpen(false);
           }
         }
       }}
-      onClear={() => {
-        setFilterText('');
-        setFilter(undefined);
+      onInputChange={setFilterText}
+      placeholder="Search..."
+      noOptionsFoundMessage="No matching experiments"
+      noOptionsAvailableMessage="Search for an experiment name"
+      toggleProps={{
+        id: 'experiment-search-input',
+        icon: <SearchIcon style={{ marginLeft: 8 }} />,
       }}
-      placeholderText="Search..."
-      noResultsFoundText="Search for an experiment name"
-      loadingVariant={filter && !loaded ? 'spinner' : undefined}
-      isInputValuePersisted
-      toggleId="experiment-search-input"
       data-testid="experiment-search-select"
-    >
-      {children}
-    </Select>
+    />
   );
 };
 

@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ReactElement } from 'react';
 import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
-import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { Link } from 'react-router-dom';
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -218,9 +217,8 @@ export const checkConfigurationFieldsValid = (
   checkThresholdValid(metricType, configurations.thresholdDelta) &&
   checkBatchSizeValid(configurations.batchSize);
 
-export const isMetricType = (
-  metricType: string | SelectOptionObject,
-): metricType is BiasMetricType => isEnumMember(metricType.toString(), BiasMetricType);
+export const isMetricType = (metricType: string | null): metricType is BiasMetricType =>
+  isEnumMember(metricType, BiasMetricType);
 
 export const byId =
   <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>
@@ -273,9 +271,6 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
     compareTo: byId(id),
   };
 };
-export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
-  'biasMetricConfig' in obj;
-
 export const convertInputType = (input: string): number | boolean | string => {
   if (input !== '' && !Number.isNaN(Number(input))) {
     return Number(input);

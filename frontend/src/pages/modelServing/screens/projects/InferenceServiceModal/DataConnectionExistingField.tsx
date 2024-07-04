@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Button, FormGroup, Popover, Stack, StackItem } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { filterOutConnectionsWithoutBucket } from '~/pages/modelServing/screens/projects/utils';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
 type DataConnectionExistingFieldType = {
@@ -19,10 +19,15 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
   setData,
   dataConnections,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
   const connectionsWithoutBucket = filterOutConnectionsWithoutBucket(dataConnections);
   const isDataConnectionsEmpty = connectionsWithoutBucket.length === 0;
+  const placeholderText = isDataConnectionsEmpty
+    ? 'No data connections available to select'
+    : 'Select...';
 
+  const selectedDataConnection = connectionsWithoutBucket.find(
+    (connection) => connection.data.metadata.name === data.storage.dataConnection,
+  );
   return (
     <Stack hasGutter>
       <StackItem>
@@ -42,35 +47,29 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
           </Popover>
         )}
         <FormGroup label="Name" isRequired>
-          <Select
+          <SimpleSelect
             id="inference-service-data-connection"
-            isOpen={isOpen}
-            placeholderText={
-              isDataConnectionsEmpty ? 'No data connections available to select' : 'Select...'
-            }
+            isFullWidth
             isDisabled={isDataConnectionsEmpty}
-            onToggle={(e, open) => setOpen(open)}
+            options={connectionsWithoutBucket.map((connection) => ({
+              key: connection.data.metadata.name,
+              children: getDataConnectionDisplayName(connection),
+            }))}
+            selected={data.storage.dataConnection}
+            toggleLabel={
+              selectedDataConnection
+                ? getDataConnectionDisplayName(selectedDataConnection)
+                : placeholderText
+            }
             onSelect={(_, option) => {
               if (typeof option === 'string') {
                 setData('storage', {
                   ...data.storage,
                   dataConnection: option,
                 });
-                setOpen(false);
               }
             }}
-            selections={data.storage.dataConnection}
-            menuAppendTo="parent"
-          >
-            {connectionsWithoutBucket.map((connection) => (
-              <SelectOption
-                key={connection.data.metadata.name}
-                value={connection.data.metadata.name}
-              >
-                {getDataConnectionDisplayName(connection)}
-              </SelectOption>
-            ))}
-          </Select>
+          />
         </FormGroup>
       </StackItem>
       <StackItem>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, FormGroup } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+import { TypeaheadSelect } from '@patternfly/react-templates';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 
@@ -15,7 +15,6 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
   selectedDataConnection,
   setDataConnection,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
   const {
     dataConnections: { data: connections, loaded, error },
   } = React.useContext(ProjectDetailsContext);
@@ -45,32 +44,22 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
       fieldId={fieldId}
       data-testid="data-connection-group"
     >
-      <Select
-        variant="typeahead"
-        selections={selectedDataConnection}
-        isOpen={isOpen}
-        onClear={() => {
-          setDataConnection(undefined);
-          setOpen(false);
-        }}
-        isDisabled={empty}
-        onSelect={(e, selection) => {
-          if (typeof selection === 'string') {
-            setDataConnection(selection);
-            setOpen(false);
-          }
-        }}
-        onToggle={(e, isExpanded) => setOpen(isExpanded)}
-        placeholderText={placeholderText}
-        direction="up"
-        menuAppendTo="parent"
-      >
-        {connections.map((connection) => (
-          <SelectOption key={connection.data.metadata.name} value={connection.data.metadata.name}>
-            {getDataConnectionDisplayName(connection)}
-          </SelectOption>
-        ))}
-      </Select>
+      <TypeaheadSelect
+        initialOptions={
+          loaded
+            ? connections.map((connection) => ({
+                value: connection.data.metadata.name,
+                content: getDataConnectionDisplayName(connection),
+                selected: connection.data.metadata.name === selectedDataConnection,
+              }))
+            : []
+        }
+        onSelect={(_ev, selection) => setDataConnection(String(selection))}
+        onClearSelection={() => setDataConnection()}
+        placeholder={placeholderText}
+        noOptionsFoundMessage={(filter) => `No data connection was found for "${filter}"`}
+        isDisabled={!loaded || connections.length === 0}
+      />
     </FormGroup>
   );
 };

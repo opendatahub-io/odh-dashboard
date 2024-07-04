@@ -29,7 +29,7 @@ class ClusterStorageModal extends Modal {
   findWorkbenchConnectionSelect() {
     return this.find()
       .findByTestId('connect-existing-workbench-group')
-      .findByRole('button', { name: 'Options menu' });
+      .findByRole('button', { name: 'Typeahead menu toggle' });
   }
 
   findMountField() {
