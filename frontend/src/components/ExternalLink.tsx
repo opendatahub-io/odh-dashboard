@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { fireTrackingEventRaw } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 type ExternalLinkProps = {
   text: string;

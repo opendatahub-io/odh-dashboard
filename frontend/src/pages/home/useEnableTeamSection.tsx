@@ -13,7 +13,7 @@ import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { fireTrackingEventRaw } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
   const navigate = useNavigate();

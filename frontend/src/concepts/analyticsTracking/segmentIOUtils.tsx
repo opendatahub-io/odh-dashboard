@@ -1,5 +1,5 @@
-import { TrackingEventProperties } from '~/types';
-import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from './const';
+import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '~/utilities/const';
+import { TrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
 // The following is like the original method below, but allows for more 'free form' properties.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/explicit-module-boundary-types
