@@ -49,7 +49,7 @@ export const assembleNotebook = (
     existingTolerations,
     existingResources,
   } = data;
-  const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
+  const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName, 'wb-');
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 
