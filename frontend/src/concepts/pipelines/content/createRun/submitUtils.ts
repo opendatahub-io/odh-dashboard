@@ -6,11 +6,11 @@ import {
   ScheduledType,
 } from '~/concepts/pipelines/content/createRun/types';
 import {
-  CreatePipelineRunJobKFData,
+  CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
   DateTimeKF,
   InputDefinitionParameterType,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
   RecurringRunMode,
@@ -55,10 +55,10 @@ export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF 
   return date.toISOString();
 };
 
-const createJob = async (
+const createRecurringRun = async (
   formData: SafeRunFormData,
-  createPipelineRunJob: PipelineAPIs['createPipelineRunJob'],
-): Promise<PipelineRunJobKFv2> => {
+  createPipelineRecurringRun: PipelineAPIs['createPipelineRecurringRun'],
+): Promise<PipelineRecurringRunKFv2> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
@@ -68,7 +68,7 @@ const createJob = async (
   const periodicScheduleIntervalTime = convertPeriodicTimeToSeconds(formData.runType.data.value);
 
   /* eslint-disable camelcase */
-  const data: CreatePipelineRunJobKFData = {
+  const data: CreatePipelineRecurringRunKFData = {
     display_name: formData.nameDesc.name,
     description: formData.nameDesc.description,
     pipeline_version_reference: {
@@ -107,14 +107,14 @@ const createJob = async (
   };
   /* eslint-enable camelcase */
 
-  return createPipelineRunJob({}, data);
+  return createPipelineRecurringRun({}, data);
 };
 
 /** Returns the relative path to navigate to from the namespace qualified route */
 export const handleSubmit = (
   formData: RunFormData,
   api: PipelineAPIs,
-): Promise<PipelineRunKFv2 | PipelineRunJobKFv2> => {
+): Promise<PipelineRunKFv2 | PipelineRecurringRunKFv2> => {
   if (!isFilledRunFormData(formData)) {
     throw new Error('Form data was incomplete.');
   }
@@ -123,7 +123,7 @@ export const handleSubmit = (
     case RunTypeOption.ONE_TRIGGER:
       return createRun(formData, api.createPipelineRun);
     case RunTypeOption.SCHEDULED:
-      return createJob(formData, api.createPipelineRunJob);
+      return createRecurringRun(formData, api.createPipelineRecurringRun);
     default:
       // eslint-disable-next-line no-console
       console.error('Unknown run type', formData.runType);

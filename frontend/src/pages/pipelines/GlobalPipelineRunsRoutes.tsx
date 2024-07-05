@@ -11,15 +11,15 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
-import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
+import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
 import {
   globNamespaceAll,
   globPipelineDetails,
   globPipelineRunClone,
   globPipelineRunCreate,
   globPipelineRunDetails,
-  globPipelineRunJobClone,
-  globPipelineRunJobDetails,
+  globPipelineRecurringRunClone,
+  globPipelineRecurringRunDetails,
   routePipelineRunsNamespace,
 } from '~/routes';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
@@ -58,10 +58,10 @@ const GlobalPipelineRunsRoutes: React.FC = () => (
         }
       />
       <Route
-        path={globPipelineRunJobDetails}
+        path={globPipelineRecurringRunDetails}
         element={
           <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={PipelineRunJobDetails}
+            BreadcrumbDetailsComponent={PipelineRecurringRunDetails}
             pageName="Runs"
             redirectPath={routePipelineRunsNamespace}
           />
@@ -88,7 +88,7 @@ const GlobalPipelineRunsRoutes: React.FC = () => (
         }
       />
       <Route
-        path={globPipelineRunJobClone}
+        path={globPipelineRecurringRunClone}
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={CloneRunPage}

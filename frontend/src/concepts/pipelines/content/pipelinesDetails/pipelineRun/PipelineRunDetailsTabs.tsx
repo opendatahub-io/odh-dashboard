@@ -4,11 +4,11 @@ import { Tabs, Tab, TabTitleText, TabContentBody, TabContent } from '@patternfly
 
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import {
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
-import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
 import PipelineRunTabDetails from './PipelineRunTabDetails';
 
 enum DetailsTabKey {
@@ -18,7 +18,7 @@ enum DetailsTabKey {
 }
 
 interface PipelineRunDetailsTabsProps {
-  run: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
+  run: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
   pipelineSpec: PipelineSpecVariable | undefined;
   graphContent: React.ReactNode;
 }
@@ -29,7 +29,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
   graphContent,
 }) => {
   const [activeKey, setActiveKey] = React.useState<string | number>(DetailsTabKey.Graph);
-  const isJob = run && isPipelineRunJob(run);
+  const isRecurringRun = run && isPipelineRecurringRun(run);
 
   return (
     <>
@@ -57,7 +57,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
           </TabContentBody>
         </Tab>
 
-        {!isJob && pipelineSpec && (
+        {!isRecurringRun && pipelineSpec && (
           <Tab
             eventKey={DetailsTabKey.Spec}
             tabContentId={DetailsTabKey.Spec}

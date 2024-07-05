@@ -2,8 +2,8 @@ import {
   routePipelineRunCloneNamespacePipelinesPage,
   routePipelineRunCreateNamespacePipelinesPage,
   routePipelineRunDetailsNamespacePipelinesPage,
-  routePipelineRunJobCloneNamespacePipelinesPage,
-  routePipelineRunJobDetailsNamespacePipelinesPage,
+  routePipelineRecurringRunCloneNamespacePipelinesPage,
+  routePipelineRecurringRunDetailsNamespacePipelinesPage,
 } from './global';
 import {
   experimentRunDetailsRoute,
@@ -21,7 +21,7 @@ export const cloneScheduleRoute = (
 ): string =>
   experimentId
     ? experimentsCloneScheduleRoute(namespace, experimentId, recurringRunId)
-    : routePipelineRunJobCloneNamespacePipelinesPage(namespace, recurringRunId);
+    : routePipelineRecurringRunCloneNamespacePipelinesPage(namespace, recurringRunId);
 
 export const scheduleRunRoute = (
   namespace: string | undefined,
@@ -46,7 +46,7 @@ export const scheduleDetailsRoute = (
 ): string =>
   experimentId
     ? experimentScheduleDetailsRoute(namespace, experimentId, recurringRunId)
-    : routePipelineRunJobDetailsNamespacePipelinesPage(namespace, recurringRunId);
+    : routePipelineRecurringRunDetailsNamespacePipelinesPage(namespace, recurringRunId);
 
 export const runDetailsRoute = (
   namespace: string,

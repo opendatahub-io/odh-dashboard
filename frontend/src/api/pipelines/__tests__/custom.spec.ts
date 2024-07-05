@@ -1,24 +1,24 @@
 /* eslint-disable camelcase */
 import {
   createExperiment,
+  createPipelineRecurringRun,
   createPipelineRun,
-  createPipelineRunJob,
   deletePipeline,
+  deletePipelineRecurringRun,
   deletePipelineRun,
-  deletePipelineRunJob,
   deletePipelineVersion,
   getExperiment,
   getPipeline,
+  getPipelineRecurringRun,
   getPipelineRun,
-  getPipelineRunJob,
   getPipelineVersion,
   listExperiments,
-  listPipelineRunJobs,
+  listPipelineRecurringRuns,
   listPipelineRuns,
   listPipelineVersions,
   listPipelines,
   stopPipelineRun,
-  updatePipelineRunJob,
+  updatePipelineRecurringRun,
   uploadPipeline,
   uploadPipelineVersion,
 } from '~/api/pipelines/custom';
@@ -26,7 +26,7 @@ import { handlePipelineFailures } from '~/api/pipelines/errorUtils';
 import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
 import {
   CreateExperimentKFData,
-  CreatePipelineRunJobKFData,
+  CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
   RecurringRunMode,
 } from '~/concepts/pipelines/kfTypes';
@@ -117,8 +117,8 @@ describe('createPipelineRun', () => {
   });
 });
 
-describe('createPipelineRunJob', () => {
-  const data: CreatePipelineRunJobKFData = {
+describe('createPipelineRecurringRun', () => {
+  const data: CreatePipelineRecurringRunKFData = {
     display_name: 'name',
     max_concurrency: 'max_concurrency',
     trigger: {
@@ -132,8 +132,8 @@ describe('createPipelineRunJob', () => {
     },
     mode: RecurringRunMode.ENABLE,
   };
-  it('should call proxyCREATE and handlePipelineFailures to create pipeline run job', () => {
-    expect(createPipelineRunJob('hostPath')({}, data)).toBe(mockResultPromise);
+  it('should call proxyCREATE and handlePipelineFailures to create pipeline recurring run', () => {
+    expect(createPipelineRecurringRun('hostPath')({}, data)).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',
@@ -212,13 +212,15 @@ describe('getPipelineRun', () => {
   });
 });
 
-describe('getPipelineRunJob', () => {
-  it('should call proxyGET and handlePipelineFailures to fetch pipeline run job', () => {
-    expect(getPipelineRunJob('hostPath')({}, 'pipelineRunJobId')).toBe(mockResultPromise);
+describe('getPipelineRecurringRun', () => {
+  it('should call proxyGET and handlePipelineFailures to fetch pipeline recurring run', () => {
+    expect(getPipelineRecurringRun('hostPath')({}, 'pipelineRecurringRunId')).toBe(
+      mockResultPromise,
+    );
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v2beta1/recurringruns/pipelineRunJobId',
+      '/apis/v2beta1/recurringruns/pipelineRecurringRunId',
       {},
       {},
     );
@@ -276,13 +278,13 @@ describe('deletePipelineRun', () => {
   });
 });
 
-describe('deletePipelineRunJob', () => {
-  it('should call proxyDELETE and handlePipelineFailures to delete pipeline run job', () => {
-    expect(deletePipelineRunJob('hostPath')({}, 'jobId')).toBe(mockResultPromise);
+describe('deletePipelineRecurringRun', () => {
+  it('should call proxyDELETE and handlePipelineFailures to delete pipeline recurring run', () => {
+    expect(deletePipelineRecurringRun('hostPath')({}, 'recurringRunId')).toBe(mockResultPromise);
     expect(proxyDELETEMock).toHaveBeenCalledTimes(1);
     expect(proxyDELETEMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v2beta1/recurringruns/jobId',
+      '/apis/v2beta1/recurringruns/recurringRunId',
       {},
       {},
       {},
@@ -350,9 +352,9 @@ describe('listPipelineRuns', () => {
   });
 });
 
-describe('listPipelineRunJobs', () => {
-  it('should call proxyGET and handlePipelineFailures to list pipeline run jobs', () => {
-    expect(listPipelineRunJobs('hostPath')({}, createParam())).toBe(mockResultPromise);
+describe('listPipelineRecurringRuns', () => {
+  it('should call proxyGET and handlePipelineFailures to list pipeline recurring runs', () => {
+    expect(listPipelineRecurringRuns('hostPath')({}, createParam())).toBe(mockResultPromise);
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
@@ -401,25 +403,29 @@ describe('stopPipelineRun', () => {
   });
 });
 
-describe('updatePipelineRunJob', () => {
-  it('should call proxyENDPOINT and handlePipelineFailures to update pipeline run job, when enabled is true', () => {
-    expect(updatePipelineRunJob('hostPath')({}, 'jobId', true)).toBe(mockResultPromise);
+describe('updatePipelineRecurringRun', () => {
+  it('should call proxyENDPOINT and handlePipelineFailures to update pipeline recurring run, when enabled is true', () => {
+    expect(updatePipelineRecurringRun('hostPath')({}, 'recurringRunId', true)).toBe(
+      mockResultPromise,
+    );
     expect(proxyENDPOINTMock).toHaveBeenCalledTimes(1);
     expect(proxyENDPOINTMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v2beta1/recurringruns/jobId:enable',
+      '/apis/v2beta1/recurringruns/recurringRunId:enable',
       {},
       {},
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
-  it('should call proxyENDPOINT and handlePipelineFailures to update pipeline run job, when enabled is false', () => {
-    expect(updatePipelineRunJob('hostPath')({}, 'jobId', false)).toBe(mockResultPromise);
+  it('should call proxyENDPOINT and handlePipelineFailures to update pipeline recurring run, when enabled is false', () => {
+    expect(updatePipelineRecurringRun('hostPath')({}, 'recurringRunId', false)).toBe(
+      mockResultPromise,
+    );
     expect(proxyENDPOINTMock).toHaveBeenCalledTimes(1);
     expect(proxyENDPOINTMock).toHaveBeenCalledWith(
       'hostPath',
-      '/apis/v2beta1/recurringruns/jobId:disable',
+      '/apis/v2beta1/recurringruns/recurringRunId:disable',
       {},
       {},
     );

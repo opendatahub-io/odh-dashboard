@@ -179,14 +179,14 @@ class PipelineDetails extends PipelinesTopology {
   }
 }
 
-class PipelineRunJobDetails extends RunDetails {
+class PipelineRecurringRunDetails extends RunDetails {
   visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRunJob/view/${pipelineId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRecurringRun/view/${pipelineId}`);
     this.wait();
   }
 
   findActionsDropdown() {
-    return cy.findByTestId('pipeline-run-job-details-actions');
+    return cy.findByTestId('pipeline-recurring-run-details-actions');
   }
 
   selectActionDropdownItem(label: string) {
@@ -259,5 +259,5 @@ class PipelineRunDetails extends RunDetails {
 
 export const pipelineDetails = new PipelineDetails();
 export const pipelineRunDetails = new PipelineRunDetails();
-export const pipelineRunJobDetails = new PipelineRunJobDetails();
+export const pipelineRecurringRunDetails = new PipelineRecurringRunDetails();
 export const pipelinesTopology = new PipelinesTopology();

@@ -5,9 +5,9 @@ import { TableRowTitleDescription } from '~/components/table';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
-import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { runDetailsRoute } from '~/routes';
+import PipelineRecurringRunReferenceName from '~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
 
 type PipelineRunTableRowTitleProps = {
   run: PipelineRunKFv2;
@@ -32,7 +32,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run
         </Link>
       }
       subtitle={
-        <PipelineJobReferenceName
+        <PipelineRecurringRunReferenceName
           runName={run.display_name}
           recurringRunId={run.recurring_run_id}
         />
