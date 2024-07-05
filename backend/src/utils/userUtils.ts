@@ -1,9 +1,9 @@
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
-import { DEV_IMPERSONATE_USER, USER_ACCESS_TOKEN } from './constants';
-import { KubeFastifyInstance } from '../types';
-import { DEV_MODE } from './constants';
+import { DEV_IMPERSONATE_USER, USER_ACCESS_TOKEN, DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
+import { errorHandler, isHttpError } from '../utils';
+import { KubeFastifyInstance } from '../types';
 import { isImpersonating } from '../devFlags';
 
 export const usernameTranslate = (username: string): string => {
@@ -48,7 +48,7 @@ export const getOpenshiftUser = async (
     );
     return userResponse.body as OpenShiftUser;
   } catch (e) {
-    throw new Error(`Error retrieving user, ${e.response?.body?.message || e.message}`);
+    throw new Error(`Error retrieving user, ${errorHandler(e)}`);
   }
 };
 
@@ -78,9 +78,9 @@ export const getUser = async (
     return userResponse.body as OpenShiftUser;
   } catch (e) {
     const error = createCustomError(
-      e.message,
-      `Error getting Oauth Info for user, ${e.response?.body?.message || e.message}`,
-      e.statusCode,
+      errorHandler(e),
+      `Error getting Oauth Info for user, ${errorHandler(e)}`,
+      (isHttpError(e) && e.statusCode) || 401,
     );
     throw error;
   }
@@ -98,15 +98,15 @@ export const getUserName = async (
   } catch (e) {
     if (DEV_MODE) {
       if (isImpersonating()) {
-        return DEV_IMPERSONATE_USER;
+        return DEV_IMPERSONATE_USER ?? '';
       }
-      return (currentUser.username || currentUser.name)?.split('/')[0];
+      return (currentUser.username || currentUser.name).split('/')[0];
     }
-    fastify.log.error(`Failed to retrieve username: ${e.response?.body?.message || e.message}`);
+    fastify.log.error(`Failed to retrieve username: ${errorHandler(e)}`);
     const error = createCustomError(
       'Unauthorized',
-      `Failed to retrieve username: ${e.response?.body?.message || e.message}`,
-      e.statusCode || 500,
+      `Failed to retrieve username: ${errorHandler(e)}`,
+      (isHttpError(e) && e.statusCode) || 500,
     );
     throw error;
   }

@@ -1,6 +1,6 @@
 import { FastifyReply } from 'fastify';
-import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { PassThroughData, passThroughText, passThroughResource } from './pass-through';
+import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -26,10 +26,10 @@ module.exports = async (fastify: KubeFastifyInstance) => {
 
       const data = JSON.stringify(req.body);
       const kubeUri = req.params['*'];
-      let url = `${cluster.server}/${kubeUri}`;
+      let url = `${cluster?.server}/${kubeUri}`;
 
       // Apply query params
-      const query = req.query;
+      const { query } = req;
       if (Object.keys(query).length > 0) {
         url += `?${Object.keys(query)
           .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)

@@ -6,19 +6,25 @@ export const DEFAULT_INACTIVE_TIMEOUT: number = 30 * 60 * 1000;
 export const ACTIVITY_TIMEOUT: number = 2 * 60 * 1000;
 
 export type ResourceWatcherTimeUpdate = {
-  activeWatchInterval?: number;
-  inactiveWatchInterval?: number;
+  activeWatchInterval: number;
+  inactiveWatchInterval: number;
 };
 
 export class ResourceWatcher<T> {
   readonly fastify: KubeFastifyInstance;
+
   readonly getter: (fastify: KubeFastifyInstance) => Promise<T[]>;
-  readonly getTimesForResults: (results: T[]) => ResourceWatcherTimeUpdate;
+
+  readonly getTimesForResults?: (results: T[]) => ResourceWatcherTimeUpdate;
+
   private activeWatchInterval: number;
+
   private inactiveWatchInterval: number;
 
-  private watchTimer: NodeJS.Timeout = undefined;
-  private activeTimer: NodeJS.Timeout = undefined;
+  private watchTimer: NodeJS.Timeout | undefined | null;
+
+  private activeTimer: NodeJS.Timeout | undefined;
+
   private activelyWatching = false;
 
   private resources: T[] = [];
@@ -26,7 +32,7 @@ export class ResourceWatcher<T> {
   constructor(
     fastify: KubeFastifyInstance,
     getter: (fastify: KubeFastifyInstance) => Promise<T[]>,
-    getTimesForResults: (results: T[]) => ResourceWatcherTimeUpdate = undefined,
+    getTimesForResults?: (results: T[]) => ResourceWatcherTimeUpdate,
     activeWatchInterval: number = DEFAULT_ACTIVE_TIMEOUT,
     inactiveWatchInterval: number = DEFAULT_INACTIVE_TIMEOUT,
   ) {
