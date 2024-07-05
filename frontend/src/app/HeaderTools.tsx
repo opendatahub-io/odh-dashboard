@@ -7,13 +7,12 @@ import {
   ToolbarItem,
   Button,
   Tooltip,
-} from '@patternfly/react-core';
-import {
-  Dropdown,
-  DropdownPosition,
-  DropdownToggle,
+  MenuToggleElement,
+  MenuToggle,
   DropdownItem,
-} from '@patternfly/react-core/deprecated';
+  Dropdown,
+  DropdownList,
+} from '@patternfly/react-core';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
@@ -82,7 +81,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="documentation"
         onClick={handleHelpClick}
-        href={DOC_LINK}
+        to={DOC_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -95,7 +94,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="support"
         onClick={handleHelpClick}
-        href={SUPPORT_LINK}
+        to={SUPPORT_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -108,7 +107,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="community"
         onClick={handleHelpClick}
-        href={COMMUNITY_LINK}
+        to={COMMUNITY_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -122,7 +121,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <ToolbarContent>
         <ToolbarGroup variant="icon-button-group" align={{ default: 'alignRight' }}>
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
-            <ToolbarItem>
+            <ToolbarItem data-testid="application-launcher">
               <AppLauncher />
             </ToolbarItem>
           ) : null}
@@ -137,21 +136,24 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
           {helpMenuItems.length > 0 ? (
             <ToolbarItem>
               <Dropdown
-                isPlain
-                position={DropdownPosition.right}
-                toggle={
-                  <DropdownToggle
+                popperProps={{ position: 'right' }}
+                onOpenChange={(isOpen) => setHelpMenuOpen(isOpen)}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    variant="plain"
                     aria-label="Help items"
-                    toggleIndicator={null}
                     id="help-icon-toggle"
-                    onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
+                    ref={toggleRef}
+                    onClick={() => setHelpMenuOpen(!helpMenuOpen)}
+                    isExpanded={helpMenuOpen}
                   >
                     <QuestionCircleIcon />
-                  </DropdownToggle>
-                }
+                  </MenuToggle>
+                )}
                 isOpen={helpMenuOpen}
-                dropdownItems={helpMenuItems}
-              />
+              >
+                <DropdownList>{helpMenuItems}</DropdownList>
+              </Dropdown>
             </ToolbarItem>
           ) : null}
         </ToolbarGroup>
@@ -175,16 +177,24 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         )}
         <ToolbarItem>
           <Dropdown
-            isPlain
-            position={DropdownPosition.right}
-            toggle={
-              <DropdownToggle id="user-menu-toggle" onToggle={() => setUserMenuOpen(!userMenuOpen)}>
+            popperProps={{ position: 'right' }}
+            onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                variant="plainText"
+                aria-label="User menu"
+                id="user-menu-toggle"
+                ref={toggleRef}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                isExpanded={userMenuOpen}
+              >
                 {userName}
-              </DropdownToggle>
-            }
+              </MenuToggle>
+            )}
             isOpen={userMenuOpen}
-            dropdownItems={userMenuItems}
-          />
+          >
+            <DropdownList>{userMenuItems}</DropdownList>
+          </Dropdown>
         </ToolbarItem>
       </ToolbarContent>
     </Toolbar>

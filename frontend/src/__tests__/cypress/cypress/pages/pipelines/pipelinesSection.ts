@@ -24,11 +24,12 @@ class PipelinesSection {
   }
 
   findKebabActions() {
-    return this.find().findKebab(true);
+    return this.find().findByRole('button', { name: 'Pipeline server action kebab toggle' });
   }
 
   findKebabActionItem(name: string) {
-    return this.find().findKebabAction(name, true);
+    this.findKebabActions().click();
+    return cy.findByRole('menuitem', { name });
   }
 }
 

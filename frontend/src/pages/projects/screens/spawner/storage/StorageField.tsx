@@ -30,6 +30,7 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
             body={
               storageType === StorageType.NEW_PVC && (
                 <CreateNewStorageSection
+                  menuAppendTo={getDashboardMainContainer()}
                   data={creating}
                   setData={(key, value) =>
                     setStorageData('creating', { ...creating, [key]: value })

@@ -62,7 +62,7 @@ class ClusterStorageModal extends Modal {
   }
 
   shouldHavePVSizeSelectValue(name: string) {
-    this.findPVSizeSelectButton().findByRole('button', { name }).should('exist');
+    this.findPVSizeSelectButton().contains(name).should('exist');
     return this;
   }
 

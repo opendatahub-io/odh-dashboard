@@ -90,7 +90,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRunTableProps> = ({
             data-testid="schedules-table-toolbar"
             dropdownActions={
               <SimpleMenuActions
-                data-testid="run-table-toolbar-actions"
+                testId="run-table-toolbar-actions"
                 dropdownItems={[
                   {
                     key: 'delete',
