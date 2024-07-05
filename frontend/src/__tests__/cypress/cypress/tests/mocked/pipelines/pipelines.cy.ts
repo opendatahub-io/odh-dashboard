@@ -862,7 +862,7 @@ describe('Pipelines', () => {
       .findPipelineVersionLink()
       .click();
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -875,7 +875,7 @@ describe('Pipelines', () => {
     pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -977,7 +977,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('Create run')
       .click();
-    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
+    );
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
@@ -992,7 +994,9 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
+    );
   });
 
   it('navigate to view runs page from pipeline version row', () => {
@@ -1008,7 +1012,7 @@ describe('Pipelines', () => {
       .findKebabAction('View runs')
       .click();
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=active`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs`,
     );
   });
 
@@ -1024,7 +1028,7 @@ describe('Pipelines', () => {
       .findKebabAction('View schedules')
       .click();
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=scheduled`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules`,
     );
   });
 
@@ -1171,6 +1175,29 @@ export const initIntercepts = ({
     },
     buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: initialMockPipeline.pipeline_id,
+      },
+    },
+    initialMockPipeline,
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: initialMockPipeline.pipeline_id,
+        pipelineVersionId: initialMockPipelineVersion.pipeline_version_id,
+      },
+    },
+    initialMockPipelineVersion,
+  );
 };
 
 const createDeleteVersionIntercept = (pipelineId: string, pipelineVersionId: string) =>
@@ -1200,7 +1227,9 @@ export const runCreateRunPageNavTest = (visitPipelineProjects: () => void): void
   // Wait for the pipelines table to load
   pipelinesTable.find();
   pipelinesTable.getRowById(initialMockPipeline.pipeline_id).findKebabAction('Create run').click();
-  verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+  verifyRelativeURL(
+    `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
+  );
 };
 
 export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): void => {
@@ -1213,7 +1242,9 @@ export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): vo
     .findKebabAction('Create schedule')
     .click();
 
-  verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+  verifyRelativeURL(
+    `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
+  );
 };
 
 export const viewPipelineServerDetailsTest = (visitPipelineProjects: () => void): void => {

@@ -15,7 +15,7 @@ type PipelineRunTableRowTitleProps = {
 
 const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run }) => {
   const { namespace } = usePipelinesAPI();
-  const { experimentId } = useParams();
+  const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
@@ -26,6 +26,8 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run
             namespace,
             run.run_id,
             isExperimentsAvailable ? experimentId : undefined,
+            pipelineId,
+            pipelineVersionId,
           )}
         >
           <TableText wrapModifier="truncate">{run.display_name}</TableText>

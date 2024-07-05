@@ -25,12 +25,10 @@ import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { createRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { useGetArtifactsByRuns } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
 import { ArtifactProperty } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { RunWithMetrics } from './types';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
@@ -76,8 +74,6 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { experimentId, pipelineVersionId, pipelineId } = useParams();
-  const [pipeline] = usePipelineById(pipelineId);
-  const [pipelineVersion] = usePipelineVersionById(pipelineId, pipelineVersionId);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
   const {
@@ -136,9 +132,14 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         data-testid="create-run-button"
         variant="primary"
         onClick={() =>
-          navigate(createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined), {
-            state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-          })
+          navigate(
+            createRunRoute(
+              namespace,
+              isExperimentsAvailable ? experimentId : undefined,
+              pipelineId,
+              pipelineVersionId,
+            ),
+          )
         }
       >
         Create run
@@ -152,8 +153,8 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
     namespace,
     isExperimentsAvailable,
     experimentId,
-    pipeline,
-    pipelineVersion,
+    pipelineId,
+    pipelineVersionId,
   ]);
 
   const compareRunsAction =
@@ -205,7 +206,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
     let columns = isExperimentsEnabled
       ? getExperimentRunColumns(metricsColumnNames)
       : pipelineRunColumns;
-    if (isExperimentsAvailable && experimentId) {
+    if (isExperimentsEnabled) {
       columns = columns.filter((column) => column.field !== 'experiment');
     }
     if (pipelineVersionId) {
@@ -297,6 +298,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
                 )}
               </Td>
             ))}
+            runType={runType}
           />
         )}
         variant={TableVariant.compact}
@@ -358,8 +360,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs, page, ...prop
 
   const runsWithMetrics = runs.map((run) => ({
     ...run,
-    metrics: runArtifacts.reduce((acc: ArtifactProperty[], runArtifactseMap) => {
-      const artifacts = Object.entries(runArtifactseMap).find(
+    metrics: runArtifacts.reduce((acc: ArtifactProperty[], runArtifactsMap) => {
+      const artifacts = Object.entries(runArtifactsMap).find(
         ([runId]) => run.run_id === runId,
       )?.[1];
 

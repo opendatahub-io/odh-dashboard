@@ -2,10 +2,8 @@
 import startCase from 'lodash-es/startCase';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import {
-  mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
   mockProjectK8sResource,
-  mockRouteK8sResource,
   buildMockRunKF,
   buildMockPipelineVersionsV2,
   buildMockPipelineVersionV2,
@@ -29,12 +27,9 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import {
-  DataSciencePipelineApplicationModel,
-  ProjectModel,
-  RouteModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
+import { dspaIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -170,7 +165,9 @@ describe('Pipeline runs', () => {
 
       it('navigate to create run page', () => {
         pipelineRunsGlobal.findCreateRunButton().click();
-        verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=active`);
+        verifyRelativeURL(
+          `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/create`,
+        );
       });
     });
 
@@ -328,7 +325,9 @@ describe('Pipeline runs', () => {
         it('navigate to create run page', () => {
           pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
           pipelineRunsGlobal.findCreateRunButton().click();
-          verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+          verifyRelativeURL(
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/create`,
+          );
         });
 
         it('navigate to clone run page', () => {
@@ -350,15 +349,15 @@ describe('Pipeline runs', () => {
           pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
           pipelineRunsGlobal.findArchivedRunsTab().click();
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${pipelineVersionId}?runType=archived`,
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/archived`,
           );
           pipelineRunsGlobal.findActiveRunsTab().click();
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${pipelineVersionId}?runType=active`,
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/active`,
           );
           pipelineRunsGlobal.findSchedulesTab().click();
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipeline/runs/${pipelineId}/${pipelineVersionId}?runType=scheduled`,
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules`,
           );
         });
 
@@ -370,7 +369,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipelineRun/view/${mockActiveRuns[0].run_id}`,
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/${mockActiveRuns[0].run_id}`,
           );
         });
       });
@@ -768,9 +767,11 @@ describe('Pipeline runs', () => {
         pipelineRecurringRunTable.findEmptyState().should('exist');
       });
 
-      it('navigate to create run page', () => {
+      it('navigate to create schedule page', () => {
         pipelineRunsGlobal.findScheduleRunButton().click();
-        verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+        verifyRelativeURL(
+          `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules/create`,
+        );
       });
     });
 
@@ -970,7 +971,9 @@ describe('Pipeline runs', () => {
         it('navigate to create scheduled run page', () => {
           pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
           pipelineRunsGlobal.findScheduleRunButton().click();
-          verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+          verifyRelativeURL(
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules/create`,
+          );
         });
 
         it('navigate to clone scheduled run page', () => {
@@ -985,7 +988,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/experiments/${projectName}/test-experiment-1/schedules/clone/${mockRecurringRuns[0].recurring_run_id}?runType=scheduled`,
+            `/experiments/${projectName}/test-experiment-1/schedules/clone/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
 
@@ -997,7 +1000,7 @@ describe('Pipeline runs', () => {
             .findColumnName(mockRecurringRuns[0].display_name)
             .click();
           verifyRelativeURL(
-            `/pipelines/${projectName}/pipelineRecurringRun/view/${mockRecurringRuns[0].recurring_run_id}`,
+            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
       });
@@ -1007,7 +1010,7 @@ describe('Pipeline runs', () => {
           pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
           pipelineRunsGlobal.findSchedulesTab().click();
 
-          // Verify initial job rows exist
+          // Verify initial recurring run rows exist
           pipelineRecurringRunTable.findRows().should('have.length', 3);
 
           // Select the "Schedule" filter, enter a value to filter by
@@ -1042,7 +1045,7 @@ describe('Pipeline runs', () => {
 });
 
 const initIntercepts = () => {
-  mockDspaIntercepts();
+  dspaIntercepts(projectName);
 
   cy.interceptK8sList(
     ProjectModel,
@@ -1057,6 +1060,20 @@ const initIntercepts = () => {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
+  );
+
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId,
+      },
+    },
+    buildMockPipelineV2({
+      pipeline_id: pipelineId,
+    }),
   );
 
   cy.interceptOdh(
@@ -1075,37 +1092,5 @@ const initIntercepts = () => {
       },
     },
     buildMockPipelineVersionV2({ pipeline_id: pipelineId, pipeline_version_id: pipelineVersionId }),
-  );
-};
-
-const mockDspaIntercepts = () => {
-  cy.interceptK8s(
-    DataSciencePipelineApplicationModel,
-    mockDataSciencePipelineApplicationK8sResource({
-      name: 'pipelines-definition',
-      namespace: projectName,
-    }),
-  );
-
-  cy.interceptK8sList(
-    DataSciencePipelineApplicationModel,
-    mockK8sResourceList([
-      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
-    ]),
-  );
-
-  cy.interceptK8s(
-    DataSciencePipelineApplicationModel,
-    mockDataSciencePipelineApplicationK8sResource({
-      namespace: projectName,
-    }),
-  );
-
-  cy.interceptK8s(
-    RouteModel,
-    mockRouteK8sResource({
-      notebookName: 'ds-pipeline-dspa',
-      namespace: projectName,
-    }),
   );
 };

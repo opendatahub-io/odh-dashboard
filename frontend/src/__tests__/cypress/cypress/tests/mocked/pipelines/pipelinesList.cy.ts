@@ -139,7 +139,7 @@ describe('PipelinesList', () => {
       .findPipelineVersionLink()
       .click();
     verifyRelativeURL(
-      `/projects/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 

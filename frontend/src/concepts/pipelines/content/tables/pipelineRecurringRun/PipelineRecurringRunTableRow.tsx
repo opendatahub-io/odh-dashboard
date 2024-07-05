@@ -6,9 +6,7 @@ import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { cloneScheduleRoute, scheduleDetailsRoute } from '~/routes';
+import { cloneRecurringRunRoute, recurringRunDetailsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
   RecurringRunCreated,
@@ -16,6 +14,7 @@ import {
   RecurringRunStatus,
   RecurringRunTrigger,
 } from '~/concepts/pipelines/content/tables/renderUtils';
+import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -31,10 +30,11 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
   recurringRun,
 }) => {
   const navigate = useNavigate();
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const { version, loaded, error } = usePipelineRunVersionInfo(recurringRun);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const isExperimentsContext = isExperimentsAvailable && experimentId;
 
   return (
     <Tr>
@@ -47,10 +47,12 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
         <TableRowTitleDescription
           title={
             <Link
-              to={scheduleDetailsRoute(
+              to={recurringRunDetailsRoute(
                 namespace,
                 recurringRun.recurring_run_id,
                 isExperimentsAvailable ? experimentId : undefined,
+                pipelineId,
+                pipelineVersionId,
               )}
             >
               <TableText wrapModifier="truncate">{recurringRun.display_name}</TableText>
@@ -60,6 +62,11 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
           descriptionAsMarkdown
         />
       </Td>
+      {!isExperimentsContext && (
+        <Td modifier="truncate" dataLabel="Experiment">
+          <PipelineRunTableRowExperiment experimentId={recurringRun.experiment_id} />
+        </Td>
+      )}
       {!pipelineVersionId && (
         <Td modifier="truncate" dataLabel="Pipeline">
           <PipelineVersionLink
@@ -92,26 +99,27 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
-            ...(version
-              ? [
+            ...(!version && isExperimentsContext
+              ? []
+              : [
                   {
                     title: 'Duplicate',
                     onClick: () => {
-                      navigate({
-                        pathname: cloneScheduleRoute(
+                      navigate(
+                        cloneRecurringRunRoute(
                           namespace,
                           recurringRun.recurring_run_id,
                           isExperimentsAvailable ? experimentId : undefined,
+                          pipelineId,
+                          pipelineVersionId,
                         ),
-                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                      });
+                      );
                     },
                   },
                   {
                     isSeparator: true,
                   },
-                ]
-              : []),
+                ]),
             {
               title: 'Delete',
               onClick: () => {

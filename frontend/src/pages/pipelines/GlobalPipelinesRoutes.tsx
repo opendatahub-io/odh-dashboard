@@ -6,25 +6,23 @@ import {
   pipelinesPageDescription,
   pipelinesPageTitle,
 } from '~/pages/pipelines/global/pipelines/const';
-import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import { PipelineVersionCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
-import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
-import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
-import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
-import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
+import { globNamespaceAll, pipelinesBaseRoute } from '~/routes';
+import PipelineVersionContextProvider from '~/pages/pipelines/global/pipelines/PipelineVersionContext';
+import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import PipelineVersionRunsTabs from '~/pages/pipelines/global/pipelines/PipelineVersionRunsTabs';
+import PipelineVersionRuns from '~/pages/pipelines/global/pipelines/PipelineVersionRuns';
+import PipelineVersionRunDetails from '~/pages/pipelines/global/pipelines/PipelineVersionRunDetails';
+import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import {
-  globNamespaceAll,
-  globPipelineDetails,
-  globPipelineRunClone,
-  globPipelineRunCreate,
-  globPipelineRunDetails,
-  globPipelineRecurringRunClone,
-  globPipelineRecurringRunDetails,
-  globPipelineVersionRuns,
-  routePipelinesNamespace,
-} from '~/routes';
+  PipelineVersionCreateRunPage,
+  PipelineVersionCreateRecurringRunPage,
+} from '~/pages/pipelines/global/pipelines/PipelineVersionCreateRunPage';
+import PipelineVersionCloneRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionCloneRunPage';
+import PipelineVersionRecurringRunDetails from '~/pages/pipelines/global/pipelines/PipelineVersionRecurringRunDetails';
+import PipelineVersionCloneRecurringRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionCloneRecurringRunPage';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
-import GlobalPipelineVersionRuns from './global/runs/GlobalPipelineVersionRuns';
 
 const GlobalPipelinesRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -34,85 +32,93 @@ const GlobalPipelinesRoutes: React.FC = () => (
         <GlobalPipelineCoreLoader
           title={pipelinesPageTitle}
           description={pipelinesPageDescription}
-          getInvalidRedirectPath={routePipelinesNamespace}
+          getInvalidRedirectPath={pipelinesBaseRoute}
         />
       }
     >
       <Route index element={<GlobalPipelines />} />
-      <Route
-        path={globPipelineVersionRuns}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={GlobalPipelineVersionRuns}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
+      <Route element={<PipelineAvailabilityLoader />}>
+        <Route path=":pipelineId/:pipelineVersionId" element={<PipelineVersionContextProvider />}>
+          <Route
+            element={
+              <PipelineVersionCoreDetails BreadcrumbDetailsComponent={PipelineVersionRuns} />
+            }
+          >
+            <Route path="runs" element={<PipelineVersionRunsTabs tab={PipelineRunType.ACTIVE} />} />
+            <Route
+              path="runs/active"
+              element={<PipelineVersionRunsTabs tab={PipelineRunType.ACTIVE} />}
+            />
+            <Route
+              path="runs/archived"
+              element={<PipelineVersionRunsTabs tab={PipelineRunType.ARCHIVED} />}
+            />
+            <Route
+              path="schedules"
+              element={<PipelineVersionRunsTabs tab={PipelineRunType.SCHEDULED} />}
+            />
+          </Route>
+          <Route path="runs">
+            <Route
+              path="create"
+              element={
+                <PipelineVersionCoreDetails
+                  BreadcrumbDetailsComponent={PipelineVersionCreateRunPage}
+                />
+              }
+            />
+            <Route
+              path=":runId"
+              element={
+                <PipelineVersionCoreDetails
+                  BreadcrumbDetailsComponent={PipelineVersionRunDetails}
+                />
+              }
+            />
+            <Route
+              path="clone/:runId"
+              element={
+                <PipelineVersionCoreDetails
+                  BreadcrumbDetailsComponent={PipelineVersionCloneRunPage}
+                />
+              }
+            />
+          </Route>
+          <Route path="schedules">
+            <Route
+              path="create"
+              element={
+                <PipelineVersionCoreDetails
+                  BreadcrumbDetailsComponent={PipelineVersionCreateRecurringRunPage}
+                />
+              }
+            />
+            <Route
+              path=":recurringRunId"
+              element={
+                <PipelineVersionCoreDetails
+                  BreadcrumbDetailsComponent={PipelineVersionRecurringRunDetails}
+                />
+              }
+            />
+            <Route
+              path="clone/:recurringRunId"
+              element={
+                <PipelineVersionCoreDetails
+                  BreadcrumbDetailsComponent={PipelineVersionCloneRecurringRunPage}
+                />
+              }
+            />
+          </Route>
+          <Route
+            path="view"
+            element={<PipelineVersionCoreDetails BreadcrumbDetailsComponent={PipelineDetails} />}
           />
-        }
-      />
-      <Route
-        path={globPipelineDetails}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={PipelineDetails}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
-          />
-        }
-      />
-      <Route
-        path={globPipelineRunDetails}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={PipelineRunDetails}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
-          />
-        }
-      />
-      <Route
-        path={globPipelineRecurringRunDetails}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={PipelineRecurringRunDetails}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
-          />
-        }
-      />
-      <Route
-        path={globPipelineRunCreate}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={CreateRunPage}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
-          />
-        }
-      />
-      <Route
-        path={globPipelineRunClone}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={CloneRunPage}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
-          />
-        }
-      />
-      <Route
-        path={globPipelineRecurringRunClone}
-        element={
-          <GlobalPipelineCoreDetails
-            BreadcrumbDetailsComponent={CloneRunPage}
-            pageName="Pipelines"
-            redirectPath={routePipelinesNamespace}
-          />
-        }
-      />
-
-      <Route path="*" element={<Navigate to="." />} />
+          {/* All the other paths fall back to the pipeline version details view */}
+          <Route path="*" element={<Navigate to="./view" />} />
+        </Route>
+      </Route>
     </Route>
-
     <Route path="*" element={<Navigate to="." />} />
   </ProjectsRoutes>
 );

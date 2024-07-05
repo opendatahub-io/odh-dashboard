@@ -16,12 +16,9 @@ import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/re
 
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { createRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
@@ -31,8 +28,6 @@ export const ActiveRuns: React.FC = () => {
     usePipelineActiveRunsTable({ experimentId, pipelineVersionId });
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentArchived = useContextExperimentArchived();
-  const [pipeline] = usePipelineById(pipelineId);
-  const [pipelineVersion] = usePipelineVersionById(pipelineId, pipelineVersionId);
 
   if (isExperimentArchived) {
     return (
@@ -97,14 +92,12 @@ export const ActiveRuns: React.FC = () => {
               variant="primary"
               onClick={() =>
                 navigate(
-                  {
-                    pathname: createRunRoute(
-                      namespace,
-                      isExperimentsAvailable ? experimentId : undefined,
-                    ),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
-                  },
-                  { state: { lastPipeline: pipeline, lastVersion: pipelineVersion } },
+                  createRunRoute(
+                    namespace,
+                    isExperimentsAvailable ? experimentId : undefined,
+                    pipelineId,
+                    pipelineVersionId,
+                  ),
                 )
               }
             >

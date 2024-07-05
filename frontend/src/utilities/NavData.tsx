@@ -5,8 +5,7 @@ import {
   artifactsRootPath,
   executionsRootPath,
   experimentsRootPath,
-  routePipelineRuns,
-  routePipelines,
+  pipelinesRootPath,
 } from '~/routes';
 
 type NavDataCommon = {
@@ -67,18 +66,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
   }
 
   return [
-    ...(isExperimentsAvailable
-      ? [{ id: 'pipelines', label: 'Data Science Pipelines', href: routePipelines() }]
-      : [
-          {
-            id: 'pipelines',
-            group: { id: 'pipelines', title: 'Data Science Pipelines' },
-            children: [
-              { id: 'global-pipelines', label: 'Pipelines', href: routePipelines() },
-              { id: 'global-pipeline-runs', label: 'Runs', href: routePipelineRuns() },
-            ],
-          },
-        ]),
+    { id: 'pipelines', label: 'Data Science Pipelines', href: pipelinesRootPath },
     ...(isExperimentsAvailable
       ? [
           {

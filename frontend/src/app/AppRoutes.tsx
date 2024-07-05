@@ -8,7 +8,6 @@ import {
   globArtifactsAll,
   globExecutionsAll,
   globExperimentsAll,
-  globPipelineRunsAll,
   globPipelinesAll,
 } from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
@@ -33,9 +32,6 @@ const NotebookController = React.lazy(
 );
 
 const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
-const GlobalPipelineRunsRoutes = React.lazy(
-  () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
-);
 const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
@@ -115,7 +111,6 @@ const AppRoutes: React.FC = () => {
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
-        <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
         <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
         <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />

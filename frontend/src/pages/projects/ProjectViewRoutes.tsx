@@ -4,23 +4,10 @@ import ProjectModelMetricsWrapper from '~/pages/modelServing/screens/projects/Pr
 import ProjectServerMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectServerMetricsWrapper';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import ProjectPipelineBreadcrumbPage from '~/pages/projects/screens/detail/pipelines/ProjectPipelineBreadcrumbPage';
-import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
-import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
-import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
-import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
-import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
 import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import {
-  globPipelineDetails,
-  globPipelineRunClone,
-  globPipelineRunCreate,
-  globPipelineRunDetails,
-  globPipelineRecurringRunDetails,
-} from '~/routes';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -61,33 +48,6 @@ const ProjectViewRoutes: React.FC = () => {
             )}
           </>
         )}
-        <Route
-          path={globPipelineDetails}
-          element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineDetails} />}
-        />
-        <Route
-          path={globPipelineRunDetails}
-          element={
-            <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunDetails} />
-          }
-        />
-        <Route
-          path={globPipelineRecurringRunDetails}
-          element={
-            <ProjectPipelineBreadcrumbPage
-              BreadcrumbDetailsComponent={PipelineRecurringRunDetails}
-            />
-          }
-        />
-        <Route
-          path={globPipelineRunCreate}
-          element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={CreateRunPage} />}
-        />
-        <Route
-          path={globPipelineRunClone}
-          element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={CloneRunPage} />}
-        />
-
         <Route path="*" element={<Navigate to="." />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />

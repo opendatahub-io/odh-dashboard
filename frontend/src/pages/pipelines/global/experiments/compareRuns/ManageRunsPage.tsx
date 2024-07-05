@@ -13,11 +13,12 @@ import {
   Button,
   Breadcrumb,
   BreadcrumbItem,
+  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { CompareRunsSearchParam, PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
 import {
   experimentRunsRoute,
   experimentsBaseRoute,
@@ -30,9 +31,9 @@ import usePipelineFilter, {
   FilterOptions,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { ExperimentRunsContext } from '~/pages/pipelines/global/experiments/ExperimentRunsContext';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ManageRunsTable } from './ManageRunsTable';
 
@@ -98,10 +99,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
               data-testid="create-run-button"
               variant="primary"
               onClick={() =>
-                navigate({
-                  pathname: experimentsCreateRunRoute(namespace, experiment.experiment_id),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.ACTIVE}`,
-                })
+                navigate(experimentsCreateRunRoute(namespace, experiment.experiment_id))
               }
             >
               Create run
@@ -128,7 +126,8 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
           <BreadcrumbItem key="experiment">
             {experiment.display_name ? (
               <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-                {experiment.display_name}
+                {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                <Truncate content={experiment.display_name} className="truncate-no-min-width" />
               </Link>
             ) : (
               'Loading...'
@@ -165,6 +164,6 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
 };
 
 export const ManageRunsPage: React.FC = () => {
-  const { experiment } = React.useContext(ExperimentRunsContext);
+  const { experiment } = React.useContext(ExperimentContext);
   return experiment ? <ManageRunsPageInternal experiment={experiment} /> : null;
 };

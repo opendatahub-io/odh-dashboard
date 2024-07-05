@@ -1,19 +1,15 @@
 import * as React from 'react';
 import { Alert, Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
-import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
+import { useNavigate } from 'react-router-dom';
+import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import {
   isFilledRunFormData,
   isFilledRunFormDataExperiment,
 } from '~/concepts/pipelines/content/createRun/utils';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
-import { routePipelineRunDetails, routePipelineRecurringRunDetails } from '~/routes';
 
 type RunPageFooterProps = {
   data: RunFormData;
@@ -21,9 +17,8 @@ type RunPageFooterProps = {
 };
 
 const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
-  const { experimentId } = useParams();
   const { api } = usePipelinesAPI();
-  const { runType } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
+  const runType = data.runType.type;
   const navigate = useNavigate();
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -54,15 +49,9 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                 setError(null);
                 handleSubmit(data, api)
                   .then((resource) => {
-                    let detailsPath = isRunSchedule(resource)
-                      ? routePipelineRecurringRunDetails(resource.recurring_run_id)
-                      : routePipelineRunDetails(resource.run_id);
-
-                    if (isExperimentsAvailable && experimentId) {
-                      detailsPath = isRunSchedule(resource)
-                        ? resource.recurring_run_id
-                        : resource.run_id;
-                    }
+                    const detailsPath = isRunSchedule(resource)
+                      ? resource.recurring_run_id
+                      : resource.run_id;
 
                     navigate(`${contextPath}/${detailsPath}`);
                   })
@@ -72,19 +61,11 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                   });
               }}
             >
-              {`${runType === PipelineRunType.SCHEDULED ? 'Schedule' : 'Create'} run`}
+              {`Create ${runType === RunTypeOption.SCHEDULED ? 'schedule' : 'run'}`}
             </Button>
           </SplitItem>
           <SplitItem>
-            <Button
-              variant="secondary"
-              onClick={() =>
-                navigate({
-                  pathname: contextPath,
-                  search: `?${PipelineRunSearchParam.RunType}=${runType}`,
-                })
-              }
-            >
+            <Button variant="secondary" onClick={() => navigate(contextPath)}>
               Cancel
             </Button>
           </SplitItem>

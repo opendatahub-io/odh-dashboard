@@ -4,8 +4,9 @@ import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { Execution } from '~/third_party/mlmd';
 import { useGetPipelineRunContextByExecution } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
-import { executionDetailsRoute, routePipelineRunDetailsNamespacePipelinesPage } from '~/routes';
+import { executionDetailsRoute, experimentRunDetailsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 
 type ExecutionDetailsReferenceSectionProps = {
   execution: Execution;
@@ -15,7 +16,8 @@ const ExecutionDetailsReferenceSection: React.FC<ExecutionDetailsReferenceSectio
   execution,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const [context, contextLoaded] = useGetPipelineRunContextByExecution(execution);
+  const [context] = useGetPipelineRunContextByExecution(execution);
+  const [run, runLoaded, runError] = usePipelineRunById(context?.getName());
 
   const originalExecutionId = execution
     .getCustomPropertiesMap()
@@ -39,16 +41,13 @@ const ExecutionDetailsReferenceSection: React.FC<ExecutionDetailsReferenceSectio
             <Tr>
               <Td dataLabel="Name">Pipeline run</Td>
               <Td dataLabel="Link">
-                {contextLoaded ? (
-                  context ? (
-                    <Link
-                      to={routePipelineRunDetailsNamespacePipelinesPage(
-                        namespace,
-                        context.getName(),
-                      )}
-                    >
-                      {`runs/details/${context.getName()}`}
+                {runLoaded && !runError ? (
+                  run ? (
+                    <Link to={experimentRunDetailsRoute(namespace, run.experiment_id, run.run_id)}>
+                      {`runs/details/${run.run_id}`}
                     </Link>
+                  ) : context?.getName() ? (
+                    `runs/details/${context.getName()}`
                   ) : (
                     'Unknown'
                   )

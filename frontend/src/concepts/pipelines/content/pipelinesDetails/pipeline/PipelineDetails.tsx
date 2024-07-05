@@ -26,7 +26,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { routePipelineDetailsNamespace, routePipelinesNamespace } from '~/routes';
+import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '~/routes';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
@@ -69,7 +69,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
       <ApplicationsPage
         breadcrumb={
           <Breadcrumb>
-            {breadcrumbPath()}
+            {breadcrumbPath}
             <BreadcrumbItem isActive>{title}</BreadcrumbItem>
           </Breadcrumb>
         }
@@ -97,7 +97,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
             <ApplicationsPage
               breadcrumb={
                 <Breadcrumb>
-                  {breadcrumbPath()}
+                  {breadcrumbPath}
                   <BreadcrumbItem style={{ maxWidth: 300 }}>
                     {/* TODO: Remove the custom className after upgrading to PFv6 */}
                     <Truncate
@@ -144,7 +144,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                         selection={pipelineVersion?.display_name}
                         onSelect={(version) =>
                           navigate(
-                            routePipelineDetailsNamespace(
+                            pipelineVersionDetailsRoute(
                               namespace,
                               version.pipeline_id,
                               version.pipeline_version_id,
@@ -260,7 +260,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           onClose={(deleted) => {
             setDeletionOpen(false);
             if (deleted) {
-              navigate(routePipelinesNamespace(namespace));
+              navigate(pipelinesBaseRoute(namespace));
             }
           }}
         />

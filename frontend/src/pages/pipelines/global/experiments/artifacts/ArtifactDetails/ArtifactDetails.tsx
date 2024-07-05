@@ -61,7 +61,7 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       loadError={artifactError}
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath()}
+          {breadcrumbPath}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
             <Truncate content={artifactName} />
           </BreadcrumbItem>
