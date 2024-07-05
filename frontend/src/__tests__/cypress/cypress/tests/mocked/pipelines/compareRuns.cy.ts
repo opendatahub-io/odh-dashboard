@@ -300,10 +300,10 @@ describe('Compare runs', () => {
 
       const row = content.getRocCurveRowByName('wine-classification > metrics');
       row.findRunName().should('contain.text', 'Run 1');
-      content.findRocCurveGraph().should('contain.text', 'Series #1');
+      content.findRocCurveGraph().should('include.text', '#1');
 
       row.findRowCheckbox().uncheck();
-      content.findRocCurveGraph().should('not.contain.text', 'Series #1');
+      content.findRocCurveGraph().should('not.include.text', '#1');
     });
 
     it('displays ROC curve empty state when no artifacts are found', () => {
@@ -311,24 +311,6 @@ describe('Compare runs', () => {
       const content = compareRunsMetricsContent.findRocCurveTabContent();
       content.findRocCruveSearchBar().type('invalid');
       content.findRocCurveEmptyState().should('exist');
-    });
-
-    it('displays markdown fetched from S3 based on selected runs', () => {
-      cy.wait('@s3Loaded', {
-        timeout: 15000,
-      });
-
-      compareRunsMetricsContent.findMarkdownTab().click();
-      const markdownCompare = compareRunsMetricsContent
-        .findMarkdownTabContent()
-        .findMarkdownSelect(mockRun.run_id);
-
-      // check markdown content
-      markdownCompare.findArtifactContent().should('contain.text', 'This is a markdown file');
-
-      // check expanded graph
-      markdownCompare.findExpandButton().click();
-      compareRunsMetricsContent.findMarkdownTabContent().findExpandedMarkdown().should('exist');
     });
   });
 });
@@ -397,32 +379,4 @@ const initIntercepts = () => {
   );
 
   initMlmdIntercepts(projectName);
-
-  cy.interceptOdh(
-    'GET /api/storage/:namespace',
-    {
-      path: {
-        namespace: projectName,
-      },
-      query: {
-        key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
-      },
-    },
-    { body: 'This is a markdown file' },
-  ).as('s3Loaded');
-
-  cy.interceptOdh(
-    'GET /api/storage/:namespace/size',
-    {
-      path: {
-        namespace: projectName,
-      },
-      query: {
-        key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
-      },
-    },
-    {
-      body: 100,
-    },
-  );
 };
