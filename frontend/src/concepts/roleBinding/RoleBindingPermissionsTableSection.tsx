@@ -10,7 +10,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
+import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import RoleBindingPermissionsTable from './RoleBindingPermissionsTable';
@@ -19,9 +19,9 @@ import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './
 export type RoleBindingPermissionsTableSectionAltProps = {
   roleBindings: RoleBindingKind[];
   projectName: string;
-  roleKind: RoleBindingSubject['kind'];
-  roleRef?: string;
-  roleBindingPermissionsTableType: RoleBindingPermissionsRBType;
+  roleRefKind: RoleBindingRoleRef['kind'];
+  roleRefName?: RoleBindingRoleRef['name'];
+  subjectKind: RoleBindingSubject['kind'];
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
     description: string;
@@ -36,9 +36,9 @@ export type RoleBindingPermissionsTableSectionAltProps = {
 const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSectionAltProps> = ({
   roleBindings,
   projectName,
-  roleKind,
-  roleRef,
-  roleBindingPermissionsTableType,
+  roleRefKind,
+  roleRefName,
+  subjectKind,
   permissionOptions,
   typeAhead,
   refresh,
@@ -60,20 +60,14 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
         >
           <HeaderIcon
             type={
-              roleBindingPermissionsTableType === RoleBindingPermissionsRBType.USER
+              subjectKind === RoleBindingPermissionsRBType.USER
                 ? ProjectObjectType.user
                 : ProjectObjectType.group
             }
           />
           <FlexItem>
-            <Title
-              id={`user-permission-${roleBindingPermissionsTableType}`}
-              headingLevel="h2"
-              size="xl"
-            >
-              {roleBindingPermissionsTableType === RoleBindingPermissionsRBType.USER
-                ? 'Users'
-                : 'Groups'}
+            <Title id={`user-permission-${subjectKind}`} headingLevel="h2" size="xl">
+              {subjectKind === RoleBindingPermissionsRBType.USER ? 'Users' : 'Groups'}
             </Title>
           </FlexItem>
         </Flex>
@@ -83,11 +77,11 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
           defaultRoleBindingName={defaultRoleBindingName}
           permissions={roleBindings}
           permissionOptions={permissionOptions}
-          projectName={projectName}
-          roleKind={roleKind}
-          roleRef={roleRef}
+          namespace={projectName}
+          roleRefKind={roleRefKind}
+          roleRefName={roleRefName}
           labels={labels}
-          type={roleBindingPermissionsTableType}
+          subjectKind={subjectKind}
           typeAhead={typeAhead}
           isAdding={addField}
           onDismissNewRow={() => {
@@ -115,7 +109,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
       )}
       <StackItem>
         <Button
-          data-testid={`add-button ${roleBindingPermissionsTableType}`}
+          data-testid={`add-button ${subjectKind}`}
           variant="link"
           isInline
           icon={<PlusCircleIcon />}
@@ -123,9 +117,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
           onClick={() => setAddField(true)}
           style={{ paddingLeft: 'var(--pf-v5-global--spacer--lg)' }}
         >
-          {roleBindingPermissionsTableType === RoleBindingPermissionsRBType.USER
-            ? 'Add user'
-            : 'Add group'}
+          {subjectKind === RoleBindingPermissionsRBType.USER ? 'Add user' : 'Add group'}
         </Button>
       </StackItem>
     </Stack>

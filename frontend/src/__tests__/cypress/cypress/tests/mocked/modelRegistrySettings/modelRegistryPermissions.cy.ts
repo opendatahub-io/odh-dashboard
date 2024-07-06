@@ -7,7 +7,7 @@ import {
   ModelRegistryModel,
   RoleBindingModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import type { RoleBindingSubject } from '~/types';
+import type { RoleBindingSubject } from '~/k8sTypes';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockGroup } from '~/__mocks__/mockGroup';

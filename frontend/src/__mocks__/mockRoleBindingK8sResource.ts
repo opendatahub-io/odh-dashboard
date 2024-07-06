@@ -1,6 +1,5 @@
 import { genUID } from '~/__mocks__/mockUtils';
-import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
-import { RoleBindingSubject } from '~/types';
+import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;

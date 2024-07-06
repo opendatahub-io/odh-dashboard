@@ -1,10 +1,11 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { RoleBindingSubject } from '~/k8sTypes';
 import { RoleBindingPermissionsRBType } from './types';
 
 type RoleBindingPermissionsNameInputProps = {
-  type: RoleBindingPermissionsRBType;
+  subjectKind: RoleBindingSubject['kind'];
   value: string;
   onChange: (selection: string) => void;
   onClear: () => void;
@@ -13,7 +14,7 @@ type RoleBindingPermissionsNameInputProps = {
 };
 
 const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputProps> = ({
-  type,
+  subjectKind,
   value,
   onChange,
   onClear,
@@ -31,7 +32,7 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
         type="text"
         value={value}
         placeholder={`Type ${
-          type === RoleBindingPermissionsRBType.GROUP ? 'group name' : 'username'
+          subjectKind === RoleBindingPermissionsRBType.GROUP ? 'group name' : 'username'
         }`}
         onChange={(e, newValue) => onChange(newValue)}
       />

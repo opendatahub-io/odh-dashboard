@@ -22,7 +22,7 @@ const ProjectSharing: React.FC = () => {
           description: 'Edit the project and manage user access',
         },
       ]}
-      roleKind="ClusterRole"
+      roleRefKind="ClusterRole"
       projectName={currentProject.metadata.name}
       description="Add users and groups that can access the project."
       roleBindingPermissionsRB={projectSharingRB}

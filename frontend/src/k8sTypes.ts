@@ -504,13 +504,19 @@ export type RoleBindingSubject = {
   name: string;
 };
 
+export type RoleBindingRoleRef = {
+  kind: 'Role' | 'ClusterRole';
+  apiGroup?: string;
+  name: string;
+};
+
 export type RoleBindingKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
   };
   subjects: RoleBindingSubject[];
-  roleRef: RoleBindingSubject;
+  roleRef: RoleBindingRoleRef;
 };
 
 export type RouteKind = K8sResourceCommon & {

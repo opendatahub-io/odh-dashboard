@@ -11,16 +11,16 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { CheckIcon, OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
-import { RoleBindingKind } from '~/k8sTypes';
+import { RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import { relativeTime } from '~/utilities/time';
 import { castRoleBindingPermissionsRoleType, firstSubject, roleLabel } from './utils';
-import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
+import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
 import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
 
 type RoleBindingPermissionsTableRowProps = {
-  obj: RoleBindingKind;
-  type: RoleBindingPermissionsRBType;
+  roleBindingObject: RoleBindingKind;
+  subjectKind: RoleBindingSubject['kind'];
   isEditing: boolean;
   defaultRoleBindingName?: string;
   permissionOptions: {
@@ -39,8 +39,8 @@ const defaultValueRole = (obj: RoleBindingKind) =>
   castRoleBindingPermissionsRoleType(obj.roleRef.name);
 
 const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowProps> = ({
-  obj,
-  type,
+  roleBindingObject: obj,
+  subjectKind,
   isEditing,
   defaultRoleBindingName,
   permissionOptions,
@@ -63,7 +63,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
         <Td dataLabel="Username">
           {isEditing ? (
             <RoleBindingPermissionsNameInput
-              type={type}
+              subjectKind={subjectKind}
               value={roleBindingName}
               onChange={(selection) => {
                 setRoleBindingName(selection);

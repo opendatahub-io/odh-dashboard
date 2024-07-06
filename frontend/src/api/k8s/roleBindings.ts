@@ -7,15 +7,17 @@ import {
   k8sPatchResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, RoleBindingKind } from '~/k8sTypes';
+import {
+  K8sAPIOptions,
+  KnownLabels,
+  RoleBindingKind,
+  RoleBindingRoleRef,
+  RoleBindingSubject,
+} from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import {
-  RoleBindingPermissionsRBType,
-  RoleBindingPermissionsRoleType,
-} from '~/concepts/roleBinding/types';
-import { RoleBindingSubject } from '~/types';
+import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
 
 export const generateRoleBindingServingRuntime = (
   name: string,
@@ -49,10 +51,10 @@ export const generateRoleBindingServingRuntime = (
 
 export const generateRoleBindingPermissions = (
   namespace: string,
-  rbSubjectType: RoleBindingPermissionsRBType,
-  rbSubjectName: string,
-  rbRoleRefType: RoleBindingPermissionsRoleType | string, //string because with MR this can include MR name
-  rbRoleRefKind: RoleBindingSubject['name'],
+  rbSubjectKind: RoleBindingSubject['kind'],
+  rbSubjectName: RoleBindingSubject['name'],
+  rbRoleRefName: RoleBindingPermissionsRoleType | string, //string because with MR this can include MR name
+  rbRoleRefKind: RoleBindingRoleRef['kind'],
   rbLabels: { [key: string]: string } = {
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     [KnownLabels.PROJECT_SHARING]: 'true',
@@ -69,12 +71,12 @@ export const generateRoleBindingPermissions = (
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
       kind: rbRoleRefKind,
-      name: rbRoleRefType,
+      name: rbRoleRefName,
     },
     subjects: [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: rbSubjectType,
+        kind: rbSubjectKind,
         name: rbSubjectName,
       },
     ],

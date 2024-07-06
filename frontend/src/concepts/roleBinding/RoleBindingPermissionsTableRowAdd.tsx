@@ -2,14 +2,15 @@ import * as React from 'react';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Split, SplitItem, Text } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
-import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
+import { RoleBindingSubject } from '~/k8sTypes';
+import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
 import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
 import { roleLabel } from './utils';
 
 type RoleBindingPermissionsTableRowPropsAdd = {
   typeAhead?: string[];
-  type: RoleBindingPermissionsRBType;
+  subjectKind: RoleBindingSubject['kind'];
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
     description: string;
@@ -21,7 +22,7 @@ type RoleBindingPermissionsTableRowPropsAdd = {
 /** @deprecated - this should use RoleBindingPermissionsTableRow */
 const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRowPropsAdd> = ({
   typeAhead,
-  type,
+  subjectKind,
   permissionOptions,
   onChange,
   onCancel,
@@ -36,7 +37,7 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
       <Tr>
         <Td dataLabel="Username">
           <RoleBindingPermissionsNameInput
-            type={type}
+            subjectKind={subjectKind}
             value={roleBindingName}
             onChange={(selection: React.SetStateAction<string>) => {
               setRoleBindingName(selection);

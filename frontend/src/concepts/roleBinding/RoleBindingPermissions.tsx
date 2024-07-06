@@ -11,9 +11,9 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { GroupKind, RoleBindingKind } from '~/k8sTypes';
+import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ContextResourceData, RoleBindingSubject } from '~/types';
+import { ContextResourceData } from '~/types';
 import RoleBindingPermissionsTableSection from './RoleBindingPermissionsTableSection';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 import { filterRoleBindingSubjects } from './utils';
@@ -26,8 +26,8 @@ type RoleBindingPermissionsProps = {
     description: string;
   }[];
   projectName: string;
-  roleKind: RoleBindingSubject['kind'];
-  roleRef?: string;
+  roleRefKind: RoleBindingRoleRef['kind'];
+  roleRefName?: RoleBindingRoleRef['name'];
   labels?: { [key: string]: string };
   description: React.ReactElement | string;
   groups: GroupKind[];
@@ -39,8 +39,8 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
   defaultRoleBindingName,
   permissionOptions,
   projectName,
-  roleKind,
-  roleRef,
+  roleRefKind,
+  roleRefName,
   labels,
   description,
   groups,
@@ -86,12 +86,12 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
     <RoleBindingPermissionsTableSection
       defaultRoleBindingName={defaultRoleBindingName}
       projectName={projectName}
-      roleKind={roleKind}
-      roleRef={roleRef}
+      roleRefKind={roleRefKind}
+      roleRefName={roleRefName}
       labels={labels}
       permissionOptions={permissionOptions}
       roleBindings={filterRoleBindingSubjects(roleBindings, RoleBindingPermissionsRBType.USER)}
-      roleBindingPermissionsTableType={RoleBindingPermissionsRBType.USER}
+      subjectKind={RoleBindingPermissionsRBType.USER}
       refresh={refreshRB}
       typeModifier="user"
     />
@@ -101,12 +101,12 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
     <RoleBindingPermissionsTableSection
       defaultRoleBindingName={defaultRoleBindingName}
       projectName={projectName}
-      roleKind={roleKind}
-      roleRef={roleRef}
+      roleRefKind={roleRefKind}
+      roleRefName={roleRefName}
       permissionOptions={permissionOptions}
       labels={labels}
       roleBindings={filterRoleBindingSubjects(roleBindings, RoleBindingPermissionsRBType.GROUP)}
-      roleBindingPermissionsTableType={RoleBindingPermissionsRBType.GROUP}
+      subjectKind={RoleBindingPermissionsRBType.GROUP}
       refresh={refreshRB}
       typeAhead={
         groups.length > 0 ? groups.map((group: GroupKind) => group.metadata.name) : undefined

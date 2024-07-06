@@ -75,8 +75,8 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                   description: 'Default role for all users',
                 },
               ]}
-              roleKind="Role"
-              roleRef={`registry-user-${mrName}`}
+              roleRefKind="Role"
+              roleRefName={`registry-user-${mrName}`}
               labels={{
                 [KnownLabels.DASHBOARD_RESOURCE]: 'true',
                 app: mrName || '',

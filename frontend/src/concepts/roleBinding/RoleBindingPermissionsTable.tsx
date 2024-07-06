@@ -1,19 +1,18 @@
 import * as React from 'react';
 import { Table } from '~/components/table';
-import { RoleBindingKind } from '~/k8sTypes';
+import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
 import { deleteRoleBinding, generateRoleBindingPermissions, createRoleBinding } from '~/api';
-import { RoleBindingSubject } from '~/types';
 import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
 import { columnsRoleBindingPermissions } from './data';
-import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
+import { RoleBindingPermissionsRoleType } from './types';
 import { firstSubject } from './utils';
 import RoleBindingPermissionsTableRowAdd from './RoleBindingPermissionsTableRowAdd';
 
 type RoleBindingPermissionsTableProps = {
-  type: RoleBindingPermissionsRBType;
-  projectName: string;
-  roleKind: RoleBindingSubject['kind'];
-  roleRef?: RoleBindingSubject['name'];
+  subjectKind: RoleBindingSubject['kind'];
+  namespace: string;
+  roleRefKind: RoleBindingRoleRef['kind'];
+  roleRefName?: RoleBindingRoleRef['name'];
   labels?: { [key: string]: string };
   defaultRoleBindingName?: string;
   permissions: RoleBindingKind[];
@@ -29,10 +28,10 @@ type RoleBindingPermissionsTableProps = {
 };
 
 const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = ({
-  type,
-  projectName,
-  roleKind,
-  roleRef,
+  subjectKind,
+  namespace,
+  roleRefKind,
+  roleRefName,
   labels,
   defaultRoleBindingName,
   permissions,
@@ -48,23 +47,23 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
     <Table
       variant="compact"
       data={permissions}
-      data-testid={`role-binding-table ${type}`}
+      data-testid={`role-binding-table ${subjectKind}`}
       columns={columnsRoleBindingPermissions}
       disableRowRenderSupport
       footerRow={() =>
         isAdding ? (
           <RoleBindingPermissionsTableRowAdd
             key="add-permission-row"
-            type={type}
+            subjectKind={subjectKind}
             permissionOptions={permissionOptions}
             typeAhead={typeAhead}
-            onChange={(name, roleType) => {
+            onChange={(subjectName, rbRoleRefName) => {
               const newRBObject = generateRoleBindingPermissions(
-                projectName,
-                type,
-                name,
-                roleRef || roleType,
-                roleKind,
+                namespace,
+                subjectKind,
+                subjectName,
+                roleRefName || rbRoleRefName,
+                roleRefKind,
                 labels,
               );
               createRoleBinding(newRBObject)
@@ -85,17 +84,17 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           defaultRoleBindingName={defaultRoleBindingName}
           key={rb.metadata.name || ''}
           permissionOptions={permissionOptions}
-          obj={rb}
-          type={type}
+          roleBindingObject={rb}
+          subjectKind={subjectKind}
           isEditing={firstSubject(rb) === '' || editCell.includes(rb.metadata.name)}
           typeAhead={typeAhead}
-          onChange={(name, roleType) => {
+          onChange={(subjectName, rbRoleRefName) => {
             const newRBObject = generateRoleBindingPermissions(
-              projectName,
-              type,
-              name,
-              roleRef || roleType,
-              roleKind,
+              namespace,
+              subjectKind,
+              subjectName,
+              roleRefName || rbRoleRefName,
+              roleRefKind,
               labels,
             );
             createRoleBinding(newRBObject)
