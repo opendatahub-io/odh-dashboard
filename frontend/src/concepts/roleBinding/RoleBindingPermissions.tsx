@@ -11,6 +11,7 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ContextResourceData } from '~/types';
@@ -19,6 +20,7 @@ import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './
 import { filterRoleBindingSubjects } from './utils';
 
 type RoleBindingPermissionsProps = {
+  ownerReference?: K8sResourceCommon;
   roleBindingPermissionsRB: ContextResourceData<RoleBindingKind>;
   defaultRoleBindingName?: string;
   permissionOptions: {
@@ -35,6 +37,7 @@ type RoleBindingPermissionsProps = {
 };
 
 const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
+  ownerReference,
   roleBindingPermissionsRB,
   defaultRoleBindingName,
   permissionOptions,
@@ -84,6 +87,7 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
 
   const userTable = (
     <RoleBindingPermissionsTableSection
+      ownerReference={ownerReference}
       defaultRoleBindingName={defaultRoleBindingName}
       projectName={projectName}
       roleRefKind={roleRefKind}
@@ -99,6 +103,7 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
 
   const groupTable = (
     <RoleBindingPermissionsTableSection
+      ownerReference={ownerReference}
       defaultRoleBindingName={defaultRoleBindingName}
       projectName={projectName}
       roleRefKind={roleRefKind}

@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { Navigate, useParams } from 'react-router';
-import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
+import { KnownLabels, ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
 import { useGroups } from '~/api';
 import RoleBindingPermissions from '~/concepts/roleBinding/RoleBindingPermissions';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
@@ -18,17 +18,33 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import { SupportedArea } from '~/concepts/areas';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
+import { useModelRegistryNamespaceCR } from '~/concepts/modelRegistry/context/useModelRegistryNamespaceCR';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 
 const ModelRegistriesManagePermissions: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState('users');
+  const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();
   const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
   const { mrName } = useParams();
+  const state = useModelRegistryNamespaceCR(MODEL_REGISTRY_DEFAULT_NAMESPACE, mrName || '');
+  const [modelRegistryCR, crLoaded] = state;
   const filteredRoleBindings = roleBindings.data.filter(
     (rb) => rb.metadata.labels?.['app.kubernetes.io/name'] === mrName,
   );
-  if (roleBindings.loaded && filteredRoleBindings.length === 0) {
+
+  React.useEffect(() => {
+    if (modelRegistryCR) {
+      setOwnerReference(modelRegistryCR);
+    } else {
+      setOwnerReference(undefined);
+    }
+  }, [modelRegistryCR]);
+
+  if (
+    (roleBindings.loaded && filteredRoleBindings.length === 0) ||
+    (crLoaded && !modelRegistryCR)
+  ) {
     return <Navigate to="/modelRegistrySettings" replace />;
   }
 
@@ -67,6 +83,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
         <TabContent id="users-tab-content" eventKey="users" hidden={activeTabKey !== 'users'}>
           <TabContentBody>
             <RoleBindingPermissions
+              ownerReference={ownerReference}
               defaultRoleBindingName={`${mrName}-users`}
               isGroupFirst
               permissionOptions={[
@@ -89,7 +106,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
               description={
                 <>
                   To enable access for all cluster users, add{' '}
-                  <ClipboardCopy variant="inline-compact">system.authenticated</ClipboardCopy> to
+                  <ClipboardCopy variant="inline-compact">system:authenticated</ClipboardCopy> to
                   the group list.
                 </>
               }

@@ -10,6 +10,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -17,6 +18,7 @@ import RoleBindingPermissionsTable from './RoleBindingPermissionsTable';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 
 export type RoleBindingPermissionsTableSectionAltProps = {
+  ownerReference?: K8sResourceCommon;
   roleBindings: RoleBindingKind[];
   projectName: string;
   roleRefKind: RoleBindingRoleRef['kind'];
@@ -34,6 +36,7 @@ export type RoleBindingPermissionsTableSectionAltProps = {
 };
 
 const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSectionAltProps> = ({
+  ownerReference,
   roleBindings,
   projectName,
   roleRefKind,
@@ -74,6 +77,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
       </StackItem>
       <StackItem>
         <RoleBindingPermissionsTable
+          ownerReference={ownerReference}
           defaultRoleBindingName={defaultRoleBindingName}
           permissions={roleBindings}
           permissionOptions={permissionOptions}

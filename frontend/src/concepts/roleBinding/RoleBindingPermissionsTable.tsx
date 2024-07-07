@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '~/components/table';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
 import { deleteRoleBinding, generateRoleBindingPermissions, createRoleBinding } from '~/api';
@@ -9,6 +10,7 @@ import { firstSubject } from './utils';
 import RoleBindingPermissionsTableRowAdd from './RoleBindingPermissionsTableRowAdd';
 
 type RoleBindingPermissionsTableProps = {
+  ownerReference?: K8sResourceCommon;
   subjectKind: RoleBindingSubject['kind'];
   namespace: string;
   roleRefKind: RoleBindingRoleRef['kind'];
@@ -28,6 +30,7 @@ type RoleBindingPermissionsTableProps = {
 };
 
 const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = ({
+  ownerReference,
   subjectKind,
   namespace,
   roleRefKind,
@@ -65,6 +68,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
                 roleRefName || rbRoleRefName,
                 roleRefKind,
                 labels,
+                ownerReference,
               );
               createRoleBinding(newRBObject)
                 .then(() => {
@@ -96,6 +100,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
               roleRefName || rbRoleRefName,
               roleRefKind,
               labels,
+              ownerReference,
             );
             createRoleBinding(newRBObject)
               .then(() =>

@@ -101,7 +101,7 @@ describe('MR Permissions', () => {
     cy.findByTestId('not-found-page').should('exist');
   });
 
-  it('Redirect if no rolebindings (if valid MR, there will at least be a default)', () => {
+  it('redirect if no modelregistry', () => {
     initIntercepts({ isEmpty: true });
     usersTab.visit('example-mr');
     cy.url().should('eq', `${Cypress.config().baseUrl}/modelRegistrySettings`);

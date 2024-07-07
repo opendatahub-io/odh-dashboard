@@ -6,6 +6,7 @@ import {
   k8sListResource,
   k8sPatchResource,
   K8sStatus,
+  K8sResourceCommon,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   K8sAPIOptions,
@@ -18,7 +19,7 @@ import { RoleBindingModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
-import { addOwnerReference } from '../k8sUtils';
+import { addOwnerReference } from '~/api/k8sUtils';
 
 export const generateRoleBindingServingRuntime = (
   name: string,
@@ -60,13 +61,8 @@ export const generateRoleBindingPermissions = (
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     [KnownLabels.PROJECT_SHARING]: 'true',
   },
+  ownerReference?: K8sResourceCommon,
 ): RoleBindingKind => {
-  const roleRef = {
-    apiGroup: 'rbac.authorization.k8s.io',
-    apiVersion: 'rbac.authorization.k8s.io/v1',
-    kind: rbRoleRefKind,
-    name: rbRoleRefName,
-  };
   const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
@@ -75,7 +71,11 @@ export const generateRoleBindingPermissions = (
       namespace,
       labels: rbLabels,
     },
-    roleRef: roleRef,
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: rbRoleRefKind,
+      name: rbRoleRefName,
+    },
     subjects: [
       {
         apiGroup: 'rbac.authorization.k8s.io',
@@ -84,7 +84,7 @@ export const generateRoleBindingPermissions = (
       },
     ],
   };
-  return addOwnerReference(roleBindingObject, roleRef);
+  return addOwnerReference(roleBindingObject, ownerReference);
 };
 
 export const listRoleBindings = (
