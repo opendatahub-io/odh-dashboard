@@ -26,6 +26,7 @@ export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<st
   const adminGroupsList = adminGroups
     .split(',')
     .filter((groupName) => groupName && !groupName.startsWith('system:')); // Handle edge-cases and ignore k8s defaults
+  adminGroupsList.push('cluster-admins');
   return getGroupUserList(fastify, adminGroupsList);
 };
 
