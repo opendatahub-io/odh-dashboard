@@ -14,9 +14,9 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { OdhApplication } from '~/types';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
-import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
+import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import GetStartedPanel from './GetStartedPanel';
 
 import './ExploreApplications.scss';
@@ -71,7 +71,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                       isSelected={selectedComponent?.metadata.name === c.metadata.name}
                       onSelect={() => {
                         updateSelection(c.metadata.name);
-                        fireTrackingEvent('Explore card clicked', {
+                        fireMiscTrackingEvent('Explore card clicked', {
                           name: c.metadata.name,
                         });
                       }}
