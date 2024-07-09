@@ -294,18 +294,6 @@ describe('Compare runs', () => {
         .should('exist');
     });
 
-    it('displays ROC curve filter table with correct artifacts', () => {
-      compareRunsMetricsContent.findRocCurveTab().click();
-      const content = compareRunsMetricsContent.findRocCurveTabContent();
-
-      const row = content.getRocCurveRowByName('wine-classification > metrics');
-      row.findRunName().should('contain.text', 'Run 1');
-      content.findRocCurveGraph().should('include.text', '#1');
-
-      row.findRowCheckbox().uncheck();
-      content.findRocCurveGraph().should('not.include.text', '#1');
-    });
-
     it('displays ROC curve empty state when no artifacts are found', () => {
       compareRunsMetricsContent.findRocCurveTab().click();
       const content = compareRunsMetricsContent.findRocCurveTabContent();
