@@ -471,6 +471,16 @@ declare global {
           response: OdhResponse<ListPipelineRecurringRunsResourceKF>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifacts`,
+          options: { path: { namespace: string; serviceName: string }; times?: number },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByID`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactTypes`,
           options: { path: { namespace: string; serviceName: string } },
           response: OdhResponse<GrpcResponse>,

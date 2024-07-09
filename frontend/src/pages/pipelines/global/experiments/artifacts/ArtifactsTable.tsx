@@ -107,6 +107,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               aria-label="Search artifact name"
               placeholder="Search..."
               onChange={(_event, value) => onChange(value)}
+              data-testid="artifact-name-filter-input"
             />
           ),
           [FilterOptions.Id]: ({ onChange, ...props }) => (
@@ -117,6 +118,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               type="number"
               min={1}
               onChange={(_event, value) => onChange(value)}
+              data-testid="artifact-id-filter-input"
             />
           ),
           [FilterOptions.Type]: ({ value, onChange, ...props }) => (
@@ -129,12 +131,14 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
                 label: v,
               }))}
               onChange={(v) => onChange(v)}
+              data-testid="artifact-type-filter-select"
             />
           ),
         }}
         filterData={filterData}
         onClearFilters={onClearFilters}
         onFilterUpdate={onFilterUpdate}
+        data-testid="artifacts-table-toolbar"
       />
     ),
     [filterData, onClearFilters, onFilterUpdate],
@@ -143,17 +147,17 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   const rowRenderer = React.useCallback(
     (artifact: Artifact.AsObject) => (
       <Tr key={artifact.id}>
-        <Td>
+        <Td dataLabel="Artifact">
           <Link to={artifactsDetailsRoute(namespace, artifact.id)}>
             {getArtifactName(artifact)}
           </Link>
         </Td>
-        <Td>{artifact.id}</Td>
-        <Td>{artifact.type}</Td>
-        <Td>
+        <Td dataLabel="ID">{artifact.id}</Td>
+        <Td dataLabel="Type">{artifact.type}</Td>
+        <Td dataLabel="URI">
           <ArtifactUriLink uri={artifact.uri} type={artifact.type} />
         </Td>
-        <Td>
+        <Td dataLabel="Created">
           <PipelinesTableRowTime date={new Date(artifact.createTimeSinceEpoch)} />
         </Td>
       </Tr>
