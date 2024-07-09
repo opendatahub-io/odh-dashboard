@@ -401,6 +401,18 @@ declare global {
           response: OdhResponse<GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode`,
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              recurringRunId: string;
+              mode: string;
+            };
+          },
+          response: OdhResponse<{ data: object }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
           options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
           response: OdhResponse<PipelineRecurringRunKFv2>,

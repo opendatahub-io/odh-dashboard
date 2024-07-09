@@ -29,6 +29,7 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipelineV2({
@@ -505,6 +506,63 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findYamlOutput().click();
       const pipelineDashboardCodeEditor = pipelineDetails.getPipelineDashboardCodeEditor();
       pipelineDashboardCodeEditor.findInput().should('not.be.empty');
+    });
+  });
+
+  describe('Pipeline recurring run details', () => {
+    const mockDisabledRecurringRun = { ...mockRecurringRun, status: RecurringRunStatus.DISABLED };
+
+    beforeEach(() => {
+      initIntercepts();
+    });
+
+    it('disables recurring run from action dropdown', () => {
+      pipelineRecurringRunDetails.mockDisableRecurringRun(mockRecurringRun, projectId);
+      pipelineRecurringRunDetails.visit(
+        projectId,
+        mockRecurringRun.recurring_run_id,
+        mockVersion.pipeline_version_id,
+        mockRecurringRun.recurring_run_id,
+      );
+
+      pipelineRecurringRunDetails.findActionsDropdown();
+      pipelineRecurringRunDetails.selectActionDropdownItem('Disable');
+
+      pipelineRecurringRunDetails
+        .findActionsDropdown()
+        .click()
+        .findByRole('menuitem', { name: 'Enable' })
+        .should('be.visible');
+    });
+
+    it('enables recurring run from action dropdown', () => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+        {
+          path: {
+            namespace: projectId,
+            serviceName: 'dspa',
+            recurringRunId: mockDisabledRecurringRun.recurring_run_id,
+          },
+        },
+        mockDisabledRecurringRun,
+      );
+      pipelineRecurringRunDetails.mockEnableRecurringRun(mockDisabledRecurringRun, projectId);
+      pipelineRecurringRunDetails.visit(
+        projectId,
+        mockDisabledRecurringRun.recurring_run_id,
+        mockVersion.pipeline_version_id,
+        mockRecurringRun.recurring_run_id,
+      );
+
+      pipelineRecurringRunDetails.findActionsDropdown();
+      pipelineRecurringRunDetails.selectActionDropdownItem('Enable');
+
+      pipelineRecurringRunDetails
+        .findActionsDropdown()
+        .click()
+        .findByRole('menuitem', { name: 'Disable' })
+        .should('be.visible');
     });
   });
 

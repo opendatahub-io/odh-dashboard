@@ -126,8 +126,8 @@ export enum RecurringRunMode {
 
 export enum RecurringRunStatus {
   STATUS_UNSPECIFIED = 'STATUS_UNSPECIFIED',
-  ENABLED = 'ENABLE',
-  DISABLED = 'DISABLE',
+  ENABLED = 'ENABLED',
+  DISABLED = 'DISABLED',
 }
 
 export enum StorageStateKF {

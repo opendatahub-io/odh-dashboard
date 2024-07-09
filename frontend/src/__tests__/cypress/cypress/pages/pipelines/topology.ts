@@ -1,5 +1,6 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+import type { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class TaskDrawer extends Contextual<HTMLElement> {
   findInputArtifacts() {
@@ -193,6 +194,36 @@ class PipelineRecurringRunDetails extends RunDetails {
 
   selectActionDropdownItem(label: string) {
     this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
+  }
+
+  mockEnableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode',
+      {
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: recurringRun.recurring_run_id,
+          mode: ':enable',
+        },
+      },
+      { data: {} },
+    );
+  }
+
+  mockDisableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode',
+      {
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: recurringRun.recurring_run_id,
+          mode: ':disable',
+        },
+      },
+      { data: {} },
+    );
   }
 }
 
