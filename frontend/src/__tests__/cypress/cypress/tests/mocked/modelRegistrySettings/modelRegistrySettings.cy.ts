@@ -185,10 +185,6 @@ describe('ManagePermissionsModal', () => {
       .findByText('Manage permissions')
       .click();
   });
-
-  it('Shows modal for registry', () => {
-    cy.findByText('Manage permissions of test-registry-1').should('exist');
-  });
 });
 
 describe('DeleteModelRegistryModal', () => {

@@ -2,7 +2,7 @@ import { RoleBindingKind } from '~/k8sTypes';
 import { SortableData } from '~/components/table';
 import { firstSubject } from './utils';
 
-export const columnsProjectSharing: SortableData<RoleBindingKind>[] = [
+export const columnsRoleBindingPermissions: SortableData<RoleBindingKind>[] = [
   {
     field: 'username',
     label: 'Name',

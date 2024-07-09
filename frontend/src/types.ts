@@ -543,17 +543,6 @@ export type Volume = {
 
 export type VolumeMount = { mountPath: string; name: string };
 
-export type RoleBindingSubject = {
-  kind: string;
-  apiGroup: string;
-  name: string;
-};
-
-export type RoleBinding = {
-  subjects: RoleBindingSubject[];
-  roleRef: RoleBindingSubject;
-} & K8sResourceCommon;
-
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,
   resourceName: string,

@@ -1,17 +1,18 @@
 import { RoleBindingSubject } from '~/k8sTypes';
 
-export enum ProjectSharingRBType {
+export enum RoleBindingPermissionsRBType {
   USER = 'User',
   GROUP = 'Group',
 }
 
-export enum ProjectSharingRoleType {
+export enum RoleBindingPermissionsRoleType {
   EDIT = 'edit',
   ADMIN = 'admin',
+  DEFAULT = 'default',
 }
 
 export type RoleBindingSubjectWithRole = RoleBindingSubject & {
-  role: ProjectSharingRoleType;
+  role: RoleBindingPermissionsRoleType;
   roleBindingName: string;
   roleBindingNamespace: string;
 };

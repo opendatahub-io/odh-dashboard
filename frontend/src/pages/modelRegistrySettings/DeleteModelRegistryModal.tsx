@@ -17,7 +17,6 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
   onClose,
   refresh,
 }) => {
-  const defaultPermissionsGroup = 'TODO: group here'; // TODO should be implemented as part of https://issues.redhat.com/browse/RHOAIENG-6636
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [confirmInputValue, setConfirmInputValue] = React.useState('');
@@ -72,7 +71,7 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
             <Text component="p">
               Only the <strong>{mr.metadata.name}</strong> itself will be removed. You&apos;ll need
               to manually delete all data in the connected database. Additionally, the default group{' '}
-              <strong>{defaultPermissionsGroup}</strong> and any permissions associated with{' '}
+              <strong>{`${mr.metadata.name}-users`}</strong> and any permissions associated with{' '}
               <strong>{mr.metadata.name}</strong> will be deleted. Any other groups and roles
               created by you will need to be manually deleted.
             </Text>

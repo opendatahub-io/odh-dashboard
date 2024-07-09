@@ -3,10 +3,12 @@ import { TableRow } from './components/table';
 
 class PermissionsTableRow extends TableRow {}
 
-class PermissionsTab {
-  visit(projectName: string) {
-    cy.visitWithLogin(`/projects/${projectName}?section=permissions`);
-    this.wait();
+class UsersTab {
+  visit(mrName: string, wait = true) {
+    cy.visitWithLogin(`/modelRegistrySettings/permissions/${mrName}`);
+    if (wait) {
+      this.wait();
+    }
   }
 
   private wait() {
@@ -44,6 +46,10 @@ class PermissionTable extends Contextual<HTMLElement> {
     return this.find().findByTestId(['role-binding-name-input', id]);
   }
 
+  findGroupSelect() {
+    return this.find().get(`[aria-label="Name selection"]`);
+  }
+
   getTableRow(name: string) {
     return new PermissionsTableRow(() =>
       this.find().find(`[data-label=Username]`).contains(name).parents('tr'),
@@ -52,15 +58,6 @@ class PermissionTable extends Contextual<HTMLElement> {
 
   findTableHeaderButton(name: string) {
     return this.find().find('thead').findByRole('button', { name });
-  }
-
-  selectPermission(id: string, name: string) {
-    return this.find()
-      .findByTestId(['role-binding-name-input', id])
-      .parents('tr')
-      .findByRole('button', { name: 'Options menu' })
-      .findSelectOption(name)
-      .click();
   }
 
   findSaveNewButton() {
@@ -72,4 +69,4 @@ class PermissionTable extends Contextual<HTMLElement> {
   }
 }
 
-export const permissions = new PermissionsTab();
+export const usersTab = new UsersTab();
