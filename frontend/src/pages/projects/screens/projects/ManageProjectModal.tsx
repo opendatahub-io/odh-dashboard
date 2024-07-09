@@ -11,8 +11,9 @@ import {
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
+import { fireTrackingEventRaw } from '~/concepts/analyticsTracking/segmentIOUtils';
+
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;

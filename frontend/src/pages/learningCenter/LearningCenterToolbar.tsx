@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-icons';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { useQueryParams } from '~/utilities/useQueryParams';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,

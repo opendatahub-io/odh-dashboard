@@ -3,8 +3,8 @@
  */
 
 import {
-  WatchK8sResult,
   K8sResourceCommon as SDKK8sResourceCommon,
+  WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
@@ -267,10 +267,6 @@ declare global {
   }
 }
 
-export type ODHSegmentKey = {
-  segmentKey: string;
-};
-
 export type ApplicationAction = {
   label: string;
   href: string;
@@ -280,28 +276,6 @@ export type ApplicationAction = {
 export type Section = {
   label?: string;
   actions: ApplicationAction[];
-};
-
-export enum TrackingOutcome {
-  submit = 'submit',
-  cancel = 'cancel',
-}
-
-export type TrackingEventProperties = {
-  name?: string;
-  anonymousID?: string;
-  type?: string;
-  term?: string;
-  accelerator?: string;
-  acceleratorCount?: number;
-  lastSelectedSize?: string;
-  lastSelectedImage?: string;
-  projectName?: string;
-  notebookName?: string;
-  lastActivity?: string;
-  outcome?: TrackingOutcome;
-  success?: boolean;
-  error?: string;
 };
 
 export type NotebookPort = {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Flex, Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '~/api';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { computeNotebooksTolerations } from '~/utilities/tolerations';

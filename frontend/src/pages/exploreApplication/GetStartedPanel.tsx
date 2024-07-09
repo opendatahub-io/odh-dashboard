@@ -19,7 +19,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useAppContext } from '~/app/AppContext';
 
 const DEFAULT_BETA_TEXT =

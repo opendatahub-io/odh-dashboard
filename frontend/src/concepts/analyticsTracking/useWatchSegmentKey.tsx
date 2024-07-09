@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { fetchSegmentKey } from '~/services/segmentKeyService';
-import { ODHSegmentKey } from '~/types';
-import { POLL_INTERVAL } from './const';
+import { POLL_INTERVAL } from '~/utilities/const';
+import { ODHSegmentKey } from '~/concepts/analyticsTracking/trackingProperties';
+import { fetchSegmentKey } from './segmentKeyService';
 
 export const useWatchSegmentKey = (): {
   segmentKey: string;

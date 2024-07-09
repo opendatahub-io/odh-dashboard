@@ -20,8 +20,11 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { fireTrackingEvent, fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
+import {
+  fireTrackingEvent,
+  fireTrackingEventRaw,
+} from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,

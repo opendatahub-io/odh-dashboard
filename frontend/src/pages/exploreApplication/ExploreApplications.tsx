@@ -14,7 +14,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { OdhApplication } from '~/types';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import GetStartedPanel from './GetStartedPanel';
