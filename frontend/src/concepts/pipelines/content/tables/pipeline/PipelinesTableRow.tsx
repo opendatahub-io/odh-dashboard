@@ -60,6 +60,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
 
   // disable the checkbox if the pipeline has pipeline versions
   const disableDelete = totalSize > 0;
+  const hasNoPipelineVersions = totalSize === 0;
   React.useEffect(() => {
     disableCheck(pipelineRef.current, disableDelete || loading);
   }, [disableDelete, loading, disableCheck]);
@@ -125,6 +126,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 },
                 {
                   title: 'Create run',
+                  isAriaDisabled: hasNoPipelineVersions,
                   onClick: () => {
                     navigate(
                       pipelineVersionCreateRunRoute(
@@ -137,6 +139,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 },
                 {
                   title: 'Create schedule',
+                  isAriaDisabled: hasNoPipelineVersions,
                   onClick: () => {
                     navigate(
                       pipelineVersionCreateRecurringRunRoute(

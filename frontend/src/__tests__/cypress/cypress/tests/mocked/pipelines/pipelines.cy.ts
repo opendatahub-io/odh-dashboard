@@ -960,6 +960,19 @@ describe('Pipelines', () => {
     runCreateRunPageNavTest(visitPipelineProjects);
   });
 
+  it('run and schedule dropdown action should be disabeld when pipeline has no versions', () => {
+    initIntercepts({ hasNoPipelineVersions: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Create schedule')
+      .should('have.attr', 'aria-disabled');
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Create run')
+      .should('have.attr', 'aria-disabled');
+  });
+
   it('navigates to "Schedule run" page from pipeline row', () => {
     const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
     runScheduleRunPageNavTest(visitPipelineProjects);
@@ -1118,6 +1131,7 @@ describe('Pipelines', () => {
 type HandlersProps = {
   isEmpty?: boolean;
   mockPipelines?: PipelineKFv2[];
+  hasNoPipelineVersions?: boolean;
   totalSize?: number;
   nextPageToken?: string | undefined;
 };
@@ -1125,6 +1139,7 @@ type HandlersProps = {
 export const initIntercepts = ({
   isEmpty = false,
   mockPipelines = [initialMockPipeline],
+  hasNoPipelineVersions = false,
   totalSize = mockPipelines.length,
   nextPageToken,
 }: HandlersProps): void => {
@@ -1173,7 +1188,7 @@ export const initIntercepts = ({
         pipelineId: initialMockPipeline.pipeline_id,
       },
     },
-    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
+    hasNoPipelineVersions ? {} : buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
