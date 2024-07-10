@@ -36,30 +36,33 @@ export const removeComponent = async (
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
   const query = request.query as { [key: string]: string };
-  const coreV1Api = fastify.kube.coreV1Api;
+  const { coreV1Api } = fastify.kube;
   const enabledAppsConfigMapName = process.env.ENABLED_APPS_CM;
-  const namespace = fastify.kube.namespace;
+  const { namespace } = fastify.kube;
   try {
     const enabledAppsCM = await coreV1Api
-      .readNamespacedConfigMap(enabledAppsConfigMapName, namespace)
+      .readNamespacedConfigMap(enabledAppsConfigMapName ?? '', namespace)
       .then((result) => result.body)
       .catch(() => {
         throw new Error('Error fetching applications shown on enabled page');
       });
     const enabledAppsCMData = enabledAppsCM.data;
-    delete enabledAppsCMData[query.appName];
+    if (enabledAppsCMData) {
+      delete enabledAppsCMData[query.appName];
+    }
     const cmBody = {
       metadata: {
         name: enabledAppsConfigMapName,
-        namespace: namespace,
+        namespace,
       },
       data: enabledAppsCMData,
     };
-    await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName, namespace, cmBody);
+    await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName ?? '', namespace, cmBody);
     await updateApplications();
-    return { success: true, error: null };
+    return { success: true, error: '' };
   } catch (e) {
-    fastify.log.error(e.message);
-    return { success: false, error: e.message };
+    const message = e instanceof Error ? e.message : 'Error removing component.';
+    fastify.log.error(message);
+    return { success: false, error: message };
   }
 };

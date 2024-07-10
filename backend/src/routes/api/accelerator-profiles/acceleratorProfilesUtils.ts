@@ -1,14 +1,15 @@
-import { KubeFastifyInstance, AcceleratorProfileKind } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
+import { errorHandler } from '../../../utils';
+import { KubeFastifyInstance, AcceleratorProfileKind } from '../../../types';
 import { translateDisplayNameForK8s } from '../../../utils/resourceUtils';
 
 export const postAcceleratorProfile = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
+  const { customObjectsApi } = fastify.kube;
+  const { namespace } = fastify.kube;
   const body = request.body as AcceleratorProfileKind['spec'];
 
   const payload: AcceleratorProfileKind = {
@@ -16,7 +17,7 @@ export const postAcceleratorProfile = async (
     kind: 'AcceleratorProfile',
     metadata: {
       name: translateDisplayNameForK8s(body.displayName),
-      namespace: namespace,
+      namespace,
       annotations: {
         'opendatahub.io/modified-date': new Date().toISOString(),
       },
@@ -36,11 +37,11 @@ export const postAcceleratorProfile = async (
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
       });
-    return { success: true, error: null };
+    return { success: true, error: '' };
   } catch (e) {
-    if (e.response?.statusCode !== 404) {
+    if (!createError.isHttpError(e) || e.statusCode !== 404) {
       fastify.log.error(e, 'Unable to add accelerator profile.');
-      return { success: false, error: 'Unable to add accelerator profile: ' + e.message };
+      return { success: false, error: `Unable to add accelerator profile: ${errorHandler(e)}` };
     }
     throw e;
   }
@@ -50,8 +51,8 @@ export const deleteAcceleratorProfile = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
+  const { customObjectsApi } = fastify.kube;
+  const { namespace } = fastify.kube;
   const params = request.params as { acceleratorProfileName: string };
 
   try {
@@ -66,11 +67,11 @@ export const deleteAcceleratorProfile = async (
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
       });
-    return { success: true, error: null };
+    return { success: true, error: '' };
   } catch (e) {
-    if (e.response?.statusCode === 404) {
+    if (createError.isHttpError(e) && e.statusCode === 404) {
       fastify.log.error(e, 'Unable to delete accelerator profile.');
-      return { success: false, error: 'Unable to delete accelerator profile: ' + e.message };
+      return { success: false, error: `Unable to delete accelerator profile: ${errorHandler(e)}` };
     }
     throw e;
   }
@@ -80,8 +81,8 @@ export const updateAcceleratorProfile = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
+  const { customObjectsApi } = fastify.kube;
+  const { namespace } = fastify.kube;
   const params = request.params as { acceleratorProfileName: string };
   const body = request.body as Partial<AcceleratorProfileKind['spec']>;
 
@@ -139,11 +140,11 @@ export const updateAcceleratorProfile = async (
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
       });
-    return { success: true, error: null };
+    return { success: true, error: '' };
   } catch (e) {
-    if (e.response?.statusCode !== 404) {
+    if (!createError.isHttpError(e) || e.statusCode !== 404) {
       fastify.log.error(e, 'Unable to update accelerator profile.');
-      return { success: false, error: 'Unable to update accelerator profile: ' + e.message };
+      return { success: false, error: `Unable to update accelerator profile: ${errorHandler(e)}` };
     }
     throw e;
   }
