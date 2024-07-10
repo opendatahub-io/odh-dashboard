@@ -257,6 +257,10 @@ class PipelineRunDetails extends RunDetails {
   findOutputArtifacts() {
     return cy.findByTestId('Output-artifacts');
   }
+
+  findErrorState(id: string) {
+    return cy.findByTestId(id);
+  }
 }
 
 export const pipelineDetails = new PipelineDetails();

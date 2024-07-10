@@ -73,6 +73,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
             ),
           },
         ]
+      : versionError
+      ? [{ key: 'Pipeline version', value: 'No pipeline version' }]
       : []),
     ...(pipeline
       ? [
