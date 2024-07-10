@@ -15,6 +15,7 @@ type PipelineTopologyProps = {
   onSelectionChange?: (selectionIds: string[]) => void;
   nodes: PipelineNodeModel[];
   versionError?: Error;
+  sidePanel?: React.ReactElement | null;
 };
 
 const PipelineTopology: React.FC<PipelineTopologyProps> = ({
@@ -22,6 +23,7 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   selectedIds,
   onSelectionChange,
   versionError,
+  sidePanel,
 }) => {
   const controller = useTopologyController('g1');
 
@@ -64,7 +66,7 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
 
   return (
     <VisualizationProvider controller={controller}>
-      <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} />
+      <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} sidePanel={sidePanel} />
     </VisualizationProvider>
   );
 };

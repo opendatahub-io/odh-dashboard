@@ -2,8 +2,6 @@ import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Drawer,
-  DrawerContent,
   EmptyState,
   EmptyStateIcon,
   EmptyStateVariant,
@@ -74,68 +72,58 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
     );
   }
 
+  const panelContent = selectedNode ? (
+    <SelectedTaskDrawerContent
+      task={selectedNode.data.pipelineTask}
+      onClose={() => setSelectedId(null)}
+    />
+  ) : null;
+
   return (
     <>
-      <Drawer isExpanded={!!selectedNode}>
-        <DrawerContent
-          panelContent={
-            <SelectedTaskDrawerContent
-              task={selectedNode?.data.pipelineTask}
-              onClose={() => setSelectedId(null)}
+      <ApplicationsPage
+        title={recurringRun?.display_name}
+        description={
+          recurringRun ? <MarkdownView conciseDisplay markdown={recurringRun.description} /> : ''
+        }
+        loaded={loaded}
+        loadError={error}
+        breadcrumb={
+          <Breadcrumb>
+            {breadcrumbPath}
+            <BreadcrumbItem isActive>{recurringRun?.display_name ?? 'Loading...'}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        headerAction={
+          loaded && (
+            <PipelineRecurringRunDetailsActions
+              recurringRun={recurringRun ?? undefined}
+              onDelete={() => setDeleting(true)}
+            />
+          )
+        }
+        empty={false}
+      >
+        <PipelineRunDetailsTabs
+          run={recurringRun}
+          pipelineSpec={version?.pipeline_spec}
+          graphContent={
+            <PipelineTopology
+              nodes={nodes}
+              selectedIds={selectedId ? [selectedId] : []}
+              onSelectionChange={(ids) => {
+                const firstId = ids[0];
+                if (ids.length === 0) {
+                  setSelectedId(null);
+                } else if (getFirstNode(firstId)) {
+                  setSelectedId(firstId);
+                }
+              }}
+              sidePanel={panelContent}
             />
           }
-        >
-          <ApplicationsPage
-            title={recurringRun?.display_name}
-            description={
-              recurringRun ? (
-                <MarkdownView conciseDisplay markdown={recurringRun.description} />
-              ) : (
-                ''
-              )
-            }
-            loaded={loaded}
-            loadError={error}
-            breadcrumb={
-              <Breadcrumb>
-                {breadcrumbPath}
-                <BreadcrumbItem isActive>
-                  {recurringRun?.display_name ?? 'Loading...'}
-                </BreadcrumbItem>
-              </Breadcrumb>
-            }
-            headerAction={
-              loaded && (
-                <PipelineRecurringRunDetailsActions
-                  recurringRun={recurringRun ?? undefined}
-                  onDelete={() => setDeleting(true)}
-                />
-              )
-            }
-            empty={false}
-          >
-            <PipelineRunDetailsTabs
-              run={recurringRun}
-              pipelineSpec={version?.pipeline_spec}
-              graphContent={
-                <PipelineTopology
-                  nodes={nodes}
-                  selectedIds={selectedId ? [selectedId] : []}
-                  onSelectionChange={(ids) => {
-                    const firstId = ids[0];
-                    if (ids.length === 0) {
-                      setSelectedId(null);
-                    } else if (getFirstNode(firstId)) {
-                      setSelectedId(firstId);
-                    }
-                  }}
-                />
-              }
-            />
-          </ApplicationsPage>
-        </DrawerContent>
-      </Drawer>
-
+        />
+      </ApplicationsPage>
       <DeletePipelineRunsModal
         type={PipelineRunType.SCHEDULED}
         toDeleteResources={deleting && recurringRun ? [recurringRun] : []}
