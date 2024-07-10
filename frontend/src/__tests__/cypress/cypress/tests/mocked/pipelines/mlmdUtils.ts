@@ -6,7 +6,11 @@ import { mockGetExecutions, mockGetNoExecutions } from '~/__mocks__/mlmd/mockGet
 import { mockGetExecutionsByContext } from '~/__mocks__/mlmd/mockGetExecutionsByContext';
 import { mockGetExecutionsByID } from '~/__mocks__/mlmd/mockGetExecutionsByID';
 
-export const initMlmdIntercepts = (projectName: string, isExecutionsEmpty?: boolean): void => {
+export const initMlmdIntercepts = (
+  projectName: string,
+  options: { isExecutionsEmpty?: boolean; noMetrics?: boolean } = {},
+): void => {
+  const { isExecutionsEmpty, noMetrics } = options;
   cy.interceptOdh(
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactTypes',
     { path: { namespace: projectName, serviceName: 'dspa' } },
@@ -20,7 +24,7 @@ export const initMlmdIntercepts = (projectName: string, isExecutionsEmpty?: bool
   cy.interceptOdh(
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByContext',
     { path: { namespace: projectName, serviceName: 'dspa' } },
-    mockGetArtifactsByContext(),
+    mockGetArtifactsByContext(noMetrics),
   );
   cy.interceptOdh(
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByContext',

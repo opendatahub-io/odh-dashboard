@@ -188,10 +188,6 @@ const initIntercepts = (interceptMlmd: boolean, isExecutionsEmpty?: boolean) => 
   );
 
   if (interceptMlmd) {
-    if (isExecutionsEmpty) {
-      initMlmdIntercepts(projectName, true);
-    } else {
-      initMlmdIntercepts(projectName, false);
-    }
+    initMlmdIntercepts(projectName, { isExecutionsEmpty });
   }
 };

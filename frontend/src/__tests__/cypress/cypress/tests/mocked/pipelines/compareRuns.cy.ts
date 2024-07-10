@@ -69,6 +69,17 @@ const mockRun2 = buildMockRunKF({
   },
 });
 
+const mockRun3 = buildMockRunKF({
+  display_name: 'Run 3',
+  run_id: 'run-3',
+  pipeline_version_reference: {
+    pipeline_id: initialMockPipeline.pipeline_id,
+    pipeline_version_id: initialMockPipelineVersion.pipeline_version_id,
+  },
+  experiment_id: mockExperiment.experiment_id,
+  runtime_config: { parameters: {} },
+});
+
 describe('Compare runs', () => {
   beforeEach(() => {
     initIntercepts();
@@ -204,6 +215,7 @@ describe('Compare runs', () => {
       compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
         mockRun.run_id,
         mockRun2.run_id,
+        mockRun3.run_id,
       ]);
     });
 
@@ -213,6 +225,15 @@ describe('Compare runs', () => {
         .findScalarMetricsTabContent()
         .findScalarMetricsEmptyState()
         .should('exist');
+      compareRunsMetricsContent.findConfusionMatrixTab().click();
+      compareRunsMetricsContent
+        .findConfusionMatrixTabContent()
+        .findConfusionMatrixEmptyState()
+        .should('exist');
+      compareRunsMetricsContent.findRocCurveTab().click();
+      compareRunsMetricsContent.findRocCurveTabContent().findRocCurveEmptyState().should('exist');
+      compareRunsMetricsContent.findMarkdownTab().click();
+      compareRunsMetricsContent.findMarkdownTabContent().findMarkdownEmptyState().should('exist');
     });
 
     it('displays scalar metrics table data based on selections from Run list', () => {
@@ -297,13 +318,63 @@ describe('Compare runs', () => {
     it('displays ROC curve empty state when no artifacts are found', () => {
       compareRunsMetricsContent.findRocCurveTab().click();
       const content = compareRunsMetricsContent.findRocCurveTabContent();
-      content.findRocCruveSearchBar().type('invalid');
-      content.findRocCurveEmptyState().should('exist');
+      content.findRocCurveSearchBar().type('invalid');
+      content.findRocCurveTableEmptyState().should('exist');
+    });
+  });
+
+  describe('No metrics', () => {
+    beforeEach(() => {
+      initIntercepts(true);
+      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+        mockRun.run_id,
+        mockRun2.run_id,
+        mockRun3.run_id,
+      ]);
+    });
+
+    it('shows no data state when the Runs list has selections but no metrics', () => {
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsNoMetricsState()
+        .should('exist');
+      compareRunsMetricsContent.findConfusionMatrixTab().click();
+      compareRunsMetricsContent
+        .findConfusionMatrixTabContent()
+        .findConfusionMatrixNoMetricsState()
+        .should('exist');
+      compareRunsMetricsContent.findRocCurveTab().click();
+      compareRunsMetricsContent
+        .findRocCurveTabContent()
+        .findRocCurveNoMetricsState()
+        .should('exist');
+      compareRunsMetricsContent.findMarkdownTab().click();
+      compareRunsMetricsContent
+        .findMarkdownTabContent()
+        .findMarkdownNoMetricsState()
+        .should('exist');
+    });
+
+    it('shows empty state when the Runs list has no selections', () => {
+      compareRunsListTable.findSelectAllCheckbox().click(); // Uncheck all
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsEmptyState()
+        .should('exist');
+      compareRunsMetricsContent.findConfusionMatrixTab().click();
+      compareRunsMetricsContent
+        .findConfusionMatrixTabContent()
+        .findConfusionMatrixEmptyState()
+        .should('exist');
+      compareRunsMetricsContent.findRocCurveTab().click();
+      compareRunsMetricsContent.findRocCurveTabContent().findRocCurveEmptyState().should('exist');
+      compareRunsMetricsContent.findMarkdownTab().click();
+      compareRunsMetricsContent.findMarkdownTabContent().findMarkdownEmptyState().should('exist');
     });
   });
 });
 
-const initIntercepts = () => {
+const initIntercepts = (noMetrics?: boolean) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({ disablePipelineExperiments: false, disableS3Endpoint: false }),
@@ -366,5 +437,13 @@ const initIntercepts = () => {
     mockRun2,
   );
 
-  initMlmdIntercepts(projectName);
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+    {
+      path: { namespace: projectName, serviceName: 'dspa', runId: mockRun3.run_id },
+    },
+    mockRun3,
+  );
+
+  initMlmdIntercepts(projectName, { noMetrics });
 };

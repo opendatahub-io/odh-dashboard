@@ -3,10 +3,6 @@ import {
   Alert,
   Bullseye,
   Divider,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateVariant,
   Flex,
   FlexItem,
   Spinner,
@@ -19,6 +15,7 @@ import MarkdownView from '~/components/MarkdownView';
 import { MAX_STORAGE_OBJECT_SIZE } from '~/services/storageService';
 import { bytesAsRoundedGiB } from '~/utilities/number';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 
 type MarkdownCompareProps = {
   configMap: Record<string, MarkdownAndTitle[]>;
@@ -50,18 +47,11 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
   }
 
   if (isEmpty) {
-    return <CompareRunsEmptyState />;
+    return <CompareRunsEmptyState data-testid="compare-runs-markdown-empty-state" />;
   }
 
   if (Object.keys(configMap).length === 0) {
-    return (
-      <EmptyState variant={EmptyStateVariant.xs} data-testid="compare-runs-markdown-empty-state">
-        <EmptyStateHeader titleText="No markdown artifacts" headingLevel="h4" />
-        <EmptyStateBody>
-          There are no markdown artifacts available on the selected runs.
-        </EmptyStateBody>
-      </EmptyState>
-    );
+    return <CompareRunsNoMetrics data-testid="compare-runs-markdown-no-data-state" />;
   }
 
   const renderMarkdownWithSize = (config: MarkdownAndTitle) => (

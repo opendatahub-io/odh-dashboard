@@ -111,6 +111,10 @@ class RocCurveFilterTableRow extends TableRow {
 
 class CompareRunsRocCurve extends Contextual<HTMLElement> {
   findRocCurveEmptyState() {
+    return this.find().findByTestId('compare-runs-roc-curve-empty-state');
+  }
+
+  findRocCurveTableEmptyState() {
     return this.find().findByTestId('no-result-found-title');
   }
 
@@ -123,12 +127,16 @@ class CompareRunsRocCurve extends Contextual<HTMLElement> {
     );
   }
 
-  findRocCruveSearchBar() {
+  findRocCurveSearchBar() {
     return this.find().findByTestId('roc-curve-search');
   }
 
   findRocCurveGraph() {
     return this.find().findByTestId('roc-curve-graph');
+  }
+
+  findRocCurveNoMetricsState() {
+    return this.find().findByTestId('compare-runs-roc-curve-no-data-state');
   }
 }
 
@@ -151,6 +159,10 @@ class CompareRunsScalarMetrics extends Contextual<HTMLDivElement> {
 
   findScalarMetricsEmptyState() {
     return this.find().findByTestId('compare-runs-scalar-metrics-empty-state');
+  }
+
+  findScalarMetricsNoMetricsState() {
+    return this.find().findByTestId('compare-runs-scalar-metrics-no-data-state');
   }
 }
 
@@ -188,6 +200,10 @@ class CompareRunsMarkdown extends Contextual<HTMLElement> {
       this.find().findByTestId(`compare-runs-markdown-${runId}`),
     );
   }
+
+  findMarkdownNoMetricsState() {
+    return this.find().findByTestId('compare-runs-markdown-no-data-state');
+  }
 }
 
 class CompareRunsConfusionMatrix extends Contextual<HTMLElement> {
@@ -205,6 +221,10 @@ class CompareRunsConfusionMatrix extends Contextual<HTMLElement> {
     return new ConfusionMatrixArtifactSelect(() =>
       this.find().findByTestId(`compare-runs-confusion-matrix-${runId}`),
     );
+  }
+
+  findConfusionMatrixNoMetricsState() {
+    return this.find().findByTestId('compare-runs-confusion-matrix-no-data-state');
   }
 }
 
