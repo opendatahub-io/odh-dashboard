@@ -52,9 +52,12 @@ export const useMergeDefaultPVCName = (
   };
 };
 
-export const getVersion = (version?: string, prefix?: string): string => {
+export const getVersion = (version?: string | number, prefix?: string): string => {
   if (!version) {
     return '';
+  }
+  if (typeof version === 'number') {
+    return `${prefix || ''}${version}`;
   }
   const versionString =
     version.startsWith('v') || version.startsWith('V') ? version.slice(1) : version;
