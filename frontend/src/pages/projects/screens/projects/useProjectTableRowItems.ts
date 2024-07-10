@@ -37,7 +37,7 @@ const useProjectTableRowItems = (
           {
             title: 'Edit permissions',
             onClick: () => {
-              navigate(`/projects/${project.metadata.name}`, { state: 'Permissions' });
+              navigate(`/projects/${project.metadata.name}?section=permissions`);
             },
           },
         ]
