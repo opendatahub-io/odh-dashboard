@@ -19,7 +19,6 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
       <Stack hasGutter>
         <StackItem>
           <Radio
-            className="checkbox-radio-fix-body-width"
             name="persistent-new-storage-type-radio"
             data-testid="persistent-new-storage-type-radio"
             id="persistent-new-storage-type-radio"
@@ -42,7 +41,6 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
         </StackItem>
         <StackItem>
           <Radio
-            className="checkbox-radio-fix-body-width"
             name="persistent-existing-storage-type-radio"
             data-testid="persistent-existing-storage-type-radio"
             id="persistent-existing-storage-type-radio"

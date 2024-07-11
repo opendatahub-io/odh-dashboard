@@ -6,7 +6,6 @@ import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/typ
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { filterOutConnectionsWithoutBucket } from '~/pages/modelServing/screens/projects/utils';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
-import './DataConnectionExistingField.scss';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
 type DataConnectionExistingFieldType = {
