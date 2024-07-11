@@ -172,7 +172,7 @@ const initIntercepts = () => {
       podName: 'iris-training-pipeline-v4zp7-2757091352',
       containerName: 'step-main',
     }),
-  );
+  ).as('logsLoaded');
 };
 
 describe('Pipeline topology', () => {
@@ -525,14 +525,10 @@ describe('Pipeline topology', () => {
         mockRecurringRun.recurring_run_id,
       );
 
-      pipelineRecurringRunDetails.findActionsDropdown();
       pipelineRecurringRunDetails.selectActionDropdownItem('Disable');
 
-      pipelineRecurringRunDetails
-        .findActionsDropdown()
-        .click()
-        .findByRole('menuitem', { name: 'Enable' })
-        .should('be.visible');
+      pipelineRecurringRunDetails.findActionsDropdown().click();
+      cy.findByRole('menuitem', { name: 'Enable' }).should('be.visible');
     });
 
     it('enables recurring run from action dropdown', () => {
@@ -555,14 +551,10 @@ describe('Pipeline topology', () => {
         mockRecurringRun.recurring_run_id,
       );
 
-      pipelineRecurringRunDetails.findActionsDropdown();
       pipelineRecurringRunDetails.selectActionDropdownItem('Enable');
 
-      pipelineRecurringRunDetails
-        .findActionsDropdown()
-        .click()
-        .findByRole('menuitem', { name: 'Disable' })
-        .should('be.visible');
+      pipelineRecurringRunDetails.findActionsDropdown().click();
+      cy.findByRole('menuitem', { name: 'Disable' }).should('be.visible');
     });
   });
 
@@ -667,8 +659,7 @@ describe('Pipeline topology', () => {
   });
 
   describe('Pipelines logs', () => {
-    beforeEach(() => {
-      initIntercepts();
+    const navigateToLogsTab = () => {
       pipelineRunDetails.visit(
         projectId,
         mockVersion.pipeline_id,
@@ -680,10 +671,49 @@ describe('Pipeline topology', () => {
       rightDrawer.findRightDrawerDetailsTab().should('be.visible');
       rightDrawer.findRightDrawerLogsTab().should('be.visible');
       rightDrawer.findRightDrawerLogsTab().click();
-      pipelineRunDetails.findLogsSuccessAlert().should('be.visible');
+    };
+
+    beforeEach(() => {
+      initIntercepts();
+    });
+
+    it('test logs paused while loading', () => {
+      cy.interceptK8s(
+        PodModel,
+        mockPipelinePodK8sResource({
+          namespace: projectId,
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          isPending: true,
+        }),
+      ).as('podLoading');
+      navigateToLogsTab();
+
+      pipelineRunDetails
+        .findLogs()
+        .contains(
+          'sample log for namespace test-project, pod name iris-training-pipeline-v4zp7-2757091352 and for step step-main',
+        );
+      cy.wait('@podLoading');
+
+      cy.interceptK8s(
+        PodModel,
+        mockPipelinePodK8sResource({
+          namespace: projectId,
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          isPending: false,
+        }),
+      ).as('podTerminated');
+
+      cy.wait('@podTerminated');
+
+      pipelineRunDetails.findLogsPauseButton().should('not.exist');
     });
 
     it('test whether the logs load in Logs tab', () => {
+      navigateToLogsTab();
+
+      pipelineRunDetails.findLogsSuccessAlert().should('be.visible');
+
       pipelineRunDetails
         .findLogs()
         .contains(
@@ -702,6 +732,10 @@ describe('Pipeline topology', () => {
     });
 
     it('test logs of another step', () => {
+      navigateToLogsTab();
+
+      pipelineRunDetails.findLogsSuccessAlert().should('be.visible');
+
       pipelineRunDetails.findStepSelect().should('not.be.disabled');
       pipelineRunDetails.selectStepByName('step-copy-artifacts');
       pipelineRunDetails.findLogs().contains('No logs available');

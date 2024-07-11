@@ -108,7 +108,7 @@ const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
     scrollOffsetToBottom,
     scrollUpdateWasRequested,
   }) => {
-    if (!scrollUpdateWasRequested) {
+    if (!podStatus?.completed && logsLoaded && !scrollUpdateWasRequested) {
       if (scrollOffsetToBottom > 0) {
         setIsPaused(true);
       } else {
@@ -296,33 +296,36 @@ const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
                         </ToolbarItem>
                       )}
                       <ToolbarItem spacer={{ default: 'spacerNone' }} style={{ maxWidth: '300px' }}>
-                        <Tooltip content="Search">
-                          <LogViewerSearch
-                            onFocus={() => setIsPaused(true)}
-                            placeholder="Search"
-                            minSearchChars={0}
-                            expandableInput={{
-                              isExpanded: showSearchbar,
-                              onToggleExpand,
-                              toggleAriaLabel: 'Expandable search input toggle',
-                            }}
-                          />
-                        </Tooltip>
+                        <LogViewerSearch
+                          onFocus={() => {
+                            if (!podStatus?.completed && logsLoaded) {
+                              setIsPaused(true);
+                            }
+                          }}
+                          placeholder="Search"
+                          minSearchChars={0}
+                          expandableInput={{
+                            isExpanded: showSearchbar,
+                            onToggleExpand,
+                            toggleAriaLabel: 'Expandable search input toggle',
+                          }}
+                        />
                       </ToolbarItem>
-                      {!podStatus?.completed && (
+                      {(!podStatus?.completed || isPaused) && (
                         <ToolbarItem spacer={{ default: 'spacerNone' }}>
                           <Button
                             variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
                             onClick={() => setIsPaused(!isPaused)}
                             isDisabled={!!error}
+                            data-testid="logs-pause-refresh-button"
                           >
-                            {!logsLoaded || podStatus?.podInitializing ? (
-                              <Tooltip content="Loading log">
-                                <Spinner size="sm" />
-                              </Tooltip>
-                            ) : isPaused ? (
+                            {isPaused ? (
                               <Tooltip content="Resume refreshing">
                                 <PlayIcon />
+                              </Tooltip>
+                            ) : !logsLoaded || podStatus?.podInitializing ? (
+                              <Tooltip content="Loading log">
+                                <Spinner size="sm" />
                               </Tooltip>
                             ) : (
                               <Tooltip content="Pause refreshing">
