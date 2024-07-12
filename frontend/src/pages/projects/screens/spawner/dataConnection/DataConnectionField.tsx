@@ -20,7 +20,6 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
 }) => (
   <FormGroup fieldId="cluster-storage" role="radiogroup">
     <Checkbox
-      className="checkbox-radio-fix-body-width"
       name="enable-data-connection-checkbox"
       id="enable-data-connection-checkbox"
       data-testid="enable-data-connection-checkbox"
@@ -32,7 +31,6 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
           <Stack hasGutter>
             <StackItem>
               <Radio
-                className="checkbox-radio-fix-body-width"
                 name="new-data-connection-radio"
                 data-testid="new-data-connection-radio"
                 id="new-data-connection-radio"
@@ -56,7 +54,6 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
             </StackItem>
             <StackItem>
               <Radio
-                className="checkbox-radio-fix-body-width"
                 name="existing-data-connection-type-radio"
                 id="existing-data-connection-type-radio"
                 data-testid="existing-data-connection-type-radio"
