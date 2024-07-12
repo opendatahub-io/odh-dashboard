@@ -2,6 +2,7 @@ import { appChrome } from './appChrome';
 
 export enum FormFieldSelector {
   NAME = '#mr-name',
+  RESOURCENAME = '#resource-mr-name',
   HOST = '#mr-host',
   PORT = '#mr-port',
   USERNAME = '#mr-username',
@@ -10,7 +11,6 @@ export enum FormFieldSelector {
 }
 
 export enum FormErrorTestId {
-  NAME = 'mr-name-error',
   HOST = 'mr-host-error',
   PORT = 'mr-port-error',
   USERNAME = 'mr-username-error',

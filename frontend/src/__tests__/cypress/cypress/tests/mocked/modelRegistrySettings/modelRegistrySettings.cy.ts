@@ -3,7 +3,6 @@ import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 import { StackCapability, StackComponent } from '~/concepts/areas/types';
 import {
   FormFieldSelector,
-  FormErrorTestId,
   modelRegistrySettings,
   DatabaseDetailsTestId,
 } from '~/__tests__/cypress/cypress/pages/modelRegistrySettings';
@@ -104,14 +103,6 @@ describe('CreateModal', () => {
     modelRegistrySettings.clearFormFields();
     modelRegistrySettings.findSubmitButton().should('be.disabled');
     modelRegistrySettings.shouldHaveAllErrors();
-  });
-
-  it('should display error when name is not empty but is invalid', () => {
-    modelRegistrySettings.visit(true);
-    modelRegistrySettings.findCreateButton().click();
-    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('Invalid Name');
-    modelRegistrySettings.findFormField(FormFieldSelector.NAME).blur();
-    modelRegistrySettings.findFormError(FormErrorTestId.NAME).should('exist');
   });
 
   it('should enable submit button if fields are valid', () => {
