@@ -222,11 +222,15 @@ export type RouteKind = {
 
 // Minimal type for Subscriptions
 export type SubscriptionKind = {
+  spec: {
+    channel?: string;
+  };
   status?: {
     installedCSV?: string;
     installPlanRef?: {
       namespace: string;
     };
+    lastUpdated?: string;
   };
 } & K8sResourceCommon;
 
@@ -1019,8 +1023,10 @@ export type DataScienceClusterInitializationList = {
 };
 
 export type SubscriptionStatusData = {
+  channel?: string;
   installedCSV?: string;
   installPlanRefNamespace?: string;
+  lastUpdated?: string;
 };
 
 export type CronJobKind = {

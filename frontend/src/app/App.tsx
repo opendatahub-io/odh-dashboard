@@ -60,6 +60,7 @@ const App: React.FC = () => {
             buildStatuses,
             dashboardConfig,
             storageClasses,
+            isRHOAI: dashboardConfig.metadata?.namespace === 'redhat-ods-applications',
           }
         : null,
     [buildStatuses, dashboardConfig, storageClasses],

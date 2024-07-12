@@ -32,6 +32,7 @@ import type {
   OdhDocument,
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
+  SubscriptionStatusData,
 } from '~/types';
 import type {
   ExperimentKFv2,
@@ -110,6 +111,10 @@ declare global {
         ((
           type: 'GET /api/status',
           response: OdhResponse<StatusResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/operator-subscription-status',
+          response: OdhResponse<SubscriptionStatusData>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',

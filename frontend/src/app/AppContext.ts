@@ -6,6 +6,7 @@ type AppContextProps = {
   buildStatuses: BuildStatus[];
   dashboardConfig: DashboardConfigKind;
   storageClasses: StorageClassKind[];
+  isRHOAI: boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

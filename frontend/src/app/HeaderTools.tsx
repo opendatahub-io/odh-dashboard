@@ -19,6 +19,7 @@ import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
+import AboutDialog from '~/app/AboutDialog';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { logout } from './appUtils';
@@ -30,6 +31,7 @@ interface HeaderToolsProps {
 const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
+  const [aboutShown, setAboutShown] = React.useState(false);
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
@@ -116,6 +118,19 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     );
   }
 
+  helpMenuItems.push(
+    <DropdownItem
+      key="about"
+      data-testid="help-about-item"
+      onClick={() => {
+        handleHelpClick();
+        setAboutShown(true);
+      }}
+    >
+      About
+    </DropdownItem>,
+  );
+
   return (
     <Toolbar isFullHeight>
       <ToolbarContent>
@@ -133,29 +148,27 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               onClick={onNotificationsClick}
             />
           </ToolbarItem>
-          {helpMenuItems.length > 0 ? (
-            <ToolbarItem>
-              <Dropdown
-                popperProps={{ position: 'right' }}
-                onOpenChange={(isOpen) => setHelpMenuOpen(isOpen)}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    variant="plain"
-                    aria-label="Help items"
-                    id="help-icon-toggle"
-                    ref={toggleRef}
-                    onClick={() => setHelpMenuOpen(!helpMenuOpen)}
-                    isExpanded={helpMenuOpen}
-                  >
-                    <QuestionCircleIcon />
-                  </MenuToggle>
-                )}
-                isOpen={helpMenuOpen}
-              >
-                <DropdownList>{helpMenuItems}</DropdownList>
-              </Dropdown>
-            </ToolbarItem>
-          ) : null}
+          <ToolbarItem>
+            <Dropdown
+              popperProps={{ position: 'right' }}
+              onOpenChange={(isOpen) => setHelpMenuOpen(isOpen)}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  variant="plain"
+                  aria-label="Help items"
+                  id="help-icon-toggle"
+                  ref={toggleRef}
+                  onClick={() => setHelpMenuOpen(!helpMenuOpen)}
+                  isExpanded={helpMenuOpen}
+                >
+                  <QuestionCircleIcon />
+                </MenuToggle>
+              )}
+              isOpen={helpMenuOpen}
+            >
+              <DropdownList>{helpMenuItems}</DropdownList>
+            </Dropdown>
+          </ToolbarItem>
         </ToolbarGroup>
         {DEV_MODE && isImpersonating && (
           <ToolbarItem>
@@ -197,6 +210,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
           </Dropdown>
         </ToolbarItem>
       </ToolbarContent>
+      {aboutShown ? <AboutDialog onClose={() => setAboutShown(false)} /> : null}
     </Toolbar>
   );
 };

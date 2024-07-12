@@ -1283,10 +1283,18 @@ export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in StackComponent]?: boolean };
   phase?: string;
+  release?: {
+    name: string;
+    version: string;
+  };
 };
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
+  release?: {
+    name?: string;
+    version?: string;
+  };
   phase?: string;
 };
 
