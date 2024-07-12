@@ -56,6 +56,8 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
     return [_.pick(configMap, selectedIds), _.pick(runMap, selectedIds)];
   }, [configMap, runMap, selectedRuns]);
 
+  const isEmpty = selectedRuns.length === 0;
+
   const filterSelected = React.useCallback(
     (runArtifact: RunArtifact) => selectedRuns.some((run) => run.run_id === runArtifact.run.run_id),
     [selectedRuns],
@@ -82,7 +84,11 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
           data-testid="compare-runs-scalar-metrics-tab"
         >
           <TabContentBody hasPadding data-testid="compare-runs-scalar-metrics-tab-content">
-            <ScalarMetricTable runArtifacts={scalarMetricsArtifactData} isLoaded={isLoaded} />
+            <ScalarMetricTable
+              runArtifacts={scalarMetricsArtifactData}
+              isEmpty={isEmpty}
+              isLoaded={isLoaded}
+            />
           </TabContentBody>
         </Tab>
         <Tab
@@ -93,6 +99,7 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
           <TabContentBody hasPadding data-testid="compare-runs-confusion-matrix-tab-content">
             <ConfusionMatrixCompare
               runArtifacts={confusionMatrixArtifactData}
+              isEmpty={isEmpty}
               isLoaded={isLoaded}
             />
           </TabContentBody>
@@ -103,7 +110,11 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
           data-testid="compare-runs-roc-curve-tab"
         >
           <TabContentBody hasPadding data-testid="compare-runs-roc-curve-tab-content">
-            <RocCurveCompare runArtifacts={rocCurveArtifactData} isLoaded={isLoaded} />
+            <RocCurveCompare
+              runArtifacts={rocCurveArtifactData}
+              isEmpty={isEmpty}
+              isLoaded={isLoaded}
+            />
           </TabContentBody>
         </Tab>
         {isS3EndpointAvailable && (
@@ -116,7 +127,7 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
               <MarkdownCompare
                 configMap={selectedConfigMap}
                 runMap={selectedRunMap}
-                isEmpty={selectedRuns.length === 0}
+                isEmpty={isEmpty}
                 isLoaded={isLoaded && configsLoaded}
               />
             </TabContentBody>
