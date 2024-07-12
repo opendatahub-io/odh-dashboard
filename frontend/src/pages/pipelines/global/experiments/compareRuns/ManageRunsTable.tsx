@@ -94,7 +94,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
               [FilterOptions.NAME]: 'Run',
               [FilterOptions.EXPERIMENT]: 'Experiment',
               [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-              [FilterOptions.CREATED_AT]: 'Started',
+              [FilterOptions.CREATED_AT]: 'Created after',
               [FilterOptions.STATUS]: 'Status',
             }}
             {...filterProps}

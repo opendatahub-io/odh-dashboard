@@ -8,7 +8,7 @@ import CreateExperimentButton from '~/concepts/pipelines/content/experiment/Crea
 
 const options = {
   [FilterOptions.NAME]: 'Experiment',
-  [FilterOptions.CREATED_AT]: 'Created',
+  [FilterOptions.CREATED_AT]: 'Created after',
 };
 
 export type FilterProps = Pick<

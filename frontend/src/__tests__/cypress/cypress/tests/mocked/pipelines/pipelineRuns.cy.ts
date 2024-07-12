@@ -434,7 +434,7 @@ describe('Pipeline runs', () => {
           activeRunsTable.getRowByName('Test active run 3').find().should('exist');
         });
 
-        it('filter by started', () => {
+        it('filter by created after', () => {
           pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
 
           // Verify initial run rows exist
@@ -443,7 +443,7 @@ describe('Pipeline runs', () => {
           // Select the "Started" filter, select a value to filter by
           pipelineRunsGlobal
             .findActiveRunsToolbar()
-            .within(() => pipelineRunsGlobal.selectFilterByName('Started'));
+            .within(() => pipelineRunsGlobal.selectFilterByName('Created after'));
 
           // Mock runs (filtered by start date), type a start date
           activeRunsTable.mockGetActiveRuns(
@@ -662,14 +662,14 @@ describe('Pipeline runs', () => {
           archivedRunsTable.getRowByName('Test archived run 2').find().should('exist');
         });
 
-        it('filter by started', () => {
+        it('filter by created after', () => {
           // Verify initial run rows exist
           archivedRunsTable.findRows().should('have.length', 2);
 
           // Select the "Started" filter, select a value to filter by
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
-            .within(() => pipelineRunsGlobal.selectFilterByName('Started'));
+            .within(() => pipelineRunsGlobal.selectFilterByName('Created after'));
 
           // Mock runs (filtered by start date), type a start date
           archivedRunsTable.mockGetArchivedRuns(
