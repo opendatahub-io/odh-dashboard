@@ -1,16 +1,18 @@
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { mockK8sResourceList } from '~/__mocks__';
+import { mockK8sResourceList, mockNotebookK8sResource } from '~/__mocks__';
 import type { RoleBindingSubject } from '~/types';
 import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import {
   administration,
   notebookController,
+  stopNotebookModal,
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -21,13 +23,13 @@ const groupSubjects: RoleBindingSubject[] = [
 ];
 
 type HandlersProps = {
-  allowedUser?: AllowedUser[];
+  allowedUsers?: AllowedUser[];
 };
 
 const initIntercepts = ({
-  allowedUser = [mockAllowedUsers({}), mockAllowedUsers({ username: 'regularuser1' })],
+  allowedUsers = [mockAllowedUsers({}), mockAllowedUsers({ username: 'regularuser1' })],
 }: HandlersProps) => {
-  cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', allowedUser);
+  cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', allowedUsers);
   cy.interceptOdh(
     'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
     mockK8sResourceList([
@@ -103,7 +105,7 @@ describe('Administration Tab', () => {
         username: `Test user-${i}`,
       }),
     );
-    initIntercepts({ allowedUser: mockAllowedUser });
+    initIntercepts({ allowedUsers: mockAllowedUser });
     notebookController.visit();
     notebookController.findAdministrationTab().click();
     // top pagination
@@ -111,6 +113,38 @@ describe('Administration Tab', () => {
 
     // bottom pagination
     testPagination({ totalItems, firstElement: 'Test user-0', paginationVariant: 'bottom' });
+  });
+
+  it('Validate that last activity will be "Just now" and user can stop server from the table, when notebook lacks the last-activity annotation', () => {
+    const allowedUsers = [
+      mockAllowedUsers({}),
+      mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
+    ];
+    initIntercepts({ allowedUsers });
+    cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username: 'jupyter-nb-regularuser1' } },
+      {
+        notebook: mockNotebookK8sResource({ image: 'code-server-notebook:2023.2' }),
+        isRunning: true,
+      },
+    );
+    cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+
+    const userRow = administration.getRow('regularuser1');
+    userRow.shouldHavePrivilege('User');
+    userRow.shouldHaveLastActivity('Just now');
+    userRow.findServerStatusButton().should('have.text', 'View server');
+    userRow.findKebabAction('Stop server').click();
+
+    stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
+    stopNotebookModal.findStopNotebookServerButton().click();
+
+    cy.wait('@stopNotebookServer').then((interception) => {
+      expect(interception.request.body).to.eql({ state: 'stopped', username: 'test-user' });
+    });
   });
 
   it('Validate that clicking on "Start server" button will open a form in administartion tab and "Start your server" button will navigate to notebook server tab', () => {
