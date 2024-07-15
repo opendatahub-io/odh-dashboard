@@ -31,6 +31,8 @@ import {
   unarchiveExperiment,
   deleteExperiment,
   retryPipelineRun,
+  getArtifact,
+  listArtifacts,
 } from '~/api';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { APIState } from '~/concepts/proxy/types';
@@ -71,6 +73,8 @@ const usePipelineAPIState = (
       archiveExperiment: archiveExperiment(path),
       unarchiveExperiment: unarchiveExperiment(path),
       stopPipelineRun: stopPipelineRun(path),
+      getArtifact: getArtifact(path),
+      listArtifacts: listArtifacts(path),
       updatePipelineRecurringRun: updatePipelineRecurringRun(path),
       uploadPipeline: uploadPipeline(path),
       uploadPipelineVersion: uploadPipelineVersion(path),

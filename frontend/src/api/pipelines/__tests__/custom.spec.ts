@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+
 import {
   createExperiment,
   createPipelineRecurringRun,
@@ -7,11 +8,13 @@ import {
   deletePipelineRecurringRun,
   deletePipelineRun,
   deletePipelineVersion,
+  getArtifact,
   getExperiment,
   getPipeline,
   getPipelineRecurringRun,
   getPipelineRun,
   getPipelineVersion,
+  listArtifacts,
   listExperiments,
   listPipelineRecurringRuns,
   listPipelineRuns,
@@ -182,6 +185,16 @@ describe('getExperiment', () => {
   });
 });
 
+describe('getArtifact', () => {
+  it('should call proxyGET and handlePipelineFailures to fetch artifact', () => {
+    expect(getArtifact('hostPath')({}, 1)).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith('hostPath', '/apis/v2beta1/artifacts/1', {}, {});
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
 describe('getPipeline', () => {
   it('should call proxyGET and handlePipelineFailures to fetch pipeline', () => {
     expect(getPipeline('hostPath')({}, 'pipelineId')).toBe(mockResultPromise);
@@ -320,6 +333,23 @@ describe('listExperiments', () => {
       'hostPath',
       '/apis/v2beta1/experiments',
       createQuery(),
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('listArtifacts', () => {
+  it('should call proxyGET and handlePipelineFailures to list artifacts', () => {
+    expect(listArtifacts('hostPath')({}, { namespace: 'test' })).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts',
+      {
+        namespace: 'test',
+      },
       {},
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
