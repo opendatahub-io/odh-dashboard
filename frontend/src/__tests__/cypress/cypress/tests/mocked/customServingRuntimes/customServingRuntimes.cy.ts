@@ -3,7 +3,10 @@ import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntim
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
 import { TemplateModel } from '~/__tests__/cypress/cypress/utils/models';

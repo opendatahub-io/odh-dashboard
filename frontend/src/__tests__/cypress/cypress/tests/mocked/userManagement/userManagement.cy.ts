@@ -1,6 +1,9 @@
 import { mockGroupSettings } from '~/__mocks__/mockGroupConfig';
 import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
-import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 
 it('Cluster settings should not be available for non product admins', () => {

@@ -7,7 +7,10 @@ import {
   DatabaseDetailsTestId,
 } from '~/__tests__/cypress/cypress/pages/modelRegistrySettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 
 const setupMocksForMRSettingAccess = ({

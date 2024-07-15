@@ -16,7 +16,7 @@ import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
-import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { notebookConfirmModal } from '~/__tests__/cypress/cypress/pages/workbench';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
