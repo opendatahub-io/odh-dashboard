@@ -15,9 +15,3 @@ export type GroupStatus = {
   name: string;
   enabled: boolean;
 };
-
-export type MenuItemStatus = {
-  id: number;
-  name: string;
-  enabled: boolean;
-};

@@ -11,9 +11,9 @@ import {
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { isGroupEmpty } from '~/utilities/utils';
 import SettingSection from '~/components/SettingSection';
-import { MultiSelection } from '~/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { useWatchGroups } from '~/utilities/useWatchGroups';
-import { GroupsConfigField, MenuItemStatus } from './groupTypes';
+import { GroupsConfigField } from './groupTypes';
 
 const GroupSettings: React.FC = () => {
   const {
@@ -37,13 +37,27 @@ const GroupSettings: React.FC = () => {
     updateGroups(groupSettings);
   };
 
-  const handleMenuItemSelection = (newState: MenuItemStatus[], field: GroupsConfigField) => {
+  const handleMenuItemSelection = (newState: SelectionOptions[], field: GroupsConfigField) => {
     switch (field) {
       case GroupsConfigField.ADMIN:
-        setGroupSettings({ ...groupSettings, adminGroups: newState });
+        setGroupSettings({
+          ...groupSettings,
+          adminGroups: newState.map((opt) => ({
+            id: Number(opt.id),
+            name: opt.name,
+            enabled: opt.selected || false,
+          })),
+        });
         break;
       case GroupsConfigField.USER:
-        setGroupSettings({ ...groupSettings, allowedGroups: newState });
+        setGroupSettings({
+          ...groupSettings,
+          allowedGroups: newState.map((opt) => ({
+            id: Number(opt.id),
+            name: opt.name,
+            enabled: opt.selected || false,
+          })),
+        });
         break;
     }
     setIsGroupSettingsChanged(true);
@@ -78,7 +92,11 @@ const GroupSettings: React.FC = () => {
           >
             <MultiSelection
               ariaLabel={adminDesc}
-              value={groupSettings.adminGroups}
+              value={groupSettings.adminGroups.map((g) => ({
+                id: g.id,
+                name: g.name,
+                selected: g.enabled,
+              }))}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
             />
             {groupSettings.errorAdmin ? (
@@ -111,7 +129,11 @@ const GroupSettings: React.FC = () => {
           >
             <MultiSelection
               ariaLabel={userDesc}
-              value={groupSettings.allowedGroups}
+              value={groupSettings.allowedGroups.map((g) => ({
+                id: g.id,
+                name: g.name,
+                selected: g.enabled,
+              }))}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
             />
             {groupSettings.errorUser ? (
