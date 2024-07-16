@@ -40,6 +40,8 @@ export type CreatingServingRuntimeObject = {
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];
+  imageName?: string;
+  modelName?: string;
 };
 
 export type ServingRuntimeToken = {

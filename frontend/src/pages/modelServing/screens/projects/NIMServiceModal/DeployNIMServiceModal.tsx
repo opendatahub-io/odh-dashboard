@@ -34,8 +34,7 @@ import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServic
 import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '../kServeModal/KServeAutoscalerReplicaSection';
@@ -253,7 +252,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext.currentProject)) ||
+                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
                 editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
                 ''
               }
@@ -268,8 +267,10 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
           <StackItem>
             <StackItem>
               <NIMModelListSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
+                inferenceServiceData={createDataInferenceService}
+                servingRuntimeData={createDataServingRuntime}
+                setInferenceServiceData={setCreateDataInferenceService}
+                setServingRuntimeData={setCreateDataServingRuntime}
                 isEditing={!!editInfo}
               />
             </StackItem>
