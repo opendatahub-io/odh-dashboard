@@ -14,10 +14,10 @@ export const useExperimentByParams = (): {
 
   // Redirect users to the Experiments list page when failing to retrieve the experiment from route params.
   React.useEffect(() => {
-    if (isExperimentLoaded && experimentError) {
+    if (experimentError) {
       navigate(experimentsRootPath);
     }
-  }, [experimentError, isExperimentLoaded, navigate]);
+  }, [experimentError, navigate]);
 
   return { experiment, isExperimentLoaded };
 };

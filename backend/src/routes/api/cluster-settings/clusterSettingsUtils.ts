@@ -1,8 +1,9 @@
 import { FastifyRequest } from 'fastify';
+import { V1ConfigMap } from '@kubernetes/client-node';
+import { errorHandler, isHttpError } from '../../../utils';
 import { rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
-import { V1ConfigMap } from '@kubernetes/client-node';
 import { setDashboardConfig } from '../config/configUtils';
 import { checkJupyterEnabled } from '../../../utils/componentUtils';
 
@@ -12,7 +13,7 @@ const segmentKeyCfg = 'odh-segment-key-config';
 const DEFAULT_PVC_SIZE = 20;
 const DEFAULT_CULLER_TIMEOUT = 31536000; // 1 year as no culling
 const DEFAULT_IDLENESS_CHECK_PERIOD = '1'; // 1 minute
-const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
+const DEFAULT_CLUSTER_SETTINGS = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
@@ -21,7 +22,7 @@ const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
     kServe: true,
     modelMesh: false,
   },
-};
+} satisfies ClusterSettings;
 
 export const updateClusterSettings = async (
   fastify: KubeFastifyInstance,
@@ -29,8 +30,8 @@ export const updateClusterSettings = async (
     Body: ClusterSettings;
   }>,
 ): Promise<{ success: boolean; error: string }> => {
-  const coreV1Api = fastify.kube.coreV1Api;
-  const namespace = fastify.kube.namespace;
+  const { coreV1Api } = fastify.kube;
+  const { namespace } = fastify.kube;
   const {
     pvcSize,
     cullerTimeout,
@@ -38,7 +39,7 @@ export const updateClusterSettings = async (
     notebookTolerationSettings,
     modelServingPlatformEnabled,
   } = request.body;
-  const dashConfig = getDashboardConfig();
+  const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
     if (
@@ -58,7 +59,7 @@ export const updateClusterSettings = async (
     await patchCM(fastify, segmentKeyCfg, {
       data: { segmentKeyEnabled: String(userTrackingEnabled) },
     }).catch((e) => {
-      fastify.log.error('Failed to update segment key enabled: ' + e.message);
+      fastify.log.error(`Failed to update segment key enabled: ${e.message}`);
     });
     if (pvcSize && cullerTimeout) {
       await setDashboardConfig(fastify, {
@@ -66,12 +67,13 @@ export const updateClusterSettings = async (
           notebookController: {
             enabled: isJupyterEnabled,
             pvcSize: `${pvcSize}Gi`,
-            ...(isJupyterEnabled && {
-              notebookTolerationSettings: {
-                enabled: notebookTolerationSettings.enabled,
-                key: notebookTolerationSettings.key,
-              },
-            }),
+            ...(isJupyterEnabled &&
+              !!notebookTolerationSettings && {
+                notebookTolerationSettings: {
+                  enabled: notebookTolerationSettings.enabled,
+                  key: notebookTolerationSettings.key,
+                },
+              }),
           },
         },
       });
@@ -82,7 +84,7 @@ export const updateClusterSettings = async (
       }
       if (!isEnabled) {
         await coreV1Api.deleteNamespacedConfigMap(nbcCfg, fastify.kube.namespace).catch((e) => {
-          fastify.log.error('Failed to delete culler config: ') + e.message;
+          fastify.log.error(`Failed to delete culler config: ${e.message}`);
         });
       } else {
         await patchCM(fastify, nbcCfg, {
@@ -106,17 +108,17 @@ export const updateClusterSettings = async (
             };
             await fastify.kube.coreV1Api.createNamespacedConfigMap(fastify.kube.namespace, cm);
           } else {
-            fastify.log.error('Failed to patch culler config: ' + e.message);
+            fastify.log.error(`Failed to patch culler config: ${e.message}`);
           }
         });
       }
     }
     await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
-    return { success: true, error: null };
+    return { success: true, error: '' };
   } catch (e) {
-    fastify.log.error(e, 'Setting cluster settings error: ' + e.response?.body?.message);
-    if (e.response?.statusCode !== 404) {
-      return { success: false, error: 'Unable to update cluster settings. ' + e.message };
+    fastify.log.error(e, `Setting cluster settings error: ${errorHandler(e)}`);
+    if (!isHttpError(e) || e.response.statusCode !== 404) {
+      return { success: false, error: `Unable to update cluster settings. ${errorHandler(e)}` };
     }
     throw e;
   }
@@ -124,10 +126,11 @@ export const updateClusterSettings = async (
 
 export const getClusterSettings = async (
   fastify: KubeFastifyInstance,
+  request: FastifyRequest,
 ): Promise<ClusterSettings | string> => {
-  const coreV1Api = fastify.kube.coreV1Api;
-  const namespace = fastify.kube.namespace;
-  const dashConfig = getDashboardConfig();
+  const { coreV1Api } = fastify.kube;
+  const { namespace } = fastify.kube;
+  const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
@@ -145,7 +148,7 @@ export const getClusterSettings = async (
     try {
       const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
       clusterSettings.userTrackingEnabled =
-        segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
+        segmentEnabledRes.body.data?.segmentKeyEnabled === 'true';
     } catch (e) {
       fastify.log.error(e, 'Error retrieving segment key enabled.');
     }
@@ -153,18 +156,18 @@ export const getClusterSettings = async (
 
   clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
   if (dashConfig.spec.notebookController?.pvcSize) {
-    clusterSettings.pvcSize = Number(dashConfig.spec.notebookController?.pvcSize.replace('Gi', ''));
+    clusterSettings.pvcSize = Number(dashConfig.spec.notebookController.pvcSize.replace('Gi', ''));
   }
   if (dashConfig.spec.notebookController?.notebookTolerationSettings && isJupyterEnabled) {
     clusterSettings.notebookTolerationSettings =
-      dashConfig.spec.notebookController?.notebookTolerationSettings;
+      dashConfig.spec.notebookController.notebookTolerationSettings;
   }
   clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT;
   await fastify.kube.coreV1Api
     .readNamespacedConfigMap(nbcCfg, fastify.kube.namespace)
     .then((res) => {
-      const cullerTimeout = res.body.data['CULL_IDLE_TIME'];
-      const isEnabled = Boolean(res.body.data['ENABLE_CULLING']);
+      const cullerTimeout = res.body.data?.CULL_IDLE_TIME;
+      const isEnabled = Boolean(res.body.data?.ENABLE_CULLING);
       if (isEnabled) {
         clusterSettings.cullerTimeout = Number(cullerTimeout) * 60; //minutes to seconds;
       }

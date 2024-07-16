@@ -1,15 +1,14 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
 const ProjectModelMetricsPage: React.FC = () => {
   const { model, currentProject } = useOutletContext<ProjectModelMetricsOutletContextProps>();
-  const projectDisplayName = getProjectDisplayName(currentProject);
-  const modelDisplayName = getInferenceServiceDisplayName(model);
+  const projectDisplayName = getDisplayNameFromK8sResource(currentProject);
+  const modelDisplayName = getDisplayNameFromK8sResource(model);
 
   return (
     <MetricsPage

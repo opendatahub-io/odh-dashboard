@@ -111,22 +111,33 @@
     "no-restricted-imports": [
       "error",
       {
+        "paths": [
+          {
+            "name": "^axios$",
+            "importNames": ["default"],
+            "message": "Import from `~/utilities/axios` instead."
+          }
+        ],
         "patterns": [
           {
             "group": ["~/api/**"],
-            "message": "Read from '~/api' instead."
+            "message": "Import from '~/api' instead."
           },
           {
             "group": ["~/components/table/**", "!~/components/table/useTableColumnSort"],
-            "message": "Read from '~/components/table' instead."
+            "message": "Import from '~/components/table' instead."
           },
           {
             "group": ["~/concepts/area/**"],
-            "message": "Read from '~/concepts/area' instead."
+            "message": "Import from '~/concepts/area' instead."
           },
           {
             "group": ["~/components/table/useTableColumnSort"],
             "message": "The data will be sorted in the table, don't use this hook outside of '~/components/table' repo. For more information, please check the props of the Table component."
+          },
+          {
+            "group": ["~/__mocks__/third_party/mlmd", "~/__mocks__/third_party/mlmd/*"],
+            "message": "Importing from '~/__mocks__/third_party/mlmd/' is restricted to '~/__mocks__/mlmd/'."
           }
         ]
       }
@@ -286,7 +297,10 @@
       ],
       "overrides": [
         {
-          "files": ["./src/__tests__/cypress/cypress/pages/*.ts", "./src/__tests__/cypress/cypress/tests/e2e/*.ts"],
+          "files": [
+            "./src/__tests__/cypress/cypress/pages/*.ts",
+            "./src/__tests__/cypress/cypress/tests/e2e/*.ts"
+          ],
           "rules": {
             "no-restricted-syntax": [
               "error",
@@ -340,6 +354,38 @@
           {
             "selector": "Literal[value=/\\bOpen Data Hub\\b/i],JSXText[value=/\\bOpen Data Hub\\b/i]",
             "message": "Do not hard code product name `Open Data Hub`. Use `Cypress.env('ODH_PRODUCT_NAME')` instead."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/__mocks__/mlmd/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/__tests__/cypress/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-imports": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector":"ImportDeclaration[importKind!='type'][source.value=/^~\\u002F(?!(__tests__|__mocks__|.*(types|Types|getCorePipelineSpec|utils)).*)/]",
+            "message": "Must use 'import type' when importing. If you are importing enums that are flagged, please go to the .eslintrc file and add it to the regular expression."
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@patternfly/**"
+                ],
+                "message": "Cypress tests should only import mocks and types from outside the Cypress test directory."
+              }
+            ]
           }
         ]
       }

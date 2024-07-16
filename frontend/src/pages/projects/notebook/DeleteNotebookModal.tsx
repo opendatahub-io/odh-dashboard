@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { NotebookKind } from '~/k8sTypes';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
 import { DATA_CONNECTION_PREFIX, deleteConfigMap, deleteNotebook, deleteSecret } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '~/pages/projects/pvc/utils';
 import { ConfigMapRef, SecretRef } from '~/pages/projects/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeleteNotebookModalProps = {
   notebook?: NotebookKind;
@@ -22,7 +22,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
     setError(undefined);
   };
 
-  const displayName = notebook ? getNotebookDisplayName(notebook) : 'this workbench';
+  const displayName = notebook ? getDisplayNameFromK8sResource(notebook) : 'this workbench';
 
   return (
     <DeleteModal

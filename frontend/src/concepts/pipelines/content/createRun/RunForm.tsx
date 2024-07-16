@@ -4,12 +4,11 @@ import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
-import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, RUN_NAME_CHARACTER_LIMIT, runPageSectionTitles } from './const';
@@ -17,15 +16,17 @@ import { getInputDefinitionParams } from './utils';
 
 type RunFormProps = {
   data: RunFormData;
-  runType: PipelineRunType;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
+  isCloned: boolean;
 };
 
-const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
+const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
+  // Use this state to avoid the pipeline version being set as the latest version at the initial load
+  const [initialLoadedState, setInitialLoadedState] = React.useState(true);
   const selectedVersion = data.version || latestVersion;
   const paramsRef = React.useRef(data.params);
-  const isSchedule = runType === PipelineRunType.SCHEDULED;
+  const isSchedule = data.runType.type === RunTypeOption.SCHEDULED;
 
   const updateInputParams = React.useCallback(
     (version: PipelineVersionKFv2 | undefined) =>
@@ -43,18 +44,18 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
   );
 
   React.useEffect(() => {
-    if (latestVersion) {
+    if (!initialLoadedState && latestVersion) {
       onValueChange('version', latestVersion);
       updateInputParams(latestVersion);
     }
-  }, [latestVersion, onValueChange, updateInputParams]);
+  }, [initialLoadedState, latestVersion, onValueChange, updateInputParams]);
 
   return (
     <Form onSubmit={(e) => e.preventDefault()} maxWidth="500px">
-      <RunTypeSection runType={runType} />
+      <RunTypeSection data={data} isCloned={isCloned} />
 
       <ProjectAndExperimentSection
-        projectName={getProjectDisplayName(data.project)}
+        projectName={getDisplayNameFromK8sResource(data.project)}
         value={data.experiment}
         onChange={(experiment) => onValueChange('experiment', experiment)}
         isSchedule={isSchedule}
@@ -91,6 +92,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, runType, onValueChange }) => {
         version={selectedVersion}
         onValueChange={onValueChange}
         updateInputParams={updateInputParams}
+        setInitialLoadedState={setInitialLoadedState}
       />
 
       <ParamsSection

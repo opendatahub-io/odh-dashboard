@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 import { mockK8sResourceList } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
@@ -10,8 +9,10 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ModelRegistryModel } from '~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import type { ModelVersion } from '~/concepts/modelRegistry/types';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
+
+const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
 type HandlersProps = {
   disableModelRegistryFeature?: boolean;

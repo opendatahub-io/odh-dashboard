@@ -1,9 +1,9 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { ImageType } from '../../../types';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { postImage, deleteImage, getImageList, updateImage } from './imageUtils';
+import { ImageType, KubeFastifyInstance } from '../../../types';
 import { secureAdminRoute, secureRoute } from '../../../utils/route-security';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:type',
     secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
@@ -21,9 +21,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
         };
       }
       return getImageList(fastify, labels)
-        .then((res) => {
-          return res;
-        })
+        .then((res) => res)
         .catch((res) => {
           reply.send(res);
         });
@@ -32,40 +30,34 @@ export default async (fastify: FastifyInstance): Promise<void> => {
 
   fastify.delete(
     '/:image',
-    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      return deleteImage(fastify, request)
-        .then((res) => {
-          return res;
-        })
+    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
+      deleteImage(fastify, request)
+        .then((res) => res)
         .catch((res) => {
           reply.send(res);
-        });
-    }),
+        }),
+    ),
   );
 
   fastify.put(
     '/:image',
-    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      return updateImage(fastify, request)
-        .then((res) => {
-          return res;
-        })
+    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
+      updateImage(fastify, request)
+        .then((res) => res)
         .catch((res) => {
           reply.send(res);
-        });
-    }),
+        }),
+    ),
   );
 
   fastify.post(
     '/',
-    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      return postImage(fastify, request)
-        .then((res) => {
-          return res;
-        })
+    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
+      postImage(fastify, request)
+        .then((res) => res)
         .catch((res) => {
           reply.send(res);
-        });
-    }),
+        }),
+    ),
   );
 };

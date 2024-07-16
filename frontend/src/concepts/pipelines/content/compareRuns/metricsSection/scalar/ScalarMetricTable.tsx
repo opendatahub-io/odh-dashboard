@@ -1,27 +1,24 @@
 import * as React from 'react';
 import { InnerScrollContainer, TableVariant, Td, Tr } from '@patternfly/react-table';
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateVariant,
-  Flex,
-  Spinner,
-  Switch,
-} from '@patternfly/react-core';
+import { Bullseye, Flex, Spinner, Switch } from '@patternfly/react-core';
 import { Table } from '~/components/table';
 import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
 import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 import { ScalarTableData } from './types';
 import { generateTableStructure } from './utils';
 
 type ScalarMetricTableProps = {
   runArtifacts?: RunArtifact[];
   isLoaded: boolean;
+  isEmpty: boolean;
 };
 
-const ScalarMetricTable: React.FC<ScalarMetricTableProps> = ({ runArtifacts, isLoaded }) => {
+const ScalarMetricTable: React.FC<ScalarMetricTableProps> = ({
+  runArtifacts,
+  isLoaded,
+  isEmpty,
+}) => {
   const { columns, data, subColumns } = generateTableStructure(runArtifacts ?? []);
 
   const [isHideSameRowsChecked, setIsHideSameRowsChecked] = React.useState<boolean>(false);
@@ -69,18 +66,11 @@ const ScalarMetricTable: React.FC<ScalarMetricTableProps> = ({ runArtifacts, isL
     );
   }
 
-  if (!runArtifacts || runArtifacts.length === 0) {
-    return <CompareRunsEmptyState />;
+  if (isEmpty) {
+    return <CompareRunsEmptyState data-testid="compare-runs-scalar-metrics-empty-state" />;
   }
   if (!hasScalarMetrics) {
-    return (
-      <EmptyState variant={EmptyStateVariant.xs}>
-        <EmptyStateHeader titleText="No scalar metric artifacts" headingLevel="h4" />
-        <EmptyStateBody>
-          There are no scalar metric artifacts available on the selected runs.
-        </EmptyStateBody>
-      </EmptyState>
-    );
+    return <CompareRunsNoMetrics data-testid="compare-runs-scalar-metrics-no-data-state" />;
   }
 
   return (

@@ -1,5 +1,6 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+import type { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class TaskDrawer extends Contextual<HTMLElement> {
   findInputArtifacts() {
@@ -37,7 +38,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
 
 class PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/view`);
     this.wait();
   }
 
@@ -108,7 +109,7 @@ class DetailsItem extends Contextual<HTMLElement> {
 
 class PipelineDetails extends PipelinesTopology {
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipeline/view/${pipelineId}/${pipelineVersionId}`);
+    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/view`);
     this.wait();
   }
 
@@ -179,24 +180,56 @@ class PipelineDetails extends PipelinesTopology {
   }
 }
 
-class PipelineRunJobDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRunJob/view/${pipelineId}`);
+class PipelineRecurringRunDetails extends RunDetails {
+  visit(namespace: string, pipelineId: string, pipelineVersionId: string, recurringRunId?: string) {
+    cy.visitWithLogin(
+      `/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/schedules/${recurringRunId}`,
+    );
     this.wait();
   }
 
   findActionsDropdown() {
-    return cy.findByTestId('pipeline-run-job-details-actions');
+    return cy.findByTestId('pipeline-recurring-run-details-actions');
   }
 
   selectActionDropdownItem(label: string) {
     this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
   }
+
+  mockEnableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode',
+      {
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: recurringRun.recurring_run_id,
+          mode: ':enable',
+        },
+      },
+      { data: {} },
+    );
+  }
+
+  mockDisableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode',
+      {
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: recurringRun.recurring_run_id,
+          mode: ':disable',
+        },
+      },
+      { data: {} },
+    );
+  }
 }
 
 class PipelineRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/pipelineRun/view/${pipelineId}`);
+  visit(namespace: string, pipelineId: string, pipelineVersionId: string, runId?: string) {
+    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/runs/${runId}`);
     this.wait();
   }
 
@@ -255,9 +288,13 @@ class PipelineRunDetails extends RunDetails {
   findOutputArtifacts() {
     return cy.findByTestId('Output-artifacts');
   }
+
+  findErrorState(id: string) {
+    return cy.findByTestId(id);
+  }
 }
 
 export const pipelineDetails = new PipelineDetails();
 export const pipelineRunDetails = new PipelineRunDetails();
-export const pipelineRunJobDetails = new PipelineRunJobDetails();
+export const pipelineRecurringRunDetails = new PipelineRecurringRunDetails();
 export const pipelinesTopology = new PipelinesTopology();

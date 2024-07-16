@@ -19,7 +19,6 @@ import { useGetArtifactTypes } from '~/concepts/pipelines/apiHooks/mlmd/useGetAr
 import { useGetEventsByExecutionId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { useGetExecutionById } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { inputOutputSectionTitle } from '~/pages/pipelines/global/experiments/executions/const';
 import ExecutionDetailsCustomPropertiesSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsCustomPropertiesSection';
@@ -32,13 +31,11 @@ import {
   getExecutionDisplayName,
   parseEventsByType,
 } from '~/pages/pipelines/global/experiments/executions/utils';
-import { executionsBaseRoute } from '~/routes';
 import { Event } from '~/third_party/mlmd';
 
 const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { executionId } = useParams();
   const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
   const [execution, executionLoaded, executionError] = useGetExecutionById(executionId);
   const [events, eventsLoaded, eventsError] = useGetEventsByExecutionId(Number(executionId));
   const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
@@ -75,7 +72,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
   }
 
   if (!execution) {
-    navigate(contextPath ?? executionsBaseRoute(namespace));
+    navigate(contextPath);
     return;
   }
 
@@ -96,7 +93,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       loaded
       breadcrumb={
         <Breadcrumb>
-          {breadcrumbPath()}
+          {breadcrumbPath}
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
         </Breadcrumb>
       }

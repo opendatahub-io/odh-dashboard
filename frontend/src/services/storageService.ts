@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 
 export const MAX_STORAGE_OBJECT_SIZE = 1e8;
 

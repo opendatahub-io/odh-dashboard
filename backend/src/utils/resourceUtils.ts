@@ -3,7 +3,7 @@ import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
-  BUILD_PHASE,
+  BuildPhase,
   BuildKind,
   BuildStatus,
   ConsoleLinkKind,
@@ -34,6 +34,7 @@ import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from '.
 import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 import { RecursivePartial } from '../typeHelpers';
+import { FastifyRequest } from 'fastify';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -147,8 +148,10 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionS
           };
         };
         const subs = res?.body.items?.map((sub) => ({
+          channel: sub.spec.channel,
           installedCSV: sub.status?.installedCSV,
           installPlanRefNamespace: sub.status?.installPlanRef?.namespace,
+          lastUpdated: sub.status.lastUpdated,
         }));
         remainingItemCount = res.body?.metadata?.remainingItemCount;
         _continue = res.body?.metadata?.continue;
@@ -424,7 +427,7 @@ const getBuildNumber = (build: BuildKind): number => {
   return !!buildNumber && parseInt(buildNumber, 10);
 };
 
-const PENDING_PHASES = [BUILD_PHASE.new, BUILD_PHASE.pending, BUILD_PHASE.cancelled];
+const PENDING_PHASES = [BuildPhase.new, BuildPhase.pending, BuildPhase.cancelled];
 
 const compareBuilds = (b1: BuildKind, b2: BuildKind) => {
   const b1Pending = PENDING_PHASES.includes(b1.status.phase);
@@ -465,7 +468,7 @@ const getBuildConfigStatus = (
       if (bcBuilds.length === 0) {
         return {
           name: notebookName,
-          status: BUILD_PHASE.none,
+          status: BuildPhase.none,
         };
       }
       const mostRecent = bcBuilds.sort(compareBuilds).pop();
@@ -479,7 +482,7 @@ const getBuildConfigStatus = (
       fastify.log.error(e.response?.body?.message || e.message, 'failed to get build configs');
       return {
         name: notebookName,
-        status: BUILD_PHASE.pending,
+        status: BuildPhase.pending,
       };
     });
 };
@@ -548,8 +551,32 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
 
-export const getDashboardConfig = (): DashboardConfig => {
-  return dashboardConfigWatcher.getResources()?.[0];
+const FEATURE_FLAGS_HEADER = 'x-odh-feature-flags';
+
+// if inspecting feature flags, provide the request to ensure overridden feature flags are considered
+export const getDashboardConfig = (request?: FastifyRequest): DashboardConfig => {
+  const dashboardConfig = dashboardConfigWatcher.getResources()?.[0];
+  if (request) {
+    const flagsHeader = request.headers[FEATURE_FLAGS_HEADER];
+    if (typeof flagsHeader === 'string') {
+      try {
+        const featureFlags = JSON.parse(flagsHeader);
+        return {
+          ...dashboardConfig,
+          spec: {
+            ...dashboardConfig.spec,
+            dashboardConfig: {
+              ...dashboardConfig.spec.dashboardConfig,
+              ...featureFlags,
+            },
+          },
+        };
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return dashboardConfig;
 };
 
 export const updateDashboardConfig = (): Promise<void> => {

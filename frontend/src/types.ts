@@ -3,13 +3,25 @@
  */
 
 import {
-  WatchK8sResult,
   K8sResourceCommon as SDKK8sResourceCommon,
+  WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import {
+  AcceleratorProfileKind,
+  DashboardCommonConfig,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+} from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+
+export type DevFeatureFlags = {
+  devFeatureFlags: Partial<DashboardCommonConfig> | null;
+  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
+  resetDevFeatureFlags: () => void;
+  setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+};
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
   data: {
@@ -224,6 +236,13 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+export type SubscriptionStatusData = {
+  channel?: string;
+  installedCSV?: string;
+  installPlanRefNamespace?: string;
+  lastUpdated?: string;
+};
+
 type K8sMetadata = {
   name: string;
   namespace?: string;
@@ -255,10 +274,6 @@ declare global {
   }
 }
 
-export type ODHSegmentKey = {
-  segmentKey: string;
-};
-
 export type ApplicationAction = {
   label: string;
   href: string;
@@ -268,28 +283,6 @@ export type ApplicationAction = {
 export type Section = {
   label?: string;
   actions: ApplicationAction[];
-};
-
-export enum TrackingOutcome {
-  submit = 'submit',
-  cancel = 'cancel',
-}
-
-export type TrackingEventProperties = {
-  name?: string;
-  anonymousID?: string;
-  type?: string;
-  term?: string;
-  accelerator?: string;
-  acceleratorCount?: number;
-  lastSelectedSize?: string;
-  lastSelectedImage?: string;
-  projectName?: string;
-  notebookName?: string;
-  lastActivity?: string;
-  outcome?: TrackingOutcome;
-  success?: boolean;
-  error?: string;
 };
 
 export type NotebookPort = {
@@ -556,17 +549,6 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string };
-
-export type RoleBindingSubject = {
-  kind: string;
-  apiGroup: string;
-  name: string;
-};
-
-export type RoleBinding = {
-  subjects: RoleBindingSubject[];
-  roleRef: RoleBindingSubject;
-} & K8sResourceCommon;
 
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,

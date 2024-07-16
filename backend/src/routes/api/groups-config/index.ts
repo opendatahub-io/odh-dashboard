@@ -1,9 +1,9 @@
-import { FastifyInstance, FastifyRequest } from 'fastify';
-import { GroupsConfig } from '../../../types';
+import { FastifyRequest } from 'fastify';
+import { GroupsConfig, KubeFastifyInstance } from '../../../types';
 import { getGroupsConfig, updateGroupsConfig } from './groupsConfigUtil';
 import { secureAdminRoute } from '../../../utils/route-security';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
     secureAdminRoute(fastify)(async (request, reply) => {

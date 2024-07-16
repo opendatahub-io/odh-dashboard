@@ -18,6 +18,7 @@ type PipelineSectionProps = Pick<React.ComponentProps<typeof RunForm>, 'onValueC
   pipeline: PipelineKFv2 | null;
   version: PipelineVersionKFv2 | null;
   updateInputParams: (version: PipelineVersionKFv2 | undefined) => void;
+  setInitialLoadedState: (isInitial: boolean) => void;
 };
 
 const PipelineSection: React.FC<PipelineSectionProps> = ({
@@ -25,13 +26,15 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
   version,
   onValueChange,
   updateInputParams,
+  setInitialLoadedState,
 }) => {
   const onPipelineChange = React.useCallback(
     (value: PipelineKFv2) => {
       onValueChange('pipeline', value);
       onValueChange('version', undefined);
+      setInitialLoadedState(false);
     },
-    [onValueChange],
+    [onValueChange, setInitialLoadedState],
   );
 
   const onVersionChange = React.useCallback(

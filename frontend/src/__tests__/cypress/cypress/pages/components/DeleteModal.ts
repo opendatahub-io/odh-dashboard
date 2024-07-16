@@ -1,4 +1,4 @@
-import { ByRoleOptions } from '@testing-library/react';
+import type { ByRoleOptions } from '@testing-library/react';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 export class DeleteModal extends Modal {

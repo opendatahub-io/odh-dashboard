@@ -6,7 +6,6 @@ import { DEFAULT_LIST_FETCH_STATE, DEFAULT_VALUE_FETCH_STATE } from '~/utilities
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import {
   DEFAULT_DW_PROJECT_CURRENT_METRICS,
@@ -15,6 +14,7 @@ import {
 } from '~/api';
 import { RefreshIntervalValue } from '~/concepts/metrics/const';
 import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useClusterQueues from './useClusterQueues';
 import useLocalQueues from './useLocalQueues';
 import useWorkloads from './useWorkloads';
@@ -121,7 +121,7 @@ export const DistributedWorkloadsContextProvider =
           projectCurrentMetrics,
           refreshAllData,
           namespace,
-          projectDisplayName: getProjectDisplayName(project),
+          projectDisplayName: getDisplayNameFromK8sResource(project),
         }}
       >
         {children}

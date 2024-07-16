@@ -2,7 +2,8 @@ import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import {
   getExistingVersionsForImageStream,
   isAWSValid,
-  checkVersionRecommended, // Added import for the new function
+  checkVersionRecommended,
+  getVersion,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
@@ -173,5 +174,18 @@ describe('checkVersionRecommended', () => {
       },
     };
     expect(checkVersionRecommended(imageVersion)).toBe(false);
+  });
+
+  it('should get version with a prefix and string parameter', () => {
+    expect(getVersion('v3.9', 'v')).toEqual('v3.9');
+    expect(getVersion('4.9', 'V')).toEqual('V4.9');
+    expect(getVersion('3.1', 'Randomprefix')).toEqual('Randomprefix3.1');
+    expect(getVersion('0.1')).toEqual('0.1');
+  });
+
+  it('should get version with a number as the parameter', () => {
+    expect(getVersion(0.1)).toEqual('0.1');
+    expect(getVersion(3.1, 'v')).toEqual('v3.1');
+    expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
   });
 });

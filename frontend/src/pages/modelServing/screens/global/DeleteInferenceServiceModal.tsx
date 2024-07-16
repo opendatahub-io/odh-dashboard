@@ -2,7 +2,7 @@ import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { deleteInferenceService, deleteServingRuntime } from '~/api';
-import { getInferenceServiceDisplayName } from './utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
@@ -27,7 +27,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
   };
 
   const displayName = inferenceService
-    ? getInferenceServiceDisplayName(inferenceService)
+    ? getDisplayNameFromK8sResource(inferenceService)
     : 'this deployed model';
 
   return (

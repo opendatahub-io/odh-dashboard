@@ -9,7 +9,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',
-  SCHEDULED = 'job',
+  SCHEDULED = 'schedule',
 }
 export enum ScheduledType {
   PERIODIC = 'periodic',

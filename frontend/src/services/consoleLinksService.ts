@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { ConsoleLinkKind } from '~/k8sTypes';
 
 export const fetchConsoleLinks = (): Promise<ConsoleLinkKind[]> => {

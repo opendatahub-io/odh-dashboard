@@ -5,11 +5,11 @@ import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import ServeModelButton from '~/pages/modelServing/screens/global/ServeModelButton';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 const EmptyModelServing: React.FC = () => {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ const EmptyModelServing: React.FC = () => {
               )
             }
           >
-            {project ? `Go to ${getProjectDisplayName(project)}` : 'Select a project'}
+            {project ? `Go to ${getDisplayNameFromK8sResource(project)}` : 'Select a project'}
           </Button>
         }
       />

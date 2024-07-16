@@ -1,16 +1,5 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateVariant,
-  Flex,
-  Spinner,
-  Split,
-  SplitItem,
-  Text,
-} from '@patternfly/react-core';
+import { Bullseye, Flex, Spinner, Split, SplitItem, Text } from '@patternfly/react-core';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { useCheckboxTableBase } from '~/components/table';
 import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
@@ -21,6 +10,7 @@ import {
   getLinkedArtifactId,
 } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 import RocCurveTable from './RocCurveTable';
 import { FullArtifactPathsAndConfig } from './types';
 import { isConfidenceMetric, buildRocCurveConfig } from './utils';
@@ -28,9 +18,10 @@ import { isConfidenceMetric, buildRocCurveConfig } from './utils';
 type RocCurveCompareProps = {
   runArtifacts?: RunArtifact[];
   isLoaded: boolean;
+  isEmpty: boolean;
 };
 
-const RocCurveCompare: React.FC<RocCurveCompareProps> = ({ runArtifacts, isLoaded }) => {
+const RocCurveCompare: React.FC<RocCurveCompareProps> = ({ runArtifacts, isLoaded, isEmpty }) => {
   const [search, setSearch] = React.useState<string>('');
   const [selected, setSelected] = React.useState<FullArtifactPathsAndConfig[]>([]);
 
@@ -93,18 +84,11 @@ const RocCurveCompare: React.FC<RocCurveCompareProps> = ({ runArtifacts, isLoade
     );
   }
 
-  if (!runArtifacts || runArtifacts.length === 0) {
-    return <CompareRunsEmptyState />;
+  if (isEmpty) {
+    return <CompareRunsEmptyState data-testid="compare-runs-roc-curve-empty-state" />;
   }
   if (Object.keys(configs).length === 0) {
-    return (
-      <EmptyState variant={EmptyStateVariant.xs}>
-        <EmptyStateHeader titleText="No ROC curve artifacts" headingLevel="h4" />
-        <EmptyStateBody>
-          There are no ROC curve artifacts available on the selected runs.
-        </EmptyStateBody>
-      </EmptyState>
-    );
+    return <CompareRunsNoMetrics data-testid="compare-runs-roc-curve-no-data-state" />;
   }
 
   return (

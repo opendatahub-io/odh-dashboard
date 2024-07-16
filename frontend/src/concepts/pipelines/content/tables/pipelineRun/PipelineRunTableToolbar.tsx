@@ -42,7 +42,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
       ...(!pipelineVersionId && {
         [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
       }),
-      [FilterOptions.CREATED_AT]: 'Started',
+      [FilterOptions.CREATED_AT]: 'Created after',
       [FilterOptions.STATUS]: 'Status',
     }),
     [experimentId, isExperimentsAvailable, pipelineVersionId],

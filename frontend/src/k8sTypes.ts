@@ -22,6 +22,7 @@ export enum KnownLabels {
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+  LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
 }
 
 export type K8sVerb =
@@ -503,13 +504,19 @@ export type RoleBindingSubject = {
   name: string;
 };
 
+export type RoleBindingRoleRef = {
+  kind: 'Role' | 'ClusterRole';
+  apiGroup?: string;
+  name: string;
+};
+
 export type RoleBindingKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
   };
   subjects: RoleBindingSubject[];
-  roleRef: RoleBindingSubject;
+  roleRef: RoleBindingRoleRef;
 };
 
 export type RouteKind = K8sResourceCommon & {
@@ -1276,10 +1283,18 @@ export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in StackComponent]?: boolean };
   phase?: string;
+  release?: {
+    name: string;
+    version: string;
+  };
 };
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
+  release?: {
+    name?: string;
+    version?: string;
+  };
   phase?: string;
 };
 
@@ -1287,6 +1302,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: DisplayNameAnnotations;
   };
   spec: {
     grpc: {

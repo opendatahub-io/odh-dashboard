@@ -1,4 +1,4 @@
-import { ByRoleOptions } from '@testing-library/react';
+import type { ByRoleOptions } from '@testing-library/react';
 
 export class Modal {
   constructor(private title: ByRoleOptions['name']) {}

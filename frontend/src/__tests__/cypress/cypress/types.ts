@@ -1,4 +1,4 @@
-import { RouteMatcher } from 'cypress/types/net-stubbing';
+import type { RouteMatcher } from 'cypress/types/net-stubbing';
 
 export type Snapshot = {
   method: string;

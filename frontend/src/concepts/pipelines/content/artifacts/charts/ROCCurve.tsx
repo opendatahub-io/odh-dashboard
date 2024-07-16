@@ -7,17 +7,17 @@ import {
   ChartVoronoiContainer,
 } from '@patternfly/react-charts';
 import {
-  chart_color_blue_100 as chartColorBlue100,
-  chart_color_blue_200 as chartColorBlue200,
-  chart_color_blue_300 as chartColorBlue300,
-  chart_color_blue_400 as chartColorBlue400,
-  chart_color_blue_500 as chartColorBlue500,
-  chart_color_cyan_100 as chartColorCyan100,
-  chart_color_cyan_200 as chartColorCyan200,
-  chart_color_cyan_300 as chartColorCyan300,
-  chart_color_cyan_400 as chartColorCyan400,
-  chart_color_cyan_500 as chartColorCyan500,
   chart_color_black_100 as chartColorBlack100,
+  chart_theme_multi_color_ordered_ColorScale_100 as chartThemeMultiColorOrderedColorScale100,
+  chart_theme_multi_color_ordered_ColorScale_200 as chartThemeMultiColorOrderedColorScale200,
+  chart_theme_multi_color_ordered_ColorScale_300 as chartThemeMultiColorOrderedColorScale300,
+  chart_theme_multi_color_ordered_ColorScale_400 as chartThemeMultiColorOrderedColorScale400,
+  chart_theme_multi_color_ordered_ColorScale_500 as chartThemeMultiColorOrderedColorScale500,
+  chart_theme_multi_color_ordered_ColorScale_600 as chartThemeMultiColorOrderedColorScale600,
+  chart_theme_multi_color_ordered_ColorScale_700 as chartThemeMultiColorOrderedColorScale700,
+  chart_theme_multi_color_ordered_ColorScale_800 as chartThemeMultiColorOrderedColorScale800,
+  chart_theme_multi_color_ordered_ColorScale_900 as chartThemeMultiColorOrderedColorScale900,
+  chart_theme_multi_color_ordered_ColorScale_1000 as chartThemeMultiColorOrderedColorScale1000,
 } from '@patternfly/react-tokens';
 
 export type ROCCurveConfig = {
@@ -31,16 +31,16 @@ export type ROCCurveConfig = {
 };
 
 export const RocCurveChartColorScale = [
-  chartColorBlue100.value,
-  chartColorBlue200.value,
-  chartColorBlue300.value,
-  chartColorBlue400.value,
-  chartColorBlue500.value,
-  chartColorCyan100.value,
-  chartColorCyan200.value,
-  chartColorCyan300.value,
-  chartColorCyan400.value,
-  chartColorCyan500.value,
+  chartThemeMultiColorOrderedColorScale100.value,
+  chartThemeMultiColorOrderedColorScale200.value,
+  chartThemeMultiColorOrderedColorScale300.value,
+  chartThemeMultiColorOrderedColorScale400.value,
+  chartThemeMultiColorOrderedColorScale500.value,
+  chartThemeMultiColorOrderedColorScale600.value,
+  chartThemeMultiColorOrderedColorScale700.value,
+  chartThemeMultiColorOrderedColorScale800.value,
+  chartThemeMultiColorOrderedColorScale900.value,
+  chartThemeMultiColorOrderedColorScale1000.value,
 ];
 
 type ROCCurveProps = {
@@ -53,7 +53,7 @@ const ROCCurve: React.FC<ROCCurveProps> = ({ configs, maxContainerWidth, maxDime
   const baseLineData = Array.from(Array(100).keys()).map((x) => ({ x: x / 100, y: x / 100 }));
 
   return (
-    <div style={{ width: maxContainerWidth || maxDimension }}>
+    <div style={{ width: maxContainerWidth || maxDimension }} data-testid="roc-curve-graph">
       <Chart
         ariaDesc="ROC Curve"
         ariaTitle="ROC Curve"

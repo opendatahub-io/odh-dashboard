@@ -1,10 +1,10 @@
 import { act } from '@testing-library/react';
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 import useFetchDsciStatus from '~/concepts/areas/useFetchDsciStatus';
 
-jest.mock('axios', () => ({
+jest.mock('~/utilities/axios', () => ({
   get: jest.fn(),
 }));
 

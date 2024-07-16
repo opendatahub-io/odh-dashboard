@@ -1,8 +1,8 @@
 import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Button } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { ModelRegistryKind } from '~/k8sTypes';
-import ManagePermissionsModal from './ManagePermissionsModal';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import ViewDatabaseConfigModal from './ViewDatabaseConfigModal';
 import DeleteModelRegistryModal from './DeleteModelRegistryModal';
 
@@ -15,21 +15,28 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   modelRegistry: mr,
   refresh,
 }) => {
-  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = React.useState(false);
   const [isDatabaseConfigModalOpen, setIsDatabaseConfigModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   return (
     <>
       <Tr>
-        <Td dataLabel="Model registry name">{mr.metadata.name}</Td>
+        <Td dataLabel="Model registry name">
+          <ResourceNameTooltip resource={mr}>
+            <strong>
+              {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
+            </strong>
+          </ResourceNameTooltip>
+          {mr.metadata.annotations?.['openshift.io/description'] && (
+            <p>{mr.metadata.annotations['openshift.io/description']}</p>
+          )}
+        </Td>
         <Td modifier="fitContent">
-          <Button
-            variant="link"
-            onClick={() => setIsPermissionsModalOpen(true)}
+          <Link
             aria-label={`Manage permissions for model registry ${mr.metadata.name}`}
+            to={`/modelRegistrySettings/permissions/${mr.metadata.name}`}
           >
             Manage permissions
-          </Button>
+          </Link>
         </Td>
         <Td isActionCell>
           <ActionsColumn
@@ -46,12 +53,6 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           />
         </Td>
       </Tr>
-      <ManagePermissionsModal
-        modelRegistry={mr}
-        isOpen={isPermissionsModalOpen}
-        onClose={() => setIsPermissionsModalOpen(false)}
-        refresh={refresh}
-      />
       <ViewDatabaseConfigModal
         modelRegistry={mr}
         isOpen={isDatabaseConfigModalOpen}

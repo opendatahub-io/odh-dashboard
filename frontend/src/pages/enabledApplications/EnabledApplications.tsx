@@ -5,7 +5,7 @@ import { useWatchComponents } from '~/utilities/useWatchComponents';
 import { OdhApplication } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import OdhAppCard from '~/components/OdhAppCard';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 

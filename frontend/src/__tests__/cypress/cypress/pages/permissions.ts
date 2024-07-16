@@ -23,11 +23,11 @@ class PermissionsTab {
   }
 
   getUserTable() {
-    return new PermissionTable(() => cy.findByTestId('project-sharing-table User'));
+    return new PermissionTable(() => cy.findByTestId('role-binding-table User'));
   }
 
   getGroupTable() {
-    return new PermissionTable(() => cy.findByTestId('project-sharing-table Group'));
+    return new PermissionTable(() => cy.findByTestId('role-binding-table Group'));
   }
 }
 
@@ -37,11 +37,11 @@ class PermissionTable extends Contextual<HTMLElement> {
   }
 
   findAddInput() {
-    return this.find().findByTestId('project-sharing-name-input');
+    return this.find().findByTestId('role-binding-name-input');
   }
 
   findEditInput(id: string) {
-    return this.find().findByTestId(['project-sharing-name-input', id]);
+    return this.find().findByTestId(['role-binding-name-input', id]);
   }
 
   getTableRow(name: string) {
@@ -56,7 +56,7 @@ class PermissionTable extends Contextual<HTMLElement> {
 
   selectPermission(id: string, name: string) {
     return this.find()
-      .findByTestId(['project-sharing-name-input', id])
+      .findByTestId(['role-binding-name-input', id])
       .parents('tr')
       .findByRole('button', { name: 'Options menu' })
       .findSelectOption(name)

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { Select, SelectOption } from '@patternfly/react-core/deprecated';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type SelectNotebookFieldProps = {
   loaded: boolean;
@@ -76,7 +76,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
       >
         {notebooks.map((notebook) => (
           <SelectOption key={notebook.metadata.name} value={notebook.metadata.name}>
-            {getNotebookDisplayName(notebook)}
+            {getDisplayNameFromK8sResource(notebook)}
           </SelectOption>
         ))}
       </Select>

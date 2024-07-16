@@ -23,7 +23,7 @@ export const ArtifactPropertyDescriptionList: React.FC<ArtifactPropertyDescripti
     <DescriptionListGroup>
       {propertiesMap.map(([propKey, propValues]) => (
         <React.Fragment key={propKey}>
-          <DescriptionListTerm>{propKey}</DescriptionListTerm>
+          <DescriptionListTerm data-testid={`${testId}-${propKey}`}>{propKey}</DescriptionListTerm>
           <DescriptionListDescription>
             <MlmdPropertyDetailsValue values={propValues} />
           </DescriptionListDescription>

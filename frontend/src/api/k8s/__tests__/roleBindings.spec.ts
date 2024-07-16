@@ -11,19 +11,19 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import {
-  ProjectSharingRBType,
-  ProjectSharingRoleType,
-} from '~/pages/projects/projectSharing/types';
-import {
   createRoleBinding,
   deleteRoleBinding,
-  generateRoleBindingProjectSharing,
+  generateRoleBindingPermissions,
   generateRoleBindingServingRuntime,
   getRoleBinding,
   listRoleBindings,
   patchRoleBindingOwnerRef,
 } from '~/api/k8s/roleBindings';
 import { RoleBindingModel } from '~/api/models/k8s';
+import {
+  RoleBindingPermissionsRBType,
+  RoleBindingPermissionsRoleType,
+} from '~/concepts/roleBinding/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -84,30 +84,31 @@ describe('generateRoleBindingServingRuntime', () => {
   });
 });
 
-describe('generateRoleBindingProjectSharing', () => {
+describe('generateRoleBindingPermissions', () => {
   it('should generate project sharing role binding when RB type is USER and role type is EDIT', () => {
-    const result = generateRoleBindingProjectSharing(
+    const result = generateRoleBindingPermissions(
       namespace,
-      ProjectSharingRBType.USER,
+      RoleBindingPermissionsRBType.USER,
       'rbSubjectName',
-      ProjectSharingRoleType.EDIT,
+      RoleBindingPermissionsRoleType.EDIT,
+      'ClusterRole',
     );
     const subjects = [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: ProjectSharingRBType.USER,
+        kind: RoleBindingPermissionsRBType.USER,
         name: 'rbSubjectName',
       },
     ];
-    createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects);
+    createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects);
     expect(result.apiVersion).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects).apiVersion,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects).apiVersion,
     );
     expect(result.subjects).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects).subjects,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects).subjects,
     );
     expect(result.roleRef).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects).roleRef,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects).roleRef,
     );
     expect(result.metadata.name).toMatch(/^dashboard-permissions-[a-zA-Z0-9]+$/);
     expect(result.metadata.labels).toStrictEqual({
@@ -117,28 +118,29 @@ describe('generateRoleBindingProjectSharing', () => {
   });
 
   it('should generate project sharing role binding when RB type is USER and role type is ADMIN', () => {
-    const result = generateRoleBindingProjectSharing(
+    const result = generateRoleBindingPermissions(
       namespace,
-      ProjectSharingRBType.USER,
+      RoleBindingPermissionsRBType.USER,
       'rbSubjectName',
-      ProjectSharingRoleType.ADMIN,
+      RoleBindingPermissionsRoleType.ADMIN,
+      'ClusterRole',
     );
     const subjects = [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: ProjectSharingRBType.USER,
+        kind: RoleBindingPermissionsRBType.USER,
         name: 'rbSubjectName',
       },
     ];
-    createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects);
+    createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects);
     expect(result.apiVersion).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects).apiVersion,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects).apiVersion,
     );
     expect(result.subjects).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects).subjects,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects).subjects,
     );
     expect(result.roleRef).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects).roleRef,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects).roleRef,
     );
     expect(result.metadata.name).toMatch(/^dashboard-permissions-[a-zA-Z0-9]+$/);
     expect(result.metadata.labels).toStrictEqual({
@@ -148,28 +150,29 @@ describe('generateRoleBindingProjectSharing', () => {
   });
 
   it('should generate project sharing role binding when RB type is GROUP and role type is EDIT', () => {
-    const result = generateRoleBindingProjectSharing(
+    const result = generateRoleBindingPermissions(
       namespace,
-      ProjectSharingRBType.GROUP,
+      RoleBindingPermissionsRBType.GROUP,
       'rbSubjectName',
-      ProjectSharingRoleType.EDIT,
+      RoleBindingPermissionsRoleType.EDIT,
+      'ClusterRole',
     );
     const subjects = [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: ProjectSharingRBType.GROUP,
+        kind: RoleBindingPermissionsRBType.GROUP,
         name: 'rbSubjectName',
       },
     ];
-    createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects);
+    createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects);
     expect(result.apiVersion).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects).apiVersion,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects).apiVersion,
     );
     expect(result.subjects).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects).subjects,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects).subjects,
     );
     expect(result.roleRef).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.EDIT, subjects).roleRef,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.EDIT, subjects).roleRef,
     );
     expect(result.metadata.name).toMatch(/^dashboard-permissions-[a-zA-Z0-9]+$/);
     expect(result.metadata.labels).toStrictEqual({
@@ -179,28 +182,29 @@ describe('generateRoleBindingProjectSharing', () => {
   });
 
   it('should generate project sharing role binding when RB type is GROUP and role type is ADMIN', () => {
-    const result = generateRoleBindingProjectSharing(
+    const result = generateRoleBindingPermissions(
       namespace,
-      ProjectSharingRBType.GROUP,
+      RoleBindingPermissionsRBType.GROUP,
       'rbSubjectName',
-      ProjectSharingRoleType.ADMIN,
+      RoleBindingPermissionsRoleType.ADMIN,
+      'ClusterRole',
     );
     const subjects = [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: ProjectSharingRBType.GROUP,
+        kind: RoleBindingPermissionsRBType.GROUP,
         name: 'rbSubjectName',
       },
     ];
-    createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects);
+    createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects);
     expect(result.apiVersion).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects).apiVersion,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects).apiVersion,
     );
     expect(result.subjects).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects).subjects,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects).subjects,
     );
     expect(result.roleRef).toStrictEqual(
-      createRoleBindingObject(ProjectSharingRoleType.ADMIN, subjects).roleRef,
+      createRoleBindingObject(RoleBindingPermissionsRoleType.ADMIN, subjects).roleRef,
     );
     expect(result.metadata.name).toMatch(/^dashboard-permissions-[a-zA-Z0-9]+$/);
     expect(result.metadata.labels).toStrictEqual({

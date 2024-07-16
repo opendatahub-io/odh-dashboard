@@ -1,8 +1,7 @@
 import { mockProjectK8sResource } from '~/__mocks__';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import {
   isAvailableProject,
-  getProjectDisplayName,
-  getProjectDescription,
   getProjectOwner,
   getProjectCreationTime,
 } from '~/concepts/projects/utils';
@@ -45,7 +44,7 @@ describe('getProjectDisplayName', () => {
       k8sName: 'my-project',
       displayName: 'My Project',
     });
-    expect(getProjectDisplayName(mockProject)).toBe('My Project');
+    expect(getDisplayNameFromK8sResource(mockProject)).toBe('My Project');
   });
 
   it('uses the resource name if no display name is present', () => {
@@ -53,19 +52,19 @@ describe('getProjectDisplayName', () => {
       k8sName: 'my-project',
       displayName: '',
     });
-    expect(getProjectDisplayName(mockProject)).toBe('my-project');
+    expect(getDisplayNameFromK8sResource(mockProject)).toBe('my-project');
   });
 });
 
 describe('getProjectDescription', () => {
   it('gets the description', () => {
     const mockProject = mockProjectK8sResource({ description: 'This is a test project' });
-    expect(getProjectDescription(mockProject)).toBe('This is a test project');
+    expect(getDescriptionFromK8sResource(mockProject)).toBe('This is a test project');
   });
 
   it('returns empty string if no description', () => {
     const mockProject = mockProjectK8sResource({ description: '' });
-    expect(getProjectDescription(mockProject)).toBe('');
+    expect(getDescriptionFromK8sResource(mockProject)).toBe('');
   });
 });
 

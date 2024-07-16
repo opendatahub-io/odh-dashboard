@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { SecretKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { getTokenDisplayName } from '~/pages/modelServing/screens/global/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ServingRuntimeTokenDisplay from './ServingRuntimeTokenDisplay';
 
 type ServingRuntimeTokenTableRowProps = {
@@ -18,7 +18,9 @@ const ServingRuntimeTokenTableRow: React.FC<ServingRuntimeTokenTableRowProps> = 
 }) => (
   <Tr>
     <Td dataLabel="Token Name">
-      <ResourceNameTooltip resource={token}>{getTokenDisplayName(token)}</ResourceNameTooltip>
+      <ResourceNameTooltip resource={token}>
+        {getDisplayNameFromK8sResource(token)}
+      </ResourceNameTooltip>
     </Td>
     <Td dataLabel="Token Secret">
       <ServingRuntimeTokenDisplay token={token} loaded={loaded} error={error} />

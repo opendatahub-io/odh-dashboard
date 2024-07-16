@@ -3,11 +3,11 @@ FROM quay.io/fedora/fedora:40
 ARG USER=cypress
 ARG USER_HOME=/home/$USER
 ARG NPM_CACHE=/opt/app-root/src/.npm-global
-ARG CYPRESS_CACHE=/home/jenkins/.cypress-cache
+ARG CYPRESS_CACHE=$USER_HOME/.cypress-cache
 ARG CHROME=https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 ARG OCP_CLI=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
 ARG NVM_INSTALLER=https://raw.githubusercontent.com/creationix/nvm/v0.39.7/install.sh
-ARG NODE_VERSION=v20.10.0
+ARG NODE_VERSION=v20.15.0
 
 USER root
 
@@ -16,9 +16,16 @@ RUN mkdir -p "$USER_HOME"
 RUN useradd -m -g root "$USER" -d "$USER_HOME" --uid 1000
 RUN chgrp -R 0 "$USER_HOME"
 RUN chmod -R g=u "$USER_HOME"
-RUN mkdir -p $NPM_CACHE
+
+# Create global NPM cache directory
+RUN mkdir -p "$NPM_CACHE"
 RUN chgrp -R 0 "$NPM_CACHE"
-RUN chmod -R 777 $NPM_CACHE
+RUN chmod -R 777 "$NPM_CACHE"
+
+# Create local Cypress cache directory
+RUN mkdir -p "$CYPRESS_CACHE"
+RUN chgrp -R 0 "$CYPRESS_CACHE"
+RUN chmod -R 777 "$CYPRESS_CACHE"
 
 # Install tools including Xvfb and Chrome
 RUN dnf update -y
@@ -41,7 +48,11 @@ RUN rm -rf /var/cache/yum
 # Set capability to adjust OOM score for Node
 RUN echo CAP_SYS_NICE >> /etc/security/limits.conf
 
+<<<<<<< HEAD
 # Copy NodeJS package.json from "frontend" directory 
+=======
+# Copy NodeJS packages lists (json files) from "frontend" directory 
+>>>>>>> main
 WORKDIR $USER_HOME
 COPY ./frontend/package*.json ./
 RUN chown $USER:0 ./*
@@ -55,7 +66,11 @@ ENV NODE_PATH "$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules"
 ENV PATH "$NVM_DIR/versions/node/$NODE_VERSION/bin:/bin:$HOME/.local/bin:/root/.local/bin:$PATH"
 RUN mkdir -p $NVM_DIR
 
+<<<<<<< HEAD
 # Install Node Version Manager, Node Package Manager, and the "frontend" packages
+=======
+# Install Node Version Manager, NodeJS and the packages for CI (package-lock.json) 
+>>>>>>> main
 RUN curl -o- $NVM_INSTALLER | bash
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm install $NODE_VERSION && \
@@ -63,8 +78,13 @@ RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     npm config set prefix '$NPM_CACHE' && \
     echo 'export PATH=$PATH' >> '$USER_HOME/.profile' && \
     source $USER_HOME/.profile && \
+<<<<<<< HEAD
     npm install -g npm@latest && \
     npm cache -g clean --force"
+=======
+    npm cache -g clean --force && \
+    npm ci --cache=$NPM_CACHE"
+>>>>>>> main
 
 # Export NPM and Cypress Cache directories (to be accesible by rootless user)
 ENV NPM_CONFIG_CACHE $NPM_CACHE

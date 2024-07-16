@@ -2,7 +2,6 @@
 import { mockK8sResourceList, mockRouteK8sResourceModelRegistry } from '~/__mocks__';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
@@ -10,8 +9,10 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ModelRegistryModel, RouteModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
+import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
+
+const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
 type HandlersProps = {
   disableModelRegistryFeature?: boolean;

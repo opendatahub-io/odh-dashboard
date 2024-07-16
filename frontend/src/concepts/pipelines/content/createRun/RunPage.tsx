@@ -1,9 +1,15 @@
 import React from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 import { PageSection } from '@patternfly/react-core';
 
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import {
+  ExperimentKFv2,
+  PipelineKFv2,
+  PipelineRecurringRunKFv2,
+  PipelineRunKFv2,
+  PipelineVersionKFv2,
+} from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
   CreateRunPageSections,
@@ -13,8 +19,6 @@ import {
 import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import RunPageFooter from '~/concepts/pipelines/content/createRun/RunPageFooter';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import {
   RunFormData,
   RunType,
@@ -24,35 +28,41 @@ import {
 import { ValueOf } from '~/typeHelpers';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { asEnumMember } from '~/utilities/utils';
-import { routePipelineRunsNamespace } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type RunPageProps = {
-  cloneRun?: PipelineRunKFv2 | PipelineRunJobKFv2 | null;
-  contextPath?: string;
+  cloneRun?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  contextPath: string;
   testId?: string;
+  runType: RunTypeOption;
+  contextExperiment?: ExperimentKFv2 | null;
+  contextPipeline?: PipelineKFv2 | null;
+  contextPipelineVersion?: PipelineVersionKFv2 | null;
 };
 
-const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
-  const { namespace, experimentId } = useParams();
+const RunPage: React.FC<RunPageProps> = ({
+  cloneRun,
+  contextPath,
+  testId,
+  runType,
+  contextExperiment,
+  contextPipeline,
+  contextPipelineVersion,
+}) => {
   const location = useLocation();
-  const { runType, triggerType: triggerTypeString } = useGetSearchParamValues([
-    PipelineRunSearchParam.RunType,
+  const {
+    nameDesc: locationNameDesc,
+    pipeline: locationPipeline,
+    version: locationVersion,
+    experiment: locationExperiment,
+  } = location.state?.locationData || {};
+  const { triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.TriggerType,
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
-  const isSchedule = runType === PipelineRunType.SCHEDULED;
+  const isSchedule = runType === RunTypeOption.SCHEDULED;
 
-  const cloneRunPipelineId = cloneRun?.pipeline_version_reference?.pipeline_id || '';
-  const cloneRunVersionId = cloneRun?.pipeline_version_reference?.pipeline_version_id || '';
-  const cloneRunExperimentId = cloneRun?.experiment_id || '';
-
-  const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
-  const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
-  const [runExperiment] = useExperimentById(cloneRunExperimentId || experimentId);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const jumpToSections = Object.values(CreateRunPageSections).filter(
@@ -65,7 +75,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
 
   const runTypeData: RunType = React.useMemo(
     () =>
-      runType === PipelineRunType.SCHEDULED
+      isSchedule
         ? {
             type: RunTypeOption.SCHEDULED,
             data: {
@@ -74,27 +84,18 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
             },
           }
         : { type: RunTypeOption.ONE_TRIGGER },
-    [runType, triggerType],
+    [isSchedule, triggerType],
   );
 
   const [formData, setFormDataValue] = useRunFormData(cloneRun, {
+    nameDesc: cloneRun
+      ? { name: `Duplicate of ${cloneRun.display_name}`, description: cloneRun.description }
+      : locationNameDesc || { name: '', description: '' },
     runType: runTypeData,
-    pipeline: location.state?.lastPipeline || cloneRunPipeline,
-    version: location.state?.lastVersion || cloneRunPipelineVersion,
-    experiment: runExperiment,
+    pipeline: locationPipeline || contextPipeline,
+    version: locationVersion || contextPipelineVersion,
+    experiment: locationExperiment || contextExperiment,
   });
-
-  // need to correctly set runType after switching between run types as the form data is not updated automatically
-  React.useEffect(() => {
-    // set the data if the url run type is different from the form data run type
-    if (
-      (runType === PipelineRunType.SCHEDULED &&
-        formData.runType.type === RunTypeOption.ONE_TRIGGER) ||
-      (runType !== PipelineRunType.SCHEDULED && formData.runType.type === RunTypeOption.SCHEDULED)
-    ) {
-      setFormDataValue('runType', runTypeData);
-    }
-  }, [formData.runType.type, runType, runTypeData, setFormDataValue]);
 
   const onValueChange = React.useCallback(
     (key: keyof RunFormData, value: ValueOf<RunFormData>) => setFormDataValue(key, value),
@@ -116,18 +117,11 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
           titles={runPageSectionTitlesEdited}
           maxWidth={175}
         >
-          <RunForm
-            data={formData}
-            runType={asEnumMember(runType, PipelineRunType) ?? PipelineRunType.ACTIVE}
-            onValueChange={onValueChange}
-          />
+          <RunForm isCloned={!!cloneRun} data={formData} onValueChange={onValueChange} />
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <RunPageFooter
-          data={formData}
-          contextPath={contextPath ?? routePipelineRunsNamespace(namespace)}
-        />
+        <RunPageFooter data={formData} contextPath={contextPath} />
       </PageSection>
     </div>
   );

@@ -1,9 +1,3 @@
-import {
-  modelVersionArchiveDetailsUrl,
-  modelVersionArchiveUrl,
-  modelVersionListUrl,
-  modelVersionUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -61,21 +55,37 @@ class ModelVersionArchive {
   }
 
   visit() {
-    cy.visitWithLogin(modelVersionArchiveUrl('1', 'modelregistry-sample'));
+    const rmId = '1';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visitWithLogin(
+      `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/archive`,
+    );
     this.wait();
   }
 
   visitArchiveVersionDetail() {
-    cy.visitWithLogin(modelVersionArchiveDetailsUrl('2', '1', 'modelregistry-sample'));
+    const mvId = '2';
+    const rmId = '1';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visitWithLogin(
+      `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/archive/${mvId}`,
+    );
   }
 
   visitModelVersionList() {
-    cy.visitWithLogin(modelVersionListUrl('1', 'modelregistry-sample'));
+    const rmId = '1';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visitWithLogin(`/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions`);
     this.wait();
   }
 
   visitModelVersionDetails() {
-    cy.visitWithLogin(modelVersionUrl('3', '1', 'modelregistry-sample'));
+    const mvId = '3';
+    const rmId = '1';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visitWithLogin(
+      `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/${mvId}`,
+    );
     this.wait();
   }
 

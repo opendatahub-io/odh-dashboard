@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -6,6 +5,7 @@ import {
   K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import axios from '~/utilities/axios';
 import { CustomWatchK8sResult } from '~/types';
 import { K8sAPIOptions, ProjectKind } from '~/k8sTypes';
 import { ProjectModel, ProjectRequestModel } from '~/api/models';

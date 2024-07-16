@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { DashboardConfigKind } from '~/k8sTypes';
 
 export const fetchDashboardConfig = (): Promise<DashboardConfigKind> => {

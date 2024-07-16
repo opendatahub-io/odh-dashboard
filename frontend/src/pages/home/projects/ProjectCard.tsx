@@ -18,12 +18,9 @@ import { ProjectKind } from '~/k8sTypes';
 import TruncatedText from '~/components/TruncatedText';
 import { SectionType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
-import {
-  getProjectDescription,
-  getProjectDisplayName,
-  getProjectOwner,
-} from '~/concepts/projects/utils';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { getProjectOwner } from '~/concepts/projects/utils';
+import { fireTrackingEventRaw } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 interface ProjectCardProps {
   project: ProjectKind;
@@ -48,13 +45,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           }}
           style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
         >
-          <Truncate content={getProjectDisplayName(project)} />
+          <Truncate content={getDisplayNameFromK8sResource(project)} />
         </Button>
       </CardHeader>
       <CardBody>
         <TextContent>
           <Text component="small">
-            <TruncatedText maxLines={3} content={getProjectDescription(project)} />
+            <TruncatedText maxLines={3} content={getDescriptionFromK8sResource(project)} />
           </Text>
         </TextContent>
       </CardBody>

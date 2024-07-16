@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, FormGroup } from '@patternfly/react-core';
 import { Select, SelectOption } from '@patternfly/react-core/deprecated';
-import { getPvcDisplayName } from '~/pages/projects/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type ExistingPVCFieldProps = {
   fieldId: string;
@@ -75,7 +75,7 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
       >
         {storages.map((pvc) => (
           <SelectOption key={pvc.metadata.name} value={pvc.metadata.name}>
-            {getPvcDisplayName(pvc)}
+            {getDisplayNameFromK8sResource(pvc)}
           </SelectOption>
         ))}
       </Select>

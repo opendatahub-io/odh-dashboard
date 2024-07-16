@@ -13,13 +13,13 @@ import { useNavigate } from 'react-router-dom';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
 import { getProjectOwner } from '~/concepts/projects/utils';
 import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import NotebookStateStatus from '~/pages/projects/screens/projects/NotebookStateStatus';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ProjectLink from './ProjectLink';
 
 type ProjectTableRowProps = {
@@ -94,7 +94,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
                       style={{ paddingLeft: 'var(--pf-v5-global--spacer--sm)' }}
                     >
                       <NotebookRouteLink
-                        label={getNotebookDisplayName(notebookState.notebook)}
+                        label={getDisplayNameFromK8sResource(notebookState.notebook)}
                         notebook={notebookState.notebook}
                         isRunning={notebookState.isRunning}
                       />

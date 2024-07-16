@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { DetectedAccelerators } from '~/types';
 
 export const getDetectedAccelerators = (): Promise<DetectedAccelerators> => {
