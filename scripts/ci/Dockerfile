@@ -48,11 +48,7 @@ RUN rm -rf /var/cache/yum
 # Set capability to adjust OOM score for Node
 RUN echo CAP_SYS_NICE >> /etc/security/limits.conf
 
-<<<<<<< HEAD
-# Copy NodeJS package.json from "frontend" directory 
-=======
 # Copy NodeJS packages lists (json files) from "frontend" directory 
->>>>>>> main
 WORKDIR $USER_HOME
 COPY ./frontend/package*.json ./
 RUN chown $USER:0 ./*
@@ -66,11 +62,7 @@ ENV NODE_PATH "$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules"
 ENV PATH "$NVM_DIR/versions/node/$NODE_VERSION/bin:/bin:$HOME/.local/bin:/root/.local/bin:$PATH"
 RUN mkdir -p $NVM_DIR
 
-<<<<<<< HEAD
-# Install Node Version Manager, Node Package Manager, and the "frontend" packages
-=======
 # Install Node Version Manager, NodeJS and the packages for CI (package-lock.json) 
->>>>>>> main
 RUN curl -o- $NVM_INSTALLER | bash
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm install $NODE_VERSION && \
@@ -78,13 +70,8 @@ RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     npm config set prefix '$NPM_CACHE' && \
     echo 'export PATH=$PATH' >> '$USER_HOME/.profile' && \
     source $USER_HOME/.profile && \
-<<<<<<< HEAD
-    npm install -g npm@latest && \
-    npm cache -g clean --force"
-=======
     npm cache -g clean --force && \
     npm ci --cache=$NPM_CACHE"
->>>>>>> main
 
 # Export NPM and Cypress Cache directories (to be accesible by rootless user)
 ENV NPM_CONFIG_CACHE $NPM_CACHE
