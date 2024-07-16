@@ -1,7 +1,8 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
   Form,
-  FormSection,
   Modal,
   Stack,
   StackItem,
@@ -26,7 +27,6 @@ import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRun
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
-  InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
@@ -34,16 +34,13 @@ import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServic
 import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
-import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
-import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
+import KServeAutoscalerReplicaSection from '../kServeModal/KServeAutoscalerReplicaSection';
+import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
+
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -115,27 +112,28 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   }, [currentProjectName, setCreateDataInferenceService, isOpen]);
 
   // Serving Runtime Validation
+  const isDisabledServingRuntime = namespace === '' || actionInProgress;
+
   const baseInputValueValid =
     createDataServingRuntime.numReplicas >= 0 &&
     resourcesArePositive(createDataServingRuntime.modelSize.resources) &&
     requestsUnderLimits(createDataServingRuntime.modelSize.resources);
 
-  const isDisabledServingRuntime = namespace === '' || actionInProgress || !baseInputValueValid;
-
   const isDisabledInferenceService =
     actionInProgress ||
     createDataInferenceService.name.trim() === '' ||
     createDataInferenceService.project === '' ||
-    !isInferenceServiceNameWithinLimit 
+    !isInferenceServiceNameWithinLimit ||
+    !baseInputValueValid;
 
   const servingRuntimeSelected = React.useMemo(
     () =>
       editInfo?.servingRuntimeEditInfo?.servingRuntime ||
       getServingRuntimeFromName(
-        createDataServingRuntime.servingRuntimeTemplateName,
+        'nvidia-runtime-gpu',
         servingRuntimeTemplates,
       ),
-    [editInfo, servingRuntimeTemplates, createDataServingRuntime.servingRuntimeTemplateName],
+    [editInfo, servingRuntimeTemplates],
   );
 
   const onBeforeClose = (submitted: boolean) => {
@@ -161,9 +159,8 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
-    onSuccess();
 
-    const servingRuntimeName = 'nim';
+    const servingRuntimeName = editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime || translateDisplayNameForK8s(createDataInferenceService.name);;
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
       servingRuntimeSelected,
@@ -176,7 +173,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       NamespaceApplicationCase.KSERVE_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
-      false,
+      true,
     );
 
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
@@ -231,6 +228,27 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
         }}
       >
         <Stack hasGutter>
+          {!isAuthorinoEnabled && alertVisible && (
+            <StackItem>
+              <Alert
+                id="no-authorino-installed-alert"
+                data-testid="no-authorino-installed-alert"
+                isExpandable
+                isInline
+                variant="warning"
+                title="Token authentication service not installed"
+                actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
+              >
+                <p>
+                  The NVIDIA NIM model serving platform used by this project allows deployed models to
+                  be accessible via external routes. It is recommended that token authentication be
+                  enabled to protect these routes. The serving platform requires the Authorino
+                  operator be installed on the cluster for token authentication. Contact a cluster
+                  administrator to install the operator.
+                </p>
+              </Alert>
+            </StackItem>
+          )}
           <StackItem>
             <ProjectSection
               projectName={
@@ -266,8 +284,8 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
           </StackItem>
           <StackItem>
             <ServingRuntimeSizeSection
-              data={createDataServingRuntime}
-              setData={setCreateDataServingRuntime}
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
               acceleratorProfileState={acceleratorProfileState}
