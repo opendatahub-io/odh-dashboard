@@ -1302,6 +1302,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: DisplayNameAnnotations;
   };
   spec: {
     grpc: {

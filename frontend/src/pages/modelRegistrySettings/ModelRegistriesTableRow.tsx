@@ -2,6 +2,7 @@ import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { ModelRegistryKind } from '~/k8sTypes';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import ViewDatabaseConfigModal from './ViewDatabaseConfigModal';
 import DeleteModelRegistryModal from './DeleteModelRegistryModal';
 
@@ -19,7 +20,16 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Model registry name">{mr.metadata.name}</Td>
+        <Td dataLabel="Model registry name">
+          <ResourceNameTooltip resource={mr}>
+            <strong>
+              {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
+            </strong>
+          </ResourceNameTooltip>
+          {mr.metadata.annotations?.['openshift.io/description'] && (
+            <p>{mr.metadata.annotations['openshift.io/description']}</p>
+          )}
+        </Td>
         <Td modifier="fitContent">
           <Link
             aria-label={`Manage permissions for model registry ${mr.metadata.name}`}
