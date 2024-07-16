@@ -6,15 +6,20 @@ import {
   k8sListResource,
   k8sPatchResource,
   K8sStatus,
+  K8sResourceCommon,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, RoleBindingKind } from '~/k8sTypes';
-import { RoleBindingModel } from '~/api/models';
 import {
-  ProjectSharingRBType,
-  ProjectSharingRoleType,
-} from '~/pages/projects/projectSharing/types';
+  K8sAPIOptions,
+  KnownLabels,
+  RoleBindingKind,
+  RoleBindingRoleRef,
+  RoleBindingSubject,
+} from '~/k8sTypes';
+import { RoleBindingModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
+import { addOwnerReference } from '~/api/k8sUtils';
 
 export const generateRoleBindingServingRuntime = (
   name: string,
@@ -46,11 +51,17 @@ export const generateRoleBindingServingRuntime = (
   return roleBindingObject;
 };
 
-export const generateRoleBindingProjectSharing = (
+export const generateRoleBindingPermissions = (
   namespace: string,
-  rbSubjectType: ProjectSharingRBType,
-  rbSubjectName: string,
-  rbRoleRefType: ProjectSharingRoleType,
+  rbSubjectKind: RoleBindingSubject['kind'],
+  rbSubjectName: RoleBindingSubject['name'],
+  rbRoleRefName: RoleBindingPermissionsRoleType | string, //string because with MR this can include MR name
+  rbRoleRefKind: RoleBindingRoleRef['kind'],
+  rbLabels: { [key: string]: string } = {
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    [KnownLabels.PROJECT_SHARING]: 'true',
+  },
+  ownerReference?: K8sResourceCommon,
 ): RoleBindingKind => {
   const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
@@ -58,25 +69,22 @@ export const generateRoleBindingProjectSharing = (
     metadata: {
       name: `dashboard-permissions-${genRandomChars()}`,
       namespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-        [KnownLabels.PROJECT_SHARING]: 'true',
-      },
+      labels: rbLabels,
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'ClusterRole',
-      name: rbRoleRefType,
+      kind: rbRoleRefKind,
+      name: rbRoleRefName,
     },
     subjects: [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: rbSubjectType,
+        kind: rbSubjectKind,
         name: rbSubjectName,
       },
     ],
   };
-  return roleBindingObject;
+  return addOwnerReference(roleBindingObject, ownerReference);
 };
 
 export const listRoleBindings = (

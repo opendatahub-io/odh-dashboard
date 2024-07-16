@@ -1,8 +1,11 @@
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
-
 class ModelVersionDetails {
   visit() {
-    cy.visitWithLogin(modelVersionUrl('1', '1', 'modelregistry-sample'));
+    const preferredModelRegistry = 'modelregistry-sample';
+    const rmId = '1';
+    const mvId = '1';
+    cy.visitWithLogin(
+      `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/${mvId}`,
+    );
     this.wait();
   }
 

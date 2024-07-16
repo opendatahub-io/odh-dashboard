@@ -1,4 +1,4 @@
-import {
+import type {
   CyHttpMessages,
   HttpResponseInterceptor,
   Interception,
@@ -6,7 +6,7 @@ import {
   StaticResponse,
   WaitOptions,
 } from 'cypress/types/net-stubbing';
-import { InterceptSnapshot, InterceptTrigger } from '~/__tests__/cypress/cypress/types';
+import type { InterceptSnapshot, InterceptTrigger } from '~/__tests__/cypress/cypress/types';
 
 const INTERCEPT_SNAPSHOT_DIR = '__intercept__';
 

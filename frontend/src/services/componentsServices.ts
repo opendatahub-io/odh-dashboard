@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { OdhApplication } from '~/types';
 
 export const fetchComponents = (installed: boolean): Promise<OdhApplication[]> => {

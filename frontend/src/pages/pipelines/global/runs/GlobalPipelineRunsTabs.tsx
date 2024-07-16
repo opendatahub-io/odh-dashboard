@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { asEnumMember } from '~/utilities/utils';
 import {
@@ -9,32 +9,27 @@ import {
   PipelineRunType,
   PipelineRunTabTitle,
 } from '~/pages/pipelines/global/runs';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 
 import './GlobalPipelineRunsTabs.scss';
 
-const GlobalPipelineRunsTab: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const runType = asEnumMember<typeof PipelineRunType>(
-    searchParams.get(PipelineRunSearchParam.RunType),
-    PipelineRunType,
-  );
+type GlobalPipelineRunsTabsProps = {
+  basePath: string;
+  tab: PipelineRunType;
+};
 
-  React.useEffect(() => {
-    if (runType && !Object.values(PipelineRunType).includes(runType)) {
-      searchParams.delete(PipelineRunSearchParam.RunType);
-      setSearchParams(searchParams);
-    }
-  }, [runType, searchParams, setSearchParams]);
+const GlobalPipelineRunsTabs: React.FC<GlobalPipelineRunsTabsProps> = ({ tab, basePath }) => {
+  const navigate = useNavigate();
 
   return (
     <Tabs
-      activeKey={runType || PipelineRunType.ACTIVE}
+      activeKey={tab}
       onSelect={(_event, tabId) => {
         const enumValue = asEnumMember(tabId, PipelineRunType);
-        if (enumValue !== null) {
-          setSearchParams({ runType: enumValue });
-        }
+        navigate(
+          `${basePath}/${
+            enumValue === PipelineRunType.SCHEDULED ? 'schedules' : `runs/${enumValue}`
+          }`,
+        );
       }}
       aria-label="Pipeline run page tabs"
       role="region"
@@ -80,4 +75,4 @@ const GlobalPipelineRunsTab: React.FC = () => {
   );
 };
 
-export default GlobalPipelineRunsTab;
+export default GlobalPipelineRunsTabs;

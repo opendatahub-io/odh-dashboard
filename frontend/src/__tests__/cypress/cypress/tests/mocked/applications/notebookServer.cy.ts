@@ -1,12 +1,15 @@
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList, mockNotebookK8sResource } from '~/__mocks__';
-import { RoleBindingSubject } from '~/types';
+import type { RoleBindingSubject } from '~/types';
 import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
-import { notebookController } from '~/__tests__/cypress/cypress/pages/administration';
+import {
+  notebookController,
+  stopNotebookModal,
+} from '~/__tests__/cypress/cypress/pages/administration';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 
 const groupSubjects: RoleBindingSubject[] = [
@@ -87,8 +90,9 @@ describe('NotebookServer', () => {
         isRunning: false,
       },
     );
-    notebookServer.findStopNotebookServerButton().should('be.visible');
-    notebookServer.findStopNotebookServerButton().click();
+
+    stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
+    stopNotebookModal.findStopNotebookServerButton().click();
 
     cy.wait('@stopNotebookServer').then((interception) => {
       expect(interception.request.body).to.eql({ state: 'stopped', username: 'test-user' });

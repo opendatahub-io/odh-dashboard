@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem, Text, TextContent } from '@patternfly/react-core';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookDataState } from '~/pages/projects/notebook/types';
 import { ProjectKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 const notebookSorter = (a: NotebookDataState, b: NotebookDataState) => {
   if (a.isRunning !== b.isRunning) {
@@ -14,7 +14,9 @@ const notebookSorter = (a: NotebookDataState, b: NotebookDataState) => {
   if (a.isStarting !== b.isStarting) {
     return a.isStarting ? -1 : 1;
   }
-  return getNotebookDisplayName(a.notebook).localeCompare(getNotebookDisplayName(b.notebook));
+  return getDisplayNameFromK8sResource(a.notebook).localeCompare(
+    getDisplayNameFromK8sResource(b.notebook),
+  );
 };
 
 interface NotebooksCardItemsProps {
@@ -42,7 +44,7 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
       {listItems.map((notebookState) => (
         <NotebookRouteLink
           key={notebookState.notebook.metadata.uid}
-          label={getNotebookDisplayName(notebookState.notebook)}
+          label={getDisplayNameFromK8sResource(notebookState.notebook)}
           notebook={notebookState.notebook}
           isRunning={notebookState.isRunning}
           isLarge

@@ -5,15 +5,15 @@ import type {
   K8sStatus,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import {
+import type {
   GenericStaticResponse,
   RouteHandlerController,
   RouteMatcherOptions,
 } from 'cypress/types/net-stubbing';
+import type { QueryOptions } from '~/__tests__/cypress/cypress/utils/k8s';
 import {
   getK8sAPIResourceURL,
   getK8sWebSocketResourceURL,
-  QueryOptions,
 } from '~/__tests__/cypress/cypress/utils/k8s';
 
 type WsOptions = {

@@ -16,8 +16,6 @@ import GenericSidebar from '~/components/GenericSidebar';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NameDescType } from '~/pages/projects/types';
-import { getNotebookDescription, getNotebookDisplayName } from '~/pages/projects/utils';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
@@ -27,6 +25,7 @@ import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableEl
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -51,7 +50,7 @@ type SpawnerPageProps = {
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const { currentProject, dataConnections } = React.useContext(ProjectDetailsContext);
-  const displayName = getProjectDisplayName(currentProject);
+  const displayName = getDisplayNameFromK8sResource(currentProject);
 
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
     name: '',
@@ -79,9 +78,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   React.useEffect(() => {
     if (existingNotebook) {
       setNameDesc({
-        name: getNotebookDisplayName(existingNotebook),
+        name: getDisplayNameFromK8sResource(existingNotebook),
         k8sName: existingNotebook.metadata.name,
-        description: getNotebookDescription(existingNotebook),
+        description: getDescriptionFromK8sResource(existingNotebook),
       });
     }
   }, [existingNotebook, setStorageData]);
@@ -116,7 +115,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [selectedImage.imageStream]);
 
-  const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
+  const editNotebookDisplayName = existingNotebook
+    ? getDisplayNameFromK8sResource(existingNotebook)
+    : '';
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
 

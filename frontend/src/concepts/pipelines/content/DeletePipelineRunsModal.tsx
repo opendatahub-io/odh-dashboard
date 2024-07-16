@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
@@ -18,7 +18,7 @@ type DeletePipelineRunsModalProps = {
     }
   | {
       type: PipelineRunType.SCHEDULED;
-      toDeleteResources: PipelineRunJobKFv2[];
+      toDeleteResources: PipelineRecurringRunKFv2[];
     }
 );
 
@@ -51,7 +51,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             callFunc = api.deletePipelineRun;
             break;
           case PipelineRunType.SCHEDULED:
-            callFunc = api.deletePipelineRunJob;
+            callFunc = api.deletePipelineRecurringRun;
             break;
           default:
             // eslint-disable-next-line no-console

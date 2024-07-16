@@ -1,6 +1,7 @@
 import { SortableData } from '~/components/table';
-import { getNotebookDisplayName, getNotebookStatusPriority } from '~/pages/projects/utils';
+import { getNotebookStatusPriority } from '~/pages/projects/utils';
 import { NotebookState } from '~/pages/projects/notebook/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 export const columns: SortableData<NotebookState>[] = [
   {
@@ -13,7 +14,9 @@ export const columns: SortableData<NotebookState>[] = [
     label: 'Name',
     width: 30,
     sortable: (a, b) =>
-      getNotebookDisplayName(a.notebook).localeCompare(getNotebookDisplayName(b.notebook)),
+      getDisplayNameFromK8sResource(a.notebook).localeCompare(
+        getDisplayNameFromK8sResource(b.notebook),
+      ),
   },
   {
     field: 'image',

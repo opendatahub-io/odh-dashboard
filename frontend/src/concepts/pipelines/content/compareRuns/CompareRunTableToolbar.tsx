@@ -31,7 +31,7 @@ const CompareRunTableToolbar: React.FC<FilterProps> = ({ ...toolbarProps }) => {
       [FilterOptions.NAME]: 'Run',
       [FilterOptions.EXPERIMENT]: 'Experiment',
       [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-      [FilterOptions.CREATED_AT]: 'Started',
+      [FilterOptions.CREATED_AT]: 'Created after',
       [FilterOptions.STATUS]: 'Status',
     }),
     [],

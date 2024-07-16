@@ -43,7 +43,6 @@ export const PipelinesDatabaseSection = ({
         >
           <FormGroup hasNoPaddingTop isStack>
             <Radio
-              className="checkbox-radio-fix-body-width"
               name="database-type-radio"
               id="default-database-connection-type-radio"
               label="Use default database stored on your cluster"
@@ -59,7 +58,6 @@ export const PipelinesDatabaseSection = ({
               }
             />
             <Radio
-              className="checkbox-radio-fix-body-width"
               name="database-type-radio"
               data-testid="external-database-type-radio"
               id="external-database-type-radio"

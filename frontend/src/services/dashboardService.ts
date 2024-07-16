@@ -1,5 +1,5 @@
 // TODO: Delete once we refactor Admin panel to support Passthrough API
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { DashboardConfigKind } from '~/k8sTypes';
 import { DASHBOARD_CONFIG } from '~/utilities/const';
 

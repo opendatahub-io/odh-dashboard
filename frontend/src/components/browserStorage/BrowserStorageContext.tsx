@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { useEventListener } from '~/utilities/useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
@@ -48,8 +49,11 @@ export const useBrowserStorage = <T,>(
     [isSessionStorage, jsonify, setJSONValue, setStringValue, storageKey],
   );
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return [(getValue(storageKey, jsonify, isSessionStorage) as T) ?? defaultValue, setValue];
+  const value = useDeepCompareMemoize(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (getValue(storageKey, jsonify, isSessionStorage) as T) ?? defaultValue,
+  );
+  return [value, setValue];
 };
 
 type BrowserStorageContextProviderProps = {

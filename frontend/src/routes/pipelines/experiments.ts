@@ -1,9 +1,7 @@
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-
 export const experimentsRootPath = '/experiments';
 export const globExperimentsAll = `${experimentsRootPath}/*`;
 
-export const experimentsBaseRoute = (namespace: string | undefined): string =>
+export const experimentsBaseRoute = (namespace?: string): string =>
   !namespace ? experimentsRootPath : `${experimentsRootPath}/${namespace}`;
 
 export const experimentsTabRoute = (
@@ -16,10 +14,10 @@ export const experimentsCreateRunRoute = (
   experimentId: string,
 ): string => `${experimentRunsRoute(namespace, experimentId)}/create`;
 
-export const experimentsScheduleRunRoute = (
+export const experimentsCreateRecurringRunRoute = (
   namespace: string | undefined,
   experimentId: string,
-): string => `${experimentSchedulesRoute(namespace, experimentId)}/create`;
+): string => `${experimentRecurringRunsRoute(namespace, experimentId)}/create`;
 
 export const experimentsCloneRunRoute = (
   namespace: string | undefined,
@@ -27,24 +25,31 @@ export const experimentsCloneRunRoute = (
   runId: string,
 ): string => `${experimentRunsRoute(namespace, experimentId)}/clone/${runId}`;
 
-export const experimentsCloneScheduleRoute = (
+export const experimentsCloneRecurringRunRoute = (
   namespace: string | undefined,
   experimentId: string,
   recurringRunId: string,
-): string => `${experimentSchedulesRoute(namespace, experimentId)}/clone/${recurringRunId}`;
+): string => `${experimentRecurringRunsRoute(namespace, experimentId)}/clone/${recurringRunId}`;
+
+export const experimentRoute = (
+  namespace: string | undefined,
+  experimentId: string | undefined,
+): string =>
+  !experimentId
+    ? experimentsBaseRoute(namespace)
+    : `${experimentsBaseRoute(namespace)}/${experimentId}`;
 
 export const experimentRunsRoute = (
   namespace: string | undefined,
   experimentId: string | undefined,
-  runType?: PipelineRunType | null,
-): string =>
-  !experimentId
-    ? experimentsBaseRoute(namespace)
-    : `${experimentsBaseRoute(namespace)}/${experimentId}/runs${
-        runType ? `?runType=${runType}` : ''
-      }`;
+): string => `${experimentRoute(namespace, experimentId)}/runs`;
 
-export const experimentSchedulesRoute = (
+export const experimentArchivedRunsRoute = (
+  namespace: string | undefined,
+  experimentId: string | undefined,
+): string => `${experimentRunsRoute(namespace, experimentId)}/archived`;
+
+export const experimentRecurringRunsRoute = (
   namespace: string | undefined,
   experimentId: string | undefined,
 ): string =>
@@ -61,14 +66,14 @@ export const experimentRunDetailsRoute = (
     ? experimentsBaseRoute(namespace)
     : `${experimentRunsRoute(namespace, experimentId)}/${runId}`;
 
-export const experimentScheduleDetailsRoute = (
+export const experimentRecurringRunDetailsRoute = (
   namespace: string,
   experimentId: string | undefined,
   recurringRunId: string,
 ): string =>
   !experimentId || !recurringRunId
     ? experimentsBaseRoute(namespace)
-    : `${experimentSchedulesRoute(namespace, experimentId)}/${recurringRunId}`;
+    : `${experimentRecurringRunsRoute(namespace, experimentId)}/${recurringRunId}`;
 
 const generateCompareRunsQueryString = (runIds: string[]) =>
   runIds.length > 0 ? `?runs=${runIds.join(',')}` : '';

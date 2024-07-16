@@ -1,7 +1,7 @@
-import { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
-import { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
-import {
+import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
+import type {
   ModelArtifactList,
   ModelVersion,
   ModelVersionList,
@@ -20,9 +20,9 @@ import type {
   ModelRegistryKind,
 } from '~/k8sTypes';
 
-import { StartNotebookData } from '~/pages/projects/types';
-import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
+import type { StartNotebookData } from '~/pages/projects/types';
+import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import type { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
@@ -32,20 +32,22 @@ import type {
   OdhDocument,
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
+  SubscriptionStatusData,
 } from '~/types';
-import {
+import type {
   ExperimentKFv2,
   GoogleRpcStatusKF,
   ListExperimentsResponseKF,
-  ListPipelineRunJobsResourceKF,
+  ListPipelineRecurringRunsResourceKF,
   ListPipelineRunsResourceKF,
   ListPipelineVersionsKF,
   ListPipelinesResponseKF,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
+import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -109,6 +111,10 @@ declare global {
         ((
           type: 'GET /api/status',
           response: OdhResponse<StatusResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/operator-subscription-status',
+          response: OdhResponse<SubscriptionStatusData>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',
@@ -298,6 +304,11 @@ declare global {
           response: OdhResponse<RegisteredModel>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+          options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+          response: OdhResponse<RegisteredModel>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
           options: {
             path: { serviceName: string; apiVersion: string; modelVersionId: number };
@@ -395,9 +406,21 @@ declare global {
           response: OdhResponse<GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode`,
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              recurringRunId: string;
+              mode: string;
+            };
+          },
+          response: OdhResponse<{ data: object }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
           options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
-          response: OdhResponse<PipelineRunJobKFv2>,
+          response: OdhResponse<PipelineRecurringRunKFv2>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
@@ -457,12 +480,57 @@ declare global {
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineRunJobKFv2>,
+          response: OdhResponse<PipelineRecurringRunKFv2>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
           options: { path: { namespace: string; serviceName: string } },
-          response: OdhResponse<ListPipelineRunJobsResourceKF>,
+          response: OdhResponse<ListPipelineRecurringRunsResourceKF>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifacts`,
+          options: { path: { namespace: string; serviceName: string }; times?: number },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByID`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactTypes`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextByTypeAndName`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByContext`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByContext`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutions`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByID`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
@@ -474,6 +542,22 @@ declare global {
             path: { username: string };
           },
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/storage/:namespace',
+          options: {
+            query: { key: string; peek?: number };
+            path: { namespace: string };
+          },
+          response: OdhResponse<string>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/storage/:namespace/size',
+          options: {
+            query: { key: string };
+            path: { namespace: string };
+          },
+          response: OdhResponse<number>,
         ) => Cypress.Chainable<null>);
     }
   }

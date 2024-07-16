@@ -10,9 +10,11 @@ import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/Pipe
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import { routePipelineRunCreateNamespacePipelinesPage } from '~/routes';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import {
+  pipelineVersionCreateRunRoute,
+  pipelineVersionCreateRecurringRunRoute,
+  pipelineVersionDetailsRoute,
+} from '~/routes';
 
 const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';
@@ -24,7 +26,6 @@ type PipelinesTableRowProps = {
   rowIndex: number;
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
-  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
   disableCheck: (id: PipelineKFv2, disabled: boolean) => void;
 };
 
@@ -35,7 +36,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   rowIndex,
   onDeletePipeline,
   refreshPipelines,
-  pipelineDetailsPath,
   disableCheck,
 }) => {
   const navigate = useNavigate();
@@ -60,6 +60,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
 
   // disable the checkbox if the pipeline has pipeline versions
   const disableDelete = totalSize > 0;
+  const hasNoPipelineVersions = totalSize === 0;
   React.useEffect(() => {
     disableCheck(pipelineRef.current, disableDelete || loading);
   }, [disableDelete, loading, disableCheck]);
@@ -90,9 +91,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   <Skeleton />
                 ) : version?.pipeline_version_id ? (
                   <Link
-                    to={pipelineDetailsPath(
+                    to={pipelineVersionDetailsRoute(
                       namespace,
-                      pipeline.pipeline_id,
+                      version.pipeline_id,
                       version.pipeline_version_id,
                     )}
                   >
@@ -125,23 +126,27 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 },
                 {
                   title: 'Create run',
+                  isAriaDisabled: hasNoPipelineVersions,
                   onClick: () => {
-                    navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
-                      state: { lastPipeline: pipeline },
-                    });
+                    navigate(
+                      pipelineVersionCreateRunRoute(
+                        namespace,
+                        version?.pipeline_id,
+                        version?.pipeline_version_id,
+                      ),
+                    );
                   },
                 },
                 {
                   title: 'Create schedule',
+                  isAriaDisabled: hasNoPipelineVersions,
                   onClick: () => {
                     navigate(
-                      {
-                        pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                        search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.SCHEDULED}`,
-                      },
-                      {
-                        state: { lastPipeline: pipeline },
-                      },
+                      pipelineVersionCreateRecurringRunRoute(
+                        namespace,
+                        version?.pipeline_id,
+                        version?.pipeline_version_id,
+                      ),
                     );
                   },
                 },
@@ -170,7 +175,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             // Which will trigger a re-render of the versions table
             key={`${pipeline.pipeline_id}-expanded-${totalSize}`}
             pipeline={pipeline}
-            pipelineDetailsPath={pipelineDetailsPath}
           />
         )}
       </Tbody>

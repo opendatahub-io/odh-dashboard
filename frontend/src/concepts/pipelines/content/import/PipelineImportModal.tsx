@@ -12,8 +12,8 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineUploadOption } from './utils';
 
@@ -109,7 +109,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
         <Stack hasGutter>
           <StackItem>
             <FormGroup label="Project" fieldId="project-name">
-              {getProjectDisplayName(project)}
+              {getDisplayNameFromK8sResource(project)}
             </FormGroup>
           </StackItem>
           <StackItem>

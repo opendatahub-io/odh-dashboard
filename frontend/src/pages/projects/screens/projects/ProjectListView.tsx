@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ProjectKind } from '~/k8sTypes';
-import { getProjectDisplayName, getProjectOwner } from '~/concepts/projects/utils';
+import { getProjectOwner } from '~/concepts/projects/utils';
 import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectScope } from '~/pages/projects/types';
 import ProjectTableRow from '~/pages/projects/screens/projects/ProjectTableRow';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import NewProjectButton from './NewProjectButton';
 import { columns, subColumns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
@@ -35,7 +36,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
 
     switch (searchType) {
       case SearchType.NAME:
-        return getProjectDisplayName(project).toLowerCase().includes(search.toLowerCase());
+        return getDisplayNameFromK8sResource(project).toLowerCase().includes(search.toLowerCase());
       case SearchType.USER:
         return getProjectOwner(project).toLowerCase().includes(search.toLowerCase());
       default:

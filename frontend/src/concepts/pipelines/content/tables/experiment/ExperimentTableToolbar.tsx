@@ -8,7 +8,7 @@ import CreateExperimentButton from '~/concepts/pipelines/content/experiment/Crea
 
 const options = {
   [FilterOptions.NAME]: 'Experiment',
-  [FilterOptions.CREATED_AT]: 'Created',
+  [FilterOptions.CREATED_AT]: 'Created after',
 };
 
 export type FilterProps = Pick<
@@ -69,13 +69,16 @@ export const ActiveExperimentTableToolbar: React.FC<ActiveExperimentTableToolbar
     </ToolbarItem>
     <ToolbarItem>
       <SimpleMenuActions
+        testId="experiment-table-toolbar-actions"
         dropdownItems={[
           {
             key: 'archive',
             label: 'Archive',
             onClick: onArchiveAll,
             isDisabled: !archiveAllEnabled,
-            tooltip: 'Select one or more experiments to archive.',
+            tooltip: {
+              content: 'Select one or more experiments to archive.',
+            },
           },
         ]}
       />

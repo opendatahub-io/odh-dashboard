@@ -9,7 +9,6 @@ import usePipelinesCheckboxTable from '~/concepts/pipelines/content/tables/pipel
 
 type PipelinesTableProps = {
   pipelines: PipelineKFv2[];
-  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
   refreshPipelines: () => Promise<unknown>;
   loading?: boolean;
   totalSize?: number;
@@ -35,7 +34,6 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   pageSize,
   setPage,
   setPageSize,
-  pipelineDetailsPath,
   enablePagination,
   emptyTableView,
   toolbarContent,
@@ -85,7 +83,6 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
             onToggleCheck={() => toggleSelection(pipeline)}
             onDeletePipeline={() => setDeletePipelines([pipeline])}
             refreshPipelines={refreshPipelines}
-            pipelineDetailsPath={pipelineDetailsPath}
             disableCheck={disableCheck}
           />
         )}

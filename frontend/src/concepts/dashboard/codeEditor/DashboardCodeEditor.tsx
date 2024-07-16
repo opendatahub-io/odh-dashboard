@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { CodeEditor, CodeEditorProps } from '@patternfly/react-code-editor';
+import * as monaco from 'monaco-editor';
+import { loader } from '@monaco-editor/react';
 
 import './DashboardCodeEditor.scss';
+
+loader.config({ monaco });
 
 type DashboardCodeEditorProps = Omit<CodeEditorProps, 'ref'> & {
   testId?: string;
@@ -13,7 +17,7 @@ const DashboardCodeEditor: React.FC<Partial<DashboardCodeEditorProps>> = ({
   height = 'calc(100% - 38px)',
   ...props
 }) => (
-  <div data-testid={props.testId} style={{ height }}>
+  <div data-testid={props.testId} style={{ height, padding: '14px' }}>
     <CodeEditor height="100%" className="odh-dashboard__code-editor" {...props} />
   </div>
 );

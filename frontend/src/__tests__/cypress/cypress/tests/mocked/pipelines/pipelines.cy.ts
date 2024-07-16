@@ -28,7 +28,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
@@ -479,7 +479,7 @@ describe('Pipelines', () => {
     });
   });
 
-  it('incompatible dpsa version shows error', () => {
+  it('incompatible dpsa version shows error with delete option for regular user', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
     cy.interceptK8sList(
@@ -496,10 +496,10 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     pipelinesGlobal.isApiAvailable();
     pipelinesGlobal.findIsServerIncompatible().should('exist');
-    pipelinesGlobal.findDeletePipelineServerButton().should('not.exist');
+    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
   });
 
-  it('incompatible dpsa version shows error with delete option for admins', () => {
+  it('incompatible dpsa version shows error with delete option for admin', () => {
     asProductAdminUser();
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
@@ -862,7 +862,7 @@ describe('Pipelines', () => {
       .findPipelineVersionLink()
       .click();
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -875,7 +875,7 @@ describe('Pipelines', () => {
     pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
 
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/view/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
 
@@ -960,6 +960,19 @@ describe('Pipelines', () => {
     runCreateRunPageNavTest(visitPipelineProjects);
   });
 
+  it('run and schedule dropdown action should be disabeld when pipeline has no versions', () => {
+    initIntercepts({ hasNoPipelineVersions: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Create schedule')
+      .should('have.attr', 'aria-disabled');
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Create run')
+      .should('have.attr', 'aria-disabled');
+  });
+
   it('navigates to "Schedule run" page from pipeline row', () => {
     const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
     runScheduleRunPageNavTest(visitPipelineProjects);
@@ -977,7 +990,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('Create run')
       .click();
-    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
+    );
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
@@ -992,7 +1007,9 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
+    );
   });
 
   it('navigate to view runs page from pipeline version row', () => {
@@ -1008,7 +1025,7 @@ describe('Pipelines', () => {
       .findKebabAction('View runs')
       .click();
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=active`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs`,
     );
   });
 
@@ -1024,7 +1041,7 @@ describe('Pipelines', () => {
       .findKebabAction('View schedules')
       .click();
     verifyRelativeURL(
-      `/pipelines/${projectName}/pipeline/runs/test-pipeline/test-pipeline-version?runType=scheduled`,
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules`,
     );
   });
 
@@ -1114,6 +1131,7 @@ describe('Pipelines', () => {
 type HandlersProps = {
   isEmpty?: boolean;
   mockPipelines?: PipelineKFv2[];
+  hasNoPipelineVersions?: boolean;
   totalSize?: number;
   nextPageToken?: string | undefined;
 };
@@ -1121,6 +1139,7 @@ type HandlersProps = {
 export const initIntercepts = ({
   isEmpty = false,
   mockPipelines = [initialMockPipeline],
+  hasNoPipelineVersions = false,
   totalSize = mockPipelines.length,
   nextPageToken,
 }: HandlersProps): void => {
@@ -1169,7 +1188,30 @@ export const initIntercepts = ({
         pipelineId: initialMockPipeline.pipeline_id,
       },
     },
-    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
+    hasNoPipelineVersions ? {} : buildMockPipelineVersionsV2([initialMockPipelineVersion]),
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: initialMockPipeline.pipeline_id,
+      },
+    },
+    initialMockPipeline,
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: initialMockPipeline.pipeline_id,
+        pipelineVersionId: initialMockPipelineVersion.pipeline_version_id,
+      },
+    },
+    initialMockPipelineVersion,
   );
 };
 
@@ -1200,7 +1242,9 @@ export const runCreateRunPageNavTest = (visitPipelineProjects: () => void): void
   // Wait for the pipelines table to load
   pipelinesTable.find();
   pipelinesTable.getRowById(initialMockPipeline.pipeline_id).findKebabAction('Create run').click();
-  verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create`);
+  verifyRelativeURL(
+    `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
+  );
 };
 
 export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): void => {
@@ -1213,7 +1257,9 @@ export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): vo
     .findKebabAction('Create schedule')
     .click();
 
-  verifyRelativeURL(`/pipelines/${projectName}/pipelineRun/create?runType=scheduled`);
+  verifyRelativeURL(
+    `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
+  );
 };
 
 export const viewPipelineServerDetailsTest = (visitPipelineProjects: () => void): void => {

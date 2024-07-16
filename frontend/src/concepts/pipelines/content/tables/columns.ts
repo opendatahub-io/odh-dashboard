@@ -7,7 +7,7 @@ import {
 import {
   PipelineVersionKFv2,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   ExperimentKFv2,
 } from '~/concepts/pipelines/kfTypes';
@@ -177,13 +177,18 @@ export function getExperimentRunColumns(
   ];
 }
 
-export const pipelineRunJobColumns: SortableData<PipelineRunJobKFv2>[] = [
+export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKFv2>[] = [
   checkboxTableColumn(),
   {
     label: 'Schedule',
     field: 'name',
     sortable: true,
-    width: 20,
+  },
+  {
+    label: 'Experiment',
+    field: 'experiment',
+    sortable: false,
+    width: 15,
   },
   {
     label: 'Pipeline version',

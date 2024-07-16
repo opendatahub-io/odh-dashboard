@@ -1,7 +1,7 @@
-import { KubeFastifyInstance } from '../../../types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { setDashboardConfig } from './configUtils';
+import { KubeFastifyInstance } from '../../../types';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { secureAdminRoute, secureRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -15,7 +15,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.patch(
     '/',
     secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      reply.send(setDashboardConfig(fastify, request.body));
+      if ('body' in request && request.body && typeof request.body === 'object') {
+        reply.send(setDashboardConfig(fastify, request.body));
+      }
     }),
   );
 };

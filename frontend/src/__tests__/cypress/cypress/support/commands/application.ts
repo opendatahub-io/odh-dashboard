@@ -1,5 +1,5 @@
-import { MatcherOptions } from '@testing-library/cypress';
-import { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
+import type { MatcherOptions } from '@testing-library/cypress';
+import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {

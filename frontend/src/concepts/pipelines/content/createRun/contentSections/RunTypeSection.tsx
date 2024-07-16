@@ -3,32 +3,37 @@ import React from 'react';
 import { Alert, AlertActionCloseButton, FormSection } from '@patternfly/react-core';
 import { useParams, Link } from 'react-router-dom';
 
-import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { createRunRoute, scheduleRunRoute } from '~/routes';
+import { createRecurringRunRoute, createRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 
 interface RunTypeSectionProps {
-  runType: PipelineRunType;
+  data: RunFormData;
+  isCloned: boolean;
 }
 
-export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
-  const { namespace, experimentId } = useParams();
+export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isCloned }) => {
+  const { namespace, experimentId, pipelineId, pipelineVersionId } = useParams();
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
-  const runTypeValue = 'Run once immediately after creation';
+  let runTypeValue = 'Run once immediately after creation';
   let alertTitle = (
     <>
       To create a schedule that executes recurring runs,{' '}
       <Link
-        to={`${scheduleRunRoute(
+        to={createRecurringRunRoute(
           namespace,
           isExperimentsAvailable ? experimentId : undefined,
-        )}?runType=${PipelineRunType.SCHEDULED}`}
+          pipelineId,
+          pipelineVersionId,
+        )}
+        state={{ locationData: data }}
         data-testid="run-type-section-alert-link"
       >
         go to the {PipelineRunTabTitle.SCHEDULES} tab
@@ -37,15 +42,19 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
     </>
   );
 
-  if (runType === PipelineRunType.SCHEDULED) {
+  if (data.runType.type === RunTypeOption.SCHEDULED) {
+    runTypeValue = 'Schedule recurring run';
     alertTitle = (
       <>
         To create a non-recurring run,{' '}
         <Link
-          to={`${createRunRoute(
+          to={createRunRoute(
             namespace,
             isExperimentsAvailable ? experimentId : undefined,
-          )}?runType=${PipelineRunType.ACTIVE}`}
+            pipelineId,
+            pipelineVersionId,
+          )}
+          state={{ locationData: data }}
           data-testid="run-type-section-alert-link"
         >
           go to the {PipelineRunTabTitle.ACTIVE} tab
@@ -62,7 +71,7 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
     >
       {runTypeValue}
 
-      {isAlertOpen && (
+      {isAlertOpen && !isCloned && (
         <Alert
           isInline
           variant="info"

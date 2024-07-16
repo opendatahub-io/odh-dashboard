@@ -1,5 +1,5 @@
 import { act } from '@testing-library/react';
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
@@ -310,7 +310,7 @@ describe('getTopResourceConsumingWorkloads', () => {
   });
 });
 
-jest.mock('axios', () => ({
+jest.mock('~/utilities/axios', () => ({
   post: jest.fn(),
 }));
 

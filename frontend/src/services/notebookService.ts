@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { RecursivePartial } from '~/typeHelpers';
 import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '~/types';
 

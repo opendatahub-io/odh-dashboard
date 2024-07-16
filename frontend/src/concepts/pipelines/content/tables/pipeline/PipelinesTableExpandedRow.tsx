@@ -17,13 +17,9 @@ import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/Imp
 
 type PipelinesTableExpandedRowProps = {
   pipeline: PipelineKFv2;
-  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
 };
 
-const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
-  pipeline,
-  pipelineDetailsPath,
-}) => {
+const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({ pipeline }) => {
   const [
     [{ items: initialVersions, totalSize, nextPageToken }, loaded],
     { initialLoaded, ...tableProps },
@@ -76,7 +72,6 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
             initialVersions={initialVersions}
             loading={!loaded}
             totalSize={totalSize}
-            pipelineDetailsPath={pipelineDetailsPath}
             nextPageToken={nextPageToken}
             pipeline={pipeline}
           />

@@ -4,13 +4,13 @@ import { PipelineRunKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
 
-type RunJobTitleProps = {
+type RecurringRunTitleProps = {
   run: PipelineRunKFv2;
   statusIcon?: boolean;
   pipelineRunLabel?: boolean;
 };
 
-const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
+const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
   run,
   statusIcon,
   pipelineRunLabel,

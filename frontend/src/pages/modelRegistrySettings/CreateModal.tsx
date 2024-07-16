@@ -17,8 +17,10 @@ import { ModelRegistryKind } from '~/k8sTypes';
 import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import { ModelRegistryModel } from '~/api';
 import { createModelRegistryBackend } from '~/services/modelRegistrySettingsService';
-import { isValidK8sName } from '~/concepts/k8s/utils';
+import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import './CreateModal.scss';
+import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
+import { NameDescType } from '~/pages/projects/types';
 
 type CreateModalProps = {
   isOpen: boolean;
@@ -29,13 +31,16 @@ type CreateModalProps = {
 const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const [name, setName] = React.useState('');
+  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
+    name: '',
+    k8sName: undefined,
+    description: '',
+  });
   const [host, setHost] = React.useState('');
   const [port, setPort] = React.useState('');
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [database, setDatabase] = React.useState('');
-  const [isNameTouched, setIsNameTouched] = React.useState(false);
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -46,13 +51,16 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
   const onBeforeClose = () => {
     setIsSubmitting(false);
     setError(undefined);
-    setName('');
+    setNameDesc({
+      name: '',
+      k8sName: undefined,
+      description: '',
+    });
     setHost('');
     setPort('');
     setUsername('');
     setPassword('');
     setDatabase('');
-    setIsNameTouched(false);
     setIsHostTouched(false);
     setIsPortTouched(false);
     setIsUsernameTouched(false);
@@ -69,8 +77,12 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
       apiVersion: `${ModelRegistryModel.apiGroup}/${ModelRegistryModel.apiVersion}`,
       kind: 'ModelRegistry',
       metadata: {
-        name,
+        name: nameDesc.k8sName || translateDisplayNameForK8s(nameDesc.name),
         namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+        annotations: {
+          'openshift.io/description': nameDesc.description,
+          'openshift.io/display-name': nameDesc.name.trim(),
+        },
       },
       spec: {
         grpc: {
@@ -104,7 +116,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
 
   const canSubmit = () =>
     !isSubmitting &&
-    isValidK8sName(name) &&
+    isValidK8sName(nameDesc.k8sName || translateDisplayNameForK8s(nameDesc.name)) &&
     hasContent(host) &&
     hasContent(password) &&
     hasContent(port) &&
@@ -138,26 +150,15 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
       }
     >
       <Form>
-        <FormGroup label="Name" isRequired fieldId="mr-name">
-          <TextInput
-            isRequired
-            type="text"
-            id="mr-name"
-            name="mr-name"
-            value={name}
-            onBlur={() => setIsNameTouched(true)}
-            onChange={(_e, value) => setName(value)}
-            validated={isNameTouched && !isValidK8sName(name) ? 'error' : 'default'}
-          />
-          {isNameTouched && !isValidK8sName(name) && (
-            <HelperText>
-              <HelperTextItem variant="error" data-testid="mr-name-error">
-                {`Must consist of lower case alphanumeric characters or '-', and must start and end
-                with an alphanumeric character`}
-              </HelperTextItem>
-            </HelperText>
-          )}
-        </FormGroup>
+        <NameDescriptionField
+          nameFieldId="mr-name"
+          descriptionFieldId="mr-description"
+          data={nameDesc}
+          showK8sName
+          setData={(value) => {
+            setNameDesc(value);
+          }}
+        />
         <FormSection
           title={
             <>

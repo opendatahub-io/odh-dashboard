@@ -261,6 +261,44 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
+  it('Create workbench with numbers', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+    verifyRelativeURL('/projects/test-project/spawner');
+    createSpawnerPage.findNameInput().fill('1234');
+    createSpawnerPage.findDescriptionInput().fill('test-description');
+    //to check scrollable dropdown selection
+    createSpawnerPage.findNotebookImage('test-9').click();
+    createSpawnerPage.selectContainerSize(
+      'XSmall Limits: 0.5 CPU, 500Mi Memory Requests: 0.1 CPU, 100Mi Memory',
+    );
+    createSpawnerPage.findSubmitButton().should('be.enabled');
+
+    createSpawnerPage.findSubmitButton().click();
+
+    cy.wait('@createWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          labels: {
+            app: 'wb-1234',
+            'opendatahub.io/dashboard': 'true',
+            'opendatahub.io/odh-managed': 'true',
+            'opendatahub.io/user': 'test-2duser',
+          },
+          annotations: {
+            'openshift.io/display-name': '1234',
+            'openshift.io/description': 'test-description',
+          },
+          name: 'wb-1234',
+          namespace: 'test-project',
+        },
+      });
+    });
+    verifyRelativeURL('/projects/test-project?section=workbenches');
+  });
+
   it('list workbench and table sorting', () => {
     initIntercepts({});
     workbenchPage.visit('test-project');

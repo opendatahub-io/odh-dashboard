@@ -7,13 +7,14 @@ import {
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { ModelRegistryModel, RouteModel } from '~/__tests__/cypress/cypress/utils/models';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+
+const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
 const initIntercepts = () => {
   cy.interceptOdh(

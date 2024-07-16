@@ -43,6 +43,7 @@ describe('translateDisplayNameForK8s', () => {
     expect(translateDisplayNameForK8s('$ymbols & Capitals and Spaces! (These are invalid!)')).toBe(
       'ymbols--capitals-and-spaces-these-are-invalid',
     );
+    expect(translateDisplayNameForK8s('1234', 'wb-')).toBe('wb-1234');
   });
 });
 

@@ -12,9 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
-import { getProjectDisplayName } from '~/concepts/projects/utils';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PipelineUploadOption, generatePipelineVersionName } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 
@@ -114,7 +114,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
       <Form>
         <Stack hasGutter>
           <StackItem>
-            <FormGroup label="Project">{getProjectDisplayName(project)}</FormGroup>
+            <FormGroup label="Project">{getDisplayNameFromK8sResource(project)}</FormGroup>
           </StackItem>
           <StackItem>
             <FormGroup label="Pipeline" isRequired fieldId="pipeline-selection">

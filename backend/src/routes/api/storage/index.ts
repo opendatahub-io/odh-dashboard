@@ -1,9 +1,9 @@
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { FastifyReply } from 'fastify';
 import { getObjectSize, getObjectStream, setupMinioClient } from './storageUtils';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
-import { OauthFastifyRequest } from '../../../types';
+import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:namespace/size',
     async (
@@ -14,7 +14,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       reply: FastifyReply,
     ) => {
       try {
-        const dashConfig = getDashboardConfig();
+        const dashConfig = getDashboardConfig(request);
         if (dashConfig?.spec.dashboardConfig.disableS3Endpoint !== false) {
           reply.code(404).send('Not found');
           return reply;
@@ -49,7 +49,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       reply: FastifyReply,
     ) => {
       try {
-        const dashConfig = getDashboardConfig();
+        const dashConfig = getDashboardConfig(request);
         if (dashConfig?.spec.dashboardConfig.disableS3Endpoint !== false) {
           reply.code(404).send('Not found');
           return reply;

@@ -12,16 +12,16 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-
-import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
-import { usePipelineScheduledRunsTable } from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
+import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelineRecurringRunsTable } from '~/concepts/pipelines/content/tables/pipelineRecurringRun/usePipelineRecurringRunTable';
+import PipelineRecurringRunTable from '~/concepts/pipelines/content/tables/pipelineRecurringRun/PipelineRecurringRunTable';
 
 const ScheduledRuns: React.FC = () => {
   const { experimentId, pipelineVersionId } = useParams();
-
-  const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineScheduledRunsTable({ experimentId, pipelineVersionId });
+  const [[{ items: recurringRuns, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
+    usePipelineRecurringRunsTable({ experimentId, pipelineVersionId });
+  const isExperimentArchived = useIsExperimentArchived();
 
   if (error) {
     return (
@@ -56,21 +56,28 @@ const ScheduledRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          Schedules dictate when and how many times a run is executed. To get started, create a
-          schedule.
+          Schedules dictate when and how many times a run is executed.{' '}
+          {!isExperimentArchived && 'To get started, create a schedule.'}
         </EmptyStateBody>
 
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <CreateScheduleButton />
-          </EmptyStateActions>
-        </EmptyStateFooter>
+        {!isExperimentArchived && (
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <CreateScheduleButton />
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        )}
       </EmptyState>
     );
   }
 
   return (
-    <PipelineRunJobTable jobs={jobs} loading={!loaded} totalSize={totalSize} {...tableProps} />
+    <PipelineRecurringRunTable
+      recurringRuns={recurringRuns}
+      loading={!loaded}
+      totalSize={totalSize}
+      {...tableProps}
+    />
   );
 };
 

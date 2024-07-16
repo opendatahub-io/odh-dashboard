@@ -40,7 +40,6 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
       <Stack hasGutter>
         <StackItem>
           <Radio
-            className="checkbox-radio-fix-body-width"
             name="existing-data-connection-radio"
             id="existing-data-connection-radio"
             data-testid="existing-data-connection-radio"
@@ -68,7 +67,6 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
         </StackItem>
         <StackItem>
           <Radio
-            className="checkbox-radio-fix-body-width"
             name="new-data-connection-radio"
             id="new-data-connection-radio"
             data-testid="new-data-connection-radio"

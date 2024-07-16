@@ -1,15 +1,5 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  Divider,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-  Spinner,
-} from '@patternfly/react-core';
+import { Bullseye, Divider, Flex, FlexItem, Spinner } from '@patternfly/react-core';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
 
@@ -23,17 +13,20 @@ import { PipelineRunArtifactSelect } from '~/concepts/pipelines/content/compareR
 import { ConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/types';
 import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
 import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
+import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 import { isConfusionMatrix } from './utils';
 import { ConfusionMatrixConfigAndTitle } from './types';
 
 type ConfusionMatrixCompareProps = {
   runArtifacts?: RunArtifact[];
   isLoaded: boolean;
+  isEmpty: boolean;
 };
 
 const ConfusionMatrixCompare: React.FC<ConfusionMatrixCompareProps> = ({
   runArtifacts,
   isLoaded,
+  isEmpty,
 }) => {
   const [expandedGraph, setExpandedGraph] = React.useState<
     ConfusionMatrixConfigAndTitle | undefined
@@ -94,24 +87,17 @@ const ConfusionMatrixCompare: React.FC<ConfusionMatrixCompareProps> = ({
     );
   }
 
-  if (!runArtifacts || runArtifacts.length === 0) {
-    return <CompareRunsEmptyState />;
+  if (isEmpty) {
+    return <CompareRunsEmptyState data-testid="compare-runs-confusion-matrix-empty-state" />;
   }
   if (Object.keys(configMap).length === 0) {
-    return (
-      <EmptyState variant={EmptyStateVariant.xs}>
-        <EmptyStateHeader titleText="No confusion matrix artifacts" headingLevel="h4" />
-        <EmptyStateBody>
-          There are no confusion matrix artifacts available on the selected runs.
-        </EmptyStateBody>
-      </EmptyState>
-    );
+    return <CompareRunsNoMetrics data-testid="compare-runs-confusion-matrix-no-data-state" />;
   }
 
   return (
     <div style={{ overflowX: 'auto' }}>
       {expandedGraph ? (
-        <Bullseye>
+        <Bullseye data-testid="compare-runs-confusion-matrix-expanded-graph">
           <PipelineRunArtifactSelect
             data={[expandedGraph]}
             setExpandedGraph={(config) => setExpandedGraph(config)}
@@ -123,7 +109,7 @@ const ConfusionMatrixCompare: React.FC<ConfusionMatrixCompareProps> = ({
         <Flex flexWrap={{ default: 'nowrap' }}>
           {Object.entries(configMap).map(([runId, matrixData]) => (
             <React.Fragment key={runId}>
-              <FlexItem>
+              <FlexItem data-testid={`compare-runs-confusion-matrix-${runId}`}>
                 <PipelineRunArtifactSelect
                   run={runMap[runId]}
                   data={matrixData}

@@ -32,7 +32,9 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
           <DescriptionListGroup>
             {artifact?.uri && (
               <>
-                <DescriptionListTerm>URI</DescriptionListTerm>
+                <DescriptionListTerm data-testid="dataset-description-list-URI">
+                  URI
+                </DescriptionListTerm>
                 <DescriptionListDescription>
                   <ArtifactUriLink uri={artifact.uri} type={artifact.type} />
                 </DescriptionListDescription>

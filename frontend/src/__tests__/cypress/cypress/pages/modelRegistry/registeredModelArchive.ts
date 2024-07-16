@@ -1,8 +1,3 @@
-import {
-  registeredModelArchiveDetailsUrl,
-  registeredModelArchiveUrl,
-  registeredModelUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -60,12 +55,15 @@ class ModelArchive {
   }
 
   visit() {
-    cy.visit(registeredModelArchiveUrl('modelregistry-sample'));
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visit(`/modelRegistry/${preferredModelRegistry}/registeredModels/archive`);
     this.wait();
   }
 
   visitArchiveModelDetail() {
-    cy.visit(registeredModelArchiveDetailsUrl('2', 'modelregistry-sample'));
+    const rmId = '2';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visit(`/modelRegistry/${preferredModelRegistry}/registeredModels/archive/${rmId}`);
   }
 
   visitModelList() {
@@ -74,7 +72,9 @@ class ModelArchive {
   }
 
   visitModelDetails() {
-    cy.visit(registeredModelUrl('2', 'modelregistry-sample'));
+    const rmId = '2';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visit(`/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}`);
     this.wait();
   }
 

@@ -37,7 +37,15 @@ const CompareRunTableRow: React.FC<CompareRunTableRowProps> = ({
         <TableRowTitleDescription
           title={
             <TableText wrapModifier="truncate">
-              <Link to={runDetailsRoute(namespace, run.run_id, run.experiment_id)}>
+              <Link
+                to={runDetailsRoute(
+                  namespace,
+                  run.run_id,
+                  run.experiment_id,
+                  version?.pipeline_id,
+                  version?.pipeline_version_id,
+                )}
+              >
                 {run.display_name}
               </Link>
             </TableText>

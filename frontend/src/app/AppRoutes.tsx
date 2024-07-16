@@ -8,12 +8,12 @@ import {
   globArtifactsAll,
   globExecutionsAll,
   globExperimentsAll,
-  globPipelineRunsAll,
   globPipelinesAll,
 } from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -33,9 +33,6 @@ const NotebookController = React.lazy(
 );
 
 const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
-const GlobalPipelineRunsRoutes = React.lazy(
-  () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
-);
 const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
@@ -52,9 +49,6 @@ const GlobalDistributedWorkloadsRoutes = React.lazy(
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const CustomServingRuntimeRoutes = React.lazy(
   () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
-);
-const ModelRegistrySettingsPage = React.lazy(
-  () => import('../pages/modelRegistrySettings/ModelRegistrySettings'),
 );
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
@@ -115,7 +109,6 @@ const AppRoutes: React.FC = () => {
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
-        <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
         <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
         <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />
@@ -130,7 +123,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
-            <Route path="/modelRegistrySettings" element={<ModelRegistrySettingsPage />} />
+            <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}

@@ -36,6 +36,7 @@ describe('ManageInferenceServiceModal', () => {
       buildStatuses: [],
       dashboardConfig: mockDashboardConfig({}),
       storageClasses: [],
+      isRHOAI: false,
     });
 
     const currentProject = mockProjectK8sResource({});

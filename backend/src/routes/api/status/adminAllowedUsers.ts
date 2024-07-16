@@ -1,5 +1,5 @@
-import { KubeFastifyInstance } from '../../../types';
 import { FastifyRequest } from 'fastify';
+import { KubeFastifyInstance } from '../../../types';
 import { getUserName } from '../../../utils/userUtils';
 import {
   getAdminUserList,
@@ -21,8 +21,8 @@ const convertUserListToMap = (
   userList: string[],
   privilege: 'Admin' | 'User',
   activityMap: UserActivityMap,
-): AllowedUserMap => {
-  return userList.reduce<AllowedUserMap>((acc, rawUsername) => {
+): AllowedUserMap =>
+  userList.reduce<AllowedUserMap>((acc, rawUsername) => {
     let username = rawUsername;
     if (username.startsWith(KUBE_SAFE_PREFIX)) {
       // Users who start with this designation are non-k8s names
@@ -34,7 +34,6 @@ const convertUserListToMap = (
       [username]: { username, privilege, lastActivity: activityMap[username] ?? null },
     };
   }, {});
-};
 
 const getUserActivityFromNotebook = async (
   fastify: KubeFastifyInstance,
@@ -44,11 +43,15 @@ const getUserActivityFromNotebook = async (
 
   return notebooks.items
     .map<[string | undefined, string | undefined]>((notebook) => [
-      notebook.metadata?.annotations?.['opendatahub.io/username'],
-      notebook.metadata?.annotations?.['notebooks.kubeflow.org/last-activity'] ||
-        notebook.metadata?.annotations?.['kubeflow-resource-stopped'],
+      notebook.metadata.annotations?.['opendatahub.io/username'],
+      notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'] ||
+        notebook.metadata.annotations?.['kubeflow-resource-stopped'] ||
+        'Now',
     ])
-    .filter(([username, lastActivity]) => username && lastActivity)
+    .filter(
+      (arr): arr is [string, string] =>
+        Array.isArray(arr) && typeof arr[0] === 'string' && typeof arr[1] === 'string',
+    )
     .reduce<UserActivityMap>(
       (acc, [username, lastActivity]) => ({
         ...acc,

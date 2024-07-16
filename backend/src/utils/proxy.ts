@@ -27,12 +27,13 @@ const notFoundError = (kind: string, name: string, e?: any, overrideMessage?: st
 };
 
 export const proxyService =
-  <K extends K8sResourceCommon>(
-    model: { apiGroup: string; apiVersion: string; plural: string; kind: string },
+  <K extends K8sResourceCommon = never>(
+    model: { apiGroup: string; apiVersion: string; plural: string; kind: string } | null,
     service: {
       port: number | string;
       prefix?: string;
       suffix?: string;
+      namespace?: string;
     },
     local: {
       host: string;
@@ -44,59 +45,81 @@ export const proxyService =
   async (fastify: KubeFastifyInstance): Promise<void> => {
     fastify.register(httpProxy, {
       upstream: '',
-      prefix: '/:namespace/:name',
+      prefix: service.namespace ? ':name' : '/:namespace/:name',
       rewritePrefix: '',
       replyOptions: {
         // preHandler must set the `upstream` param
         getUpstream: (request) => getParam(request, 'upstream'),
       },
-      preHandler: (request, _, done) => {
-        const kc = fastify.kube.config;
-        const cluster = kc.getCurrentCluster();
-
+      preHandler: (request, reply, done) => {
+        const limit = fastify.initialConfig.bodyLimit ?? 1024 * 1024;
+        const maxLimitInMiB = (limit / 1024 / 1024).toFixed();
+        const contentLength = Number(request.headers['content-length']);
+        if (contentLength > limit) {
+          reply.header('connection', 'close');
+          reply.send(
+            createCustomError(
+              'Payload Too Large',
+              `Request body is too large; the max limit is ${maxLimitInMiB} MiB`,
+              413,
+            ),
+          );
+          return;
+        }
         // see `prefix` for named params
-        const namespace = getParam(request, 'namespace');
+        const namespace = service.namespace ?? getParam(request, 'namespace');
         const name = getParam(request, 'name');
 
-        // retreive the gating resource by name and namespace
-        passThroughResource<K>(fastify, request, {
-          url: `${cluster.server}/apis/${model.apiGroup}/${model.apiVersion}/namespaces/${namespace}/${model.plural}/${name}`,
-          method: 'GET',
-        })
-          .then((resource) => {
-            return getDirectCallOptions(fastify, request, request.url).then((requestOptions) => {
-              if (isK8sStatus(resource)) {
-                done(notFoundError(model.kind, name));
-              } else if (!statusCheck || statusCheck(resource)) {
-                if (tls) {
-                  const token = getAccessToken(requestOptions);
-                  request.headers.authorization = `Bearer ${token}`;
-                }
+        const doServiceRequest = () => {
+          const scheme = tls ? 'https' : 'http';
 
-                const scheme = tls ? 'https' : 'http';
+          const upstream = DEV_MODE
+            ? // Use port forwarding for local development:
+              // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
+              `${scheme}://${local.host}:${local.port}`
+            : // Construct service URL
+              `${scheme}://${service.prefix || ''}${name}${
+                service.suffix ?? ''
+              }.${namespace}.svc.cluster.local:${service.port}`;
 
-                const upstream = DEV_MODE
-                  ? // Use port forwarding for local development:
-                    // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
-                    `${scheme}://${local.host}:${local.port}`
-                  : // Construct service URL
-                    `${scheme}://${service?.prefix || ''}${resource.metadata.name}${
-                      service?.suffix ?? ''
-                    }.${resource.metadata.namespace}.svc.cluster.local:${service.port}`;
+          // assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
+          setParam(request, 'upstream', upstream);
 
-                // assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
-                setParam(request, 'upstream', upstream);
+          fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
+          done();
+        };
 
-                fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
-                done();
-              } else {
-                done(notFoundError(model.kind, name, undefined, 'service unavailable'));
-              }
-            });
+        if (model) {
+          const kc = fastify.kube.config;
+          const cluster = kc.getCurrentCluster();
+
+          // retreive the gating resource by name and namespace
+          passThroughResource<K>(fastify, request, {
+            url: `${cluster.server}/apis/${model.apiGroup}/${model.apiVersion}/namespaces/${namespace}/${model.plural}/${name}`,
+            method: 'GET',
           })
-          .catch((e) => {
-            done(notFoundError(model.kind, name, e));
-          });
+            .then((resource) => {
+              return getDirectCallOptions(fastify, request, request.url).then((requestOptions) => {
+                if (isK8sStatus(resource)) {
+                  done(notFoundError(model.kind, name));
+                } else if (!statusCheck || statusCheck(resource)) {
+                  if (tls) {
+                    const token = getAccessToken(requestOptions);
+                    request.headers.authorization = `Bearer ${token}`;
+                  }
+
+                  doServiceRequest();
+                } else {
+                  done(notFoundError(model.kind, name, undefined, 'service unavailable'));
+                }
+              });
+            })
+            .catch((e) => {
+              done(notFoundError(model.kind, name, e));
+            });
+        } else {
+          doServiceRequest();
+        }
       },
     });
   };

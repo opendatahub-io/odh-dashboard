@@ -1,10 +1,10 @@
 import { act } from '@testing-library/react';
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import usePrometheusQuery from '~/api/prometheus/usePrometheusQuery';
 
-jest.mock('axios', () => ({
+jest.mock('~/utilities/axios', () => ({
   post: jest.fn(),
 }));
 

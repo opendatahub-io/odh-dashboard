@@ -21,7 +21,6 @@ type PipelineVersionTableProps = {
   sortDirection?: 'asc' | 'desc';
   setSortField: (field: string) => void;
   setSortDirection: (dir: 'asc' | 'desc') => void;
-  pipelineDetailsPath: (namespace: string, pipelineId: string, pipelineVersionId: string) => string;
 };
 
 const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
@@ -32,7 +31,6 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
   totalSize,
   sortField,
   sortDirection,
-  pipelineDetailsPath,
   ...tableProps
 }) => {
   const pipelineId = pipeline.pipeline_id;
@@ -71,7 +69,6 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
             isChecked={pipelineChecked || isSelected(version)}
             onToggleCheck={() => toggleSelection(version)}
             version={version}
-            pipelineVersionDetailsPath={pipelineDetailsPath}
             isDisabled={pipelineChecked}
             pipeline={pipeline}
             onDeleteVersion={() =>

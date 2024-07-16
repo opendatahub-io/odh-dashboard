@@ -14,8 +14,8 @@ import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapsho
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 
 [
-  `.env.cypress${process.env.MOCK ? '.mock' : ''}.local`,
-  `.env.cypress${process.env.MOCK ? '.mock' : ''}`,
+  `.env.cypress${process.env.CY_MOCK ? '.mock' : ''}.local`,
+  `.env.cypress${process.env.CY_MOCK ? '.mock' : ''}`,
   '.env.local',
   '.env',
 ].forEach((file) =>
@@ -24,9 +24,12 @@ import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/we
   }),
 );
 
-const resultsDir = `results/${process.env.MOCK ? 'mocked' : 'e2e'}`;
+const resultsDir = `${process.env.CY_RESULTS_DIR || 'results'}/${
+  process.env.CY_MOCK ? 'mocked' : 'e2e'
+}`;
 
 export default defineConfig({
+  experimentalMemoryManagement: true,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
   reporter: '../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
@@ -51,13 +54,13 @@ export default defineConfig({
   screenshotsFolder: `${resultsDir}/screenshots`,
   videosFolder: `${resultsDir}/videos`,
   env: {
-    MOCK: !!process.env.MOCK,
+    MOCK: !!process.env.CY_MOCK,
     LOGIN_USERNAME: process.env.LOGIN_USERNAME,
     LOGIN_PASSWORD: process.env.LOGIN_PASSWORD,
     LOGIN_PROVIDER: process.env.LOGIN_PROVIDER,
-    RECORD: !!process.env.RECORD,
-    WS_PORT: process.env.WS_PORT,
-    coverage: !!process.env.COVERAGE,
+    RECORD: !!process.env.CY_RECORD,
+    WS_PORT: process.env.CY_WS_PORT,
+    coverage: !!process.env.CY_COVERAGE,
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
@@ -67,9 +70,9 @@ export default defineConfig({
   defaultCommandTimeout: 10000,
   e2e: {
     baseUrl: process.env.BASE_URL,
-    specPattern: process.env.MOCK
+    specPattern: process.env.CY_MOCK
       ? `cypress/tests/mocked/**/*.cy.ts`
-      : process.env.RECORD
+      : process.env.CY_RECORD
       ? `cypress/tests/mocked/**/*.scy.ts`
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
@@ -107,7 +110,7 @@ export default defineConfig({
         },
       });
 
-      if (process.env.RECORD) {
+      if (process.env.CY_RECORD) {
         on('before:spec', (spec) => {
           // delete previous snapshots for the spec
           try {

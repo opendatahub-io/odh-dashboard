@@ -9,14 +9,16 @@ import {
   mockProjectK8sResource,
   mockRouteK8sResource,
   buildMockRunKF,
-  buildMockJobKF,
+  buildMockRecurringRunKF,
 } from '~/__mocks__';
 import {
+  activeRunsTable,
   archivedRunsTable,
   archiveExperimentModal,
   bulkArchiveExperimentModal,
   bulkRestoreExperimentModal,
-  pipelineRunJobTable,
+  pipelineRunDetails,
+  pipelineRecurringRunTable,
   pipelineRunsGlobal,
   restoreExperimentModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
@@ -27,7 +29,7 @@ import {
   ProjectModel,
   RouteModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { RecurringRunStatus, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { RecurringRunStatus, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -50,6 +52,14 @@ const mockExperiments = [
     last_run_created_at: '',
   }),
 ];
+
+const mockActiveRuns = buildMockRunKF({
+  display_name: 'Test active run 4',
+  run_id: 'run-4',
+  experiment_id: 'test-experiment-1',
+  created_at: '2024-02-10T00:00:00Z',
+  state: RuntimeStateKF.SUCCEEDED,
+});
 
 describe('Experiments', () => {
   describe('Active experiments', () => {
@@ -243,12 +253,47 @@ describe('Experiments', () => {
 
     it('navigates to the runs page when clicking an experiment name', () => {
       verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
-      cy.findByLabelText('Breadcrumb').findByText('Experiments');
+      cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
     });
 
     it('has "Experiment" value pre-filled when on the "Create run" page', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
       cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
+    });
+
+    it('should display error state when the pipeline version deleted', () => {
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+        {
+          path: {
+            namespace: projectName,
+            serviceName: 'dspa',
+            runId: mockActiveRuns.run_id,
+          },
+        },
+        mockActiveRuns,
+      );
+      activeRunsTable.getRowByName('Test active run 4').findColumnName('Test active run 4').click();
+      pipelineRunDetails
+        .findErrorState('run-graph-error-state')
+        .should('have.text', 'Pipeline run graph unavailable');
+
+      pipelineRunDetails.findDetailsTab().click();
+      pipelineRunDetails.findDetailItem('Name').findValue().contains(mockActiveRuns.display_name);
+      pipelineRunDetails
+        .findDetailItem('Pipeline version')
+        .findValue()
+        .contains('No pipeline version');
+      pipelineRunDetails.findDetailItem('Project').findValue().contains(projectName);
+      pipelineRunDetails.findDetailItem('Run ID').findValue().contains(mockActiveRuns.run_id);
+      pipelineRunDetails
+        .findDetailItem('Workflow name')
+        .findValue()
+        .contains(mockActiveRuns.display_name);
+      pipelineRunDetails.findPipelineSpecTab().click();
+      pipelineRunDetails
+        .findErrorState('pipeline-spec-error-state')
+        .should('have.text', 'Pipeline spec unavailable');
     });
 
     it('navigates back to experiments from "Create run" page breadcrumb', () => {
@@ -301,7 +346,7 @@ describe('Runs page for archived experiment', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      { recurringRuns: [buildMockJobKF({ status: RecurringRunStatus.DISABLED })] },
+      { recurringRuns: [buildMockRecurringRunKF({ status: RecurringRunStatus.DISABLED })] },
     );
     experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
     experimentsTabs.visit(projectName);
@@ -311,7 +356,7 @@ describe('Runs page for archived experiment', () => {
 
   it('navigates to the runs page when clicking an experiment name', () => {
     verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
-    cy.findByLabelText('Breadcrumb').findByText('Experiments');
+    cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
   });
 
   it('has empty state on active runs tab', () => {
@@ -325,10 +370,10 @@ describe('Runs page for archived experiment', () => {
     pipelineRunsGlobal.findRestoreRunButton().should('have.class', 'pf-m-aria-disabled');
   });
 
-  it('has create schedule button disabled on schedules tab', () => {
+  it('has no create schedule button on schedules tab', () => {
     pipelineRunsGlobal.findSchedulesTab().click();
-    pipelineRunJobTable.getRowByName('Test job').findCheckbox().click();
-    pipelineRunsGlobal.findScheduleRunButton().should('have.class', 'pf-m-aria-disabled');
+    pipelineRecurringRunTable.getRowByName('Test recurring run').findCheckbox().click();
+    pipelineRunsGlobal.findScheduleRunButton().should('not.exist');
   });
 });
 
@@ -370,7 +415,7 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
-    { runs: [] },
+    { runs: [mockActiveRuns] },
   );
 
   cy.interceptOdh(

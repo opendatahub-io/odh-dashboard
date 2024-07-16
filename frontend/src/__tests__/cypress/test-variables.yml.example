@@ -1,0 +1,9 @@
+ODH_DASHBOARD_URL: "http://odh-dashboard-opendatahub.apps.my-cluster.test.redhat.com"
+TEST_USER:
+  AUTH_TYPE: foo-auth
+  USERNAME: foo-user
+  PASSWORD: foo-passwd
+OCP_ADMIN_USER:
+  AUTH_TYPE: adm-auth
+  USERNAME: adminuser
+  PASSWORD: adminuser-passwd

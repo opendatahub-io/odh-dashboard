@@ -1,7 +1,7 @@
-import {
+import type {
   ExperimentKFv2,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
@@ -24,7 +24,7 @@ class CloneRunPage extends CreateRunPage {
     );
   }
 
-  mockGetRecurringRun(namespace: string, recurringRun: PipelineRunJobKFv2) {
+  mockGetRecurringRun(namespace: string, recurringRun: PipelineRecurringRunKFv2) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
       { path: { namespace, serviceName: 'dspa', recurringRunId: recurringRun.recurring_run_id } },

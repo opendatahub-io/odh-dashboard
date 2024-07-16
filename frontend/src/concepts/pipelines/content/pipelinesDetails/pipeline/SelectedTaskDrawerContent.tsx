@@ -21,12 +21,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
   }
 
   return (
-    <DrawerPanelContent
-      isResizable
-      widths={{ default: 'width_33', lg: 'width_50' }}
-      minSize="300px"
-      data-testid="task-drawer"
-    >
+    <DrawerPanelContent data-testid="task-drawer" style={{ height: '100%', overflowY: 'auto' }}>
       <DrawerHead>
         <Title headingLevel="h2" size="xl" data-testid="pipeline-task-name">
           {task.name} {task.type === 'artifact' ? 'Artifact details' : ''}
