@@ -21,11 +21,11 @@ type KServeInferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
   onEditKServe: (obj: {
     inferenceService: InferenceServiceKind;
-    servingRuntime: ServingRuntimeKind;
+    servingRuntime?: ServingRuntimeKind;
   }) => void;
   onDeleteKServe: (obj: {
     inferenceService: InferenceServiceKind;
-    servingRuntime: ServingRuntimeKind;
+    servingRuntime?: ServingRuntimeKind;
   }) => void;
   rowIndex: number;
 };
@@ -67,22 +67,8 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
           isGlobal={false}
           showServingRuntime
           servingRuntime={servingRuntime}
-          onDeleteInferenceService={() => {
-            if (servingRuntime) {
-              onDeleteKServe({
-                inferenceService: obj,
-                servingRuntime,
-              });
-            }
-          }}
-          onEditInferenceService={() => {
-            if (servingRuntime) {
-              onEditKServe({
-                inferenceService: obj,
-                servingRuntime,
-              });
-            }
-          }}
+          onDeleteInferenceService={() => onDeleteKServe({ inferenceService: obj, servingRuntime })}
+          onEditInferenceService={() => onEditKServe({ inferenceService: obj, servingRuntime })}
         />
       </ResourceTr>
       <ResourceTr isExpanded={isExpanded} resource={obj}>
