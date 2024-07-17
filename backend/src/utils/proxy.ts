@@ -30,12 +30,13 @@ export const proxyService =
   <K extends K8sResourceCommon = never>(
     model: { apiGroup: string; apiVersion: string; plural: string; kind: string } | null,
     service: {
-      port: number | string;
+      route?: boolean;
+      port?: number | string;
       prefix?: string;
       suffix?: string;
       namespace?: string;
     },
-    local: {
+    local?: {
       host: string;
       port: number | string;
     },
@@ -69,18 +70,27 @@ export const proxyService =
         // see `prefix` for named params
         const namespace = service.namespace ?? getParam(request, 'namespace');
         const name = getParam(request, 'name');
+        const cluster = fastify.kube.config.getCurrentCluster();
 
         const doServiceRequest = () => {
           const scheme = tls ? 'https' : 'http';
 
-          const upstream = DEV_MODE
-            ? // Use port forwarding for local development:
-              // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
-              `${scheme}://${local.host}:${local.port}`
-            : // Construct service URL
-              `${scheme}://${service.prefix || ''}${name}${
-                service.suffix ?? ''
-              }.${namespace}.svc.cluster.local:${service.port}`;
+          let upstream: string;
+          if (service.route) {
+            const namedHost = cluster.server.slice('https://api.'.length).split(':')[0];
+            upstream = `${scheme}://${service.prefix || ''}${name}${
+              service.suffix ?? ''
+            }.apps.${namedHost}${service.port ? `:${service.port}` : ''}`;
+          } else {
+            upstream = DEV_MODE
+              ? // Use port forwarding for local development:
+                // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
+                `${scheme}://${local.host}:${local.port}`
+              : // Construct service URL
+                `${scheme}://${service.prefix || ''}${name}${
+                  service.suffix ?? ''
+                }.${namespace}.svc.cluster.local${service.port ? `:${service.port}` : ''}`;
+          }
 
           // assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
           setParam(request, 'upstream', upstream);
@@ -90,9 +100,6 @@ export const proxyService =
         };
 
         if (model) {
-          const kc = fastify.kube.config;
-          const cluster = kc.getCurrentCluster();
-
           // retreive the gating resource by name and namespace
           passThroughResource<K>(fastify, request, {
             url: `${cluster.server}/apis/${model.apiGroup}/${model.apiVersion}/namespaces/${namespace}/${model.plural}/${name}`,
