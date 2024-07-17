@@ -10,10 +10,12 @@ import {
   ProjectModel,
   ProjectRequestModel,
   RouteModel,
+  SelfSubjectAccessReviewModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
+import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
 import { notebookConfirmModal } from '~/__tests__/cypress/cypress/pages/workbench';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
@@ -78,7 +80,16 @@ describe('Data science projects details', () => {
   it('should delete project', () => {
     initIntercepts();
     projectListPage.visit();
-    projectListPage.getProjectRow('Test Project').findKebabAction('Delete project').click();
+    cy.interceptK8s(
+      'POST',
+      SelfSubjectAccessReviewModel,
+      mockSelfSubjectAccessReview({ allowed: true }),
+    ).as('selfSubjectAccessReviewsCall');
+    const deleteProject = projectListPage
+      .getProjectRow('Test Project')
+      .findKebabAction('Delete project');
+    cy.wait('@selfSubjectAccessReviewsCall');
+    deleteProject.click();
     deleteModal.shouldBeOpen();
     deleteModal.findSubmitButton().should('be.disabled');
     deleteModal.findCancelButton().should('be.enabled').click();
@@ -152,6 +163,31 @@ describe('Data science projects details', () => {
     projectListPage.findProjectLink('DS Project 1').should('exist');
     projectListPage.findProjectLink('DS Project 2').should('not.exist');
     projectListPage.findProjectLink('renamed').should('not.exist');
+  });
+
+  it('should disable kebab actions with insufficient permissions', () => {
+    initIntercepts();
+    projectListPage.visit();
+    cy.interceptK8s(
+      'POST',
+      SelfSubjectAccessReviewModel,
+      mockSelfSubjectAccessReview({ allowed: false }),
+    ).as('selfSubjectAccessReviewsCall');
+
+    const editProject = projectListPage
+      .getProjectRow('Test Project')
+      .findKebabAction('Edit project');
+    const editPermission = projectListPage
+      .getProjectRow('Test Project')
+      .findKebabAction('Edit permissions');
+    const deleteProject = projectListPage
+      .getProjectRow('Test Project')
+      .findKebabAction('Delete project');
+    cy.wait('@selfSubjectAccessReviewsCall');
+
+    editProject.should('have.attr', 'aria-disabled', 'true');
+    editPermission.should('have.attr', 'aria-disabled', 'true');
+    deleteProject.should('have.attr', 'aria-disabled', 'true');
   });
 
   describe('Table filter', () => {

@@ -37,7 +37,12 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   const navigate = useNavigate();
   const owner = getProjectOwner(project);
 
-  const item = useProjectTableRowItems(project, isRefreshing, setEditData, setDeleteData);
+  const [item, runAccessCheck] = useProjectTableRowItems(
+    project,
+    isRefreshing,
+    setEditData,
+    setDeleteData,
+  );
   const [notebookStates, loaded] = useProjectNotebookStates(project.metadata.name);
 
   return (
@@ -130,6 +135,8 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
                   className="odh-project-table__action-column"
                   isActionCell
                   rowSpan={notebookStates.length || 1}
+                  onMouseEnter={runAccessCheck}
+                  onClick={runAccessCheck}
                 >
                   <ActionsColumn items={item} />
                 </Td>
