@@ -7,7 +7,11 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { DataConnection, NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  DataConnection,
+  NamespaceApplicationCase,
+  UpdateObjectAtPropAndValue,
+} from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,

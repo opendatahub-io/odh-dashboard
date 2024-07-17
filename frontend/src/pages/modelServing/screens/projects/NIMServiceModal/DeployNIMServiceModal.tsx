@@ -26,9 +26,7 @@ import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingR
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import {
-  ServingRuntimeEditInfo,
-} from '~/pages/modelServing/screens/types';
+import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
 import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
@@ -37,9 +35,7 @@ import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import KServeAutoscalerReplicaSection from '../kServeModal/KServeAutoscalerReplicaSection';
-import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
-
+import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -128,10 +124,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const servingRuntimeSelected = React.useMemo(
     () =>
       editInfo?.servingRuntimeEditInfo?.servingRuntime ||
-      getServingRuntimeFromName(
-        'nvidia-runtime-gpu',
-        servingRuntimeTemplates,
-      ),
+      getServingRuntimeFromName('nvidia-runtime-gpu', servingRuntimeTemplates),
     [editInfo, servingRuntimeTemplates],
   );
 
@@ -159,7 +152,9 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
-    const servingRuntimeName = editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime || translateDisplayNameForK8s(createDataInferenceService.name);;
+    const servingRuntimeName =
+      editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
+      translateDisplayNameForK8s(createDataInferenceService.name);
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
       servingRuntimeSelected,
@@ -239,9 +234,9 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
                 actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
               >
                 <p>
-                  The NVIDIA NIM model serving platform used by this project allows deployed models to
-                  be accessible via external routes. It is recommended that token authentication be
-                  enabled to protect these routes. The serving platform requires the Authorino
+                  The NVIDIA NIM model serving platform used by this project allows deployed models
+                  to be accessible via external routes. It is recommended that token authentication
+                  be enabled to protect these routes. The serving platform requires the Authorino
                   operator be installed on the cluster for token authentication. Contact a cluster
                   administrator to install the operator.
                 </p>
@@ -268,7 +263,6 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
             <StackItem>
               <NIMModelListSection
                 inferenceServiceData={createDataInferenceService}
-                servingRuntimeData={createDataServingRuntime}
                 setInferenceServiceData={setCreateDataInferenceService}
                 setServingRuntimeData={setCreateDataServingRuntime}
                 isEditing={!!editInfo}

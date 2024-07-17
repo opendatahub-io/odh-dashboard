@@ -89,7 +89,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
           onClose={onSubmit}
         />
       ) : null}
-       {modalShown && isNIM ? (
+      {modalShown && isNIM ? (
         <DeployNIMServiceModal
           isOpen
           projectContext={{ currentProject, dataConnections }}

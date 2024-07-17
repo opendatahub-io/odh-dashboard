@@ -31,7 +31,15 @@ export const assembleServingRuntime = (
   acceleratorProfileState?: AcceleratorProfileState,
   isModelMesh?: boolean,
 ): ServingRuntimeKind => {
-  const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth, imageName, modelName } = data;
+  const {
+    name: displayName,
+    numReplicas,
+    modelSize,
+    externalRoute,
+    tokenAuth,
+    imageName,
+    modelName,
+  } = data;
   const createName = isCustomServingRuntimesEnabled
     ? translateDisplayNameForK8s(displayName)
     : getModelServingRuntimeName(namespace);
@@ -122,7 +130,8 @@ export const assembleServingRuntime = (
       }
 
       if (imageName) {
-        container.image = imageName;
+        const containerObj = container;
+        containerObj.image = imageName;
       }
 
       const containerWithoutResources = _.omit(container, 'resources');
@@ -137,7 +146,10 @@ export const assembleServingRuntime = (
   );
 
   if (modelName) {
-    if (updatedServingRuntime.spec.supportedModelFormats && updatedServingRuntime.spec.supportedModelFormats.length >= 1) {
+    if (
+      updatedServingRuntime.spec.supportedModelFormats &&
+      updatedServingRuntime.spec.supportedModelFormats.length >= 1
+    ) {
       updatedServingRuntime.spec.supportedModelFormats[0].name = modelName;
     } else {
       updatedServingRuntime.spec.supportedModelFormats?.push({ name: modelName });

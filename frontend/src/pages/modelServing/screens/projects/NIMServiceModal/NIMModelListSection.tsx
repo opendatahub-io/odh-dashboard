@@ -2,19 +2,26 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingInferenceServiceObject, CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import {
+  CreatingInferenceServiceObject,
+  CreatingServingRuntimeObject,
+} from '~/pages/modelServing/screens/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { fetchNIMModelNames } from '~/pages/modelServing/screens/projects/utils';
 
 type NIMModelListSectionProps = {
   inferenceServiceData: CreatingInferenceServiceObject;
-  servingRuntimeData: CreatingServingRuntimeObject;
   setInferenceServiceData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   setServingRuntimeData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   isEditing?: boolean;
 };
 
-const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({ inferenceServiceData, servingRuntimeData, setInferenceServiceData, setServingRuntimeData, isEditing }) => {
+const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
+  inferenceServiceData,
+  setInferenceServiceData,
+  setServingRuntimeData,
+  isEditing,
+}) => {
   const [options, setOptions] = useState<{ key: string; label: string }[]>([]);
 
   useEffect(() => {
@@ -31,18 +38,15 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({ inferenceServ
     getModelNames();
   }, []);
 
-  const getNIMModelName = (name: string) => {
-    return `nvidia-nim-${name}`;
-  };
+  const getNIMModelName = (name: string) => `nvidia-nim-${name}`;
 
   const getNIMImageName = (name: string) => {
     const imageInfo = options.find((option) => option.key === name);
     if (imageInfo) {
       return `nvcr.io/nim/meta/${name}:${imageInfo.label.split(' - ')[1]}`;
-    } else {
-      return '';
     }
-  }
+    return '';
+  };
 
   return (
     <FormGroup label="NIM model name" fieldId="nim-model-list-selection" isRequired>
