@@ -9,7 +9,7 @@ import {
 import { TolerationEffect, TolerationOperator } from '~/types';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
 type HandlersProps = {
   isPresent?: boolean;

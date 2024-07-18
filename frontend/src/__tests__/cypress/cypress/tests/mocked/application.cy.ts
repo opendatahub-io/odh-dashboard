@@ -3,7 +3,7 @@ import {
   asDisallowedUser,
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/users';
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDashboardConfig } from '~/__mocks__';
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
 

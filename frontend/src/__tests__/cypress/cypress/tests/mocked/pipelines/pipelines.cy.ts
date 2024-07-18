@@ -26,7 +26,7 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';

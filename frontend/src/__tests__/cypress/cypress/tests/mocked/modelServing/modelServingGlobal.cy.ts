@@ -25,7 +25,7 @@ import {
 import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 type HandlersProps = {

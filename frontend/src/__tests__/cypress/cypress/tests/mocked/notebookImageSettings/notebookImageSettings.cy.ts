@@ -9,7 +9,10 @@ import {
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 it('Notebook image settings should not be available for non product admins', () => {

@@ -5,7 +5,7 @@ import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import {
   notebookController,
   stopNotebookModal,

@@ -10,7 +10,10 @@ import {
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser, asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { StackComponent } from '~/concepts/areas/types';
 
 it('Cluster settings should not be available for non product admins', () => {
