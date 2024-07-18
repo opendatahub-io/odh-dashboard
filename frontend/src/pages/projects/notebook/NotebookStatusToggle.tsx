@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { Flex, Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '~/api';
-import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { useAppContext } from '~/app/AppContext';
 import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { NotebookState } from './types';
 import useRefreshNotebookUntilStartOrStop from './useRefreshNotebookUntilStartOrStop';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
@@ -52,7 +53,8 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
 
   const fireNotebookTrackingEvent = React.useCallback(
     (action: 'started' | 'stopped') => {
-      fireTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
+      fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
+        outcome: TrackingOutcome.submit,
         acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
         accelerator: acceleratorProfile.acceleratorProfile
           ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`

@@ -1,22 +1,59 @@
 import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '~/utilities/const';
-import { TrackingEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
+import {
+  BaseTrackingEventProperties,
+  FormTrackingEventProperties,
+  IdentifyEventProperties,
+  LinkTrackingEventProperties,
+  MiscTrackingEventProperties,
+} from '~/concepts/analyticsTracking/trackingProperties';
 
-// The following is like the original method below, but allows for more 'free form' properties.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/explicit-module-boundary-types
-export const fireTrackingEventRaw = (eventType: string, properties?: any): void => {
+export const fireFormTrackingEvent = (
+  eventName: string,
+  properties: FormTrackingEventProperties,
+): void => {
+  fireTrackingEvent(eventName, properties);
+};
+
+export const fireLinkTrackingEvent = (
+  eventName: string,
+  properties: LinkTrackingEventProperties,
+): void => {
+  fireTrackingEvent(eventName, properties);
+};
+
+export const fireMiscTrackingEvent = (
+  eventName: string,
+  properties: MiscTrackingEventProperties,
+): void => {
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.warn('This tracking event type is a last resort for legacy purposes');
+  }
+  fireTrackingEvent(eventName, properties);
+};
+
+/*
+ * This fires a segment 'track' event.
+ *
+ * @param eventName: Name of the event.
+ * @param properties: Properties of the event. Those are specific to eventName
+ *
+ */
+const fireTrackingEvent = (eventName: string, properties: BaseTrackingEventProperties): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
     /* eslint-disable-next-line no-console */
     console.log(
-      `Telemetry event triggered: ${eventType}${
-        properties
-          ? ` - ${JSON.stringify(properties)} for version ${INTERNAL_DASHBOARD_VERSION}`
-          : ''
-      }`,
+      `Telemetry event triggered: ${eventName} - ${JSON.stringify(
+        properties,
+      )} for version ${INTERNAL_DASHBOARD_VERSION}`,
     );
+    if (eventName === 'page' || eventName === 'identify') {
+      window.alert('Got a page or identify event. Must not happen');
+    }
   } else if (window.analytics) {
     window.analytics.track(
-      eventType,
+      eventName,
       { ...properties, clusterID },
       {
         app: {
@@ -27,46 +64,38 @@ export const fireTrackingEventRaw = (eventType: string, properties?: any): void 
   }
 };
 
-export const fireTrackingEvent = (
-  eventType: string,
-  properties?: TrackingEventProperties,
-): void => {
+/*
+ * This fires a 'PageViewed' event. The url, referrer etc. are
+ * set internally in the Segment library.
+ */
+export const firePageEvent = (): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
     /* eslint-disable-next-line no-console */
-    console.log(
-      `Telemetry event triggered: ${eventType}${
-        properties
-          ? ` - ${JSON.stringify(properties)} for version ${INTERNAL_DASHBOARD_VERSION}`
-          : ''
-      }`,
-    );
+    console.log(`Page event triggered for version ${INTERNAL_DASHBOARD_VERSION}`);
   } else if (window.analytics) {
-    switch (eventType) {
-      case 'identify':
-        window.analytics.identify(properties?.anonymousID, { clusterID });
-        break;
-      case 'page':
-        window.analytics.page(
-          undefined,
-          { clusterID },
-          {
-            app: {
-              version: INTERNAL_DASHBOARD_VERSION,
-            },
-          },
-        );
-        break;
-      default:
-        window.analytics.track(
-          eventType,
-          { ...properties, clusterID },
-          {
-            app: {
-              version: INTERNAL_DASHBOARD_VERSION,
-            },
-          },
-        );
-    }
+    window.analytics.page(
+      undefined,
+      { clusterID },
+      {
+        app: {
+          version: INTERNAL_DASHBOARD_VERSION,
+        },
+      },
+    );
+  }
+};
+
+/*
+ * This fires a call to associate further processing with the passed (anonymous) userId
+ * in the properties.
+ */
+export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => {
+  const clusterID = window.clusterID ?? '';
+  if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
+    console.log(`Identify event triggered`);
+  } else if (window.analytics) {
+    window.analytics.identify(properties.anonymousID, { clusterID });
   }
 };

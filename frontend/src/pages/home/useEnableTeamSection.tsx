@@ -13,7 +13,7 @@ import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import { fireTrackingEventRaw } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { fireLinkTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
   }
 
   const trackAndNavigate = (section: string, to: string): void => {
-    fireTrackingEventRaw('HomeCardClicked', {
+    fireLinkTrackingEvent('HomeCardClicked', {
       to: `${to}`,
       type: 'enableTeam',
       section: `${section}`,
