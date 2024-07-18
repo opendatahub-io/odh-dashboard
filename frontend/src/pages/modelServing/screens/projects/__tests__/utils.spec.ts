@@ -3,10 +3,12 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   filterOutConnectionsWithoutBucket,
   getProjectModelServingPlatform,
+  getUrlFromKserveInferenceService,
 } from '~/pages/modelServing/screens/projects/utils';
 import { DataConnection } from '~/pages/projects/types';
 import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 
 describe('filterOutConnectionsWithoutBucket', () => {
   it('should return an empty array if input connections array is empty', () => {
@@ -123,5 +125,29 @@ describe('getProjectModelServingPlatform', () => {
         getMockServingPlatformStatuses({ kServeEnabled: false }),
       ),
     ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI });
+  });
+});
+
+describe('getUrlsFromKserveInferenceService', () => {
+  it('should return the url from the inference service status', () => {
+    const url = 'https://test-kserve.apps.kserve-pm.dev.com';
+    const inferenceService = mockInferenceServiceK8sResource({
+      url,
+    });
+    expect(getUrlFromKserveInferenceService(inferenceService)).toBe(url);
+  });
+  it('should return undefined if the inference service status does not have an address', () => {
+    const url = '';
+    const inferenceService = mockInferenceServiceK8sResource({
+      url,
+    });
+    expect(getUrlFromKserveInferenceService(inferenceService)).toBeUndefined();
+  });
+  it('should return undefined if the inference service status is an internal service', () => {
+    const url = 'http://test.kserve.svc.cluster.local';
+    const inferenceService = mockInferenceServiceK8sResource({
+      url,
+    });
+    expect(getUrlFromKserveInferenceService(inferenceService)).toBeUndefined();
   });
 });
