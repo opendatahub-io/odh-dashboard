@@ -73,8 +73,7 @@ describe('Data science projects details', () => {
     initIntercepts();
     projectListPage.visit();
     projectListPage.shouldHaveProjects();
-    const projectRow = projectListPage.getProjectRow('Test Project');
-    projectRow.shouldHaveProjectIcon();
+    projectListPage.getProjectRow('Test Project').find().should('exist');
   });
 
   it('should delete project', () => {

@@ -8,7 +8,6 @@ import { getProjectOwner } from '~/concepts/projects/utils';
 import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { ProjectScope } from '~/pages/projects/types';
 import ProjectTableRow from '~/pages/projects/screens/projects/ProjectTableRow';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import NewProjectButton from './NewProjectButton';
@@ -18,18 +17,15 @@ import ManageProjectModal from './ManageProjectModal';
 
 type ProjectListViewProps = {
   allowCreate: boolean;
-  scope: ProjectScope;
 };
 
-const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope }) => {
+const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { dashboardConfig } = useAppContext();
-  const { projects, dataScienceProjects } = React.useContext(ProjectsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
-  const filteredProjects = (
-    scope === ProjectScope.ALL_PROJECTS ? projects : dataScienceProjects
-  ).filter((project) => {
+  const filteredProjects = projects.filter((project) => {
     if (!search) {
       return true;
     }
