@@ -76,7 +76,7 @@ const initIntercepts = ({
     RouteModel,
     mockRouteK8sResourceModelRegistry({
       name: 'modelregistry-sample-http',
-      namespace: 'odh-model-registries',
+      namespace: 'secure-model-registries',
     }),
   );
 

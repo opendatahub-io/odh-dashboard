@@ -13,7 +13,7 @@ import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockGroup } from '~/__mocks__/mockGroup';
 import { usersTab } from '~/__tests__/cypress/cypress/pages/modelRegistryPermissions';
 
-const MODEL_REGISTRY_DEFAULT_NAMESPACE = 'odh-model-registries';
+const MODEL_REGISTRY_DEFAULT_NAMESPACE = 'secure-model-registries';
 
 const userSubjects: RoleBindingSubject[] = [
   {

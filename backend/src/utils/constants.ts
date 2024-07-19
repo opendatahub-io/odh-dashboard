@@ -144,4 +144,4 @@ export const THANOS_INSTANCE_NAME = 'thanos-querier';
 export const THANOS_NAMESPACE = 'openshift-monitoring';
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;
 
-export const MODEL_REGISTRY_NAMESPACE = 'odh-model-registries';
+export const MODEL_REGISTRY_NAMESPACE = 'secure-model-registries';
