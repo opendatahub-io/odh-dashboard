@@ -34,9 +34,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         return getNotebookEvents(fastify, namespace, notebookName, podUID);
       }
       throw createCustomError(
-        '404 Referenced pod not found for the notebook',
-        'Referenced pod not found for the notebook',
-        404,
+        '403 Unauthorized access to notebook',
+        'User does not have access to this notebook',
+        403,
       );
     },
   );
