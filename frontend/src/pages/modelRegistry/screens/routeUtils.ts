@@ -16,6 +16,9 @@ export const modelVersionArchiveUrl = (rmId?: string, preferredModelRegistry?: s
 export const registeredModelArchiveUrl = (preferredModelRegistry?: string): string =>
   `/modelRegistry/${preferredModelRegistry}/registeredModels/archive`;
 
+export const registerModelUrl = (preferredModelRegistry?: string): string =>
+  `/modelRegistry/${preferredModelRegistry}/registerModel`;
+
 export const registeredModelsUrl = (preferredModelRegistry?: string): string =>
   `/modelRegistry/${preferredModelRegistry}/registeredModels`;
 
