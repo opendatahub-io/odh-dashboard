@@ -3,11 +3,8 @@
 [Settings Panel]: admin-dashboard.md
 [User Interaction]: user-interaction.md
 [Bring Your Own Notebook]: byon.md
-[process flows docs]: process-definition/README.md
-[Architecture]: architecture.md
+[Architecture]: https://github.com/opendatahub-io/architecture-decision-records/blob/main/architecture/components/dashboard/README.md
 [SDK]: SDK.md
-[Old custom APIs]: apis.md
-[releases]: release-steps.md
 
 # Dashboard Documentation
 
@@ -27,12 +24,3 @@ This is the general documentation of the Dashboard component.
 * [Dev setup & Requirements]
 * [Architecture]
 * [SDK]
-  * [Old custom APIs] - Deprecated, moving to SDK
-
-## Process Flows
-
-Read more on how we do things in our [process flows docs].
-
-### Releases
-
-For more information on how, when, and what we do for releases, see our [releases] documentation.
