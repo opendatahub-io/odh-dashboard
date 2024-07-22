@@ -2,7 +2,7 @@ import { FastifyRequest } from 'fastify';
 import httpProxy from '@fastify/http-proxy';
 import { K8sResourceCommon, KubeFastifyInstance } from '../types';
 import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through';
-import { DEV_MODE } from './constants';
+import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 
@@ -77,10 +77,19 @@ export const proxyService =
 
           let upstream: string;
           if (service.route) {
-            const namedHost = cluster.server.slice('https://api.'.length).split(':')[0];
-            upstream = `${scheme}://${service.prefix || ''}${name}${
-              service.suffix ?? ''
-            }.apps.${namedHost}${service.port ? `:${service.port}` : ''}`;
+            // TODO remove this condition, it's temporary for testing
+            if (service.suffix === '-rest') {
+              upstream =
+                'https://modelregistry-sample-rest.apps.modelregistry-ui.dev.datahub.redhat.com';
+              const accessToken = request.headers[USER_ACCESS_TOKEN];
+              request.headers.authorization = `Bearer ${accessToken}`;
+            } else {
+              // TODO this isn't working, troubleshoot
+              const namedHost = cluster.server.slice('https://api.'.length).split(':')[0];
+              upstream = `${scheme}://${service.prefix || ''}${name}${
+                service.suffix ?? ''
+              }.apps.${namedHost}${service.port ? `:${service.port}` : ''}`;
+            }
           } else {
             upstream = DEV_MODE
               ? // Use port forwarding for local development:
