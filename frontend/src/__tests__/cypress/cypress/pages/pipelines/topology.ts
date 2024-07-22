@@ -176,7 +176,8 @@ class PipelineDetails extends PipelinesTopology {
   }
 
   selectActionDropdownItem(label: string) {
-    this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
+    this.findActionsDropdown().click();
+    cy.findByRole('menuitem', { name: label }).click();
   }
 }
 
@@ -193,7 +194,8 @@ class PipelineRecurringRunDetails extends RunDetails {
   }
 
   selectActionDropdownItem(label: string) {
-    this.findActionsDropdown().click().findByRole('menuitem', { name: label }).click();
+    this.findActionsDropdown().click();
+    cy.findByRole('menuitem', { name: label }).click();
   }
 
   mockEnableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
@@ -269,12 +271,17 @@ class PipelineRunDetails extends RunDetails {
     return cy.findByTestId('logs-step-select');
   }
 
+  findLogsPauseButton() {
+    return cy.findByTestId('logs-pause-refresh-button');
+  }
+
   selectStepByName(name: string): void {
     this.findStepSelect().findDropdownItem(name).click();
   }
 
   selectActionDropdownItem(label: string) {
-    this.findActionsDropdown().findDropdownItem(label).click();
+    this.findActionsDropdown().click();
+    cy.findByRole('menuitem', { name: label }).click();
   }
 
   findYamlOutput() {
