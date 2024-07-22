@@ -46,7 +46,7 @@ export const proxyService =
   async (fastify: KubeFastifyInstance): Promise<void> => {
     fastify.register(httpProxy, {
       upstream: '',
-      prefix: service.namespace ? ':name' : '/:namespace/:name',
+      prefix: service.namespace || service.route ? ':name' : '/:namespace/:name',
       rewritePrefix: '',
       replyOptions: {
         // preHandler must set the `upstream` param
