@@ -21,8 +21,12 @@ import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateN
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { pipelineVersionDetailsRoute } from '~/routes';
+import {
+  PIPELINE_ARGO_ERROR,
+  PIPELINE_IMPORT_ARGO_ERROR_TEXT,
+} from '~/concepts/pipelines/content/const';
 import PipelineUploadRadio from './PipelineUploadRadio';
-import { PipelineUploadOption } from './utils';
+import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
 
 type PipelineImportModalProps = {
   isOpen: boolean;
@@ -37,6 +41,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
   const [{ name, description, fileContents, pipelineUrl, uploadOption }, setData, resetData] =
     usePipelineImportModalData();
   const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
+  const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
 
   const isImportButtonDisabled =
     !apiAvailable ||
@@ -99,13 +104,18 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
     setError(undefined);
 
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
-      api
-        .uploadPipeline({}, name, description, fileContents)
-        .then(onSubmitSuccess)
-        .catch((e) => {
-          setImporting(false);
-          setError(e);
-        });
+      if (isArgoWorkflow) {
+        setImporting(false);
+        setError(new Error(PIPELINE_IMPORT_ARGO_ERROR_TEXT));
+      } else {
+        api
+          .uploadPipeline({}, name, description, fileContents)
+          .then(onSubmitSuccess)
+          .catch((e) => {
+            setImporting(false);
+            setError(e);
+          });
+      }
     } else {
       api
         .createPipelineAndVersion(
@@ -210,7 +220,12 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
           </StackItem>
           {error && (
             <StackItem>
-              <Alert title="Error creating pipeline" isInline variant="danger">
+              <Alert
+                data-testid="import-modal-error"
+                title={isArgoWorkflow ? PIPELINE_ARGO_ERROR : 'Error creating pipeline'}
+                isInline
+                variant="danger"
+              >
                 {error.message}
               </Alert>
             </StackItem>

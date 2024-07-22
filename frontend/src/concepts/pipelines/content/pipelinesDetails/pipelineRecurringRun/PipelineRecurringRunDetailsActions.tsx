@@ -18,11 +18,13 @@ import { getDashboardMainContainer } from '~/utilities/utils';
 type PipelineRecurringRunDetailsActionsProps = {
   recurringRun?: PipelineRecurringRunKFv2;
   onDelete: () => void;
+  isPipelineSupported: boolean;
 };
 
 const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsActionsProps> = ({
   onDelete,
   recurringRun,
+  isPipelineSupported,
 }) => {
   const navigate = useNavigate();
   const { experimentId, pipelineId, pipelineVersionId } = useParams();
@@ -82,34 +84,38 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
         !recurringRun
           ? []
           : [
-              <DropdownItem
-                key="update-schedule-status"
-                onClick={updateStatus}
-                isAriaDisabled={isStatusUpdating}
-                {...(isStatusUpdating && {
-                  icon: <Spinner isInline />,
-                  tooltip: 'Updating status...',
-                })}
-              >
-                {updateStatusActionLabel}
-              </DropdownItem>,
-              <DropdownItem
-                key="clone-run"
-                onClick={() =>
-                  navigate(
-                    cloneRecurringRunRoute(
-                      namespace,
-                      recurringRun.recurring_run_id,
-                      isExperimentsAvailable ? experimentId : undefined,
-                      pipelineId,
-                      pipelineVersionId,
-                    ),
-                  )
-                }
-              >
-                Duplicate
-              </DropdownItem>,
-              <DropdownSeparator key="separator" />,
+              ...(isPipelineSupported
+                ? [
+                    <DropdownItem
+                      key="update-schedule-status"
+                      onClick={updateStatus}
+                      isAriaDisabled={isStatusUpdating}
+                      {...(isStatusUpdating && {
+                        icon: <Spinner isInline />,
+                        tooltip: 'Updating status...',
+                      })}
+                    >
+                      {updateStatusActionLabel}
+                    </DropdownItem>,
+                    <DropdownItem
+                      key="clone-run"
+                      onClick={() =>
+                        navigate(
+                          cloneRecurringRunRoute(
+                            namespace,
+                            recurringRun.recurring_run_id,
+                            isExperimentsAvailable ? experimentId : undefined,
+                            pipelineId,
+                            pipelineVersionId,
+                          ),
+                        )
+                      }
+                    >
+                      Duplicate
+                    </DropdownItem>,
+                    <DropdownSeparator key="separator" />,
+                  ]
+                : []),
               <DropdownItem key="delete-run" onClick={() => onDelete()}>
                 Delete
               </DropdownItem>,

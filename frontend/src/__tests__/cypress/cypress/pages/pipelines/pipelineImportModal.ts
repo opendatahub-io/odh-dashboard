@@ -55,6 +55,10 @@ class PipelineImportModal extends Modal {
     return this.find().findByTestId('pipeline-file-upload-error');
   }
 
+  findImportModalError() {
+    return this.find().findByTestId('import-modal-error');
+  }
+
   mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/create',

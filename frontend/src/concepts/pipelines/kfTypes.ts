@@ -1,3 +1,4 @@
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth, ExactlyOne } from '~/typeHelpers';
 
 /* Types pulled from https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec */
@@ -362,6 +363,10 @@ export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
   code_source_url?: string;
   package_url?: UrlKF;
   error?: GoogleRpcStatusKF;
+};
+
+export type ArgoWorkflowPipelineVersion = Omit<PipelineVersionKFv2, 'pipeline_spec'> & {
+  pipeline_spec: K8sResourceCommon;
 };
 
 export type ResourceKeyKF = {

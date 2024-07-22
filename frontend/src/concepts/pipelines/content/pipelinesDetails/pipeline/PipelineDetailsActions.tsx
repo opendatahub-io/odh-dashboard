@@ -19,15 +19,21 @@ import {
   pipelineVersionRunsRoute,
 } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
+import {
+  PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
+  PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
+} from '~/concepts/pipelines/content/const';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
+  isPipelineSupported: boolean;
   pipeline: PipelineKFv2 | null;
   pipelineVersion: PipelineVersionKFv2 | null;
 };
 
 const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   onDelete,
+  isPipelineSupported,
   pipeline,
   pipelineVersion,
 }) => {
@@ -55,6 +61,8 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           </DropdownItem>,
           <DropdownSeparator key="separator-create" />,
           <DropdownItem
+            isAriaDisabled={!isPipelineSupported}
+            tooltip={PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR}
             key="create-run"
             onClick={() =>
               navigate(
@@ -72,6 +80,8 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             Create run
           </DropdownItem>,
           <DropdownItem
+            isAriaDisabled={!isPipelineSupported}
+            tooltip={PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR}
             key="create-schedule"
             onClick={() =>
               navigate(
