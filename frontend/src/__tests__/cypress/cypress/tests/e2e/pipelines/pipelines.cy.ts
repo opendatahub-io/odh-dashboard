@@ -27,7 +27,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     cy.fixture('resources/yaml/data_connection.yml').then((yamlContent) => {
       const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, replacements);
       const tempFilePath = 'cypress/temp_data_connection.yaml';
-      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+      applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
         expect(result.code).to.eq(0, `ERROR applying YAML content\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
       });
     });
