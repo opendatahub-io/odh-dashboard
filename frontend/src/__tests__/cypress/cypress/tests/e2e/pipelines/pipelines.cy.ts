@@ -13,10 +13,10 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
                                     stdout: ${result.stdout}
                                     stderr: ${result.stderr}`);
     
-    
     })
+    
     // Create a pipeline compatible Data Connection
-    const replacements = {
+    const dataConnectionReplacements = {
       NAMESPACE: projectName,
       AWS_ACCESS_KEY_ID: Buffer.from(AWS_PIPELINES_BUCKET.AWS_ACCESS_KEY_ID).toString('base64'),
       AWS_DEFAULT_REGION: Buffer.from(AWS_PIPELINES_BUCKET.AWS_REGION).toString('base64'),
@@ -25,12 +25,29 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_PIPELINES_BUCKET.AWS_SECRET_ACCESS_KEY).toString('base64')
     };
     cy.fixture('resources/yaml/data_connection.yml').then((yamlContent) => {
-      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, replacements);
+      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
       const tempFilePath = 'cypress/temp_data_connection.yaml';
       applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
         expect(result.code).to.eq(0, `ERROR applying YAML content\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
       });
     });
+
+    // Configure Pipeline server
+    // Create DSPA Secret
+    const dspaSecretReplacements = {
+      NAMESPACE: projectName,
+      AWS_ACCESS_KEY_ID: Buffer.from(AWS_PIPELINES_BUCKET.AWS_ACCESS_KEY_ID).toString('base64'),
+      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_PIPELINES_BUCKET.AWS_SECRET_ACCESS_KEY).toString('base64')
+    };
+    cy.fixture('resources/yaml/dspa_secret.yml').then((yamlContent) => {
+      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
+      const tempFilePath = 'cypress/dspa_secret.yaml';
+      applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
+        expect(result.code).to.eq(0, `ERROR applying YAML content\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
+      });
+    });
+
+    // Create DSPA
   });
   
   after(() => {
