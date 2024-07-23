@@ -1,0 +1,133 @@
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+kind: DataSciencePipelinesApplication
+metadata:
+  finalizers:
+    - datasciencepipelinesapplications.opendatahub.io/finalizer
+  generation: 2
+  managedFields:
+    - apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:finalizers':
+            .: {}
+            'v:"datasciencepipelinesapplications.opendatahub.io/finalizer"': {}
+        'f:spec':
+          'f:apiServer':
+            'f:caBundleFileMountPath': {}
+            'f:caBundleFileName': {}
+          'f:objectStorage':
+            'f:externalStorage':
+              'f:basePath': {}
+              'f:port': {}
+      manager: Go-http-client
+      operation: Update
+    - apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          .: {}
+          'f:apiServer':
+            'f:enableOauth': {}
+            'f:enableSamplePipeline': {}
+            'f:autoUpdatePipelineDefaultVersion': {}
+            'f:injectDefaultScript': {}
+            'f:trackArtifacts': {}
+            'f:collectMetrics': {}
+            .: {}
+            'f:applyTektonCustomResource': {}
+            'f:dbConfigConMaxLifetimeSec': {}
+            'f:stripEOF': {}
+            'f:deploy': {}
+            'f:archiveLogs': {}
+            'f:terminateStatus': {}
+          'f:database':
+            .: {}
+            'f:disableHealthCheck': {}
+            'f:mariaDB':
+              .: {}
+              'f:deploy': {}
+              'f:pipelineDBName': {}
+              'f:pvcSize': {}
+              'f:username': {}
+          'f:dspVersion': {}
+          'f:objectStorage':
+            .: {}
+            'f:disableHealthCheck': {}
+            'f:enableExternalRoute': {}
+            'f:externalStorage':
+              .: {}
+              'f:bucket': {}
+              'f:host': {}
+              'f:region': {}
+              'f:s3CredentialsSecret':
+                .: {}
+                'f:accessKey': {}
+                'f:secretKey': {}
+                'f:secretName': {}
+              'f:scheme': {}
+          'f:persistenceAgent':
+            .: {}
+            'f:deploy': {}
+            'f:numWorkers': {}
+          'f:scheduledWorkflow':
+            .: {}
+            'f:cronScheduleTimezone': {}
+            'f:deploy': {}
+      manager: unknown
+      operation: Update
+    - apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          .: {}
+          'f:conditions': {}
+      manager: Go-http-client
+      operation: Update
+      subresource: status
+  name: dspa
+  namespace: {{NAMESPACE}}
+spec:
+  apiServer:
+    caBundleFileMountPath: ''
+    stripEOF: true
+    dbConfigConMaxLifetimeSec: 120
+    applyTektonCustomResource: true
+    caBundleFileName: ''
+    deploy: true
+    enableSamplePipeline: false
+    autoUpdatePipelineDefaultVersion: true
+    archiveLogs: false
+    terminateStatus: Cancelled
+    enableOauth: true
+    trackArtifacts: true
+    collectMetrics: true
+    injectDefaultScript: true
+  database:
+    disableHealthCheck: false
+    mariaDB:
+      deploy: true
+      pipelineDBName: mlpipeline
+      pvcSize: 10Gi
+      username: mlpipeline
+  dspVersion: v2
+  objectStorage:
+    disableHealthCheck: false
+    enableExternalRoute: false
+    externalStorage:
+      basePath: ''
+      bucket: {{AWS_S3_BUCKET}}
+      host: s3.amazonaws.com
+      port: ''
+      region: us-east-1
+      s3CredentialsSecret:
+        accessKey: AWS_ACCESS_KEY_ID
+        secretKey: AWS_SECRET_ACCESS_KEY
+        secretName: {{DSPA_SECRET_NAME}}
+      scheme: https
+  persistenceAgent:
+    deploy: true
+    numWorkers: 2
+  scheduledWorkflow:
+    cronScheduleTimezone: UTC
+    deploy: true

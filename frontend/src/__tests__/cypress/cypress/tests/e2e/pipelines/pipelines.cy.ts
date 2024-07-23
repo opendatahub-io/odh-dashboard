@@ -4,6 +4,7 @@ import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_PIPELINES_BUCKET } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
 const projectName = 'test-pipelines-prj';
+const dspaSecretName = 'dashboard-dspa-secret';
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
@@ -28,26 +29,45 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
       const tempFilePath = 'cypress/temp_data_connection.yaml';
       applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
-        expect(result.code).to.eq(0, `ERROR applying YAML content\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
+        expect(result.code).to.eq(0, `ERROR applying YAML content
+                                      stdout: ${result.stdout}
+                                      stderr: ${result.stderr}`);
       });
     });
 
     // Configure Pipeline server
     // Create DSPA Secret
     const dspaSecretReplacements = {
+      DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
       AWS_ACCESS_KEY_ID: Buffer.from(AWS_PIPELINES_BUCKET.AWS_ACCESS_KEY_ID).toString('base64'),
       AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_PIPELINES_BUCKET.AWS_SECRET_ACCESS_KEY).toString('base64')
     };
     cy.fixture('resources/yaml/dspa_secret.yml').then((yamlContent) => {
-      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
-      const tempFilePath = 'cypress/dspa_secret.yaml';
+      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaSecretReplacements);
+      const tempFilePath = 'cypress/temp_dspa_secret.yaml';
       applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
-        expect(result.code).to.eq(0, `ERROR applying YAML content\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
+        expect(result.code).to.eq(0, `ERROR applying YAML content
+                                      stdout: ${result.stdout}
+                                      stderr: ${result.stderr}`);
       });
     });
 
     // Create DSPA
+    const dspaReplacements = {
+      DSPA_SECRET_NAME: dspaSecretName,
+      NAMESPACE: projectName,
+      AWS_S3_BUCKET: AWS_PIPELINES_BUCKET.BUCKET_NAME
+    };
+    cy.fixture('resources/yaml/dspa.yml').then((yamlContent) => {
+      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
+      const tempFilePath = 'cypress/temp_dspa.yaml';
+      applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
+        expect(result.code).to.eq(0, `ERROR applying YAML content
+                                      stdout: ${result.stdout}
+                                      stderr: ${result.stderr}`);
+      });
+    });
   });
   
   after(() => {
@@ -60,41 +80,11 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('should login and load page', () => {
-    cy.log(Cypress.env());
     cy.visitWithLogin('/', ADMIN_USER);
     cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
   });
 });
 
-
-
-
-// import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-// import { createOpenShiftProject, deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/ocCommands';
-
-// const projectName = 'test-pipelines-prj';
-
-// describe.only('An admin user can import and run a pipeline', { testIsolation: false }, () => {
-//   before(() => {
-//     // Provision a Project
-//     createOpenShiftProject(projectName).then((result) => {
-//       expect(result.code).to.eq(0, 'Failed to provision a Project');
-//     });
-//     // cy.request('https://api.spacexdata.com/v3/missions').its('body').should('have.length', 10)
-//   })
-
-//   after(() => {
-//     // Delete provisioned Project
-//     deleteOpenShiftProject(projectName).then((result) => {
-//       expect(result.code).to.eq(0, 'Project deletion should succeed');
-//     });
-//   })
-  
-//   it('should login and load page', () => {
-//     cy.visitWithLogin('/');
-//     cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
-//   });
-// });
 
 
 /**

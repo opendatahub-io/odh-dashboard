@@ -7,3 +7,9 @@ OCP_ADMIN_USER:
   AUTH_TYPE: adm-auth
   USERNAME: adminuser
   PASSWORD: adminuser-passwd
+AWS_PIPELINES_BUCKET:
+  BUCKET_NAME: bucket
+  AWS_ACCESS_KEY_ID: access-key
+  AWS_SECRET_ACCESS_KEY: secret
+  AWS_ENDPOINT: endpoint
+  AWS_REGION: region

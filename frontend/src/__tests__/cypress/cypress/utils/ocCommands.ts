@@ -2,11 +2,11 @@
  * Applies the given YAML content using the `oc apply` command.
  * 
  * @param yamlContent YAML content to be applied
+ * @param tempFilePath Path to the temporary file
  * @returns Cypress Chainable
  */
-export const applyOpenShiftYaml = (yamlContent: string) => {
-    const tempFilePath = 'cypress/temp.yaml';
-    cy.writeFile(tempFilePath, yamlContent);
+export const applyOpenShiftYaml = (yamlContent: string, tempFilePath: string) => {
+  cy.writeFile(tempFilePath, yamlContent);
   
     const ocCommand = `oc apply -f ${tempFilePath}`;
   
@@ -55,7 +55,8 @@ export const createOpenShiftProject = (projectName: string, displayName?: string
  */
 export const deleteOpenShiftProject = (projectName: string) => {
   const ocCommand = `oc delete project ${projectName}`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+  // The default timeout is 60 seconds, and the deletion can take longer
+  return cy.exec(ocCommand, { failOnNonZeroExit: false , timeout: 180000}).then((result) => {
     return result;
   });
 };
