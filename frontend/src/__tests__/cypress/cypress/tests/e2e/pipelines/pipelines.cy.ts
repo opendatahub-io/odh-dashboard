@@ -3,6 +3,10 @@ import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yam
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_PIPELINES_BUCKET } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
+import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+import { projectListPage, projectDetails, importPipelineModal } from '~/__tests__/cypress/cypress/pages/projects';
+
+
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
 
@@ -35,8 +39,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       });
     });
 
-    // Configure Pipeline server
-    // Create DSPA Secret
+    // Configure Pipeline server: Create DSPA Secret
     const dspaSecretReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
@@ -53,7 +56,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       });
     });
 
-    // Create DSPA
+    // Configure Pipeline server: Create DSPA
+    // TODO: Waint the DSPA to be completely deployed and running
     const dspaReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
@@ -79,9 +83,25 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     });
   });
 
-  it('should login and load page', () => {
+  it('An admin User can Import and Run a Pipeline', () => {
+
+    // Login as an admin
     cy.visitWithLogin('/', ADMIN_USER);
     cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
+    projectDetails.visit(projectName);
+    projectDetails.findImportPipelineButton().click();
+    importPipelineModal.findNameInput().type("test-pipelines-pipeline");
+    importPipelineModal.findDescriptionInput().type("test-pipelines-pipeline Description");
+    importPipelineModal.findImportByURLRadio().click();
+    importPipelineModal.findURLInput().type("https://raw.githubusercontent.com/red-hat-data-services/ods-ci/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/flip_coin_compiled.yaml");
+    importPipelineModal.findCancelButton().click();
+
+    // projectListPage.visit()
+    // projectListPage.findCreateProjectButton().click()
+    // cy.visitWithLogin('/', ADMIN_USER);
+    // cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
+
+
   });
 });
 

@@ -123,6 +123,40 @@ class CreateEditProjectModal extends Modal {
   }
 }
 
+class ImportPipelineModal extends Modal {
+  constructor() {
+    super('Import pipeline');
+  }
+
+  findNameInput() {
+    return this.find().findByTestId('pipeline-name');
+  }
+
+  findDescriptionInput() {
+    return this.find().findByTestId('pipeline-description');
+  }
+
+  findUploadAFileRadio() {
+    return this.find().findByTestId('upload-file-radio');
+  }
+
+  findImportByURLRadio() {
+    return this.find().findByTestId('import-url-radio');
+  }
+
+  findURLInput() {
+    return this.find().findByTestId('pipeline-url-input');
+  }
+
+  findImportPipelineButton() {
+    return this.find().findByTestId('import-button');
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+}
+
 class DataConnectionRow extends TableRow {
   findWorkbenchConnection() {
     return this.find().find(`[data-label="Connected workbenches"]`);
@@ -161,6 +195,10 @@ class ProjectDetails {
     return new DataConnectionRow(() =>
       this.findDataConnectionTable().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
+  }
+
+  findImportPipelineButton() {
+    return cy.findByTestId('import-pipeline-button');
   }
 
   findSingleModelDeployButton() {
@@ -274,6 +312,7 @@ class TrustyAIUninstallModal extends DeleteModal {
 export const projectListPage = new ProjectListPage();
 export const createProjectModal = new CreateEditProjectModal();
 export const editProjectModal = new CreateEditProjectModal(true);
+export const importPipelineModal = new ImportPipelineModal();
 export const deleteProjectModal = new DeleteModal();
 export const projectDetails = new ProjectDetails();
 export const projectDetailsSettingsTab = new ProjectDetailsSettingsTab();
