@@ -1,3 +1,4 @@
+import type { Interception } from 'cypress/types/net-stubbing';
 import { mockGetArtifactTypes } from '~/__mocks__/mlmd/mockGetArtifactTypes';
 import { mockGetArtifactsByContext } from '~/__mocks__/mlmd/mockGetArtifactsByContext';
 import { mockGetContextByTypeAndName } from '~/__mocks__/mlmd/mockGetContextByTypeAndName';
@@ -5,6 +6,7 @@ import { mockGetEventsByExecutionIDs } from '~/__mocks__/mlmd/mockGetEventsByExe
 import { mockGetExecutions, mockGetNoExecutions } from '~/__mocks__/mlmd/mockGetExecutions';
 import { mockGetExecutionsByContext } from '~/__mocks__/mlmd/mockGetExecutionsByContext';
 import { mockGetExecutionsByID } from '~/__mocks__/mlmd/mockGetExecutionsByID';
+import { GetExecutionsRequest } from '~/__mocks__/third_party/mlmd';
 
 export const initMlmdIntercepts = (
   projectName: string,
@@ -46,4 +48,10 @@ export const initMlmdIntercepts = (
     { path: { namespace: projectName, serviceName: 'dspa' } },
     mockGetEventsByExecutionIDs(),
   );
+};
+
+// We remove the first 5 bits of the Uint8Array due to an offset from createGrpcResponse
+export const decodeGetExecutionsRequest = (interception: Interception): GetExecutionsRequest => {
+  const mlmdArr = new Uint8Array(interception.request.body);
+  return GetExecutionsRequest.decode(mlmdArr.slice(5));
 };
