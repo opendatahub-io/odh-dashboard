@@ -5,10 +5,19 @@ import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createR
 import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
-import { PipelineVersionKFv2, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRecurringRunKFv2,
+  PipelineRunKFv2,
+  PipelineVersionKFv2,
+  RuntimeConfigParameters,
+} from '~/concepts/pipelines/kfTypes';
 import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
+import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
+import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, RUN_NAME_CHARACTER_LIMIT, runPageSectionTitles } from './const';
@@ -21,12 +30,42 @@ type RunFormProps = {
 };
 
 const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
+  const { api } = usePipelinesAPI();
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);
   const selectedVersion = data.version || latestVersion;
   const paramsRef = React.useRef(data.params);
   const isSchedule = data.runType.type === RunTypeOption.SCHEDULED;
+  const { name } = data.nameDesc;
+  const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
+
+  const checkForDuplicateName = useDebounceCallback(
+    React.useCallback(
+      async (value: string) => {
+        if (value) {
+          let duplicateRuns: PipelineRunKFv2[] | PipelineRecurringRunKFv2[] | undefined = [];
+
+          if (isSchedule) {
+            const { recurringRuns } = await api.listPipelineRecurringRuns(
+              {},
+              getNameEqualsFilter(value),
+            );
+            duplicateRuns = recurringRuns;
+          } else {
+            const { runs } = await api.listPipelineActiveRuns({}, getNameEqualsFilter(value));
+            duplicateRuns = runs;
+          }
+
+          if (duplicateRuns?.length) {
+            setHasDuplicateName(true);
+          }
+        }
+      },
+      [api, isSchedule],
+    ),
+    500,
+  );
 
   const updateInputParams = React.useCallback(
     (version: PipelineVersionKFv2 | undefined) =>
@@ -75,6 +114,11 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
           data={data.nameDesc}
           setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
           maxLength={RUN_NAME_CHARACTER_LIMIT}
+          onNameChange={(value) => {
+            setHasDuplicateName(false);
+            checkForDuplicateName(value);
+          }}
+          nameHelperText={hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
         />
 
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (

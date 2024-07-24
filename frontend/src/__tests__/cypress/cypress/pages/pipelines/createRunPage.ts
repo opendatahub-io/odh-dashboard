@@ -144,11 +144,11 @@ export class CreateRunPage {
   }
 
   fillName(value: string): void {
-    this.findNameInput().type(value);
+    this.findNameInput().clear().type(value);
   }
 
   fillDescription(value: string): void {
-    this.findDescriptionInput().type(value);
+    this.findDescriptionInput().clear().type(value);
   }
 
   selectExperimentByName(name: string): void {
