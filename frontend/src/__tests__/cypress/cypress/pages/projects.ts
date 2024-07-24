@@ -20,10 +20,6 @@ class NotebookRow extends TableRow {
 }
 
 class ProjectRow extends TableRow {
-  shouldHaveProjectIcon() {
-    return this.find().findByTestId('ds-project-image').should('exist');
-  }
-
   findEnableSwitch() {
     return this.find().pfSwitch('notebook-status-switch');
   }
