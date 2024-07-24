@@ -1,4 +1,4 @@
-import { createSecret, assembleSecret } from '~/api';
+import { createSecret, assembleSecret, deleteSecret } from '~/api';
 import { DSPipelineKind } from '~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
@@ -81,7 +81,13 @@ const createSecrets = (config: PipelineServerConfigType, projectName: string) =>
   new Promise<SecretsResponse>((resolve, reject) => {
     Promise.all([
       createDatabaseSecret(config.database, projectName, true),
-      createObjectStorageSecret(config.objectStorage, projectName, true),
+      createObjectStorageSecret(config.objectStorage, projectName, true).catch((e) => {
+        if (e.statusObject.code === 409 && e.statusObject.reason === 'AlreadyExists') {
+          deleteSecret(projectName, DSPA_SECRET_NAME);
+        } else {
+          throw e;
+        }
+      }),
     ])
       .then(() => {
         Promise.all([
