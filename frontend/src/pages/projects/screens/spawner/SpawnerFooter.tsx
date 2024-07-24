@@ -174,6 +174,11 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           return;
         }
 
+        const annotations = { ...editNotebook.metadata.annotations };
+        if (envFrom.length > 0) {
+          annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
+        }
+
         const { volumes, volumeMounts } = pvcDetails;
         const newStartNotebookData = {
           ...startNotebookData,
@@ -182,7 +187,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           envFrom,
           tolerationSettings,
         };
-        return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
+        return updateNotebook(
+          { ...editNotebook, metadata: { ...editNotebook.metadata, annotations } },
+          newStartNotebookData,
+          username,
+          { dryRun },
+        );
       };
 
       updateNotebookPromise(true)
