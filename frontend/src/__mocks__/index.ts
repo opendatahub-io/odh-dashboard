@@ -13,3 +13,5 @@ export * from './mockDscStatus';
 export * from './mockNotebookK8sResource';
 export * from './mockPipelineKF';
 export * from './mockSecretK8sResource';
+export * from './mockGoogleRpcStatusKF';
+export * from './mockK8sStatus';

@@ -5,11 +5,12 @@ import {
   mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
+  mockDataSciencePipelineApplicationK8sResource,
+  mockK8sResourceList,
+  mock404Error,
+  buildMockPipelineV2,
+  buildMockPipelines,
 } from '~/__mocks__';
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock404Error } from '~/__mocks__/mockK8sStatus';
-import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import {
   pipelinesTable,
   configurePipelineServerModal,
