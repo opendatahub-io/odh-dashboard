@@ -23,41 +23,38 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { useParams } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import useRegisterModelData from './useRegisterModelData';
+import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { useAppSelector } from '~/redux/hooks';
+import { useRegisterModelData, ModelLocationType } from './useRegisterModelData';
+import { registerModel } from './utils';
 
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
-  const [
-    {
-      modelRegistryName,
-      modelName,
-      modelDescription,
-      versionName,
-      versionDescription,
-      sourceModelFormat,
-      modelLocationType,
-      modelLocationEndpoint,
-      modelLocationBucket,
-      modelLocationRegion,
-      modelLocationPath,
-      modelLocationURI,
-    },
-    setData,
-    resetData,
-  ] = useRegisterModelData(mrName);
+  const navigate = useNavigate();
+  const [formData, setData] = useRegisterModelData();
+  const {
+    modelName,
+    modelDescription,
+    versionName,
+    versionDescription,
+    sourceModelFormat,
+    modelLocationType,
+    modelLocationEndpoint,
+    modelLocationBucket,
+    modelLocationRegion,
+    modelLocationPath,
+    modelLocationURI,
+  } = formData;
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
-  enum ModelLocationType {
-    ObjectStorage = 'Object storage',
-    URI = 'URI',
-  }
+  const { apiState } = React.useContext(ModelRegistryContext);
+  const author = useAppSelector((state) => state.user || '');
 
   const isSubmitDisabled =
-    !modelRegistryName ||
     !modelName ||
     !versionName ||
     loading ||
@@ -68,23 +65,15 @@ const RegisterModel: React.FC = () => {
   const handleSubmit = () => {
     setIsLoading(true);
     setError(undefined);
-    //TODO: implement submit calls/logic. remove console log and alert
-    alert('This functionality is not yet implemented');
-    /* eslint-disable-next-line no-console */
-    console.log({
-      modelRegistryName,
-      modelName,
-      modelDescription,
-      versionName,
-      versionDescription,
-      sourceModelFormat,
-      modelLocationType,
-      modelLocationEndpoint,
-      modelLocationBucket,
-      modelLocationRegion,
-      modelLocationPath,
-      modelLocationURI,
-    });
+
+    registerModel(apiState, formData, author)
+      .then(({ registeredModel }) => {
+        navigate(`/modelRegistry/${mrName}/registeredModels/${registeredModel.id}`);
+      })
+      .catch((e: Error) => {
+        setIsLoading(false);
+        setError(e);
+      });
   };
 
   return (
@@ -94,11 +83,7 @@ const RegisterModel: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/modelRegistry">Model registry</Link>} />
-          <BreadcrumbItem
-            render={() => (
-              <Link to={`/modelRegistry/${modelRegistryName}`}>{modelRegistryName}</Link>
-            )}
-          />
+          <BreadcrumbItem render={() => <Link to={`/modelRegistry/${mrName}`}>{mrName}</Link>} />
           <BreadcrumbItem>Register model</BreadcrumbItem>
         </Breadcrumb>
       }
@@ -116,7 +101,7 @@ const RegisterModel: React.FC = () => {
                 type="text"
                 id="mr-name"
                 name="mr-name"
-                value={modelRegistryName}
+                value={mrName}
               />
             </FormGroup>
           </StackItem>
@@ -321,7 +306,7 @@ const RegisterModel: React.FC = () => {
                 isDisabled={loading}
                 variant="link"
                 id="cancel-button"
-                onClick={() => resetData()}
+                onClick={() => navigate(`/modelRegistry/${mrName}`)}
               >
                 Cancel
               </Button>

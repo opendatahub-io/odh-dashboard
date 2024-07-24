@@ -119,6 +119,7 @@ describe('createModelArtifact', () => {
         modelFormatVersion: 'testmodelFormatVersion',
         serviceAccountName: 'testserviceAccountname',
         customProperties: {},
+        artifactType: 'model-artifact',
       }),
     ).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
