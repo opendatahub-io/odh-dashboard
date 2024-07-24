@@ -3,7 +3,7 @@ import path from 'path';
 import { env } from 'process';
 import dotenv from 'dotenv';
 import YAML from 'yaml';
-import type { UserAuthConfig, TestConfig , AWSS3Bucket } from '~/__tests__/cypress/cypress/types';
+import type { UserAuthConfig, TestConfig, AWSS3Bucket } from '~/__tests__/cypress/cypress/types';
 
 [
   `.env.cypress${env.CY_MOCK ? '.mock' : ''}.local`,
@@ -46,7 +46,7 @@ const AWS_PIPELINES_BUCKET: AWSS3Bucket = testConfig?.AWS_PIPELINES_BUCKET ?? {
 export const cypressEnv = {
   TEST_USER,
   ADMIN_USER,
-  AWS_PIPELINES_BUCKET
+  AWS_PIPELINES_BUCKET,
 };
 
 // re-export the updated process env

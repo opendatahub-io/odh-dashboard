@@ -94,21 +94,23 @@ class RunDetails extends PipelinesTopology {
     return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
 
-  private getStatusLabel(){
-    return cy.get('h1[data-testid="app-page-title"] .pf-v5-l-split__item:last-child .pf-v5-c-label__text');
+  private getStatusLabel() {
+    return cy.get(
+      'h1[data-testid="app-page-title"] .pf-v5-l-split__item:last-child .pf-v5-c-label__text',
+    );
   }
 
   expectStatusLabelToBe(statusValue: string) {
-      this.getStatusLabel().then(($status) => {
-        const statusText = $status.text().trim();
-        // Check if the status is "Pending" or "Running"
-        if (statusText === 'Pending' || statusText === 'Running') {
-          cy.wait(5000);
-          this.expectStatusLabelToBe(statusValue);
-        } else {
-          expect(statusText).to.equal(statusValue);
-        }
-      });
+    this.getStatusLabel().then(($status) => {
+      const statusText = $status.text().trim();
+      // Check if the status is "Pending" or "Running"
+      if (statusText === 'Pending' || statusText === 'Running') {
+        cy.wait(5000);
+        this.expectStatusLabelToBe(statusValue);
+      } else {
+        expect(statusText).to.equal(statusValue);
+      }
+    });
   }
 
   findRightDrawer() {

@@ -170,7 +170,7 @@ class ProjectDetails {
       this.findDataConnectionTable().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
   }
-  
+
   findImportPipelineButton(timeout = 4000) {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }

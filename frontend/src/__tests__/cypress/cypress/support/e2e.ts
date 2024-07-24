@@ -30,8 +30,8 @@ Cypress.Keyboard.defaults({
 
 before(() => {
   // disable Cypress's default behavior of logging all XMLHttpRequests and fetches
-  cy.intercept({ resourceType: /xhr|fetch/ }, { log: false })
-})
+  cy.intercept({ resourceType: /xhr|fetch/ }, { log: false });
+});
 
 beforeEach(() => {
   if (Cypress.env('MOCK')) {
