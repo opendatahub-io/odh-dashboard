@@ -15,6 +15,9 @@ import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
+import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelineUploadOption, generatePipelineVersionName } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 
@@ -30,6 +33,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
   const [
     { name, description, pipeline, fileContents, uploadOption, pipelineUrl },
     setData,
@@ -55,6 +59,26 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     setError(undefined);
     resetData();
   };
+
+  const checkForDuplicateName = useDebounceCallback(
+    React.useCallback(
+      async (value: string) => {
+        if (pipeline?.pipeline_id && value) {
+          const { pipeline_versions: duplicateVersions } = await api.listPipelineVersions(
+            {},
+            pipeline.pipeline_id,
+            getNameEqualsFilter(value),
+          );
+
+          if (duplicateVersions?.length) {
+            setHasDuplicateName(true);
+          }
+        }
+      },
+      [api, pipeline?.pipeline_id],
+    ),
+    500,
+  );
 
   const onSubmit = () => {
     setImporting(true);
@@ -136,8 +160,14 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
                 id="pipeline-version-name"
                 name="pipeline-version-name"
                 value={name}
-                onChange={(e, value) => setData('name', value)}
+                onChange={(_e, value) => {
+                  setHasDuplicateName(false);
+                  setData('name', value);
+                  checkForDuplicateName(value);
+                }}
               />
+
+              {hasDuplicateName && <DuplicateNameHelperText name={name} />}
             </FormGroup>
           </StackItem>
           <StackItem>
@@ -149,7 +179,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
                 data-testid="pipeline-version-description"
                 name="pipeline-version-description"
                 value={description}
-                onChange={(e, value) => setData('description', value)}
+                onChange={(_e, value) => setData('description', value)}
               />
             </FormGroup>
           </StackItem>

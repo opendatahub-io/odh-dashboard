@@ -138,6 +138,8 @@ describe('Pipeline create runs', () => {
       createRunPage.find();
 
       // Fill out the form without a schedule and submit
+      createRunPage.fillName(initialMockRuns[0].display_name);
+      cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
       createRunPage.fillDescription('New run description');
       createRunPage.findExperimentSelect().should('contain.text', 'Select an experiment');
@@ -554,6 +556,8 @@ describe('Pipeline create runs', () => {
       createSchedulePage.find();
 
       // Fill out the form with a schedule and submit
+      createRunPage.fillName(initialMockRecurringRuns[0].display_name);
+      cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createSchedulePage.fillName('New recurring run');
       createSchedulePage.fillDescription('New recurring run description');
       createSchedulePage.findExperimentSelect().should('contain.text', 'Default');

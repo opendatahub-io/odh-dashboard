@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { type PipelineKFv2, type PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
@@ -217,21 +217,55 @@ class PipelinesTable {
     );
   }
 
-  mockGetPipelines(pipelines: PipelineKFv2[], namespace: string) {
+  mockGetPipelines(pipelines: PipelineKFv2[], namespace: string, times?: number) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
         path: { namespace, serviceName: 'dspa' },
+        times,
       },
-      buildMockPipelines(pipelines),
+      (req) => {
+        const { filter } = req.query;
+        const predicates = filter ? JSON.parse(filter.toString())?.predicates : [];
+        const filterName = predicates?.[0]?.string_value;
+
+        if (!filterName) {
+          req.reply(buildMockPipelines(pipelines));
+        } else {
+          req.reply(
+            buildMockPipelines(
+              pipelines.filter((pipeline) => pipeline.display_name === filterName),
+            ),
+          );
+        }
+      },
     );
   }
 
-  mockGetPipelineVersions(versions: PipelineVersionKFv2[], pipelineId: string, namespace: string) {
+  mockGetPipelineVersions(
+    versions: PipelineVersionKFv2[],
+    pipelineId: string,
+    namespace: string,
+    times?: number,
+  ) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
-      { path: { namespace, serviceName: 'dspa', pipelineId } },
-      buildMockPipelineVersionsV2(versions),
+      { path: { namespace, serviceName: 'dspa', pipelineId }, times },
+      (req) => {
+        const { filter } = req.query;
+        const predicates = filter ? JSON.parse(filter.toString())?.predicates : [];
+        const filterName = predicates?.[0]?.string_value;
+
+        if (!filterName) {
+          req.reply(buildMockPipelineVersionsV2(versions));
+        } else {
+          req.reply(
+            buildMockPipelineVersionsV2(
+              versions.filter((version) => version.display_name === filterName),
+            ),
+          );
+        }
+      },
     );
   }
 }
