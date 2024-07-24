@@ -30,6 +30,7 @@ import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { asEnumMember } from '~/utilities/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import useDefaultExperiment from '~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
@@ -64,6 +65,7 @@ const RunPage: React.FC<RunPageProps> = ({
   const isSchedule = runType === RunTypeOption.SCHEDULED;
 
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const [defaultExperiment] = useDefaultExperiment();
 
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
@@ -94,7 +96,7 @@ const RunPage: React.FC<RunPageProps> = ({
     runType: runTypeData,
     pipeline: locationPipeline || contextPipeline,
     version: locationVersion || contextPipelineVersion,
-    experiment: locationExperiment || contextExperiment,
+    experiment: locationExperiment || contextExperiment || defaultExperiment,
   });
 
   const onValueChange = React.useCallback(

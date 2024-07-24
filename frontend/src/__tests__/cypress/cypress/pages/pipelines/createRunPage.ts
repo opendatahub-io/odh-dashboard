@@ -1,12 +1,12 @@
 /* eslint-disable camelcase */
-import type {
-  ExperimentKFv2,
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+import {
+  type ExperimentKFv2,
+  type PipelineKFv2,
+  type PipelineRecurringRunKFv2,
+  type PipelineRunKFv2,
+  type PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
-import { buildMockExperiments, buildMockRunKF } from '~/__mocks__';
+import { buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
@@ -159,13 +159,58 @@ export class CreateRunPage {
     cy.findByTestId('pipeline-selector-table-list').find('td').contains(name).click();
   }
 
-  mockGetExperiments(namespace: string, experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
+  mockGetExperiments(namespace: string, experiments: ExperimentKFv2[]): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
         path: { namespace, serviceName: 'dspa' },
       },
-      buildMockExperiments(experiments),
+      (req) => {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { filter, sort_by, page_size } = req.query;
+        let results = experiments;
+        if (sort_by) {
+          const fields = sort_by.toString().split(' ');
+          const sortField = fields[0];
+          const sortDirection = fields[1];
+          // more fields to be added
+          if (sortField === 'created_at') {
+            if (sortDirection === 'desc') {
+              results = results.toSorted(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+              );
+            } else {
+              results = results.toSorted(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+              );
+            }
+          }
+        }
+        if (filter) {
+          const { predicates } = JSON.parse(filter.toString());
+
+          if (predicates.length > 0) {
+            predicates.forEach((predicate: { key: string; string_value: string }) => {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              const { key, string_value } = predicate;
+              if (key === 'storage_state') {
+                results = results.filter((experiment) => experiment.storage_state === string_value);
+              }
+              if (key === 'name') {
+                results = results.filter((experiment) =>
+                  experiment.display_name.includes(string_value),
+                );
+              }
+            });
+          }
+        }
+
+        if (page_size) {
+          results = results.slice(0, Number(page_size));
+        }
+
+        req.reply({ experiments: results, total_size: results.length });
+      },
     );
   }
 
