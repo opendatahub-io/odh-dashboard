@@ -598,6 +598,10 @@ describe('pipeline topology parseUtils', () => {
                         producerTask: 'test-task-1',
                       },
                     },
+                    {
+                      mountPath: 'path-2',
+                      constant: 'test-constant-value',
+                    },
                   ],
                 },
               },
@@ -606,7 +610,10 @@ describe('pipeline topology parseUtils', () => {
         },
       };
       const result = parseVolumeMounts(testPlatformSpec, testExecutorLabel);
-      expect(result).toEqual([{ mountPath: 'path-1', name: 'test-task-1' }]);
+      expect(result).toEqual([
+        { mountPath: 'path-1', name: 'test-task-1' },
+        { mountPath: 'path-2', name: 'test-constant-value' },
+      ]);
     });
   });
 });

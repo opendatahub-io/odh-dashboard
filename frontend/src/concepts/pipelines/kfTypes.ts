@@ -293,6 +293,7 @@ export type PipelineExecutorKF = {
   };
   pvcMount?: {
     mountPath: string;
+    constant?: string;
     taskOutputParameter?: {
       outputParameterKey: string;
       producerTask: string;
