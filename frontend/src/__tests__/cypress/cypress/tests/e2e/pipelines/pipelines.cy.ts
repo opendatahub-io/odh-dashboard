@@ -3,13 +3,10 @@ import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yam
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_PIPELINES_BUCKET } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
 import { pipelinesGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesGlobal';
-import { pipelinesSection } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
 import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesTable';
-import { pipelineRunFilterBar } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineFilterBar';
 import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
 import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
 
@@ -20,13 +17,13 @@ const testPipelineName = 'test-pipelines-pipeline';
 const testRunName = 'test-pipelines-run';
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
+  
   before(() => {
     // Provision a Project
     createOpenShiftProject(projectName).then((result) => {
       expect(result.code).to.eq(0, `ERROR provisioning ${projectName} Project
                                     stdout: ${result.stdout}
                                     stderr: ${result.stderr}`);
-    
     })
     
     // Create a pipeline compatible Data Connection
@@ -157,6 +154,5 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
     //Redirected to the Graph view of the created run
     pipelineRunDetails.expectStatusLabelToBe('Succeeded');
-
   });
 });

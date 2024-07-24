@@ -11,18 +11,6 @@ export const applyOpenShiftYaml = (yamlContent: string, tempFilePath: string) =>
     const ocCommand = `oc apply -f ${tempFilePath}`;
   
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    //   cy.log('Command Output:', result.stdout);
-    //   cy.log('Command Error:', result.stderr);
-  
-    //   // Clean up the temporary file
-    //   cy.task('deleteFile', tempFilePath);
-  
-    //   if (result.code === 0) {
-    //     cy.log(`YAML content applied successfully.`);
-    //   } else {
-    //     cy.log(`Failed to apply YAML content.`);
-    //   }
-  
       return result;
     });
   };
@@ -58,57 +46,3 @@ export const deleteOpenShiftProject = (projectName: string) => {
     return result;
   });
 };
-
-
-
-
-// /**
-//  * Create an Openshift Project
-//  * 
-//  * @param projectName Project Name
-//  * @param displayName Project Display Name
-//  * @returns Result Object of the operation
-//  */
-// export const createOpenShiftProject = (projectName: string, displayName?: string) => {
-  
-//     const finalDisplayName = displayName || projectName;  
-//     const ocCommand = `oc new-project ${projectName} --display-name='${finalDisplayName}'`;
-  
-//     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-  
-//       cy.log('Command Output:', result.stdout);
-//       cy.log('Command Error:', result.stderr);
-          
-//       if (result.code === 0) {
-//         cy.log(`Project ${projectName} created successfully.`);
-//       } else {
-//         cy.log(`Failed to create project ${projectName}.`);
-//       }
-//       return result;
-//     });
-//   };
-  
-  
-//   /**
-//    * Delete an Openshift Project given its name
-//    * 
-//    * @param projectName OpenShift Project name
-//    * @returns Result Object of the operation
-//    */
-//   export const deleteOpenShiftProject = (projectName: string) => {
-//     const ocCommand = `oc delete project ${projectName}`;
-    
-//     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-//       cy.log('Command Output:', result.stdout);
-//       cy.log('Command Error:', result.stderr);
-    
-//       if (result.code === 0) {
-//         cy.log(`Project ${projectName} deleted successfully.`);
-//       } else {
-//         cy.log(`Failed to delete project ${projectName}.`);
-//       }
-    
-//       return result;
-//     });
-//   };
-    
