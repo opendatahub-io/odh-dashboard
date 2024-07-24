@@ -1,9 +1,15 @@
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class PipelinesGlobal {
   visit(projectName: string) {
     cy.visitWithLogin(`/pipelines/${projectName}`);
+    this.wait();
+  }
+
+  navigate() {
+    appChrome.findNavItem('Data Science Pipelines').click();
     this.wait();
   }
 
@@ -38,7 +44,7 @@ class PipelinesGlobal {
     return cy.findByRole('menuitem').get('span').contains('Upload new version');
   }
 
-  private findProjectSelect() {
+  findProjectSelect() {
     return cy.findByTestId('project-selector-dropdown');
   }
 

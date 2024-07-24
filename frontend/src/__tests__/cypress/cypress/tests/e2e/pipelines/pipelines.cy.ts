@@ -4,11 +4,20 @@ import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_PIPELINES_BUCKET } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
-import { projectListPage, projectDetails, importPipelineModal } from '~/__tests__/cypress/cypress/pages/projects';
-
+import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
+import { pipelinesGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesGlobal';
+import { pipelinesSection } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
+import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesTable';
+import { pipelineRunFilterBar } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineFilterBar';
+import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
+import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
+const allAvailableProjectsText = 'All available projects';
+const testPipelineName = 'test-pipelines-pipeline';
+const testRunName = 'test-pipelines-run';
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
@@ -57,7 +66,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     });
 
     // Configure Pipeline server: Create DSPA
-    // TODO: Waint the DSPA to be completely deployed and running
     const dspaReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
@@ -88,64 +96,67 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     // Login as an admin
     cy.visitWithLogin('/', ADMIN_USER);
     cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
-    projectDetails.visit(projectName);
-    projectDetails.findImportPipelineButton().click();
-    importPipelineModal.findNameInput().type("test-pipelines-pipeline");
-    importPipelineModal.findDescriptionInput().type("test-pipelines-pipeline Description");
-    importPipelineModal.findImportByURLRadio().click();
-    importPipelineModal.findURLInput().type("https://raw.githubusercontent.com/red-hat-data-services/ods-ci/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/flip_coin_compiled.yaml");
-    importPipelineModal.findCancelButton().click();
+    
+    /** 
+     * Import Pipeline by URL from Project Details view
+    */
+    projectListPage.navigate()
 
-    // projectListPage.visit()
-    // projectListPage.findCreateProjectButton().click()
-    // cy.visitWithLogin('/', ADMIN_USER);
-    // cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
+    // Check if "All available projects" is selected in the DS Projects view
+    projectListPage.findProjectsTypeDropdown()
+      .invoke('text') 
+      .then((text) => {
+        if (!text.includes(allAvailableProjectsText)) {
+          projectListPage.findProjectsTypeDropdown().click()
+          projectListPage.findProjectsTypeDropdownByText(allAvailableProjectsText).click()
+        }
+      });
+    
+    // Open the project  
+    projectListPage.findProjectLink(projectName).click()
+    
+    // Increasing the timeout to ~2mins so the DSPA can be loaded
+    projectDetails.findImportPipelineButton(120000).click();
 
+    // Fill tue Import Pipeline modal
+    pipelineImportModal.findPipelineNameInput().type(testPipelineName);
+    pipelineImportModal.findPipelineDescriptionInput().type("Pipeline Description");
+    pipelineImportModal.findImportPipelineRadio().click();
+    pipelineImportModal.findPipelineUrlInput().type("https://raw.githubusercontent.com/red-hat-data-services/ods-ci/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/flip_coin_compiled.yaml");
+    // pipelineImportModal.findCancelButton().click();
+    pipelineImportModal.submit();
+
+    /** 
+     * Run the Pipeline from Data Science Pipelines view
+    */
+    //Navigate to Data Science Pipelines
+    pipelinesGlobal.navigate()  
+
+    //check the selected project is projectName
+    pipelinesGlobal.findProjectSelect()
+      .invoke('text') 
+      .then((text) => {
+        if (!text.includes(projectName)) {
+          pipelinesGlobal.selectProjectByName(projectName)
+        }
+    });
+
+    // Expand the pipeline row
+    pipelinesTable.expandRowByPipelineName(testPipelineName)
+
+    // Open the create run View using the 'Create run' option from the version kebab
+    pipelinesTable.findPipelineVersionRowByVersionName(testPipelineName, testPipelineName).findKebab().click();
+    pipelinesTable.findPipelineVersionRowByVersionName(testPipelineName, testPipelineName).findKebabAction('Create run').click();
+
+    //Fill the Create run fields
+    createRunPage.findExperimentSelect().click();
+    createRunPage.selectExperimentByName('Default');
+    createRunPage.fillName(testRunName);
+    createRunPage.fillDescription('Run Description');
+    createRunPage.findSubmitButton().click();
+
+    //Redirected to the Graph view of the created run
+    pipelineRunDetails.expectStatusLabelToBe('Succeeded');
 
   });
 });
-
-
-
-/**
- * Steps for base test
- * 
- * Before (Provision):
- *  1. Create "test-e2e-pipelines" DS Project if doesn't exist
- *      Name (Mandatory)
- *      Resource Name (Mandatory but can be extracted from the name)
- *      Description
- * oc new-project test-pipelines-prj --display-name 'test-pipelines-prj'
- * 
- * 
- *  2. Create Data Connection if doesn't already exist
- *      Name (Mandatory)
- *      Access Key (Mandatory)
- *      Secret Key (Mandatory)
- *      Endpoint (Mandatory)
- *      Region (Mandatory)
- *      Bucket (Mandatory)
- *  
- *  3. Configure Pipeline Server if it's not already configured
- *      (Using Data Connection)
- * 
- *  TEST:
- *  0. Login as an admin
- *  1. Navigate to "Overview" tab of "test-e2e-pipelines" DS Project
- *  2. Click in "Import pipeline" link
- *  3. Fill "Pipeline name" from "Import pipeline" modal
- *  4. (unrequired) Fill "Pipeline description" from "Import pipeline" modal 
- *  5. Chose "Import by url" in "Import pipeline" modal 
- *  6. Fill with URL (https://raw.githubusercontent.com/red-hat-data-services/ods-ci/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/flip_coin_compiled.yaml) in "Import pipeline" modal 
- *  7. Click "Import pipeline" button  from "Import pipeline" modal 
- *  8. Navigate to "Data Science Pipelines"
- *  9. Click on the kebab button from our created pipeline, and click on Create run
- *  10. Select the experiment "Default"
- *  11. Fill the name
- *  12. (unrequired) Fill the description
- *  13. Click on "Create run" button
- *  14. Wait for the status not to be "Waiting" or "Running" but "Succeeded"
- * 
- * After (Clean-up):
- *  1. Delete"test-e2e-pipelines" DS Project if does exist (Waterfall deletion??)
- */

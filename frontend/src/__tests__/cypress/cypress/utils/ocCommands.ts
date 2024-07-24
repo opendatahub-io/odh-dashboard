@@ -39,8 +39,6 @@ export const createOpenShiftProject = (projectName: string, displayName?: string
   const finalDisplayName = displayName || projectName;  
   const ocCommand = `oc new-project ${projectName} --display-name='${finalDisplayName}'`;
 
-  cy.log(Cypress.env())
-
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     return result;
   });
@@ -60,8 +58,6 @@ export const deleteOpenShiftProject = (projectName: string) => {
     return result;
   });
 };
-  
-
 
 
 
