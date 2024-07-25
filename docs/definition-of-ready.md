@@ -15,7 +15,7 @@ When the elements defined in the Definition of Ready are complete, the product t
 10. UX designs have been reviewed and signed off by stakeholders with no major changes to be expected. These designs need to be in a state where the work can be scoped by the dashboard team, though not necessarily complete. Small details can be worked on as we start allowing the team to discover minor implementation details about the flow during development.
 11. API (REST and CRD) requirements for the feature should be clearly documented and reviewed with one of the advisors on the Dashboard team.
 12. Feature implementation document including API requirements and any high level implementation points that are critical should be created and reviewed by an advisor on the Dashboard team.
-13. Dependencies and backend component apis should be fully ready (including v2 Operator support built-in).  These features could be enabled via DevFlags if needed but should not be installed via scripts or yaml files provided by the backend team.  
+13. Dependencies and backend component APIs should be fully ready (including v2 Operator support built-in).  These features could be enabled via DevFlags if needed but should not be installed via scripts or yaml files provided by the backend team.  
 14. The backend team should provide a demo of how to use the resources for the feature and provide sample data to use for the feature development.
 
 ## Non-functional requirements clear

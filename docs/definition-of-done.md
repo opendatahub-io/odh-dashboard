@@ -15,7 +15,7 @@ When the elements in the Definition of Done are complete, the feature, bug or st
 - All code has been merged to the downstream branch and automated quality gates have successfully passed.
 
 ## Jira status
-- Screenshots of the updated UI should be captured in the jira history/comments (or link to GitHub Pull Request with these screenshots) to illustrate work that was completed.
+- Screenshots of the updated UI should be captured in the Jira history/comments (or link to GitHub Pull Request with these screenshots) to illustrate work that was completed.
 - All related UX stories are closed.
 - Any blocking, dependent or child issues are all closed in Jira.
 - Epic has fix version set, any bugs or stories that do not have an Epic parent have the fix version set.
