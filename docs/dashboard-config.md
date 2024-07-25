@@ -9,7 +9,7 @@ By default the ODH Dashboard comes with a set of core features enabled that are 
 The following are a list of features that are supported, along with there default settings.
 
 | Feature                      | Default | Description                                                                                          |
-|------------------------------|---------|------------------------------------------------------------------------------------------------------|
+| ---------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
 | enablement                   | true    | Enables the ability to enable ISVs to the dashboard                                                  |
 | disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
 | disableSupport               | false   | Disables components related to support.                                                              |
@@ -63,6 +63,7 @@ spec:
     disablePerformanceMetrics: false
     disablePipelineExperiments: true
     disableS3Endpoint: true
+    disableArtifactsAPI: true
     disableDistributedWorkloads: false
 ```
 
@@ -159,6 +160,7 @@ spec:
     disablePerformanceMetrics: false
     disablePipelineExperiments: false
     disableS3Endpoint: true
+    disableArtifactsAPI: true
   notebookController:
     enabled: true
     gpuSetting: autodetect
