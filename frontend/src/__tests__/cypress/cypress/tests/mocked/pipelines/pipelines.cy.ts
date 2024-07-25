@@ -1,13 +1,16 @@
 /* eslint-disable camelcase */
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import {
+  mockDataSciencePipelineApplicationK8sResource,
+  mockK8sResourceList,
+  buildMockPipelineV2,
+  buildMockPipelines,
   buildMockPipelineVersionV2,
   buildMockPipelineVersionsV2,
-} from '~/__mocks__/mockPipelineVersionsProxy';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
+  mockProjectK8sResource,
+  mockRouteK8sResource,
+  mockSecretK8sResource,
+  mockSuccessGoogleRpcStatus,
+} from '~/__mocks__';
 import {
   pipelinesGlobal,
   pipelinesTable,
@@ -26,10 +29,8 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
-import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -560,6 +561,11 @@ describe('Pipelines', () => {
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
     pipelinesTable.mockGetPipelines([initialMockPipeline], projectName);
+    pipelinesTable.mockGetPipelineVersions(
+      [initialMockPipelineVersion],
+      'new-pipeline',
+      projectName,
+    );
 
     // Wait for the pipelines table to load
     pipelinesTable.find();
@@ -601,8 +607,10 @@ describe('Pipelines', () => {
       });
     });
 
-    // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowById(uploadedMockPipeline.pipeline_id).find().should('exist');
+    cy.url().should(
+      'include',
+      `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+    );
   });
 
   it('fails to import a too-large file', () => {
@@ -637,17 +645,16 @@ describe('Pipelines', () => {
       },
     };
     const createdMockPipeline = buildMockPipelineV2(createPipelineAndVersionParams.pipeline);
+    const createdVersion = buildMockPipelineVersionV2(
+      createPipelineAndVersionParams.pipeline_version,
+    );
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal
       .mockCreatePipelineAndVersion(createPipelineAndVersionParams, projectName)
       .as('createPipelineAndVersion');
     pipelinesTable.mockGetPipelines([initialMockPipeline], projectName);
-    pipelinesTable.mockGetPipelineVersions(
-      [buildMockPipelineVersionV2(createPipelineAndVersionParams.pipeline_version)],
-      initialMockPipeline.pipeline_id,
-      projectName,
-    );
+    pipelinesTable.mockGetPipelineVersions([createdVersion], 'new-pipeline', projectName);
 
     // Wait for the pipelines table to load
     pipelinesTable.find();
@@ -669,8 +676,10 @@ describe('Pipelines', () => {
     cy.wait('@createPipelineAndVersion');
     cy.wait('@refreshPipelines');
 
-    // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowById(createdMockPipeline.pipeline_id).find().should('exist');
+    cy.url().should(
+      'include',
+      `/pipelines/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
+    );
   });
 
   it('uploads a new pipeline version', () => {
