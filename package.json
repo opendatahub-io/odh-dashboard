@@ -37,6 +37,7 @@
     "start:backend": "cd ./backend && npm start",
     "start:frontend": "echo \"...available at ./frontend/public\"",
     "test": "run-s test:backend test:frontend",
+    "test:lint": "cd ./frontend && npm run test:lint && cd ../backend && npm run test:lint",
     "test:backend": "cd ./backend && npm run test",
     "test:frontend": "cd ./frontend && npm run test",
     "test:frontend:coverage": "cd ./frontend && npm run test:coverage",
@@ -51,5 +52,22 @@
     "dotenv-expand": "^5.1.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3",
+    "@typescript-eslint/eslint-plugin": "7.1.1",
+    "@typescript-eslint/parser": "7.1.1"
+  },
+  "optionalDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-import-resolver-node": "^0.3.7",
+    "eslint-import-resolver-typescript": "^3.5.3",
+    "eslint-plugin-cypress": "^3.3.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-no-only-tests": "^3.1.0",
+    "eslint-plugin-no-relative-import-paths": "^1.5.2",
+    "eslint-plugin-prettier": "^4.2.1"
   }
 }

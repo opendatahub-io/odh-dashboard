@@ -471,7 +471,7 @@ const getBuildConfigStatus = (
           status: BuildPhase.none,
         };
       }
-      const mostRecent = bcBuilds.sort(compareBuilds).pop();
+      const mostRecent = bcBuilds.toSorted(compareBuilds).pop();
       return {
         name: notebookName,
         status: mostRecent.status.phase,

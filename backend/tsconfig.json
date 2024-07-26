@@ -1,6 +1,6 @@
-
 {
   "compilerOptions": {
+    "rootDir": ".",
     "baseUrl": "./src",
     "module": "commonjs",
     "esModuleInterop": true,
@@ -13,11 +13,10 @@
       "*": [
         "node_modules/*",
       ],
-    }
+    },
+    "lib": ["ES2023.Array"],
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
   "exclude": [
     "node_modules"
   ]
