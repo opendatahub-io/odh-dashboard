@@ -58,6 +58,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     setImporting(false);
     setError(undefined);
     resetData();
+    setHasDuplicateName(false);
   };
 
   const checkForDuplicateName = useDebounceCallback(
