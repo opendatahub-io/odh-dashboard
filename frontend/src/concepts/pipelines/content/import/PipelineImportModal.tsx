@@ -50,6 +50,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
       setImporting(false);
       setError(undefined);
       resetData();
+      setHasDuplicateName(false);
     },
     [onClose, resetData],
   );
