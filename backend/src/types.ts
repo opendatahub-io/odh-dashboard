@@ -38,6 +38,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAcceleratorProfiles: boolean;
       disablePipelineExperiments: boolean;
       disableS3Endpoint: boolean;
+      disableArtifactsAPI: boolean;
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
     };

@@ -1894,7 +1894,7 @@ describe('Serving Runtime List', () => {
   });
 
   describe('Internal service', () => {
-    it('Check internal service is rendered when the model is loaded', () => {
+    it('Check internal service is rendered when the model is loaded in Modelmesh', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
@@ -1944,6 +1944,58 @@ describe('Serving Runtime List', () => {
         modelServingSection.getInferenceServiceRow('Model not loaded');
       notLoadedInferenceServiceRow.findInternalServiceButton().click();
       notLoadedInferenceServiceRow
+        .findInternalServicePopover()
+        .findByText('Could not find any internal service enabled')
+        .should('exist');
+    });
+
+    it('Check internal service is rendered when the model is loaded in Kserve', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            auth: true,
+            route: false,
+          }),
+          mockServingRuntimeK8sResource({
+            name: 'test-model-not-loaded',
+            auth: true,
+            route: false,
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'model-loaded',
+            modelName: 'test-model',
+            displayName: 'Loaded model',
+            isModelMesh: false,
+            kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
+            kserveInternalLabel: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'model-not-loaded',
+            modelName: 'est-model-not-loaded',
+            displayName: 'Model Not loaded',
+            isModelMesh: false,
+            kserveInternalLabel: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Get modal of inference service when is loaded
+      const kserveRowModelLoaded = modelServingSection.getKServeRow('Loaded model');
+      kserveRowModelLoaded.findInternalServiceButton().click();
+      kserveRowModelLoaded.findInternalServicePopover().findByText('url').should('exist');
+
+      // Get modal of inference service when is not loaded
+      const kserveRowModelNotLoaded = modelServingSection.getKServeRow('Model Not loaded');
+      kserveRowModelNotLoaded.findInternalServiceButton().click();
+      kserveRowModelLoaded
         .findInternalServicePopover()
         .findByText('Could not find any internal service enabled')
         .should('exist');

@@ -340,7 +340,7 @@ export const parseVolumeMounts = (
   }
   return executor.pvcMount.map((pvc) => ({
     mountPath: pvc.mountPath,
-    name: pvc.taskOutputParameter?.producerTask ?? '',
+    name: pvc.taskOutputParameter?.producerTask ?? pvc.constant ?? '',
   }));
 };
 

@@ -13,6 +13,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRecurringRunKFv2, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 import { cloneRecurringRunRoute } from '~/routes';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRecurringRunDetailsActionsProps = {
   recurringRun?: PipelineRecurringRunKFv2;
@@ -69,6 +70,7 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
     <Dropdown
       data-testid="pipeline-recurring-run-details-actions"
       onSelect={() => setOpen(false)}
+      menuAppendTo={getDashboardMainContainer}
       toggle={
         <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
           Actions

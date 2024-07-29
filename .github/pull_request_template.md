@@ -1,6 +1,6 @@
 <!--- If this is a non-code change, this template is not required; reference any issues or top-level descriptions as needed -->
 <!--- All code change PRs should relate to an issue, reference it here; see example below -->
-<!--- Closes: #123 -->
+<!--- https://issues.redhat.com/browse/RHOAIENG-123456 -->
 
 ## Description
 <!--- Describe your changes in detail; the what, the why, any findings, etc -->
@@ -28,7 +28,7 @@ Self checklist (all need to be checked):
 If you have UI changes: 
 <!--- You can ignore these if you are doing manifest, backend, internal logic, etc changes; aka non-UI / visual changes -->
 - [ ] Included any necessary screenshots or gifs if it was a UI change.
-- [ ] Included tags to the UX team if it was a UI/UX change (find relevant UX in the [SMEs](https://github.com/opendatahub-io/odh-dashboard/tree/main/docs/smes.md) section).
+- [ ] Included tags to the UX team if it was a UI/UX change.
 
 After the PR is posted & before it merges:
 - [ ] The developer has tested their solution on a cluster by using the image produced by the PR to `main`

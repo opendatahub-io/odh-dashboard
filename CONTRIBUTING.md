@@ -8,6 +8,9 @@ Contributing encompasses repository specific requirements.
 
 To review the ODH requirements, please refer to the [dev setup documentation].
 
+## Definition of Ready
+Before beginning development on an issue, please refer to our [Definition of Ready](/docs/definition-of-ready.md).
+
 ## Writing code
 
 ### Running locally
@@ -219,3 +222,7 @@ npm run make:deploy
 ```
 
 you will deploy all the resources located in the `manifests` folder alongside the image you selected in the previous step.
+
+
+## Definition of Done
+Once the elements defined in the [Definition of Done](/docs/definition-of-done.md) are complete, the feature, bug or story being developed will be considered ready for release.

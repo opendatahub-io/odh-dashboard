@@ -19,7 +19,9 @@ type MockResourceConfigType = {
   maxReplicas?: number;
   lastFailureInfoMessage?: string;
   resources?: ContainerResources;
+  kserveInternalUrl?: string;
   statusPredictor?: Record<string, string>;
+  kserveInternalLabel?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -76,6 +78,8 @@ export const mockInferenceServiceK8sResource = ({
   lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
   resources,
   statusPredictor = undefined,
+  kserveInternalUrl = '',
+  kserveInternalLabel = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -96,6 +100,7 @@ export const mockInferenceServiceK8sResource = ({
     labels: {
       name,
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
     name,
     namespace,
@@ -167,5 +172,10 @@ export const mockInferenceServiceK8sResource = ({
       },
       transitionStatus: '',
     },
+    ...(kserveInternalUrl && {
+      address: {
+        url: kserveInternalUrl,
+      },
+    }),
   },
 });

@@ -60,7 +60,7 @@ async function getAllPipelines(
   if (result.next_page_token) {
     const nextPipelines = await getAllPipelines(
       opts,
-      { pageToken: result.next_page_token },
+      { ...params, pageToken: result.next_page_token },
       listPipelines,
     );
     allPipelines = allPipelines.concat(nextPipelines);

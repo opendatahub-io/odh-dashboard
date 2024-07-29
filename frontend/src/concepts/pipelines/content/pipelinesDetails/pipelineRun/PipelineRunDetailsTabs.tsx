@@ -105,6 +105,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
             eventKey={DetailsTabKey.Spec}
             hidden={activeKey !== DetailsTabKey.Spec}
             style={{ flex: 1 }}
+            className="pf-v5-u-h-100"
             data-testid="pipeline-spec-tab"
           >
             <TabContentBody className="pf-v5-u-h-100" hasPadding>

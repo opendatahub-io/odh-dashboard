@@ -13,6 +13,7 @@ import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipe
 import { cloneRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRunDetailsActionsProps = {
   run?: PipelineRunKFv2 | null;
@@ -55,6 +56,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
     <Dropdown
       data-testid="pipeline-run-details-actions"
       onSelect={() => setOpen(false)}
+      menuAppendTo={getDashboardMainContainer}
       toggle={
         <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
           Actions

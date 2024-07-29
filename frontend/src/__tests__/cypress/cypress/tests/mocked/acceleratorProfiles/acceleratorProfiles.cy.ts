@@ -7,7 +7,7 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
 type HandlersProps = {
