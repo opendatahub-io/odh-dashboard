@@ -1,13 +1,16 @@
 /* eslint-disable camelcase */
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import {
+  mockDataSciencePipelineApplicationK8sResource,
+  mockK8sResourceList,
+  buildMockPipelineV2,
+  buildMockPipelines,
   buildMockPipelineVersionV2,
   buildMockPipelineVersionsV2,
-} from '~/__mocks__/mockPipelineVersionsProxy';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
+  mockProjectK8sResource,
+  mockRouteK8sResource,
+  mockSecretK8sResource,
+  mockSuccessGoogleRpcStatus,
+} from '~/__mocks__';
 import {
   pipelinesGlobal,
   pipelinesTable,
@@ -17,8 +20,8 @@ import {
   configurePipelineServerModal,
   viewPipelineServerModal,
   PipelineSort,
+  pipelineDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   DataSciencePipelineApplicationModel,
@@ -27,10 +30,8 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
-import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -364,8 +365,28 @@ describe('Pipelines', () => {
   });
 
   it('View pipeline server', () => {
-    const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
-    viewPipelineServerDetailsTest(visitPipelineProjects);
+    initIntercepts({});
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({
+        s3Bucket: 'c2RzZA==',
+        namespace: projectName,
+        name: 'aws-connection-test',
+      }),
+    );
+    pipelinesGlobal.visit(projectName);
+
+    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
+    viewPipelineServerModal.findPasswordHiddenButton().click();
+    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
+    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+
+    viewPipelineServerModal.findCloseButton().click();
   });
 
   it('renders the page with pipelines table data', () => {
@@ -523,10 +544,10 @@ describe('Pipelines', () => {
   it('selects a different project', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    verifyRelativeURL('/pipelines/test-project-name');
+    cy.url().should('include', '/pipelines/test-project-name');
 
     pipelinesGlobal.selectProjectByName('Test Project 2');
-    verifyRelativeURL('/pipelines/test-project-name-2');
+    cy.url().should('include', '/pipelines/test-project-name-2');
   });
 
   it('imports a new pipeline', () => {
@@ -540,9 +561,12 @@ describe('Pipelines', () => {
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
-    pipelinesTable
-      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
-      .as('refreshPipelines');
+    pipelinesTable.mockGetPipelines([initialMockPipeline], projectName);
+    pipelinesTable.mockGetPipelineVersions(
+      [initialMockPipelineVersion],
+      'new-pipeline',
+      projectName,
+    );
 
     // Wait for the pipelines table to load
     pipelinesTable.find();
@@ -552,12 +576,25 @@ describe('Pipelines', () => {
 
     // Fill out the "Import pipeline" modal and submit
     pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName(initialMockPipeline.display_name);
+    cy.findByTestId('duplicate-name-help-text').should('be.visible');
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
+    pipelinesTable
+      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
+      .as('refreshPipelines');
+    pipelineDetails.mockGetPipeline(projectName, uploadedMockPipeline).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(
+        uploadedMockPipeline.pipeline_id,
+        initialMockPipelineVersion,
+        projectName,
+      )
+      .as('getPipelineVersion');
     pipelineImportModal.submit();
 
-    // Wait for upload/fetch requests
+    // Wait for pipeline upload
     cy.wait('@uploadPipeline').then((interception) => {
       // Note: contain is used instead of equals as different browser engines will add a different boundary
       // to the body - the aim is to not limit these tests to working with one specific engine.
@@ -573,12 +610,14 @@ describe('Pipelines', () => {
       });
     });
 
-    cy.wait('@refreshPipelines').then((interception) => {
-      expect(interception.request.query).to.eql({ sort_by: 'created_at desc', page_size: '10' });
-    });
+    cy.wait('@refreshPipelines');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
 
-    // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowById(uploadedMockPipeline.pipeline_id).find().should('exist');
+    cy.url().should(
+      'include',
+      `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+    );
   });
 
   it('fails to import a too-large file', () => {
@@ -587,6 +626,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.findImportPipelineButton().click();
 
     pipelineImportModal.shouldBeOpen();
+    pipelinesTable.mockGetPipelines([initialMockPipeline], projectName, 1);
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.findUploadError().should('not.exist');
     pipelineImportModal.findSubmitButton().should('be.disabled');
@@ -600,7 +640,7 @@ describe('Pipelines', () => {
   it('imports a new pipeline by url', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    const createPipelineAndVersionParams = {
+    const uploadPipelineAndVersionParams = {
       pipeline: {
         display_name: 'New pipeline',
       },
@@ -611,20 +651,17 @@ describe('Pipelines', () => {
         },
       },
     };
-    const createdMockPipeline = buildMockPipelineV2(createPipelineAndVersionParams.pipeline);
+    const createdMockPipeline = buildMockPipelineV2(uploadPipelineAndVersionParams.pipeline);
+    const createdVersion = buildMockPipelineVersionV2(
+      uploadPipelineAndVersionParams.pipeline_version,
+    );
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal
-      .mockCreatePipelineAndVersion(createPipelineAndVersionParams, projectName)
-      .as('createPipelineAndVersion');
-    pipelinesTable
-      .mockGetPipelines([initialMockPipeline, createdMockPipeline], projectName)
-      .as('refreshPipelines');
-    pipelinesTable.mockGetPipelineVersions(
-      [buildMockPipelineVersionV2(createPipelineAndVersionParams.pipeline_version)],
-      'new-pipeline',
-      projectName,
-    );
+      .mockCreatePipelineAndVersion(uploadPipelineAndVersionParams, projectName)
+      .as('uploadPipelineAndVersion');
+    pipelinesTable.mockGetPipelines([initialMockPipeline], projectName);
+    pipelinesTable.mockGetPipelineVersions([createdVersion], 'new-pipeline', projectName);
 
     // Wait for the pipelines table to load
     pipelinesTable.find();
@@ -637,14 +674,25 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.findImportPipelineRadio().check();
     pipelineImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
+    pipelinesTable
+      .mockGetPipelines([initialMockPipeline, createdMockPipeline], projectName)
+      .as('refreshPipelines');
+    pipelineDetails.mockGetPipeline(projectName, createdMockPipeline).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(createdMockPipeline.pipeline_id, createdVersion, projectName)
+      .as('getPipelineVersion');
     pipelineImportModal.submit();
 
-    // Wait for upload/fetch requests
-    cy.wait('@createPipelineAndVersion');
+    // Wait for pipeline upload
+    cy.wait('@uploadPipelineAndVersion');
     cy.wait('@refreshPipelines');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
 
-    // Verify the uploaded pipeline is in the table
-    pipelinesTable.getRowById(createdMockPipeline.pipeline_id).find().should('exist');
+    cy.url().should(
+      'include',
+      `/pipelines/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
+    );
   });
 
   it('uploads a new pipeline version', () => {
@@ -668,13 +716,6 @@ describe('Pipelines', () => {
     pipelineVersionImportModal
       .mockUploadVersion(uploadVersionParams, projectName)
       .as('uploadVersion');
-    pipelinesTable
-      .mockGetPipelineVersions(
-        [initialMockPipelineVersion, uploadedMockPipelineVersion],
-        initialMockPipeline.pipeline_id,
-        projectName,
-      )
-      .as('refreshVersions');
 
     // Fill out the "Upload new version" modal and submit
     pipelineVersionImportModal.shouldBeOpen();
@@ -682,6 +723,13 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.fillVersionName('New pipeline version');
     pipelineVersionImportModal.fillVersionDescription('New pipeline version description');
     pipelineVersionImportModal.uploadPipelineYaml(pipelineYamlPath);
+    pipelinesTable
+      .mockGetPipelineVersions(
+        [initialMockPipelineVersion, uploadedMockPipelineVersion],
+        initialMockPipeline.pipeline_id,
+        projectName,
+      )
+      .as('refreshVersions');
     pipelineVersionImportModal.submit();
 
     // Wait for upload/fetch requests
@@ -702,9 +750,8 @@ describe('Pipelines', () => {
     });
 
     cy.wait('@refreshVersions').then((interception) => {
-      expect(interception.request.query).to.eql({
+      expect(interception.request.query).to.include({
         sort_by: 'created_at desc',
-        page_size: '1',
         pipeline_id: 'test-pipeline',
       });
     });
@@ -729,6 +776,7 @@ describe('Pipelines', () => {
         pipeline_url: 'https://example.com/pipeline.yaml',
       },
     };
+
     // Wait for the pipelines table to load
     pipelinesTable.find();
 
@@ -745,7 +793,6 @@ describe('Pipelines', () => {
         projectName,
       )
       .as('refreshVersions');
-
     pipelineVersionImportModal
       .mockCreatePipelineVersion(createPipelineVersionParams, projectName)
       .as('createVersion');
@@ -753,6 +800,14 @@ describe('Pipelines', () => {
     // Fill out the "Upload new version" modal and submit
     pipelineVersionImportModal.shouldBeOpen();
     pipelineVersionImportModal.selectPipelineByName('Test pipeline');
+    pipelinesTable.mockGetPipelineVersions(
+      [initialMockPipelineVersion],
+      initialMockPipeline.pipeline_id,
+      projectName,
+      2,
+    );
+    pipelineVersionImportModal.fillVersionName(initialMockPipelineVersion.display_name);
+    cy.findByTestId('duplicate-name-help-text').should('be.visible');
     pipelineVersionImportModal.fillVersionName('New pipeline version');
     pipelineVersionImportModal.findImportPipelineRadio().check();
     pipelineVersionImportModal.findPipelineUrlInput().type('https://example.com/pipeline.yaml');
@@ -852,7 +907,6 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
-    // Wait for the pipelines table to load
     pipelinesTable.find();
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findExpandButton().click();
@@ -861,7 +915,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findPipelineVersionLink()
       .click();
-    verifyRelativeURL(
+
+    cy.url().should(
+      'include',
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -874,7 +930,8 @@ describe('Pipelines', () => {
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
 
-    verifyRelativeURL(
+    cy.url().should(
+      'include',
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -956,13 +1013,25 @@ describe('Pipelines', () => {
   });
 
   it('navigate to create run page from pipeline row', () => {
-    const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
-    runCreateRunPageNavTest(visitPipelineProjects);
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    pipelinesTable.find();
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Create run')
+      .click();
+
+    cy.url().should(
+      'include',
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
+    );
   });
 
   it('run and schedule dropdown action should be disabeld when pipeline has no versions', () => {
     initIntercepts({ hasNoPipelineVersions: true });
     pipelinesGlobal.visit(projectName);
+
     pipelinesTable
       .getRowById(initialMockPipeline.pipeline_id)
       .findKebabAction('Create schedule')
@@ -974,23 +1043,36 @@ describe('Pipelines', () => {
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
-    const visitPipelineProjects = () => pipelinesGlobal.visit(projectName);
-    runScheduleRunPageNavTest(visitPipelineProjects);
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    pipelinesTable.find();
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Create schedule')
+      .click();
+
+    cy.url().should(
+      'include',
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
+    );
   });
 
   it('navigate to create run page from pipeline version row', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
-    // Wait for the pipelines table to load
     pipelinesTable.find();
+
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findExpandButton().click();
     pipelineRow
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('Create run')
       .click();
-    verifyRelativeURL(
+
+    cy.url().should(
+      'include',
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
     );
   });
@@ -1007,7 +1089,8 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    verifyRelativeURL(
+    cy.url().should(
+      'include',
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
     );
   });
@@ -1016,15 +1099,17 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
-    // Wait for the pipelines table to load
     pipelinesTable.find();
+
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findExpandButton().click();
     pipelineRow
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('View runs')
       .click();
-    verifyRelativeURL(
+
+    cy.url().should(
+      'include',
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs`,
     );
   });
@@ -1040,7 +1125,9 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
       .findKebabAction('View schedules')
       .click();
-    verifyRelativeURL(
+
+    cy.url().should(
+      'include',
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules`,
     );
   });
@@ -1083,9 +1170,8 @@ describe('Pipelines', () => {
     pagination.findNextButton().click();
 
     cy.wait('@refreshPipelines').then((interception) => {
-      expect(interception.request.query).to.eql({
+      expect(interception.request.query).to.include({
         sort_by: 'created_at desc',
-        page_size: '10',
         page_token: 'page-2-token',
       });
     });
@@ -1136,7 +1222,7 @@ type HandlersProps = {
   nextPageToken?: string | undefined;
 };
 
-export const initIntercepts = ({
+const initIntercepts = ({
   isEmpty = false,
   mockPipelines = [initialMockPipeline],
   hasNoPipelineVersions = false,
@@ -1234,63 +1320,3 @@ const createDeletePipelineIntercept = (pipelineId: string) =>
     },
     mockSuccessGoogleRpcStatus({}),
   );
-
-export const runCreateRunPageNavTest = (visitPipelineProjects: () => void): void => {
-  initIntercepts({});
-  visitPipelineProjects();
-
-  // Wait for the pipelines table to load
-  pipelinesTable.find();
-  pipelinesTable.getRowById(initialMockPipeline.pipeline_id).findKebabAction('Create run').click();
-  verifyRelativeURL(
-    `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-  );
-};
-
-export const runScheduleRunPageNavTest = (visitPipelineProjects: () => void): void => {
-  initIntercepts({});
-  visitPipelineProjects();
-
-  pipelinesTable.find();
-  pipelinesTable
-    .getRowById(initialMockPipeline.pipeline_id)
-    .findKebabAction('Create schedule')
-    .click();
-
-  verifyRelativeURL(
-    `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-  );
-};
-
-export const viewPipelineServerDetailsTest = (visitPipelineProjects: () => void): void => {
-  initIntercepts({});
-  cy.interceptK8s(
-    {
-      model: SecretModel,
-      ns: projectName,
-    },
-    mockSecretK8sResource({
-      s3Bucket: 'c2RzZA==',
-      namespace: projectName,
-      name: 'aws-connection-test',
-    }),
-  );
-  visitPipelineProjects();
-  viewPipelineDetails();
-};
-
-const viewPipelineDetails = (
-  accessKey = 'sdsd',
-  secretKey = 'sdsd',
-  endpoint = 'https://s3.amazonaws.com',
-  bucketName = 'test-pipelines-bucket',
-) => {
-  pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-  viewPipelineServerModal.shouldHaveAccessKey(accessKey);
-  viewPipelineServerModal.findPasswordHiddenButton().click();
-  viewPipelineServerModal.shouldHaveSecretKey(secretKey);
-  viewPipelineServerModal.shouldHaveEndPoint(endpoint);
-  viewPipelineServerModal.shouldHaveBucketName(bucketName);
-
-  viewPipelineServerModal.findCloseButton().click();
-};

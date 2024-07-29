@@ -1,6 +1,10 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
-import type { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type {
+  PipelineKFv2,
+  PipelineRecurringRunKFv2,
+  PipelineVersionKFv2,
+} from '~/concepts/pipelines/kfTypes';
 
 class TaskDrawer extends Contextual<HTMLElement> {
   findInputArtifacts() {
@@ -197,6 +201,29 @@ class PipelineDetails extends PipelinesTopology {
   selectActionDropdownItem(label: string) {
     this.findActionsDropdown().click();
     cy.findByRole('menuitem', { name: label }).click();
+  }
+
+  mockGetPipeline(namespace: string, pipeline: PipelineKFv2): Cypress.Chainable<null> {
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+      { path: { namespace, serviceName: 'dspa', pipelineId: pipeline.pipeline_id } },
+      pipeline,
+    );
+  }
+
+  mockGetPipelineVersion(pipelineId: string, version: PipelineVersionKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+      {
+        path: {
+          namespace,
+          pipelineId,
+          serviceName: 'dspa',
+          pipelineVersionId: version.pipeline_version_id,
+        },
+      },
+      version,
+    );
   }
 }
 

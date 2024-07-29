@@ -389,7 +389,10 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions`,
-          options: { path: { namespace: string; serviceName: string; pipelineId: string } },
+          options: {
+            path: { namespace: string; serviceName: string; pipelineId: string };
+            times?: number;
+          },
           response: OdhResponse<ListPipelineVersionsKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -397,6 +400,7 @@ declare global {
           options: {
             path: { namespace: string; serviceName: string };
             query?: { sort_by: string };
+            times?: number;
           },
           response: OdhResponse<ListPipelinesResponseKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &

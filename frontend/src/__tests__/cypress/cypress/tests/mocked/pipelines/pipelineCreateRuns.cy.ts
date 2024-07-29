@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import type { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
-import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
+import { InputDefinitionParameterType, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import {
   buildMockRunKF,
   buildMockPipelineV2,
@@ -32,10 +32,17 @@ const mockExperiments = [
   buildMockExperimentKF({
     display_name: 'Test experiment 1',
     experiment_id: 'experiment-1',
+    created_at: '2024-01-30T15:46:33Z',
   }),
   buildMockExperimentKF({
     display_name: 'Test experiment 2',
-    experiment_id: 'experiment-1',
+    experiment_id: 'experiment-2',
+  }),
+  buildMockExperimentKF({
+    display_name: 'Default',
+    experiment_id: 'default',
+    storage_state: StorageStateKF.ARCHIVED,
+    created_at: '2024-01-29T15:46:33Z',
   }),
 ];
 const initialMockRuns = [
@@ -131,8 +138,11 @@ describe('Pipeline create runs', () => {
       createRunPage.find();
 
       // Fill out the form without a schedule and submit
+      createRunPage.fillName(initialMockRuns[0].display_name);
+      cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
       createRunPage.fillDescription('New run description');
+      createRunPage.findExperimentSelect().should('contain.text', 'Select an experiment');
       createRunPage.findExperimentSelect().should('not.be.disabled').click();
       createRunPage.selectExperimentByName('Test experiment 1');
       createRunPage.findPipelineSelect().should('not.be.disabled').click();
@@ -486,22 +496,6 @@ describe('Pipeline create runs', () => {
   });
 
   describe('Schedules', () => {
-    beforeEach(() => {
-      mockExperiments.forEach((experiment) => {
-        cy.interceptOdh(
-          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
-          {
-            path: {
-              namespace: projectName,
-              serviceName: 'dspa',
-              experimentId: experiment.experiment_id,
-            },
-          },
-          experiment,
-        );
-      });
-    });
-
     it('switches to scheduled runs from triggered', () => {
       visitLegacyRunsPage();
       pipelineRunsGlobal.findSchedulesTab().click();
@@ -546,6 +540,7 @@ describe('Pipeline create runs', () => {
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      createSchedulePage.mockGetExperiments(projectName, mockExperiments);
       createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
       createSchedulePage.mockGetPipelineVersions(
         projectName,
@@ -561,8 +556,11 @@ describe('Pipeline create runs', () => {
       createSchedulePage.find();
 
       // Fill out the form with a schedule and submit
+      createRunPage.fillName(initialMockRecurringRuns[0].display_name);
+      cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createSchedulePage.fillName('New recurring run');
       createSchedulePage.fillDescription('New recurring run description');
+      createSchedulePage.findExperimentSelect().should('contain.text', 'Default');
       createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage.findPipelineSelect().should('not.be.disabled').click();
@@ -817,4 +815,18 @@ const initIntercepts = () => {
       pipeline_version_id: mockPipelineVersion.pipeline_version_id,
     }),
   );
+
+  mockExperiments.forEach((experiment) => {
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      {
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          experimentId: experiment.experiment_id,
+        },
+      },
+      experiment,
+    );
+  });
 };

@@ -1,16 +1,8 @@
 import * as React from 'react';
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Spinner,
-  Text,
-  TextVariants,
-  Timestamp,
-} from '@patternfly/react-core';
+import { Button, Spinner, Text, TextVariants, Timestamp } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { KnownLabels, ProjectKind } from '~/k8sTypes';
+import { ProjectKind } from '~/k8sTypes';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { getProjectOwner } from '~/concepts/projects/utils';
@@ -18,7 +10,6 @@ import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebo
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import NotebookStateStatus from '~/pages/projects/screens/projects/NotebookStateStatus';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ProjectLink from './ProjectLink';
 
@@ -56,30 +47,10 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             >
               {index === 0 ? (
                 <Td dataLabel="Name" rowSpan={notebookStates.length || 1}>
-                  <Flex
-                    spaceItems={{ default: 'spaceItemsXs' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                  >
-                    {project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] && (
-                      <FlexItem style={{ display: 'flex' }} data-testid="ds-project-image">
-                        <img
-                          style={{ height: 24 }}
-                          src={typedObjectImage(ProjectObjectType.project)}
-                          alt=""
-                        />
-                      </FlexItem>
-                    )}
-                    <FlexItem>
-                      <ResourceNameTooltip resource={project}>
-                        <ProjectLink project={project} />
-                      </ResourceNameTooltip>
-                    </FlexItem>
-                  </Flex>
-                  {owner && (
-                    <Text component={TextVariants.small} style={{ marginLeft: 28 }}>
-                      {owner}
-                    </Text>
-                  )}
+                  <ResourceNameTooltip resource={project}>
+                    <ProjectLink project={project} />
+                  </ResourceNameTooltip>
+                  {owner && <Text component={TextVariants.small}>{owner}</Text>}
                 </Td>
               ) : null}
               {index === 0 ? (
