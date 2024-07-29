@@ -32,6 +32,13 @@ export type ModelStatus = {
   failedToSchedule: boolean;
 };
 
+export type SupportedModelFormatsInfo = {
+  name: string;
+  version: string;
+  autoSelect?: boolean;
+  priority?: number;
+};
+
 export type CreatingServingRuntimeObject = {
   name: string;
   servingRuntimeTemplateName: string;
@@ -41,7 +48,7 @@ export type CreatingServingRuntimeObject = {
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];
   imageName?: string;
-  modelName?: string;
+  supportedModelFormatsInfo?: SupportedModelFormatsInfo;
 };
 
 export type ServingRuntimeToken = {

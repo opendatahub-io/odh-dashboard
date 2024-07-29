@@ -38,7 +38,16 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
     getModelNames();
   }, []);
 
-  const getNIMModelName = (name: string) => `nvidia-nim-${name}`;
+  const getSupportedModelFormatsInfo = (name: string) => {
+    const modelInfo = options.find((option) => option.key === name);
+    if (modelInfo) {
+      return {
+        name: modelInfo.key,
+        version: modelInfo.label.split(' - ')[1],
+      };
+    }
+    return { name: '', version: '' };
+  };
 
   const getNIMImageName = (name: string) => {
     const imageInfo = options.find((option) => option.key === name);
@@ -60,7 +69,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
         placeholder={isEditing ? inferenceServiceData.name : 'Select NVIDIA model'}
         value={inferenceServiceData.format.name}
         onChange={(name) => {
-          setServingRuntimeData('modelName', getNIMModelName(name));
+          setServingRuntimeData('supportedModelFormatsInfo', getSupportedModelFormatsInfo(name));
           setServingRuntimeData('imageName', getNIMImageName(name));
           setInferenceServiceData('format', { name });
         }}
