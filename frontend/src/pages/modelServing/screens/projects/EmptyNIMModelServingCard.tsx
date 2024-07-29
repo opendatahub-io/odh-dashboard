@@ -57,7 +57,7 @@ const EmptyNIMModelServingCard: React.FC = () => {
           border: '1px solid var(--pf-v5-global--BorderColor--100)',
           borderRadius: 16,
         }}
-        data-testid="single-serving-platform-card"
+        data-testid="nvidia-nim-model-serving-platform-card"
       >
         <CardTitle>
           <TextContent>
