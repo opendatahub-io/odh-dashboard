@@ -12,7 +12,7 @@ import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines
 import { pipelinesGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesGlobal';
 import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesTable';
 import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
-import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
+import { pipelineDetails, pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
@@ -123,22 +123,22 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
      */
     projectListPage.navigate();
 
-    // Check if "All available projects" is selected in the DS Projects view
-    projectListPage
-      .findProjectsTypeDropdown()
-      .invoke('text')
-      .then((text) => {
-        if (!text.includes(allAvailableProjectsText)) {
-          projectListPage.findProjectsTypeDropdown().click();
-          projectListPage.findProjectsTypeDropdownByText(allAvailableProjectsText).click();
-        }
-      });
+    // // Check if "All available projects" is selected in the DS Projects view
+    // projectListPage
+    //   .findProjectsTypeDropdown()
+    //   .invoke('text')
+    //   .then((text) => {
+    //     if (!text.includes(allAvailableProjectsText)) {
+    //       projectListPage.findProjectsTypeDropdown().click();
+    //       projectListPage.findProjectsTypeDropdownByText(allAvailableProjectsText).click();
+    //     }
+    //   });
 
     // Open the project
     projectListPage.findProjectLink(projectName).click();
 
-    // Increasing the timeout to ~2mins so the DSPA can be loaded
-    projectDetails.findImportPipelineButton(120000).click();
+    // Increasing the timeout to ~3mins so the DSPA can be loaded
+    projectDetails.findImportPipelineButton(180000).click();
 
     // Fill tue Import Pipeline modal
     pipelineImportModal.findPipelineNameInput().type(testPipelineName);
@@ -149,8 +149,10 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       .type(
         'https://raw.githubusercontent.com/red-hat-data-services/ods-ci/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/flip_coin_compiled.yaml',
       );
-    // pipelineImportModal.findCancelButton().click();
     pipelineImportModal.submit();
+
+    //Verify that the title of the redirected page is the pipeline name
+    pipelineDetails.findPageTitle().should('have.text', testPipelineName);
 
     /**
      * Run the Pipeline from Data Science Pipelines view
