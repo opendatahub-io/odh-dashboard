@@ -20,6 +20,7 @@ import {
   configurePipelineServerModal,
   viewPipelineServerModal,
   PipelineSort,
+  pipelineDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
@@ -583,9 +584,17 @@ describe('Pipelines', () => {
     pipelinesTable
       .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
       .as('refreshPipelines');
+    pipelineDetails.mockGetPipeline(projectName, uploadedMockPipeline).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(
+        uploadedMockPipeline.pipeline_id,
+        initialMockPipelineVersion,
+        projectName,
+      )
+      .as('getPipelineVersion');
     pipelineImportModal.submit();
 
-    // Wait for upload/fetch requests
+    // Wait for pipeline upload
     cy.wait('@uploadPipeline').then((interception) => {
       // Note: contain is used instead of equals as different browser engines will add a different boundary
       // to the body - the aim is to not limit these tests to working with one specific engine.
@@ -601,11 +610,9 @@ describe('Pipelines', () => {
       });
     });
 
-    cy.wait('@refreshPipelines').then((interception) => {
-      expect(interception.request.query).to.include({
-        sort_by: 'created_at desc',
-      });
-    });
+    cy.wait('@refreshPipelines');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
 
     cy.url().should(
       'include',
@@ -633,7 +640,7 @@ describe('Pipelines', () => {
   it('imports a new pipeline by url', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    const createPipelineAndVersionParams = {
+    const uploadPipelineAndVersionParams = {
       pipeline: {
         display_name: 'New pipeline',
       },
@@ -644,15 +651,15 @@ describe('Pipelines', () => {
         },
       },
     };
-    const createdMockPipeline = buildMockPipelineV2(createPipelineAndVersionParams.pipeline);
+    const createdMockPipeline = buildMockPipelineV2(uploadPipelineAndVersionParams.pipeline);
     const createdVersion = buildMockPipelineVersionV2(
-      createPipelineAndVersionParams.pipeline_version,
+      uploadPipelineAndVersionParams.pipeline_version,
     );
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal
-      .mockCreatePipelineAndVersion(createPipelineAndVersionParams, projectName)
-      .as('createPipelineAndVersion');
+      .mockCreatePipelineAndVersion(uploadPipelineAndVersionParams, projectName)
+      .as('uploadPipelineAndVersion');
     pipelinesTable.mockGetPipelines([initialMockPipeline], projectName);
     pipelinesTable.mockGetPipelineVersions([createdVersion], 'new-pipeline', projectName);
 
@@ -670,11 +677,17 @@ describe('Pipelines', () => {
     pipelinesTable
       .mockGetPipelines([initialMockPipeline, createdMockPipeline], projectName)
       .as('refreshPipelines');
+    pipelineDetails.mockGetPipeline(projectName, createdMockPipeline).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(createdMockPipeline.pipeline_id, createdVersion, projectName)
+      .as('getPipelineVersion');
     pipelineImportModal.submit();
 
-    // Wait for upload/fetch requests
-    cy.wait('@createPipelineAndVersion');
+    // Wait for pipeline upload
+    cy.wait('@uploadPipelineAndVersion');
     cy.wait('@refreshPipelines');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
 
     cy.url().should(
       'include',
