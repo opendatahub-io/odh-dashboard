@@ -12,7 +12,6 @@ const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
 type ProjectFetchState = FetchState<ProjectKind[]>;
 type ProjectsContextType = {
   projects: ProjectKind[];
-  dataScienceProjects: ProjectKind[];
   modelServingProjects: ProjectKind[];
   /** eg. Terminating state, etc */
   nonActiveProjects: ProjectKind[];
@@ -33,7 +32,6 @@ type ProjectsContextType = {
 
 export const ProjectsContext = React.createContext<ProjectsContextType>({
   projects: [],
-  dataScienceProjects: [],
   modelServingProjects: [],
   nonActiveProjects: [],
   preferredProject: null,
@@ -57,11 +55,10 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const { projects, dataScienceProjects, modelServingProjects, nonActiveProjects } = React.useMemo(
+  const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
       projectData.reduce<{
         projects: ProjectKind[];
-        dataScienceProjects: ProjectKind[];
         modelServingProjects: ProjectKind[];
         nonActiveProjects: ProjectKind[];
       }>(
@@ -70,9 +67,6 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
             if (project.status?.phase === 'Active') {
               // Project that is active
               states.projects.push(project);
-              if (project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]) {
-                states.dataScienceProjects.push(project);
-              }
               if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]) {
                 // Model Serving active projects
                 states.modelServingProjects.push(project);
@@ -85,7 +79,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
 
           return states;
         },
-        { projects: [], dataScienceProjects: [], modelServingProjects: [], nonActiveProjects: [] },
+        { projects: [], modelServingProjects: [], nonActiveProjects: [] },
       ),
     [projectData, dashboardNamespace],
   );
@@ -125,7 +119,6 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   const contextValue = React.useMemo(
     () => ({
       projects: projects.toSorted(projectSorter),
-      dataScienceProjects: dataScienceProjects.toSorted(projectSorter),
       modelServingProjects: modelServingProjects.toSorted(projectSorter),
       nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
       preferredProject,
@@ -136,7 +129,6 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     }),
     [
       projects,
-      dataScienceProjects,
       modelServingProjects,
       nonActiveProjects,
       preferredProject,

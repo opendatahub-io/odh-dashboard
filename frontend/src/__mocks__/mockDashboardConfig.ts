@@ -1,4 +1,5 @@
 import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
+import { NotebookSize } from '~/types';
 
 type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -23,9 +24,11 @@ type MockDashboardConfigType = {
   disableBiasMetrics?: boolean;
   disablePipelineExperiments?: boolean;
   disableS3Endpoint?: boolean;
+  disableArtifactsAPI?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
   disableNotebookController?: boolean;
+  notebookSizes?: NotebookSize[];
 };
 
 export const mockDashboardConfig = ({
@@ -51,9 +54,77 @@ export const mockDashboardConfig = ({
   disableBiasMetrics = false,
   disablePipelineExperiments = false,
   disableS3Endpoint = true,
+  disableArtifactsAPI = true,
   disableDistributedWorkloads = false,
   disableModelRegistry = true,
   disableNotebookController = false,
+  notebookSizes = [
+    {
+      name: 'XSmall',
+      resources: {
+        limits: {
+          cpu: '0.5',
+          memory: '500Mi',
+        },
+        requests: {
+          cpu: '0.1',
+          memory: '100Mi',
+        },
+      },
+    },
+    {
+      name: 'Small',
+      resources: {
+        limits: {
+          cpu: '2',
+          memory: '8Gi',
+        },
+        requests: {
+          cpu: '1',
+          memory: '8Gi',
+        },
+      },
+    },
+    {
+      name: 'Medium',
+      resources: {
+        limits: {
+          cpu: '6',
+          memory: '24Gi',
+        },
+        requests: {
+          cpu: '3',
+          memory: '24Gi',
+        },
+      },
+    },
+    {
+      name: 'Large',
+      resources: {
+        limits: {
+          cpu: '14',
+          memory: '56Gi',
+        },
+        requests: {
+          cpu: '7',
+          memory: '56Gi',
+        },
+      },
+    },
+    {
+      name: 'X Large',
+      resources: {
+        limits: {
+          cpu: '30',
+          memory: '120Gi',
+        },
+        requests: {
+          cpu: '15',
+          memory: '120Gi',
+        },
+      },
+    },
+  ],
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -90,6 +161,7 @@ export const mockDashboardConfig = ({
       disableAcceleratorProfiles,
       disablePipelineExperiments,
       disableS3Endpoint,
+      disableArtifactsAPI,
       disableDistributedWorkloads,
       disableModelRegistry,
     },
@@ -147,73 +219,7 @@ export const mockDashboardConfig = ({
         },
       },
     ],
-    notebookSizes: [
-      {
-        name: 'XSmall',
-        resources: {
-          limits: {
-            cpu: '0.5',
-            memory: '500Mi',
-          },
-          requests: {
-            cpu: '0.1',
-            memory: '100Mi',
-          },
-        },
-      },
-      {
-        name: 'Small',
-        resources: {
-          limits: {
-            cpu: '2',
-            memory: '8Gi',
-          },
-          requests: {
-            cpu: '1',
-            memory: '8Gi',
-          },
-        },
-      },
-      {
-        name: 'Medium',
-        resources: {
-          limits: {
-            cpu: '6',
-            memory: '24Gi',
-          },
-          requests: {
-            cpu: '3',
-            memory: '24Gi',
-          },
-        },
-      },
-      {
-        name: 'Large',
-        resources: {
-          limits: {
-            cpu: '14',
-            memory: '56Gi',
-          },
-          requests: {
-            cpu: '7',
-            memory: '56Gi',
-          },
-        },
-      },
-      {
-        name: 'X Large',
-        resources: {
-          limits: {
-            cpu: '30',
-            memory: '120Gi',
-          },
-          requests: {
-            cpu: '15',
-            memory: '120Gi',
-          },
-        },
-      },
-    ],
+    notebookSizes,
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
   },

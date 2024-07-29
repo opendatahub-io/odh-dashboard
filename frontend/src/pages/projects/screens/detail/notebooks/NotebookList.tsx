@@ -52,6 +52,7 @@ const NotebookList: React.FC = () => {
         <Button
           key={`action-${ProjectSectionID.WORKBENCHES}`}
           onClick={() => navigate(`/projects/${projectName}/spawner`)}
+          data-testid="create-workbench-button"
           variant="primary"
         >
           Create workbench

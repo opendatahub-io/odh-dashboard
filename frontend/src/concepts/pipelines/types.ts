@@ -17,10 +17,38 @@ import {
   CreatePipelineAndVersionKFData,
   CreatePipelineVersionKFData,
   CreateExperimentKFData,
+  GoogleRpcStatusKF,
 } from './kfTypes';
 
 export type PipelinesFilter = {
   predicates?: PipelinesFilterPredicate[];
+};
+
+export type ArtifactStorage = {
+  artifact_id: string;
+  storage_provider: string;
+  storage_path: string;
+  uri: string;
+  download_url?: string;
+  namespace: string;
+  artifact_type: string;
+  artifact_size: string;
+  created_at: string;
+  last_updated_at: string;
+  error?: GoogleRpcStatusKF;
+};
+
+export type ListArtifactResponse = {
+  artifacts: ArtifactStorage[];
+  next_page_token: string;
+};
+
+export type ListArtifactParams = {
+  max_result_size?: number;
+  order_by_field?: string;
+  order_by?: 'asc' | 'desc';
+  next_page_token?: string;
+  namespace: string;
 };
 
 export type PipelineParams = {
@@ -68,6 +96,11 @@ export type CreatePipelineRecurringRun = (
   data: CreatePipelineRecurringRunKFData,
 ) => Promise<PipelineRecurringRunKFv2>;
 export type GetExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<ExperimentKFv2>;
+export type GetArtifact = (
+  opts: K8sAPIOptions,
+  artifactId: number,
+  view?: string,
+) => Promise<ArtifactStorage>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKFv2>;
 export type GetPipelineRun = (
   opts: K8sAPIOptions,
@@ -98,6 +131,10 @@ export type ListExperiments = (
   opts: K8sAPIOptions,
   params?: PipelineParams,
 ) => Promise<ListExperimentsResponseKF>;
+export type ListArtifacts = (
+  opts: K8sAPIOptions,
+  params?: ListArtifactParams,
+) => Promise<ListArtifactResponse>;
 export type ListPipelines = (
   opts: K8sAPIOptions,
   params?: PipelineParams,
@@ -144,6 +181,7 @@ export type PipelineAPIs = {
   createPipelineRecurringRun: CreatePipelineRecurringRun;
   getExperiment: GetExperiment;
   getPipeline: GetPipeline;
+  getArtifact: GetArtifact;
   getPipelineRun: GetPipelineRun;
   getPipelineRecurringRun: GetPipelineRecurringRun;
   getPipelineVersion: GetPipelineVersion;
@@ -154,6 +192,7 @@ export type PipelineAPIs = {
   deleteExperiment: DeleteExperiment;
   listExperiments: ListExperiments;
   listPipelines: ListPipelines;
+  listArtifacts: ListArtifacts;
   listPipelineRuns: ListPipelineRuns;
   listPipelineActiveRuns: ListPipelineRuns;
   listPipelineArchivedRuns: ListPipelineRuns;

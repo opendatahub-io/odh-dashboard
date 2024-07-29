@@ -27,6 +27,8 @@ import {
   CreatePipelineVersionAPI,
   UpdateExperimentAPI,
   DeleteExperimentAPI,
+  GetArtifactAPI,
+  ListArtifactsAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -69,6 +71,11 @@ export const createPipelineRecurringRun: CreatePipelineRecurringRunAPI =
 
 export const getExperiment: GetExperimentAPI = (hostPath) => (opts, experimentId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/experiments/${experimentId}`, {}, opts));
+
+export const getArtifact: GetArtifactAPI = (hostPath) => (opts, artifactId, view) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v2beta1/artifacts/${artifactId}`, { view }, opts),
+  );
 
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/pipelines/${pipelineId}`, {}, opts));
@@ -123,6 +130,9 @@ export const deleteExperiment: DeleteExperimentAPI = (hostPath) => (opts, experi
   handlePipelineFailures(
     proxyDELETE(hostPath, `/apis/v2beta1/experiments/${experimentId}`, {}, {}, opts),
   );
+
+export const listArtifacts: ListArtifactsAPI = (hostPath) => (opts, params) =>
+  handlePipelineFailures(proxyGET(hostPath, '/apis/v2beta1/artifacts', params, opts));
 
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(

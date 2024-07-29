@@ -299,6 +299,10 @@ class CreateSpawnerPage {
   findBucketInput() {
     return cy.findByTestId('field AWS_S3_BUCKET');
   }
+
+  findContainerSizeInput(name: string) {
+    return cy.findByTestId('container-size-group').contains(name);
+  }
 }
 
 class EditSpawnerPage extends CreateSpawnerPage {
@@ -325,6 +329,10 @@ class EditSpawnerPage extends CreateSpawnerPage {
   shouldHaveContainerSizeInput(name: string) {
     cy.findByTestId('container-size-group').contains(name).should('exist');
     return this;
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('workbench-cancel-button');
   }
 }
 

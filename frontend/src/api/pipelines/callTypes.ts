@@ -9,6 +9,7 @@ import {
   GetPipelineRun,
   UpdatePipelineRun,
   ListExperiments,
+  ListArtifacts,
   CreateExperiment,
   GetExperiment,
   CreatePipelineRun,
@@ -24,6 +25,7 @@ import {
   CreatePipelineVersion,
   UpdateExperiment,
   DeleteExperiment,
+  GetArtifact,
 } from '~/concepts/pipelines/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -39,6 +41,7 @@ export type CreatePipelineRunAPI = KubeflowAPICall<CreatePipelineRun>;
 export type CreatePipelineRecurringRunAPI = KubeflowAPICall<CreatePipelineRecurringRun>;
 export type GetExperimentAPI = KubeflowAPICall<GetExperiment>;
 export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
+export type GetArtifactAPI = KubeflowAPICall<GetArtifact>;
 export type GetPipelineRunAPI = KubeflowAPICall<GetPipelineRun>;
 export type GetPipelineRecurringRunAPI = KubeflowAPICall<GetPipelineRecurringRun>;
 export type GetPipelineVersionAPI = KubeflowAPICall<GetPipelineVersion>;
@@ -48,6 +51,7 @@ export type DeletePipelineRecurringRunAPI = KubeflowAPICall<DeletePipelineRecurr
 export type DeletePipelineVersionAPI = KubeflowAPICall<DeletePipelineVersion>;
 export type DeleteExperimentAPI = KubeflowAPICall<DeleteExperiment>;
 export type ListExperimentsAPI = KubeflowAPICall<ListExperiments>;
+export type ListArtifactsAPI = KubeflowAPICall<ListArtifacts>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelinesRunAPI = KubeflowAPICall<ListPipelineRuns>;
 export type ListPipelineRecurringRunsAPI = KubeflowAPICall<ListPipelineRecurringRuns>;

@@ -26,6 +26,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableAcceleratorProfiles: false,
   disablePipelineExperiments: false,
   disableS3Endpoint: false,
+  disableArtifactsAPI: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
 } satisfies DashboardCommonConfig);
@@ -103,6 +104,12 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelineExperiments'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
+
+  [SupportedArea.ARTIFACT_API]: {
+    featureFlags: ['disableArtifactsAPI'],
+    reliantAreas: [SupportedArea.DS_PIPELINES],
+  },
+
   [SupportedArea.S3_ENDPOINT]: {
     featureFlags: ['disableS3Endpoint'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
