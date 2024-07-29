@@ -13,7 +13,10 @@ import {
   ServingRuntimeAnnotations,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { CreatingServingRuntimeObject, SupportedModelFormatsInfo } from '~/pages/modelServing/screens/types';
+import {
+  CreatingServingRuntimeObject,
+  SupportedModelFormatsInfo,
+} from '~/pages/modelServing/screens/types';
 import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
@@ -150,9 +153,9 @@ export const assembleServingRuntime = (
       name: supportedModelFormatsInfo.name,
       version: supportedModelFormatsInfo.version,
       autoSelect: true,
-      priority: 1
+      priority: 1,
     };
-    
+
     if (
       updatedServingRuntime.spec.supportedModelFormats &&
       updatedServingRuntime.spec.supportedModelFormats.length >= 1
