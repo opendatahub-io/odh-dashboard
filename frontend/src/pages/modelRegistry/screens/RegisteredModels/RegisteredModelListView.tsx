@@ -8,7 +8,10 @@ import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import { registeredModelArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  registerModelUrl,
+  registeredModelArchiveUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
@@ -38,7 +41,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
         primaryActionText="Register model"
         secondaryActionText="View archived models"
         primaryActionOnClick={() => {
-          // TODO: Add primary action
+          navigate(registerModelUrl(preferredModelRegistry?.metadata.name));
         }}
         secondaryActionOnClick={() => {
           navigate(registeredModelArchiveUrl(preferredModelRegistry?.metadata.name));

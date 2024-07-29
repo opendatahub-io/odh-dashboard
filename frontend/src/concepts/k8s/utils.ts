@@ -2,6 +2,8 @@ import { K8sDSGResource } from '~/k8sTypes';
 
 export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
+export const getResourceNameFromK8sResource = (resource: K8sDSGResource): string =>
+  resource.metadata.name;
 export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
 

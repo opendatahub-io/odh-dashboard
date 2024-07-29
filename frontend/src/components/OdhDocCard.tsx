@@ -21,7 +21,7 @@ import {
   launchQuickStart,
   LaunchStatusEnum,
 } from '~/utilities/quickStartUtils';
-import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
@@ -41,7 +41,7 @@ type OdhDocCardProps = {
 const fireResourceAccessedEvent =
   (name: string, type: string, qsContext?: QuickStartContextValues) => () => {
     const quickStartLabel = getQuickStartLabel(name, qsContext);
-    fireTrackingEvent(
+    fireMiscTrackingEvent(
       type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
       {
         name,

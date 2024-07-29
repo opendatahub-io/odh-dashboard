@@ -1,7 +1,6 @@
 import path from 'path';
 import fs from 'fs';
 import { defineConfig } from 'cypress';
-import dotenv from 'dotenv';
 import coverage from '@cypress/code-coverage/task';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore no types available
@@ -12,21 +11,9 @@ import { beforeRunHook, afterRunHook } from 'cypress-mochawesome-reporter/lib';
 import { mergeFiles } from 'junit-report-merger';
 import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
+import { env, cypressEnv, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';
 
-[
-  `.env.cypress${process.env.CY_MOCK ? '.mock' : ''}.local`,
-  `.env.cypress${process.env.CY_MOCK ? '.mock' : ''}`,
-  '.env.local',
-  '.env',
-].forEach((file) =>
-  dotenv.config({
-    path: path.resolve(__dirname, '../../../', file),
-  }),
-);
-
-const resultsDir = `${process.env.CY_RESULTS_DIR || 'results'}/${
-  process.env.CY_MOCK ? 'mocked' : 'e2e'
-}`;
+const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
 export default defineConfig({
   experimentalMemoryManagement: true,
@@ -54,25 +41,23 @@ export default defineConfig({
   screenshotsFolder: `${resultsDir}/screenshots`,
   videosFolder: `${resultsDir}/videos`,
   env: {
-    MOCK: !!process.env.CY_MOCK,
-    LOGIN_USERNAME: process.env.LOGIN_USERNAME,
-    LOGIN_PASSWORD: process.env.LOGIN_PASSWORD,
-    LOGIN_PROVIDER: process.env.LOGIN_PROVIDER,
-    RECORD: !!process.env.CY_RECORD,
-    WS_PORT: process.env.CY_WS_PORT,
-    coverage: !!process.env.CY_COVERAGE,
+    ...cypressEnv,
+    MOCK: !!env.CY_MOCK,
+    RECORD: !!env.CY_RECORD,
+    WS_PORT: env.CY_WS_PORT,
+    coverage: !!env.CY_COVERAGE,
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
-    ODH_PRODUCT_NAME: process.env.ODH_PRODUCT_NAME,
+    ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     resolution: 'high',
   },
   defaultCommandTimeout: 10000,
   e2e: {
-    baseUrl: process.env.BASE_URL,
-    specPattern: process.env.CY_MOCK
+    baseUrl: BASE_URL,
+    specPattern: env.CY_MOCK
       ? `cypress/tests/mocked/**/*.cy.ts`
-      : process.env.CY_RECORD
+      : env.CY_RECORD
       ? `cypress/tests/mocked/**/*.scy.ts`
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
@@ -110,7 +95,7 @@ export default defineConfig({
         },
       });
 
-      if (process.env.CY_RECORD) {
+      if (env.CY_RECORD) {
         on('before:spec', (spec) => {
           // delete previous snapshots for the spec
           try {

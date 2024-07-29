@@ -13,22 +13,22 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
 import {
+  ConfigMap,
+  EnvVarResourceType,
   ImageInfo,
   ImageTag,
-  VariableRow,
   ImageTagInfo,
-  ConfigMap,
-  Secret,
-  EnvVarResourceType,
   NotebookState,
+  Secret,
+  VariableRow,
 } from '~/types';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
 import { enableNotebook, stopNotebook } from '~/services/notebookService';
 import {
-  generateEnvVarFileNameFromUsername,
-  verifyResource,
-  useNotebookUserState,
   classifyEnvVars,
+  generateEnvVarFileNameFromUsername,
+  useNotebookUserState,
+  verifyResource,
 } from '~/utilities/notebookControllerUtils';
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
@@ -37,10 +37,11 @@ import useNotification from '~/utilities/useNotification';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { fireTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -231,7 +232,8 @@ const SpawnerPage: React.FC = () => {
   };
 
   const fireStartServerEvent = () => {
-    fireTrackingEvent('Notebook Server Started', {
+    fireFormTrackingEvent('Notebook Server Started', {
+      outcome: TrackingOutcome.submit,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
         : acceleratorProfile.useExisting
@@ -262,6 +264,11 @@ const SpawnerPage: React.FC = () => {
         refreshNotebookForStart();
       })
       .catch((e) => {
+        fireFormTrackingEvent('Notebook Server Started', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: e.message,
+        });
         setSubmitError(e);
         setCreateInProgress(false);
         // We had issues spawning the notebook -- try to stop it

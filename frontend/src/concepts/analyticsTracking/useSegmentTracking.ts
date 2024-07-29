@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppContext } from '~/app/AppContext';
 import { useAppSelector } from '~/redux/hooks';
-import { fireTrackingEvent } from './segmentIOUtils';
+import { fireIdentifyEvent, firePageEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useWatchSegmentKey } from './useWatchSegmentKey';
 import { initSegment } from './initSegment';
 
@@ -28,8 +28,8 @@ export const useSegmentTracking = (): void => {
         enabled: !dashboardConfig.spec.dashboardConfig.disableTracking,
       }).then(() => {
         computeUserId().then((userId) => {
-          fireTrackingEvent('identify', { anonymousID: userId });
-          fireTrackingEvent('page');
+          fireIdentifyEvent({ anonymousID: userId });
+          firePageEvent();
         });
       });
     }

@@ -9,7 +9,7 @@ By default the ODH Dashboard comes with a set of core features enabled that are 
 The following are a list of features that are supported, along with there default settings.
 
 | Feature                      | Default | Description                                                                                          |
-|------------------------------|---------|------------------------------------------------------------------------------------------------------|
+| ---------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
 | enablement                   | true    | Enables the ability to enable ISVs to the dashboard                                                  |
 | disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
 | disableSupport               | false   | Disables components related to support.                                                              |
@@ -27,7 +27,7 @@ The following are a list of features that are supported, along with there defaul
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | disableKServe                | false   | Disables the ability to select KServe as a Serving Platform.                                         |
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
-| disableKServeMetrics         | true    | Disables the ability to see KServe Metrics.                                                          |
+| disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
 | disableBiasMetrics           | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
@@ -58,11 +58,12 @@ spec:
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: false
-    disableKServeMetrics: true
+    disableKServeMetrics: false
     disableBiasMetrics: false
     disablePerformanceMetrics: false
     disablePipelineExperiments: true
     disableS3Endpoint: true
+    disableArtifactsAPI: true
     disableDistributedWorkloads: false
 ```
 
@@ -159,6 +160,7 @@ spec:
     disablePerformanceMetrics: false
     disablePipelineExperiments: false
     disableS3Endpoint: true
+    disableArtifactsAPI: true
   notebookController:
     enabled: true
     gpuSetting: autodetect

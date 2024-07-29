@@ -228,6 +228,14 @@ class ModelServingRow extends TableRow {
       .should(enabled ? 'not.exist' : 'exist');
     return this;
   }
+
+  findInternalServiceButton() {
+    return this.find().findByTestId('internal-service-button');
+  }
+
+  findInternalServicePopover() {
+    return cy.findByTestId('internal-service-popover');
+  }
 }
 
 class ModelMeshRow extends ModelServingRow {

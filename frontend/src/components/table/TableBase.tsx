@@ -172,6 +172,7 @@ const TableBase = <T,>({
             // TODO: Log PF bug -- when there are no rows this gets truncated
             style={{ minWidth: '45px' }}
             isSubheader={isSubheader}
+            aria-label="Select all"
           />
         </React.Fragment>
       );

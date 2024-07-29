@@ -1,5 +1,8 @@
 import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
+import type { UserAuthConfig } from '~/__tests__/cypress/cypress/types';
+import { TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
@@ -11,10 +14,7 @@ declare global {
        * @param url the URL to visit
        * @param credentials login credentials
        */
-      visitWithLogin: (
-        url: string,
-        credentials?: { username: string; password: string; provider?: string },
-      ) => Cypress.Chainable<void>;
+      visitWithLogin: (url: string, user?: UserAuthConfig) => Cypress.Chainable<void>;
 
       /**
        * Find a patternfly kebab toggle button.
@@ -114,45 +114,35 @@ declare global {
   }
 }
 
-Cypress.Commands.add(
-  'visitWithLogin',
-  (
-    url,
-    credentials = {
-      username: Cypress.env('LOGIN_USERNAME') ?? '',
-      password: Cypress.env('LOGIN_PASSWORD') ?? '',
-      provider: Cypress.env('LOGIN_PROVIDER'),
-    },
-  ) => {
-    if (Cypress.env('MOCK')) {
-      cy.visit(url);
-    } else {
-      cy.intercept('GET', url, { log: false }).as('visitWithLogin');
+Cypress.Commands.add('visitWithLogin', (url, user = TEST_USER) => {
+  if (Cypress.env('MOCK')) {
+    cy.visit(url);
+  } else {
+    cy.intercept('GET', url, { log: false }).as('visitWithLogin');
 
-      cy.visit(url, { failOnStatusCode: false });
+    cy.visit(url, { failOnStatusCode: false });
 
-      cy.wait('@visitWithLogin', { log: false }).then((interception) => {
-        if (interception.response?.statusCode === 403) {
-          cy.log('Do login');
-          // do login
-          cy.get('form[action="/oauth/start"]').submit();
-          cy.findAllByRole('link', credentials.provider ? { name: credentials.provider } : {})
-            .last()
-            .click();
-          cy.get('input[name=username]').type(credentials.username);
-          cy.get('input[name=password]').type(credentials.password);
-          cy.get('form').submit();
-        } else if (interception.response?.statusCode !== 200) {
-          throw new Error(
-            `Failed to visit '${url}'. Status code: ${
-              interception.response?.statusCode || 'unknown'
-            }`,
-          );
-        }
-      });
-    }
-  },
-);
+    cy.wait('@visitWithLogin', { log: false }).then((interception) => {
+      if (interception.response?.statusCode === 403) {
+        cy.log('Do login');
+        // do login
+        cy.get('form[action="/oauth/start"]').submit();
+        cy.findAllByRole('link', user.AUTH_TYPE ? { name: user.AUTH_TYPE } : {})
+          .last()
+          .click();
+        cy.get('input[name=username]').type(user.USERNAME);
+        cy.get('input[name=password]').type(user.PASSWORD);
+        cy.get('form').submit();
+      } else if (interception.response?.statusCode !== 200) {
+        throw new Error(
+          `Failed to visit '${url}'. Status code: ${
+            interception.response?.statusCode || 'unknown'
+          }`,
+        );
+      }
+    });
+  }
+});
 
 Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject, isDropdownToggle) => {
   Cypress.log({ displayName: 'findKebab' });

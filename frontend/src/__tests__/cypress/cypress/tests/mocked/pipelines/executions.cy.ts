@@ -1,5 +1,4 @@
 /* eslint-disable camelcase */
-import type { Interception } from 'cypress/types/net-stubbing';
 import {
   buildMockPipelineV2,
   buildMockPipelines,
@@ -21,7 +20,7 @@ import {
 import { mockGetExecutions, mockGetNextPageExecutions } from '~/__mocks__/mlmd/mockGetExecutions';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { initMlmdIntercepts } from './mlmdUtils';
+import { decodeGetExecutionsRequest, initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
@@ -48,35 +47,14 @@ describe('Executions', () => {
     executionPage.visit(projectName);
   });
 
-  it('Makes filter requests', () => {
+  it('Makes filter requests, includes more entries, tests page pagination, and visits execution details page', () => {
     shouldFilterItems(FilterArgs.Execution, 'digit-classification');
     shouldFilterItems(FilterArgs.ID, '289');
     shouldFilterItems(FilterArgs.Status);
     shouldFilterItems(FilterArgs.Type);
-  });
-
-  it('Includes more entries and navigates pages', () => {
-    setUpIntercept();
-    tablePagination.top.selectToggleOption('20 per page');
-    cy.wait('@request');
-    setUpIntercept();
-    tablePagination.top.selectToggleOption('30 per page');
-    cy.wait('@request');
-    setUpInterceptForNextPage();
-    tablePagination.top.findNextButton().click();
-    cy.wait('@request');
-    setUpIntercept();
-    tablePagination.top.findPreviousButton().click();
-    cy.wait('@request');
-  });
-
-  it('Visits execution details page', () => {
-    const id = 288;
-    executionPage.findEntryByLink('digit-classification').click();
-    executionPage.findText(`${id}`);
-    executionPage.findText('system.ContainerExecution');
-    executionPage.findText('Custom properties');
-    verifyRelativeURL(`/executions/${projectName}/${id}`);
+    testEntriesToggle();
+    testPagePagination();
+    testExecutionDetailsPage();
   });
 });
 
@@ -103,11 +81,6 @@ const setUpInterceptForNextPage = () => {
   ).as('request');
 };
 
-const validateMlmdQuery = (interception: Interception, query: string) => {
-  const interceptionDecoder = new TextDecoder('utf-8');
-  expect(interceptionDecoder.decode(new Uint8Array(interception.request.body))).to.include(query);
-};
-
 const shouldFilterItems = (filter: FilterArgs, query?: string) => {
   switch (filter) {
     case FilterArgs.Execution:
@@ -118,8 +91,7 @@ const shouldFilterItems = (filter: FilterArgs, query?: string) => {
       setUpIntercept();
       executionFilter.findSearchFilter().type(query);
       cy.wait('@request').then((interception) => {
-        validateMlmdQuery(
-          interception,
+        expect(decodeGetExecutionsRequest(interception).options?.filterQuery).to.equal(
           "custom_properties.display_name.string_value LIKE '%digit-classification%'",
         );
       });
@@ -132,7 +104,9 @@ const shouldFilterItems = (filter: FilterArgs, query?: string) => {
       setUpIntercept();
       executionFilter.findSearchFilter().type(query);
       cy.wait('@request').then((interception) => {
-        validateMlmdQuery(interception, 'id = cast(289 as int64)');
+        expect(decodeGetExecutionsRequest(interception).options?.filterQuery).to.equal(
+          "custom_properties.display_name.string_value LIKE '%digit-classification%' AND id = cast(289 as int64)",
+        );
       });
       break;
     case FilterArgs.Type:
@@ -140,7 +114,9 @@ const shouldFilterItems = (filter: FilterArgs, query?: string) => {
       setUpIntercept();
       executionFilter.findTypeSearchFilterItem('system.ContainerExecution').click();
       cy.wait('@request').then((interception) => {
-        validateMlmdQuery(interception, "type LIKE '%system.ContainerExecution%'");
+        expect(decodeGetExecutionsRequest(interception).options?.filterQuery).to.include(
+          "type LIKE '%system.ContainerExecution%'",
+        );
       });
       break;
     case FilterArgs.Status:
@@ -148,7 +124,9 @@ const shouldFilterItems = (filter: FilterArgs, query?: string) => {
       setUpIntercept();
       executionFilter.findTypeSearchFilterItem('Cached').click();
       cy.wait('@request').then((interception) => {
-        validateMlmdQuery(interception, 'cast(last_known_state as int64) = 5');
+        expect(decodeGetExecutionsRequest(interception).options?.filterQuery).to.include(
+          'cast(last_known_state as int64) = 5',
+        );
       });
       break;
   }
@@ -190,4 +168,39 @@ const initIntercepts = (interceptMlmd: boolean, isExecutionsEmpty?: boolean) => 
   if (interceptMlmd) {
     initMlmdIntercepts(projectName, { isExecutionsEmpty });
   }
+};
+
+const testEntriesToggle = () => {
+  setUpIntercept();
+  tablePagination.top.selectToggleOption('30 per page');
+  cy.wait('@request').then((interception) => {
+    expect(decodeGetExecutionsRequest(interception).options?.maxResultSize).to.equal(30);
+  });
+  setUpIntercept();
+  tablePagination.top.selectToggleOption('20 per page');
+  cy.wait('@request').then((interception) => {
+    expect(decodeGetExecutionsRequest(interception).options?.maxResultSize).to.equal(20);
+  });
+};
+
+const testPagePagination = () => {
+  setUpInterceptForNextPage();
+  tablePagination.top.findNextButton().click();
+  cy.wait('@request').then((interception) => {
+    expect(decodeGetExecutionsRequest(interception).options?.nextPageToken).to.equal('page token');
+  });
+  setUpIntercept();
+  tablePagination.top.findPreviousButton().click();
+  cy.wait('@request').then((interception) => {
+    expect(decodeGetExecutionsRequest(interception).options?.nextPageToken).to.equal('');
+  });
+};
+
+const testExecutionDetailsPage = () => {
+  const id = 288;
+  executionPage.findEntryByLink('digit-classification').click();
+  executionPage.findText(`${id}`);
+  executionPage.findText('system.ContainerExecution');
+  executionPage.findText('Custom properties');
+  verifyRelativeURL(`/executions/${projectName}/${id}`);
 };

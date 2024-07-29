@@ -37,6 +37,7 @@ const checkAccess = ({
 
 export const useAccessReview = (
   resourceAttributes: AccessReviewResourceAttributes,
+  shouldRunCheck = true,
 ): [boolean, boolean] => {
   const [loaded, setLoaded] = React.useState(false);
   const [isAllowed, setAllowed] = React.useState(false);
@@ -51,22 +52,24 @@ export const useAccessReview = (
   } = resourceAttributes;
 
   React.useEffect(() => {
-    checkAccess({ group, resource, subresource, verb, name, namespace })
-      .then((result) => {
-        if (result.status) {
-          setAllowed(result.status.allowed);
-        } else {
+    if (shouldRunCheck) {
+      checkAccess({ group, resource, subresource, verb, name, namespace })
+        .then((result) => {
+          if (result.status) {
+            setAllowed(result.status.allowed);
+          } else {
+            setAllowed(true);
+          }
+          setLoaded(true);
+        })
+        .catch((e) => {
+          // eslint-disable-next-line no-console
+          console.warn('SelfSubjectAccessReview failed', e);
           setAllowed(true);
-        }
-        setLoaded(true);
-      })
-      .catch((e) => {
-        // eslint-disable-next-line no-console
-        console.warn('SelfSubjectAccessReview failed', e);
-        setAllowed(true);
-        setLoaded(true);
-      });
-  }, [group, name, namespace, resource, subresource, verb]);
+          setLoaded(true);
+        });
+    }
+  }, [group, name, namespace, resource, subresource, verb, shouldRunCheck]);
 
   return [isAllowed, loaded];
 };

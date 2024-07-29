@@ -424,6 +424,10 @@ export type InferenceServiceAnnotations = Partial<{
   'security.opendatahub.io/enable-auth': string;
 }>;
 
+export type InferenceServiceLabels = Partial<{
+  'networking.knative.dev/visibility': string;
+}>;
+
 export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -495,6 +499,12 @@ export type InferenceServiceKind = K8sResourceCommon & {
       transitionStatus: string;
     };
     url: string;
+    address?: {
+      CACerts?: string;
+      audience?: string;
+      name?: string;
+      url?: string;
+    };
   };
 };
 
@@ -1226,6 +1236,7 @@ export type DashboardCommonConfig = {
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
   disablePipelineExperiments: boolean;
   disableS3Endpoint: boolean;
+  disableArtifactsAPI: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
 };

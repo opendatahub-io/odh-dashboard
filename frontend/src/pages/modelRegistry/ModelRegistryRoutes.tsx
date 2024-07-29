@@ -10,6 +10,7 @@ import ModelVersionsArchive from './screens/ModelVersionsArchive/ModelVersionsAr
 import ModelVersionsArchiveDetails from './screens/ModelVersionsArchive/ModelVersionArchiveDetails';
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/RegisteredModelArchiveDetails';
+import RegisterModel from './screens/RegisterModel/RegisterModel';
 
 const ModelRegistryRoutes: React.FC = () => (
   <Routes>
@@ -94,6 +95,7 @@ const ModelRegistryRoutes: React.FC = () => (
         </Route>
         <Route path="*" element={<Navigate to="." />} />
       </Route>
+      <Route path="registerModel" element={<RegisterModel />} />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </Routes>

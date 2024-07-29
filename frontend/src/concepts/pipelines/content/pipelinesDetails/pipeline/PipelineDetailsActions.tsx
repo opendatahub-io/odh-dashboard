@@ -18,6 +18,7 @@ import {
   pipelineVersionRecurringRunsRoute,
   pipelineVersionRunsRoute,
 } from '~/routes';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
@@ -40,6 +41,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
       <Dropdown
         data-testid="pipeline-version-details-actions"
         onSelect={() => setOpen(false)}
+        menuAppendTo={getDashboardMainContainer}
         toggle={
           <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
             Actions

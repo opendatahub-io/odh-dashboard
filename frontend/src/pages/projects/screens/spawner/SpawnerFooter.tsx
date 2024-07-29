@@ -20,11 +20,11 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
-  fireTrackingEvent,
-  fireTrackingEventRaw,
-} from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -87,7 +87,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { acceleratorProfile, notebookSize, image } = startNotebookData;
-    fireTrackingEventRaw(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, {
+    const tep: FormTrackingEventProperties = {
       acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
@@ -105,17 +105,18 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       notebookName: name,
       storageType: storageData.storageType,
       storageDataSize: storageData.creating.size,
-      dataConnectionType: dataConnection.creating?.type,
-      dataConnectionCategory: dataConnection.creating?.values?.category,
+      dataConnectionType: dataConnection.creating?.type?.toString(),
+      dataConnectionCategory: dataConnection.creating?.values?.category?.toString(),
       dataConnectionEnabled: dataConnection.enabled,
       outcome: TrackingOutcome.submit,
       success: true,
-    });
+    };
+    fireFormTrackingEvent(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, tep);
     refreshAllProjectData();
     navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
   };
   const handleError = (e: Error) => {
-    fireTrackingEvent('Workbench Created', {
+    fireFormTrackingEvent('Workbench Created', {
       outcome: TrackingOutcome.submit,
       success: false,
       error: e.message,
@@ -173,6 +174,11 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           return;
         }
 
+        const annotations = { ...editNotebook.metadata.annotations };
+        if (envFrom.length > 0) {
+          annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
+        }
+
         const { volumes, volumeMounts } = pvcDetails;
         const newStartNotebookData = {
           ...startNotebookData,
@@ -181,7 +187,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           envFrom,
           tolerationSettings,
         };
-        return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
+        return updateNotebook(
+          { ...editNotebook, metadata: { ...editNotebook.metadata, annotations } },
+          newStartNotebookData,
+          username,
+          { dryRun },
+        );
       };
 
       updateNotebookPromise(true)
@@ -286,7 +297,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
               variant="link"
               id="cancel-button"
               onClick={() => {
-                fireTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
+                fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
                 navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);

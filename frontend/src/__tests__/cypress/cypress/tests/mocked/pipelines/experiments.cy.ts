@@ -53,6 +53,11 @@ const mockExperiments = [
   }),
 ];
 
+const mockArchivedExperiments = mockExperiments.map((experiment) => ({
+  ...experiment,
+  storage_state: StorageStateKF.ARCHIVED,
+}));
+
 const mockActiveRuns = buildMockRunKF({
   display_name: 'Test active run 4',
   run_id: 'run-4',
@@ -109,10 +114,7 @@ describe('Experiments', () => {
       experimentsTabs.getActiveExperimentsTable().findFilterTextField().type('Test experiment 2');
 
       // Mock experiments (filtered by typed experiment name)
-      experimentsTabs.mockGetExperiments(
-        projectName,
-        mockExperiments.filter((exp) => exp.display_name.includes('Test experiment 2')),
-      );
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
 
       // Verify only rows with the typed experiment name exist
       experimentsTabs.getActiveExperimentsTable().findRows().should('have.length', 1);
@@ -125,6 +127,7 @@ describe('Experiments', () => {
 
     it('archive a single experiment', () => {
       const [experimentToArchive] = mockExperiments;
+      const [experimentArchived] = mockArchivedExperiments;
 
       const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
 
@@ -134,14 +137,14 @@ describe('Experiments', () => {
         .findKebabAction('Archive')
         .click();
 
-      experimentsTabs.mockGetExperiments(
-        projectName,
-        [mockExperiments[1], mockExperiments[2]],
-        [experimentToArchive],
-      );
-      archiveExperimentModal.findConfirmInput().type(experimentToArchive.display_name);
+      experimentsTabs.mockGetExperiments(projectName, [
+        mockExperiments[1],
+        mockExperiments[2],
+        experimentArchived,
+      ]);
+      archiveExperimentModal.findConfirmInput().type(experimentArchived.display_name);
       archiveExperimentModal.findSubmitButton().click();
-      activeExperimentsTable.shouldRowNotBeVisible(experimentToArchive.display_name);
+      activeExperimentsTable.shouldRowNotBeVisible(experimentArchived.display_name);
 
       experimentsTabs.findArchivedTab().click();
       experimentsTabs
@@ -159,7 +162,7 @@ describe('Experiments', () => {
       });
 
       activeExperimentsTable.findActionsKebab().findDropdownItem('Archive').click();
-      experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, mockArchivedExperiments);
       bulkArchiveExperimentModal.findConfirmInput().type('Archive 3 experiments');
       bulkArchiveExperimentModal.findSubmitButton().click();
       activeExperimentsTable.findEmptyState().should('exist');
@@ -178,12 +181,13 @@ describe('Experiments', () => {
   describe('Archived experiments', () => {
     beforeEach(() => {
       initIntercepts();
-      experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
+      experimentsTabs.mockGetExperiments(projectName, mockArchivedExperiments);
       experimentsTabs.visit(projectName);
       experimentsTabs.findArchivedTab().click();
     });
     it('restore a single experiment', () => {
-      const [experimentToRestore] = mockExperiments;
+      const [experimentToRestore] = mockArchivedExperiments;
+      const [experimentRestored] = mockExperiments;
 
       const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
 
@@ -196,11 +200,11 @@ describe('Experiments', () => {
         .findKebabAction('Restore')
         .click();
 
-      experimentsTabs.mockGetExperiments(
-        projectName,
-        [experimentToRestore],
-        [mockExperiments[1], mockExperiments[2]],
-      );
+      experimentsTabs.mockGetExperiments(projectName, [
+        mockArchivedExperiments[1],
+        mockArchivedExperiments[2],
+        experimentRestored,
+      ]);
       restoreExperimentModal.findSubmitButton().click();
       archivedExperimentsTable.shouldRowNotBeVisible(experimentToRestore.display_name);
 
@@ -214,7 +218,7 @@ describe('Experiments', () => {
 
     it('restore multiple experiments', () => {
       const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
-      mockExperiments.forEach((archivedExperiment) => {
+      mockArchivedExperiments.forEach((archivedExperiment) => {
         archivedExperimentsTable.mockRestoreExperiment(
           archivedExperiment.experiment_id,
           projectName,
@@ -225,7 +229,7 @@ describe('Experiments', () => {
           .click();
       });
       archivedExperimentsTable.findRestoreExperimentButton().click();
-      experimentsTabs.mockGetExperiments(projectName, mockExperiments, []);
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       bulkRestoreExperimentModal.findSubmitButton().click();
       archivedExperimentsTable.findEmptyState().should('exist');
 
@@ -318,7 +322,7 @@ describe('Experiments', () => {
 
 describe('Runs page for archived experiment', () => {
   const archivedExperimentsTable = experimentsTabs.getArchivedExperimentsTable();
-  const mockExperiment = { ...mockExperiments[0], storage_state: StorageStateKF.ARCHIVED };
+  const [mockArchivedExperiment] = mockArchivedExperiments;
 
   beforeEach(() => {
     initIntercepts();
@@ -328,10 +332,10 @@ describe('Runs page for archived experiment', () => {
         path: {
           namespace: projectName,
           serviceName: 'dspa',
-          experimentId: mockExperiment.experiment_id,
+          experimentId: mockArchivedExperiment.experiment_id,
         },
       },
-      mockExperiment,
+      mockArchivedExperiment,
     );
     cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
@@ -348,14 +352,20 @@ describe('Runs page for archived experiment', () => {
       },
       { recurringRuns: [buildMockRecurringRunKF({ status: RecurringRunStatus.DISABLED })] },
     );
-    experimentsTabs.mockGetExperiments(projectName, [], mockExperiments);
+    experimentsTabs.mockGetExperiments(projectName, mockArchivedExperiments);
     experimentsTabs.visit(projectName);
     experimentsTabs.findArchivedTab().click();
-    archivedExperimentsTable.getRowByName(mockExperiment.display_name).find().find('a').click();
+    archivedExperimentsTable
+      .getRowByName(mockArchivedExperiment.display_name)
+      .find()
+      .find('a')
+      .click();
   });
 
   it('navigates to the runs page when clicking an experiment name', () => {
-    verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
+    verifyRelativeURL(
+      `/experiments/${projectName}/${mockArchivedExperiment.experiment_id}/runs/archived`,
+    );
     cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
   });
 

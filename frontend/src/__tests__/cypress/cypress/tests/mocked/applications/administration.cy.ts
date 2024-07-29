@@ -9,7 +9,7 @@ import {
   stopNotebookModal,
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';

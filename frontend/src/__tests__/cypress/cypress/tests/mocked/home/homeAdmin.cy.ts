@@ -3,7 +3,7 @@ import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
 import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
 import { notebookImageSettings } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/users';
+import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 

@@ -13,6 +13,7 @@ export const mockPipelinePodK8sResource = ({
   user = 'test-user',
   name = 'test-pod',
   namespace = 'test-project',
+  isPending = false,
 }: MockResourceConfigType): PodKind => ({
   kind: 'Pod',
   apiVersion: 'project.openshift.io/v1',
@@ -545,21 +546,24 @@ export const mockPipelinePodK8sResource = ({
       {
         name: 'step-copy-artifacts',
         state: {
-          terminated: true,
+          terminated: !isPending,
+          running: isPending,
         },
         ready: false,
       },
       {
         name: 'step-main',
         state: {
-          terminated: true,
+          terminated: !isPending,
+          running: isPending,
         },
         ready: false,
       },
       {
         name: 'step-move-all-results-to-tekton-home',
         state: {
-          terminated: true,
+          terminated: !isPending,
+          running: isPending,
         },
         ready: false,
       },

@@ -5,11 +5,29 @@ import {
   SelectGroup,
   SelectOption,
 } from '@patternfly/react-core/deprecated';
-import { Bullseye, Flex, FlexItem } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Flex,
+  FlexItem,
+  Popover,
+  Tooltip,
+} from '@patternfly/react-core';
+import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+  getResourceNameFromK8sResource,
+} from '~/concepts/k8s/utils';
+import { ModelRegistryKind } from '~/k8sTypes';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 
@@ -38,15 +56,42 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   const toggleLabel = modelRegistries.length === 0 ? 'No model registries' : selectionDisplayName;
 
+  const getMRSelectDescription = (mr: ModelRegistryKind) => {
+    const desc = getDescriptionFromK8sResource(mr);
+    if (!desc) {
+      return;
+    }
+    const tooltipContent = (
+      <DescriptionList>
+        <DescriptionListGroup>
+          <DescriptionListTerm>{`${getDisplayNameFromK8sResource(
+            mr,
+          )} description`}</DescriptionListTerm>
+          <DescriptionListDescription>{desc}</DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
+    );
+    return (
+      <Tooltip content={tooltipContent} isContentLeftAligned>
+        <span className={truncateStyles.truncate}>
+          <span className={truncateStyles.truncateStart}>{desc}</span>
+        </span>
+      </Tooltip>
+    );
+  };
+
   const options = [
     <SelectGroup label="Select a model registry" key="all">
       {modelRegistries.map((mr) => (
         <SelectOption
           id={mr.metadata.name}
           key={mr.metadata.name}
-          value={getDisplayNameFromK8sResource(mr)}
+          value={getResourceNameFromK8sResource(mr)}
+          description={getMRSelectDescription(mr)}
           isFavorite={favorites.includes(mr.metadata.name)}
-        />
+        >
+          {getDisplayNameFromK8sResource(mr)}
+        </SelectOption>
       ))}
     </SelectGroup>,
   ];
@@ -97,6 +142,19 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
           <Bullseye>Model registry</Bullseye>
         </FlexItem>
         <FlexItem>{selector}</FlexItem>
+        {selection && getDescriptionFromK8sResource(selection) && (
+          <FlexItem>
+            <Popover
+              aria-label="Model registry description popover"
+              headerContent={getDisplayNameFromK8sResource(selection)}
+              bodyContent={getDescriptionFromK8sResource(selection)}
+            >
+              <Button variant="link" icon={<InfoCircleIcon />}>
+                View Description
+              </Button>
+            </Popover>
+          </FlexItem>
+        )}
       </Flex>
     </Flex>
   );

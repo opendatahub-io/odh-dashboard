@@ -13,7 +13,10 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import { registeredModelArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  registerModelUrl,
+  registeredModelArchiveUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 
 type RegisteredModelsTableToolbarProps = {
@@ -56,7 +59,9 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
                       key="register-model-button"
                       data-testid="register-model-button"
                       aria-label="Register model"
-                      onClick={() => undefined}
+                      onClick={() =>
+                        navigate(registerModelUrl(preferredModelRegistry?.metadata.name))
+                      }
                     >
                       Register model
                     </MenuToggleAction>,
