@@ -8,7 +8,10 @@ type NIMModelDeploymentNameSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
 };
 
-const NIMModelDeploymentNameSection: React.FC<NIMModelDeploymentNameSectionProps> = ({ data, setData }) => (
+const NIMModelDeploymentNameSection: React.FC<NIMModelDeploymentNameSectionProps> = ({
+  data,
+  setData,
+}) => (
   <FormGroup label="Model deployment name" fieldId="model-deployment-name-section" isRequired>
     <TextInput
       isRequired

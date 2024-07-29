@@ -13,7 +13,10 @@ import {
   ServingRuntimeAnnotations,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import {
+  CreatingServingRuntimeObject,
+  SupportedModelFormatsInfo,
+} from '~/pages/modelServing/screens/types';
 import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
@@ -31,7 +34,15 @@ export const assembleServingRuntime = (
   acceleratorProfileState?: AcceleratorProfileState,
   isModelMesh?: boolean,
 ): ServingRuntimeKind => {
-  const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth } = data;
+  const {
+    name: displayName,
+    numReplicas,
+    modelSize,
+    externalRoute,
+    tokenAuth,
+    imageName,
+    supportedModelFormatsInfo,
+  } = data;
   const createName = isCustomServingRuntimesEnabled
     ? translateDisplayNameForK8s(displayName)
     : getModelServingRuntimeName(namespace);
@@ -121,6 +132,11 @@ export const assembleServingRuntime = (
         volumeMounts.push(getshmVolumeMount());
       }
 
+      if (imageName) {
+        const containerObj = container;
+        containerObj.image = imageName;
+      }
+
       const containerWithoutResources = _.omit(container, 'resources');
 
       return {
@@ -131,6 +147,24 @@ export const assembleServingRuntime = (
       };
     },
   );
+
+  if (supportedModelFormatsInfo) {
+    const supportedModelFormatsObj: SupportedModelFormatsInfo = {
+      name: supportedModelFormatsInfo.name,
+      version: supportedModelFormatsInfo.version,
+      autoSelect: true,
+      priority: 1,
+    };
+
+    if (
+      updatedServingRuntime.spec.supportedModelFormats &&
+      updatedServingRuntime.spec.supportedModelFormats.length >= 1
+    ) {
+      updatedServingRuntime.spec.supportedModelFormats[0] = supportedModelFormatsObj;
+    } else {
+      updatedServingRuntime.spec.supportedModelFormats?.push(supportedModelFormatsObj);
+    }
+  }
 
   if (isModelMesh) {
     updatedServingRuntime.spec.tolerations = tolerations;
