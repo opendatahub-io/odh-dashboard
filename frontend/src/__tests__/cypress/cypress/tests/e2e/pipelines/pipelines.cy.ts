@@ -16,7 +16,6 @@ import { pipelineDetails, pipelineRunDetails } from '~/__tests__/cypress/cypress
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
-const allAvailableProjectsText = 'All available projects';
 const testPipelineName = 'test-pipelines-pipeline';
 const testRunName = 'test-pipelines-run';
 
@@ -122,17 +121,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
      * Import Pipeline by URL from Project Details view
      */
     projectListPage.navigate();
-
-    // // Check if "All available projects" is selected in the DS Projects view
-    // projectListPage
-    //   .findProjectsTypeDropdown()
-    //   .invoke('text')
-    //   .then((text) => {
-    //     if (!text.includes(allAvailableProjectsText)) {
-    //       projectListPage.findProjectsTypeDropdown().click();
-    //       projectListPage.findProjectsTypeDropdownByText(allAvailableProjectsText).click();
-    //     }
-    //   });
 
     // Open the project
     projectListPage.findProjectLink(projectName).click();

@@ -9,29 +9,6 @@ metadata:
   annotations:
     opendatahub.io/connection-type: s3
     openshift.io/display-name: ods-ci-ds-pipelines
-  managedFields:
-    - manager: unknown
-      operation: Update
-      apiVersion: v1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:data':
-          .: {}
-          'f:AWS_ACCESS_KEY_ID': {}
-          'f:AWS_DEFAULT_REGION': {}
-          'f:AWS_S3_BUCKET': {}
-          'f:AWS_S3_ENDPOINT': {}
-          'f:AWS_SECRET_ACCESS_KEY': {}
-        'f:metadata':
-          'f:annotations':
-            .: {}
-            'f:opendatahub.io/connection-type': {}
-            'f:openshift.io/display-name': {}
-          'f:labels':
-            .: {}
-            'f:opendatahub.io/dashboard': {}
-            'f:opendatahub.io/managed': {}
-        'f:type': {}
 data:
   AWS_ACCESS_KEY_ID: {{AWS_ACCESS_KEY_ID}}
   AWS_DEFAULT_REGION: {{AWS_DEFAULT_REGION}}
