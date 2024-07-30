@@ -42,8 +42,7 @@ export const createOpenShiftProject = (projectName: string, displayName?: string
  */
 export const deleteOpenShiftProject = (projectName: string) => {
   const ocCommand = `oc delete project ${projectName}`;
-  // The default timeout is 60 seconds, and the deletion can take longer
-  return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 180000 }).then((result) => {
-    return result;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false}).then(() => {
+    return;
   });
 };
