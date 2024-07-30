@@ -251,14 +251,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   return (
     <Modal
-      title="Deploy model"
+      title={!editInfo ? 'Deploy model' : 'Edit model'}
       description="Configure properties for deploying your model"
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter
-          submitLabel="Deploy"
+          submitLabel={!editInfo ? 'Deploy' : 'Redeploy'}
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
           isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService}
