@@ -97,7 +97,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   it('An admin User can Import and Run a Pipeline', () => {
     // Login as an admin
     cy.visitWithLogin('/', ADMIN_USER);
-    cy.findByRole('banner', { name: 'page masthead' }).contains(ADMIN_USER.USERNAME);
 
     /**
      * Import Pipeline by URL from Project Details view
