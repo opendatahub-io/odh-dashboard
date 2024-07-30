@@ -28,6 +28,7 @@ spec:
     disableModelMesh: false
     disableDistributedWorkloads: false
     disableModelRegistry: true
+    disableConnectionTypes: true
   groupsConfig:
     adminGroups: "$(admin_groups)"
     allowedGroups: "system:authenticated"

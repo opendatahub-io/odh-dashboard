@@ -61,6 +61,8 @@ export enum SupportedArea {
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
+
+  DATA_CONNECTIONS_TYPES = 'data-connections-types',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

@@ -34,6 +34,7 @@ The following are a list of features that are supported, along with there defaul
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
 | disableModelRegistry         | true    | Disables Model Registry from the dashboard.                                                          |
+| disableConnectionTypes       | true    | Disables creating custom data connection types from the dashboard.                                   |
 
 ## Defaults
 
@@ -65,6 +66,7 @@ spec:
     disableS3Endpoint: true
     disableArtifactsAPI: true
     disableDistributedWorkloads: false
+    disableConnectionTypes: false
 ```
 
 ## Additional fields

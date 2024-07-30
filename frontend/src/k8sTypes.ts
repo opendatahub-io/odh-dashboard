@@ -1239,6 +1239,7 @@ export type DashboardCommonConfig = {
   disableArtifactsAPI: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
+  disableConnectionTypes: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
