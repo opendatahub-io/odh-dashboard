@@ -98,7 +98,7 @@ class RunDetails extends PipelinesTopology {
     return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
 
-  private getStatusLabel() {
+  private findStatusLabel() {
     return cy.get(
       'h1[data-testid="app-page-title"] .pf-v5-l-split__item:last-child .pf-v5-c-label__text',
     );
