@@ -139,37 +139,35 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       );
     pipelineImportModal.submit();
 
-    //Verify that the title of the redirected page is the pipeline name
+    //Verify that we are at the details page of the pipeline by checking the title
     pipelineDetails.findPageTitle().should('have.text', testPipelineName);
 
+    //TODO: We should be getting the Pipeline ID and Version ID from navigating to Summary tab, but it does not have data-testid
+    // Get Pipeline ID and Version ID from URL
+    cy.url().then((currentUrl) => {
+      // Create a URL object
+      const urlObj = new URL(currentUrl);
+
+      // Split the path and extract the segments
+      const pathSegments = urlObj.pathname.split('/');
+
+      // Extract PipelineID and pipeline description from an url like: https://xx.apps.xx/pipelines/<project_name>/<pipeline_id>/<pipeline_version_id>/view
+      const pipelineID = pathSegments[3];
+      const pipelineVersionID = pathSegments[4];
+
+      // Save values as Cypress env vars
+      Cypress.env('PipelineID', pipelineID);
+      Cypress.env('PipelineDescription', pipelineVersionID);
+      
+      cy.log(`PipelineID: ${pipelineID}`);
+      cy.log(`PipelineDescription: ${pipelineVersionID}`);
+    });
+
     /**
-     * Run the Pipeline from Data Science Pipelines view
+     * Run the Pipeline using the Actions button in the pipeline detail view
      */
-    //Navigate to Data Science Pipelines
-    pipelinesGlobal.navigate();
 
-    //check the selected project is projectName
-    pipelinesGlobal
-      .findProjectSelect()
-      .invoke('text')
-      .then((text) => {
-        if (!text.includes(projectName)) {
-          pipelinesGlobal.selectProjectByName(projectName);
-        }
-      });
-
-    // Expand the pipeline row
-    pipelinesTable.expandRowByPipelineName(testPipelineName);
-
-    // Open the create run View using the 'Create run' option from the version kebab
-    pipelinesTable
-      .findPipelineVersionRowByVersionName(testPipelineName, testPipelineName)
-      .findKebab()
-      .click();
-    pipelinesTable
-      .findPipelineVersionRowByVersionName(testPipelineName, testPipelineName)
-      .findKebabAction('Create run')
-      .click();
+    pipelineDetails.selectActionDropdownItem("Create run");
 
     //Fill the Create run fields
     createRunPage.findExperimentSelect().click();

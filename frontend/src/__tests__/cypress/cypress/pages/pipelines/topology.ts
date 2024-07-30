@@ -105,7 +105,7 @@ class RunDetails extends PipelinesTopology {
   }
 
   expectStatusLabelToBe(statusValue: string) {
-    this.getStatusLabel().then(($status) => {
+    this.findStatusLabel().then(($status) => {
       const statusText = $status.text().trim();
       // Check if the status is "Pending" or "Running"
       if (statusText === 'Pending' || statusText === 'Running') {

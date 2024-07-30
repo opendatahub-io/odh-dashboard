@@ -194,35 +194,6 @@ class PipelinesTable {
     return cy.findByTestId('no-result-found-title');
   }
 
-  expandRowByPipelineName(pipelineName: string) {
-    this.find()
-      .contains('td', pipelineName)
-      .parent('tr')
-      .within(() => {
-        cy.get('td:first-child button')
-          .invoke('attr', 'aria-expanded')
-          .then((ariaExpanded) => {
-            // Check if "aria-expanded" is not "true" from the expand button
-            if (ariaExpanded !== 'true') {
-              // Click the expand button
-              cy.get('td:first-child button').click();
-            }
-          });
-      });
-  }
-
-  findPipelineVersionRowByVersionName(pipelineName: string, pipelineVersionName: string) {
-    return new PipelineVersionsTableRow(() =>
-      this.find()
-        .contains('td', pipelineName)
-        .parent('tr')
-        .next('tr')
-        .findByTestId('pipeline-versions-table')
-        .contains('td', pipelineVersionName)
-        .parent('tr'),
-    );
-  }
-
   mockDeletePipeline(pipeline: PipelineKFv2, namespace: string) {
     return cy.interceptOdh(
       'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
