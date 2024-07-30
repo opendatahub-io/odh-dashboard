@@ -142,27 +142,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     //Verify that we are at the details page of the pipeline by checking the title
     pipelineDetails.findPageTitle().should('have.text', testPipelineName);
 
-    //TODO: We should be getting the Pipeline ID and Version ID from navigating to Summary tab, but it does not have data-testid
-    // Get Pipeline ID and Version ID from URL
-    cy.url().then((currentUrl) => {
-      // Create a URL object
-      const urlObj = new URL(currentUrl);
-
-      // Split the path and extract the segments
-      const pathSegments = urlObj.pathname.split('/');
-
-      // Extract PipelineID and pipeline description from an url like: https://xx.apps.xx/pipelines/<project_name>/<pipeline_id>/<pipeline_version_id>/view
-      const pipelineID = pathSegments[3];
-      const pipelineVersionID = pathSegments[4];
-
-      // Save values as Cypress env vars
-      Cypress.env('PipelineID', pipelineID);
-      Cypress.env('PipelineDescription', pipelineVersionID);
-      
-      cy.log(`PipelineID: ${pipelineID}`);
-      cy.log(`PipelineDescription: ${pipelineVersionID}`);
-    });
-
     /**
      * Run the Pipeline using the Actions button in the pipeline detail view
      */
