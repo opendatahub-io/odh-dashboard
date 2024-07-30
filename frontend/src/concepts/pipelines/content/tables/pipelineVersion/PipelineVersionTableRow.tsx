@@ -12,6 +12,11 @@ import {
   pipelineVersionRecurringRunsRoute,
   pipelineVersionRunsRoute,
 } from '~/routes';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import {
+  PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
+  PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
+} from '~/concepts/pipelines/content/const';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
@@ -33,6 +38,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const createdDate = new Date(version.created_at);
+  const isCreateDisabled = isArgoWorkflow(version.pipeline_spec);
 
   return (
     <Tr data-testid={`pipeline-version-row ${version.pipeline_version_id}`}>
@@ -78,6 +84,10 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                   ),
                 );
               },
+              isAriaDisabled: isCreateDisabled,
+              tooltipProps: isCreateDisabled
+                ? { content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }
+                : undefined,
             },
             {
               title: 'Create schedule',
@@ -90,6 +100,10 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                   ),
                 );
               },
+              isAriaDisabled: isCreateDisabled,
+              tooltipProps: isCreateDisabled
+                ? { content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }
+                : undefined,
             },
             {
               isSeparator: true,

@@ -8,6 +8,7 @@ import {
 import { ParametersKF, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import { convertToDate } from '~/utilities/time';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 
 const runTypeSafeData = (runType: RunFormData['runType']): boolean =>
   runType.type !== RunTypeOption.SCHEDULED ||
@@ -58,5 +59,10 @@ export const isFilledRunFormDataExperiment = (formData: RunFormData): formData i
 
 export const getInputDefinitionParams = (
   version: PipelineVersionKFv2 | null | undefined,
-): ParametersKF | undefined =>
-  getCorePipelineSpec(version?.pipeline_spec)?.root.inputDefinitions?.parameters;
+): ParametersKF | undefined => {
+  // Return undefined for Argo workflow versions as they don't have root.inputDefinitions
+  if (isArgoWorkflow(version?.pipeline_spec)) {
+    return undefined;
+  }
+  return getCorePipelineSpec(version?.pipeline_spec)?.root.inputDefinitions?.parameters;
+};

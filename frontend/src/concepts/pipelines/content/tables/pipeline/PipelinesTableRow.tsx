@@ -15,6 +15,11 @@ import {
   pipelineVersionCreateRecurringRunRoute,
   pipelineVersionDetailsRoute,
 } from '~/routes';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import {
+  PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
+  PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
+} from '~/concepts/pipelines/content/const';
 
 const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';
@@ -64,6 +69,8 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   React.useEffect(() => {
     disableCheck(pipelineRef.current, disableDelete || loading);
   }, [disableDelete, loading, disableCheck]);
+
+  const isCreateDisabled = isArgoWorkflow(version?.pipeline_spec) || hasNoPipelineVersions;
 
   return (
     <>
@@ -126,7 +133,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 },
                 {
                   title: 'Create run',
-                  isAriaDisabled: hasNoPipelineVersions,
                   onClick: () => {
                     navigate(
                       pipelineVersionCreateRunRoute(
@@ -136,10 +142,13 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                       ),
                     );
                   },
+                  isAriaDisabled: isCreateDisabled,
+                  tooltipProps: isArgoWorkflow(version?.pipeline_spec)
+                    ? { content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }
+                    : undefined,
                 },
                 {
                   title: 'Create schedule',
-                  isAriaDisabled: hasNoPipelineVersions,
                   onClick: () => {
                     navigate(
                       pipelineVersionCreateRecurringRunRoute(
@@ -149,6 +158,10 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                       ),
                     );
                   },
+                  isAriaDisabled: isCreateDisabled,
+                  tooltipProps: isArgoWorkflow(version?.pipeline_spec)
+                    ? { content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }
+                    : undefined,
                 },
                 {
                   isSeparator: true,
