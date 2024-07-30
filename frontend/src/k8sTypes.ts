@@ -39,7 +39,7 @@ export type K8sVerb =
  * Annotations that we will use to allow the user flexibility in describing items outside of the
  * k8s structure.
  */
-type DisplayNameAnnotations = Partial<{
+export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string; // the description provided by the user
   'openshift.io/display-name': string; // the name provided by the user
 }>;
