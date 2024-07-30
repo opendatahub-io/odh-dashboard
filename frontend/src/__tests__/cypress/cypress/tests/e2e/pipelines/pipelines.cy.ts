@@ -47,14 +47,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
         yamlContent,
         dataConnectionReplacements,
       );
-      const tempFilePath = 'cypress/temp_data_connection.yaml';
-      applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
-        expect(result.code).to.eq(
-          0,
-          `ERROR applying YAML content
-                                      stdout: ${result.stdout}
-                                      stderr: ${result.stderr}`,
-        );
+      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+        expect(result.code).to.eq(0);
       });
     });
 
@@ -69,14 +63,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     };
     cy.fixture('resources/yaml/dspa_secret.yml').then((yamlContent) => {
       const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaSecretReplacements);
-      const tempFilePath = 'cypress/temp_dspa_secret.yaml';
-      applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
-        expect(result.code).to.eq(
-          0,
-          `ERROR applying YAML content
-                                      stdout: ${result.stdout}
-                                      stderr: ${result.stderr}`,
-        );
+      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+        expect(result.code).to.eq(0);
       });
     });
 
@@ -88,14 +76,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     };
     cy.fixture('resources/yaml/dspa.yml').then((yamlContent) => {
       const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
-      const tempFilePath = 'cypress/temp_dspa.yaml';
-      applyOpenShiftYaml(modifiedYamlContent, tempFilePath).then((result) => {
-        expect(result.code).to.eq(
-          0,
-          `ERROR applying YAML content
-                                      stdout: ${result.stdout}
-                                      stderr: ${result.stderr}`,
-        );
+      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+        expect(result.code).to.eq(0);
       });
     });
   });
