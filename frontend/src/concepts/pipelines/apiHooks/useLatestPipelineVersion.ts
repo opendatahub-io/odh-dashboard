@@ -10,7 +10,7 @@ import useFetchState, {
 
 /**
  * Based on the pipeline associated with the provided pipelineId,
- * fetch the last created pipeline version associated with that pipeline.
+ * fetch the last created pipeline version associated with that pipeline
  */
 export const useLatestPipelineVersion = (
   pipelineId: string | undefined,
@@ -27,7 +27,6 @@ export const useLatestPipelineVersion = (
     const response = await api.listPipelineVersions({}, pipelineId, {
       sortField: 'created_at',
       sortDirection: 'desc',
-      pageSize: 1,
     });
 
     return response.pipeline_versions?.[0] || null;

@@ -27,6 +27,7 @@ type MockDashboardConfigType = {
   disableArtifactsAPI?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
+  disableConnectionTypes?: boolean;
   disableNotebookController?: boolean;
   notebookSizes?: NotebookSize[];
 };
@@ -57,6 +58,7 @@ export const mockDashboardConfig = ({
   disableArtifactsAPI = true,
   disableDistributedWorkloads = false,
   disableModelRegistry = true,
+  disableConnectionTypes = true,
   disableNotebookController = false,
   notebookSizes = [
     {
@@ -164,6 +166,7 @@ export const mockDashboardConfig = ({
       disableArtifactsAPI,
       disableDistributedWorkloads,
       disableModelRegistry,
+      disableConnectionTypes,
     },
     notebookController: {
       enabled: !disableNotebookController,

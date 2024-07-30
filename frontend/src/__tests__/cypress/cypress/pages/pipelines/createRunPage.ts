@@ -1,10 +1,11 @@
 /* eslint-disable camelcase */
-import {
-  type ExperimentKFv2,
-  type PipelineKFv2,
-  type PipelineRecurringRunKFv2,
-  type PipelineRunKFv2,
-  type PipelineVersionKFv2,
+import type {
+  ArgoWorkflowPipelineVersion,
+  ExperimentKFv2,
+  PipelineKFv2,
+  PipelineRecurringRunKFv2,
+  PipelineRunKFv2,
+  PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import { buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
@@ -57,6 +58,13 @@ export class CreateRunPage {
 
   findPipelineVersionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('pipeline-version-toggle-button');
+  }
+
+  findPipelineVersionByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {
+    return this.find()
+      .findByTestId('pipeline-version-selector-table-list')
+      .find('td')
+      .contains(name);
   }
 
   findScheduledRunTypeSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -226,7 +234,7 @@ export class CreateRunPage {
 
   mockGetPipelineVersions(
     namespace: string,
-    versions: PipelineVersionKFv2[],
+    versions: (PipelineVersionKFv2 | ArgoWorkflowPipelineVersion)[],
     pipelineId: string,
   ): Cypress.Chainable<null> {
     return cy.interceptOdh(

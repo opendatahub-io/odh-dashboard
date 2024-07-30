@@ -74,6 +74,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
               selection={version?.display_name}
               pipelineId={pipeline?.pipeline_id}
               onSelect={onVersionChange}
+              isCreatePage
             />
           </StackItem>
           <StackItem>

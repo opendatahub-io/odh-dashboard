@@ -1,4 +1,8 @@
-import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRecurringRunKFv2,
+  PipelineRunKFv2,
+  PipelineSpecVariable,
+} from '~/concepts/pipelines/kfTypes';
 
 export const getRunDuration = (run: PipelineRunKFv2): number => {
   const finishedDate = new Date(run.finished_at);
@@ -72,3 +76,6 @@ export const getPipelineRecurringRunExecutionCount = (resourceName: string): str
   const match = resourceName.match(regex);
   return match ? match[1] : null;
 };
+
+export const isArgoWorkflow = (spec?: PipelineSpecVariable): boolean =>
+  !!spec && 'kind' in spec && spec.kind === 'Workflow';
