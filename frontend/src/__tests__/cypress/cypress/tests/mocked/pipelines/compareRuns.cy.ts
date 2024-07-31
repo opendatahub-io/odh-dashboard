@@ -24,6 +24,7 @@ import {
   compareRunsMetricsContent,
 } from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
 import { mockCancelledGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
+import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
 import { initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
@@ -82,7 +83,7 @@ const mockRun3 = buildMockRunKF({
 
 describe('Compare runs', () => {
   beforeEach(() => {
-    initIntercepts();
+    initIntercepts({});
   });
 
   it('zero runs in url', () => {
@@ -210,122 +211,196 @@ describe('Compare runs', () => {
   });
 
   describe('Metrics', () => {
-    beforeEach(() => {
-      initIntercepts();
-      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-        mockRun.run_id,
-        mockRun2.run_id,
-        mockRun3.run_id,
-      ]);
+    describe('Metrics when s3endpoint feature flag is available and artifactapi is unavailable', () => {
+      beforeEach(() => {
+        initIntercepts({});
+
+        cy.interceptOdh(
+          'GET /api/storage/:namespace/size',
+          {
+            query: {
+              key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
+            },
+            path: { namespace: projectName },
+          },
+          { body: 61 },
+        );
+        cy.interceptOdh(
+          'GET /api/storage/:namespace',
+          {
+            query: {
+              key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
+            },
+            path: { namespace: projectName },
+          },
+          '<html>helloWorld</html>',
+        );
+        compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+          mockRun.run_id,
+          mockRun2.run_id,
+          mockRun3.run_id,
+        ]);
+      });
+
+      it('shows empty state when the Runs list has no selections', () => {
+        compareRunsListTable.findSelectAllCheckbox().click(); // Uncheck all
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsEmptyState()
+          .should('exist');
+        compareRunsMetricsContent.findConfusionMatrixTab().click();
+        compareRunsMetricsContent
+          .findConfusionMatrixTabContent()
+          .findConfusionMatrixEmptyState()
+          .should('exist');
+        compareRunsMetricsContent.findRocCurveTab().click();
+        compareRunsMetricsContent.findRocCurveTabContent().findRocCurveEmptyState().should('exist');
+        compareRunsMetricsContent.findMarkdownTab().click();
+        compareRunsMetricsContent.findMarkdownTabContent().findMarkdownEmptyState().should('exist');
+      });
+
+      it('displays scalar metrics table data based on selections from Run list', () => {
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsTable()
+          .should('exist');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsColumnByName('Run name')
+          .should('exist');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsColumnByName('Run 1')
+          .should('exist');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsColumnByName('Run 2')
+          .should('exist');
+
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsColumnByName('Execution name > Artifact name')
+          .should('exist');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricsColumnByName('digit-classification > metrics')
+          .should('exist');
+
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricName('accuracy')
+          .should('exist');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricCell('accuracy', 1)
+          .should('contain.text', '92');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricCell('accuracy', 2)
+          .should('contain.text', '92');
+
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricName('displayName')
+          .should('exist');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricCell('displayName', 1)
+          .should('contain.text', '"metrics"');
+        compareRunsMetricsContent
+          .findScalarMetricsTabContent()
+          .findScalarMetricCell('displayName', 2)
+          .should('contain.text', '"metrics"');
+      });
+
+      it('displays confusion matrix data based on selections from Run list', () => {
+        compareRunsMetricsContent.findConfusionMatrixTab().click();
+
+        const confusionMatrixCompare = compareRunsMetricsContent
+          .findConfusionMatrixTabContent()
+          .findConfusionMatrixSelect(mockRun.run_id);
+
+        // check graph data
+        const graph = confusionMatrixCompare.findConfusionMatrixGraph();
+        graph.checkLabels(['Setosa', 'Versicolour', 'Virginica']);
+        graph.checkCells([
+          [38, 0, 0],
+          [2, 19, 9],
+          [1, 17, 19],
+        ]);
+
+        // check expanded graph
+        confusionMatrixCompare.findExpandButton().click();
+        compareRunsMetricsContent
+          .findConfusionMatrixTabContent()
+          .findExpandedConfusionMatrix()
+          .find()
+          .should('exist');
+      });
+
+      it('display markdown based on selections from Run list', () => {
+        compareRunsMetricsContent.findMarkdownTab().click();
+        let markDown = compareRunsMetricsContent
+          .findMarkdownTabContent()
+          .findMarkdownSelect(mockRun.run_id);
+        markDown.findArtifactContent().should('have.text', 'helloWorld');
+        markDown = compareRunsMetricsContent
+          .findMarkdownTabContent()
+          .findMarkdownSelect(mockRun2.run_id);
+        markDown.findArtifactContent().should('have.text', 'helloWorld');
+        markDown.findExpandButton().click();
+        compareRunsMetricsContent.findMarkdownTabContent().findExpandedMarkdown().should('exist');
+      });
+
+      it('displays ROC curve empty state when no artifacts are found', () => {
+        compareRunsMetricsContent.findRocCurveTab().click();
+        const content = compareRunsMetricsContent.findRocCurveTabContent();
+        content.findRocCurveSearchBar().type('invalid');
+        content.findRocCurveTableEmptyState().should('exist');
+      });
     });
+    describe('Metrics when artifactApi feature flag is available', () => {
+      beforeEach(() => {
+        initIntercepts({ disableArtifactAPI: false });
+        compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+          mockRun.run_id,
+          mockRun2.run_id,
+          mockRun3.run_id,
+        ]);
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
+          {
+            query: { view: 'DOWNLOAD' },
+            path: { namespace: projectName, serviceName: 'dspa', artifactId: 16 },
+          },
+          mockArtifactStorage({ namespace: projectName }),
+        );
+        cy.intercept(
+          'GET',
+          'https://test.s3.dualstack.us-east-1.amazonaws.com/metrics-visualization-pipeline/5e873c64-39fa-4dd4-83db-eff0cdd1e274/html-visualization/html_artifact?X-Amz-Algorithm=AWS4-HMAC-SHA256\u0026X-Amz-Credential=AKIAYQPE7PSILMBBLXMO%2F20240808%2Fus-east-1%2Fs3%2Faws4_request\u0026X-Amz-Date=20240808T070034Z\u0026X-Amz-Expires=15\u0026X-Amz-SignedHeaders=host\u0026response-content-disposition=attachment%3B%20filename%3D%22%22\u0026X-Amz-Signature=de39ee684dd606e75da3b07c1b9f0820f7442ea7a037ae1bffccea9e33610ea9',
+          '<html>helloWorld',
+        );
+      });
 
-    it('shows empty state when the Runs list has no selections', () => {
-      compareRunsListTable.findSelectAllCheckbox().click(); // Uncheck all
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsEmptyState()
-        .should('exist');
-      compareRunsMetricsContent.findConfusionMatrixTab().click();
-      compareRunsMetricsContent
-        .findConfusionMatrixTabContent()
-        .findConfusionMatrixEmptyState()
-        .should('exist');
-      compareRunsMetricsContent.findRocCurveTab().click();
-      compareRunsMetricsContent.findRocCurveTabContent().findRocCurveEmptyState().should('exist');
-      compareRunsMetricsContent.findMarkdownTab().click();
-      compareRunsMetricsContent.findMarkdownTabContent().findMarkdownEmptyState().should('exist');
-    });
-
-    it('displays scalar metrics table data based on selections from Run list', () => {
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsTable()
-        .should('exist');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsColumnByName('Run name')
-        .should('exist');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsColumnByName('Run 1')
-        .should('exist');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsColumnByName('Run 2')
-        .should('exist');
-
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsColumnByName('Execution name > Artifact name')
-        .should('exist');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricsColumnByName('digit-classification > metrics')
-        .should('exist');
-
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricName('accuracy')
-        .should('exist');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricCell('accuracy', 1)
-        .should('contain.text', '92');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricCell('accuracy', 2)
-        .should('contain.text', '92');
-
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricName('displayName')
-        .should('exist');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricCell('displayName', 1)
-        .should('contain.text', '"metrics"');
-      compareRunsMetricsContent
-        .findScalarMetricsTabContent()
-        .findScalarMetricCell('displayName', 2)
-        .should('contain.text', '"metrics"');
-    });
-
-    it('displays confusion matrix data based on selections from Run list', () => {
-      compareRunsMetricsContent.findConfusionMatrixTab().click();
-
-      const confusionMatrixCompare = compareRunsMetricsContent
-        .findConfusionMatrixTabContent()
-        .findConfusionMatrixSelect(mockRun.run_id);
-
-      // check graph data
-      const graph = confusionMatrixCompare.findConfusionMatrixGraph();
-      graph.checkLabels(['Setosa', 'Versicolour', 'Virginica']);
-      graph.checkCells([
-        [38, 0, 0],
-        [2, 19, 9],
-        [1, 17, 19],
-      ]);
-
-      // check expanded graph
-      confusionMatrixCompare.findExpandButton().click();
-      compareRunsMetricsContent
-        .findConfusionMatrixTabContent()
-        .findExpandedConfusionMatrix()
-        .find()
-        .should('exist');
-    });
-
-    it('displays ROC curve empty state when no artifacts are found', () => {
-      compareRunsMetricsContent.findRocCurveTab().click();
-      const content = compareRunsMetricsContent.findRocCurveTabContent();
-      content.findRocCurveSearchBar().type('invalid');
-      content.findRocCurveTableEmptyState().should('exist');
+      it('display markdown based on selections from Run list', () => {
+        compareRunsMetricsContent.findMarkdownTab().click();
+        let markDown = compareRunsMetricsContent
+          .findMarkdownTabContent()
+          .findMarkdownSelect(mockRun.run_id);
+        markDown.findIframeContent().should('have.text', 'helloWorld');
+        markDown = compareRunsMetricsContent
+          .findMarkdownTabContent()
+          .findMarkdownSelect(mockRun2.run_id);
+        markDown.findIframeContent().should('have.text', 'helloWorld');
+        markDown.findExpandButton().click();
+        compareRunsMetricsContent.findMarkdownTabContent().findExpandedMarkdown().should('exist');
+      });
     });
   });
 
   describe('No metrics', () => {
     beforeEach(() => {
-      initIntercepts(true);
+      initIntercepts({ noMetrics: true });
       compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
         mockRun.run_id,
         mockRun2.run_id,
@@ -374,10 +449,19 @@ describe('Compare runs', () => {
   });
 });
 
-const initIntercepts = (noMetrics?: boolean) => {
+type InterceptsType = {
+  noMetrics?: boolean;
+  disableArtifactAPI?: boolean;
+};
+
+const initIntercepts = ({ noMetrics, disableArtifactAPI = true }: InterceptsType) => {
   cy.interceptOdh(
     'GET /api/config',
-    mockDashboardConfig({ disablePipelineExperiments: false, disableS3Endpoint: false }),
+    mockDashboardConfig({
+      disablePipelineExperiments: false,
+      disableS3Endpoint: false,
+      disableArtifactsAPI: disableArtifactAPI,
+    }),
   );
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,

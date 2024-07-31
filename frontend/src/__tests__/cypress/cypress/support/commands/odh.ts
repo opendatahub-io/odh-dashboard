@@ -50,6 +50,7 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
+import type { ArtifactStorage } from '~/concepts/pipelines/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -565,6 +566,14 @@ declare global {
             path: { username: string };
           },
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
+          options: {
+            query: { view: string };
+            path: { namespace: string; serviceName: string; artifactId: number };
+          },
+          response: OdhResponse<ArtifactStorage>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/storage/:namespace',
