@@ -14,6 +14,7 @@ export type RegisterVersionFormData = {
   versionName: string;
   versionDescription: string;
   sourceModelFormat: string;
+  sourceModelFormatVersion: string;
   modelLocationType: ModelLocationType;
   modelLocationEndpoint: string;
   modelLocationBucket: string;
@@ -26,6 +27,7 @@ const registerVersionFormDataDefaults: RegisterVersionFormData = {
   versionName: '',
   versionDescription: '',
   sourceModelFormat: '',
+  sourceModelFormatVersion: '',
   modelLocationType: ModelLocationType.ObjectStorage,
   modelLocationEndpoint: '',
   modelLocationBucket: '',

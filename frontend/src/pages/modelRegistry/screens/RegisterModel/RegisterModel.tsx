@@ -13,6 +13,7 @@ import {
   HelperTextItem,
   InputGroupItem,
   InputGroupText,
+  PageSection,
   Radio,
   Split,
   SplitItem,
@@ -23,6 +24,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
+import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
@@ -41,6 +43,7 @@ const RegisterModel: React.FC = () => {
     versionName,
     versionDescription,
     sourceModelFormat,
+    sourceModelFormatVersion,
     modelLocationType,
     modelLocationEndpoint,
     modelLocationBucket,
@@ -89,195 +92,225 @@ const RegisterModel: React.FC = () => {
       }
       loaded
       empty={false}
-      provideChildrenPadding
     >
-      <Form>
-        <Stack hasGutter>
-          <StackItem>
-            <FormGroup label="Model registry" isRequired fieldId="mr-name">
-              <TextInput
-                isDisabled
+      <PageSection variant="light" isFilled>
+        <Form isWidthLimited>
+          <Stack hasGutter>
+            <StackItem>
+              <FormGroup
+                label="Model registry"
                 isRequired
-                type="text"
-                id="mr-name"
-                name="mr-name"
-                value={mrName}
-              />
-            </FormGroup>
-          </StackItem>
-          <StackItem>
-            <FormSection
-              title={
-                <>
-                  <Title headingLevel="h2">Model info</Title>
-                  <Text component="p" className="form-subtitle-text">
-                    Configure the model info you want to create.
-                  </Text>
-                </>
-              }
-            >
-              <FormGroup label="Model name" isRequired fieldId="model-name">
+                fieldId="mr-name"
+                className={spacing.mbLg}
+              >
                 <TextInput
+                  isDisabled
                   isRequired
                   type="text"
-                  id="model-name"
-                  name="model-name"
-                  value={modelName}
-                  onChange={(_e, value) => setData('modelName', value)}
+                  id="mr-name"
+                  name="mr-name"
+                  value={mrName}
                 />
               </FormGroup>
-              <FormGroup label="Model description" fieldId="model-description">
-                <TextArea
-                  type="text"
-                  id="model-description"
-                  name="model-description"
-                  value={modelDescription}
-                  onChange={(_e, value) => setData('modelDescription', value)}
-                />
-              </FormGroup>
-            </FormSection>
-            <FormSection
-              title={
-                <>
-                  <Title headingLevel="h2">Version info</Title>
-                  <Text component="p" className="form-subtitle-text">
-                    Configure the version info for the run that you want to register.
-                  </Text>
-                </>
-              }
-            >
-              <FormGroup label="Version name" isRequired fieldId="version-name">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="version-name"
-                  name="version-name"
-                  value={versionName}
-                  onChange={(_e, value) => setData('versionName', value)}
-                />
-              </FormGroup>
-              <FormGroup label="Version description" fieldId="version-description">
-                <TextArea
-                  type="text"
-                  id="version-description"
-                  name="version-description"
-                  value={versionDescription}
-                  onChange={(_e, value) => setData('versionDescription', value)}
-                />
-              </FormGroup>
-              <FormGroup label="Source model format" fieldId="source-model-format">
-                <TextInput
-                  type="text"
-                  placeholder="Example, tensorflow"
-                  id="source-model-format"
-                  name="source-model-format"
-                  value={sourceModelFormat}
-                  onChange={(_e, value) => setData('sourceModelFormat', value)}
-                />
-              </FormGroup>
-            </FormSection>
-            <FormSection
-              title={
-                <>
-                  <Title headingLevel="h2">Model location</Title>
-                  <Text component="p" className="form-subtitle-text">
-                    Specify the model location by providing either the object storage details or the
-                    URI.
-                  </Text>
-                </>
-              }
-            >
-              <Radio
-                isChecked={modelLocationType === ModelLocationType.ObjectStorage}
-                name="location-type-object-storage"
-                onChange={() => {
-                  setData('modelLocationType', ModelLocationType.ObjectStorage);
-                }}
-                label="Object storage"
-                id="location-type-object-storage"
-              />
-              {modelLocationType === ModelLocationType.ObjectStorage && (
-                <>
-                  <FormGroup label="Endpoint" isRequired fieldId="location-endpoint">
-                    <TextInput
-                      isRequired
-                      type="text"
-                      id="location-endpoint"
-                      name="location-endpoint"
-                      value={modelLocationEndpoint}
-                      onChange={(_e, value) => setData('modelLocationEndpoint', value)}
-                    />
-                  </FormGroup>
-                  <FormGroup label="Bucket" isRequired fieldId="location-bucket">
-                    <TextInput
-                      isRequired
-                      type="text"
-                      id="location-bucket"
-                      name="location-bucket"
-                      value={modelLocationBucket}
-                      onChange={(_e, value) => setData('modelLocationBucket', value)}
-                    />
-                  </FormGroup>
-                  <FormGroup label="Region" fieldId="location-region">
-                    <TextInput
-                      type="text"
-                      id="location-region"
-                      name="location-region"
-                      value={modelLocationRegion}
-                      onChange={(_e, value) => setData('modelLocationRegion', value)}
-                    />
-                  </FormGroup>
-                  <FormGroup label="Path" isRequired fieldId="location-path">
-                    <Split hasGutter>
-                      <SplitItem>
-                        <InputGroupText isPlain>/</InputGroupText>
-                      </SplitItem>
-                      <SplitItem isFilled>
-                        <InputGroupItem>
+            </StackItem>
+            <StackItem>
+              <FormSection
+                title={
+                  <>
+                    <Title headingLevel="h2" size="md">
+                      Model details
+                    </Title>
+                    <Text component="p" className="form-subtitle-text">
+                      Provide general details that apply to all versions of this model.
+                    </Text>
+                  </>
+                }
+              >
+                <FormGroup label="Model name" isRequired fieldId="model-name">
+                  <TextInput
+                    isRequired
+                    type="text"
+                    id="model-name"
+                    name="model-name"
+                    value={modelName}
+                    onChange={(_e, value) => setData('modelName', value)}
+                  />
+                </FormGroup>
+                <FormGroup label="Model description" fieldId="model-description">
+                  <TextArea
+                    type="text"
+                    id="model-description"
+                    name="model-description"
+                    value={modelDescription}
+                    onChange={(_e, value) => setData('modelDescription', value)}
+                  />
+                </FormGroup>
+              </FormSection>
+              <FormSection
+                title={
+                  <>
+                    <Title headingLevel="h2">Version details</Title>
+                    <Text component="p" className="form-subtitle-text">
+                      Configure details for the first version of this model.
+                    </Text>
+                  </>
+                }
+              >
+                <FormGroup label="Version name" isRequired fieldId="version-name">
+                  <TextInput
+                    isRequired
+                    type="text"
+                    id="version-name"
+                    name="version-name"
+                    value={versionName}
+                    onChange={(_e, value) => setData('versionName', value)}
+                  />
+                </FormGroup>
+                <FormGroup label="Version description" fieldId="version-description">
+                  <TextArea
+                    type="text"
+                    id="version-description"
+                    name="version-description"
+                    value={versionDescription}
+                    onChange={(_e, value) => setData('versionDescription', value)}
+                  />
+                </FormGroup>
+                <FormGroup label="Source model format" fieldId="source-model-format">
+                  <TextInput
+                    type="text"
+                    placeholder="Example, tensorflow"
+                    id="source-model-format"
+                    name="source-model-format"
+                    value={sourceModelFormat}
+                    onChange={(_e, value) => setData('sourceModelFormat', value)}
+                  />
+                </FormGroup>
+                <FormGroup
+                  label="Source model format version"
+                  fieldId="source-model-format-version"
+                >
+                  <TextInput
+                    type="text"
+                    placeholder="Example, 1"
+                    id="source-model-format-version"
+                    name="source-model-format-version"
+                    value={sourceModelFormatVersion}
+                    onChange={(_e, value) => setData('sourceModelFormatVersion', value)}
+                  />
+                </FormGroup>
+              </FormSection>
+              <FormSection
+                title={
+                  <>
+                    <Title headingLevel="h2">Model location</Title>
+                    <Text component="p" className="form-subtitle-text">
+                      Specify the model location by providing either the object storage details or
+                      the URI.
+                    </Text>
+                  </>
+                }
+              >
+                <Radio
+                  isChecked={modelLocationType === ModelLocationType.ObjectStorage}
+                  name="location-type-object-storage"
+                  onChange={() => {
+                    setData('modelLocationType', ModelLocationType.ObjectStorage);
+                  }}
+                  label="Object storage"
+                  id="location-type-object-storage"
+                  body={
+                    modelLocationType === ModelLocationType.ObjectStorage && (
+                      <Form>
+                        <FormGroup label="Endpoint" isRequired fieldId="location-endpoint">
                           <TextInput
                             isRequired
                             type="text"
-                            id="location-path"
-                            name="location-path"
-                            value={modelLocationPath}
-                            onChange={(_e, value) => setData('modelLocationPath', value)}
+                            id="location-endpoint"
+                            name="location-endpoint"
+                            value={modelLocationEndpoint}
+                            onChange={(_e, value) => setData('modelLocationEndpoint', value)}
                           />
-                        </InputGroupItem>
-                      </SplitItem>
-                    </Split>
-                    <HelperText>
-                      <HelperTextItem>
-                        Enter a path to a model or folder. This path cannot point to a root folder.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormGroup>
-                </>
-              )}
-              <Radio
-                isChecked={modelLocationType === ModelLocationType.URI}
-                name="location-type-uri"
-                onChange={() => {
-                  setData('modelLocationType', ModelLocationType.URI);
-                }}
-                label="URI"
-                id="location-type-uri"
-              />
-              {modelLocationType === ModelLocationType.URI && (
-                <>
-                  <FormGroup label="URI" isRequired fieldId="location-uri">
-                    <TextInput
-                      isRequired
-                      type="text"
-                      id="location-uri"
-                      name="location-uri"
-                      value={modelLocationURI}
-                      onChange={(_e, value) => setData('modelLocationURI', value)}
-                    />
-                  </FormGroup>
-                </>
-              )}
-            </FormSection>
-          </StackItem>
+                        </FormGroup>
+                        <FormGroup label="Bucket" isRequired fieldId="location-bucket">
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="location-bucket"
+                            name="location-bucket"
+                            value={modelLocationBucket}
+                            onChange={(_e, value) => setData('modelLocationBucket', value)}
+                          />
+                        </FormGroup>
+                        <FormGroup label="Region" fieldId="location-region">
+                          <TextInput
+                            type="text"
+                            id="location-region"
+                            name="location-region"
+                            value={modelLocationRegion}
+                            onChange={(_e, value) => setData('modelLocationRegion', value)}
+                          />
+                        </FormGroup>
+                        <FormGroup label="Path" isRequired fieldId="location-path">
+                          <Split hasGutter>
+                            <SplitItem>
+                              <InputGroupText isPlain>/</InputGroupText>
+                            </SplitItem>
+                            <SplitItem isFilled>
+                              <InputGroupItem>
+                                <TextInput
+                                  isRequired
+                                  type="text"
+                                  id="location-path"
+                                  name="location-path"
+                                  value={modelLocationPath}
+                                  onChange={(_e, value) => setData('modelLocationPath', value)}
+                                />
+                              </InputGroupItem>
+                            </SplitItem>
+                          </Split>
+                          <HelperText>
+                            <HelperTextItem>
+                              Enter a path to a model or folder. This path cannot point to a root
+                              folder.
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormGroup>
+                      </Form>
+                    )
+                  }
+                />
+                <Radio
+                  isChecked={modelLocationType === ModelLocationType.URI}
+                  name="location-type-uri"
+                  onChange={() => {
+                    setData('modelLocationType', ModelLocationType.URI);
+                  }}
+                  label="URI"
+                  id="location-type-uri"
+                  body={
+                    modelLocationType === ModelLocationType.URI && (
+                      <Form>
+                        <FormGroup label="URI" isRequired fieldId="location-uri">
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="location-uri"
+                            name="location-uri"
+                            value={modelLocationURI}
+                            onChange={(_e, value) => setData('modelLocationURI', value)}
+                          />
+                        </FormGroup>
+                      </Form>
+                    )
+                  }
+                />
+              </FormSection>
+            </StackItem>
+          </Stack>
+        </Form>
+      </PageSection>
+      <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
+        <Stack hasGutter>
           {error && (
             <StackItem>
               <Alert
@@ -313,7 +346,7 @@ const RegisterModel: React.FC = () => {
             </ActionGroup>
           </StackItem>
         </Stack>
-      </Form>
+      </PageSection>
     </ApplicationsPage>
   );
 };

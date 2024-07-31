@@ -68,8 +68,8 @@ export const registerVersion = async (
     customProperties: {},
     state: ModelArtifactState.LIVE,
     author,
-    modelFormatName: formData.sourceModelFormat, // TODO change to sourceModelFormatName
-    modelFormatVersion: '1', // TODO add new formData.sourceModelFormatVersion
+    modelFormatName: formData.sourceModelFormat,
+    modelFormatVersion: formData.sourceModelFormatVersion,
     // storageKey: 'TODO', // TODO fill in the name of the data connection we used to prefill if we used one - reference ticket
     uri:
       formData.modelLocationType === ModelLocationType.ObjectStorage
