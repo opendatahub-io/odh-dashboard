@@ -1,16 +1,12 @@
-import {
-  createOpenShiftProject,
-  deleteOpenShiftProject,
-  applyOpenShiftYaml,
-} from '~/__tests__/cypress/cypress/utils/ocCommands';
+import { createOpenShiftProject, deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
+import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
-import { pipelinesGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesGlobal';
-import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesTable';
 import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
 import {
   pipelineDetails,
@@ -25,14 +21,7 @@ const testRunName = 'test-pipelines-run';
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
     // Provision a Project
-    createOpenShiftProject(projectName).then((result) => {
-      expect(result.code).to.eq(
-        0,
-        `ERROR provisioning ${projectName} Project
-                                    stdout: ${result.stdout}
-                                    stderr: ${result.stderr}`,
-      );
-    });
+    createOpenShiftProject(projectName);
 
     // Create a pipeline compatible Data Connection
     const dataConnectionReplacements = {
@@ -43,15 +32,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       AWS_S3_ENDPOINT: Buffer.from(AWS_BUCKETS.BUCKET_2.ENDPOINT).toString('base64'),
       AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
     };
-    cy.fixture('resources/yaml/data_connection.yml').then((yamlContent) => {
-      const modifiedYamlContent = replacePlaceholdersInYaml(
-        yamlContent,
-        dataConnectionReplacements,
-      );
-      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
-        expect(result.code).to.eq(0);
-      });
-    });
+    createDataConnection(dataConnectionReplacements);
 
     // Configure Pipeline server: Create DSPA Secret
     const dspaSecretReplacements = {
@@ -60,25 +41,54 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
       AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
     };
-    cy.fixture('resources/yaml/dspa_secret.yml').then((yamlContent) => {
-      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaSecretReplacements);
-      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
-        expect(result.code).to.eq(0);
-      });
-    });
+    createDSPASecret(dspaSecretReplacements);
 
     // Configure Pipeline server: Create DSPA
     const dspaReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
-      AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
+      AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME
     };
-    cy.fixture('resources/yaml/dspa.yml').then((yamlContent) => {
-      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
-      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
-        expect(result.code).to.eq(0);
-      });
-    });
+    createDSPA(dspaReplacements);
+
+    
+    
+    // cy.fixture('resources/yaml/data_connection.yml').then((yamlContent) => {
+    //   const modifiedYamlContent = replacePlaceholdersInYaml(
+    //     yamlContent,
+    //     dataConnectionReplacements,
+    //   );
+    //   applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+    //     expect(result.code).to.eq(0);
+    //   });
+    // });
+
+    // // Configure Pipeline server: Create DSPA Secret
+    // const dspaSecretReplacements = {
+    //   DSPA_SECRET_NAME: dspaSecretName,
+    //   NAMESPACE: projectName,
+    //   AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
+    //   AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
+    // };
+    // cy.fixture('resources/yaml/dspa_secret.yml').then((yamlContent) => {
+    //   const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaSecretReplacements);
+    //   applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+    //     expect(result.code).to.eq(0);
+    //   });
+    // });
+
+    // // Configure Pipeline server: Create DSPA
+    // const dspaReplacements = {
+    //   DSPA_SECRET_NAME: dspaSecretName,
+    //   NAMESPACE: projectName,
+    //   AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
+    // };
+    // cy.fixture('resources/yaml/dspa.yml').then((yamlContent) => {
+    //   const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
+    //   applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+    //     expect(result.code).to.eq(0);
+    //   });
+    // });
   });
 
   after(() => {
