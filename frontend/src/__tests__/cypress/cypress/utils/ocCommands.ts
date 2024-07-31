@@ -42,7 +42,5 @@ export const createOpenShiftProject = (projectName: string, displayName?: string
  */
 export const deleteOpenShiftProject = (projectName: string) => {
   const ocCommand = `oc delete project ${projectName}`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false}).then(() => {
-    return;
-  });
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then(() => {});
 };

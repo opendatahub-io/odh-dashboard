@@ -3,7 +3,12 @@ import path from 'path';
 import { env } from 'process';
 import dotenv from 'dotenv';
 import YAML from 'yaml';
-import type { UserAuthConfig, TestConfig, AWSS3BucketDetails, AWSS3Buckets } from '~/__tests__/cypress/cypress/types';
+import type {
+  UserAuthConfig,
+  TestConfig,
+  AWSS3BucketDetails,
+  AWSS3Buckets,
+} from '~/__tests__/cypress/cypress/types';
 
 [
   `.env.cypress${env.CY_MOCK ? '.mock' : ''}.local`,
@@ -37,12 +42,14 @@ const ADMIN_USER: UserAuthConfig = testConfig?.OCP_ADMIN_USER ?? {
 const AWS_PIPELINES_BUCKET_DETAILS: AWSS3BucketDetails = {
   NAME: testConfig?.S3.BUCKET_2.NAME || env.AWS_PIPELINES_BUCKET_NAME || '',
   REGION: testConfig?.S3.BUCKET_2.REGION || env.AWS_PIPELINES_BUCKET_REGION || '',
-  ENDPOINT: testConfig?.S3.BUCKET_2.ENDPOINT || env.AWS_PIPELINES_BUCKET_ENDPOINT || ''
+  ENDPOINT: testConfig?.S3.BUCKET_2.ENDPOINT || env.AWS_PIPELINES_BUCKET_ENDPOINT || '',
 };
 const AWS_PIPELINES: AWSS3Buckets = {
-  AWS_ACCESS_KEY_ID: testConfig?.S3.AWS_ACCESS_KEY_ID || env.AWS_PIPELINES_BUCKET_ACCESS_KEY_ID || '',
-  AWS_SECRET_ACCESS_KEY: testConfig?.S3.AWS_SECRET_ACCESS_KEY || env.AWS_PIPELINES_BUCKET_SECRET_ACCESS_KEY || '',
-  BUCKET_2: AWS_PIPELINES_BUCKET_DETAILS
+  AWS_ACCESS_KEY_ID:
+    testConfig?.S3.AWS_ACCESS_KEY_ID || env.AWS_PIPELINES_BUCKET_ACCESS_KEY_ID || '',
+  AWS_SECRET_ACCESS_KEY:
+    testConfig?.S3.AWS_SECRET_ACCESS_KEY || env.AWS_PIPELINES_BUCKET_SECRET_ACCESS_KEY || '',
+  BUCKET_2: AWS_PIPELINES_BUCKET_DETAILS,
 };
 
 // spread the cypressEnv variables into the cypress config
