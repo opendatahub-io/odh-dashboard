@@ -22,16 +22,19 @@ import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pip
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/usePipelineVersionSelector';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 
 type PipelineVersionSelectorProps = {
   pipelineId?: string;
   selection?: string;
+  isCreatePage?: boolean;
   onSelect: (version: PipelineVersionKFv2) => void;
 };
 
 const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
   pipelineId,
   selection,
+  isCreatePage,
   onSelect,
 }) => {
   const [isOpen, setOpen] = React.useState(false);
@@ -51,6 +54,13 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
     data: versions,
   } = usePipelineVersionSelector(pipelineId);
 
+  // Only filter the unsupported version for create page.
+  const supportedVersions = React.useMemo(
+    () => (isCreatePage ? versions.filter((v) => !isArgoWorkflow(v.pipeline_spec)) : versions),
+    [versions, isCreatePage],
+  );
+  const supportedVersionsSize = supportedVersions.length;
+
   const menu = (
     <Menu data-id="pipeline-version-selector-menu" ref={menuRef} isScrollable>
       <MenuContent>
@@ -63,7 +73,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
             />
           </MenuSearchInput>
           <HelperText>
-            <HelperTextItem variant="indeterminate">{`Type a name to search your ${totalSize} versions.`}</HelperTextItem>
+            <HelperTextItem variant="indeterminate">{`Type a name to search your ${supportedVersionsSize} versions.`}</HelperTextItem>
           </HelperText>
         </MenuSearch>
         <MenuList>
@@ -82,7 +92,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
               borders={false}
               variant={TableVariant.compact}
               columns={pipelineVersionSelectorColumns}
-              data={versions}
+              data={supportedVersions}
               rowRenderer={(row) => (
                 <PipelineSelectorTableRow
                   key={row.pipeline_version_id}
@@ -133,14 +143,19 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
           ref={toggleRef}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={!pipelineId || totalSize === 0}
+          isDisabled={!pipelineId || totalSize === 0 || supportedVersionsSize === 0}
           isFullWidth
           data-testid="pipeline-version-toggle-button"
         >
           {!pipelineId
             ? 'Select a pipeline version'
             : initialLoaded
-            ? selection || (totalSize === 0 ? 'No versions available' : 'Select a pipeline version')
+            ? selection ||
+              (totalSize === 0
+                ? 'No versions available'
+                : supportedVersionsSize === 0
+                ? 'No supported versions available'
+                : 'Select a pipeline version')
             : 'Loading pipeline versions'}
         </MenuToggle>
       }

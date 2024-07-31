@@ -10,6 +10,7 @@ import {
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockSuccessGoogleRpcStatus,
+  mockArgoWorkflowPipelineVersion,
 } from '~/__mocks__';
 import {
   pipelinesGlobal,
@@ -30,7 +31,7 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 
 const projectName = 'test-project-name';
@@ -39,6 +40,7 @@ const initialMockPipelineVersion = buildMockPipelineVersionV2({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
+const argoWorkflowPipeline = './cypress/tests/mocked/pipelines/argo-workflow-pipeline.yaml';
 const tooLargePipelineYAMLPath = './cypress/tests/mocked/pipelines/not-a-pipeline-2-megabytes.yaml';
 
 describe('Pipelines', () => {
@@ -637,6 +639,24 @@ describe('Pipelines', () => {
     pipelineImportModal.findSubmitButton().should('be.enabled');
   });
 
+  it('imports fails with Argo workflow', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    // Open the "Import pipeline" modal
+    pipelinesGlobal.findImportPipelineButton().click();
+
+    // Fill out the "Import pipeline" modal and submit
+    pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.fillPipelineDescription('New pipeline description');
+    pipelineImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineImportModal.submit();
+
+    pipelineImportModal.findImportModalError().should('exist');
+    pipelineImportModal.findImportModalError().contains('Unsupported pipeline version');
+  });
+
   it('imports a new pipeline by url', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
@@ -763,6 +783,28 @@ describe('Pipelines', () => {
       .getPipelineVersionRowById(uploadedMockPipelineVersion.pipeline_version_id)
       .find()
       .should('exist');
+  });
+
+  it('uploads fails with argo workflow', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Upload new version" modal
+    pipelinesGlobal.findUploadVersionButton().click();
+
+    // Fill out the "Upload new version" modal and submit
+    pipelineVersionImportModal.shouldBeOpen();
+    pipelineVersionImportModal.selectPipelineByName('Test pipeline');
+    pipelineVersionImportModal.fillVersionName('Argo workflow version');
+    pipelineVersionImportModal.fillVersionDescription('Argo workflow version description');
+    pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineVersionImportModal.submit();
+
+    pipelineVersionImportModal.findImportModalError().should('exist');
+    pipelineVersionImportModal.findImportModalError().contains('Unsupported pipeline version');
   });
 
   it('imports a new pipeline version by url', () => {
@@ -1028,6 +1070,56 @@ describe('Pipelines', () => {
     );
   });
 
+  it('run and schedule dropdown action should be disabled when pipeline and pipeline version is not supported', () => {
+    const mockPipelines: PipelineKFv2[] = [
+      buildMockPipelineV2({
+        display_name: 'Argo workflow',
+        pipeline_id: 'argo-workflow',
+      }),
+    ];
+
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+      {
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          pipelineId: 'argo-workflow',
+        },
+      },
+      initialMockPipeline,
+    );
+
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+      {
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          pipelineId: 'argo-workflow',
+        },
+      },
+      buildMockPipelineVersionsV2([
+        mockArgoWorkflowPipelineVersion({ pipelineId: 'argo-workflow' }),
+      ]),
+    );
+
+    initIntercepts({ mockPipelines });
+    pipelinesGlobal.visit(projectName);
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+    const pipelineRow = pipelinesTable.getRowById('argo-workflow');
+    pipelineRow.findKebabAction('Create run').should('have.attr', 'aria-disabled');
+    pipelineRow.findKebabAction('Create schedule').should('have.attr', 'aria-disabled');
+
+    pipelineRow.findExpandButton().click();
+
+    const pipelineVersionRow = pipelineRow.getPipelineVersionRowById('test-pipeline-version');
+    pipelineVersionRow.findKebabAction('Create run').should('have.attr', 'aria-disabled');
+    pipelineVersionRow.findKebabAction('Create schedule').should('have.attr', 'aria-disabled');
+  });
+
   it('run and schedule dropdown action should be disabeld when pipeline has no versions', () => {
     initIntercepts({ hasNoPipelineVersions: true });
     pipelinesGlobal.visit(projectName);
@@ -1217,6 +1309,7 @@ describe('Pipelines', () => {
 type HandlersProps = {
   isEmpty?: boolean;
   mockPipelines?: PipelineKFv2[];
+  mockPipelineVersions?: PipelineVersionKFv2[];
   hasNoPipelineVersions?: boolean;
   totalSize?: number;
   nextPageToken?: string | undefined;
@@ -1225,6 +1318,7 @@ type HandlersProps = {
 const initIntercepts = ({
   isEmpty = false,
   mockPipelines = [initialMockPipeline],
+  mockPipelineVersions = [initialMockPipelineVersion],
   hasNoPipelineVersions = false,
   totalSize = mockPipelines.length,
   nextPageToken,
@@ -1274,7 +1368,7 @@ const initIntercepts = ({
         pipelineId: initialMockPipeline.pipeline_id,
       },
     },
-    hasNoPipelineVersions ? {} : buildMockPipelineVersionsV2([initialMockPipelineVersion]),
+    hasNoPipelineVersions ? {} : buildMockPipelineVersionsV2(mockPipelineVersions),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',

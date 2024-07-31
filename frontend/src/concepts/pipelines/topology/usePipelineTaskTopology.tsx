@@ -253,15 +253,20 @@ export const usePipelineTaskTopology = (
       return [];
     }
     const pipelineSpec = spec.pipeline_spec ?? spec;
+    let components, executors, tasks, inputDefinitions;
 
-    const {
-      components,
-      deploymentSpec: { executors },
-      root: {
-        dag: { tasks },
-        inputDefinitions,
-      },
-    } = pipelineSpec;
+    try {
+      ({
+        components,
+        deploymentSpec: { executors },
+        root: {
+          dag: { tasks },
+          inputDefinitions,
+        },
+      } = pipelineSpec);
+    } catch (e) {
+      return [];
+    }
 
     const outputEvents = parseEventsByType(events ?? [])[Event.Type.OUTPUT];
 

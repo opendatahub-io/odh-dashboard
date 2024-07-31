@@ -23,6 +23,8 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
 import { PipelineRunDetailsTabs } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsTabs';
 import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
+import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import PipelineRecurringRunDetailsActions from './PipelineRecurringRunDetailsActions';
 
 const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
@@ -41,13 +43,21 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const nodes = usePipelineTaskTopology(version?.pipeline_spec);
+  const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
 
-  const selectedNode = React.useMemo(
-    () => nodes.find((n) => n.id === selectedId),
-    [selectedId, nodes],
-  );
+  const selectedNode = React.useMemo(() => {
+    if (isInvalidPipelineVersion) {
+      return null;
+    }
+    return nodes.find((n) => n.id === selectedId);
+  }, [isInvalidPipelineVersion, selectedId, nodes]);
 
-  const getFirstNode = (firstId: string) => nodes.find((n) => n.id === firstId)?.data?.pipelineTask;
+  const getFirstNode = (firstId: string) => {
+    if (isInvalidPipelineVersion) {
+      return null;
+    }
+    return nodes.find((n) => n.id === firstId)?.data?.pipelineTask;
+  };
 
   const loaded = versionLoaded && recurringRunLoaded;
   const error = versionError || recurringRunError;
@@ -99,30 +109,35 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
             <PipelineRecurringRunDetailsActions
               recurringRun={recurringRun ?? undefined}
               onDelete={() => setDeleting(true)}
+              isPipelineSupported={!isArgoWorkflow(version?.pipeline_spec)}
             />
           )
         }
         empty={false}
       >
-        <PipelineRunDetailsTabs
-          run={recurringRun}
-          pipelineSpec={version?.pipeline_spec}
-          graphContent={
-            <PipelineTopology
-              nodes={nodes}
-              selectedIds={selectedId ? [selectedId] : []}
-              onSelectionChange={(ids) => {
-                const firstId = ids[0];
-                if (ids.length === 0) {
-                  setSelectedId(null);
-                } else if (getFirstNode(firstId)) {
-                  setSelectedId(firstId);
-                }
-              }}
-              sidePanel={panelContent}
-            />
-          }
-        />
+        {isInvalidPipelineVersion ? (
+          <PipelineNotSupported />
+        ) : (
+          <PipelineRunDetailsTabs
+            run={recurringRun}
+            pipelineSpec={version?.pipeline_spec}
+            graphContent={
+              <PipelineTopology
+                nodes={nodes}
+                selectedIds={selectedId ? [selectedId] : []}
+                onSelectionChange={(ids) => {
+                  const firstId = ids[0];
+                  if (ids.length === 0) {
+                    setSelectedId(null);
+                  } else if (getFirstNode(firstId)) {
+                    setSelectedId(firstId);
+                  }
+                }}
+                sidePanel={panelContent}
+              />
+            }
+          />
+        )}
       </ApplicationsPage>
       <DeletePipelineRunsModal
         type={PipelineRunType.SCHEDULED}

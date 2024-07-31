@@ -29,6 +29,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableArtifactsAPI: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
+  disableConnectionTypes: false,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -122,5 +123,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+  },
+  [SupportedArea.DATA_CONNECTIONS_TYPES]: {
+    featureFlags: ['disableConnectionTypes'],
   },
 };

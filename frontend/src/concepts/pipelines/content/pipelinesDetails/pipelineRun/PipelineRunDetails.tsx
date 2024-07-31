@@ -30,6 +30,8 @@ import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/u
 import { PipelineTopology } from '~/concepts/topology';
 import { FetchState } from '~/utilities/useFetchState';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -61,11 +63,14 @@ const PipelineRunDetails: React.FC<
     events,
     artifacts,
   );
+  const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
 
-  const selectedNode = React.useMemo(
-    () => nodes.find((n) => n.id === selectedId),
-    [selectedId, nodes],
-  );
+  const selectedNode = React.useMemo(() => {
+    if (isInvalidPipelineVersion) {
+      return null;
+    }
+    return nodes.find((n) => n.id === selectedId);
+  }, [isInvalidPipelineVersion, selectedId, nodes]);
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
@@ -136,31 +141,36 @@ const PipelineRunDetails: React.FC<
             run={run}
             onDelete={() => setDeleting(true)}
             onArchive={() => setArchiving(true)}
+            isPipelineSupported={!isArgoWorkflow(version?.pipeline_spec)}
           />
         }
         empty={false}
       >
-        <PipelineRunDetailsTabs
-          run={run}
-          versionError={versionError}
-          pipelineSpec={version?.pipeline_spec}
-          graphContent={
-            <PipelineTopology
-              nodes={nodes}
-              versionError={versionError}
-              selectedIds={selectedId ? [selectedId] : []}
-              onSelectionChange={(ids) => {
-                const firstId = ids[0];
-                if (ids.length === 0) {
-                  setSelectedId(null);
-                } else if (nodes.find((node) => node.id === firstId)) {
-                  setSelectedId(firstId);
-                }
-              }}
-              sidePanel={panelContent}
-            />
-          }
-        />
+        {isInvalidPipelineVersion ? (
+          <PipelineNotSupported />
+        ) : (
+          <PipelineRunDetailsTabs
+            run={run}
+            versionError={versionError}
+            pipelineSpec={version?.pipeline_spec}
+            graphContent={
+              <PipelineTopology
+                nodes={nodes}
+                versionError={versionError}
+                selectedIds={selectedId ? [selectedId] : []}
+                onSelectionChange={(ids) => {
+                  const firstId = ids[0];
+                  if (ids.length === 0) {
+                    setSelectedId(null);
+                  } else if (nodes.find((node) => node.id === firstId)) {
+                    setSelectedId(firstId);
+                  }
+                }}
+                sidePanel={panelContent}
+              />
+            }
+          />
+        )}
       </ApplicationsPage>
       <DeletePipelineRunsModal
         type={PipelineRunType.ARCHIVED}

@@ -7,6 +7,7 @@ import {
   buildMockPipelineVersionV2,
   buildMockRecurringRunKF,
   buildMockExperimentKF,
+  mockArgoWorkflowPipelineVersion,
 } from '~/__mocks__';
 import {
   createRunPage,
@@ -24,6 +25,7 @@ import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipelineV2();
 const mockPipelineVersion = buildMockPipelineVersionV2({ pipeline_id: mockPipeline.pipeline_id });
+const mockArgoPipelineVersion = mockArgoWorkflowPipelineVersion({});
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
   pipeline_version_id: mockPipelineVersion.pipeline_version_id,
@@ -103,6 +105,31 @@ describe('Pipeline create runs', () => {
       verifyRelativeURL(
         `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/create`,
       );
+    });
+
+    it('Unsupported pipeline should not be displayed', () => {
+      visitLegacyRunsPage();
+
+      // Mock experiments, pipelines & versions for form select dropdowns
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockArgoPipelineVersion, mockPipelineVersion],
+        mockArgoPipelineVersion.pipeline_id,
+      );
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      verifyRelativeURL(
+        `/pipelines/${projectName}/${mockArgoPipelineVersion.pipeline_id}/${mockArgoPipelineVersion.pipeline_version_id}/runs/create`,
+      );
+      createRunPage.find();
+
+      createRunPage.findPipelineSelect().should('not.be.disabled').click();
+      createRunPage.selectPipelineByName('Test pipeline');
+      createRunPage.findPipelineVersionSelect().should('not.be.disabled').click();
+      createRunPage.findPipelineVersionByName('argo unsupported').should('not.exist');
     });
 
     it('creates an active run', () => {

@@ -35,12 +35,12 @@ import type {
   SubscriptionStatusData,
 } from '~/types';
 import type {
+  ArgoWorkflowPipelineVersion,
   ExperimentKFv2,
   GoogleRpcStatusKF,
   ListExperimentsResponseKF,
   ListPipelineRecurringRunsResourceKF,
   ListPipelineRunsResourceKF,
-  ListPipelineVersionsKF,
   ListPipelinesResponseKF,
   PipelineKFv2,
   PipelineRecurringRunKFv2,
@@ -48,6 +48,7 @@ import type {
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
+import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -346,7 +347,9 @@ declare global {
               pipelineVersionId: string;
             };
           },
-          response: OdhResponse<PipelineVersionKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<
+            PipelineVersionKFv2 | ArgoWorkflowPipelineVersion | GoogleRpcStatusKF
+          >,
         ) => Cypress.Chainable<null>) &
         ((
           type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId`,
@@ -393,7 +396,7 @@ declare global {
             path: { namespace: string; serviceName: string; pipelineId: string };
             times?: number;
           },
-          response: OdhResponse<ListPipelineVersionsKF | GoogleRpcStatusKF>,
+          response: OdhResponse<BuildMockPipelinveVersionsType | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines`,

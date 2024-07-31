@@ -18,6 +18,7 @@ import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, RUN_NAME_CHARACTER_LIMIT, runPageSectionTitles } from './const';
@@ -34,7 +35,15 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);
-  const selectedVersion = data.version || latestVersion;
+  const selectedVersion = React.useMemo(() => {
+    const version = data.version || latestVersion;
+    if (isArgoWorkflow(version?.pipeline_spec)) {
+      onValueChange('version', null);
+      return null;
+    }
+    return version;
+  }, [data.version, latestVersion, onValueChange]);
+
   const paramsRef = React.useRef(data.params);
   const isSchedule = data.runType.type === RunTypeOption.SCHEDULED;
   const { name } = data.nameDesc;
