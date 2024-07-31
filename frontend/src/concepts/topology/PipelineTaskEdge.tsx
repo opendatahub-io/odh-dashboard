@@ -5,10 +5,11 @@ import {
   EdgeTerminalType,
   observer,
   TaskEdge,
+  WithSelectionProps,
   isEdge,
 } from '@patternfly/react-topology';
 
-interface PipelineTaskEdgeProps {
+interface PipelineTaskEdgeProps extends WithSelectionProps {
   element: GraphElement;
 }
 
