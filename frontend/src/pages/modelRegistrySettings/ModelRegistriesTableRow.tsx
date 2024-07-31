@@ -5,6 +5,7 @@ import { ModelRegistryKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import ViewDatabaseConfigModal from './ViewDatabaseConfigModal';
 import DeleteModelRegistryModal from './DeleteModelRegistryModal';
+import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
   modelRegistry: ModelRegistryKind;
@@ -29,6 +30,9 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           {mr.metadata.annotations?.['openshift.io/description'] && (
             <p>{mr.metadata.annotations['openshift.io/description']}</p>
           )}
+        </Td>
+        <Td dataLabel="Status">
+          <ModelRegistryTableRowStatus conditions={mr.status?.conditions} />
         </Td>
         <Td modifier="fitContent">
           <Link
