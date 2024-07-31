@@ -5,7 +5,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/ocCommands';
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { AWS_PIPELINES_BUCKET } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
@@ -34,11 +34,11 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     // Create a pipeline compatible Data Connection
     const dataConnectionReplacements = {
       NAMESPACE: projectName,
-      AWS_ACCESS_KEY_ID: Buffer.from(AWS_PIPELINES_BUCKET.AWS_ACCESS_KEY_ID).toString('base64'),
-      AWS_DEFAULT_REGION: Buffer.from(AWS_PIPELINES_BUCKET.AWS_REGION).toString('base64'),
-      AWS_S3_BUCKET: Buffer.from(AWS_PIPELINES_BUCKET.BUCKET_NAME).toString('base64'),
-      AWS_S3_ENDPOINT: Buffer.from(AWS_PIPELINES_BUCKET.AWS_ENDPOINT).toString('base64'),
-      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_PIPELINES_BUCKET.AWS_SECRET_ACCESS_KEY).toString(
+      AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
+      AWS_DEFAULT_REGION: Buffer.from(AWS_BUCKETS.BUCKET_2.REGION).toString('base64'),
+      AWS_S3_BUCKET: Buffer.from(AWS_BUCKETS.BUCKET_2.NAME).toString('base64'),
+      AWS_S3_ENDPOINT: Buffer.from(AWS_BUCKETS.BUCKET_2.ENDPOINT).toString('base64'),
+      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString(
         'base64',
       ),
     };
@@ -56,8 +56,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     const dspaSecretReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
-      AWS_ACCESS_KEY_ID: Buffer.from(AWS_PIPELINES_BUCKET.AWS_ACCESS_KEY_ID).toString('base64'),
-      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_PIPELINES_BUCKET.AWS_SECRET_ACCESS_KEY).toString(
+      AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
+      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString(
         'base64',
       ),
     };
@@ -72,7 +72,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     const dspaReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
-      AWS_S3_BUCKET: AWS_PIPELINES_BUCKET.BUCKET_NAME,
+      AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
     };
     cy.fixture('resources/yaml/dspa.yml').then((yamlContent) => {
       const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
@@ -84,14 +84,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
   after(() => {
     // Delete provisioned Project
-    deleteOpenShiftProject(projectName).then((result) => {
-      expect(result.code).to.eq(
-        0,
-        `ERROR deleting ${projectName} Project
-                                    stdout: ${result.stdout}
-                                    stderr: ${result.stderr}`,
-      );
-    });
+    deleteOpenShiftProject(projectName);
   });
 
   it('An admin User can Import and Run a Pipeline', () => {

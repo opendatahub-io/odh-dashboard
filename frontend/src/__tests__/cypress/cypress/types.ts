@@ -25,17 +25,21 @@ export type UserAuthConfig = {
   PASSWORD: string;
 };
 
-export type AWSS3Bucket = {
-  BUCKET_NAME: string;
+export type AWSS3BucketDetails = {
+  NAME: string;
+  REGION: string;
+  ENDPOINT: string;
+};
+
+export type AWSS3Buckets = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
-  AWS_ENDPOINT: string;
-  AWS_REGION: string;
+  BUCKET_2: AWSS3BucketDetails;
 };
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
   TEST_USER: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
-  AWS_PIPELINES_BUCKET: AWSS3Bucket;
+  S3: AWSS3Buckets;
 };
