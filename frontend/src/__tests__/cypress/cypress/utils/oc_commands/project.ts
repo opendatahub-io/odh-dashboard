@@ -10,15 +10,15 @@ export const createOpenShiftProject = (projectName: string, displayName?: string
   const ocCommand = `oc new-project ${projectName} --display-name='${finalDisplayName}'`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
-        cy.log(`ERROR provisioning ${projectName} Project
+      cy.log(`ERROR provisioning ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-        throw new Error(`Command failed with code ${result.code}`);
-      }
+      throw new Error(`Command failed with code ${result.code}`);
+    }
     return result;
   });
 };
-  
+
 /**
  * Delete an Openshift Project given its name
  *
@@ -29,4 +29,3 @@ export const deleteOpenShiftProject = (projectName: string) => {
   const ocCommand = `oc delete project ${projectName}`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then(() => {});
 };
-  

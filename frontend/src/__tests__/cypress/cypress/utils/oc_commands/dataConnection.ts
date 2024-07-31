@@ -1,10 +1,10 @@
-import { replacePlaceholdersInYaml } from "../yaml_files";
-import { applyOpenShiftYaml } from "./baseCommands";
+import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+import { applyOpenShiftYaml } from './baseCommands';
 
 /**
  * Try to create a data connection based on the dataConnectionReplacements config
  * @param dataConnectionReplacements Dictionary with the config values
- *      Dict Structure: 
+ *      Dict Structure:
  *              dataConnectionReplacements = {
  *                  NAMESPACE: <PROJECT NAME>,
  *                  AWS_ACCESS_KEY_ID: <AWS ACCESS KEY ID>,
@@ -13,16 +13,16 @@ import { applyOpenShiftYaml } from "./baseCommands";
  *                  AWS_S3_ENDPOINT: <AWS ENDPOINT>,
  *                  AWS_SECRET_ACCESS_KEY: <AWS SECRET>,
  *               }
- * @param yamlFilePath 
+ * @param yamlFilePath
  */
 export const createDataConnection = (
-    dataConnectionReplacements: { [key: string]: string },
-    yamlFilePath: string = 'resources/yaml/data_connection.yml'
-  ) => {
-    cy.fixture(yamlFilePath).then((yamlContent) => {
-      const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
-      applyOpenShiftYaml(modifiedYamlContent).then((result) => {
-        return result;
-      });
+  dataConnectionReplacements: { [key: string]: string },
+  yamlFilePath = 'resources/yaml/data_connection.yml',
+) => {
+  cy.fixture(yamlFilePath).then((yamlContent) => {
+    const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
+    applyOpenShiftYaml(modifiedYamlContent).then((result) => {
+      return result;
     });
-  };
+  });
+};

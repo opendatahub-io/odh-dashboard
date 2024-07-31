@@ -1,4 +1,7 @@
-import { createOpenShiftProject, deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import {
+  createOpenShiftProject,
+  deleteOpenShiftProject,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
@@ -47,12 +50,10 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     const dspaReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
-      AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME
+      AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
     };
     createDSPA(dspaReplacements);
 
-    
-    
     // cy.fixture('resources/yaml/data_connection.yml').then((yamlContent) => {
     //   const modifiedYamlContent = replacePlaceholdersInYaml(
     //     yamlContent,
@@ -97,7 +98,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('An admin User can Import and Run a Pipeline', () => {
-
     // Login as an admin
     cy.visitWithLogin('/', ADMIN_USER);
 
@@ -108,7 +108,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
     // Open the project
     projectListPage.findProjectLink(projectName).click();
-    
+
     // Increasing the timeout to ~3mins so the DSPA can be loaded
     projectDetails.findImportPipelineButton(180000).click();
 
