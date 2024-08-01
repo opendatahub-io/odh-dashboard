@@ -11,8 +11,10 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { CheckIcon, OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
-import { RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
+import { ProjectKind, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import { relativeTime } from '~/utilities/time';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { projectDisplayNameToNamespace } from '~/concepts/projects/utils';
 import { castRoleBindingPermissionsRoleType, firstSubject, roleLabel } from './utils';
 import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
@@ -28,13 +30,18 @@ type RoleBindingPermissionsTableRowProps = {
     description: string;
   }[];
   typeAhead?: string[];
+  isProjectSubject?: boolean;
   onChange: (name: string, roleType: RoleBindingPermissionsRoleType) => void;
   onCancel: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
-const defaultValueName = (obj: RoleBindingKind) => firstSubject(obj);
+const defaultValueName = (
+  obj: RoleBindingKind,
+  isProjectSubject?: boolean,
+  projects?: ProjectKind[],
+) => firstSubject(obj, isProjectSubject, projects);
 const defaultValueRole = (obj: RoleBindingKind) =>
   castRoleBindingPermissionsRoleType(obj.roleRef.name);
 
@@ -45,12 +52,16 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
   defaultRoleBindingName,
   permissionOptions,
   typeAhead,
+  isProjectSubject,
   onChange,
   onCancel,
   onEdit,
   onDelete,
 }) => {
-  const [roleBindingName, setRoleBindingName] = React.useState(defaultValueName(obj));
+  const { projects } = React.useContext(ProjectsContext);
+  const [roleBindingName, setRoleBindingName] = React.useState(
+    defaultValueName(obj, isProjectSubject, projects),
+  );
   const [roleBindingRoleRef, setRoleBindingRoleRef] =
     React.useState<RoleBindingPermissionsRoleType>(defaultValueRole(obj));
   const [isLoading, setIsLoading] = React.useState(false);
@@ -69,8 +80,9 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                 setRoleBindingName(selection);
               }}
               onClear={() => setRoleBindingName('')}
-              placeholderText={roleBindingName}
+              placeholderText={isProjectSubject ? 'Select or enter a project' : 'Select a group'}
               typeAhead={typeAhead}
+              isProjectSubject={isProjectSubject}
             />
           ) : (
             <Text>
@@ -127,7 +139,15 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
                   onClick={() => {
                     setIsLoading(true);
-                    onChange(roleBindingName, roleBindingRoleRef);
+                    onChange(
+                      isProjectSubject
+                        ? `system:serviceaccounts:${projectDisplayNameToNamespace(
+                            roleBindingName,
+                            projects,
+                          )}`
+                        : roleBindingName,
+                      roleBindingRoleRef,
+                    );
                   }}
                 />
               </SplitItem>
@@ -141,7 +161,11 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   onClick={() => {
                     // TODO: Fix this
                     // This is why you do not store a copy of state
-                    setRoleBindingName(defaultValueName(obj));
+                    setRoleBindingName(
+                      isProjectSubject
+                        ? defaultValueName(obj, isProjectSubject, projects)
+                        : defaultValueName(obj),
+                    );
                     setRoleBindingRoleRef(defaultValueRole(obj));
                     onCancel();
                   }}
