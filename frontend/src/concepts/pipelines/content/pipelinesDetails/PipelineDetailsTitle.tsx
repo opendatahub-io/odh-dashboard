@@ -33,7 +33,7 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
         )}
         {statusIcon && (
           <SplitItem>
-            <Label color={color} icon={icon}>
+            <Label color={color} icon={icon} data-testid="status-icon">
               {label}
             </Label>
           </SplitItem>

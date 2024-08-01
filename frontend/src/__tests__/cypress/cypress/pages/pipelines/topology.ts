@@ -99,10 +99,7 @@ class RunDetails extends PipelinesTopology {
   }
 
   private findStatusLabel(timeout = 180000) {
-    return cy.get(
-      'h1[data-testid="app-page-title"] .pf-v5-l-split__item:last-child .pf-v5-c-label__text',
-      { timeout },
-    );
+    return cy.get('[data-testid="status-icon"]', { timeout });
   }
 
   expectStatusLabelToBe(statusValue: string) {
