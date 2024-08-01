@@ -81,8 +81,9 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     pipelineImportModal.findImportPipelineRadio().click();
     pipelineImportModal
       .findPipelineUrlInput()
+      //TODO: modify this URL once the PR is merged https://github.com/opendatahub-io/odh-dashboard/pull/3050
       .type(
-        'https://raw.githubusercontent.com/red-hat-data-services/ods-ci/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/flip_coin_compiled.yaml',
+        'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/1977d1bb0cfd68c63cf94b601af969c9bd64efe1/frontend/src/__tests__/resources/pipelines_samples/dummy_compiled.yaml',
       );
     pipelineImportModal.submit();
 
