@@ -18,6 +18,8 @@ import {
   ExperimentKFv2,
   PipelineCoreResourceKFv2,
   PipelineKFv2,
+  PipelinesFilterOp,
+  StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
@@ -38,18 +40,39 @@ type UsePipelineSelectorData<DataType> = {
 };
 
 export const getExperimentSelector =
-  (useTable: typeof useExperimentTable) => (): UsePipelineSelectorData<ExperimentKFv2> => {
+  (useTable: typeof useExperimentTable, storageState?: StorageStateKF) =>
+  (): UsePipelineSelectorData<ExperimentKFv2> => {
     const experimentsTable = useTable();
     const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = experimentsTable;
-    return useCreateSelector<ExperimentKFv2>(
-      experimentsTable,
-      useExperimentLoadMore({ initialData, initialPageToken, loaded }),
+
+    return useCreateSelector<ExperimentKFv2>(experimentsTable, () =>
+      useExperimentLoadMore({
+        initialData,
+        initialPageToken,
+        loaded,
+      })({
+        ...(storageState && {
+          filter: {
+            predicates: [
+              {
+                key: 'storage_state',
+                operation: PipelinesFilterOp.EQUALS,
+                // eslint-disable-next-line camelcase
+                string_value: storageState,
+              },
+            ],
+          },
+        }),
+      }),
     );
   };
 
 export const useAllExperimentSelector = getExperimentSelector(useExperimentTable);
 
-export const useActiveExperimentSelector = getExperimentSelector(useActiveExperimentTable);
+export const useActiveExperimentSelector = getExperimentSelector(
+  useActiveExperimentTable,
+  StorageStateKF.AVAILABLE,
+);
 
 export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKFv2> => {
   const pipelinesTable = usePipelinesTable();
