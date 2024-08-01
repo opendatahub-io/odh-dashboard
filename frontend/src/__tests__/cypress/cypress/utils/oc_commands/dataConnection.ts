@@ -17,7 +17,7 @@ import { applyOpenShiftYaml } from './baseCommands';
  */
 export const createDataConnection = (
   dataConnectionReplacements: { [key: string]: string },
-  yamlFilePath = 'resources/yaml/data_connection.yml',
+  yamlFilePath = 'resources/yaml/data_connection.yaml',
 ) => {
   cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);

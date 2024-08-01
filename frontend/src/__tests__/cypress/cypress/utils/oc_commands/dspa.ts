@@ -15,7 +15,7 @@ import { applyOpenShiftYaml } from './baseCommands';
  */
 export const createDSPASecret = (
   dspaSecretReplacements: { [key: string]: string },
-  yamlFilePath = 'resources/yaml/dspa_secret.yml',
+  yamlFilePath = 'resources/yaml/dspa_secret.yaml',
 ) => {
   cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaSecretReplacements);
@@ -38,7 +38,7 @@ export const createDSPASecret = (
  */
 export const createDSPA = (
   dspaReplacements: { [key: string]: string },
-  yamlFilePath = 'resources/yaml/dspa.yml',
+  yamlFilePath = 'resources/yaml/dspa.yaml',
 ) => {
   cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
