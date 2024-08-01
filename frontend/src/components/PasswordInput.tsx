@@ -2,7 +2,16 @@ import * as React from 'react';
 import { Button, InputGroup, TextInput, InputGroupItem } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 
-const PasswordInput: React.FC<React.ComponentProps<typeof TextInput>> = (props) => {
+type Props = React.ComponentProps<typeof TextInput> & {
+  ariaLabelShow?: string;
+  ariaLabelHide?: string;
+};
+
+const PasswordInput: React.FC<Props> = ({
+  ariaLabelShow = 'Show password',
+  ariaLabelHide = 'Hide password',
+  ...props
+}) => {
   const [isPasswordHidden, setPasswordHidden] = React.useState(true);
 
   return (
@@ -12,7 +21,7 @@ const PasswordInput: React.FC<React.ComponentProps<typeof TextInput>> = (props) 
       </InputGroupItem>
       <InputGroupItem>
         <Button
-          aria-label={isPasswordHidden ? 'Show password' : 'Hide password'}
+          aria-label={isPasswordHidden ? ariaLabelShow : ariaLabelHide}
           variant="control"
           onClick={() => setPasswordHidden(!isPasswordHidden)}
         >

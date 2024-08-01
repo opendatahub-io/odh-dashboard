@@ -18,7 +18,7 @@ type NameDescriptionFieldProps = {
   nameFieldId: string;
   descriptionFieldId: string;
   data: NameDescType;
-  setData: (data: NameDescType) => void;
+  setData?: (data: NameDescType) => void;
   autoFocusName?: boolean;
   showK8sName?: boolean;
   disableK8sName?: boolean;
@@ -60,16 +60,21 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
       <StackItem>
         <FormGroup label="Name" isRequired fieldId={nameFieldId}>
           <TextInput
+            aria-readonly={!setData}
             isRequired
             ref={autoSelectNameRef}
             id={nameFieldId}
             data-testid={nameFieldId}
             name={nameFieldId}
             value={data.name}
-            onChange={(_e, value) => {
-              setData({ ...data, name: value });
-              onNameChange?.(value);
-            }}
+            onChange={
+              setData
+                ? (_e, value) => {
+                    setData({ ...data, name: value });
+                    onNameChange?.(value);
+                  }
+                : undefined
+            }
             maxLength={maxLength}
           />
 
@@ -105,15 +110,20 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             fieldId={`resource-${nameFieldId}`}
           >
             <TextInput
+              aria-readonly={!setData}
               isRequired
               isDisabled={disableK8sName}
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
               data-testid={`resource-${nameFieldId}`}
               value={data.k8sName ?? k8sName}
-              onChange={(e, value) => {
-                setData({ ...data, k8sName: value });
-              }}
+              onChange={
+                setData
+                  ? (e, value) => {
+                      setData({ ...data, k8sName: value });
+                    }
+                  : undefined
+              }
               validated={!isValidK8sName(data.k8sName) ? 'error' : undefined}
             />
             {!disableK8sName && (
@@ -137,12 +147,13 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
       <StackItem>
         <FormGroup label="Description" fieldId={descriptionFieldId}>
           <TextArea
+            aria-readonly={!setData}
             resizeOrientation="vertical"
             id={descriptionFieldId}
             data-testid={descriptionFieldId}
             name={descriptionFieldId}
             value={data.description}
-            onChange={(e, description) => setData({ ...data, description })}
+            onChange={setData ? (e, description) => setData({ ...data, description }) : undefined}
           />
         </FormGroup>
       </StackItem>

@@ -1,15 +1,8 @@
-import {
-  FormSection,
-  Title,
-  FormGroup,
-  ExpandableSection,
-  Radio,
-  Text,
-} from '@patternfly/react-core';
 import React from 'react';
+import { FormGroup, ExpandableSection, Radio } from '@patternfly/react-core';
+import FormSection from '~/components/pf-overrides/FormSection';
 import DatabaseConnectionField from './DatabaseConnectionField';
 import { PipelineServerConfigType } from './types';
-import './ConfigurePipelinesServerModal.scss';
 
 type PipelinesDatabaseSectionProps = {
   setConfig: (config: PipelineServerConfigType) => void;
@@ -24,15 +17,8 @@ export const PipelinesDatabaseSection = ({
 
   return (
     <FormSection
-      title={
-        <>
-          <Title headingLevel="h2">Database</Title>
-          <Text component="p" className="form-subtitle-text">
-            This is where your pipeline data is stored. Use the default database to store data on
-            your cluster, or connect to an external database.
-          </Text>
-        </>
-      }
+      title="Database"
+      description="This is where your pipeline data is stored. Use the default database to store data on your cluster, or connect to an external database."
     >
       <FormGroup hasNoPaddingTop isStack>
         <ExpandableSection

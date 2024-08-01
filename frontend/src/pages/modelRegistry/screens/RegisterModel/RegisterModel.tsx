@@ -8,7 +8,6 @@ import {
   Button,
   Form,
   FormGroup,
-  FormSection,
   HelperText,
   HelperTextItem,
   InputGroupItem,
@@ -19,14 +18,13 @@ import {
   SplitItem,
   Stack,
   StackItem,
-  Text,
   TextArea,
   TextInput,
-  Title,
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
+import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
@@ -116,16 +114,8 @@ const RegisterModel: React.FC = () => {
             </StackItem>
             <StackItem>
               <FormSection
-                title={
-                  <>
-                    <Title headingLevel="h2" size="md">
-                      Model details
-                    </Title>
-                    <Text component="p" className="form-subtitle-text">
-                      Provide general details that apply to all versions of this model.
-                    </Text>
-                  </>
-                }
+                title="Model details"
+                description="Provide general details that apply to all versions of this model."
               >
                 <FormGroup label="Model name" isRequired fieldId="model-name">
                   <TextInput
@@ -148,14 +138,8 @@ const RegisterModel: React.FC = () => {
                 </FormGroup>
               </FormSection>
               <FormSection
-                title={
-                  <>
-                    <Title headingLevel="h2">Version details</Title>
-                    <Text component="p" className="form-subtitle-text">
-                      Configure details for the first version of this model.
-                    </Text>
-                  </>
-                }
+                title="Version details"
+                description="Configure details for the first version of this model."
               >
                 <FormGroup label="Version name" isRequired fieldId="version-name">
                   <TextInput
@@ -201,15 +185,8 @@ const RegisterModel: React.FC = () => {
                 </FormGroup>
               </FormSection>
               <FormSection
-                title={
-                  <>
-                    <Title headingLevel="h2">Model location</Title>
-                    <Text component="p" className="form-subtitle-text">
-                      Specify the model location by providing either the object storage details or
-                      the URI.
-                    </Text>
-                  </>
-                }
+                title="Model location"
+                description="Specify the model location by providing either the object storage details or the URI."
               >
                 <Radio
                   isChecked={modelLocationType === ModelLocationType.ObjectStorage}
