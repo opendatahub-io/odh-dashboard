@@ -48,6 +48,7 @@ export enum SupportedArea {
   /* Model Serving areas */
   MODEL_SERVING = 'model-serving-shell',
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
+  CONNECTION_TYPES = 'connection-types',
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
   K_SERVE_METRICS = 'kserve-metrics',
