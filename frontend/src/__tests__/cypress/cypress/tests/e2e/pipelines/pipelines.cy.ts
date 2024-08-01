@@ -7,6 +7,7 @@ import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { filterProjectByName } from '~/__tests__/cypress/cypress/utils/projects';
 
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
@@ -68,8 +69,9 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
      * Import Pipeline by URL from Project Details view
      */
     projectListPage.navigate();
-
+    
     // Open the project
+    filterProjectByName(projectName);
     projectListPage.findProjectLink(projectName).click();
 
     // Increasing the timeout to ~3mins so the DSPA can be loaded
