@@ -95,14 +95,14 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
       'opendatahub.io/connection-type': 'true';
     };
   };
-  data: {
+  data?: {
     // JSON of type ConnectionTypeField
     fields?: string;
   };
 };
 
 export type ConnectionTypeConfigMapObj = Omit<ConnectionTypeConfigMap, 'data'> & {
-  data: {
+  data?: {
     fields?: ConnectionTypeField[];
   };
 };
