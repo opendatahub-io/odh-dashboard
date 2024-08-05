@@ -24,12 +24,21 @@ import {
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
+import { OptimizeIcon } from '@patternfly/react-icons';
 import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
-import { useRegisterModelData, ModelLocationType } from './useRegisterModelData';
+import { DataConnection } from '~/pages/projects/types';
+import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
+import {
+  useRegisterModelData,
+  ModelLocationType,
+  RegisterVersionFormData,
+} from './useRegisterModelData';
 import { registerModel } from './utils';
+import './RegisterModel.scss';
+import { ConnectionModal } from './ConnectionModal';
 
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
@@ -50,11 +59,11 @@ const RegisterModel: React.FC = () => {
     modelLocationURI,
   } = formData;
   const [loading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>(undefined);
+  const [formError, setFormError] = React.useState<Error | undefined>(undefined);
+  const [isAutofillModalOpen, setAutofillModalOpen] = React.useState(false);
 
   const { apiState } = React.useContext(ModelRegistryContext);
   const author = useAppSelector((state) => state.user || '');
-
   const isSubmitDisabled =
     !modelName ||
     !versionName ||
@@ -65,7 +74,7 @@ const RegisterModel: React.FC = () => {
 
   const handleSubmit = () => {
     setIsLoading(true);
-    setError(undefined);
+    setFormError(undefined);
 
     registerModel(apiState, formData, author)
       .then(({ registeredModel }) => {
@@ -73,8 +82,20 @@ const RegisterModel: React.FC = () => {
       })
       .catch((e: Error) => {
         setIsLoading(false);
-        setError(e);
+        setFormError(e);
       });
+  };
+
+  const connectionDataMap: Record<string, keyof RegisterVersionFormData> = {
+    AWS_S3_ENDPOINT: 'modelLocationEndpoint',
+    AWS_S3_BUCKET: 'modelLocationBucket',
+    AWS_DEFAULT_REGION: 'modelLocationRegion',
+  };
+
+  const fillObjectStorageByConnection = (connection: DataConnection) => {
+    convertAWSSecretData(connection).forEach((dataItem) => {
+      setData(connectionDataMap[dataItem.key], dataItem.value);
+    });
   };
 
   return (
@@ -194,7 +215,24 @@ const RegisterModel: React.FC = () => {
                   onChange={() => {
                     setData('modelLocationType', ModelLocationType.ObjectStorage);
                   }}
-                  label="Object storage"
+                  label={
+                    <Split>
+                      <SplitItem isFilled>Object storage</SplitItem>
+                      {modelLocationType === ModelLocationType.ObjectStorage && (
+                        <SplitItem>
+                          <Button
+                            data-testid="object-storage-autofill-button"
+                            variant="link"
+                            isInline
+                            icon={<OptimizeIcon />}
+                            onClick={() => setAutofillModalOpen(true)}
+                          >
+                            Autofill from data connection
+                          </Button>
+                        </SplitItem>
+                      )}
+                    </Split>
+                  }
                   id="location-type-object-storage"
                   body={
                     modelLocationType === ModelLocationType.ObjectStorage && (
@@ -289,15 +327,15 @@ const RegisterModel: React.FC = () => {
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
         <Stack hasGutter>
-          {error && (
+          {formError && (
             <StackItem>
               <Alert
                 isInline
                 variant="danger"
-                title={error.name}
-                actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
+                title={formError.name}
+                actionClose={<AlertActionCloseButton onClose={() => setFormError(undefined)} />}
               >
-                {error.message}
+                {formError.message}
               </Alert>
             </StackItem>
           )}
@@ -325,6 +363,14 @@ const RegisterModel: React.FC = () => {
           </StackItem>
         </Stack>
       </PageSection>
+      <ConnectionModal
+        isOpen={isAutofillModalOpen}
+        onClose={() => setAutofillModalOpen(false)}
+        onSubmit={(connection) => {
+          fillObjectStorageByConnection(connection);
+          setAutofillModalOpen(false);
+        }}
+      />
     </ApplicationsPage>
   );
 };

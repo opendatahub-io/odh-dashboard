@@ -1,7 +1,13 @@
-import { mockDashboardConfig, mockDscStatus, mockK8sResourceList } from '~/__mocks__';
+import {
+  mockDashboardConfig,
+  mockDscStatus,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+  mockSecretK8sResource,
+} from '~/__mocks__';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 import { StackCapability, StackComponent } from '~/concepts/areas/types';
-import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ProjectModel, SecretModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import {
   FormFieldSelector,
   registerModelPage,
@@ -42,7 +48,13 @@ const initIntercepts = () => {
       requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
     }),
   );
-
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test Project' }),
+      mockProjectK8sResource({ k8sName: 'test-project-2', displayName: 'Test Project 2' }),
+    ]),
+  );
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
@@ -91,6 +103,67 @@ describe('Register model page', () => {
   beforeEach(() => {
     initIntercepts();
     registerModelPage.visit();
+  });
+
+  it('Has Object storage autofill button if Object storage is selected', () => {
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE)
+      .should('be.checked');
+    registerModelPage.findObjectStorageAutofillButton().should('be.visible');
+  });
+
+  it('Does not have Object storage autofill button if Object storage is not selected', () => {
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE)
+      .should('not.be.checked');
+    registerModelPage.findObjectStorageAutofillButton().should('not.exist');
+  });
+
+  it('Can open Object storage autofill modal', () => {
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+    registerModelPage.findObjectStorageAutofillButton().click();
+    registerModelPage.findConnectionAutofillModal().should('exist');
+  });
+
+  it('Project selection with no connections displays message stating no connections available', () => {
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+    registerModelPage.findObjectStorageAutofillButton().click();
+    registerModelPage
+      .findConnectionSelector()
+      .contains('Select a project to view its available data connections');
+    registerModelPage.findProjectSelector().findDropdownItem('Test Project').click();
+    registerModelPage.findConnectionSelector().contains('No available data connections');
+  });
+
+  it('Project selection with connections displays connections and fills form', () => {
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([mockSecretK8sResource({ s3Bucket: 'cmhvZHMtcHVibGlj' })]),
+    );
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+    registerModelPage.findObjectStorageAutofillButton().click();
+    registerModelPage
+      .findConnectionSelector()
+      .contains('Select a project to view its available data connections');
+    registerModelPage.findProjectSelector().findDropdownItem('Test Project').click();
+    registerModelPage.findConnectionSelector().contains('Select data connection');
+    registerModelPage.findConnectionSelector().findDropdownItem('Test Secret').click();
+    registerModelPage.findAutofillButton().click();
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_ENDPOINT)
+      .should('have.value', 'https://s3.amazonaws.com/');
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_BUCKET)
+      .should('have.value', 'rhods-public');
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_REGION)
+      .should('have.value', 'us-east-1');
   });
 
   it('Disables submit until required fields are filled in object storage mode', () => {
