@@ -2,6 +2,7 @@ import type { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils'
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import type {
+  ModelArtifact,
   ModelArtifactList,
   ModelVersion,
   ModelVersionList,
@@ -295,9 +296,19 @@ declare global {
           response: OdhResponse<RegisteredModelList>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',
+          options: { path: { serviceName: string; apiVersion: string } },
+          response: OdhResponse<RegisteredModel>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
           options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
           response: OdhResponse<ModelVersionList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
+          options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
+          response: OdhResponse<ModelVersion>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
@@ -320,6 +331,11 @@ declare global {
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
           options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
           response: OdhResponse<ModelArtifactList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
+          options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
+          response: OdhResponse<ModelArtifact>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',

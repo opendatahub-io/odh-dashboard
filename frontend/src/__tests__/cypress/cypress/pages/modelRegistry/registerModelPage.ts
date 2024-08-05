@@ -10,7 +10,7 @@ export enum FormFieldSelector {
   LOCATION_BUCKET = '#location-bucket',
   LOCATION_REGION = '#location-region',
   LOCATION_PATH = '#location-path',
-  LOCATION_TYPE_URL = '#location-type-uri',
+  LOCATION_TYPE_URI = '#location-type-uri',
   LOCATION_URI = '#location-uri',
 }
 
@@ -31,6 +31,10 @@ class RegisterModelPage {
 
   findFormField(selector: FormFieldSelector) {
     return cy.get(selector);
+  }
+
+  findSubmitButton() {
+    return cy.findByTestId('create-button');
   }
 }
 
