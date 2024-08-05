@@ -11,11 +11,11 @@ import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 import {
-  ModelArtifact,
   ModelArtifactState,
   ModelState,
-  ModelVersion,
   type RegisteredModel,
+  type ModelVersion,
+  type ModelArtifact,
 } from '~/concepts/modelRegistry/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
