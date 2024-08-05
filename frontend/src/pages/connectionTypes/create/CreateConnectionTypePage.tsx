@@ -29,7 +29,7 @@ type CreateConnectionTypePageProps = {
   prefill?: ConnectionTypeConfigMapObj;
 };
 
-export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ prefill }) => {
+const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ prefill }) => {
   const navigate = useNavigate();
   const { username } = useUser();
 
@@ -164,3 +164,5 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
     </ConnectionTypePreviewDrawer>
   );
 };
+
+export default CreateConnectionTypePage;

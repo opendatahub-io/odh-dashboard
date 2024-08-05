@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import { FilterToolbar } from '~/concepts/pipelines/content/tables/PipelineFilterBar';
+import FilterToolbar from '~/components/FilterToolbar';
 import {
   FilterOptions,
   getMlmdExecutionState,
