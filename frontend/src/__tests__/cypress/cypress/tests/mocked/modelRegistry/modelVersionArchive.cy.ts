@@ -199,10 +199,6 @@ describe('Restoring archive version', () => {
     initIntercepts({});
     modelVersionArchive.visit();
 
-    // Bypass patternfly ExpandableSection error https://github.com/patternfly/patternfly-react/issues/10410
-    // Cannot destructure property 'offsetWidth' of 'this.expandableContentRef.current' as it is null.
-    Cypress.on('uncaught:exception', () => false);
-
     const archiveVersionRow = modelVersionArchive.getRow('model version 2');
     archiveVersionRow.findKebabAction('Restore version').click();
 

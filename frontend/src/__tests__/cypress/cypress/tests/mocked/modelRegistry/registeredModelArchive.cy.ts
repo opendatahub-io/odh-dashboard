@@ -170,10 +170,6 @@ describe('Restoring archive model', () => {
     initIntercepts({});
     registeredModelArchive.visit();
 
-    // Bypass patternfly ExpandableSection error https://github.com/patternfly/patternfly-react/issues/10410
-    // Cannot destructure property 'offsetWidth' of 'this.expandableContentRef.current' as it is null.
-    Cypress.on('uncaught:exception', () => false);
-
     const archiveModelRow = registeredModelArchive.getRow('model 2');
     archiveModelRow.findKebabAction('Restore model').click();
 
