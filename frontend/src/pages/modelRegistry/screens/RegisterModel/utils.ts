@@ -71,7 +71,9 @@ export const registerVersion = async (
     author,
     modelFormatName: formData.sourceModelFormat,
     modelFormatVersion: formData.sourceModelFormatVersion,
-    // storageKey: 'TODO', // TODO fill in the name of the data connection we used to prefill if we used one - reference ticket
+    // TODO fill in the name of the data connection we used to prefill if we used one
+    // TODO this should be done as part of https://issues.redhat.com/browse/RHOAIENG-9914
+    // storageKey: 'TODO',
     uri:
       formData.modelLocationType === ModelLocationType.ObjectStorage
         ? objectStorageFieldsToUri({
