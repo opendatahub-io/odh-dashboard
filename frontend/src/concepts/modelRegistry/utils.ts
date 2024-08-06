@@ -5,8 +5,11 @@ export type ObjectStorageFields = {
   path: string;
 };
 
-export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string => {
+export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | null => {
   const { endpoint, bucket, region, path } = fields;
+  if (!endpoint || !bucket || !path) {
+    return null;
+  }
   const searchParams = new URLSearchParams();
   searchParams.set('endpoint', endpoint);
   if (region) {

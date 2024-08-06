@@ -27,6 +27,48 @@ describe('objectStorageFieldsToUri', () => {
       's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F',
     );
   });
+
+  it('converts fields to URI with region empty', () => {
+    const uri = objectStorageFieldsToUri({
+      endpoint: 'http://s3.amazonaws.com/',
+      bucket: 'test-bucket',
+      region: '',
+      path: 'demo-models/flan-t5-small-caikit',
+    });
+    expect(uri).toEqual(
+      's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F',
+    );
+  });
+
+  it('falls back to null if endpoint is empty', () => {
+    const uri = objectStorageFieldsToUri({
+      endpoint: '',
+      bucket: 'test-bucket',
+      region: 'us-east-1',
+      path: 'demo-models/flan-t5-small-caikit',
+    });
+    expect(uri).toEqual(null);
+  });
+
+  it('falls back to null if bucket is empty', () => {
+    const uri = objectStorageFieldsToUri({
+      endpoint: 'http://s3.amazonaws.com/',
+      bucket: '',
+      region: 'us-east-1',
+      path: 'demo-models/flan-t5-small-caikit',
+    });
+    expect(uri).toEqual(null);
+  });
+
+  it('falls back to null if path is empty', () => {
+    const uri = objectStorageFieldsToUri({
+      endpoint: 'http://s3.amazonaws.com/',
+      bucket: 'test-bucket',
+      region: 'us-east-1',
+      path: '',
+    });
+    expect(uri).toEqual(null);
+  });
 });
 
 describe('uriToObjectStorageFields', () => {

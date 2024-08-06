@@ -85,8 +85,9 @@ const RegisterModel: React.FC = () => {
       description="Create a new model and register a first version of the new model."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/modelRegistry">Model registry</Link>} />
-          <BreadcrumbItem render={() => <Link to={`/modelRegistry/${mrName}`}>{mrName}</Link>} />
+          <BreadcrumbItem
+            render={() => <Link to={`/modelRegistry/${mrName}`}>Model registry - {mrName}</Link>}
+          />
           <BreadcrumbItem>Register model</BreadcrumbItem>
         </Breadcrumb>
       }

@@ -81,7 +81,7 @@ export const registerVersion = async (
             bucket: formData.modelLocationBucket,
             region: formData.modelLocationRegion,
             path: formData.modelLocationPath,
-          })
+          }) || '' // We'll only hit this case if required fields are empty strings, so form validation should catch it.
         : formData.modelLocationURI,
     artifactType: 'model-artifact',
   });
