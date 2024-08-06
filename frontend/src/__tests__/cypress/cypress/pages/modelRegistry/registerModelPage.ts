@@ -25,7 +25,7 @@ class RegisterModelPage {
     const preferredModelRegistry = 'modelregistry-sample';
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
-    cy.findByText(preferredModelRegistry).should('exist');
+    cy.findByText(`Model registry - ${preferredModelRegistry}`).should('exist');
     cy.testA11y();
   }
 
