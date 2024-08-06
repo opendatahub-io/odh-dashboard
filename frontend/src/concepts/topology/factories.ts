@@ -28,7 +28,7 @@ export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
     case DEFAULT_SPACER_NODE_TYPE:
       return SpacerNode;
     case DEFAULT_EDGE_TYPE:
-      return PipelineTaskEdge;
+      return withSelection()(PipelineTaskEdge);
     case EXECUTION_TASK_NODE_TYPE:
       return withSelection()(PipelineDefaultTaskGroup);
     default:
