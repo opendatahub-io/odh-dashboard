@@ -1,6 +1,6 @@
 import { ModelArtifact } from '~/concepts/modelRegistry/types';
 
-export const mockModelArtifact = (): ModelArtifact => ({
+export const mockModelArtifact = (partial?: Partial<ModelArtifact>): ModelArtifact => ({
   createTimeSinceEpoch: '1712234877179',
   id: '1',
   lastUpdateTimeSinceEpoch: '1712234877179',
@@ -13,4 +13,5 @@ export const mockModelArtifact = (): ModelArtifact => ({
   uri: 's3://test-bucket/demo-models/test-path?endpoint=test-endpoint&defaultRegion=test-region',
   modelFormatName: 'test model format',
   modelFormatVersion: 'test version 1',
+  ...partial,
 });

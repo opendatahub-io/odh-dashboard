@@ -146,7 +146,7 @@ const initIntercepts = ({
         modelVersionId: 1,
       },
     },
-    mockModelArtifactList(),
+    mockModelArtifactList({}),
   );
 
   cy.interceptK8sList(

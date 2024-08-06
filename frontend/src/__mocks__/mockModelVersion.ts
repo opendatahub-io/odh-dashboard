@@ -9,6 +9,7 @@ type MockModelVersionType = {
   labels?: string[];
   state?: ModelState;
   description?: string;
+  createTimeSinceEpoch?: string;
 };
 
 export const mockModelVersion = ({
@@ -19,9 +20,10 @@ export const mockModelVersion = ({
   id = '1',
   state = ModelState.LIVE,
   description = 'Description of model version',
+  createTimeSinceEpoch = '1712234877179',
 }: MockModelVersionType): ModelVersion => ({
   author,
-  createTimeSinceEpoch: '1712234877179',
+  createTimeSinceEpoch,
   customProperties: createModelRegistryLabelsObject(labels),
   id,
   lastUpdateTimeSinceEpoch: '1712234877179',

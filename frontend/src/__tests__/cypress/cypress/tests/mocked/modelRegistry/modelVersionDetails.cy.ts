@@ -111,7 +111,7 @@ const initIntercepts = () => {
         modelVersionId: 1,
       },
     },
-    mockModelArtifactList(),
+    mockModelArtifactList({}),
   );
 };
 
