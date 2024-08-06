@@ -200,7 +200,7 @@ describe('Register Model button', () => {
     modelRegistry.findRegisterModelButton().click();
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
-    cy.findByText('modelregistry-sample').should('exist');
+    cy.findByText('Model registry - modelregistry-sample').should('exist');
   });
 
   it('Navigates to register page from table toolbar', () => {
@@ -209,6 +209,6 @@ describe('Register Model button', () => {
     modelRegistry.findRegisterModelButton().click();
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
-    cy.findByText('modelregistry-sample').should('exist');
+    cy.findByText('Model registry - modelregistry-sample').should('exist');
   });
 });
