@@ -15,6 +15,7 @@ import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import {
   registerModelUrl,
+  registerVersionUrl,
   registeredModelArchiveUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -77,9 +78,10 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
                 id="register-new-version-button"
                 aria-label="Register new version"
                 key="register-new-version-button"
-                onClick={() => undefined}
+                onClick={() => {
+                  navigate(registerVersionUrl(preferredModelRegistry?.metadata.name));
+                }}
                 ref={tooltipRef}
-                isDisabled // This feature is currently disabled but will be enabled in a future PR post-summit release.
               >
                 Register new version
               </DropdownItem>

@@ -6,6 +6,7 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
 import { filterLiveModels } from './utils';
+import { modelRegistryUrl } from './routeUtils';
 
 type ModelRegistryProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -30,7 +31,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
       description="View and manage your registered models."
       headerContent={
         <ModelRegistrySelectorNavigator
-          getRedirectPath={(modelRegistryName) => `/modelRegistry/${modelRegistryName}`}
+          getRedirectPath={(modelRegistryName) => modelRegistryUrl(modelRegistryName)}
         />
       }
       loadError={loadError}
