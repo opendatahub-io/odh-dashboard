@@ -96,15 +96,7 @@ class ProjectListPage {
     return cy.findByRole('button', { name: 'Create a workbench' });
   }
 
-  findProjectsTypeDropdown() {
-    return cy.findByLabelText('Options menu');
-  }
-
-  findProjectsTypeDropdownByText(projectType: string) {
-    return cy.contains('button', projectType);
-  }
-
-  findProjectsDropdownFilter(){
+  findProjectsDropdownFilter() {
     return cy.findByTestId('filter-dropdown-select');
   }
 
