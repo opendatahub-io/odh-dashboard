@@ -36,7 +36,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
             clickTip="Copied"
             onChange={(e, value) => {
               if (typeof value === 'string') {
-                onChange({ ...data, value });
+                onChange({ ...data, value: value.trim() });
               }
             }}
           >

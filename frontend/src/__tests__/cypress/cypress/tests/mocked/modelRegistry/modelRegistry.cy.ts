@@ -101,7 +101,7 @@ const initIntercepts = ({
   );
 };
 
-describe('Model Registry', () => {
+describe('Model Registry core', () => {
   it('Model Registry Disabled in the cluster', () => {
     initIntercepts({
       disableModelRegistryFeature: true,
@@ -134,57 +134,81 @@ describe('Model Registry', () => {
     modelRegistry.shouldregisteredModelsEmpty();
   });
 
-  it('Registered model table', () => {
-    initIntercepts({
-      disableModelRegistryFeature: false,
+  describe('Registered model table', () => {
+    beforeEach(() => {
+      initIntercepts({ disableModelRegistryFeature: false });
+      modelRegistry.visit();
     });
 
+    it('Renders row contents', () => {
+      const registeredModelRow = modelRegistry.getRow('Fraud detection model');
+      registeredModelRow.findName().contains('Fraud detection model');
+      registeredModelRow
+        .findDescription()
+        .contains(
+          'A machine learning model trained to detect fraudulent transactions in financial data',
+        );
+      registeredModelRow.findOwner().contains('Author 1');
+
+      // Label popover
+      registeredModelRow.findLabelPopoverText().contains('2 more');
+      registeredModelRow.findLabelPopoverText().click();
+      registeredModelRow.shouldContainsPopoverLabels([
+        'Machine learning',
+        'Next data to be overflow',
+      ]);
+    });
+
+    it('Renders labels in modal', () => {
+      const registeredModelRow2 = modelRegistry.getRow('Label modal');
+      registeredModelRow2.findLabelModalText().contains('6 more');
+      registeredModelRow2.findLabelModalText().click();
+      labelModal.shouldContainsModalLabels([
+        'Testing label',
+        'Financial',
+        'Financial data',
+        'Fraud detection',
+        'Machine learning',
+        'Next data to be overflow',
+        'Label x',
+        'Label y',
+        'Label z',
+      ]);
+      labelModal.findModalSearchInput().type('Financial');
+      labelModal.shouldContainsModalLabels(['Financial', 'Financial data']);
+      labelModal.findCloseModal().click();
+    });
+
+    it('Sorts by model name', () => {
+      modelRegistry.findRegisteredModelTableHeaderButton('Model name').should(be.sortAscending);
+      modelRegistry.findRegisteredModelTableHeaderButton('Model name').click();
+      modelRegistry.findRegisteredModelTableHeaderButton('Model name').should(be.sortDescending);
+    });
+
+    it('Filters by keyword', () => {
+      modelRegistry.findTableSearch().type('Fraud detection model');
+      modelRegistry.findTableRows().should('have.length', 1);
+      modelRegistry.findTableRows().contains('Fraud detection model');
+    });
+  });
+});
+
+describe('Register Model button', () => {
+  it('Navigates to register page from empty state', () => {
+    initIntercepts({ disableModelRegistryFeature: false, registeredModels: [] });
     modelRegistry.visit();
+    modelRegistry.findRegisterModelButton().click();
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Register model');
+    cy.findByText('Model registry - modelregistry-sample').should('exist');
+  });
 
-    const registeredModelRow = modelRegistry.getRow('Fraud detection model');
-    registeredModelRow.findName().contains('Fraud detection model');
-    registeredModelRow
-      .findDescription()
-      .contains(
-        'A machine learning model trained to detect fraudulent transactions in financial data',
-      );
-    registeredModelRow.findOwner().contains('Author 1');
-
-    // Label popover
-    registeredModelRow.findLabelPopoverText().contains('2 more');
-    registeredModelRow.findLabelPopoverText().click();
-    registeredModelRow.shouldContainsPopoverLabels([
-      'Machine learning',
-      'Next data to be overflow',
-    ]);
-
-    // Label modal
-    const registeredModelRow2 = modelRegistry.getRow('Label modal');
-    registeredModelRow2.findLabelModalText().contains('6 more');
-    registeredModelRow2.findLabelModalText().click();
-    labelModal.shouldContainsModalLabels([
-      'Testing label',
-      'Financial',
-      'Financial data',
-      'Fraud detection',
-      'Machine learning',
-      'Next data to be overflow',
-      'Label x',
-      'Label y',
-      'Label z',
-    ]);
-    labelModal.findModalSearchInput().type('Financial');
-    labelModal.shouldContainsModalLabels(['Financial', 'Financial data']);
-    labelModal.findCloseModal().click();
-
-    // sort by modelName
-    modelRegistry.findRegisteredModelTableHeaderButton('Model name').should(be.sortAscending);
-    modelRegistry.findRegisteredModelTableHeaderButton('Model name').click();
-    modelRegistry.findRegisteredModelTableHeaderButton('Model name').should(be.sortDescending);
-
-    // filtering by keyword
-    modelRegistry.findTableSearch().type('Fraud detection model');
-    modelRegistry.findTableRows().should('have.length', 1);
-    modelRegistry.findTableRows().contains('Fraud detection model');
+  it('Navigates to register page from table toolbar', () => {
+    initIntercepts({ disableModelRegistryFeature: false });
+    modelRegistry.visit();
+    modelRegistry.findRegisterModelButton().click();
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Register model');
+    cy.findByText('Model registry - modelregistry-sample').should('exist');
   });
 });

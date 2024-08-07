@@ -1,13 +1,21 @@
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
-export type RegisterModelData = {
-  modelRegistryName: string;
+export enum ModelLocationType {
+  ObjectStorage = 'Object storage',
+  URI = 'URI',
+}
+
+export type RegisterModelFormData = RegisterVersionFormData & {
   modelName: string;
   modelDescription: string;
+};
+
+export type RegisterVersionFormData = {
   versionName: string;
   versionDescription: string;
   sourceModelFormat: string;
-  modelLocationType: string;
+  sourceModelFormatVersion: string;
+  modelLocationType: ModelLocationType;
   modelLocationEndpoint: string;
   modelLocationBucket: string;
   modelLocationRegion: string;
@@ -15,20 +23,26 @@ export type RegisterModelData = {
   modelLocationURI: string;
 };
 
-const useRegisterModelData = (mrName?: string): GenericObjectState<RegisterModelData> =>
-  useGenericObjectState<RegisterModelData>({
-    modelRegistryName: mrName || '',
-    modelName: '',
-    modelDescription: '',
-    versionName: '',
-    versionDescription: '',
-    sourceModelFormat: '',
-    modelLocationType: 'Object storage',
-    modelLocationEndpoint: '',
-    modelLocationBucket: '',
-    modelLocationRegion: '',
-    modelLocationPath: '',
-    modelLocationURI: '',
-  });
+const registerVersionFormDataDefaults: RegisterVersionFormData = {
+  versionName: '',
+  versionDescription: '',
+  sourceModelFormat: '',
+  sourceModelFormatVersion: '',
+  modelLocationType: ModelLocationType.ObjectStorage,
+  modelLocationEndpoint: '',
+  modelLocationBucket: '',
+  modelLocationRegion: '',
+  modelLocationPath: '',
+  modelLocationURI: '',
+};
+const registerModelFormDataDefaults: RegisterModelFormData = {
+  ...registerVersionFormDataDefaults,
+  modelName: '',
+  modelDescription: '',
+};
 
-export default useRegisterModelData;
+export const useRegisterModelData = (): GenericObjectState<RegisterModelFormData> =>
+  useGenericObjectState<RegisterModelFormData>(registerModelFormDataDefaults);
+
+export const useRegisterVersionData = (): GenericObjectState<RegisterVersionFormData> =>
+  useGenericObjectState<RegisterVersionFormData>(registerVersionFormDataDefaults);

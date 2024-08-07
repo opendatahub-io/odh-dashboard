@@ -3,7 +3,9 @@ import { APIState } from '~/concepts/proxy/types';
 import { ModelRegistryAPIs } from '~/concepts/modelRegistry/types';
 import {
   createModelArtifact,
+  createModelArtifactForModelVersion,
   createModelVersion,
+  createModelVersionForRegisteredModel,
   createRegisteredModel,
   getListModelArtifacts,
   getListModelVersions,
@@ -28,7 +30,9 @@ const useModelRegistryAPIState = (
     (path: string) => ({
       createRegisteredModel: createRegisteredModel(path),
       createModelVersion: createModelVersion(path),
+      createModelVersionForRegisteredModel: createModelVersionForRegisteredModel(path),
       createModelArtifact: createModelArtifact(path),
+      createModelArtifactForModelVersion: createModelArtifactForModelVersion(path),
       getRegisteredModel: getRegisteredModel(path),
       getModelVersion: getModelVersion(path),
       getModelArtifact: getModelArtifact(path),

@@ -39,6 +39,22 @@ export const createModelVersion =
         opts,
       ),
     );
+export const createModelVersionForRegisteredModel =
+  (hostpath: string) =>
+  (
+    opts: K8sAPIOptions,
+    registeredModelId: string,
+    data: CreateModelVersionData,
+  ): Promise<ModelVersion> =>
+    handleModelRegistryFailures(
+      proxyCREATE(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}/versions`,
+        data,
+        {},
+        opts,
+      ),
+    );
 
 export const createModelArtifact =
   (hostPath: string) =>
@@ -47,6 +63,23 @@ export const createModelArtifact =
       proxyCREATE(
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts`,
+        data,
+        {},
+        opts,
+      ),
+    );
+
+export const createModelArtifactForModelVersion =
+  (hostPath: string) =>
+  (
+    opts: K8sAPIOptions,
+    modelVersionId: string,
+    data: CreateModelArtifactData,
+  ): Promise<ModelArtifact> =>
+    handleModelRegistryFailures(
+      proxyCREATE(
+        hostPath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}/artifacts`,
         data,
         {},
         opts,

@@ -16,6 +16,8 @@ import {
   patchModelVersion,
   patchRegisteredModel,
   getModelArtifactsByModelVersion,
+  createModelVersionForRegisteredModel,
+  createModelArtifactForModelVersion,
 } from '~/api/modelRegistry/custom';
 import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 
@@ -104,6 +106,40 @@ describe('createModelVersion', () => {
   });
 });
 
+describe('createModelVersionForRegisteredModel', () => {
+  it('should call proxyCREATE and handleModelRegistryFailures to create model version for a model', () => {
+    expect(
+      createModelVersionForRegisteredModel('hostPath')(K8sAPIOptionsMock, '1', {
+        description: 'test',
+        externalID: '1',
+        author: 'test author',
+        registeredModelId: '1',
+        name: 'test new model version',
+        state: ModelState.LIVE,
+        customProperties: {},
+      }),
+    ).toBe(mockResultPromise);
+    expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
+    expect(proxyCREATEMock).toHaveBeenCalledWith(
+      'hostPath',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
+      {
+        description: 'test',
+        externalID: '1',
+        author: 'test author',
+        registeredModelId: '1',
+        name: 'test new model version',
+        state: ModelState.LIVE,
+        customProperties: {},
+      },
+      {},
+      K8sAPIOptionsMock,
+    );
+    expect(handleModelRegistryFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handleModelRegistryFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
 describe('createModelArtifact', () => {
   it('should call proxyCREATE and handleModelRegistryFailures to create model artifact', () => {
     expect(
@@ -119,6 +155,7 @@ describe('createModelArtifact', () => {
         modelFormatVersion: 'testmodelFormatVersion',
         serviceAccountName: 'testserviceAccountname',
         customProperties: {},
+        artifactType: 'model-artifact',
       }),
     ).toBe(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
@@ -137,6 +174,51 @@ describe('createModelArtifact', () => {
         modelFormatVersion: 'testmodelFormatVersion',
         serviceAccountName: 'testserviceAccountname',
         customProperties: {},
+        artifactType: 'model-artifact',
+      },
+      {},
+      K8sAPIOptionsMock,
+    );
+    expect(handleModelRegistryFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handleModelRegistryFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('createModelArtifactForModelVersion', () => {
+  it('should call proxyCREATE and handleModelRegistryFailures to create model artifact for version', () => {
+    expect(
+      createModelArtifactForModelVersion('hostPath')(K8sAPIOptionsMock, '2', {
+        description: 'test',
+        externalID: 'test',
+        uri: 'test-uri',
+        state: ModelArtifactState.LIVE,
+        name: 'test-name',
+        modelFormatName: 'test-modelformatname',
+        storageKey: 'teststoragekey',
+        storagePath: 'teststoragePath',
+        modelFormatVersion: 'testmodelFormatVersion',
+        serviceAccountName: 'testserviceAccountname',
+        customProperties: {},
+        artifactType: 'model-artifact',
+      }),
+    ).toBe(mockResultPromise);
+    expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
+    expect(proxyCREATEMock).toHaveBeenCalledWith(
+      'hostPath',
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/2/artifacts`,
+      {
+        description: 'test',
+        externalID: 'test',
+        uri: 'test-uri',
+        state: ModelArtifactState.LIVE,
+        name: 'test-name',
+        modelFormatName: 'test-modelformatname',
+        storageKey: 'teststoragekey',
+        storagePath: 'teststoragePath',
+        modelFormatVersion: 'testmodelFormatVersion',
+        serviceAccountName: 'testserviceAccountname',
+        customProperties: {},
+        artifactType: 'model-artifact',
       },
       {},
       K8sAPIOptionsMock,

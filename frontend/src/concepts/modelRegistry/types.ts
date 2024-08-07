@@ -145,7 +145,7 @@ export type CreateModelVersionData = Omit<
 
 export type CreateModelArtifactData = Omit<
   ModelArtifact,
-  'lastUpdateTimeSinceEpoch' | 'createTimeSinceEpoch' | 'id' | 'artifactType'
+  'lastUpdateTimeSinceEpoch' | 'createTimeSinceEpoch' | 'id'
 >;
 
 export type ModelRegistryListParams = {
@@ -170,8 +170,20 @@ export type CreateModelVersion = (
   data: CreateModelVersionData,
 ) => Promise<ModelVersion>;
 
+export type CreateModelVersionForRegisteredModel = (
+  opts: K8sAPIOptions,
+  registeredModelId: string,
+  data: CreateModelVersionData,
+) => Promise<ModelVersion>;
+
 export type CreateModelArtifact = (
   opts: K8sAPIOptions,
+  data: CreateModelArtifactData,
+) => Promise<ModelArtifact>;
+
+export type CreateModelArtifactForModelVersion = (
+  opts: K8sAPIOptions,
+  modelVersionId: string,
   data: CreateModelArtifactData,
 ) => Promise<ModelArtifact>;
 
@@ -227,7 +239,9 @@ export type PatchModelArtifact = (
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersion: CreateModelVersion;
+  createModelVersionForRegisteredModel: CreateModelVersionForRegisteredModel;
   createModelArtifact: CreateModelArtifact;
+  createModelArtifactForModelVersion: CreateModelArtifactForModelVersion;
   getRegisteredModel: GetRegisteredModel;
   getModelVersion: GetModelVersion;
   getModelArtifact: GetModelArtifact;

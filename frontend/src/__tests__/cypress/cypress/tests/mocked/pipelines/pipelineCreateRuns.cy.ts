@@ -549,56 +549,10 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates a schedule', () => {
-      visitLegacyRunsPage();
-      pipelineRunsGlobal.findSchedulesTab().click();
-
-      const createRecurringRunParams: Partial<PipelineRecurringRunKFv2> = {
-        display_name: 'New recurring run',
-        description: 'New recurring run description',
-        recurring_run_id: 'new-recurring-run-id',
-        runtime_config: {
-          parameters: {
-            min_max_scaler: false,
-            neighbors: 1,
-            standard_scaler: 'no',
-          },
-        },
-      };
-
-      // Mock experiments, pipelines & versions for form select dropdowns
-      createSchedulePage.mockGetExperiments(projectName, mockExperiments);
-      createSchedulePage.mockGetExperiments(projectName, mockExperiments);
-      createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
-      createSchedulePage.mockGetPipelineVersions(
-        projectName,
-        [mockPipelineVersion],
-        mockPipelineVersion.pipeline_id,
-      );
-
-      // Navigate to the 'Create run' page
-      pipelineRunsGlobal.findScheduleRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/create`,
-      );
-      createSchedulePage.find();
-
-      // Fill out the form with a schedule and submit
-      createRunPage.fillName(initialMockRecurringRuns[0].display_name);
-      cy.findByTestId('duplicate-name-help-text').should('be.visible');
-      createSchedulePage.fillName('New recurring run');
-      createSchedulePage.fillDescription('New recurring run description');
+      createScheduleRunCommonTest();
       createSchedulePage.findExperimentSelect().should('contain.text', 'Default');
       createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
-      createSchedulePage.findPipelineSelect().should('not.be.disabled').click();
-      createSchedulePage.selectPipelineByName('Test pipeline');
-      createSchedulePage.findPipelineVersionSelect().should('not.be.disabled');
-
-      const parameters = createRecurringRunParams.runtime_config?.parameters || {};
-      const paramsSection = createRunPage.getParamsSection();
-      paramsSection.findParamById('radio-min_max_scaler-false').click();
-      paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
-      paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
         .as('createSchedule');
@@ -624,10 +578,77 @@ describe('Pipeline create runs', () => {
         });
       });
 
+      // Navigate to the 'Create run' page
+
+      verifyRelativeURL(
+        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/${createRecurringRunParams.recurring_run_id}`,
+      );
+    });
+
+    it('creates a schedule with trigger type cron without whitespace', () => {
+      // Fill out the form with a schedule and submit
+      createScheduleRunCommonTest();
+      createSchedulePage.findScheduledRunTypeSelector().findDropdownItem('Cron').click();
+      createSchedulePage.findScheduledRunCron().fill('@every 5m');
+      createSchedulePage
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
+        .as('createSchedule');
+      createSchedulePage.submit();
+
+      cy.wait('@createSchedule').then((interception) => {
+        expect(interception.request.body).to.eql({
+          display_name: 'New recurring run',
+          description: 'New recurring run description',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: 'test-pipeline-version',
+          },
+          runtime_config: {
+            parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'no' },
+          },
+          trigger: { cron_schedule: { cron: '@every 5m' } },
+          max_concurrency: '10',
+          mode: 'DISABLE',
+          no_catchup: false,
+          service_account: '',
+          experiment_id: 'default',
+        });
+      });
+
       // Should be redirected to the schedule details page
       verifyRelativeURL(
         `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/${createRecurringRunParams.recurring_run_id}`,
       );
+    });
+
+    it('creates a schedule with trigger type cron with whitespace', () => {
+      createScheduleRunCommonTest();
+      createSchedulePage.findScheduledRunTypeSelector().findDropdownItem('Cron').click();
+      createSchedulePage.findScheduledRunCron().fill('@every 5m ');
+      createSchedulePage
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
+        .as('createSchedule');
+      createSchedulePage.submit();
+
+      cy.wait('@createSchedule').then((interception) => {
+        expect(interception.request.body).to.eql({
+          display_name: 'New recurring run',
+          description: 'New recurring run description',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: 'test-pipeline-version',
+          },
+          runtime_config: {
+            parameters: { min_max_scaler: false, neighbors: 1, standard_scaler: 'no' },
+          },
+          trigger: { cron_schedule: { cron: '@every 5m' } },
+          max_concurrency: '10',
+          mode: 'DISABLE',
+          no_catchup: false,
+          service_account: '',
+          experiment_id: 'default',
+        });
+      });
     });
 
     it('duplicates a schedule', () => {
@@ -856,4 +877,49 @@ const initIntercepts = () => {
       experiment,
     );
   });
+};
+
+const createRecurringRunParams: Partial<PipelineRecurringRunKFv2> = {
+  display_name: 'New recurring run',
+  description: 'New recurring run description',
+  recurring_run_id: 'new-recurring-run-id',
+  runtime_config: {
+    parameters: {
+      min_max_scaler: false,
+      neighbors: 1,
+      standard_scaler: 'no',
+    },
+  },
+};
+
+const createScheduleRunCommonTest = () => {
+  visitLegacyRunsPage();
+  pipelineRunsGlobal.findSchedulesTab().click();
+  // Mock experiments, pipelines & versions for form select dropdowns
+  createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+  createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+  createSchedulePage.mockGetPipelineVersions(
+    projectName,
+    [mockPipelineVersion],
+    mockPipelineVersion.pipeline_id,
+  );
+
+  // Navigate to the 'Create run' page
+  pipelineRunsGlobal.findScheduleRunButton().click();
+  verifyRelativeURL(
+    `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/create`,
+  );
+  createSchedulePage.find();
+  createRunPage.fillName(initialMockRecurringRuns[0].display_name);
+  cy.findByTestId('duplicate-name-help-text').should('be.visible');
+  createSchedulePage.fillName('New recurring run');
+  createSchedulePage.fillDescription('New recurring run description');
+  createSchedulePage.findPipelineSelect().should('not.be.disabled').click();
+  createSchedulePage.selectPipelineByName('Test pipeline');
+  createSchedulePage.findPipelineVersionSelect().should('not.be.disabled');
+  const parameters = createRecurringRunParams.runtime_config?.parameters || {};
+  const paramsSection = createRunPage.getParamsSection();
+  paramsSection.findParamById('radio-min_max_scaler-false').click();
+  paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
+  paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
 };
