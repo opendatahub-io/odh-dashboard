@@ -1,12 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownSeparator,
-  DropdownToggle,
-} from '@patternfly/react-core/deprecated';
+import { Divider, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
@@ -45,99 +40,111 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   return (
     <>
       <Dropdown
-        data-testid="pipeline-version-details-actions"
+        onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+        shouldFocusToggleOnSelect
         onSelect={() => setOpen(false)}
-        menuAppendTo={getDashboardMainContainer}
-        toggle={
-          <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
+        popperProps={{ appendTo: getDashboardMainContainer, position: 'right' }}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            data-testid="pipeline-version-details-actions"
+            ref={toggleRef}
+            variant="primary"
+            aria-label="Actions"
+            onClick={() => setOpen(!open)}
+            isExpanded={open}
+          >
             Actions
-          </DropdownToggle>
-        }
+          </MenuToggle>
+        )}
         isOpen={open}
-        position="right"
-        dropdownItems={[
-          <DropdownItem key="upload-version" onClick={() => setIsVersionImportModalOpen(true)}>
-            Upload new version
-          </DropdownItem>,
-          <DropdownSeparator key="separator-create" />,
-          <DropdownItem
-            isAriaDisabled={!isPipelineSupported}
-            tooltip={PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR}
-            key="create-run"
-            onClick={() =>
-              navigate(
-                pipelineVersionCreateRunRoute(
-                  namespace,
-                  pipeline?.pipeline_id,
-                  pipelineVersion?.pipeline_version_id,
-                ),
-                {
-                  state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                },
-              )
-            }
-          >
-            Create run
-          </DropdownItem>,
-          <DropdownItem
-            isAriaDisabled={!isPipelineSupported}
-            tooltip={PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR}
-            key="create-schedule"
-            onClick={() =>
-              navigate(
-                pipelineVersionCreateRecurringRunRoute(
-                  namespace,
-                  pipeline?.pipeline_id,
-                  pipelineVersion?.pipeline_version_id,
-                ),
-                {
-                  state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                },
-              )
-            }
-          >
-            Create schedule
-          </DropdownItem>,
-          ...(pipeline && pipelineVersion
-            ? [
-                <DropdownSeparator key="separator-view" />,
-                <DropdownItem
-                  key="view-runs"
-                  onClick={() =>
-                    navigate(
-                      pipelineVersionRunsRoute(
-                        namespace,
-                        pipeline.pipeline_id,
-                        pipelineVersion.pipeline_version_id,
-                      ),
-                    )
-                  }
-                >
-                  View runs
-                </DropdownItem>,
-                <DropdownItem
-                  key="view-schedules"
-                  onClick={() =>
-                    navigate(
-                      pipelineVersionRecurringRunsRoute(
-                        namespace,
-                        pipeline.pipeline_id,
-                        pipelineVersion.pipeline_version_id,
-                      ),
-                    )
-                  }
-                >
-                  View schedules
-                </DropdownItem>,
-              ]
-            : []),
-
-          <DropdownSeparator key="separator-delete" />,
-          <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
-            Delete pipeline version
-          </DropdownItem>,
-        ]}
-      />
+      >
+        <DropdownList>
+          {[
+            <DropdownItem key="upload-version" onClick={() => setIsVersionImportModalOpen(true)}>
+              Upload new version
+            </DropdownItem>,
+            <Divider key="separator-create" />,
+            <DropdownItem
+              isAriaDisabled={!isPipelineSupported}
+              tooltipProps={{ content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }}
+              key="create-run"
+              onClick={() =>
+                navigate(
+                  pipelineVersionCreateRunRoute(
+                    namespace,
+                    pipeline?.pipeline_id,
+                    pipelineVersion?.pipeline_version_id,
+                  ),
+                  {
+                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
+                  },
+                )
+              }
+            >
+              Create run
+            </DropdownItem>,
+            <DropdownItem
+              isAriaDisabled={!isPipelineSupported}
+              tooltipProps={{ content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }}
+              key="create-schedule"
+              onClick={() =>
+                navigate(
+                  pipelineVersionCreateRecurringRunRoute(
+                    namespace,
+                    pipeline?.pipeline_id,
+                    pipelineVersion?.pipeline_version_id,
+                  ),
+                  {
+                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
+                  },
+                )
+              }
+            >
+              Create schedule
+            </DropdownItem>,
+            ...(pipeline && pipelineVersion
+              ? [
+                  <Divider key="separator-view" />,
+                  <DropdownItem
+                    key="view-runs"
+                    onClick={() =>
+                      navigate(
+                        pipelineVersionRunsRoute(
+                          namespace,
+                          pipeline.pipeline_id,
+                          pipelineVersion.pipeline_version_id,
+                        ),
+                        {
+                          state: { lastVersion: pipelineVersion },
+                        },
+                      )
+                    }
+                  >
+                    View runs
+                  </DropdownItem>,
+                  <DropdownItem
+                    key="view-schedules"
+                    onClick={() =>
+                      navigate(
+                        pipelineVersionRecurringRunsRoute(
+                          namespace,
+                          pipeline.pipeline_id,
+                          pipelineVersion.pipeline_version_id,
+                        ),
+                      )
+                    }
+                  >
+                    View schedules
+                  </DropdownItem>,
+                ]
+              : []),
+            <Divider key="separator-delete" />,
+            <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
+              Delete pipeline version
+            </DropdownItem>,
+          ]}
+        </DropdownList>
+      </Dropdown>
       {isVersionImportModalOpen && (
         <PipelineVersionImportModal
           existingPipeline={pipeline}
