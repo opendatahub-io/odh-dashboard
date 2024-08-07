@@ -7,7 +7,7 @@ import {
   CreatingServingRuntimeObject,
 } from '~/pages/modelServing/screens/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import { fetchNIMModelNames } from '~/pages/modelServing/screens/projects/utils';
+import { fetchNIMModelNames, ModelInfo } from '~/pages/modelServing/screens/projects/utils';
 
 type NIMModelListSectionProps = {
   inferenceServiceData: CreatingInferenceServiceObject;
@@ -23,6 +23,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
   isEditing,
 }) => {
   const [options, setOptions] = useState<{ key: string; label: string }[]>([]);
+  const [modelList, setModelList] = useState<ModelInfo[]>([]);
 
   useEffect(() => {
     const getModelNames = async () => {
@@ -32,6 +33,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
           key: modelInfo.name,
           label: `${modelInfo.displayName} - ${modelInfo.latestTag}`,
         }));
+        setModelList(modelInfos);
         setOptions(fetchedOptions);
       }
     };
@@ -39,20 +41,20 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
   }, []);
 
   const getSupportedModelFormatsInfo = (name: string) => {
-    const modelInfo = options.find((option) => option.key === name);
+    const modelInfo = modelList.find((model) => model.name === name);
     if (modelInfo) {
       return {
-        name: modelInfo.key,
-        version: modelInfo.label.split(' - ')[1],
+        name: modelInfo.name,
+        version: modelInfo.latestTag,
       };
     }
     return { name: '', version: '' };
   };
 
   const getNIMImageName = (name: string) => {
-    const imageInfo = options.find((option) => option.key === name);
+    const imageInfo = modelList.find((model) => model.name === name);
     if (imageInfo) {
-      return `nvcr.io/nim/meta/${name}:${imageInfo.label.split(' - ')[1]}`;
+      return `nvcr.io/${imageInfo.namespace}/${name}:${imageInfo.latestTag}`;
     }
     return '';
   };

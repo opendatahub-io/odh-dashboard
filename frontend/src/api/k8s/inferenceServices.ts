@@ -24,6 +24,7 @@ export const assembleInferenceService = (
   isModelMesh?: boolean,
   inferenceService?: InferenceServiceKind,
   acceleratorState?: AcceleratorProfileState,
+  isStorageNeeded?: boolean,
 ): InferenceServiceKind => {
   const {
     storage,
@@ -155,6 +156,11 @@ export const assembleInferenceService = (
     };
   }
 
+  // If storage is not needed, remove storage from the inference service
+  if (isStorageNeeded !== undefined && !isStorageNeeded) {
+    delete updateInferenceService.spec.predictor.model?.storage;
+  }
+
   return updateInferenceService;
 };
 
@@ -226,6 +232,7 @@ export const createInferenceService = (
   isModelMesh?: boolean,
   acceleratorState?: AcceleratorProfileState,
   dryRun = false,
+  isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -234,6 +241,7 @@ export const createInferenceService = (
     isModelMesh,
     undefined,
     acceleratorState,
+    isStorageNeeded,
   );
   return k8sCreateResource<InferenceServiceKind>(
     applyK8sAPIOptions(
@@ -253,6 +261,7 @@ export const updateInferenceService = (
   isModelMesh?: boolean,
   acceleratorState?: AcceleratorProfileState,
   dryRun = false,
+  isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -261,6 +270,7 @@ export const updateInferenceService = (
     isModelMesh,
     existingData,
     acceleratorState,
+    isStorageNeeded,
   );
 
   return k8sUpdateResource<InferenceServiceKind>(

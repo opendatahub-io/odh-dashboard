@@ -6,6 +6,7 @@ import {
   ProjectKind,
   SecretKind,
   ServingRuntimeKind,
+  PersistentVolumeClaimKind,
 } from '~/k8sTypes';
 import {
   DataConnection,
@@ -44,12 +45,16 @@ import {
   getConfigMap,
   updateInferenceService,
   updateServingRuntime,
+  getSecret,
+  createPvc,
 } from '~/api';
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
 
-const NAMESPACE = 'redhat-ods-applications';
-const CONFIGMAP = 'nvidia-nim-images-data';
+const NIM_NAMESPACE = 'redhat-ods-applications';
+const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
+const NIM_SECRET_NAME = 'nvidia-nim-access';
+const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -322,6 +327,7 @@ const createInferenceServiceAndDataConnection = (
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
   dryRun = false,
+  isStorageNeeded?: boolean,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData, dryRun).then((secret) =>
@@ -333,6 +339,7 @@ const createInferenceServiceAndDataConnection = (
             isModelMesh,
             acceleratorProfileState,
             dryRun,
+            isStorageNeeded,
           )
         : createInferenceService(
             inferenceServiceData,
@@ -340,6 +347,7 @@ const createInferenceServiceAndDataConnection = (
             isModelMesh,
             acceleratorProfileState,
             dryRun,
+            isStorageNeeded,
           ),
     );
   }
@@ -351,6 +359,7 @@ const createInferenceServiceAndDataConnection = (
         isModelMesh,
         acceleratorProfileState,
         dryRun,
+        isStorageNeeded,
       )
     : createInferenceService(
         inferenceServiceData,
@@ -358,6 +367,7 @@ const createInferenceServiceAndDataConnection = (
         isModelMesh,
         acceleratorProfileState,
         dryRun,
+        isStorageNeeded,
       );
 };
 
@@ -369,6 +379,7 @@ export const getSubmitInferenceServiceResourceFn = (
   acceleratorProfileState?: AcceleratorProfileState,
   allowCreate?: boolean,
   secrets?: SecretKind[],
+  isStorageNeeded?: boolean,
 ): ((opts: { dryRun?: boolean }) => Promise<void>) => {
   const inferenceServiceData = {
     ...createData,
@@ -397,6 +408,7 @@ export const getSubmitInferenceServiceResourceFn = (
       isModelMesh,
       acceleratorProfileState,
       dryRun,
+      isStorageNeeded,
     ).then((inferenceService) =>
       setUpTokenAuth(
         createData,
@@ -557,7 +569,7 @@ export interface ModelInfo {
 }
 
 export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
-  const configMap = await getConfigMap(NAMESPACE, CONFIGMAP);
+  const configMap = await getConfigMap(NIM_NAMESPACE, NIM_CONFIGMAP_NAME);
   if (configMap.data) {
     const modelInfos: ModelInfo[] = Object.entries(configMap.data).map(([key, value]) => {
       const modelData = JSON.parse(value); // Parse the JSON string
@@ -575,3 +587,61 @@ export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => 
   }
   return undefined;
 };
+
+export const createNIMSecret = async (
+  projectName: string,
+  secretName: string,
+  isNGC: boolean,
+  dryRun: boolean,
+): Promise<SecretKind> => {
+  const labels: Record<string, string> = {
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+  };
+  const data: Record<string, string> = {};
+  const newSecret = {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name: secretName,
+      namespace: projectName,
+      labels,
+    },
+    data,
+    type: isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque',
+  };
+  const nimSecretData: SecretKind = isNGC
+    ? await getSecret(NIM_NAMESPACE, NIM_NGC_SECRET_NAME)
+    : await getSecret(NIM_NAMESPACE, NIM_SECRET_NAME);
+
+  if (nimSecretData.data) {
+    if (!isNGC) {
+      data.NGC_API_KEY = nimSecretData.data.api_key;
+    } else {
+      data['.dockerconfigjson'] = nimSecretData.data['.dockerconfigjson'];
+    }
+    return createSecret(newSecret, { dryRun });
+  }
+
+  return Promise.reject(new Error(`Error creating NIM ${isNGC ? 'NGC' : null} secret`));
+};
+
+export const createNIMPVC = (
+  projectName: string,
+  pvcName: string,
+  pvcSize: string,
+  dryRun: boolean,
+): Promise<PersistentVolumeClaimKind> =>
+  createPvc(
+    {
+      nameDesc: {
+        name: pvcName,
+        description: '',
+      },
+      size: pvcSize,
+    },
+    projectName,
+    undefined,
+    {
+      dryRun,
+    },
+  );

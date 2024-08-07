@@ -9,6 +9,8 @@ import {
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
+  createNIMPVC,
+  createNIMSecret,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
@@ -36,6 +38,11 @@ import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/con
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
+
+const NIM_SECRET_NAME = 'nvidia-nim-secrets';
+const NIM_NGC_SECRET_NAME = 'ngc-secret';
+const NIM_PVC_NAME = 'nim-pvc';
+const NIM_PVC_SIZE = '50Gi';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -107,7 +114,8 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   }, [currentProjectName, setCreateDataInferenceService, isOpen]);
 
   // Serving Runtime Validation
-  const isDisabledServingRuntime = namespace === '' || actionInProgress;
+  const isDisabledServingRuntime =
+    namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
 
   const baseInputValueValid =
     createDataServingRuntime.numReplicas >= 0 &&
@@ -178,9 +186,13 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       acceleratorProfileState,
       allowCreate,
       editInfo?.secrets,
+      false,
     );
 
     Promise.all([
+      createNIMSecret(namespace, NIM_SECRET_NAME, false, false),
+      createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false),
+      createNIMPVC(namespace, NIM_PVC_NAME, NIM_PVC_SIZE, false),
       submitServingRuntimeResources({ dryRun: true }),
       submitInferenceServiceResource({ dryRun: true }),
     ])
