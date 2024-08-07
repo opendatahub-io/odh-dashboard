@@ -3,7 +3,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { filterArchiveModels } from '~/pages/modelRegistry/screens/utils';
+import { filterArchiveModels } from '~/concepts/modelRegistry/utils';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import RegisteredModelsArchiveListView from './RegisteredModelsArchiveListView';
 

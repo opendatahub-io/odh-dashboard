@@ -6,7 +6,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { filterLiveVersions } from '~/pages/modelRegistry/screens/utils';
+import { filterLiveVersions } from '~/concepts/modelRegistry/utils';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
 import { ModelVersionsTab } from './const';

@@ -11,21 +11,25 @@ import {
   InputGroupItem,
   HelperText,
   HelperTextItem,
+  FormHelperText,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
+import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 
 type RegistrationCommonFormSectionsProps = {
   formData: RegistrationCommonFormData;
   setData: UpdateObjectAtPropAndValue<RegistrationCommonFormData>;
   isFirstVersion: boolean;
+  latestVersion?: ModelVersion;
 };
 
 const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsProps> = ({
   formData,
   setData,
   isFirstVersion,
+  latestVersion,
 }) => {
   const {
     versionName,
@@ -39,6 +43,7 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
     modelLocationPath,
     modelLocationURI,
   } = formData;
+
   return (
     <>
       <FormSection
@@ -58,6 +63,13 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
             value={versionName}
             onChange={(_e, value) => setData('versionName', value)}
           />
+          {latestVersion && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
         <FormGroup label="Version description" fieldId="version-description">
           <TextArea
@@ -152,11 +164,13 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
                       </InputGroupItem>
                     </SplitItem>
                   </Split>
-                  <HelperText>
-                    <HelperTextItem>
-                      Enter a path to a model or folder. This path cannot point to a root folder.
-                    </HelperTextItem>
-                  </HelperText>
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Enter a path to a model or folder. This path cannot point to a root folder.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
               </Form>
             )
