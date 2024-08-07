@@ -23,7 +23,7 @@ export const mockConnectionTypeConfigMap = (
 export const mockConnectionTypeConfigMapObj = ({
   name = 'connection-type-sample',
   namespace = 'opendatahub',
-  displayName = name,
+  displayName = name.replace(/-/g, ' '),
   description = 'Connection type description',
   enabled = true,
   username = 'dashboard-admin',
@@ -93,46 +93,66 @@ const mockFields: ConnectionTypeField[] = [
     type: 'short-text',
     name: 'Short text 3',
     description: 'Test short text with default value and read only',
-    envVar: 'short-text-1',
+    envVar: 'short-text-3',
     required: false,
     properties: {
       defaultValue: 'This is the default value and is read only',
       defaultReadOnly: true,
     },
   },
+  {
+    type: 'short-text',
+    name: 'Short text 4',
+    description: 'Test short text with no default value and read only',
+    envVar: 'short-text-4',
+    required: false,
+    properties: {
+      defaultReadOnly: true,
+    },
+  },
 
   {
     type: 'section',
-    name: 'Paragraph',
-    description: 'This section contains paragraph fields.',
+    name: 'Text',
+    description: 'This section contains text fields.',
   },
   {
-    type: 'paragraph',
-    name: 'Paragraph 1',
-    description: 'Test paragraph',
-    envVar: 'paragraph-1',
+    type: 'text',
+    name: 'Text 1',
+    description: 'Test text',
+    envVar: 'text-1',
     required: false,
     properties: {},
   },
   {
-    type: 'paragraph',
-    name: 'Paragraph 2',
-    description: 'Test paragraph with default value',
-    envVar: 'paragraph-2',
+    type: 'text',
+    name: 'Text 2',
+    description: 'Test text with default value',
+    envVar: 'text-2',
     required: true,
     properties: {
-      defaultValue: 'This is the default value',
+      defaultValue: 'This is the default value\nOne\nTwo\nThree\nFour',
       defaultReadOnly: false,
     },
   },
   {
-    type: 'paragraph',
-    name: 'Paragraph 3',
-    description: 'Test paragraph with default value and read only',
-    envVar: 'paragraph-3',
+    type: 'text',
+    name: 'Text 3',
+    description: 'Test text with default value and read only',
+    envVar: 'text-3',
     required: false,
     properties: {
-      defaultValue: 'This is the default value',
+      defaultValue: 'This is the default value\nOne\nTwo\nThree\nFour',
+      defaultReadOnly: true,
+    },
+  },
+  {
+    type: 'text',
+    name: 'Text 4',
+    description: 'Test text with no default value and read only',
+    envVar: 'text-4',
+    required: false,
+    properties: {
       defaultReadOnly: true,
     },
   },
@@ -172,6 +192,16 @@ const mockFields: ConnectionTypeField[] = [
       defaultReadOnly: true,
     },
   },
+  {
+    type: 'hidden',
+    name: 'Hidden 4',
+    description: 'Test hidden with no default value and read only',
+    envVar: 'hidden-4',
+    required: false,
+    properties: {
+      defaultReadOnly: true,
+    },
+  },
 
   {
     type: 'section',
@@ -205,6 +235,16 @@ const mockFields: ConnectionTypeField[] = [
     required: false,
     properties: {
       defaultValue: 'https://www.redhat.com',
+      defaultReadOnly: true,
+    },
+  },
+  {
+    type: 'uri',
+    name: 'URI 4',
+    description: 'Test URI with no default value and read only',
+    envVar: 'uri-4',
+    required: false,
+    properties: {
       defaultReadOnly: true,
     },
   },
@@ -244,6 +284,16 @@ const mockFields: ConnectionTypeField[] = [
       defaultReadOnly: true,
     },
   },
+  {
+    type: 'file',
+    name: 'File 4',
+    description: 'Test file with no default value and read only',
+    envVar: 'file-4',
+    required: false,
+    properties: {
+      defaultReadOnly: true,
+    },
+  },
 
   {
     type: 'section',
@@ -278,7 +328,18 @@ const mockFields: ConnectionTypeField[] = [
     required: false,
     properties: {
       label: 'Input label',
-      defaultValue: false,
+      defaultValue: true,
+      defaultReadOnly: true,
+    },
+  },
+  {
+    type: 'boolean',
+    name: 'Boolean 4',
+    description: 'Test boolean with no default value and read only',
+    envVar: 'boolean-4',
+    required: false,
+    properties: {
+      label: 'Input label',
       defaultReadOnly: true,
     },
   },
@@ -314,21 +375,31 @@ const mockFields: ConnectionTypeField[] = [
     envVar: 'numeric-3',
     required: false,
     properties: {
-      defaultValue: 3,
+      defaultValue: 2,
+      defaultReadOnly: true,
+    },
+  },
+  {
+    type: 'numeric',
+    name: 'Numeric 4',
+    description: 'Test numeric with no default value and read only',
+    envVar: 'numeric-4',
+    required: false,
+    properties: {
       defaultReadOnly: true,
     },
   },
 
   {
     type: 'section',
-    name: 'Dropdown',
-    description: 'This section contains dropdown fields.',
+    name: 'Dropdown - single',
+    description: 'This section contains single variant dropdown fields.',
   },
   {
     type: 'dropdown',
-    name: 'Dropdown 1',
+    name: 'Dropdown single 1',
     description: 'Test dropdown single variant',
-    envVar: 'dropdown-1',
+    envVar: 'dropdown-single-1',
     required: false,
     properties: {
       variant: 'single',
@@ -342,7 +413,7 @@ const mockFields: ConnectionTypeField[] = [
   },
   {
     type: 'dropdown',
-    name: 'Dropdown 2',
+    name: 'Dropdown single 2',
     description: 'Test dropdown single variant with default value',
     envVar: 'dropdown-2',
     required: true,
@@ -355,13 +426,55 @@ const mockFields: ConnectionTypeField[] = [
         { value: '4', label: 'Four' },
       ],
       defaultValue: ['3'],
+      defaultReadOnly: false,
     },
   },
   {
     type: 'dropdown',
-    name: 'Dropdown 3',
-    description: 'Test dropdown multi variant',
+    name: 'Dropdown single 3',
+    description: 'Test dropdown single variant with default value and read only',
     envVar: 'dropdown-3',
+    required: true,
+    properties: {
+      variant: 'single',
+      items: [
+        { value: '1', label: 'One' },
+        { value: '2', label: 'Two' },
+        { value: '3', label: 'Three' },
+        { value: '4', label: 'Four' },
+      ],
+      defaultValue: ['3'],
+      defaultReadOnly: true,
+    },
+  },
+  {
+    type: 'dropdown',
+    name: 'Dropdown single 4',
+    description: 'Test dropdown single variant with no default value and read only',
+    envVar: 'dropdown-4',
+    required: true,
+    properties: {
+      variant: 'single',
+      items: [
+        { value: '1', label: 'One' },
+        { value: '2', label: 'Two' },
+        { value: '3', label: 'Three' },
+        { value: '4', label: 'Four' },
+      ],
+      defaultReadOnly: true,
+    },
+  },
+
+  {
+    type: 'section',
+    name: 'Dropdown - multi',
+    description: 'This section contains multi variant dropdown fields.',
+  },
+  {
+    type: 'dropdown',
+    name: 'Dropdown multi 1',
+    description: 'Test dropdown multi variant',
+    envVar: 'dropdown-multi-1',
     required: false,
     properties: {
       variant: 'multi',
@@ -375,9 +488,9 @@ const mockFields: ConnectionTypeField[] = [
   },
   {
     type: 'dropdown',
-    name: 'Dropdown 4',
+    name: 'Dropdown multi 2',
     description: 'Test dropdown multi variant with default values',
-    envVar: 'dropdown-4',
+    envVar: 'dropdown-multi-2',
     required: false,
     properties: {
       variant: 'multi',
@@ -388,6 +501,42 @@ const mockFields: ConnectionTypeField[] = [
         { value: '4', label: 'Four' },
       ],
       defaultValue: ['2', '3'],
+      defaultReadOnly: false,
+    },
+  },
+  {
+    type: 'dropdown',
+    name: 'Dropdown multi 3',
+    description: 'Test dropdown multi variant with default values and read only',
+    envVar: 'dropdown-multi-3',
+    required: false,
+    properties: {
+      variant: 'multi',
+      items: [
+        { value: '1', label: 'One' },
+        { value: '2', label: 'Two' },
+        { value: '3', label: 'Three' },
+        { value: '4', label: 'Four' },
+      ],
+      defaultValue: ['2', '3'],
+      defaultReadOnly: true,
+    },
+  },
+  {
+    type: 'dropdown',
+    name: 'Dropdown multi 4',
+    description: 'Test dropdown multi variant with no default values and read only',
+    envVar: 'dropdown-multi-4',
+    required: false,
+    properties: {
+      variant: 'multi',
+      items: [
+        { value: '1', label: 'One' },
+        { value: '2', label: 'Two' },
+        { value: '3', label: 'Three' },
+        { value: '4', label: 'Four' },
+      ],
+      defaultReadOnly: true,
     },
   },
 ];
