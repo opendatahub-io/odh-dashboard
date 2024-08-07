@@ -27,10 +27,7 @@ import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 
 export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { artifactId } = useParams();
-  const [artifactResponse, isArtifactLoaded, artifactError] = useGetArtifactById(
-    Number(artifactId),
-  );
-  const artifact = artifactResponse?.toObject();
+  const [artifact, isArtifactLoaded, artifactError] = useGetArtifactById(Number(artifactId));
   const artifactName = getArtifactName(artifact);
 
   if (artifactError) {

@@ -18,7 +18,7 @@ export const options = {
   [FilterOptions.Type]: 'Type',
 };
 
-export const columns: SortableData<MlmdArtifact.AsObject>[] = [
+export const columns: SortableData<MlmdArtifact>[] = [
   {
     label: 'Artifact',
     field: 'name',
