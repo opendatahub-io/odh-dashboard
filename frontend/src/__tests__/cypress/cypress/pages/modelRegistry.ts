@@ -167,6 +167,10 @@ class ModelRegistry {
   findModelVersionsTableFilter() {
     return cy.findByTestId('model-versions-table-filter');
   }
+
+  findRegisterModelButton() {
+    return cy.findByRole('button', { name: 'Register model' });
+  }
 }
 
 export const modelRegistry = new ModelRegistry();
