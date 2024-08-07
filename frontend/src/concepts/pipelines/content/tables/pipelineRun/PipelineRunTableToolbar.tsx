@@ -2,7 +2,7 @@ import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
@@ -88,7 +88,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
           />
         ),
         [FilterOptions.STATUS]: ({ value, onChange, ...props }) => (
-          <SimpleDropdownSelect
+          <SimpleSelect
             {...props}
             value={value ?? ''}
             aria-label="Select a status"

@@ -9,7 +9,7 @@ import {
   isCompatibleWithAccelerator,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '~/k8sTypes';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type ImageStreamSelectorProps = {
   imageStreams: ImageStreamKind[];
@@ -51,7 +51,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
 
   return (
     <FormGroup isRequired label="Image selection" fieldId="workbench-image-stream-selection">
-      <SimpleDropdownSelect
+      <SimpleSelect
         isScrollable
         isFullWidth
         id="workbench-image-stream-selection"

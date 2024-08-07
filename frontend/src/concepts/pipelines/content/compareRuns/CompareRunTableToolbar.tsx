@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
@@ -82,15 +82,16 @@ const CompareRunTableToolbar: React.FC<FilterProps> = ({ ...toolbarProps }) => {
           />
         ),
         [FilterOptions.STATUS]: ({ value, onChange, ...props }) => (
-          <SimpleDropdownSelect
+          <SimpleSelect
             {...props}
-            value={value ?? ''}
+            value={value}
             aria-label="Select a status"
             options={Object.values(statusRuntimeStates).map((v) => ({
               key: v,
               label: v,
             }))}
-            onChange={(v) => onChange(v)}
+            toggleLabel={value}
+            onChange={(selection) => onChange(selection)}
             dataTestId="runtime-status-dropdown"
           />
         ),

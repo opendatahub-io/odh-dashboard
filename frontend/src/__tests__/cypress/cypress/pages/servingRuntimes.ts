@@ -93,23 +93,23 @@ class ServingRuntimes {
 
   shouldDisplayServingRuntimeValues(values: string[]) {
     this.findSelectServingPlatformButton().click();
-    values.forEach((value) => cy.findByRole('menuitem', { name: value }).should('exist'));
+    values.forEach((value) => cy.findByRole('option', { name: value }).should('exist'));
     return this;
   }
 
   shouldDisplayAPIProtocolValues(values: ServingRuntimeAPIProtocol[]) {
     this.findSelectAPIProtocolButton().click();
-    values.forEach((value) => cy.findByRole('menuitem', { name: value }).should('exist'));
+    values.forEach((value) => cy.findByRole('option', { name: value }).should('exist'));
     return this;
   }
 
   selectPlatform(value: string) {
     this.findSelectServingPlatformButton().click();
-    cy.findByRole('menuitem', { name: value }).click();
+    cy.findByRole('option', { name: value }).click();
   }
 
   selectAPIProtocol(value: string) {
-    cy.findByRole('menuitem', { name: value }).click();
+    cy.findByRole('option', { name: value }).click();
   }
 
   uploadYaml(filePath: string) {

@@ -1,4 +1,4 @@
-import { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
+import { SimpleSelectOption } from '~/components/SimpleSelect';
 import { SortableData } from '~/components/table';
 import { Toleration, TolerationOperator, TolerationEffect } from '~/types';
 
@@ -43,7 +43,7 @@ export const EMPTY_TOLERATION: Toleration = {
   tolerationSeconds: undefined,
 };
 
-export const operatorDropdownOptions: SimpleDropdownOption[] = [
+export const operatorDropdownOptions: SimpleSelectOption[] = [
   {
     key: TolerationOperator.EQUAL,
     label: TolerationOperator.EQUAL,
@@ -58,7 +58,7 @@ export const operatorDropdownOptions: SimpleDropdownOption[] = [
   },
 ];
 
-export const effectDropdownOptions: SimpleDropdownOption[] = [
+export const effectDropdownOptions: SimpleSelectOption[] = [
   {
     key: '',
     label: 'None',

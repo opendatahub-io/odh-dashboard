@@ -203,21 +203,11 @@ describe('Model Metrics', () => {
 
     modelMetricsBias.visit('test-project', 'test-inference-service');
 
-    modelMetricsBias
-      .findConfigSelector()
-      .findSelectOption('Loan Acceptance 4')
-      .click()
-      .type('{esc}');
-    modelMetricsBias
-      .findConfigSelector()
-      .findSelectOption('Loan acceptance 2')
-      .click()
-      .type('{esc}');
-    modelMetricsBias
-      .findConfigSelector()
-      .findSelectOption('Loan acceptance 2 STRICT')
-      .click()
-      .type('{esc}');
+    modelMetricsBias.findConfigSelector().click();
+    modelMetricsBias.selectMetric('Loan Acceptance 4');
+    modelMetricsBias.selectMetric('Loan acceptance 2');
+    modelMetricsBias.selectMetric('Loan acceptance 2 STRICT');
+    modelMetricsBias.findConfigSelector().click();
 
     modelMetricsBias
       .getMetricsChart('Statistical parity difference (SPD)', 'Loan acceptance')
@@ -243,21 +233,11 @@ describe('Model Metrics', () => {
 
     modelMetricsBias.visit('test-project', 'test-inference-service');
 
-    modelMetricsBias
-      .findConfigSelector()
-      .findSelectOption('Loan Acceptance 4')
-      .click()
-      .type('{esc}');
-    modelMetricsBias
-      .findConfigSelector()
-      .findSelectOption('Loan acceptance 2')
-      .click()
-      .type('{esc}');
-    modelMetricsBias
-      .findConfigSelector()
-      .findSelectOption('Loan acceptance 2 STRICT')
-      .click()
-      .type('{esc}');
+    modelMetricsBias.findConfigSelector().click();
+    modelMetricsBias.selectMetric('Loan Acceptance 4');
+    modelMetricsBias.selectMetric('Loan acceptance 2');
+    modelMetricsBias.selectMetric('Loan acceptance 2 STRICT');
+    modelMetricsBias.findConfigSelector().click();
 
     modelMetricsBias
       .getMetricsChart('Statistical parity difference (SPD)', 'Loan acceptance')

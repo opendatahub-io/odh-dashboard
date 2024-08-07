@@ -7,7 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import {
   PeriodicOptions,
   RunTypeScheduledData,
@@ -62,7 +62,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
               />
             </SplitItem>
             <SplitItem>
-              <SimpleDropdownSelect
+              <SimpleSelect
                 options={Object.values(PeriodicOptions).map((v) => ({
                   key: v,
                   label: v,
@@ -88,7 +88,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
     <Stack hasGutter>
       <StackItem>
         <FormGroup label="Trigger type">
-          <SimpleDropdownSelect
+          <SimpleSelect
             dataTestId="triggerTypeSelector"
             isFullWidth
             options={[

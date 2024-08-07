@@ -6,7 +6,7 @@ import {
   getMlmdExecutionState,
   options,
 } from '~/pages/pipelines/global/experiments/executions/const';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { ExecutionStatus, ExecutionType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '~/concepts/pipelines/context';
 
@@ -84,7 +84,7 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
           />
         ),
         [FilterOptions.Type]: ({ value, onChange, ...props }) => (
-          <SimpleDropdownSelect
+          <SimpleSelect
             {...props}
             value={value ?? ''}
             aria-label="Search type"
@@ -96,7 +96,7 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
           />
         ),
         [FilterOptions.Status]: ({ value, onChange, ...props }) => (
-          <SimpleDropdownSelect
+          <SimpleSelect
             {...props}
             value={value ?? ''}
             aria-label="Search status"

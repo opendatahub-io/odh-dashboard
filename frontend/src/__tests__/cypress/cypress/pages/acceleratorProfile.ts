@@ -170,19 +170,19 @@ class TolerationsModal extends Modal {
   }
 
   findOperatorOptionExist() {
-    return this.findTolerationOperatorSelect().findDropdownItem(
+    return this.findTolerationOperatorSelect().findSelectOption(
       'Exists A toleration "matches" a taint if the keys are the same and the effects are the same. No value should be specified.',
     );
   }
 
   findOperatorOptionEqual() {
-    return this.findTolerationOperatorSelect().findDropdownItem(
+    return this.findTolerationOperatorSelect().findSelectOption(
       'Equal A toleration "matches" a taint if the keys are the same, the effects are the same, and the values are equal.',
     );
   }
 
   findEffectOptionNoExecute() {
-    return this.findTolerationEffectSelect().findDropdownItem(
+    return this.findTolerationEffectSelect().findSelectOption(
       'NoExecute Pods will be evicted from the node if they do not tolerate the taint.',
     );
   }

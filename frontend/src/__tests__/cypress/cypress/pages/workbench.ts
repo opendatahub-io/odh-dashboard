@@ -237,7 +237,7 @@ class CreateSpawnerPage {
   findNotebookImage(name: string) {
     return cy
       .findByTestId('workbench-image-stream-selection')
-      .findDropdownItemByTestId(`dropdown-item ${name}`)
+      .findDropdownItemByTestId(name)
       .scrollIntoView();
   }
 
