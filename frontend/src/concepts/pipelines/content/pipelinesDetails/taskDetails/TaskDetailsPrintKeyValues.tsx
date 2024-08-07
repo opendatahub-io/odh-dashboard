@@ -14,7 +14,9 @@ const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ i
             <Truncate content={result.label} />
           </b>
         </GridItem>
-        <GridItem span={6}>{result.value}</GridItem>
+        <GridItem span={6} data-testid={`${result.label}-item`}>
+          {result.value}
+        </GridItem>
       </React.Fragment>
     ))}
   </Grid>

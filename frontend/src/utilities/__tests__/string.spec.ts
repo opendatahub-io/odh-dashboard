@@ -6,6 +6,7 @@ import {
   replaceNonNumericPartWithString,
   replaceNumericPartWithString,
   containsMultipleSlashesPattern,
+  triggerFileDownload,
 } from '~/utilities/string';
 
 global.URL.createObjectURL = jest.fn(() => 'test-url');
@@ -195,5 +196,41 @@ describe('isS3PathValid', () => {
 
   it('should return false when contains multiple slashes', () => {
     expect(isS3PathValid('folder//file.txt')).toBe(false);
+  });
+});
+
+describe('triggerFileDownload', () => {
+  it('should create an anchor element, set its attributes, append it to the document, trigger a click, and remove it', () => {
+    const filename = 'test-file.txt';
+    const href = 'https://example.com/test-file.txt';
+
+    const createElementSpy = jest.spyOn(document, 'createElement');
+    const appendChildSpy = jest
+      .spyOn(document.body, 'appendChild')
+      .mockImplementation((node: Node) => node);
+    const removeChildSpy = jest
+      .spyOn(document.body, 'removeChild')
+      .mockImplementation((node: Node) => node);
+
+    const mockElement = document.createElement('a');
+
+    const clickMock = jest.fn();
+    mockElement.click = clickMock;
+
+    createElementSpy.mockReturnValue(mockElement);
+
+    triggerFileDownload(filename, href);
+
+    expect(createElementSpy).toHaveBeenCalledWith('a');
+    expect(mockElement.href).toBe(href);
+    expect(mockElement.download).toBe(filename);
+    expect(mockElement.target).toBe('_blank');
+    expect(appendChildSpy).toHaveBeenCalledWith(mockElement);
+    expect(clickMock).toHaveBeenCalled();
+    expect(removeChildSpy).toHaveBeenCalledWith(mockElement);
+
+    createElementSpy.mockRestore();
+    appendChildSpy.mockRestore();
+    removeChildSpy.mockRestore();
   });
 });
