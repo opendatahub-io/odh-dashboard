@@ -141,6 +141,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('field AWS_S3_BUCKET');
   }
 
+  findLocationRegionInput() {
+    return this.find().findByTestId('field AWS_DEFAULT_REGION');
+  }
+
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
   }

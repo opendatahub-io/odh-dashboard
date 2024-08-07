@@ -8,6 +8,9 @@ export const mockModelArtifact = (): ModelArtifact => ({
   description: 'Description of model version',
   artifactType: 'model-artifact',
   customProperties: {},
+  storageKey: 'test storage key',
   storagePath: 'test path',
-  uri: 'https://huggingface.io/mnist.onnx',
+  uri: 's3://test-bucket/demo-models/test-path?endpoint=test-endpoint&defaultRegion=test-region',
+  modelFormatName: 'test model format',
+  modelFormatVersion: 'test version 1',
 });

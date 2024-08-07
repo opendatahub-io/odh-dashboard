@@ -143,7 +143,7 @@ describe('Model version details', () => {
       'Label y',
       'Label z',
     ]);
-    modelVersionDetails.findStorageLocation().contains('https://huggingface.io/mnist.onnx');
+    modelVersionDetails.findStorageLocation().contains('s3://test-bucket/demo-models/test-path');
   });
 
   it('Switching model versions', () => {
