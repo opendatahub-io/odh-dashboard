@@ -240,7 +240,7 @@ describe('Deploy model version', () => {
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     cy.findByText('The source model format is').should('not.exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Multi Platform').click();
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Multi Platform').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     cy.findByText(
       `The source model format is ${modelArtifactMocked.modelFormatName} - ${modelArtifactMocked.modelFormatVersion}`,

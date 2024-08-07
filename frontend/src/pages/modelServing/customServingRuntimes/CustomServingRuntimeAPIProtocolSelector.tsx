@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
@@ -44,7 +44,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
       fieldId="custom-serving-api-protocol-selection"
       isRequired
     >
-      <SimpleDropdownSelect
+      <SimpleSelect
         dataTestId="custom-serving-api-protocol-selection"
         aria-label="Select a model serving api protocol"
         placeholder="Select a value"

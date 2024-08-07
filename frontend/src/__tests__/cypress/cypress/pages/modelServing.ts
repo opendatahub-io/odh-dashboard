@@ -92,11 +92,11 @@ class InferenceServiceModal extends Modal {
   }
 
   findServingRuntimeSelect() {
-    return this.find().find('#inference-service-model-selection');
+    return this.find().findByTestId('inference-service-model-selection');
   }
 
   findModelFrameworkSelect() {
-    return this.find().find('#inference-service-framework-selection');
+    return this.find().findByTestId('inference-service-framework-selection');
   }
 
   findExistingDataConnectionOption() {
@@ -198,7 +198,7 @@ class ServingRuntimeModal extends Modal {
   findModelServerSizeSelect() {
     return this.find()
       .findByRole('group', { name: 'Compute resources per replica' })
-      .findByRole('button', { name: 'Options menu' });
+      .findByTestId('model-server-size-selection');
   }
 
   findModelServerReplicasMinusButton() {

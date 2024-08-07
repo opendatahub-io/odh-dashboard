@@ -33,7 +33,7 @@ class ArtifactsGlobal {
   }
 
   selectFilterType(type: string) {
-    cy.findByTestId('artifact-type-filter-select').findByTestId(`dropdown-item ${type}`).click();
+    cy.findByTestId('artifact-type-filter-select').findByTestId(type).click();
   }
 }
 

@@ -9,7 +9,7 @@ import { TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import { FilterToolbar } from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '~/routes';
@@ -122,7 +122,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
             />
           ),
           [FilterOptions.Type]: ({ value, onChange, ...props }) => (
-            <SimpleDropdownSelect
+            <SimpleSelect
               {...props}
               value={value ?? ''}
               aria-label="Search type"
