@@ -32,8 +32,8 @@ const RegisterModel: React.FC = () => {
     useRegistrationCommonState();
 
   const [formData, setData] = useRegisterModelData();
-  const { modelName, modelDescription } = formData;
   const isSubmitDisabled = isSubmitting || isRegisterModelSubmitDisabled(formData);
+  const { modelName, modelDescription } = formData;
 
   const onSubmit = () =>
     handleSubmit(async () => {

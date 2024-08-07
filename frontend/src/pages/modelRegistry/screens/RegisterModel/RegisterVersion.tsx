@@ -25,6 +25,7 @@ import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import { useRegistrationCommonState } from './useRegistrationCommonState';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
+import RegisteredModelSelector from './RegisteredModelSelector';
 
 const RegisterVersion: React.FC = () => {
   const { modelRegistry: mrName, registeredModelId: prefilledRegisteredModelId } = useParams();
@@ -34,13 +35,12 @@ const RegisterVersion: React.FC = () => {
   const { isSubmitting, submitError, setSubmitError, handleSubmit, apiState, author } =
     useRegistrationCommonState();
 
+  const [formData, setData] = useRegisterVersionData(prefilledRegisteredModelId);
+  const isSubmitDisabled = isSubmitting || isRegisterVersionSubmitDisabled(formData);
+  const { registeredModelId } = formData;
+
   const [registeredModels, loaded, loadError] = useRegisteredModels();
   const registeredModel = registeredModels.items.find(({ id }) => id === registeredModelId);
-
-  const [formData, setData] = useRegisterVersionData(prefilledRegisteredModelId);
-  const { registeredModelId } = formData;
-  const isSubmitDisabled =
-    isSubmitting || !registeredModel || isRegisterVersionSubmitDisabled(formData);
 
   const onSubmit = () => {
     if (!registeredModel) {
@@ -86,10 +86,17 @@ const RegisterVersion: React.FC = () => {
       <PageSection variant="light" isFilled>
         <Form isWidthLimited>
           <Stack hasGutter>
-            <StackItem className={spacing.mbLg}>
+            <StackItem>
               <PrefilledModelRegistryField mrName={mrName} />
+            </StackItem>
+            <StackItem className={spacing.mbLg}>
               <FormGroup label="Model name" isRequired fieldId="model-name">
-                {/* // TODO: typeahead select here, or disabled field if we have prefilledRegisteredModelId */}
+                <RegisteredModelSelector
+                  registeredModels={registeredModels.items}
+                  registeredModelId={registeredModelId}
+                  setRegisteredModelId={(id) => setData('registeredModelId', id)}
+                  isDisabled={!!prefilledRegisteredModelId}
+                />
               </FormGroup>
             </StackItem>
             <StackItem>

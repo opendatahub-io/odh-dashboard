@@ -104,6 +104,7 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
           body={
             modelLocationType === ModelLocationType.ObjectStorage && (
               <Form>
+                {/* // TODO this is causing a validateDOMNesting warning */}
                 <FormGroup label="Endpoint" isRequired fieldId="location-endpoint">
                   <TextInput
                     isRequired
