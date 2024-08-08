@@ -40,12 +40,9 @@ const ModelRegistryRoutes: React.FC = () => (
             element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
           />
           <Route
-            path={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+            path={ModelVersionDetailsTab.DEPLOYMENTS}
             element={
-              <ModelVersionsDetails
-                tab={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
-                empty={false}
-              />
+              <ModelVersionsDetails tab={ModelVersionDetailsTab.DEPLOYMENTS} empty={false} />
             }
           />
           <Route path="*" element={<Navigate to="." />} />
@@ -61,10 +58,10 @@ const ModelRegistryRoutes: React.FC = () => (
               }
             />
             <Route
-              path={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+              path={ModelVersionDetailsTab.DEPLOYMENTS}
               element={
                 <ModelVersionsArchiveDetails
-                  tab={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+                  tab={ModelVersionDetailsTab.DEPLOYMENTS}
                   empty={false}
                 />
               }

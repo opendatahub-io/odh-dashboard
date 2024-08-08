@@ -46,7 +46,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           onClick: () => undefined,
         },
         {
-          title: 'Archive version',
+          title: 'Archive model version',
           onClick: () => setIsArchiveModalOpen(true),
         },
       ];
