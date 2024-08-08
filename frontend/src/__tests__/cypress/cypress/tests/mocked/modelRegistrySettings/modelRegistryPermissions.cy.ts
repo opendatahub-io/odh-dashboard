@@ -1,17 +1,18 @@
-import { mockK8sResourceList } from '~/__mocks__';
+import { mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import {
   GroupModel,
   ModelRegistryModel,
+  ProjectModel,
   RoleBindingModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import type { RoleBindingSubject } from '~/k8sTypes';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockGroup } from '~/__mocks__/mockGroup';
-import { usersTab } from '~/__tests__/cypress/cypress/pages/modelRegistryPermissions';
+import { modelRegistryPermissions } from '~/__tests__/cypress/cypress/pages/modelRegistryPermissions';
 
 const MODEL_REGISTRY_DEFAULT_NAMESPACE = 'odh-model-registries';
 
@@ -28,6 +29,14 @@ const groupSubjects: RoleBindingSubject[] = [
     kind: 'Group',
     apiGroup: 'rbac.authorization.k8s.io',
     name: 'example-mr-users',
+  },
+];
+
+const projectSubjects: RoleBindingSubject[] = [
+  {
+    kind: 'Group',
+    apiGroup: 'rbac.authorization.k8s.io',
+    name: 'system:serviceaccounts:test-project',
   },
 ];
 
@@ -51,6 +60,13 @@ const initIntercepts = ({ isEmpty = false, hasPermission = true }: HandlersProps
   cy.interceptK8sList(
     { model: GroupModel },
     mockK8sResourceList([mockGroup({ name: 'example-mr-group-option' })]),
+  );
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({}),
+      mockProjectK8sResource({ k8sName: 'project-name', displayName: 'Project' }),
+    ]),
   );
   cy.interceptK8sList(
     { model: RoleBindingModel, ns: MODEL_REGISTRY_DEFAULT_NAMESPACE },
@@ -86,31 +102,41 @@ const initIntercepts = ({ isEmpty = false, hasPermission = true }: HandlersProps
               roleRefName: 'registry-user-example-mr',
               modelRegistryName: 'example-mr',
             }),
+            mockRoleBindingK8sResource({
+              namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+              subjects: projectSubjects,
+              roleRefName: 'registry-user-example-mr',
+              modelRegistryName: 'example-mr',
+              isProjectSubject: true,
+            }),
           ],
     ),
   );
 };
 
 describe('MR Permissions', () => {
+  const usersTab = modelRegistryPermissions.getUsersContent();
+  const projectsTab = modelRegistryPermissions.getProjectsContent();
   const userTable = usersTab.getUserTable();
   const groupTable = usersTab.getGroupTable();
+  const projectTable = projectsTab.getProjectTable();
 
   it('should not be accessible for non-project admins', () => {
     initIntercepts({ isEmpty: false, hasPermission: false });
-    usersTab.visit('example-mr', false);
+    modelRegistryPermissions.visit('example-mr', false);
     cy.findByTestId('not-found-page').should('exist');
   });
 
   it('redirect if no modelregistry', () => {
     initIntercepts({ isEmpty: true });
-    usersTab.visit('example-mr');
+    modelRegistryPermissions.visit('example-mr');
     cy.url().should('eq', `${Cypress.config().baseUrl}/modelRegistrySettings`);
   });
 
   describe('Users table', () => {
     it('Table sorting for users table', () => {
       initIntercepts({ isEmpty: false });
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
       userTable.findRows().should('have.length', 2);
 
       // by name
@@ -139,7 +165,7 @@ describe('MR Permissions', () => {
           modelRegistryName: 'example-mr',
         }),
       ).as('addUser');
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
 
       usersTab.findAddUserButton().click();
 
@@ -189,7 +215,7 @@ describe('MR Permissions', () => {
         mock200Status({}),
       ).as('deleteUser');
 
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
 
       userTable.getTableRow('example-mr-user').findKebabAction('Edit').click();
       userTable.findEditInput('example-mr-user').clear().type('edited-user');
@@ -226,7 +252,7 @@ describe('MR Permissions', () => {
         { model: RoleBindingModel, ns: MODEL_REGISTRY_DEFAULT_NAMESPACE, name: 'example-mr-user' },
         mock200Status({}),
       ).as('deleteUser');
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
 
       userTable.getTableRow('example-mr-user').findKebabAction('Delete').click();
 
@@ -238,7 +264,7 @@ describe('MR Permissions', () => {
     it('Table sorting for groups table', () => {
       initIntercepts({ isEmpty: false });
 
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
 
       groupTable.findTableHeaderButton('Name').click();
       groupTable.findTableHeaderButton('Name').should(be.sortDescending);
@@ -264,11 +290,11 @@ describe('MR Permissions', () => {
           modelRegistryName: 'example-mr',
         }),
       ).as('addGroup');
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
 
       usersTab.findAddGroupButton().click();
 
-      groupTable.findGroupSelect().fill('new-example-mr-group');
+      groupTable.findNameSelect().fill('new-example-mr-group');
       cy.findByText('Create "new-example-mr-group"').click();
       groupTable.findSaveNewButton().click();
 
@@ -319,10 +345,10 @@ describe('MR Permissions', () => {
         mock200Status({}),
       ).as('deleteGroup');
 
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
 
       groupTable.getTableRow('example-mr-users-2').findKebabAction('Edit').click();
-      groupTable.findGroupSelect().clear().type('example-mr-group-opti');
+      groupTable.findNameSelect().clear().type('example-mr-group-opti');
       cy.findByText('example-mr-group-option').click();
       groupTable.findEditSaveButton('example-mr-group-option').click();
 
@@ -368,7 +394,7 @@ describe('MR Permissions', () => {
         mock200Status({}),
       ).as('deleteGroup');
 
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
       groupTable.getTableRow('example-mr-users-2').findKebabAction('Delete').click();
 
       cy.wait('@deleteGroup');
@@ -376,9 +402,135 @@ describe('MR Permissions', () => {
 
     it('Disabled actions on default group', () => {
       initIntercepts({ isEmpty: false });
-      usersTab.visit('example-mr');
+      modelRegistryPermissions.visit('example-mr');
       groupTable.getTableRow('example-mr-users').findKebab().should('be.disabled');
       groupTable.getTableRow('example-mr-users-2').findKebab().should('not.be.disabled');
+    });
+  });
+
+  describe('Projects table', () => {
+    beforeEach(() => {
+      initIntercepts({ isEmpty: false });
+      modelRegistryPermissions.visit('example-mr');
+      modelRegistryPermissions.findProjectTab().click();
+    });
+
+    it('table sorting', () => {
+      // by name
+      projectTable.findTableHeaderButton('Name').click();
+      projectTable.findTableHeaderButton('Name').should(be.sortDescending);
+      projectTable.findTableHeaderButton('Name').click();
+      projectTable.findTableHeaderButton('Name').should(be.sortAscending);
+      //by permissions
+      projectTable.findTableHeaderButton('Permission').click();
+      projectTable.findTableHeaderButton('Permission').should(be.sortAscending);
+      projectTable.findTableHeaderButton('Permission').click();
+      projectTable.findTableHeaderButton('Permission').should(be.sortDescending);
+      //by date added
+      projectTable.findTableHeaderButton('Date added').click();
+      projectTable.findTableHeaderButton('Date added').should(be.sortAscending);
+      projectTable.findTableHeaderButton('Date added').click();
+      projectTable.findTableHeaderButton('Date added').should(be.sortDescending);
+    });
+
+    it('Add project', () => {
+      cy.interceptK8s(
+        'POST',
+        RoleBindingModel,
+        mockRoleBindingK8sResource({
+          namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+          subjects: projectSubjects,
+          roleRefName: 'registry-user-example-mr',
+          modelRegistryName: 'example-mr',
+        }),
+      ).as('addProject');
+
+      projectsTab.findAddProjectButton().click();
+      projectTable.findNameSelect().findSelectOption('Project').click();
+      projectTable.findSaveNewButton().click();
+
+      cy.wait('@addProject').then((interception) => {
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            namespace: 'odh-model-registries',
+          },
+          roleRef: {
+            apiGroup: 'rbac.authorization.k8s.io',
+            kind: 'Role',
+            name: 'registry-user-example-mr',
+          },
+          subjects: [
+            {
+              apiGroup: 'rbac.authorization.k8s.io',
+              kind: 'Group',
+              name: 'system:serviceaccounts:project-name',
+            },
+          ],
+        });
+      });
+    });
+
+    it('Edit project', () => {
+      cy.interceptK8s(
+        'POST',
+        RoleBindingModel,
+        mockRoleBindingK8sResource({
+          namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+          subjects: projectSubjects,
+          roleRefName: 'registry-user-example-mr',
+          modelRegistryName: 'example-mr',
+        }),
+      ).as('editProject');
+      cy.interceptK8s(
+        'DELETE',
+        {
+          model: RoleBindingModel,
+          ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+          name: 'test-name-view',
+        },
+        mock200Status({}),
+      ).as('deleteProject');
+
+      projectTable.getTableRow('Test Project').findKebabAction('Edit').click();
+      projectTable.findNameSelect().findSelectOption('Project').click();
+      projectTable.findEditSaveButton('Project').click();
+
+      cy.wait('@editProject').then((interception) => {
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            namespace: 'odh-model-registries',
+          },
+          roleRef: {
+            apiGroup: 'rbac.authorization.k8s.io',
+            kind: 'Role',
+            name: 'registry-user-example-mr',
+          },
+          subjects: [
+            {
+              apiGroup: 'rbac.authorization.k8s.io',
+              kind: 'Group',
+              name: 'system:serviceaccounts:project-name',
+            },
+          ],
+        });
+      });
+      cy.wait('@deleteProject');
+    });
+
+    it('Delete project', () => {
+      cy.interceptK8s(
+        'DELETE',
+        {
+          model: RoleBindingModel,
+          ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+          name: 'test-name-view',
+        },
+        mock200Status({}),
+      ).as('deleteProject');
+
+      projectTable.getTableRow('Test Project').findKebabAction('Delete').click();
+
+      cy.wait('@deleteProject');
     });
   });
 });

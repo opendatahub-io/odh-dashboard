@@ -23,6 +23,7 @@ export enum KnownLabels {
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
+  PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
 }
 
 export type K8sVerb =
