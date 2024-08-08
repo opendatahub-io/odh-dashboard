@@ -95,18 +95,6 @@ class ProjectListPage {
   findCreateWorkbenchButton() {
     return cy.findByRole('button', { name: 'Create a workbench' });
   }
-
-  findProjectsDropdownFilter() {
-    return cy.findByTestId('filter-dropdown-select');
-  }
-
-  findProjectsDropdownFilterButtonByText(buttonTitle: string) {
-    return cy.contains('button', buttonTitle);
-  }
-
-  findProjectsFilterInput() {
-    return cy.findByPlaceholderText('Find by name');
-  }
 }
 
 class CreateEditProjectModal extends Modal {

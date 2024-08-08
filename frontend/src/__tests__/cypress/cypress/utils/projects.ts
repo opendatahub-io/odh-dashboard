@@ -5,7 +5,7 @@ import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
  * @param projectName Project Name
  */
 export const filterProjectByName = (projectName: string) => {
-    projectListPage.findProjectsDropdownFilter().click();
-    projectListPage.findProjectsDropdownFilterButtonByText("Name").click();
-    projectListPage.findProjectsFilterInput().type(projectName);
+  const projectListToolbar = projectListPage.getTableToolbar();
+  projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+  projectListToolbar.findSearchInput().type(projectName);
 };
