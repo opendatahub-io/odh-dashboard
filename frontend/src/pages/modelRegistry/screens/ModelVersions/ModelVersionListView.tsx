@@ -54,7 +54,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
       <EmptyModelRegistryState
         testid="empty-model-versions"
         title="No versions"
-        description={`${rm?.name} has no versions registered to it. Register a version to this model.`}
+        description={`${rm?.name} has no registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         secondaryActionText="View archived versions"
         primaryActionOnClick={() => {

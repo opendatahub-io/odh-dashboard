@@ -27,6 +27,12 @@ export const rmColumns: SortableData<RegisteredModel>[] = [
     field: 'owner',
     label: 'Owner',
     sortable: false, // TODO Add sortable once RHOAIENG-7566 is completed.
+    info: {
+      tooltip: 'The owner is the user who registered the model.',
+      tooltipProps: {
+        isContentLeftAligned: true,
+      },
+    },
   },
   {
     field: 'kebab',

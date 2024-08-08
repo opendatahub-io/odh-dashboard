@@ -66,7 +66,7 @@ class ModelRegistry {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Registered models');
+    cy.findByTestId('app-page-title').contains('Model registry');
     cy.testA11y();
   }
 
