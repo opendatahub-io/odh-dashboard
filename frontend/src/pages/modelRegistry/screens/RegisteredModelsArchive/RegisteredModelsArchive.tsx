@@ -24,7 +24,7 @@ const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pa
           <BreadcrumbItem
             render={() => (
               <Link to="/modelRegistry">
-                Registered models - {preferredModelRegistry?.metadata.name}
+                Model registry - {preferredModelRegistry?.metadata.name}
               </Link>
             )}
           />
