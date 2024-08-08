@@ -24,10 +24,8 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
   return (
     <ApplicationsPage
       {...pageProps}
-      title={
-        <TitleWithIcon title="Registered models" objectType={ProjectObjectType.deployedModels} />
-      }
-      description="View and manage your registered models."
+      title={<TitleWithIcon title="Model registry" objectType={ProjectObjectType.deployedModels} />}
+      description="View and manage all of your registered models. Registering models to model registry allows you to manage their content, metadata, versions, and user access settings."
       headerContent={
         <ModelRegistrySelectorNavigator
           getRedirectPath={(modelRegistryName) => `/modelRegistry/${modelRegistryName}`}
