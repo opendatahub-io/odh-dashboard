@@ -2,13 +2,13 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
+  Divider,
   Dropdown,
   DropdownItem,
-  DropdownSeparator,
-  DropdownToggle,
-} from '@patternfly/react-core/deprecated';
-import { Spinner } from '@patternfly/react-core';
-
+  DropdownList,
+  MenuToggle,
+  Spinner,
+} from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRecurringRunKFv2, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 import { cloneRecurringRunRoute } from '~/routes';
@@ -70,18 +70,26 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
 
   return (
     <Dropdown
-      data-testid="pipeline-recurring-run-details-actions"
       onSelect={() => setOpen(false)}
-      menuAppendTo={getDashboardMainContainer}
-      toggle={
-        <DropdownToggle toggleVariant="primary" onToggle={() => setOpen(!open)}>
+      onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+      shouldFocusToggleOnSelect
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          data-testid="pipeline-recurring-run-details-actions"
+          aria-label="Actions"
+          variant="primary"
+          onClick={() => setOpen(!open)}
+          isExpanded={open}
+        >
           Actions
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={open}
-      position="right"
-      dropdownItems={
-        !recurringRun
+      popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
+    >
+      <DropdownList>
+        {!recurringRun
           ? []
           : [
               ...(isPipelineSupported
@@ -113,15 +121,15 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
                     >
                       Duplicate
                     </DropdownItem>,
-                    <DropdownSeparator key="separator" />,
+                    <Divider key="separator" />,
                   ]
                 : []),
               <DropdownItem key="delete-run" onClick={() => onDelete()}>
                 Delete
               </DropdownItem>,
-            ]
-      }
-    />
+            ]}
+      </DropdownList>
+    </Dropdown>
   );
 };
 
