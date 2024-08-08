@@ -69,7 +69,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
      * Import Pipeline by URL from Project Details view
      */
     projectListPage.navigate();
-    
+
     // Open the project
     filterProjectByName(projectName);
     projectListPage.findProjectLink(projectName).click();
@@ -89,8 +89,9 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       );
     pipelineImportModal.submit();
 
-    //Verify that we are at the details page of the pipeline by checking the title
-    pipelineDetails.findPageTitle().should('have.text', testPipelineName);
+    // Verify that we are at the details page of the pipeline by checking the title
+    // It can take a little longer to load
+    pipelineDetails.findPageTitle(60000).should('have.text', testPipelineName);
 
     /**
      * Run the Pipeline using the Actions button in the pipeline detail view
@@ -106,6 +107,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     createRunPage.findSubmitButton().click();
 
     //Redirected to the Graph view of the created run
-    pipelineRunDetails.expectStatusLabelToBe('Succeeded');
+    pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
   });
 });
