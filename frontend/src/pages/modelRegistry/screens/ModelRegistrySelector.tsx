@@ -27,7 +27,7 @@ import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
 } from '~/concepts/k8s/utils';
-import { ModelRegistryKind } from '~/k8sTypes';
+import { ServiceKind } from '~/k8sTypes';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 
@@ -42,10 +42,10 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
   onSelection,
   primary,
 }) => {
-  const { modelRegistries, updatePreferredModelRegistry } = React.useContext(
+  const { modelRegistryServices, updatePreferredModelRegistry } = React.useContext(
     ModelRegistrySelectorContext,
   );
-  const selection = modelRegistries.find((mr) => mr.metadata.name === modelRegistry);
+  const selection = modelRegistryServices.find((mr) => mr.metadata.name === modelRegistry);
   const [isOpen, setIsOpen] = React.useState(false);
   const [favorites, setFavorites] = useBrowserStorage<string[]>(
     MODEL_REGISTRY_FAVORITE_STORAGE_KEY,
@@ -54,9 +54,10 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   const selectionDisplayName = selection ? getDisplayNameFromK8sResource(selection) : modelRegistry;
 
-  const toggleLabel = modelRegistries.length === 0 ? 'No model registries' : selectionDisplayName;
+  const toggleLabel =
+    modelRegistryServices.length === 0 ? 'No model registries' : selectionDisplayName;
 
-  const getMRSelectDescription = (mr: ModelRegistryKind) => {
+  const getMRSelectDescription = (mr: ServiceKind) => {
     const desc = getDescriptionFromK8sResource(mr);
     if (!desc) {
       return;
@@ -82,7 +83,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   const options = [
     <SelectGroup label="Select a model registry" key="all">
-      {modelRegistries.map((mr) => (
+      {modelRegistryServices.map((mr) => (
         <SelectOption
           id={mr.metadata.name}
           key={mr.metadata.name}
@@ -102,10 +103,12 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
       toggleId="model-registry-selector-dropdown"
       variant={SelectVariant.single}
       onToggle={() => setIsOpen(!isOpen)}
-      isDisabled={modelRegistries.length === 0}
+      isDisabled={modelRegistryServices.length === 0}
       onSelect={(_e, value) => {
         setIsOpen(false);
-        updatePreferredModelRegistry(modelRegistries.find((obj) => obj.metadata.name === value));
+        updatePreferredModelRegistry(
+          modelRegistryServices.find((obj) => obj.metadata.name === value),
+        );
         if (typeof value === 'string') {
           onSelection(value);
         }

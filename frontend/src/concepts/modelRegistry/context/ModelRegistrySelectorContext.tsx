@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { ModelRegistryKind } from '~/k8sTypes';
-import useModelRegistries from '~/concepts/modelRegistry/apiHooks/useModelRegistries';
+import { ServiceKind } from '~/k8sTypes';
 import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEnabled';
+import { useModelRegistryServices } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
 
 export type ModelRegistrySelectorContextType = {
-  modelRegistriesLoaded: boolean;
-  modelRegistriesLoadError?: Error;
-  modelRegistries: ModelRegistryKind[];
-  preferredModelRegistry: ModelRegistryKind | undefined;
-  updatePreferredModelRegistry: (modelRegistry: ModelRegistryKind | undefined) => void;
+  modelRegistryServicesLoaded: boolean;
+  modelRegistryServicesLoadError?: Error;
+  modelRegistryServices: ServiceKind[];
+  preferredModelRegistry: ServiceKind | undefined;
+  updatePreferredModelRegistry: (modelRegistry: ServiceKind | undefined) => void;
 };
 
 type ModelRegistrySelectorContextProviderProps = {
@@ -16,9 +16,9 @@ type ModelRegistrySelectorContextProviderProps = {
 };
 
 export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySelectorContextType>({
-  modelRegistriesLoaded: false,
-  modelRegistriesLoadError: undefined,
-  modelRegistries: [],
+  modelRegistryServicesLoaded: false,
+  modelRegistryServicesLoadError: undefined,
+  modelRegistryServices: [],
   preferredModelRegistry: undefined,
   updatePreferredModelRegistry: () => undefined,
 });
@@ -39,23 +39,23 @@ export const ModelRegistrySelectorContextProvider: React.FC<
 const EnabledModelRegistrySelectorContextProvider: React.FC<
   ModelRegistrySelectorContextProviderProps
 > = ({ children }) => {
-  const [modelRegistries, isLoaded, error] = useModelRegistries();
+  const [modelRegistryServices, isLoaded, error] = useModelRegistryServices();
   const [preferredModelRegistry, setPreferredModelRegistry] =
     React.useState<ModelRegistrySelectorContextType['preferredModelRegistry']>(undefined);
 
-  const firstModelRegistry = modelRegistries.length > 0 ? modelRegistries[0] : null;
+  const firstModelRegistry = modelRegistryServices.length > 0 ? modelRegistryServices[0] : null;
 
   return (
     <ModelRegistrySelectorContext.Provider
       value={React.useMemo(
         () => ({
-          modelRegistriesLoaded: isLoaded,
-          modelRegistriesLoadError: error,
-          modelRegistries,
+          modelRegistryServicesLoaded: isLoaded,
+          modelRegistryServicesLoadError: error,
+          modelRegistryServices,
           preferredModelRegistry: preferredModelRegistry ?? firstModelRegistry ?? undefined,
           updatePreferredModelRegistry: setPreferredModelRegistry,
         }),
-        [isLoaded, error, modelRegistries, preferredModelRegistry, firstModelRegistry],
+        [isLoaded, error, modelRegistryServices, preferredModelRegistry, firstModelRegistry],
       )}
     >
       {children}

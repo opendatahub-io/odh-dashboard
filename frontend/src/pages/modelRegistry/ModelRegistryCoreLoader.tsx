@@ -28,28 +28,27 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
   )(({ getInvalidRedirectPath }) => {
     const { modelRegistry } = useParams<{ modelRegistry: string }>();
     const {
-      modelRegistriesLoaded,
-      modelRegistriesLoadError,
-      modelRegistries,
+      modelRegistryServicesLoaded,
+      modelRegistryServicesLoadError,
+      modelRegistryServices,
       preferredModelRegistry,
     } = React.useContext(ModelRegistrySelectorContext);
 
-    if (modelRegistriesLoadError) {
+    if (modelRegistryServicesLoadError) {
       return (
         <Bullseye>
           <Alert title="Model registry load error" variant="danger" isInline>
-            {modelRegistriesLoadError.message}
+            {modelRegistryServicesLoadError.message}
           </Alert>
         </Bullseye>
       );
     }
-
-    if (!modelRegistriesLoaded) {
+    if (!modelRegistryServicesLoaded) {
       return <Bullseye>Loading model registries...</Bullseye>;
     }
 
     let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
-    if (modelRegistries.length === 0) {
+    if (modelRegistryServices.length === 0) {
       renderStateProps = {
         empty: true,
         emptyStatePage: (
@@ -65,7 +64,9 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
         ),
       };
     } else if (modelRegistry) {
-      const foundModelRegistry = modelRegistries.find((mr) => mr.metadata.name === modelRegistry);
+      const foundModelRegistry = modelRegistryServices.find(
+        (mr) => mr.metadata.name === modelRegistry,
+      );
       if (foundModelRegistry) {
         // Render the content
         return (
@@ -82,7 +83,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
       };
     } else {
       // Redirect the namespace suffix into the URL
-      const redirectModelRegistry = preferredModelRegistry ?? modelRegistries[0];
+      const redirectModelRegistry = preferredModelRegistry ?? modelRegistryServices[0];
       return <Navigate to={getInvalidRedirectPath(redirectModelRegistry.metadata.name)} replace />;
     }
 

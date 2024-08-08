@@ -45,6 +45,9 @@ export * from './models';
 // User access review hook
 export * from './useAccessReview';
 
+// Rules access review hook
+export * from './useRulesReview';
+
 // Explainability
 export * from './trustyai/custom';
 export * from './trustyai/rawTypes';
