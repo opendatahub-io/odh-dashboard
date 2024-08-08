@@ -7,7 +7,9 @@
  */
 export const createOpenShiftProject = (projectName: string, displayName?: string) => {
   const finalDisplayName = displayName || projectName;
-  const ocCommand = `oc new-project ${projectName} --display-name='${finalDisplayName}'`;
+  const ocCommand = finalDisplayName
+    ? `oc new-project ${projectName} --display-name='${finalDisplayName}'`
+    : `oc new-project ${projectName}`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
       cy.log(`ERROR provisioning ${projectName} Project
