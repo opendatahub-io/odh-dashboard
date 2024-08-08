@@ -28,6 +28,14 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+//TODO: Delete this once https://issues.redhat.com/browse/RHOAIENG-10719 is fixed
+Cypress.on('uncaught:exception', () => false);
+
+before(() => {
+  // disable Cypress's default behavior of logging all XMLHttpRequests and fetches
+  cy.intercept({ resourceType: /xhr|fetch/ }, { log: false });
+});
+
 beforeEach(() => {
   if (Cypress.env('MOCK')) {
     // fallback: return 404 for all api requests

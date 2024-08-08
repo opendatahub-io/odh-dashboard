@@ -98,6 +98,14 @@ class RunDetails extends PipelinesTopology {
     return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
 
+  private findStatusLabel(timeout: number = 10) {
+    return cy.get('[data-testid="status-icon"]', { timeout });
+  }
+
+  expectStatusLabelToBe(statusValue: string, timeout: number = 180000) {
+    this.findStatusLabel(timeout).should('have.text', statusValue);
+  }
+
   findRightDrawer() {
     return new PipelineRunRightDrawer(() =>
       cy.findByTestId('pipeline-run-drawer-right-content').parent(),
@@ -139,8 +147,8 @@ class PipelineDetails extends PipelinesTopology {
     return new DashboardCodeEditor(() => cy.findByTestId('pipeline-dashboard-code-editor'));
   }
 
-  findPageTitle() {
-    return cy.findByTestId('app-page-title');
+  findPageTitle(timeout: number = 10000) {
+    return cy.findByTestId('app-page-title', { timeout });
   }
 
   getTaskDrawer() {
