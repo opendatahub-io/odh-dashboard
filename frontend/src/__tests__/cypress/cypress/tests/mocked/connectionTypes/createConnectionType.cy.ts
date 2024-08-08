@@ -10,9 +10,10 @@ describe('create', () => {
     asClusterAdminUser();
     createConnectionTypePage.visitCreatePage();
 
-    createConnectionTypePage.connectionTypeName().should('exist');
-    createConnectionTypePage.connectionTypeDesc().should('exist');
-    createConnectionTypePage.connectionTypeEnable().should('exist');
+    createConnectionTypePage.findConnectionTypeName().should('exist');
+    createConnectionTypePage.findConnectionTypeDesc().should('exist');
+    createConnectionTypePage.findConnectionTypeEnable().should('exist');
+    createConnectionTypePage.findConnectionTypePreviewToggle().should('exist');
     createConnectionTypePage.findFieldsTable().should('exist');
   });
 
@@ -20,10 +21,10 @@ describe('create', () => {
     asClusterAdminUser();
     createConnectionTypePage.visitCreatePage();
 
-    createConnectionTypePage.connectionTypeName().should('have.value', '');
+    createConnectionTypePage.findConnectionTypeName().should('have.value', '');
     createConnectionTypePage.findSubmitButton().should('be.disabled');
 
-    createConnectionTypePage.connectionTypeName().type('hello');
+    createConnectionTypePage.findConnectionTypeName().type('hello');
     createConnectionTypePage.findSubmitButton().should('be.enabled');
   });
 });
@@ -44,15 +45,15 @@ describe('duplicate', () => {
     createConnectionTypePage.visitDuplicatePage('existing');
 
     createConnectionTypePage
-      .connectionTypeName()
+      .findConnectionTypeName()
       .should(
         'have.value',
         `Duplicate of ${existing.metadata.annotations['openshift.io/display-name']}`,
       );
     createConnectionTypePage
-      .connectionTypeDesc()
+      .findConnectionTypeDesc()
       .should('have.value', existing.metadata.annotations['openshift.io/description']);
-    createConnectionTypePage.connectionTypeEnable().should('be.checked');
+    createConnectionTypePage.findConnectionTypeEnable().should('be.checked');
   });
 
   it('Prefill fields table from existing connection', () => {

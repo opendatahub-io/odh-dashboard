@@ -1,12 +1,23 @@
 import * as React from 'react';
-import { Checkbox, Form, FormGroup, FormSection, PageSection } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
+import {
+  Button,
+  Checkbox,
+  Form,
+  FormGroup,
+  FormSection,
+  PageSection,
+} from '@patternfly/react-core';
+import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
+import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NameDescType } from '~/pages/projects/types';
 import { CreateConnectionTypeFooter } from './CreateConnectionTypeFooter';
 import { CreateConnectionTypeFieldsTable } from './CreateConnectionTypeFieldsTable';
 import { CreateConnectionTypeBreadcrumbs } from './CreateConnectionTypeBreadcrumbs';
+import { createConnectionTypeObj } from './CreateConnectionTypeUtils';
 
 type CreateConnectionTypePageProps = {
   prefillNameDesc?: NameDescType;
@@ -19,6 +30,8 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
   prefillEnabled,
   prefillFields,
 }) => {
+  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
+
   const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>(
     prefillNameDesc || {
       name: '',
@@ -32,50 +45,76 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
   const [connectionFields] = React.useState<ConnectionTypeField[]>(prefillFields || []);
 
   return (
-    <ApplicationsPage
-      title="Create connection type"
-      loaded
-      empty={false}
-      errorMessage="Unable load to connection types"
-      breadcrumb={<CreateConnectionTypeBreadcrumbs />}
+    <ConnectionTypePreviewDrawer
+      isExpanded={isDrawerExpanded}
+      onClose={() => setIsDrawerExpanded(false)}
+      obj={createConnectionTypeObj(
+        {
+          k8sName: translateDisplayNameForK8s(connectionNameDesc.name),
+          displayName: connectionNameDesc.name,
+          description: connectionNameDesc.description,
+          enabled: connectionEnabled,
+          username: '',
+        },
+        connectionFields,
+      )}
     >
-      <PageSection isFilled variant="light">
-        <Form>
-          <FormSection title="Type details" style={{ maxWidth: 625 }}>
-            <NameDescriptionField
-              nameFieldId="connection-type-name"
-              nameFieldLabel="Connection type name"
-              descriptionFieldId="connection-type-description"
-              descriptionFieldLabel="Connection type description"
-              data={connectionNameDesc}
-              setData={setConnectionNameDesc}
-              autoFocusName
-            />
-            <FormGroup label="Enable">
-              <Checkbox
-                label="Connection is enabled and therefore available to use by users in your org"
-                id="connection-type-enable"
-                name="connection-type-enable"
-                data-testid="connection-type-enable"
-                isChecked={connectionEnabled}
-                onChange={(_e, value) => setConnectionEnabled(value)}
+      <ApplicationsPage
+        title="Create connection type"
+        loaded
+        empty={false}
+        errorMessage="Unable load to connection types"
+        breadcrumb={<CreateConnectionTypeBreadcrumbs />}
+        headerAction={
+          <Button
+            variant="secondary"
+            icon={<OpenDrawerRightIcon />}
+            aria-expanded={isDrawerExpanded}
+            onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+            data-testid="preview-drawer-toggle-button"
+          >
+            Preview
+          </Button>
+        }
+      >
+        <PageSection isFilled variant="light">
+          <Form>
+            <FormSection title="Type details" style={{ maxWidth: 625 }}>
+              <NameDescriptionField
+                nameFieldId="connection-type-name"
+                nameFieldLabel="Connection type name"
+                descriptionFieldId="connection-type-description"
+                descriptionFieldLabel="Connection type description"
+                data={connectionNameDesc}
+                setData={setConnectionNameDesc}
+                autoFocusName
               />
-            </FormGroup>
-          </FormSection>
-          <FormSection title="Fields">
-            <FormGroup>
-              <CreateConnectionTypeFieldsTable fields={connectionFields} />
-            </FormGroup>
-          </FormSection>
-        </Form>
-      </PageSection>
-      <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <CreateConnectionTypeFooter
-          nameDesc={connectionNameDesc}
-          enabled={connectionEnabled}
-          fields={connectionFields}
-        />
-      </PageSection>
-    </ApplicationsPage>
+              <FormGroup label="Enable">
+                <Checkbox
+                  label="Connection is enabled and therefore available to use by users in your org"
+                  id="connection-type-enable"
+                  name="connection-type-enable"
+                  data-testid="connection-type-enable"
+                  isChecked={connectionEnabled}
+                  onChange={(_e, value) => setConnectionEnabled(value)}
+                />
+              </FormGroup>
+            </FormSection>
+            <FormSection title="Fields">
+              <FormGroup>
+                <CreateConnectionTypeFieldsTable fields={connectionFields} />
+              </FormGroup>
+            </FormSection>
+          </Form>
+        </PageSection>
+        <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
+          <CreateConnectionTypeFooter
+            nameDesc={connectionNameDesc}
+            enabled={connectionEnabled}
+            fields={connectionFields}
+          />
+        </PageSection>
+      </ApplicationsPage>
+    </ConnectionTypePreviewDrawer>
   );
 };

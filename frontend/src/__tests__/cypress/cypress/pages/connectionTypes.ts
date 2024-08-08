@@ -37,16 +37,20 @@ class CreateConnectionTypePage {
     cy.findAllByText('Create connection type').should('exist');
   }
 
-  connectionTypeName() {
+  findConnectionTypeName() {
     return cy.findByTestId('connection-type-name');
   }
 
-  connectionTypeDesc() {
+  findConnectionTypeDesc() {
     return cy.findByTestId('connection-type-description');
   }
 
-  connectionTypeEnable() {
+  findConnectionTypeEnable() {
     return cy.findByTestId('connection-type-enable');
+  }
+
+  findConnectionTypePreviewToggle() {
+    return cy.findByTestId('preview-drawer-toggle-button');
   }
 
   findFieldsTable() {

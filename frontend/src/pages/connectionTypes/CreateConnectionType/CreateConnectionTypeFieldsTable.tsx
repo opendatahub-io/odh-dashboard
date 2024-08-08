@@ -1,5 +1,14 @@
 import React from 'react';
-import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import { CreateConnectionTypeFieldsTableRow } from './CreateConnectionTypeFieldsTableRow';
 
@@ -28,9 +37,27 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
         </Tr>
       </Thead>
       <Tbody>
-        {fields.map((row, index) => (
-          <CreateConnectionTypeFieldsTableRow key={index} row={row} />
-        ))}
+        {fields.length > 0 ? (
+          fields.map((row, index) => <CreateConnectionTypeFieldsTableRow key={index} row={row} />)
+        ) : (
+          <Tr>
+            <Td colSpan={columns.length}>
+              <Bullseye>
+                <EmptyState variant={EmptyStateVariant.sm}>
+                  <EmptyStateHeader
+                    icon={<EmptyStateIcon icon={PlusCircleIcon} />}
+                    titleText="No fields"
+                  />
+                  <EmptyStateBody>
+                    Add fields to prompt users to input information, and optionally assign default
+                    values to those fields. Connection name and description fields are included by
+                    default.
+                  </EmptyStateBody>
+                </EmptyState>
+              </Bullseye>
+            </Td>
+          </Tr>
+        )}
       </Tbody>
     </Table>
   );
