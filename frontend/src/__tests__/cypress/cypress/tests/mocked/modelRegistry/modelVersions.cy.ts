@@ -11,6 +11,7 @@ import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import type { ModelVersion } from '~/concepts/modelRegistry/types';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import type { ServiceKind } from '~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -18,11 +19,16 @@ type HandlersProps = {
   disableModelRegistryFeature?: boolean;
   registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
+  modelRegistries?: ServiceKind[];
 };
 
 const initIntercepts = ({
   disableModelRegistryFeature = false,
   registeredModelsSize = 4,
+  modelRegistries = [
+    mockModelRegistryService({ name: 'modelregistry-sample' }),
+    mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+  ],
   modelVersions = [
     mockModelVersion({
       author: 'Author 1',
@@ -48,13 +54,7 @@ const initIntercepts = ({
     }),
   );
 
-  cy.interceptK8sList(
-    ServiceModel,
-    mockK8sResourceList([
-      mockModelRegistryService({ name: 'modelregistry-sample' }),
-      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
-    ]),
-  );
+  cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
@@ -103,9 +103,15 @@ describe('Model Versions', () => {
   it('Model versions table', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
+      modelRegistries: [
+        mockModelRegistryService({ name: 'modelRegistry-1' }),
+        mockModelRegistryService({}),
+      ],
     });
 
     modelRegistry.visit();
+    modelRegistry.findModelRegistry().findSelectOption('modelregistry-sample').click();
+    cy.reload();
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();
     verifyRelativeURL(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
