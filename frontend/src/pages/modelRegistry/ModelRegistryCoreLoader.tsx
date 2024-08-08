@@ -32,7 +32,25 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
       modelRegistryServicesLoadError,
       modelRegistryServices,
       preferredModelRegistry,
+      updatePreferredModelRegistry,
     } = React.useContext(ModelRegistrySelectorContext);
+
+    const modelRegistryFromRoute = modelRegistryServices.find(
+      (mr) => mr.metadata.name === modelRegistry,
+    );
+
+    React.useEffect(() => {
+      if (
+        modelRegistryFromRoute &&
+        preferredModelRegistry?.metadata.name !== modelRegistryFromRoute.metadata.name
+      ) {
+        updatePreferredModelRegistry(modelRegistryFromRoute);
+      }
+    }, [
+      modelRegistryFromRoute,
+      updatePreferredModelRegistry,
+      preferredModelRegistry?.metadata.name,
+    ]);
 
     if (modelRegistryServicesLoadError) {
       return (
