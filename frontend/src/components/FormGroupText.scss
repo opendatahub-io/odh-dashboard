@@ -1,0 +1,8 @@
+.odh-form-group-text {
+  // applies the same form element font size as overriden by App.scss
+  font-size: var(--pf-v5-global--FontSize--sm);
+
+  @at-root pre#{&} {
+    font-family: var(--pf-v5-global--FontFamily--text);
+  }
+}

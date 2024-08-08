@@ -1,9 +1,6 @@
 import React from 'react';
 import {
-  FormSection,
-  Title,
   FormGroup,
-  Text,
   TextInput,
   InputGroup,
   Tooltip,
@@ -14,9 +11,9 @@ import {
 import { DataConnection } from '~/pages/projects/types';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
+import FormSection from '~/components/pf-overrides/FormSection';
 import { PipelineDropdown } from './PipelineDropdown';
 import { PipelineServerConfigType } from './types';
-import './ConfigurePipelinesServerModal.scss';
 
 export type FieldOptions = {
   key: string;
@@ -49,14 +46,8 @@ export const ObjectStorageSection = ({
 
   return (
     <FormSection
-      title={
-        <>
-          <Title headingLevel="h2">Object storage connection</Title>
-          <Text component="p" className="form-subtitle-text">
-            To store pipeline artifacts. Must be S3 compatible
-          </Text>
-        </>
-      }
+      title="Object storage connection"
+      description="To store pipeline artifacts. Must be S3 compatible"
     >
       {PIPELINE_AWS_FIELDS.map((field) =>
         field.key === 'AWS_ACCESS_KEY_ID' ? (

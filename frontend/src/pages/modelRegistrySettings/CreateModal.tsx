@@ -3,13 +3,10 @@ import {
   Button,
   Form,
   FormGroup,
-  FormSection,
   HelperText,
   HelperTextItem,
   Modal,
-  Text,
   TextInput,
-  Title,
 } from '@patternfly/react-core';
 import PasswordInput from '~/components/PasswordInput';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
@@ -18,9 +15,9 @@ import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const
 import { ModelRegistryModel } from '~/api';
 import { createModelRegistryBackend } from '~/services/modelRegistrySettingsService';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import './CreateModal.scss';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
+import FormSection from '~/components/pf-overrides/FormSection';
 
 type CreateModalProps = {
   isOpen: boolean;
@@ -160,14 +157,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
           }}
         />
         <FormSection
-          title={
-            <>
-              <Title headingLevel="h2">Database</Title>
-              <Text component="p" className="form-subtitle-text">
-                This is where model data is stored. You need to connect to an external database.
-              </Text>
-            </>
-          }
+          title="Database"
+          description="This is where model data is stored. You need to connect to an external database."
         >
           <FormGroup label="Host" isRequired fieldId="mr-host">
             <TextInput
