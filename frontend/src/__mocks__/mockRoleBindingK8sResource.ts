@@ -8,6 +8,7 @@ type MockResourceConfigType = {
   roleRefName?: string;
   uid?: string;
   modelRegistryName?: string;
+  isProjectSubject?: boolean;
 };
 
 export const mockRoleBindingK8sResource = ({
@@ -22,6 +23,7 @@ export const mockRoleBindingK8sResource = ({
   ],
   roleRefName = 'view',
   uid = genUID('rolebinding'),
+  isProjectSubject = false,
   modelRegistryName = '',
 }: MockResourceConfigType): RoleBindingKind => {
   let labels;
@@ -33,6 +35,7 @@ export const mockRoleBindingK8sResource = ({
       'app.kubernetes.io/part-of': 'model-registry',
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       component: 'model-registry',
+      ...(isProjectSubject && { [KnownLabels.PROJECT_SUBJECT]: 'true' }),
     };
   } else {
     labels = {

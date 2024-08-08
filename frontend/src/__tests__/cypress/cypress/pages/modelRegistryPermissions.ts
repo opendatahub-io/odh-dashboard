@@ -3,7 +3,35 @@ import { TableRow } from './components/table';
 
 class PermissionsTableRow extends TableRow {}
 
-class UsersTab {
+class UsersTab extends Contextual<HTMLElement> {
+  findAddUserButton() {
+    return this.find().findByTestId('add-button user');
+  }
+
+  findAddGroupButton() {
+    return this.find().findByTestId('add-button group');
+  }
+
+  getUserTable() {
+    return new PermissionTable(() => this.find().findByTestId('role-binding-table User'));
+  }
+
+  getGroupTable() {
+    return new PermissionTable(() => this.find().findByTestId('role-binding-table Group'));
+  }
+}
+
+class ProjectsTab extends Contextual<HTMLElement> {
+  findAddProjectButton() {
+    return this.find().findByTestId('add-button project');
+  }
+
+  getProjectTable() {
+    return new PermissionTable(() => this.find().findByTestId('role-binding-table Group'));
+  }
+}
+
+class MRPermissions {
   visit(mrName: string, wait = true) {
     cy.visitWithLogin(`/modelRegistrySettings/permissions/${mrName}`);
     if (wait) {
@@ -16,20 +44,16 @@ class UsersTab {
     cy.testA11y();
   }
 
-  findAddUserButton() {
-    return cy.findByTestId('add-button User');
+  findProjectTab() {
+    return cy.findByTestId('projects-tab');
   }
 
-  findAddGroupButton() {
-    return cy.findByTestId('add-button Group');
+  getUsersContent() {
+    return new UsersTab(() => cy.findByTestId('users-tab-content'));
   }
 
-  getUserTable() {
-    return new PermissionTable(() => cy.findByTestId('role-binding-table User'));
-  }
-
-  getGroupTable() {
-    return new PermissionTable(() => cy.findByTestId('role-binding-table Group'));
+  getProjectsContent() {
+    return new ProjectsTab(() => cy.findByTestId('projects-tab-content'));
   }
 }
 
@@ -46,7 +70,7 @@ class PermissionTable extends Contextual<HTMLElement> {
     return this.find().findByTestId(['role-binding-name-input', id]);
   }
 
-  findGroupSelect() {
+  findNameSelect() {
     return this.find().get(`[aria-label="Name selection"]`);
   }
 
@@ -69,4 +93,4 @@ class PermissionTable extends Contextual<HTMLElement> {
   }
 }
 
-export const usersTab = new UsersTab();
+export const modelRegistryPermissions = new MRPermissions();

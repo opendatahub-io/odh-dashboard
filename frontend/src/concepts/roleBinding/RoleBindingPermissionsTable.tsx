@@ -16,6 +16,7 @@ type RoleBindingPermissionsTableProps = {
   roleRefKind: RoleBindingRoleRef['kind'];
   roleRefName?: RoleBindingRoleRef['name'];
   labels?: { [key: string]: string };
+  isProjectSubject?: boolean;
   defaultRoleBindingName?: string;
   permissions: RoleBindingKind[];
   permissionOptions: {
@@ -40,12 +41,14 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   permissions,
   permissionOptions,
   typeAhead,
+  isProjectSubject,
   isAdding,
   onDismissNewRow,
   onError,
   refresh,
 }) => {
   const [editCell, setEditCell] = React.useState<string[]>([]);
+
   return (
     <Table
       variant="compact"
@@ -58,6 +61,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           <RoleBindingPermissionsTableRowAdd
             key="add-permission-row"
             subjectKind={subjectKind}
+            isProjectSubject={isProjectSubject}
             permissionOptions={permissionOptions}
             typeAhead={typeAhead}
             onChange={(subjectName, rbRoleRefName) => {
@@ -85,12 +89,15 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
       }
       rowRenderer={(rb) => (
         <RoleBindingPermissionsTableRow
+          isProjectSubject={isProjectSubject}
           defaultRoleBindingName={defaultRoleBindingName}
           key={rb.metadata.name || ''}
           permissionOptions={permissionOptions}
           roleBindingObject={rb}
           subjectKind={subjectKind}
-          isEditing={firstSubject(rb) === '' || editCell.includes(rb.metadata.name)}
+          isEditing={
+            firstSubject(rb, isProjectSubject) === '' || editCell.includes(rb.metadata.name)
+          }
           typeAhead={typeAhead}
           onChange={(subjectName, rbRoleRefName) => {
             const newRBObject = generateRoleBindingPermissions(
