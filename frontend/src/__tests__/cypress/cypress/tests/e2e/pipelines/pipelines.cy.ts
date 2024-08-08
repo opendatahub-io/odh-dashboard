@@ -4,10 +4,8 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
-import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import { filterProjectByName } from '~/__tests__/cypress/cypress/utils/projects';
 
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
@@ -71,7 +69,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     projectListPage.navigate();
 
     // Open the project
-    filterProjectByName(projectName);
+    projectListPage.filterProjectByName(projectName);
     projectListPage.findProjectLink(projectName).click();
 
     // Increasing the timeout to ~3mins so the DSPA can be loaded

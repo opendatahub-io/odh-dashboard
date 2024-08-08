@@ -95,6 +95,16 @@ class ProjectListPage {
   findCreateWorkbenchButton() {
     return cy.findByRole('button', { name: 'Create a workbench' });
   }
+
+  /**
+   * Filter Project by name using the Project filter from the Data Science Projects view
+   * @param projectName Project Name
+   */
+  filterProjectByName = (projectName: string) => {
+    const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+    projectListToolbar.findSearchInput().type(projectName);
+  };
 }
 
 class CreateEditProjectModal extends Modal {
