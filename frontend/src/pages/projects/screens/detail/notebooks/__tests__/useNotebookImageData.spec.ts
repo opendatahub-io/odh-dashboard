@@ -106,4 +106,38 @@ describe('getNotebookImageData', () => {
     const result = getNotebookImageData(notebook, images);
     expect(result?.imageAvailability).toBe(NotebookImageAvailability.DELETED);
   });
+
+  it('should fail when custom image shows unexpected Deleted flag', () => {
+    const imageName = 'jupyter-datascience-notebook';
+    const tagName = '2024.1';
+    const notebook = mockNotebookK8sResource({
+      lastImageSelection: `${imageName}:${tagName}`,
+      image: `quay.io/opendatahub/${imageName}:${tagName}`,
+    });
+    const images = [
+      mockImageStreamK8sResource({
+        tagName,
+        name: imageName,
+      }),
+    ];
+    const result = getNotebookImageData(notebook, images);
+    expect(result?.imageAvailability).toBe(NotebookImageAvailability.ENABLED);
+  });
+
+  it('should test an image defined via sha', () => {
+    const imageName = 'jupyter-datascience-notebook';
+    const imageSha = 'sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75';
+    const notebook = mockNotebookK8sResource({
+      lastImageSelection: `${imageName}:${imageSha}`,
+      image: `quay.io/opendatahub/${imageName}@${imageSha}`,
+    });
+    const images = [
+      mockImageStreamK8sResource({
+        imageTag: `quay.io/opendatahub/${imageName}@${imageSha}`,
+        name: imageName,
+      }),
+    ];
+    const result = getNotebookImageData(notebook, images);
+    expect(result?.imageAvailability).toBe(NotebookImageAvailability.ENABLED);
+  });
 });
