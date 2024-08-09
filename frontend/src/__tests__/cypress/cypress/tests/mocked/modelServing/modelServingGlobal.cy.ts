@@ -13,6 +13,7 @@ import {
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   inferenceServiceModal,
+  inferenceServiceModalEdit,
   modelServingGlobal,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
@@ -263,50 +264,50 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // test that you can not submit on empty
-    inferenceServiceModal.shouldBeOpen();
-    inferenceServiceModal.findModelNameInput().clear();
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModalEdit.shouldBeOpen();
+    inferenceServiceModalEdit.findModelNameInput().clear();
+    inferenceServiceModalEdit.findLocationPathInput().clear();
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
 
     // test with invalid path name
-    inferenceServiceModal.findLocationPathInput().type('/');
-    inferenceServiceModal
+    inferenceServiceModalEdit.findLocationPathInput().type('/');
+    inferenceServiceModalEdit
       .findLocationPathInputError()
       .should('be.visible')
       .contains('The path must not point to a root folder');
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findLocationPathInput().type('test//path');
-    inferenceServiceModal
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
+    inferenceServiceModalEdit.findLocationPathInput().clear();
+    inferenceServiceModalEdit.findLocationPathInput().type('test//path');
+    inferenceServiceModalEdit
       .findLocationPathInputError()
       .should('be.visible')
       .contains('Invalid path format');
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationPathInput().clear();
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
+    inferenceServiceModalEdit.findLocationPathInput().clear();
 
     // test that you can update the name to a different name
-    inferenceServiceModal.findModelNameInput().type('Updated Model Name');
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
+    inferenceServiceModalEdit.findModelNameInput().type('Updated Model Name');
+    inferenceServiceModalEdit.findLocationPathInput().type('test-model/');
+    inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
 
     // test that user cant upload on an empty new secret
-    inferenceServiceModal.findNewDataConnectionOption().click();
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationPathInput().type('/');
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
+    inferenceServiceModalEdit.findNewDataConnectionOption().click();
+    inferenceServiceModalEdit.findLocationPathInput().clear();
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
+    inferenceServiceModalEdit.findLocationPathInput().type('/');
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
 
     // test that adding required values validates submit
-    inferenceServiceModal.findLocationNameInput().type('Test Name');
-    inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
-    inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
-    inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
-    inferenceServiceModal.findLocationBucketInput().type('test-bucket');
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
+    inferenceServiceModalEdit.findLocationNameInput().type('Test Name');
+    inferenceServiceModalEdit.findLocationAccessKeyInput().type('test-key');
+    inferenceServiceModalEdit.findLocationSecretKeyInput().type('test-secret-key');
+    inferenceServiceModalEdit.findLocationEndpointInput().type('test-endpoint');
+    inferenceServiceModalEdit.findLocationBucketInput().type('test-bucket');
+    inferenceServiceModalEdit.findLocationPathInput().clear();
+    inferenceServiceModalEdit.findLocationPathInput().type('test-model/');
+    inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
 
-    inferenceServiceModal.findSubmitButton().click();
+    inferenceServiceModalEdit.findSubmitButton().click();
 
     cy.wait('@editModel').then((interception) => {
       const servingRuntimeMock = mockServingRuntimeK8sResource({ displayName: 'test-model' });
