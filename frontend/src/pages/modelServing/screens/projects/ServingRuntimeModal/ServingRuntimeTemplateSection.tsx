@@ -9,7 +9,7 @@ import {
   isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
 type ServingRuntimeTemplateSectionProps = {
@@ -60,7 +60,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
 
   return (
     <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
-      <SimpleDropdownSelect
+      <SimpleSelect
         isFullWidth
         isDisabled={isEditing || filteredTemplates.length === 0}
         id="serving-runtime-template-selection"

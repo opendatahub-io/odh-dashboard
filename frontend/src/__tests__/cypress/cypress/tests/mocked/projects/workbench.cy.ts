@@ -542,11 +542,15 @@ describe('Workbench page', () => {
         },
       ],
     });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+    );
     editSpawnerPage.visit('test-notebook');
     editSpawnerPage.findNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
     editSpawnerPage.shouldHaveContainerSizeInput('Small');
-    editSpawnerPage.shouldHavePersistentStorage('test-notebook');
+    editSpawnerPage.shouldHavePersistentStorage('Test Storage');
     editSpawnerPage.findSubmitButton().should('be.enabled');
     editSpawnerPage.findNameInput().fill('Updated Notebook');
 

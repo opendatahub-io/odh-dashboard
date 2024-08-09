@@ -52,7 +52,7 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   }
 
   selectStatusByName(name: string) {
-    this.findStatusSelect().findDropdownItem(name).click();
+    this.findStatusSelect().findSelectOption(name).click();
   }
 
   selectPipelineVersionByName(name: string): void {

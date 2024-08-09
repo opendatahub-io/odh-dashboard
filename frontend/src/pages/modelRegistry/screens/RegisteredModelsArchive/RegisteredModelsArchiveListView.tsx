@@ -10,7 +10,7 @@ import {
 import { FilterIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { asEnumMember } from '~/utilities/utils';
@@ -62,7 +62,7 @@ const RegisteredModelsArchiveListView: React.FC<RegisteredModelsArchiveListViewP
                 deleteChipGroup={() => setSearch('')}
                 categoryName="Keyword"
               >
-                <SimpleDropdownSelect
+                <SimpleSelect
                   options={searchTypes.map((key) => ({
                     key,
                     label: key,

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { ServingRuntimePlatform } from '~/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type CustomServingRuntimePlatformsSelectorProps = {
   isSinglePlatformEnabled: boolean;
@@ -43,7 +43,7 @@ const CustomServingRuntimePlatformsSelector: React.FC<
       fieldId="custom-serving-runtime-selection"
       isRequired
     >
-      <SimpleDropdownSelect
+      <SimpleSelect
         dataTestId="custom-serving-runtime-selection"
         aria-label="Select a model serving runtime platform"
         placeholder="Select a value"
