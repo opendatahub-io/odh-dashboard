@@ -92,12 +92,15 @@ const GroupSettings: React.FC = () => {
           >
             <MultiSelection
               ariaLabel={adminDesc}
+              toggleTestId="group-setting-select"
               value={groupSettings.adminGroups.map((g) => ({
                 id: g.id,
                 name: g.name,
                 selected: g.enabled,
               }))}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
+              selectionRequired
+              noSelectedOptionsMessage="One or more group must be selected"
             />
             {groupSettings.errorAdmin ? (
               <Alert
@@ -129,12 +132,15 @@ const GroupSettings: React.FC = () => {
           >
             <MultiSelection
               ariaLabel={userDesc}
+              toggleTestId="group-setting-select"
               value={groupSettings.allowedGroups.map((g) => ({
                 id: g.id,
                 name: g.name,
                 selected: g.enabled,
               }))}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
+              selectionRequired
+              noSelectedOptionsMessage="One or more group must be selected"
             />
             {groupSettings.errorUser ? (
               <Alert

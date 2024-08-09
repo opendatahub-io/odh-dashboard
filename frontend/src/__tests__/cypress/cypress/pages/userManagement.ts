@@ -39,7 +39,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   }
 
   findMultiGroupSelectButton() {
-    return this.find().findByRole('button', { name: 'Options menu' });
+    return this.find().findByTestId('group-setting-select');
   }
 
   selectMultiGroup(name: string) {
