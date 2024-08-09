@@ -26,16 +26,13 @@ import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
 import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
 import { isConfusionMatrix } from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
-import {
-  MAX_STORAGE_OBJECT_SIZE,
-  fetchStorageObject,
-  fetchStorageObjectSize,
-} from '~/services/storageService';
+import { MAX_STORAGE_OBJECT_SIZE } from '~/services/storageService';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { extractS3UriComponents } from '~/concepts/pipelines/content/artifacts/utils';
 import MarkdownView from '~/components/MarkdownView';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { bytesAsRoundedGiB } from '~/utilities/number';
+import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 import { getArtifactProperties } from './utils';
 
 interface ArtifactVisualizationProps {
@@ -48,11 +45,11 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
   const [loading, setLoading] = React.useState<boolean>(false);
   const { namespace } = usePipelinesAPI();
   const isS3EndpointAvailable = useIsAreaAvailable(SupportedArea.S3_ENDPOINT).status;
-
+  const artifactStorage = useArtifactStorage();
   const artifactType = artifact.getType();
 
   React.useEffect(() => {
-    if (!isS3EndpointAvailable) {
+    if (!artifactStorage.enabled) {
       return;
     }
 
@@ -61,11 +58,13 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
       if (uri) {
         const uriComponents = extractS3UriComponents(uri);
         if (uriComponents) {
-          const downloadArtifact = async (path: string) => {
-            await fetchStorageObjectSize(namespace, path)
+          const downloadArtifact = async (currentArtifact: Artifact) => {
+            await artifactStorage
+              .getStorageObjectSize(currentArtifact)
               .then((size) => setDownloadedArtifactSize(size))
               .catch(() => null);
-            await fetchStorageObject(namespace, path)
+            await artifactStorage
+              .getStorageObject(artifact)
               .then((text) => setDownloadedArtifact(text))
               .catch(() => null);
             setLoading(false);
@@ -73,11 +72,11 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
           setLoading(true);
           setDownloadedArtifact(null);
           setDownloadedArtifactSize(null);
-          downloadArtifact(uriComponents.path);
+          downloadArtifact(artifact);
         }
       }
     }
-  }, [artifact, artifactType, isS3EndpointAvailable, namespace]);
+  }, [artifact, artifactStorage, artifactType, isS3EndpointAvailable, namespace]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');
