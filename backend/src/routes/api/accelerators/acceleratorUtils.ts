@@ -47,18 +47,23 @@ export const getDetectedAccelerators = async (
               (info.allocated[key] = (info.allocated[key] ?? 0) + value - (allocatable[key] ?? 0)),
           );
 
+          if (node.metadata.name && node.status.nodeInfo) {
+            info.nodeInfo[node.metadata.name] = node.status.nodeInfo;
+          }
+
           // if any accelerators are available, the cluster is configured
           const configured =
             info.configured || Object.values(info.available).some((value) => value > 0);
 
           return {
+            configured,
             total: info.total,
             available: info.available,
             allocated: info.allocated,
-            configured,
+            nodeInfo: info.nodeInfo,
           };
         },
-        { configured: false, available: {}, total: {}, allocated: {} },
+        { configured: false, available: {}, total: {}, allocated: {}, nodeInfo: {} },
       ),
     )
     .catch((e) => {
@@ -67,5 +72,5 @@ export const getDetectedAccelerators = async (
           e.response?.body?.message || e.statusMessage
         }`,
       );
-      return { configured: false, available: {}, total: {}, allocated: {} };
+      return { configured: false, available: {}, total: {}, allocated: {}, nodeInfo: {} };
     });

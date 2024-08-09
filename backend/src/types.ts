@@ -1,4 +1,4 @@
-import k8s, { V1ConfigMap, V1Secret } from '@kubernetes/client-node';
+import k8s, { V1ConfigMap, V1NodeSystemInfo, V1Secret } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
@@ -768,6 +768,7 @@ export type DetectedAccelerators = {
   available: { [key: string]: number };
   total: { [key: string]: number };
   allocated: { [key: string]: number };
+  nodeInfo: Record<string, V1NodeSystemInfo>;
 };
 
 export type EnvironmentVariable = EitherNotBoth<
