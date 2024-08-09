@@ -1,5 +1,6 @@
+import { AlertVariant } from '@patternfly/react-core';
 import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
+import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
 export enum PerformanceMetricType {
@@ -78,6 +79,11 @@ export type InferenceServiceStorage = {
   path: string;
   dataConnection: string;
   awsData: EnvVariableDataEntry[];
+  alert?: {
+    type: AlertVariant;
+    title: string;
+    message: string;
+  };
 };
 
 export type InferenceServiceFormat = {
@@ -99,4 +105,9 @@ export type ServingPlatformStatuses = {
     enabled: boolean;
     installed: boolean;
   };
+};
+
+export type LabeledDataConnection = {
+  dataConnection: DataConnection;
+  isRecommended?: boolean;
 };

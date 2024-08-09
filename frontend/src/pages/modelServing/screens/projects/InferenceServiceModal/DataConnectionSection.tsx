@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Alert, FormGroup, Radio, Skeleton, Stack, StackItem } from '@patternfly/react-core';
-import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
+  LabeledDataConnection,
 } from '~/pages/modelServing/screens/types';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import DataConnectionExistingField from './DataConnectionExistingField';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
@@ -14,19 +14,18 @@ import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 type DataConnectionSectionType = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
-  dataConnectionContext?: DataConnection[];
+  loaded: boolean;
+  loadError: Error | undefined;
+  dataConnections: LabeledDataConnection[];
 };
 
 const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
   data,
   setData,
-  dataConnectionContext,
+  loaded,
+  loadError,
+  dataConnections,
 }) => {
-  const [dataContext, loaded, loadError] = useDataConnections(
-    dataConnectionContext ? undefined : data.project,
-  );
-  const dataConnections = dataConnectionContext || dataContext;
-
   if (loadError) {
     return (
       <Alert title="Error loading data connections" variant="danger">
@@ -53,7 +52,7 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
             }
             body={
               data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE &&
-              (!dataConnectionContext && !loaded && data.project !== '' ? (
+              (!loaded && data.project !== '' ? (
                 <Skeleton />
               ) : (
                 <DataConnectionExistingField
@@ -73,11 +72,26 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
             label="New data connection"
             isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
             onChange={() =>
-              setData('storage', { ...data.storage, type: InferenceServiceStorageType.NEW_STORAGE })
+              setData('storage', {
+                ...data.storage,
+                type: InferenceServiceStorageType.NEW_STORAGE,
+                alert: undefined,
+              })
             }
             body={
               data.storage.type === InferenceServiceStorageType.NEW_STORAGE && (
                 <Stack hasGutter>
+                  {data.storage.alert && (
+                    <StackItem>
+                      <Alert
+                        isInline
+                        variant={data.storage.alert.type}
+                        title={data.storage.alert.title}
+                      >
+                        {data.storage.alert.message}
+                      </Alert>
+                    </StackItem>
+                  )}
                   <StackItem>
                     <AWSField
                       values={data.storage.awsData}

@@ -164,3 +164,17 @@ export const getAPIProtocolFromServingRuntime = (
     ) ?? undefined
   );
 };
+
+export const getKServeTemplates = (
+  templates: TemplateKind[],
+  templateOrder: string[],
+  templateDisablement: string[],
+): TemplateKind[] => {
+  const templatesSorted = getSortedTemplates(templates, templateOrder);
+  const templatesEnabled = templatesSorted.filter((template) =>
+    getTemplateEnabled(template, templateDisablement),
+  );
+  return templatesEnabled.filter((template) =>
+    getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+  );
+};

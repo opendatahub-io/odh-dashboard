@@ -1,9 +1,21 @@
 import * as React from 'react';
-import { Button, FormGroup, Popover, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  FormGroup,
+  Label,
+  Popover,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  CreatingInferenceServiceObject,
+  LabeledDataConnection,
+} from '~/pages/modelServing/screens/types';
 import { filterOutConnectionsWithoutBucket } from '~/pages/modelServing/screens/projects/utils';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
@@ -11,7 +23,7 @@ import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 type DataConnectionExistingFieldType = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
-  dataConnections: DataConnection[];
+  dataConnections: LabeledDataConnection[];
 };
 
 const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = ({
@@ -64,10 +76,19 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
           >
             {connectionsWithoutBucket.map((connection) => (
               <SelectOption
-                key={connection.data.metadata.name}
-                value={connection.data.metadata.name}
+                key={connection.dataConnection.data.metadata.name}
+                value={connection.dataConnection.data.metadata.name}
               >
-                {getDataConnectionDisplayName(connection)}
+                <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+                  <FlexItem>{getDataConnectionDisplayName(connection.dataConnection)}</FlexItem>
+                  {connection.isRecommended && (
+                    <FlexItem>
+                      <Label color="blue" isCompact>
+                        Recommended
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
               </SelectOption>
             ))}
           </Select>

@@ -7,11 +7,7 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import {
-  DataConnection,
-  NamespaceApplicationCase,
-  UpdateObjectAtPropAndValue,
-} from '~/pages/projects/types';
+import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
@@ -20,6 +16,7 @@ import {
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
   ModelServingSize,
+  LabeledDataConnection,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
@@ -536,8 +533,10 @@ export const isUrlInternalService = (url: string | undefined): boolean =>
   url !== undefined && url.endsWith('.svc.cluster.local');
 
 export const filterOutConnectionsWithoutBucket = (
-  connections: DataConnection[],
-): DataConnection[] =>
+  connections: LabeledDataConnection[],
+): LabeledDataConnection[] =>
   connections.filter(
-    (obj) => isDataConnectionAWS(obj) && obj.data.data.AWS_S3_BUCKET.trim() !== '',
+    (obj) =>
+      isDataConnectionAWS(obj.dataConnection) &&
+      obj.dataConnection.data.data.AWS_S3_BUCKET.trim() !== '',
   );
