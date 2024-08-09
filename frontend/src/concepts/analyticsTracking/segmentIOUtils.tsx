@@ -86,6 +86,13 @@ export const firePageEvent = (): void => {
   }
 };
 
+// Stuff that gets send over as traits on an identify call. Must not include (anonymous) user Id.
+type IdentifyTraits = {
+  isAdmin: boolean;
+  canCreateProjects: boolean;
+  clusterID: string;
+};
+
 /*
  * This fires a call to associate further processing with the passed (anonymous) userId
  * in the properties.
@@ -94,8 +101,13 @@ export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => 
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
     /* eslint-disable-next-line no-console */
-    console.log(`Identify event triggered`);
+    console.log(`Identify event triggered: ${JSON.stringify(properties)}`);
   } else if (window.analytics) {
-    window.analytics.identify(properties.anonymousID, { clusterID });
+    const traits: IdentifyTraits = {
+      clusterID,
+      isAdmin: properties.isAdmin,
+      canCreateProjects: properties.canCreateProjects,
+    };
+    window.analytics.identify(properties.anonymousID, traits);
   }
 };

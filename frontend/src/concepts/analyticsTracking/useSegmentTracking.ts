@@ -2,6 +2,7 @@ import React from 'react';
 import { useAppContext } from '~/app/AppContext';
 import { useAppSelector } from '~/redux/hooks';
 import { fireIdentifyEvent, firePageEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackUser } from '~/concepts/analyticsTracking/useTrackUser';
 import { useWatchSegmentKey } from './useWatchSegmentKey';
 import { initSegment } from './initSegment';
 
@@ -10,28 +11,27 @@ export const useSegmentTracking = (): void => {
   const { dashboardConfig } = useAppContext();
   const username = useAppSelector((state) => state.user);
   const clusterID = useAppSelector((state) => state.clusterID);
+  const [userProps, uPropsLoaded] = useTrackUser(username);
 
   React.useEffect(() => {
-    if (segmentKey && loaded && !loadError && username && clusterID) {
-      const computeUserId = async () => {
-        const anonymousIDBuffer = await crypto.subtle.digest(
-          'SHA-1',
-          new TextEncoder().encode(username),
-        );
-        const anonymousIDArray = Array.from(new Uint8Array(anonymousIDBuffer));
-        return anonymousIDArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-      };
-
+    if (segmentKey && loaded && !loadError && username && clusterID && uPropsLoaded) {
       window.clusterID = clusterID;
       initSegment({
         segmentKey,
         enabled: !dashboardConfig.spec.dashboardConfig.disableTracking,
       }).then(() => {
-        computeUserId().then((userId) => {
-          fireIdentifyEvent({ anonymousID: userId });
-          firePageEvent();
-        });
+        fireIdentifyEvent(userProps);
+        firePageEvent();
       });
     }
-  }, [clusterID, loadError, loaded, segmentKey, username, dashboardConfig]);
+  }, [
+    clusterID,
+    loadError,
+    loaded,
+    segmentKey,
+    username,
+    dashboardConfig,
+    userProps,
+    uPropsLoaded,
+  ]);
 };
