@@ -46,6 +46,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableCustomServingRuntimes'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
+  [SupportedArea.CONNECTION_TYPES]: {
+    featureFlags: ['disableConnectionTypes'],
+  },
   [SupportedArea.DS_PIPELINES]: {
     featureFlags: ['disablePipelines'],
     requiredComponents: [StackComponent.DS_PIPELINES],
