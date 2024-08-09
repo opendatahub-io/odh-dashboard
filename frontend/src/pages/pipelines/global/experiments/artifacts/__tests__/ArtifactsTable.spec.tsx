@@ -3,7 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-
+import { act } from 'react-dom/test-utils';
 import { Artifact } from '~/third_party/mlmd';
 import * as useGetArtifactsList from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
 import * as MlmdListContext from '~/concepts/pipelines/context/MlmdListContext';
@@ -42,6 +42,12 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
       kind: 'Project',
     },
     apiAvailable: true,
+    api: {
+      getArtifact: jest.fn(() =>
+        // eslint-disable-next-line camelcase
+        Promise.resolve({ download_url: 'https://example.com/download-url' }),
+      ),
+    },
   })),
 }));
 
@@ -65,6 +71,27 @@ describe('ArtifactsTable', () => {
       {
         artifacts: [
           {
+            getId: jest.fn(() => 1),
+            getTypeId: jest.fn(() => 14),
+            getType: jest.fn(() => 'system.Artifact'),
+            getUri: jest.fn(() => 'https://test-artifact!-aiplatform.googleapis.com/v1/12.15'),
+            getPropertiesMap: jest.fn(() => []),
+            getCustomPropertiesMap: jest.fn(() => [
+              [
+                'display_name',
+                {
+                  stringValue: 'vertex_model',
+                },
+              ],
+              [
+                'resourceName',
+                {
+                  stringValue: '12.15',
+                },
+              ],
+            ]),
+            getState: jest.fn(() => 2),
+            getCreateTimeSinceEpoch: jest.fn(() => Date.now()),
             toObject: jest.fn(() => ({
               id: 1,
               typeId: 14,
@@ -90,6 +117,27 @@ describe('ArtifactsTable', () => {
             })),
           },
           {
+            getId: jest.fn(() => 2),
+            getTypeId: jest.fn(() => 15),
+            getType: jest.fn(() => 'system.Dataset'),
+            getUri: jest.fn(() => 'https://test2-artifact!-aiplatform.googleapis.com/v1/12.10'),
+            getPropertiesMap: jest.fn(() => []),
+            getCustomPropertiesMap: jest.fn(() => [
+              [
+                'display_name',
+                {
+                  stringValue: 'iris_dataset',
+                },
+              ],
+              [
+                'resourceName',
+                {
+                  stringValue: '12.10',
+                },
+              ],
+            ]),
+            getState: jest.fn(() => 2),
+            getCreateTimeSinceEpoch: jest.fn(() => 1611399342384),
             toObject: jest.fn(() => ({
               id: 2,
               typeId: 15,
@@ -122,18 +170,21 @@ describe('ArtifactsTable', () => {
     ]);
   });
 
-  it('renders artifacts table with data', () => {
-    render(
-      <BrowserRouter>
-        <EnsureAPIAvailability>
-          <EnsureCompatiblePipelineServer>
-            <MlmdListContext.MlmdListContextProvider>
-              <ArtifactsList />
-            </MlmdListContext.MlmdListContextProvider>
-          </EnsureCompatiblePipelineServer>
-        </EnsureAPIAvailability>
-      </BrowserRouter>,
-    );
+  it('renders artifacts table with data', async () => {
+    // Wrap in act to handle state updates
+    await act(async () => {
+      render(
+        <BrowserRouter>
+          <EnsureAPIAvailability>
+            <EnsureCompatiblePipelineServer>
+              <MlmdListContext.MlmdListContextProvider>
+                <ArtifactsList />
+              </MlmdListContext.MlmdListContextProvider>
+            </EnsureCompatiblePipelineServer>
+          </EnsureAPIAvailability>
+        </BrowserRouter>,
+      );
+    });
 
     const firstRow = screen.getByRole('row', { name: /vertex_model/ });
     expect(firstRow).toHaveTextContent('vertex_model');

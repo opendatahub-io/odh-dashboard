@@ -323,6 +323,10 @@ class PipelineRunDetails extends RunDetails {
     return cy.findByTestId('Output-artifacts');
   }
 
+  findArtifactItems(itemId: string) {
+    return cy.findByTestId(`${itemId}-item`);
+  }
+
   findErrorState(id: string) {
     return cy.findByTestId(id);
   }

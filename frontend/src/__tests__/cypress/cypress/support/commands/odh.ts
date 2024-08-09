@@ -50,6 +50,7 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
+import type { ArtifactStorage } from '~/concepts/pipelines/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -511,6 +512,11 @@ declare global {
           response: OdhResponse<ListPipelineRecurringRunsResourceKF>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId`,
+          options: { path: { namespace: string; serviceName: string; artifactId: string } },
+          response: OdhResponse<ArtifactStorage>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifacts`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
           response: OdhResponse<GrpcResponse>,
@@ -580,7 +586,7 @@ declare global {
             query: { key: string };
             path: { namespace: string };
           },
-          response: OdhResponse<number>,
+          response: OdhResponse<string>,
         ) => Cypress.Chainable<null>);
     }
   }

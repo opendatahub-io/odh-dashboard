@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import {
   artifactDetails,
   artifactsGlobal,
@@ -8,9 +9,23 @@ import {
   mockGetArtifactsResponse,
   mockedArtifactsResponse,
 } from '~/__mocks__/mlmd/mockGetArtifacts';
+import {
+  buildMockPipelineV2,
+  mockDashboardConfig,
+  mockMetricsVisualizationRun,
+  mockMetricsVisualizationVersion,
+} from '~/__mocks__';
+import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
+import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
+import { initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
+
+const mockPipeline = buildMockPipelineV2({
+  pipeline_id: 'metrics-pipeline',
+  display_name: 'metrics-pipeline',
+});
 
 describe('Artifacts', () => {
   beforeEach(() => {
@@ -152,7 +167,122 @@ describe('Artifacts', () => {
         .should('have.text', 'scalar metrics');
     });
   });
+
+  describe('artifact in pipeline run details page', () => {
+    it('only url text when both artifactsAPI and s3Endpoint are disabled', () => {
+      initPipelineTopologyIntercepts({ disableArtifactsAPI: true, disableS3Endpoint: true });
+      pipelineRunDetails.visit(
+        projectName,
+        mockPipeline.pipeline_id,
+        mockMetricsVisualizationVersion.pipeline_version_id,
+        mockMetricsVisualizationRun.run_id,
+      );
+
+      pipelineRunDetails.findTaskNode('markdown-visualization').click();
+
+      pipelineRunDetails
+        .findArtifactItems('markdown_artifact')
+        .should(
+          'contain.text',
+          's3://aballant-pipelines/metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
+        );
+    });
+
+    it('url is clickable when artifact api is enabled', () => {
+      initPipelineTopologyIntercepts({ disableArtifactsAPI: false, disableS3Endpoint: false });
+      pipelineRunDetails.visit(
+        projectName,
+        mockPipeline.pipeline_id,
+        mockMetricsVisualizationVersion.pipeline_version_id,
+        mockMetricsVisualizationRun.run_id,
+      );
+
+      // Stub the window.open method to capture the URL
+      cy.window().then((win) => {
+        cy.stub(win, 'open').as('windowOpen');
+      });
+      pipelineRunDetails.findTaskNode('markdown-visualization').click();
+
+      pipelineRunDetails
+        .findArtifactItems('markdown_artifact')
+        .should(
+          'contain.text',
+          's3://aballant-pipelines/metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
+        )
+        .click()
+        .then(() => {
+          cy.get('@windowOpen').should('be.called');
+          cy.get('@windowOpen')
+            .its('args.0.0') // To check args[0][0]
+            .then((arg0) => {
+              expect(arg0).to.equal(
+                'http://test-bucket.s3.dualstack.ap-south.amazonaws.com/metrics-visualization-pipeline',
+              );
+            });
+        });
+    });
+  });
 });
+
+type InitPipelineTopologyInterceptsType = {
+  disableArtifactsAPI?: boolean;
+  disableS3Endpoint?: boolean;
+};
+
+const initPipelineTopologyIntercepts = ({
+  disableArtifactsAPI = false,
+  disableS3Endpoint = false,
+}: InitPipelineTopologyInterceptsType) => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableArtifactsAPI,
+      disableS3Endpoint,
+    }),
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: mockPipeline.pipeline_id,
+      },
+    },
+    mockPipeline,
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        pipelineId: mockPipeline.pipeline_id,
+        pipelineVersionId: 'metrics-pipeline-version',
+      },
+    },
+    mockMetricsVisualizationVersion,
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+    {
+      path: { namespace: projectName, serviceName: 'dspa', runId: 'test-metrics-pipeline-run' },
+    },
+    mockMetricsVisualizationRun,
+  );
+  initMlmdIntercepts(projectName);
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        artifactId: '16',
+      },
+    },
+    mockArtifactStorage({ namespace: projectName, artifactId: '16' }),
+  );
+};
 
 export const initIntercepts = (): void => {
   configIntercept();

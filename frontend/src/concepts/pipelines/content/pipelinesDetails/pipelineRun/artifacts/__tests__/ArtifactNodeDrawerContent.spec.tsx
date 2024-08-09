@@ -6,7 +6,7 @@ import { Drawer } from '@patternfly/react-core';
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-
+import { act } from 'react-dom/test-utils';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { Artifact, Value } from '~/third_party/mlmd';
 import { ArtifactNodeDrawerContent } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/ArtifactNodeDrawerContent';
@@ -43,18 +43,46 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
+jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+  usePipelinesAPI: jest.fn(() => ({
+    pipelinesServer: {
+      initializing: false,
+      installed: true,
+      compatible: true,
+      timedOut: false,
+      name: 'dspa',
+    },
+    namespace: 'Test namespace',
+    project: {
+      metadata: {
+        name: 'Test namespace',
+      },
+      kind: 'Project',
+    },
+    apiAvailable: true,
+    api: {
+      getArtifact: jest.fn(() =>
+        // eslint-disable-next-line camelcase
+        Promise.resolve({ download_url: 'https://example.com/download-url' }),
+      ),
+    },
+  })),
+}));
+
 describe('ArtifactNodeDrawerContent', () => {
-  it('renders artifact drawer content', () => {
-    render(
-      <BrowserRouter>
-        <Drawer isExpanded>
-          <ArtifactNodeDrawerContent
-            task={task}
-            upstreamTaskName="some-upstream-task"
-            onClose={jest.fn()}
-          />
-        </Drawer>
-      </BrowserRouter>,
+  it('renders artifact drawer content', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <Drawer isExpanded>
+            <ArtifactNodeDrawerContent
+              task={task}
+              upstreamTaskName="some-upstream-task"
+              onClose={jest.fn()}
+            />
+          </Drawer>
+        </BrowserRouter>,
+      ),
     );
 
     expect(screen.getByRole('tab', { name: 'Artifact details' })).toHaveAttribute(
@@ -74,17 +102,18 @@ describe('ArtifactNodeDrawerContent', () => {
 
   it('renders "Scalar metrics" visualization drawer content', async () => {
     const user = userEvent.setup();
-
-    render(
-      <BrowserRouter>
-        <Drawer isExpanded>
-          <ArtifactNodeDrawerContent
-            task={task}
-            upstreamTaskName="some-upstream-task"
-            onClose={jest.fn()}
-          />
-        </Drawer>
-      </BrowserRouter>,
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <Drawer isExpanded>
+            <ArtifactNodeDrawerContent
+              task={task}
+              upstreamTaskName="some-upstream-task"
+              onClose={jest.fn()}
+            />
+          </Drawer>
+        </BrowserRouter>,
+      ),
     );
 
     await user.click(screen.getByRole('tab', { name: 'Visualization' }));
@@ -106,22 +135,24 @@ describe('ArtifactNodeDrawerContent', () => {
     const confidenceMetricsValue = new Value();
     confidenceMetricsValue.setStructValue(confidenceMetricsStruct);
 
-    render(
-      <BrowserRouter>
-        <Drawer isExpanded>
-          <ArtifactNodeDrawerContent
-            task={{
-              ...task,
-              metadata: createArtifact('system.ClassificationMetrics', {
-                key: 'confidenceMetrics',
-                value: confidenceMetricsValue,
-              }),
-            }}
-            upstreamTaskName="some-upstream-task"
-            onClose={jest.fn()}
-          />
-        </Drawer>
-      </BrowserRouter>,
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <Drawer isExpanded>
+            <ArtifactNodeDrawerContent
+              task={{
+                ...task,
+                metadata: createArtifact('system.ClassificationMetrics', {
+                  key: 'confidenceMetrics',
+                  value: confidenceMetricsValue,
+                }),
+              }}
+              upstreamTaskName="some-upstream-task"
+              onClose={jest.fn()}
+            />
+          </Drawer>
+        </BrowserRouter>,
+      ),
     );
 
     await user.click(screen.getByRole('tab', { name: 'Visualization' }));
