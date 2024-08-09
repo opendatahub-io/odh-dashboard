@@ -46,3 +46,14 @@ export const defaultValueToString = <T extends ConnectionTypeDataField>(
   }
   return defaultValue == null ? defaultValue : `${defaultValue}`;
 };
+
+export const fieldTypeToString = <T extends ConnectionTypeDataField>(field: T): string => {
+  if (field.type === ConnectionTypeFieldType.URI) {
+    return field.type.toUpperCase();
+  }
+
+  const withSpaces = field.type.replace(/-/g, ' ');
+  const withCapitalized = withSpaces[0].toUpperCase() + withSpaces.slice(1);
+
+  return withCapitalized;
+};

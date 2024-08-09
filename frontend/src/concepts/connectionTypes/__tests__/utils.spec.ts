@@ -1,7 +1,8 @@
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
-import { DropdownField, HiddenField, TextField } from '~/concepts/connectionTypes/types';
+import { DropdownField, HiddenField, TextField, UriField } from '~/concepts/connectionTypes/types';
 import {
   defaultValueToString,
+  fieldTypeToString,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
 } from '~/concepts/connectionTypes/utils';
@@ -199,5 +200,28 @@ describe('defaultValueToString', () => {
         },
       } satisfies DropdownField),
     ).toBe('Two, Three');
+  });
+});
+
+describe('fieldTypeToString', () => {
+  it('should return default value as string', () => {
+    expect(
+      fieldTypeToString({
+        type: 'text',
+        name: 'test',
+        envVar: 'test',
+        properties: {},
+      } satisfies TextField),
+    ).toBe('Text');
+    expect(
+      fieldTypeToString({
+        type: 'uri',
+        name: 'test',
+        envVar: 'test',
+        properties: {
+          defaultValue: '',
+        },
+      } satisfies UriField),
+    ).toBe('URI');
   });
 });

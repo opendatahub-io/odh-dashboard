@@ -14,6 +14,7 @@ import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
+import ConnectionTypeRoutes from '~/pages/connectionTypes/ConnectionTypeRoutes';
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -125,6 +126,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
             <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
+            <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
           </>
         )}
 

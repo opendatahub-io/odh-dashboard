@@ -50,6 +50,7 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
+import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -581,6 +582,24 @@ declare global {
             path: { namespace: string };
           },
           response: OdhResponse<number>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/connection-types',
+          response: ConnectionTypeConfigMap[],
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/connection-types/:name',
+          options: {
+            path: { name: string };
+          },
+          response: { success: boolean; error: string },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/connection-types/:name',
+          options: {
+            path: { name: string };
+          },
+          response: ConnectionTypeConfigMap,
         ) => Cypress.Chainable<null>);
     }
   }
