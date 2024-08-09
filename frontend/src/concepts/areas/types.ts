@@ -40,6 +40,7 @@ export enum SupportedArea {
   CLUSTER_SETTINGS = 'cluster-settings',
   USER_MANAGEMENT = 'user-management',
   ACCELERATOR_PROFILES = 'accelerator-profiles',
+  CONNECTION_TYPES = 'connections-types',
 
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',
@@ -61,8 +62,6 @@ export enum SupportedArea {
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
-
-  DATA_CONNECTIONS_TYPES = 'data-connections-types',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

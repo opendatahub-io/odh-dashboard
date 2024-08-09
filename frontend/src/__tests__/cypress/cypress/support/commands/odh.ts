@@ -9,6 +9,7 @@ import type {
   RegisteredModel,
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
+import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
 import type {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
@@ -581,6 +582,17 @@ declare global {
             path: { namespace: string };
           },
           response: OdhResponse<number>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/connection-types',
+          response: ConnectionTypeConfigMap[],
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/connection-types/:name',
+          options: {
+            path: { name: string };
+          },
+          response: { success: boolean; error: string },
         ) => Cypress.Chainable<null>);
     }
   }

@@ -141,6 +141,15 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useConnectionTypesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.CONNECTION_TYPES, [
+    {
+      id: 'settings-connection-types',
+      label: 'Connection types',
+      href: '/connectionTypes',
+    },
+  ]);
+
 const useModelRegisterySettingsNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
     {
@@ -174,6 +183,7 @@ const useSettingsNav = (): NavDataGroup[] => {
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
+    ...useConnectionTypesNav(),
     ...useModelRegisterySettingsNav(),
     ...useUserManagementNav(),
   ];
