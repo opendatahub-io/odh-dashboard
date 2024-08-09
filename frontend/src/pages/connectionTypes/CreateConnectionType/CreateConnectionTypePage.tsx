@@ -6,6 +6,8 @@ import {
   FormGroup,
   FormSection,
   PageSection,
+  Text,
+  TextVariants,
 } from '@patternfly/react-core';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { ConnectionTypeField } from '~/concepts/connectionTypes/types';
@@ -101,6 +103,10 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
               </FormGroup>
             </FormSection>
             <FormSection title="Fields">
+              <Text component={TextVariants.p}>
+                Add fields to prompt users to input information, and optionally assign default
+                values to those fields.
+              </Text>
               <FormGroup>
                 <CreateConnectionTypeFieldsTable fields={connectionFields} />
               </FormGroup>
