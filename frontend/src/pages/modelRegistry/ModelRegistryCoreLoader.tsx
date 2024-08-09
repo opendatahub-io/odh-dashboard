@@ -11,6 +11,7 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
+import { modelRegistryUrl } from './screens/routeUtils';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
@@ -99,7 +100,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
         loaded
         headerContent={
           <ModelRegistrySelectorNavigator
-            getRedirectPath={(modelRegistryName) => `/modelRegistry/${modelRegistryName}`}
+            getRedirectPath={(modelRegistryName) => modelRegistryUrl(modelRegistryName)}
           />
         }
         provideChildrenPadding

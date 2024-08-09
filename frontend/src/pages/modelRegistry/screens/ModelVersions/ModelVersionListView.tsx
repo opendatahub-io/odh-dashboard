@@ -21,7 +21,10 @@ import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  modelVersionArchiveUrl,
+  registerVersionForModelUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
 import ModelVersionsTable from './ModelVersionsTable';
 
@@ -58,7 +61,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         primaryActionText="Register new version"
         secondaryActionText="View archived versions"
         primaryActionOnClick={() => {
-          // TODO: Add primary action
+          navigate(registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name));
         }}
         secondaryActionOnClick={() => {
           navigate(modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name));
@@ -113,7 +116,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             </ToolbarGroup>
           </ToolbarToggleGroup>
           <ToolbarItem>
-            <Button variant="secondary">Register new version</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                navigate(registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name));
+              }}
+            >
+              Register new version
+            </Button>
           </ToolbarItem>
           <ToolbarItem>
             <Dropdown
