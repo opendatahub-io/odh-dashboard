@@ -40,9 +40,9 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
   ];
 
   return (
-    <Table data-testid="connection-type-fields-table">
+    <>
       {fields.length > 0 ? (
-        <>
+        <Table data-testid="connection-type-fields-table">
           <Thead>
             <Tr>
               {columns.map((column, columnIndex) => (
@@ -55,10 +55,10 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
               <CreateConnectionTypeFieldsTableRow key={index} row={row} />
             ))}
           </Tbody>
-        </>
+        </Table>
       ) : (
         <EmptyFieldsTable />
       )}
-    </Table>
+    </>
   );
 };
