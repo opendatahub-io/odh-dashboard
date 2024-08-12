@@ -64,6 +64,19 @@ export const SelfSubjectAccessReviewModel: K8sModelCommon = {
   plural: 'selfsubjectaccessreviews',
 };
 
+export const SelfSubjectRulesReviewModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'authorization.k8s.io',
+  kind: 'SelfSubjectRulesReview',
+  plural: 'selfsubjectrulesreviews',
+};
+
+export const ServiceModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  kind: 'Service',
+  plural: 'services',
+};
+
 export const ServiceAccountModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'ServiceAccount',

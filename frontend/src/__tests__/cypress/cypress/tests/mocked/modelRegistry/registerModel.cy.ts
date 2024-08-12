@@ -1,12 +1,11 @@
 import { mockDashboardConfig, mockDscStatus, mockK8sResourceList } from '~/__mocks__';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 import { StackCapability, StackComponent } from '~/concepts/areas/types';
-import { ModelRegistryModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import {
   FormFieldSelector,
   registerModelPage,
 } from '~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
-import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
@@ -17,6 +16,7 @@ import {
   type ModelVersion,
   type ModelArtifact,
 } from '~/concepts/modelRegistry/types';
+import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -43,12 +43,13 @@ const initIntercepts = () => {
     }),
   );
 
-  // TODO replace these with a mock list of services when https://github.com/opendatahub-io/odh-dashboard/pull/3034 is merged
   cy.interceptK8sList(
-    ModelRegistryModel,
-    mockK8sResourceList([mockModelRegistry({ name: 'modelregistry-sample' })]),
+    ServiceModel,
+    mockK8sResourceList([
+      mockModelRegistryService({ name: 'modelregistry-sample' }),
+      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+    ]),
   );
-  cy.interceptK8s(ModelRegistryModel, mockModelRegistry({ name: 'modelregistry-sample' }));
 
   cy.interceptOdh(
     'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',

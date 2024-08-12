@@ -1,9 +1,8 @@
 /* eslint-disable camelcase */
 import { mockK8sResourceList } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { ModelRegistryModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import type { ModelVersion } from '~/concepts/modelRegistry/types';
@@ -16,6 +15,7 @@ import {
   restoreVersionModal,
 } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionArchive';
 import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
+import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -55,11 +55,12 @@ const initIntercepts = ({
   );
 
   cy.interceptK8sList(
-    ModelRegistryModel,
-    mockK8sResourceList([mockModelRegistry({}), mockModelRegistry({ name: 'test-registry' })]),
+    ServiceModel,
+    mockK8sResourceList([
+      mockModelRegistryService({ name: 'modelregistry-sample' }),
+      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+    ]),
   );
-
-  cy.interceptK8s(ModelRegistryModel, mockModelRegistry({}));
 
   cy.interceptOdh(
     'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',

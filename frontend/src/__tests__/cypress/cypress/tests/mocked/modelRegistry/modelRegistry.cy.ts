@@ -1,16 +1,23 @@
 /* eslint-disable camelcase */
-import { mockK8sResourceList, mockRouteK8sResourceModelRegistry } from '~/__mocks__';
+import { mockK8sResourceList } from '~/__mocks__';
 import { mockComponents } from '~/__mocks__/mockComponents';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { ModelRegistryModel, RouteModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  SelfSubjectAccessReviewModel,
+  SelfSubjectRulesReviewModel,
+  ServiceModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
+import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockSelfSubjectRulesReview } from '~/__mocks__/mockSelfSubjectRulesReview';
+import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -18,6 +25,7 @@ type HandlersProps = {
   disableModelRegistryFeature?: boolean;
   registeredModels?: RegisteredModel[];
   modelVersions?: ModelVersion[];
+  allowed?: boolean;
 };
 
 const initIntercepts = ({
@@ -56,6 +64,7 @@ const initIntercepts = ({
     mockModelVersion({ author: 'Author 1' }),
     mockModelVersion({ name: 'model version' }),
   ],
+  allowed = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/config',
@@ -65,18 +74,28 @@ const initIntercepts = ({
   );
   cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
+  cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview());
+
   cy.interceptK8sList(
-    ModelRegistryModel,
-    mockK8sResourceList([mockModelRegistry({}), mockModelRegistry({ name: 'test-registry' })]),
+    ServiceModel,
+    mockK8sResourceList([
+      mockModelRegistryService({ name: 'modelregistry-sample' }),
+      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+    ]),
   );
 
-  cy.interceptK8s(ModelRegistryModel, mockModelRegistry({}));
+  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'modelregistry-sample' }));
+
+  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'dallas-mr' }));
 
   cy.interceptK8s(
-    RouteModel,
-    mockRouteK8sResourceModelRegistry({
-      name: 'modelregistry-sample-http',
-      namespace: 'odh-model-registries',
+    'POST',
+    SelfSubjectAccessReviewModel,
+    mockSelfSubjectAccessReview({
+      verb: 'list',
+      resource: 'services',
+      group: 'user.openshift.io',
+      allowed,
     }),
   );
 
@@ -210,5 +229,17 @@ describe('Register Model button', () => {
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
     cy.findByText('Model registry - modelregistry-sample').should('exist');
+  });
+
+  it('should be accessible for non-admin users', () => {
+    asProjectEditUser();
+    initIntercepts({
+      disableModelRegistryFeature: false,
+      allowed: false,
+    });
+
+    modelRegistry.visit();
+    modelRegistry.navigate();
+    modelRegistry.shouldModelRegistrySelectorExist();
   });
 });

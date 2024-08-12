@@ -1,8 +1,8 @@
 import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, ModelRegistryKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, ModelRegistryKind, ServiceKind } from '~/k8sTypes';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { ModelRegistryModel } from '~/api/models/modelRegistry';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
+import { ServiceModel } from '~/api/models';
 
 export const getModelRegistryCR = async (
   namespace: string,
@@ -22,10 +22,11 @@ export const getModelRegistryCR = async (
     ),
   );
 
-export const listModelRegistries = async (): Promise<ModelRegistryKind[]> =>
-  k8sListResource<ModelRegistryKind>({
-    model: ModelRegistryModel,
+export const listServices = async (namespace: string): Promise<ServiceKind[]> =>
+  k8sListResource<ServiceKind>({
+    model: ServiceModel,
     queryOptions: {
-      ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+      ns: namespace,
+      queryParams: { labelSelector: KnownLabels.LABEL_SELECTOR_MODEL_REGISTRY },
     },
   }).then((listResource) => listResource.items);

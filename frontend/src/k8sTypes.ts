@@ -1029,6 +1029,51 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   };
 };
 
+export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
+  spec: {
+    namespace: string;
+  };
+  status?: {
+    incomplete: boolean;
+    nonResourceRules: {
+      verbs: string[];
+      nonResourceURLs?: string[];
+    }[];
+    resourceRules: {
+      verbs: string[];
+      apiGroups?: string[];
+      resourceNames?: string[];
+      resources?: string[];
+    }[];
+    evaluationError?: string;
+  };
+};
+
+export type ServiceKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+    labels?: Partial<{
+      'opendatahub.io/user': string;
+      component: string;
+    }>;
+  };
+  spec: {
+    selector: {
+      app: string;
+      component: string;
+    };
+    ports: {
+      name?: string;
+      protocol?: string;
+      appProtocol?: string;
+      port?: number;
+      targetPort?: number | string;
+    }[];
+  };
+};
+
 /** @deprecated - Tekton is no longer used */
 export type PipelineRunTaskSpecDigest = {
   name: string;
