@@ -14,12 +14,11 @@ import {
   pipelineDetails,
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
-import {
+import type {
   DataConnectionReplacements,
   DspaSecretReplacements,
   DspaReplacements,
-} from '../../../types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
+} from '~/__tests__/cypress/cypress/types';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';

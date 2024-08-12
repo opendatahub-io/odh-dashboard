@@ -1,5 +1,5 @@
 import type { RouteMatcher } from 'cypress/types/net-stubbing';
-import type { AwsKeys } from '../../../../src/pages/projects/dataConnections/const';
+import type { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 export type Snapshot = {
   method: string;

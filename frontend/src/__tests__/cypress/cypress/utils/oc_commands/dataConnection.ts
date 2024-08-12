@@ -1,6 +1,6 @@
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+import type { DataConnectionReplacements } from '~/__tests__/cypress/cypress/types';
 import { applyOpenShiftYaml } from './baseCommands';
-import { DataConnectionReplacements } from '../../types';
 
 /**
  * Try to create a data connection based on the dataConnectionReplacements config

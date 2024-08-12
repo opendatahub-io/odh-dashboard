@@ -1,6 +1,6 @@
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+import type { DspaSecretReplacements, DspaReplacements } from '~/__tests__/cypress/cypress/types';
 import { applyOpenShiftYaml } from './baseCommands';
-import { DspaSecretReplacements, DspaReplacements } from '../../types';
 
 /**
  * Try to create a DSPA Secret based on the dspaSecretReplacements config
