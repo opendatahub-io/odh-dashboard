@@ -5,7 +5,7 @@ import { NameDescType } from '~/pages/projects/types';
 import { createConnectionType } from '~/services/connectionTypesService';
 import { ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { createConnectionTypeObj } from './CreateConnectionTypeUtils';
+import { createConnectionTypeObj } from '../../../concepts/connectionTypes/createConnectionTypeUtils';
 
 type CreateConnectionTypeFooterProps = {
   nameDesc: NameDescType;

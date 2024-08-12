@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useConnectionType } from '~/concepts/connectionTypes/useConnectionType';
 import { CreateConnectionTypePage } from './CreateConnectionTypePage';
-import { extractConnectionTypeFromMap } from './CreateConnectionTypeUtils';
+import { extractConnectionTypeFromMap } from '../../../concepts/connectionTypes/createConnectionTypeUtils';
 
 export const DuplicateConnectionTypePage: React.FC = () => {
   const { name } = useParams();

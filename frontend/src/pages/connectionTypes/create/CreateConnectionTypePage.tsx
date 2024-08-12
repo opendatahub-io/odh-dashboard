@@ -19,7 +19,7 @@ import { NameDescType } from '~/pages/projects/types';
 import { CreateConnectionTypeFooter } from './CreateConnectionTypeFooter';
 import { CreateConnectionTypeFieldsTable } from './CreateConnectionTypeFieldsTable';
 import { CreateConnectionTypeBreadcrumbs } from './CreateConnectionTypeBreadcrumbs';
-import { createConnectionTypeObj } from './CreateConnectionTypeUtils';
+import { createConnectionTypeObj } from '../../../concepts/connectionTypes/createConnectionTypeUtils';
 
 type CreateConnectionTypePageProps = {
   prefillNameDesc?: NameDescType;

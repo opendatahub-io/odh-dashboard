@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
-import { CreateConnectionTypePage } from './CreateConnectionType/CreateConnectionTypePage';
-import { DuplicateConnectionTypePage } from './CreateConnectionType/DuplicateConnectionTypePage';
-import { EditConnectionTypePage } from './CreateConnectionType/EditConnectionTypePage';
+import { CreateConnectionTypePage } from './create/CreateConnectionTypePage';
+import { DuplicateConnectionTypePage } from './create/DuplicateConnectionTypePage';
+import { EditConnectionTypePage } from './create/EditConnectionTypePage';
 
 const ConnectionTypeRoutes: React.FC = () => (
   <Routes>
