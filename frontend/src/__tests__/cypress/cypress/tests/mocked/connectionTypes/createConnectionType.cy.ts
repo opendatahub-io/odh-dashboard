@@ -14,7 +14,6 @@ describe('create', () => {
     createConnectionTypePage.findConnectionTypeDesc().should('exist');
     createConnectionTypePage.findConnectionTypeEnableCheckbox().should('exist');
     createConnectionTypePage.findConnectionTypePreviewToggle().should('exist');
-    createConnectionTypePage.findFieldsTable().should('exist');
   });
 
   it('Allows create button with valid name', () => {

@@ -54,12 +54,20 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
     [connectionNameDesc, connectionEnabled, connectionFields],
   );
 
+  const [isCreateLoading, setIsCreateLoading] = React.useState(false);
+  const [createError, setCreateError] = React.useState<string>();
   const isValid = React.useMemo(() => Boolean(connectionNameDesc.name), [connectionNameDesc.name]);
 
   const onSave = async () => {
     if (isValid) {
-      // TODO: add error alert and loading
-      createConnectionType(previewConnectionTypeObj);
+      setIsCreateLoading(true);
+      const response = await createConnectionType(previewConnectionTypeObj);
+      if (response.error) {
+        setCreateError(response.error);
+      } else {
+        navigate('/connectionTypes');
+      }
+      setIsCreateLoading(false);
     }
   };
 
@@ -129,7 +137,8 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
           <CreateConnectionTypeFooter
             onSave={onSave}
             onCancel={onCancel}
-            createDisable={!isValid}
+            createDisable={!isValid || isCreateLoading}
+            errorMessage={createError}
           />
         </PageSection>
       </ApplicationsPage>
