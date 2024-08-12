@@ -45,6 +45,8 @@ import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -57,6 +59,9 @@ type ManageKServeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
   servingRuntimeTemplates?: TemplateKind[];
+  registeredModelDeployInfo?: RegisteredModelDeployInfo;
+  shouldFormHidden?: boolean;
+  projectSection?: React.ReactNode;
 } & EitherOrNone<
   {
     projectContext?: {
@@ -79,6 +84,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   servingRuntimeTemplates,
   projectContext,
   editInfo,
+  projectSection,
+  registeredModelDeployInfo,
+  shouldFormHidden,
 }) => {
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -87,6 +95,13 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
       editInfo?.secrets,
+    );
+  const [dataConnections, dataConnectionsLoaded, dataConnectionsLoadError] =
+    usePrefillDeployModalFromModelRegistry(
+      projectContext,
+      createDataInferenceService,
+      setCreateDataInferenceService,
+      registeredModelDeployInfo,
     );
 
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
@@ -115,6 +130,18 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       setCreateDataInferenceService('project', currentProjectName);
     }
   }, [currentProjectName, setCreateDataInferenceService, isOpen]);
+
+  // Refresh model format selection when changing serving runtime template selection
+  // Don't affect the edit modal
+  React.useEffect(() => {
+    if (!editInfo?.servingRuntimeEditInfo?.servingRuntime) {
+      setCreateDataInferenceService('format', { name: '' });
+    }
+  }, [
+    createDataServingRuntime.servingRuntimeTemplateName,
+    editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    setCreateDataInferenceService,
+  ]);
 
   // Serving Runtime Validation
   const isDisabledServingRuntime = namespace === '' || actionInProgress;
@@ -270,78 +297,87 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             </StackItem>
           )}
           <StackItem>
-            <ProjectSection
-              projectName={
-                (projectContext?.currentProject &&
-                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
-                editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
-                ''
-              }
-            />
-          </StackItem>
-          <StackItem>
-            <StackItem>
-              <InferenceServiceNameSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                isNameValid={isInferenceServiceNameWithinLimit}
+            {projectSection || (
+              <ProjectSection
+                projectName={
+                  (projectContext?.currentProject &&
+                    getDisplayNameFromK8sResource(projectContext.currentProject)) ||
+                  editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
+                  ''
+                }
               />
-            </StackItem>
+            )}
           </StackItem>
-          <StackItem>
-            <ServingRuntimeTemplateSection
-              data={createDataServingRuntime}
-              setData={setCreateDataServingRuntime}
-              templates={servingRuntimeTemplates || []}
-              isEditing={!!editInfo}
-              acceleratorProfileState={acceleratorProfileState}
-            />
-          </StackItem>
-          <StackItem>
-            <InferenceServiceFrameworkSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
-            />
-          </StackItem>
-          <StackItem>
-            <KServeAutoscalerReplicaSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+          {!shouldFormHidden && (
+            <>
+              <StackItem>
+                <StackItem>
+                  <InferenceServiceNameSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    isNameValid={isInferenceServiceNameWithinLimit}
+                  />
+                </StackItem>
+              </StackItem>
+              <StackItem>
+                <ServingRuntimeTemplateSection
+                  data={createDataServingRuntime}
+                  setData={setCreateDataServingRuntime}
+                  templates={servingRuntimeTemplates || []}
+                  isEditing={!!editInfo}
+                  acceleratorProfileState={acceleratorProfileState}
+                />
+              </StackItem>
+              <StackItem>
+                <InferenceServiceFrameworkSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
+                  registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+                />
+              </StackItem>
+              <StackItem>
+                <KServeAutoscalerReplicaSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  infoContent="Consider network traffic and failover scenarios when specifying the number of model
                 server replicas."
-            />
-          </StackItem>
-          <StackItem>
-            <ServingRuntimeSizeSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              sizes={sizes}
-              servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorProfileState={acceleratorProfileState}
-              setAcceleratorProfileState={setAcceleratorProfileState}
-              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
-            />
-          </StackItem>
-          {isAuthorinoEnabled && (
-            <StackItem>
-              <AuthServingRuntimeSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                allowCreate={allowCreate}
-                publicRoute
-              />
-            </StackItem>
+                />
+              </StackItem>
+              <StackItem>
+                <ServingRuntimeSizeSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  sizes={sizes}
+                  servingRuntimeSelected={servingRuntimeSelected}
+                  acceleratorProfileState={acceleratorProfileState}
+                  setAcceleratorProfileState={setAcceleratorProfileState}
+                  infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+                />
+              </StackItem>
+              {isAuthorinoEnabled && (
+                <StackItem>
+                  <AuthServingRuntimeSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    allowCreate={allowCreate}
+                    publicRoute
+                  />
+                </StackItem>
+              )}
+              <StackItem>
+                <FormSection title="Model location" id="model-location">
+                  <DataConnectionSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
+                    loadError={dataConnectionsLoadError}
+                    dataConnections={dataConnections}
+                  />
+                </FormSection>
+              </StackItem>
+            </>
           )}
-          <StackItem>
-            <FormSection title="Model location" id="model-location">
-              <DataConnectionSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                dataConnectionContext={projectContext?.dataConnections}
-              />
-            </FormSection>
-          </StackItem>
         </Stack>
       </Form>
     </Modal>

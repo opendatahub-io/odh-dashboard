@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Alert, FormGroup, Skeleton } from '@patternfly/react-core';
+import {
+  Alert,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Skeleton,
+} from '@patternfly/react-core';
 import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
@@ -10,12 +17,14 @@ type InferenceServiceFrameworkSectionProps = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   modelContext?: SupportedModelFormats[];
+  registeredModelFormat?: string;
 };
 
 const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectionProps> = ({
   data,
   setData,
   modelContext,
+  registeredModelFormat,
 }) => {
   const [isOpen, setOpen] = React.useState(false);
 
@@ -74,6 +83,13 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
           return <SelectOption key={name} value={name} />;
         })}
       </Select>
+      {registeredModelFormat && models.length !== 0 && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>The source model format is {registeredModelFormat}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
     </FormGroup>
   );
 };
