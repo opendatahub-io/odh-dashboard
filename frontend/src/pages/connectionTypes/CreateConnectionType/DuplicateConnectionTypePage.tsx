@@ -7,8 +7,7 @@ import { extractConnectionTypeFromMap } from './CreateConnectionTypeUtils';
 
 export const DuplicateConnectionTypePage: React.FC = () => {
   const { name } = useParams();
-
-  const [loaded, error, existingConnectionType] = useConnectionType(name);
+  const [existingConnectionType, isLoaded, error] = useConnectionType(name);
   const [nameDesc, enabled, fields] = React.useMemo(
     () => extractConnectionTypeFromMap(existingConnectionType),
     [existingConnectionType],
@@ -27,5 +26,5 @@ export const DuplicateConnectionTypePage: React.FC = () => {
       />
     );
   }
-  return <ApplicationsPage loaded={loaded} loadError={error} empty />;
+  return <ApplicationsPage loaded={isLoaded} loadError={error} empty />;
 };

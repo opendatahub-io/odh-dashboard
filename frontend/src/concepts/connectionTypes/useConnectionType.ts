@@ -1,27 +1,22 @@
 import * as React from 'react';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { fetchConnectionType } from '~/services/connectionTypesService';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
 
 export const useConnectionType = (
   name?: string,
-): [boolean, Error | undefined, ConnectionTypeConfigMapObj | undefined] => {
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error>();
-  const [connectionType, setConnectionType] = React.useState<ConnectionTypeConfigMapObj>();
-
-  React.useEffect(() => {
-    if (name) {
-      fetchConnectionType(name)
-        .then((res) => {
-          setLoaded(true);
-          setConnectionType(res);
-        })
-        .catch((err) => {
-          setLoaded(true);
-          setError(err);
-        });
+): FetchState<ConnectionTypeConfigMapObj | undefined> => {
+  const fetchData = React.useCallback<FetchStateCallbackPromise<ConnectionTypeConfigMapObj>>(() => {
+    if (!name) {
+      return Promise.reject(new NotReadyError('No connection type name'));
     }
+
+    return fetchConnectionType(name);
   }, [name]);
 
-  return [loaded, error, connectionType];
+  return useFetchState(fetchData, undefined);
 };
