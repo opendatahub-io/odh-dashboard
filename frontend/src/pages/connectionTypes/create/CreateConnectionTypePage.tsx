@@ -6,47 +6,38 @@ import {
   FormGroup,
   FormSection,
   PageSection,
-  Text,
-  TextVariants,
 } from '@patternfly/react-core';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
-import { ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
+import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
+import {
+  createConnectionTypeObj,
+  extractConnectionTypeFromMap,
+} from '~/concepts/connectionTypes/createConnectionTypeUtils';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NameDescType } from '~/pages/projects/types';
 import { CreateConnectionTypeFooter } from './CreateConnectionTypeFooter';
 import { CreateConnectionTypeFieldsTable } from './CreateConnectionTypeFieldsTable';
 import { CreateConnectionTypeBreadcrumbs } from './CreateConnectionTypeBreadcrumbs';
-import { createConnectionTypeObj } from '../../../concepts/connectionTypes/createConnectionTypeUtils';
 
 type CreateConnectionTypePageProps = {
-  prefillNameDesc?: NameDescType;
-  prefillEnabled?: boolean;
-  prefillFields?: ConnectionTypeField[];
+  prefill?: ConnectionTypeConfigMapObj;
 };
 
-export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({
-  prefillNameDesc = {
-    name: '',
-    k8sName: undefined,
-    description: '',
-  },
-  prefillEnabled = false,
-  prefillFields = [],
-}) => {
+export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ prefill }) => {
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
+
+  const [prefillNameDesc, prefillEnabled, prefillFields] = extractConnectionTypeFromMap(prefill);
 
   const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>(prefillNameDesc);
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
   const [connectionFields] = React.useState<ConnectionTypeField[]>(prefillFields);
 
-  return (
-    <ConnectionTypePreviewDrawer
-      isExpanded={isDrawerExpanded}
-      onClose={() => setIsDrawerExpanded(false)}
-      obj={createConnectionTypeObj(
+  const previewConnectionTypeObj = React.useMemo(
+    () =>
+      createConnectionTypeObj(
         {
           k8sName: translateDisplayNameForK8s(connectionNameDesc.name),
           displayName: connectionNameDesc.name,
@@ -55,7 +46,15 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
           username: '',
         },
         connectionFields,
-      )}
+      ),
+    [connectionNameDesc, connectionEnabled, connectionFields],
+  );
+
+  return (
+    <ConnectionTypePreviewDrawer
+      isExpanded={isDrawerExpanded}
+      onClose={() => setIsDrawerExpanded(false)}
+      obj={previewConnectionTypeObj}
     >
       <ApplicationsPage
         title="Create connection type"
@@ -91,7 +90,7 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
               />
               <FormGroup label="Enable">
                 <Checkbox
-                  label="Connection is enabled and therefore available to use by users in your org"
+                  label="Enable users in your organization to use this connection type when adding connections."
                   id="connection-type-enable"
                   name="connection-type-enable"
                   data-testid="connection-type-enable"
@@ -101,10 +100,8 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
               </FormGroup>
             </FormSection>
             <FormSection title="Fields" className="pf-v5-u-mt-0">
-              <Text component={TextVariants.p}>
-                Add fields to prompt users to input information, and optionally assign default
-                values to those fields.
-              </Text>
+              Add fields to prompt users to input information, and optionally assign default values
+              to those fields.
               <FormGroup>
                 <CreateConnectionTypeFieldsTable fields={connectionFields} />
               </FormGroup>

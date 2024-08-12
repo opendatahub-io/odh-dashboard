@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { Label, Switch, Text, TextContent, TextVariants } from '@patternfly/react-core';
+import { Label, Switch, Text, TextContent, TextVariants, Truncate } from '@patternfly/react-core';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 
@@ -15,13 +15,11 @@ export const CreateConnectionTypeFieldsTableRow: React.FC<
     return (
       <Tr id={row.name} isStriped data-testid="row">
         <Td data-testid="field-name" colSpan={5}>
+          {row.name}{' '}
+          <Label color="blue" data-testid="section-heading">
+            Section heading
+          </Label>
           <TextContent>
-            <Text component={TextVariants.p}>
-              {row.name}{' '}
-              <Label color="blue" data-testid="section-heading">
-                Section heading
-              </Label>
-            </Text>
             <Text component={TextVariants.small}>{row.description}</Text>
           </TextContent>
         </Td>
@@ -31,9 +29,11 @@ export const CreateConnectionTypeFieldsTableRow: React.FC<
   return (
     <Tr id={row.name} data-testid="row">
       <Td data-testid="field-name">
+        {row.name}
         <TextContent>
-          <Text component={TextVariants.p}>{row.name}</Text>
-          <Text component={TextVariants.small}>{row.description}</Text>
+          <Text component={TextVariants.small}>
+            <Truncate content={row.description ?? ''} />
+          </Text>
         </TextContent>
       </Td>
       <Td data-testid="field-type">{fieldTypeToString(row)}</Td>
