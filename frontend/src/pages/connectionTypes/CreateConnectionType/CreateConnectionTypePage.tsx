@@ -28,23 +28,19 @@ type CreateConnectionTypePageProps = {
 };
 
 export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({
-  prefillNameDesc,
-  prefillEnabled,
-  prefillFields,
+  prefillNameDesc = {
+    name: '',
+    k8sName: undefined,
+    description: '',
+  },
+  prefillEnabled = false,
+  prefillFields = [],
 }) => {
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
-  const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>(
-    prefillNameDesc || {
-      name: '',
-      k8sName: undefined,
-      description: '',
-    },
-  );
-  const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(
-    prefillEnabled || false,
-  );
-  const [connectionFields] = React.useState<ConnectionTypeField[]>(prefillFields || []);
+  const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>(prefillNameDesc);
+  const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
+  const [connectionFields] = React.useState<ConnectionTypeField[]>(prefillFields);
 
   return (
     <ConnectionTypePreviewDrawer
@@ -68,18 +64,20 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
         errorMessage="Unable load to connection types"
         breadcrumb={<CreateConnectionTypeBreadcrumbs />}
         headerAction={
-          <Button
-            variant="secondary"
-            icon={<OpenDrawerRightIcon />}
-            aria-expanded={isDrawerExpanded}
-            onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
-            data-testid="preview-drawer-toggle-button"
-          >
-            Preview
-          </Button>
+          isDrawerExpanded ? undefined : (
+            <Button
+              variant="secondary"
+              icon={<OpenDrawerRightIcon />}
+              aria-expanded={isDrawerExpanded}
+              onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+              data-testid="preview-drawer-toggle-button"
+            >
+              Preview
+            </Button>
+          )
         }
       >
-        <PageSection isFilled variant="light">
+        <PageSection isFilled variant="light" className="pf-v5-u-pt-0">
           <Form>
             <FormSection title="Type details" style={{ maxWidth: 625 }}>
               <NameDescriptionField
@@ -102,7 +100,7 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
                 />
               </FormGroup>
             </FormSection>
-            <FormSection title="Fields">
+            <FormSection title="Fields" className="pf-v5-u-mt-0">
               <Text component={TextVariants.p}>
                 Add fields to prompt users to input information, and optionally assign default
                 values to those fields.
