@@ -15,11 +15,11 @@ class PermissionsTab {
   }
 
   findAddUserButton() {
-    return cy.findByTestId('add-button User');
+    return cy.findByTestId('add-button user');
   }
 
   findAddGroupButton() {
-    return cy.findByTestId('add-button Group');
+    return cy.findByTestId('add-button group');
   }
 
   getUserTable() {

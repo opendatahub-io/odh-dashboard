@@ -23,6 +23,7 @@ export enum KnownLabels {
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
+  PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
 }
 
 export type K8sVerb =
@@ -1025,6 +1026,51 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
     denied?: boolean;
     reason?: string;
     evaluationError?: string;
+  };
+};
+
+export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
+  spec: {
+    namespace: string;
+  };
+  status?: {
+    incomplete: boolean;
+    nonResourceRules: {
+      verbs: string[];
+      nonResourceURLs?: string[];
+    }[];
+    resourceRules: {
+      verbs: string[];
+      apiGroups?: string[];
+      resourceNames?: string[];
+      resources?: string[];
+    }[];
+    evaluationError?: string;
+  };
+};
+
+export type ServiceKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+    labels?: Partial<{
+      'opendatahub.io/user': string;
+      component: string;
+    }>;
+  };
+  spec: {
+    selector: {
+      app: string;
+      component: string;
+    };
+    ports: {
+      name?: string;
+      protocol?: string;
+      appProtocol?: string;
+      port?: number;
+      targetPort?: number | string;
+    }[];
   };
 };
 

@@ -2,6 +2,8 @@ import React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import { RoleBindingSubject } from '~/k8sTypes';
+import { namespaceToProjectDisplayName } from '~/concepts/projects/utils';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { RoleBindingPermissionsRBType } from './types';
 
 type RoleBindingPermissionsNameInputProps = {
@@ -11,6 +13,7 @@ type RoleBindingPermissionsNameInputProps = {
   onClear: () => void;
   placeholderText: string;
   typeAhead?: string[];
+  isProjectSubject?: boolean;
 };
 
 const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputProps> = ({
@@ -20,7 +23,9 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
   onClear,
   placeholderText,
   typeAhead,
+  isProjectSubject,
 }) => {
+  const { projects } = React.useContext(ProjectsContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
   if (!typeAhead) {
@@ -32,7 +37,11 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
         type="text"
         value={value}
         placeholder={`Type ${
-          subjectKind === RoleBindingPermissionsRBType.GROUP ? 'group name' : 'username'
+          isProjectSubject
+            ? 'project name'
+            : subjectKind === RoleBindingPermissionsRBType.GROUP
+            ? 'group name'
+            : 'username'
         }`}
         onChange={(e, newValue) => onChange(newValue)}
       />
@@ -60,7 +69,10 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
       placeholderText={placeholderText}
     >
       {typeAhead.map((option, index) => (
-        <SelectOption key={index} value={option} />
+        <SelectOption
+          key={index}
+          value={isProjectSubject ? namespaceToProjectDisplayName(option, projects) : option}
+        />
       ))}
     </Select>
   );

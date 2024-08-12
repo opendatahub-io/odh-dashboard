@@ -20,6 +20,7 @@ import { SupportedArea } from '~/concepts/areas';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
 import { useModelRegistryNamespaceCR } from '~/concepts/modelRegistry/context/useModelRegistryNamespaceCR';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
+import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
 const ModelRegistriesManagePermissions: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState('users');
@@ -51,7 +52,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
   return (
     <ApplicationsPage
       title={`Manage permissions of ${mrName}`}
-      description="Manage users and projects that can access this model registry."
+      description="Manage access to this model registry for individual users and user groups, and for service accounts in a project."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>Settings</BreadcrumbItem>
@@ -76,11 +77,17 @@ const ModelRegistriesManagePermissions: React.FC = () => {
           eventKey="projects"
           title="Projects"
           id="projects-tab"
+          data-testid="projects-tab"
           tabContentId="projects-tab-content"
         />
       </Tabs>
       <div>
-        <TabContent id="users-tab-content" eventKey="users" hidden={activeTabKey !== 'users'}>
+        <TabContent
+          id="users-tab-content"
+          eventKey="users"
+          hidden={activeTabKey !== 'users'}
+          data-testid="users-tab-content"
+        >
           <TabContentBody>
             <RoleBindingPermissions
               ownerReference={ownerReference}
@@ -118,9 +125,34 @@ const ModelRegistriesManagePermissions: React.FC = () => {
         <TabContent
           id="projects-tab-content"
           eventKey="projects"
+          data-testid="projects-tab-content"
           hidden={activeTabKey !== 'projects'}
         >
-          TODO: This feature is not yet implemented
+          <TabContentBody>
+            <ProjectsSettingsTab
+              ownerReference={ownerReference}
+              permissionOptions={[
+                {
+                  type: RoleBindingPermissionsRoleType.DEFAULT,
+                  description: 'Default role for all projects',
+                },
+              ]}
+              description="To enable access for all service accounts in a project, add the project name to the projects list."
+              roleRefName={`registry-user-${mrName}`}
+              labels={{
+                [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+                [KnownLabels.PROJECT_SUBJECT]: 'true',
+                app: mrName || '',
+                'app.kubernetes.io/component': SupportedArea.MODEL_REGISTRY,
+                'app.kubernetes.io/part-of': SupportedArea.MODEL_REGISTRY,
+                'app.kubernetes.io/name': mrName || '',
+                component: SupportedArea.MODEL_REGISTRY,
+              }}
+              projectName={MODEL_REGISTRY_DEFAULT_NAMESPACE}
+              isProjectSubject={activeTabKey === 'projects'}
+              roleBindingPermissionsRB={{ ...roleBindings, data: filteredRoleBindings }}
+            />
+          </TabContentBody>
         </TabContent>
       </div>
     </ApplicationsPage>

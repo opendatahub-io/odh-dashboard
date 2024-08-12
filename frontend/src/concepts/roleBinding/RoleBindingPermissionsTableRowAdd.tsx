@@ -3,6 +3,8 @@ import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Split, SplitItem, Text } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
 import { RoleBindingSubject } from '~/k8sTypes';
+import { projectDisplayNameToNamespace } from '~/concepts/projects/utils';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
 import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
@@ -11,6 +13,7 @@ import { roleLabel } from './utils';
 type RoleBindingPermissionsTableRowPropsAdd = {
   typeAhead?: string[];
   subjectKind: RoleBindingSubject['kind'];
+  isProjectSubject?: boolean;
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
     description: string;
@@ -24,9 +27,11 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
   typeAhead,
   subjectKind,
   permissionOptions,
+  isProjectSubject,
   onChange,
   onCancel,
 }) => {
+  const { projects } = React.useContext(ProjectsContext);
   const [roleBindingName, setRoleBindingName] = React.useState('');
   const [roleBindingRoleRef, setRoleBindingRoleRef] =
     React.useState<RoleBindingPermissionsRoleType>(permissionOptions[0]?.type);
@@ -43,8 +48,9 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
               setRoleBindingName(selection);
             }}
             onClear={() => setRoleBindingName('')}
-            placeholderText={roleBindingName}
+            placeholderText={isProjectSubject ? 'Select or enter a project' : 'Select a group'}
             typeAhead={typeAhead}
+            isProjectSubject={isProjectSubject}
           />
         </Td>
         <Td dataLabel="Permission">
@@ -73,7 +79,15 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
                 isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
                 onClick={() => {
                   setIsLoading(true);
-                  onChange(roleBindingName, roleBindingRoleRef);
+                  onChange(
+                    isProjectSubject
+                      ? `system:serviceaccounts:${projectDisplayNameToNamespace(
+                          roleBindingName,
+                          projects,
+                        )}`
+                      : roleBindingName,
+                    roleBindingRoleRef,
+                  );
                 }}
               />
             </SplitItem>

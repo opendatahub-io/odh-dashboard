@@ -1,18 +1,14 @@
 /* eslint-disable camelcase */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockRouteK8sResourceModelRegistry,
-} from '~/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
 import { mockComponents } from '~/__mocks__/mockComponents';
-import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
-import { ModelRegistryModel, RouteModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -25,16 +21,12 @@ const initIntercepts = () => {
   );
   cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
-  cy.interceptK8sList(ModelRegistryModel, mockK8sResourceList([mockModelRegistry({})]));
-
-  cy.interceptK8s(ModelRegistryModel, mockModelRegistry({}));
-
-  cy.interceptK8s(
-    RouteModel,
-    mockRouteK8sResourceModelRegistry({
-      name: 'modelregistry-sample-http',
-      namespace: 'odh-model-registries',
-    }),
+  cy.interceptK8sList(
+    ServiceModel,
+    mockK8sResourceList([
+      mockModelRegistryService({ name: 'modelregistry-sample' }),
+      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+    ]),
   );
 
   cy.interceptOdh(
