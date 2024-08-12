@@ -98,11 +98,11 @@ class RunDetails extends PipelinesTopology {
     return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
 
-  private findStatusLabel(timeout: number = 10) {
+  private findStatusLabel(timeout = 10) {
     return cy.get('[data-testid="status-icon"]', { timeout });
   }
 
-  expectStatusLabelToBe(statusValue: string, timeout: number = 180000) {
+  expectStatusLabelToBe(statusValue: string, timeout = 180000) {
     this.findStatusLabel(timeout).should('have.text', statusValue);
   }
 
@@ -147,7 +147,7 @@ class PipelineDetails extends PipelinesTopology {
     return new DashboardCodeEditor(() => cy.findByTestId('pipeline-dashboard-code-editor'));
   }
 
-  findPageTitle(timeout: number = 10000) {
+  findPageTitle(timeout = 10000) {
     return cy.findByTestId('app-page-title', { timeout });
   }
 

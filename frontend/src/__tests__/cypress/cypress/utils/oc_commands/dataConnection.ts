@@ -1,5 +1,6 @@
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
 import { applyOpenShiftYaml } from './baseCommands';
+import { DataConnectionReplacements } from '../../types';
 
 /**
  * Try to create a data connection based on the dataConnectionReplacements config
@@ -16,7 +17,7 @@ import { applyOpenShiftYaml } from './baseCommands';
  * @param yamlFilePath
  */
 export const createDataConnection = (
-  dataConnectionReplacements: { [key: string]: string },
+  dataConnectionReplacements: DataConnectionReplacements,
   yamlFilePath = 'resources/yaml/data_connection.yaml',
 ) => {
   cy.fixture(yamlFilePath).then((yamlContent) => {

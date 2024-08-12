@@ -14,6 +14,12 @@ import {
   pipelineDetails,
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
+import {
+  DataConnectionReplacements,
+  DspaSecretReplacements,
+  DspaReplacements,
+} from '../../../types';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
@@ -26,7 +32,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     createOpenShiftProject(projectName);
 
     // Create a pipeline compatible Data Connection
-    const dataConnectionReplacements = {
+    const dataConnectionReplacements: DataConnectionReplacements = {
       NAMESPACE: projectName,
       AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
       AWS_DEFAULT_REGION: Buffer.from(AWS_BUCKETS.BUCKET_2.REGION).toString('base64'),
@@ -37,7 +43,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     createDataConnection(dataConnectionReplacements);
 
     // Configure Pipeline server: Create DSPA Secret
-    const dspaSecretReplacements = {
+    const dspaSecretReplacements: DspaSecretReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
       AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
@@ -46,7 +52,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     createDSPASecret(dspaSecretReplacements);
 
     // Configure Pipeline server: Create DSPA
-    const dspaReplacements = {
+    const dspaReplacements: DspaReplacements = {
       DSPA_SECRET_NAME: dspaSecretName,
       NAMESPACE: projectName,
       AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
