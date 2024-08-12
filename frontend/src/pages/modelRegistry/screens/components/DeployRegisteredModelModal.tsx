@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Form, Modal } from '@patternfly/react-core';
+import { Alert, Button, Form, Modal, Spinner } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
@@ -41,7 +41,11 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const error = platformError || projectError;
 
-  const registeredModelDeployInfo = useRegisteredModelDeployInfo(modelVersion);
+  const {
+    registeredModelDeployInfo,
+    loaded,
+    error: deployInfoError,
+  } = useRegisteredModelDeployInfo(modelVersion);
 
   const onClose = React.useCallback(() => {
     setSelectedProject(null);
@@ -67,11 +71,19 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         showClose
       >
         <Form>
-          <ProjectSelector
-            selectedProject={selectedProject}
-            setSelectedProject={setSelectedProject}
-            error={error}
-          />
+          {deployInfoError ? (
+            <Alert variant="danger" isInline title={deployInfoError.name}>
+              {deployInfoError.message}
+            </Alert>
+          ) : !loaded ? (
+            <Spinner />
+          ) : (
+            <ProjectSelector
+              selectedProject={selectedProject}
+              setSelectedProject={setSelectedProject}
+              error={error}
+            />
+          )}
         </Form>
       </Modal>
     );

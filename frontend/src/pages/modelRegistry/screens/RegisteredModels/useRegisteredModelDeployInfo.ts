@@ -10,26 +10,54 @@ export type RegisteredModelDeployInfo = {
   modelArtifactStorageKey?: string;
 };
 
-const useRegisteredModelDeployInfo = (modelVersion: ModelVersion): RegisteredModelDeployInfo => {
-  const [registeredModel] = useRegisteredModelById(modelVersion.registeredModelId);
-  const [modelArtifactList] = useModelArtifactsByVersionId(modelVersion.id);
+const useRegisteredModelDeployInfo = (
+  modelVersion: ModelVersion,
+): {
+  registeredModelDeployInfo: RegisteredModelDeployInfo;
+  loaded: boolean;
+  error: Error | undefined;
+} => {
+  const [registeredModel, registeredModelLoaded, registeredModelError] = useRegisteredModelById(
+    modelVersion.registeredModelId,
+  );
+  const [modelArtifactList, modelArtifactListLoaded, modelArtifactListError] =
+    useModelArtifactsByVersionId(modelVersion.id);
 
   const registeredModelDeployInfo = React.useMemo(() => {
+    const dateString = new Date().toISOString();
+    const modelName = `${registeredModel?.name} - ${modelVersion.name} - ${dateString}`;
     if (modelArtifactList.size === 0) {
       return {
-        modelName: `${registeredModel?.name} - ${modelVersion.name}`,
+        registeredModelDeployInfo: {
+          modelName,
+        },
+        loaded: registeredModelLoaded && modelArtifactListLoaded,
+        error: registeredModelError || modelArtifactListError,
       };
     }
     const modelArtifact = modelArtifactList.items[0];
     return {
-      modelName: `${registeredModel?.name} - ${modelVersion.name} - ${new Date().toISOString()}`,
-      modelFormat: modelArtifact.modelFormatName
-        ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion}`
-        : undefined,
-      modelArtifactUri: modelArtifact.uri,
-      modelArtifactStorageKey: modelArtifact.storageKey,
+      registeredModelDeployInfo: {
+        modelName,
+        modelFormat: modelArtifact.modelFormatName
+          ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion}`
+          : undefined,
+        modelArtifactUri: modelArtifact.uri,
+        modelArtifactStorageKey: modelArtifact.storageKey,
+      },
+      loaded: registeredModelLoaded && modelArtifactListLoaded,
+      error: registeredModelError || modelArtifactListError,
     };
-  }, [modelArtifactList.items, modelArtifactList.size, modelVersion.name, registeredModel?.name]);
+  }, [
+    modelArtifactList.items,
+    modelArtifactList.size,
+    modelArtifactListError,
+    modelArtifactListLoaded,
+    modelVersion.name,
+    registeredModel?.name,
+    registeredModelError,
+    registeredModelLoaded,
+  ]);
 
   return registeredModelDeployInfo;
 };
