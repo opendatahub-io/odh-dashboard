@@ -9,7 +9,20 @@ export const DuplicateConnectionTypePage: React.FC = () => {
   const [existingConnectionType, isLoaded, error] = useConnectionType(name);
 
   if (existingConnectionType) {
-    return <CreateConnectionTypePage prefill={existingConnectionType} />;
+    const duplicate = {
+      ...existingConnectionType,
+      metadata: {
+        ...existingConnectionType.metadata,
+        name: '',
+        annotations: {
+          ...existingConnectionType.metadata.annotations,
+          'openshift.io/display-name': `Duplicate of ${existingConnectionType.metadata.annotations['openshift.io/display-name']}`,
+          'opendatahub.io/username': '',
+        },
+      },
+    };
+
+    return <CreateConnectionTypePage prefill={duplicate} />;
   }
   return <ApplicationsPage loaded={isLoaded} loadError={error} empty />;
 };

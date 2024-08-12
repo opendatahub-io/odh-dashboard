@@ -45,7 +45,7 @@ class CreateConnectionTypePage {
     return cy.findByTestId('connection-type-description');
   }
 
-  findConnectionTypeEnable() {
+  findConnectionTypeEnableCheckbox() {
     return cy.findByTestId('connection-type-enable');
   }
 

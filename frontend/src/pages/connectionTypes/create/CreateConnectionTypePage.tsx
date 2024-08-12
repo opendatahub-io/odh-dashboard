@@ -7,7 +7,9 @@ import {
   FormSection,
   PageSection,
 } from '@patternfly/react-core';
+import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
+import { createConnectionType } from '~/services/connectionTypesService';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
@@ -27,6 +29,8 @@ type CreateConnectionTypePageProps = {
 };
 
 export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ prefill }) => {
+  const navigate = useNavigate();
+
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
   const [prefillNameDesc, prefillEnabled, prefillFields] = extractConnectionTypeFromMap(prefill);
@@ -49,6 +53,19 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
       ),
     [connectionNameDesc, connectionEnabled, connectionFields],
   );
+
+  const isValid = React.useMemo(() => Boolean(connectionNameDesc.name), [connectionNameDesc.name]);
+
+  const onSave = async () => {
+    if (isValid) {
+      // TODO: add error alert and loading
+      createConnectionType(previewConnectionTypeObj);
+    }
+  };
+
+  const onCancel = () => {
+    navigate('/connectionTypes');
+  };
 
   return (
     <ConnectionTypePreviewDrawer
@@ -110,9 +127,9 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
         </PageSection>
         <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
           <CreateConnectionTypeFooter
-            nameDesc={connectionNameDesc}
-            enabled={connectionEnabled}
-            fields={connectionFields}
+            onSave={onSave}
+            onCancel={onCancel}
+            createDisable={!isValid}
           />
         </PageSection>
       </ApplicationsPage>

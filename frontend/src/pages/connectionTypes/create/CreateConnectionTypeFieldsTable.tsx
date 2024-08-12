@@ -39,6 +39,7 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
     'Required',
   ];
 
+  // TODO: drag and drop rows
   return (
     <>
       {fields.length > 0 ? (
@@ -52,7 +53,7 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
           </Thead>
           <Tbody>
             {fields.map((row, index) => (
-              <CreateConnectionTypeFieldsTableRow key={index} row={row} />
+              <CreateConnectionTypeFieldsTableRow key={index} row={row} columns={columns} />
             ))}
           </Tbody>
         </Table>

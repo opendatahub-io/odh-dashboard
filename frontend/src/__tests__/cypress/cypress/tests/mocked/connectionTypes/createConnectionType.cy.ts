@@ -12,7 +12,7 @@ describe('create', () => {
 
     createConnectionTypePage.findConnectionTypeName().should('exist');
     createConnectionTypePage.findConnectionTypeDesc().should('exist');
-    createConnectionTypePage.findConnectionTypeEnable().should('exist');
+    createConnectionTypePage.findConnectionTypeEnableCheckbox().should('exist');
     createConnectionTypePage.findConnectionTypePreviewToggle().should('exist');
     createConnectionTypePage.findFieldsTable().should('exist');
   });
@@ -53,7 +53,7 @@ describe('duplicate', () => {
     createConnectionTypePage
       .findConnectionTypeDesc()
       .should('have.value', existing.metadata.annotations['openshift.io/description']);
-    createConnectionTypePage.findConnectionTypeEnable().should('be.checked');
+    createConnectionTypePage.findConnectionTypeEnableCheckbox().should('be.checked');
   });
 
   it('Prefill fields table from existing connection', () => {
