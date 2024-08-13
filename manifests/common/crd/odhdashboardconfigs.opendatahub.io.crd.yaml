@@ -71,6 +71,8 @@ spec:
                       type: boolean
                     disableS3Endpoint:
                       type: boolean
+                    disableArtifactsAPI:
+                      type: boolean
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelRegistry:
