@@ -10,6 +10,7 @@ import {
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { createConnectionType } from '~/services/connectionTypesService';
+import { useUser } from '~/redux/selectors';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
 import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
@@ -30,37 +31,51 @@ type CreateConnectionTypePageProps = {
 
 export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ prefill }) => {
   const navigate = useNavigate();
+  const { username } = useUser();
 
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
-  const [prefillNameDesc, prefillEnabled, prefillFields] = extractConnectionTypeFromMap(prefill);
+  const {
+    k8sName: prefillK8sName,
+    name: prefillName,
+    description: prefillDescription,
+    enabled: prefillEnabled,
+    fields: prefillFields,
+  } = extractConnectionTypeFromMap(prefill);
 
-  const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>(prefillNameDesc);
+  const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>({
+    k8sName: prefillK8sName,
+    name: prefillName,
+    description: prefillDescription,
+  });
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
   const [connectionFields] = React.useState<ConnectionTypeField[]>(prefillFields);
 
   const previewConnectionTypeObj = React.useMemo(
     () =>
       createConnectionTypeObj(
-        {
-          k8sName: translateDisplayNameForK8s(connectionNameDesc.name),
-          displayName: connectionNameDesc.name,
-          description: connectionNameDesc.description,
-          enabled: connectionEnabled,
-          username: '',
-        },
+        translateDisplayNameForK8s(connectionNameDesc.name),
+        connectionNameDesc.name,
+        connectionNameDesc.description,
+        connectionEnabled,
+        username,
         connectionFields,
       ),
-    [connectionNameDesc, connectionEnabled, connectionFields],
+    [connectionNameDesc, connectionEnabled, connectionFields, username],
   );
 
   const [isCreateLoading, setIsCreateLoading] = React.useState(false);
   const [createError, setCreateError] = React.useState<string>();
-  const isValid = React.useMemo(() => Boolean(connectionNameDesc.name), [connectionNameDesc.name]);
+
+  const isValid = React.useMemo(() => {
+    const trimmedName = connectionNameDesc.name.trim();
+    return Boolean(trimmedName);
+  }, [connectionNameDesc.name]);
 
   const onSave = async () => {
     if (isValid) {
       setIsCreateLoading(true);
+      setCreateError(undefined);
       const response = await createConnectionType(previewConnectionTypeObj);
       if (response.error) {
         setCreateError(response.error);
