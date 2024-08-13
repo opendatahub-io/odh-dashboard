@@ -56,7 +56,13 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
           </Button>
         </ActionListItem>
         <ActionListItem>
-          <Button key="cancel" variant="link" isDisabled={isCancelDisabled} onClick={onCancel}>
+          <Button
+            key="cancel"
+            variant="link"
+            isDisabled={isCancelDisabled}
+            onClick={onCancel}
+            data-testid="modal-cancel-button"
+          >
             Cancel
           </Button>
         </ActionListItem>

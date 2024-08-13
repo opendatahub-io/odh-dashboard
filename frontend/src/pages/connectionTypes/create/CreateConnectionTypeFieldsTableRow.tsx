@@ -1,17 +1,32 @@
 import * as React from 'react';
-import { Td, Tr } from '@patternfly/react-table';
-import { Label, Switch, Text, TextContent, Truncate } from '@patternfly/react-core';
-import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Button, Label, Switch, Text, TextContent, Truncate } from '@patternfly/react-core';
+import {
+  ConnectionTypeField,
+  ConnectionTypeFieldType,
+  SectionField,
+} from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 
-type CreateConnectionTypeFieldsTableRowProps = {
+type Props = {
   row: ConnectionTypeField;
   columns: string[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onDuplicate: (field: ConnectionTypeField) => void;
+  onAddField: (parentSection: SectionField) => void;
+  onChange: (updatedField: ConnectionTypeField) => void;
 };
 
-export const CreateConnectionTypeFieldsTableRow: React.FC<
-  CreateConnectionTypeFieldsTableRowProps
-> = ({ row, columns }) => {
+export const CreateConnectionTypeFieldsTableRow: React.FC<Props> = ({
+  row,
+  columns,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onAddField,
+  onChange,
+}) => {
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
       <Tr id={row.name} isStriped data-testid="row">
@@ -24,11 +39,31 @@ export const CreateConnectionTypeFieldsTableRow: React.FC<
             <Text className="pf-v5-u-color-200">{row.description}</Text>
           </TextContent>
         </Td>
+        <Td isActionCell modifier="nowrap">
+          <Button variant="secondary" onClick={() => onAddField(row)}>
+            Add field
+          </Button>
+          <ActionsColumn
+            items={[
+              {
+                title: 'Edit',
+                onClick: () => onEdit(),
+              },
+              {
+                title: 'Duplicate',
+                onClick: () => onDuplicate({ ...row, name: `Duplicate of ${row.name}` }),
+              },
+              {
+                title: 'Delete',
+                onClick: () => onDelete(),
+              },
+            ]}
+          />
+        </Td>
       </Tr>
     );
   }
 
-  // TODO: support row.required toggle
   return (
     <Tr id={row.name} data-testid="row">
       <Td dataLabel={columns[0]} data-testid="field-name">
@@ -50,10 +85,28 @@ export const CreateConnectionTypeFieldsTableRow: React.FC<
       </Td>
       <Td dataLabel={columns[4]}>
         <Switch
-          aria-label="switch"
+          aria-label="toggle field required"
           isChecked={row.required}
-          isDisabled
           data-testid="field-required"
+          onChange={() => onChange({ ...row, required: !row.required })}
+        />
+      </Td>
+      <Td isActionCell>
+        <ActionsColumn
+          items={[
+            {
+              title: 'Edit',
+              onClick: () => onEdit(),
+            },
+            {
+              title: 'Duplicate',
+              onClick: () => onDuplicate(row),
+            },
+            {
+              title: 'Delete',
+              onClick: () => onDelete(),
+            },
+          ]}
         />
       </Td>
     </Tr>

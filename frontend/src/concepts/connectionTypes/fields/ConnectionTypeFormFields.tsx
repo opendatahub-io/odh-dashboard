@@ -17,9 +17,6 @@ type Props = {
 
 type FieldGroup = { section: SectionField | undefined; fields: ConnectionTypeDataField[] };
 
-const createKey = (field: ConnectionTypeField) =>
-  `${field.type}-${field.type === ConnectionTypeFieldType.Section ? field.name : field.envVar}`;
-
 const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange }) => {
   const fieldGroups = React.useMemo(
     () =>
@@ -37,9 +34,9 @@ const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange
   );
 
   const renderDataFields = (dataFields: ConnectionTypeDataField[]) =>
-    dataFields.map((field) => (
+    dataFields.map((field, i) => (
       <ConnectionTypeDataFormField
-        key={createKey(field)}
+        key={i}
         field={field}
         isPreview={isPreview}
         onChange={onChange}
@@ -48,9 +45,9 @@ const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange
 
   return (
     <>
-      {fieldGroups?.map((fieldGroup) =>
+      {fieldGroups?.map((fieldGroup, i) =>
         fieldGroup.section ? (
-          <SectionFormField field={fieldGroup.section} key={createKey(fieldGroup.section)}>
+          <SectionFormField field={fieldGroup.section} key={i}>
             {renderDataFields(fieldGroup.fields)}
           </SectionFormField>
         ) : (

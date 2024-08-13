@@ -49,7 +49,8 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
     description: prefillDescription,
   });
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
-  const [connectionFields] = React.useState<ConnectionTypeField[]>(prefillFields);
+  const [connectionFields, setConnectionFields] =
+    React.useState<ConnectionTypeField[]>(prefillFields);
 
   const previewConnectionTypeObj = React.useMemo(
     () =>
@@ -143,7 +144,10 @@ export const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> =
               Add fields to prompt users to input information, and optionally assign default values
               to those fields.
               <FormGroup>
-                <CreateConnectionTypeFieldsTable fields={connectionFields} />
+                <CreateConnectionTypeFieldsTable
+                  fields={connectionFields}
+                  onFieldsChange={(fields) => setConnectionFields(fields)}
+                />
               </FormGroup>
             </FormSection>
           </Form>
