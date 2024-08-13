@@ -55,6 +55,19 @@ const mockedEventsByExecutionIdsResponse: GetEventsByExecutionIDsResponse = {
       type: 4,
       millisecondsSinceEpoch: 1712899531648,
     },
+    {
+      artifactId: 18,
+      executionId: 289,
+      path: {
+        steps: [
+          {
+            key: 'html_artifact',
+          },
+        ],
+      },
+      type: 4,
+      millisecondsSinceEpoch: 1712899531648,
+    },
   ],
 };
 

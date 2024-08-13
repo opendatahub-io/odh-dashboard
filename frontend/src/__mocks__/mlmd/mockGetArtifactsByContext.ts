@@ -18,6 +18,22 @@ const mockedScalarMetricArtifact = (noMetrics?: boolean): Artifact => ({
   lastUpdateTimeSinceEpoch: 1711765118976,
 });
 
+const mockedHtmlArtifact = (noMetrics?: boolean): Artifact => ({
+  id: 18,
+  typeId: 20,
+  type: 'system.HTML',
+  uri: 's3://aballant-pipelines/metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/html_artifact',
+  properties: {},
+  customProperties: noMetrics
+    ? {}
+    : {
+        displayName: { stringValue: 'html_artifact' },
+      },
+  state: 2,
+  createTimeSinceEpoch: 1712841455267,
+  lastUpdateTimeSinceEpoch: 1712841455267,
+});
+
 const mockedConfusionMatrixArtifact = (noMetrics?: boolean): Artifact => ({
   id: 8,
   typeId: 18,
@@ -116,6 +132,7 @@ export const mockGetArtifactsByContext = (noMetrics?: boolean): GrpcResponse => 
       mockedConfusionMatrixArtifact(noMetrics),
       mockedRocCurveArtifact(noMetrics),
       mockedMarkdownArtifact(noMetrics),
+      mockedHtmlArtifact(noMetrics),
     ],
   }).finish();
   return createGrpcResponse(binary);
