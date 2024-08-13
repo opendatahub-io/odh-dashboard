@@ -11,7 +11,6 @@ import {
   NotebookStatus,
   ResourceCreator,
   ResourceGetter,
-  RoleBinding,
   VariableRow,
 } from '~/types';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
@@ -20,6 +19,7 @@ import { EMPTY_USER_STATE } from '~/pages/notebookController/const';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useAppContext } from '~/app/AppContext';
 import { getRoute } from '~/services/routeService';
+import { RoleBindingKind } from '~/k8sTypes';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
@@ -155,9 +155,9 @@ export const useNotebookUserState = (): NotebookControllerUserState => {
 export const validateNotebookNamespaceRoleBinding = async (
   notebookNamespace: string,
   dashboardNamespace: string,
-): Promise<RoleBinding | undefined> => {
+): Promise<RoleBindingKind | undefined> => {
   const roleBindingName = `${notebookNamespace}-image-pullers`;
-  const roleBindingObject: RoleBinding = {
+  const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
@@ -177,7 +177,7 @@ export const validateNotebookNamespaceRoleBinding = async (
       },
     ],
   };
-  return verifyResource<RoleBinding>(
+  return verifyResource<RoleBindingKind>(
     roleBindingName,
     dashboardNamespace,
     getRoleBinding,
@@ -245,7 +245,7 @@ const filterEvents = (
 ): [filterEvents: K8sEvent[], thisInstanceEvents: K8sEvent[], gracePeroid: boolean] => {
   const thisInstanceEvents = allEvents
     .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
-    .sort((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
+    .toSorted((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
   if (thisInstanceEvents.length === 0) {
     // Filtered out all of the events, exit early
     return [[], [], false];

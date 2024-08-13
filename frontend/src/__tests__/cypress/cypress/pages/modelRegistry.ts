@@ -1,13 +1,61 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { TableRow } from './components/table';
+import { Modal } from './components/Modal';
+
+class LabelModal extends Modal {
+  constructor() {
+    super('Labels');
+  }
+
+  findModalSearchInput() {
+    return cy.findByTestId('label-modal-search');
+  }
+
+  findCloseModal() {
+    return cy.findByTestId('close-modal');
+  }
+
+  shouldContainsModalLabels(labels: string[]) {
+    cy.findByTestId('modal-label-group').within(() => labels.map((label) => cy.contains(label)));
+    return this;
+  }
+}
+
+class ModelRegistryTableRow extends TableRow {
+  findName() {
+    return this.find().findByTestId('model-name');
+  }
+
+  findDescription() {
+    return this.find().findByTestId('description');
+  }
+
+  findOwner() {
+    return this.find().findByTestId('registered-model-owner');
+  }
+
+  findLabelPopoverText() {
+    return this.find().findByTestId('popover-label-text');
+  }
+
+  findLabelModalText() {
+    return this.find().findByTestId('modal-label-text');
+  }
+
+  shouldContainsPopoverLabels(labels: string[]) {
+    cy.findByTestId('popover-label-group').within(() => labels.map((label) => cy.contains(label)));
+    return this;
+  }
+}
 
 class ModelRegistry {
   landingPage() {
-    cy.visit('/');
+    cy.visitWithLogin('/');
     this.waitLanding();
   }
 
-  visit(modelRegistry?: string) {
-    cy.visit(`/modelRegistry${modelRegistry}`);
+  visit() {
+    cy.visitWithLogin(`/modelRegistry`);
     this.wait();
   }
 
@@ -17,17 +65,34 @@ class ModelRegistry {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Registered models');
     cy.testA11y();
   }
 
   private waitLanding() {
-    cy.findByTestId('enabled-application').should('be.visible');
+    cy.findByTestId('home-page').should('be.visible');
   }
 
   shouldBeEmpty() {
     cy.findByTestId('empty-state-title').should('exist');
     return this;
+  }
+
+  shouldregisteredModelsEmpty() {
+    cy.findByTestId('empty-registered-models').should('exist');
+  }
+
+  shouldmodelVersionsEmpty() {
+    cy.findByTestId('empty-model-versions').should('exist');
+  }
+
+  shouldModelRegistrySelectorExist() {
+    cy.get('#model-registry-selector-dropdown').should('exist');
+  }
+
+  shouldtableToolbarExist() {
+    cy.findByTestId('registered-models-table-toolbar').should('exist');
   }
 
   tabEnabled() {
@@ -39,6 +104,74 @@ class ModelRegistry {
     appChrome.findNavItem('Model Registry').should('not.exist');
     return this;
   }
+
+  findTable() {
+    return cy.findByTestId('registered-model-table');
+  }
+
+  findModelVersionsTable() {
+    return cy.findByTestId('model-versions-table');
+  }
+
+  findTableRows() {
+    return this.findTable().find('tbody tr');
+  }
+
+  findModelVersionsTableRows() {
+    return this.findModelVersionsTable().find('tbody tr');
+  }
+
+  getRow(name: string) {
+    return new ModelRegistryTableRow(() =>
+      this.findTable().find(`[data-label="Model name"]`).contains(name).parents('tr'),
+    );
+  }
+
+  getModelVersionRow(name: string) {
+    return new ModelRegistryTableRow(() =>
+      this.findModelVersionsTable()
+        .find(`[data-label="Version name"]`)
+        .contains(name)
+        .parents('tr'),
+    );
+  }
+
+  findRegisteredModelTableHeaderButton(name: string) {
+    return this.findTable().find('thead').findByRole('button', { name });
+  }
+
+  findModelVersionsTableHeaderButton(name: string) {
+    return this.findModelVersionsTable().find('thead').findByRole('button', { name });
+  }
+
+  findTableSearch() {
+    return cy.findByTestId('registered-model-table-search');
+  }
+
+  findModelVersionsTableSearch() {
+    return cy.findByTestId('model-versions-table-search');
+  }
+
+  findModelBreadcrumbItem() {
+    return cy.findByTestId('breadcrumb-model');
+  }
+
+  findModelVersionsTableKebab() {
+    return cy.findByTestId('model-versions-table-kebab-action');
+  }
+
+  findModelVersionsHeaderAction() {
+    return cy.findByTestId('model-version-action-toggle');
+  }
+
+  findModelVersionsTableFilter() {
+    return cy.findByTestId('model-versions-table-filter');
+  }
+
+  findRegisterModelButton() {
+    return cy.findByRole('button', { name: 'Register model' });
+  }
 }
 
 export const modelRegistry = new ModelRegistry();
+export const labelModal = new LabelModal();

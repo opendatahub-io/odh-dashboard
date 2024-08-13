@@ -65,7 +65,7 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
         </ToolbarItem>
         <ToolbarItem>
           <SimpleMenuActions
-            data-testid="global-pipelines-kebab-actions"
+            testId="global-pipelines-kebab-actions"
             dropdownItems={[
               {
                 key: 'delete',

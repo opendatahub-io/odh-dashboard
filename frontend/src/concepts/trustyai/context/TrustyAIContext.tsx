@@ -30,6 +30,7 @@ export const TrustyAIContext = React.createContext<TrustyAIContextProps>({
   data: DEFAULT_CONTEXT_DATA,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   apiState: { apiAvailable: false, api: null as unknown as TrustyAPIState['api'] },
 });
 

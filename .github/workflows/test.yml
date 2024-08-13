@@ -1,0 +1,62 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  Tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Node.js modules cache, repository
+        uses: actions/cache@v4
+        id: repo-cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
+      - name: Node.js modules cache, backend
+        uses: actions/cache@v4
+        id: backend-cache
+        with:
+          path: ${{ github.workspace }}/backend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
+      - name: Node.js modules cache, frontend
+        uses: actions/cache@v4
+        id: frontend-cache
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
+      - name: Install Node.js packages
+        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
+        run: npm install
+      - name: Check for uncomitted changes
+        run: |
+          git diff --exit-code
+      - name: Test backend & test frontend with code coverage
+        if: ${{ success() }}
+        run: npm run test:backend && npm run test:frontend:coverage
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          name: frontend
+          directory: ./frontend/coverage
+          verbose: true
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: cypress-results
+          path: ./frontend/src/__tests__/cypress/results/

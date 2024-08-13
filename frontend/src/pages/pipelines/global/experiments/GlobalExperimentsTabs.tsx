@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { experimentsTabRoute } from '~/routes';
-import { ExperimentListTabs } from './const';
+import { ExperimentListTabs, ExperimentListTabTitle } from './const';
 import ActiveExperimentsList from './ActiveExperimentsList';
 import ArchivedExperimentsList from './ArchivedExperimentsList';
 
@@ -27,7 +27,7 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
     >
       <Tab
         eventKey={ExperimentListTabs.ACTIVE}
-        title={<TabTitleText>Active</TabTitleText>}
+        title={<TabTitleText>{ExperimentListTabTitle.ACTIVE}</TabTitleText>}
         aria-label="Active experiments tab"
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="experiments-active-tab"
@@ -38,7 +38,7 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
       </Tab>
       <Tab
         eventKey={ExperimentListTabs.ARCHIVED}
-        title={<TabTitleText>Archived</TabTitleText>}
+        title={<TabTitleText>{ExperimentListTabTitle.ARCHIVED}</TabTitleText>}
         aria-label="Archived experiments tab"
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="experiments-archived-tab"

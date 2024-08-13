@@ -7,12 +7,14 @@ export const removeArrayItem = <T>(values: T[], index: number): T[] =>
   values.filter((v, i) => i !== index);
 
 export const isConfigMapKind = (object: unknown): object is ConfigMapKind =>
-  (object as ConfigMapKind).kind === 'ConfigMap';
+  typeof object === 'object' && object !== null && 'kind' in object && object.kind === 'ConfigMap';
 
 export const isSecretKind = (object: unknown): object is SecretKind =>
-  (object as SecretKind).kind === 'Secret';
+  typeof object === 'object' && object !== null && 'kind' in object && object.kind === 'Secret';
 
 export const isStringKeyValuePairObject = (object: unknown): object is Record<string, string> =>
-  Object.entries(object as Record<string, string>).every(
+  typeof object === 'object' &&
+  object !== null &&
+  Object.entries(object).every(
     ([key, value]) => typeof key === 'string' && typeof value === 'string',
   );

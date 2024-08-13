@@ -9,12 +9,14 @@ type CreateNewStorageSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingStorageObject>;
   currentSize?: string;
   autoFocusName?: boolean;
+  menuAppendTo?: HTMLElement;
 };
 
 const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   data,
   setData,
   currentSize,
+  menuAppendTo,
   autoFocusName,
 }) => (
   <Stack hasGutter>
@@ -29,6 +31,7 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
     </StackItem>
     <StackItem>
       <PVSizeField
+        menuAppendTo={menuAppendTo}
         fieldID="create-new-storage-size"
         currentSize={currentSize}
         size={data.size}

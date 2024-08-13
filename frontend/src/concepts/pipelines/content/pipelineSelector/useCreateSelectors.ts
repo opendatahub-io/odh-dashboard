@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
-import useExperimentTable from '~/concepts/pipelines/content/tables/experiment/useExperimentTable';
+import useExperimentTable, {
+  useActiveExperimentTable,
+} from '~/concepts/pipelines/content/tables/experiment/useExperimentTable';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
-import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import {
   LoadMoreProps,
   useExperimentLoadMore,
   usePipelineLoadMore,
-  usePipelineVersionLoadMore,
 } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
 import {
   TableProps,
@@ -18,7 +18,8 @@ import {
   ExperimentKFv2,
   PipelineCoreResourceKFv2,
   PipelineKFv2,
-  PipelineVersionKFv2,
+  PipelinesFilterOp,
+  StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
@@ -38,14 +39,40 @@ type UsePipelineSelectorData<DataType> = {
   };
 };
 
-export const useExperimentSelector = (): UsePipelineSelectorData<ExperimentKFv2> => {
-  const experimentsTable = useExperimentTable();
-  const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = experimentsTable;
-  return useCreateSelector<ExperimentKFv2>(
-    experimentsTable,
-    useExperimentLoadMore({ initialData, initialPageToken, loaded }),
-  );
-};
+export const getExperimentSelector =
+  (useTable: typeof useExperimentTable, storageState?: StorageStateKF) =>
+  (): UsePipelineSelectorData<ExperimentKFv2> => {
+    const experimentsTable = useTable();
+    const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = experimentsTable;
+
+    return useCreateSelector<ExperimentKFv2>(experimentsTable, () =>
+      useExperimentLoadMore({
+        initialData,
+        initialPageToken,
+        loaded,
+      })({
+        ...(storageState && {
+          filter: {
+            predicates: [
+              {
+                key: 'storage_state',
+                operation: PipelinesFilterOp.EQUALS,
+                // eslint-disable-next-line camelcase
+                string_value: storageState,
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  };
+
+export const useAllExperimentSelector = getExperimentSelector(useExperimentTable);
+
+export const useActiveExperimentSelector = getExperimentSelector(
+  useActiveExperimentTable,
+  StorageStateKF.AVAILABLE,
+);
 
 export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKFv2> => {
   const pipelinesTable = usePipelinesTable();
@@ -53,17 +80,6 @@ export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKFv2> => 
   return useCreateSelector<PipelineKFv2>(
     pipelinesTable,
     usePipelineLoadMore({ initialData, initialPageToken, loaded }),
-  );
-};
-
-export const usePipelineVersionSelector = (
-  pipelineId: string | undefined,
-): UsePipelineSelectorData<PipelineVersionKFv2> => {
-  const versionsTable = usePipelineVersionsTable(pipelineId)();
-  const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = versionsTable;
-  return useCreateSelector<PipelineVersionKFv2>(
-    versionsTable,
-    usePipelineVersionLoadMore({ initialData, initialPageToken, loaded }, pipelineId),
   );
 };
 

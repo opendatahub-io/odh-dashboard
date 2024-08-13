@@ -19,6 +19,7 @@ The following are a list of features that are supported, along with there defaul
 | disableISVBadges             | false   | Removes the badge that indicate if a product is ISV or not.                                          |
 | disableAppLauncher           | false   | Removes the application launcher that is used in OKD environments                                    |
 | disableUserManagement        | false   | Removes the User Management panel in Settings.                                                       |
+| disableHome                  | false   | Disables Data Science Home page from the dashboard.                                                  |
 | disableProjects              | false   | Disables Data Science Projects from the dashboard.                                                   |
 | disablePipelines             | false   | Disables Data Science Pipelines from the dashboard.                                                  |
 | disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
@@ -26,13 +27,14 @@ The following are a list of features that are supported, along with there defaul
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | disableKServe                | false   | Disables the ability to select KServe as a Serving Platform.                                         |
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
+| disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
-| modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
 | disableBiasMetrics           | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
 | disableModelRegistry         | true    | Disables Model Registry from the dashboard.                                                          |
+| disableConnectionTypes       | true    | Disables creating custom data connection types from the dashboard.                                   |
 
 ## Defaults
 
@@ -50,17 +52,21 @@ spec:
     disableISVBadges: false
     disableAppLauncher: false
     disableUserManagement: false
+    disableHome: false
     disableProjects: false
     disablePipelines: false
     disableModelServing: false
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: false
-    modelMetricsNamespace: ''
+    disableKServeMetrics: false
     disableBiasMetrics: false
     disablePerformanceMetrics: false
-    disablePipelineExperiments: false
+    disablePipelineExperiments: true
+    disableS3Endpoint: true
+    disableArtifactsAPI: true
     disableDistributedWorkloads: false
+    disableConnectionTypes: false
 ```
 
 ## Additional fields
@@ -144,16 +150,19 @@ spec:
     disableInfo: false
     disableSupport: false
     disableTracking: true
+    disableHome: true
     disableProjects: true
     disablePipelines: true
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: true
-    modelMetricsNamespace: ''
+    disableKServeMetrics: true
     disableBiasMetrics: false
     disablePerformanceMetrics: false
-    disablePipelineExperiments: true
+    disablePipelineExperiments: false
+    disableS3Endpoint: true
+    disableArtifactsAPI: true
   notebookController:
     enabled: true
     gpuSetting: autodetect

@@ -1,6 +1,7 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
+import { ContainerResources } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -17,6 +18,10 @@ type MockResourceConfigType = {
   minReplicas?: number;
   maxReplicas?: number;
   lastFailureInfoMessage?: string;
+  resources?: ContainerResources;
+  kserveInternalUrl?: string;
+  statusPredictor?: Record<string, string>;
+  kserveInternalLabel?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -66,11 +71,15 @@ export const mockInferenceServiceK8sResource = ({
   isModelMesh = false,
   activeModelState = 'Pending',
   url = '',
-  path = 'path/to/model',
   acceleratorIdentifier = '',
+  path = 'path/to/model',
   minReplicas = 1,
   maxReplicas = 1,
   lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
+  resources,
+  statusPredictor = undefined,
+  kserveInternalUrl = '',
+  kserveInternalLabel = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -91,6 +100,7 @@ export const mockInferenceServiceK8sResource = ({
     labels: {
       name,
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
     name,
     namespace,
@@ -118,6 +128,7 @@ export const mockInferenceServiceK8sResource = ({
               },
             }
           : {}),
+        ...(resources && { resources }),
         runtime: modelName,
         storage: {
           key: secretName,
@@ -127,7 +138,9 @@ export const mockInferenceServiceK8sResource = ({
     },
   },
   status: {
-    components: {},
+    components: {
+      ...(statusPredictor && { predictor: statusPredictor }),
+    },
     url,
     conditions: [
       {
@@ -159,5 +172,10 @@ export const mockInferenceServiceK8sResource = ({
       },
       transitionStatus: '',
     },
+    ...(kserveInternalUrl && {
+      address: {
+        url: kserveInternalUrl,
+      },
+    }),
   },
 });

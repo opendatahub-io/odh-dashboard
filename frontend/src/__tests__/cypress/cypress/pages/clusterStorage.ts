@@ -62,7 +62,7 @@ class ClusterStorageModal extends Modal {
   }
 
   shouldHavePVSizeSelectValue(name: string) {
-    this.findPVSizeSelectButton().findByRole('button', { name }).should('exist');
+    this.findPVSizeSelectButton().contains(name).should('exist');
     return this;
   }
 
@@ -89,7 +89,7 @@ class ClusterStorageModal extends Modal {
 
 class ClusterStorage {
   visit(projectName: string) {
-    cy.visit(`/projects/${projectName}?section=cluster-storages`);
+    cy.visitWithLogin(`/projects/${projectName}?section=cluster-storages`);
     this.wait();
   }
 

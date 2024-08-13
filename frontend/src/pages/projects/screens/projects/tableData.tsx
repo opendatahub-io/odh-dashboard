@@ -1,6 +1,7 @@
 import { SortableData } from '~/components/table';
 import { ProjectKind } from '~/k8sTypes';
-import { getProjectCreationTime, getProjectDisplayName } from '~/pages/projects/utils';
+import { getProjectCreationTime } from '~/concepts/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 export const columns: SortableData<ProjectKind>[] = [
   {
@@ -31,7 +32,8 @@ export const subColumns: SortableData<ProjectKind>[] = [
   {
     field: 'name',
     label: 'Name',
-    sortable: (a, b) => getProjectDisplayName(a).localeCompare(getProjectDisplayName(b)),
+    sortable: (a, b) =>
+      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
     width: 30,
   },
   {

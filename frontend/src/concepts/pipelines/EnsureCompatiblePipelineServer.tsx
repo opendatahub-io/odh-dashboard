@@ -12,11 +12,9 @@ import {
   EmptyStateIcon,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import ExternalLink from '~/components/ExternalLink';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import { useUser } from '~/redux/selectors';
-import { usePipelinesAPI } from './context';
+import { DeleteServerModal, usePipelinesAPI } from './context';
 
 // TODO: Fix doc link to go to more docs on v2
 const DOCS_LINK =
@@ -30,12 +28,7 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
   children,
 }) => {
   const { pipelinesServer } = usePipelinesAPI();
-  const { isAdmin } = useUser();
   const [isDeleting, setIsDeleting] = React.useState(false);
-
-  const bodyText = isAdmin
-    ? "Rendering of this pipeline version in the UI is no longer supported, but it can still be accessed via the API or OpenShift Console. To remove unsupported versions, delete this project's pipeline server and create a new one."
-    : 'Rendering of this pipeline version in the UI is no longer supported. To access this pipeline, contact your administrator.';
 
   if (pipelinesServer.initializing) {
     return (
@@ -64,24 +57,31 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
               }
             />
             <EmptyStateBody>
-              <p>{bodyText}</p>
+              <p>
+                Rendering of this pipeline version in the UI is no longer supported, but it can
+                still be accessed via the API or OpenShift Console. To remove unsupported versions,
+                delete this project&apos;s pipeline server and create a new one.
+              </p>
               <ExternalLink
                 text="Learn more about supported versions and data recovery"
                 to={DOCS_LINK}
               />
             </EmptyStateBody>
-            {isAdmin && (
-              <EmptyStateFooter>
-                <EmptyStateActions>
-                  <Button variant="primary" onClick={() => setIsDeleting(true)}>
-                    Delete pipeline server
-                  </Button>
-                </EmptyStateActions>
-              </EmptyStateFooter>
-            )}
+
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button
+                  data-testid="delete-pipeline-server-button"
+                  variant="primary"
+                  onClick={() => setIsDeleting(true)}
+                >
+                  Delete pipeline server
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
           </EmptyState>
         </Bullseye>
-        <DeletePipelineServerModal isOpen={isDeleting} onClose={() => setIsDeleting(false)} />
+        <DeleteServerModal isOpen={isDeleting} onClose={() => setIsDeleting(false)} />
       </>
     );
   }

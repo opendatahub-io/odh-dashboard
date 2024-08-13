@@ -16,12 +16,8 @@ const PipelinesOverviewCard: React.FC<PipelinesOverviewCardProps> = ({
     objectType={ProjectObjectType.pipeline}
     sectionType={pipelinesCount ? SectionType.training : SectionType.organize}
     title="Pipelines"
-    popoverHeaderContent={pipelinesCount ? 'About pipelines' : undefined}
-    popoverBodyContent={
-      !pipelinesCount
-        ? 'Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench.'
-        : undefined
-    }
+    popoverHeaderContent="About pipelines"
+    popoverBodyContent="Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench."
     data-testid="section-pipelines"
   >
     {children}

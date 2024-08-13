@@ -1,35 +1,77 @@
-import { DEFAULT_TASK_NODE_TYPE } from '@patternfly/react-topology';
-import { genRandomChars } from '~/utilities/string';
-import { NODE_HEIGHT, NODE_WIDTH } from './const';
-import { NodeConstructDetails, PipelineNodeModelExpanded } from './types';
-
-export const createNodeId = (prefix = 'node'): string => `${prefix}-${genRandomChars()}`;
+import { DEFAULT_TASK_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
+import { PipelineTask } from '~/concepts/pipelines/topology';
+import { EXECUTION_TASK_NODE_TYPE, NODE_HEIGHT, NODE_WIDTH } from './const';
+import { PipelineNodeModelExpanded } from './types';
 
 export const ICON_TASK_NODE_TYPE = 'ICON_TASK_NODE';
 
 export const ARTIFACT_NODE_WIDTH = 44;
 export const ARTIFACT_NODE_HEIGHT = NODE_HEIGHT;
 
-export const createNode = (details: NodeConstructDetails): PipelineNodeModelExpanded => ({
-  id: details.id,
-  label: details.label,
+export const NODE_PADDING_VERTICAL = 40;
+export const NODE_PADDING_HORIZONTAL = 15;
+
+export const createNode = (
+  id: string,
+  label: string,
+  pipelineTask: PipelineTask,
+  runAfterTasks?: string[],
+  runStatus?: RunStatus,
+): PipelineNodeModelExpanded => ({
+  id,
+  label,
   type: DEFAULT_TASK_NODE_TYPE,
   width: NODE_WIDTH,
   height: NODE_HEIGHT,
-  runAfterTasks: details.runAfter,
-  data: details.status
-    ? {
-        status: details.status,
-      }
-    : undefined,
+  runAfterTasks,
+  data: {
+    pipelineTask,
+    runStatus,
+  },
 });
 
-export const createArtifactNode = (details: NodeConstructDetails): PipelineNodeModelExpanded => ({
-  id: details.id,
-  label: `${details.label} (Type: ${details.artifactType?.slice(7)})`,
+export const createArtifactNode = (
+  id: string,
+  label: string,
+  pipelineTask: PipelineTask,
+  runAfterTasks?: string[],
+  artifactType?: string,
+): PipelineNodeModelExpanded => ({
+  id,
+  label: `${label} (Type: ${artifactType?.slice(7)})`,
   type: ICON_TASK_NODE_TYPE,
   width: ARTIFACT_NODE_WIDTH,
   height: ARTIFACT_NODE_HEIGHT,
-  runAfterTasks: details.runAfter,
-  data: { status: details.status ?? undefined, artifactType: details.artifactType },
+  runAfterTasks,
+  data: {
+    pipelineTask,
+    artifactType,
+    runStatus: pipelineTask.metadata ? RunStatus.Succeeded : undefined,
+  },
+});
+
+export const createGroupNode = (
+  id: string,
+  label: string,
+  pipelineTask: PipelineTask,
+  runAfterTasks?: string[],
+  runStatus?: RunStatus,
+  children?: string[],
+): PipelineNodeModelExpanded => ({
+  id,
+  label,
+  type: EXECUTION_TASK_NODE_TYPE,
+  group: true,
+  collapsed: true,
+  width: NODE_WIDTH,
+  height: NODE_HEIGHT,
+  runAfterTasks,
+  children,
+  style: {
+    padding: [NODE_PADDING_VERTICAL + 24, NODE_PADDING_HORIZONTAL],
+  },
+  data: {
+    pipelineTask,
+    runStatus,
+  },
 });

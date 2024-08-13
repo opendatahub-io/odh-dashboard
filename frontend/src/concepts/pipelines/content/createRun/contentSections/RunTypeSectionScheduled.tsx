@@ -6,6 +6,7 @@ import EndDateBeforeStartDateError from '~/concepts/pipelines/content/createRun/
 import CatchUp from '~/concepts/pipelines/content/createRun/contentSections/CatchUp';
 import MaxConcurrencyField from '~/concepts/pipelines/content/createRun/contentSections/MaxConcurrencyField';
 import TriggerTypeField from '~/concepts/pipelines/content/createRun/contentSections/TriggerTypeField';
+import { convertToDate } from '~/utilities/time';
 
 type RunTypeSectionScheduledProps = {
   data: RunTypeScheduledData;
@@ -39,7 +40,7 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
         onChange={(end) => onChange({ ...data, end })}
         adjustNow={(now) => {
           if (data.start) {
-            const start = new Date(`${data.start.date} ${data.start.time}`);
+            const start = convertToDate(data.start);
             start.setDate(start.getDate() + 7);
             return start;
           }

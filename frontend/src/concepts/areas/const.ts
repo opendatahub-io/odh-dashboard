@@ -1,4 +1,36 @@
+import { DashboardCommonConfig } from '~/k8sTypes';
 import { StackCapability, StackComponent, SupportedArea, SupportedAreasState } from './types';
+
+export const allFeatureFlags: string[] = Object.keys({
+  enablement: false,
+  disableInfo: false,
+  disableSupport: false,
+  disableClusterManager: false,
+  disableTracking: false,
+  disableBYONImageStream: false,
+  disableISVBadges: false,
+  disableAppLauncher: false,
+  disableUserManagement: false,
+  disableHome: false,
+  disableProjects: false,
+  disableModelServing: false,
+  disableProjectSharing: false,
+  disableCustomServingRuntimes: false,
+  disablePipelines: false,
+  disableBiasMetrics: false,
+  disablePerformanceMetrics: false,
+  disableKServe: false,
+  disableKServeAuth: false,
+  disableKServeMetrics: false,
+  disableModelMesh: false,
+  disableAcceleratorProfiles: false,
+  disablePipelineExperiments: false,
+  disableS3Endpoint: false,
+  disableArtifactsAPI: false,
+  disableDistributedWorkloads: false,
+  disableModelRegistry: false,
+  disableConnectionTypes: false,
+} satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
@@ -18,6 +50,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelines'],
     requiredComponents: [StackComponent.DS_PIPELINES],
   },
+  [SupportedArea.HOME]: {
+    featureFlags: ['disableHome'],
+  },
   [SupportedArea.DS_PROJECTS_VIEW]: {
     featureFlags: ['disableProjects'],
   },
@@ -33,6 +68,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableKServeAuth'],
     reliantAreas: [SupportedArea.K_SERVE],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+  },
+  [SupportedArea.K_SERVE_METRICS]: {
+    featureFlags: ['disableKServeMetrics'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.MODEL_MESH]: {
     featureFlags: ['disableModelMesh'],
@@ -56,7 +95,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PERFORMANCE_METRICS]: {
     featureFlags: ['disablePerformanceMetrics'],
-    requiredComponents: [StackComponent.MODEL_MESH], // TODO: remove when KServe support is added
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.TRUSTY_AI]: {
@@ -67,6 +105,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelineExperiments'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
+
+  [SupportedArea.ARTIFACT_API]: {
+    featureFlags: ['disableArtifactsAPI'],
+    reliantAreas: [SupportedArea.DS_PIPELINES],
+  },
+
+  [SupportedArea.S3_ENDPOINT]: {
+    featureFlags: ['disableS3Endpoint'],
+    reliantAreas: [SupportedArea.DS_PIPELINES],
+  },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],
     requiredComponents: [StackComponent.KUEUE],
@@ -74,5 +122,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
+    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+  },
+  [SupportedArea.DATA_CONNECTIONS_TYPES]: {
+    featureFlags: ['disableConnectionTypes'],
   },
 };

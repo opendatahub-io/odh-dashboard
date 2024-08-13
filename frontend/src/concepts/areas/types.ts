@@ -6,8 +6,7 @@ import {
   DataScienceClusterKindStatus,
 } from '~/k8sTypes';
 
-// TODO: clean up this definition / update the DashboardConfig to a better state
-export type FeatureFlag = keyof Omit<DashboardCommonConfig, 'modelMetricsNamespace'>;
+export type FeatureFlag = keyof DashboardCommonConfig;
 
 export type IsAreaAvailableStatus = {
   /** A single boolean status */
@@ -22,12 +21,19 @@ export type IsAreaAvailableStatus = {
 
 /** All areas that we need to support in some fashion or another */
 export enum SupportedArea {
+  HOME = 'home',
+
   /* Standalone areas */
-  DS_PIPELINES = 'ds-pipelines',
   // TODO: Jupyter Tile Support? (outside of feature flags today)
   WORKBENCHES = 'workbenches',
   // TODO: Support Applications/Tile area
   // TODO: Support resources area
+
+  /* Pipelines areas */
+  DS_PIPELINES = 'ds-pipelines',
+  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
+  S3_ENDPOINT = 's3-endpoint',
+  ARTIFACT_API = 's3-artifact-api',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
@@ -44,17 +50,19 @@ export enum SupportedArea {
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
+  K_SERVE_METRICS = 'kserve-metrics',
   MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
-  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
+
+  DATA_CONNECTIONS_TYPES = 'data-connections-types',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

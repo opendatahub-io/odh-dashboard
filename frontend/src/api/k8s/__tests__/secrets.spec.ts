@@ -20,6 +20,7 @@ import {
   getSecretsByLabel,
   replaceSecret,
 } from '~/api/k8s/secrets';
+import { SecretModel } from '~/api/models/k8s';
 import { SecretKind } from '~/k8sTypes';
 import { genRandomChars } from '~/utilities/string';
 
@@ -192,7 +193,7 @@ describe('getSecret', () => {
     const result = await getSecret('projectName', 'secretName');
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { name: 'secretName', ns: 'projectName', queryParams: {} },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
@@ -205,7 +206,7 @@ describe('getSecret', () => {
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { name: 'secretName', ns: 'projectName', queryParams: {} },
     });
   });
@@ -218,7 +219,7 @@ describe('getSecretsByLabel', () => {
     const result = await getSecretsByLabel('label', 'secretName');
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { ns: 'secretName', queryParams: { labelSelector: 'label' } },
     });
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -231,7 +232,7 @@ describe('getSecretsByLabel', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { ns: 'secretName', queryParams: { labelSelector: 'label' } },
     });
   });
@@ -244,7 +245,7 @@ describe('createSecret', () => {
     const result = await createSecret(assembleSecret('secret', data, 'aws'));
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { queryParams: {} },
       resource: {
         ...assembleSecretResult,
@@ -260,7 +261,7 @@ describe('createSecret', () => {
     await expect(createSecret(assembleSecret('secret', data, 'aws'))).rejects.toThrow('error1');
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { queryParams: {} },
       resource: {
         ...assembleSecretResult,
@@ -278,7 +279,7 @@ describe('replaceSecret', () => {
     const result = await replaceSecret(assembleSecret('secret', data, 'aws'));
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { queryParams: {} },
       resource: {
         ...assembleSecretResult,
@@ -294,7 +295,7 @@ describe('replaceSecret', () => {
     await expect(replaceSecret(assembleSecret('secret', data, 'aws'))).rejects.toThrow('error1');
     expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { queryParams: {} },
       resource: {
         ...assembleSecretResult,
@@ -312,7 +313,7 @@ describe('deleteSecret', () => {
     const result = await deleteSecret('projectName', 'secretName');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { name: 'secretName', ns: 'projectName', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -325,7 +326,7 @@ describe('deleteSecret', () => {
     const result = await deleteSecret('projectName', 'secretName');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { name: 'secretName', ns: 'projectName', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
@@ -338,7 +339,7 @@ describe('deleteSecret', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: { apiVersion: 'v1', kind: 'Secret', plural: 'secrets' },
+      model: SecretModel,
       queryOptions: { name: 'secretName', ns: 'projectName', queryParams: {} },
     });
   });

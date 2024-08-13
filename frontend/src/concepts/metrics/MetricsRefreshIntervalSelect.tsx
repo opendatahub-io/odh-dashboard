@@ -20,6 +20,7 @@ export const MetricsRefreshIntervalSelect: React.FC = () => {
       }}
       selections={currentRefreshInterval}
       data-testid="metrics-toolbar-refresh-interval-select"
+      toggleId="metrics-toolbar-refresh-interval-select-toggle"
     >
       {Object.values(RefreshIntervalTitle).map((value) => (
         <SelectOption key={value} value={value} />

@@ -2,6 +2,7 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   ContainerResources,
   ImageStreamAndVersion,
+  KeyValuePair,
   NotebookSize,
   Toleration,
   TolerationSettings,
@@ -121,10 +122,7 @@ export type DataConnection =
 
 export type AWSDataEntry = { key: AwsKeys; value: string }[];
 
-export type EnvVariableDataEntry = {
-  key: string;
-  value: string;
-};
+export type EnvVariableDataEntry = KeyValuePair;
 
 export type EnvVariableData = {
   category: SecretCategory | ConfigMapCategory | null;
@@ -164,9 +162,4 @@ export enum NamespaceApplicationCase {
    * Upgrade an existing DSG project to work with model kserve.
    */
   KSERVE_PROMOTION,
-}
-
-export enum ProjectScope {
-  DS_PROJECTS = 'Data science projects',
-  ALL_PROJECTS = 'All available projects',
 }

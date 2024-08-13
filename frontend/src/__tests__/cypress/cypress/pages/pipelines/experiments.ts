@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
 
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { type ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class ExperimentsTabs {
   visit(namespace?: string, tab?: string) {
-    cy.visit(`/experiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`);
+    cy.visitWithLogin(`/experiments${namespace ? `/${namespace}` : ''}${tab ? `/${tab}` : ''}`);
     this.wait();
   }
 
@@ -30,29 +30,57 @@ class ExperimentsTabs {
     return new ExperimentsTable(() => cy.findByTestId('experiments-archived-tab-content'));
   }
 
-  mockGetExperiments(
-    namespace: string,
-    activeExperiments: ExperimentKFv2[],
-    archivedExperiments: ExperimentKFv2[] = [],
-  ) {
-    return cy.intercept(
+  mockGetExperiments(namespace: string, experiments: ExperimentKFv2[]): Cypress.Chainable<null> {
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments`,
+        path: { namespace, serviceName: 'dspa' },
       },
       (req) => {
-        const { predicates } = JSON.parse(req.query.filter.toString());
-
-        if (predicates.length === 0) {
-          req.reply({ experiments: activeExperiments, total_size: activeExperiments.length });
-        } else {
-          const [{ string_value: experimentState }] = predicates;
-          if (experimentState === 'ARCHIVED') {
-            req.reply({ experiments: archivedExperiments, total_size: archivedExperiments.length });
-          } else {
-            req.reply({ experiments: activeExperiments, total_size: activeExperiments.length });
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { filter, sort_by, page_size } = req.query;
+        let results = experiments;
+        if (sort_by) {
+          const fields = sort_by.toString().split(' ');
+          const sortField = fields[0];
+          const sortDirection = fields[1];
+          // more fields to be added
+          if (sortField === 'created_at') {
+            if (sortDirection === 'desc') {
+              results = results.toSorted(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+              );
+            } else {
+              results = results.toSorted(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+              );
+            }
           }
         }
+        if (filter) {
+          const { predicates } = JSON.parse(filter.toString());
+
+          if (predicates.length > 0) {
+            predicates.forEach((predicate: { key: string; string_value: string }) => {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              const { key, string_value } = predicate;
+              if (key === 'storage_state') {
+                results = results.filter((experiment) => experiment.storage_state === string_value);
+              }
+              if (key === 'name') {
+                results = results.filter((experiment) =>
+                  experiment.display_name.includes(string_value),
+                );
+              }
+            });
+          }
+        }
+
+        if (page_size) {
+          results = results.slice(0, Number(page_size));
+        }
+
+        req.reply({ experiments: results, total_size: results.length });
       },
     );
   }
@@ -61,6 +89,14 @@ class ExperimentsTabs {
 class ExperimentsRow extends TableRow {
   findCheckbox() {
     return this.find().find(`[data-label=Checkbox]`).find('input');
+  }
+
+  findExperimentCreatedTime() {
+    return this.find().find(`[data-label="Created"]`);
+  }
+
+  findExperimentLastRunTime() {
+    return this.find().find(`[data-label="Last run started"]`);
   }
 }
 
@@ -72,11 +108,9 @@ class ExperimentsTable {
   }
 
   mockArchiveExperiment(experimentId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments/${experimentId}:archive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      { path: { namespace, serviceName: 'dspa', experimentId: `${experimentId}:archive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -84,11 +118,9 @@ class ExperimentsTable {
   }
 
   mockRestoreExperiment(experimentId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments/${experimentId}:unarchive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      { path: { namespace, serviceName: 'dspa', experimentId: `${experimentId}:unarchive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -118,7 +150,7 @@ class ExperimentsTable {
   }
 
   findActionsKebab() {
-    return cy.findByRole('button', { name: 'Actions' }).parent();
+    return cy.findByTestId('experiment-table-toolbar-actions').parent();
   }
 
   findRestoreExperimentButton() {
@@ -140,7 +172,7 @@ class ExperimentsTable {
   findFilterTextField() {
     return this.findContainer()
       .findByTestId('experiment-table-toolbar')
-      .findByTestId('run-table-toolbar-filter-text-field');
+      .findByTestId('pipeline-filter-text-field');
   }
 }
 

@@ -9,9 +9,10 @@ import {
 type TaskDetailsCodeBlockProps = {
   id: string;
   content: string;
+  testId?: string;
 };
 
-const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content }) => {
+const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content, testId }) => {
   const [copied, setCopied] = React.useState(false);
 
   const clipboardCopyFunc = (text: string) => {
@@ -25,6 +26,7 @@ const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content
 
   return (
     <CodeBlock
+      data-testid={testId}
       actions={
         <CodeBlockAction>
           <ClipboardCopyButton

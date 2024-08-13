@@ -12,10 +12,21 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { PipelineUploadOption, generatePipelineVersionName } from './utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
+import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
+import {
+  PIPELINE_ARGO_ERROR,
+  PIPELINE_IMPORT_ARGO_ERROR_TEXT,
+} from '~/concepts/pipelines/content/const';
+import {
+  PipelineUploadOption,
+  extractKindFromPipelineYAML,
+  generatePipelineVersionName,
+} from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 
 type PipelineVersionImportModalProps = {
@@ -30,11 +41,13 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
   const [
     { name, description, pipeline, fileContents, uploadOption, pipelineUrl },
     setData,
     resetData,
   ] = usePipelineVersionImportModalData(existingPipeline);
+  const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
 
   const pipelineId = pipeline?.pipeline_id || '';
   const pipelineName = pipeline?.display_name || '';
@@ -54,20 +67,46 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     setImporting(false);
     setError(undefined);
     resetData();
+    setHasDuplicateName(false);
   };
+
+  const checkForDuplicateName = useDebounceCallback(
+    React.useCallback(
+      async (value: string) => {
+        if (pipeline?.pipeline_id && value) {
+          const { pipeline_versions: duplicateVersions } = await api.listPipelineVersions(
+            {},
+            pipeline.pipeline_id,
+            getNameEqualsFilter(value),
+          );
+
+          if (duplicateVersions?.length) {
+            setHasDuplicateName(true);
+          }
+        }
+      },
+      [api, pipeline?.pipeline_id],
+    ),
+    500,
+  );
 
   const onSubmit = () => {
     setImporting(true);
     setError(undefined);
 
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
-      api
-        .uploadPipelineVersion({}, name, description, fileContents, pipelineId)
-        .then((pipelineVersion) => onBeforeClose(pipelineVersion, pipeline))
-        .catch((e) => {
-          setImporting(false);
-          setError(e);
-        });
+      if (isArgoWorkflow) {
+        setImporting(false);
+        setError(new Error(PIPELINE_IMPORT_ARGO_ERROR_TEXT));
+      } else {
+        api
+          .uploadPipelineVersion({}, name, description, fileContents, pipelineId)
+          .then((pipelineVersion) => onBeforeClose(pipelineVersion, pipeline))
+          .catch((e) => {
+            setImporting(false);
+            setError(e);
+          });
+      }
     } else {
       api
         .createPipelineVersion({}, pipelineId, {
@@ -114,7 +153,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
       <Form>
         <Stack hasGutter>
           <StackItem>
-            <FormGroup label="Project">{getProjectDisplayName(project)}</FormGroup>
+            <FormGroup label="Project">{getDisplayNameFromK8sResource(project)}</FormGroup>
           </StackItem>
           <StackItem>
             <FormGroup label="Pipeline" isRequired fieldId="pipeline-selection">
@@ -136,8 +175,14 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
                 id="pipeline-version-name"
                 name="pipeline-version-name"
                 value={name}
-                onChange={(e, value) => setData('name', value)}
+                onChange={(_e, value) => {
+                  setHasDuplicateName(false);
+                  setData('name', value);
+                  checkForDuplicateName(value);
+                }}
               />
+
+              {hasDuplicateName && <DuplicateNameHelperText name={name} />}
             </FormGroup>
           </StackItem>
           <StackItem>
@@ -149,7 +194,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
                 data-testid="pipeline-version-description"
                 name="pipeline-version-description"
                 value={description}
-                onChange={(e, value) => setData('description', value)}
+                onChange={(_e, value) => setData('description', value)}
               />
             </FormGroup>
           </StackItem>
@@ -167,7 +212,12 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
           </StackItem>
           {error && (
             <StackItem>
-              <Alert title="Error uploading pipeline version" isInline variant="danger">
+              <Alert
+                data-testid="import-modal-error"
+                title={isArgoWorkflow ? PIPELINE_ARGO_ERROR : 'Error creating pipeline'}
+                isInline
+                variant="danger"
+              >
                 {error.message}
               </Alert>
             </StackItem>

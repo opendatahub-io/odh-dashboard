@@ -23,6 +23,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableISVBadges: boolean;
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
+      disableHome: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
       disableProjectSharing: boolean;
@@ -32,11 +33,15 @@ export type DashboardConfig = K8sResourceCommon & {
       disablePerformanceMetrics: boolean;
       disableKServe: boolean;
       disableKServeAuth: boolean;
+      disableKServeMetrics: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disablePipelineExperiments: boolean;
+      disableS3Endpoint: boolean;
+      disableArtifactsAPI: boolean;
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
+      disableConnectionTypes: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -145,6 +150,21 @@ export type K8sResourceCommon = {
   };
 } & K8sResourceBase;
 
+export type K8sNamespacedResourceCommon = {
+  metadata: {
+    namespace: string;
+  };
+} & K8sResourceCommon;
+
+export type K8sResourceListResult<TResource extends K8sResourceCommon> = {
+  apiVersion: string;
+  items: TResource[];
+  metadata: {
+    resourceVersion: string;
+    continue: string;
+  };
+};
+
 /**
  * A status object when Kube backend can't handle a request.
  */
@@ -157,7 +177,17 @@ export type K8sStatus = {
   status: string;
 };
 
-export enum BUILD_PHASE {
+export type SecretKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  data?: Record<string, string>;
+  stringData?: Record<string, string>;
+  type?: string;
+};
+
+export enum BuildPhase {
   none = 'Not started',
   new = 'New',
   running = 'Running',
@@ -176,7 +206,7 @@ export type BuildKind = {
     };
   };
   status: {
-    phase: BUILD_PHASE;
+    phase: BuildPhase;
     completionTimestamp: string;
     startTimestamp: string;
   };
@@ -194,11 +224,15 @@ export type RouteKind = {
 
 // Minimal type for Subscriptions
 export type SubscriptionKind = {
+  spec: {
+    channel?: string;
+  };
   status?: {
     installedCSV?: string;
     installPlanRef?: {
       namespace: string;
     };
+    lastUpdated?: string;
   };
 } & K8sResourceCommon;
 
@@ -263,7 +297,7 @@ export type KubeDecorator = KubeStatus & {
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
-  kube?: KubeDecorator;
+  kube: KubeDecorator;
 };
 
 // TODO: constant-ize the x-forwarded header
@@ -360,7 +394,7 @@ export type OdhDocument = {
 
 export type BuildStatus = {
   name: string;
-  status: BUILD_PHASE;
+  status: BuildPhase;
   timestamp?: string;
 };
 
@@ -405,7 +439,7 @@ export type Volume = {
 
 export type Notebook = K8sResourceCommon & {
   metadata: {
-    annotations: Partial<{
+    annotations?: Partial<{
       'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/username': string; // the untranslated username behind the notebook
@@ -738,7 +772,12 @@ export type DetectedAccelerators = {
 
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
-  { valueFrom: Record<string, unknown> }
+  {
+    valueFrom: Record<string, unknown> & {
+      configMapKeyRef?: { key: string; name: string };
+      secretKeyRef?: { key: string; name: string };
+    };
+  }
 > & {
   name: string;
 };
@@ -868,7 +907,20 @@ export type ContainerResources = {
   } & Record<string, unknown>;
 };
 
-export type ServingRuntime = K8sResourceCommon & {
+export type PodAffinity = {
+  nodeAffinity?: { [key: string]: unknown };
+};
+
+export type ServingContainer = {
+  name: string;
+  args?: string[];
+  image?: string;
+  affinity?: PodAffinity;
+  resources?: ContainerResources;
+  volumeMounts?: VolumeMount[];
+};
+
+export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
     name: string;
@@ -876,20 +928,15 @@ export type ServingRuntime = K8sResourceCommon & {
   };
   spec: {
     builtInAdapter?: {
-      serverType: string;
-      runtimeManagementPort: number;
+      serverType?: string;
+      runtimeManagementPort?: number;
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
-    containers: {
-      args: string[];
-      image: string;
-      name: string;
-      resources?: ContainerResources;
-      volumeMounts?: VolumeMount[];
-    }[];
-    supportedModelFormats: SupportedModelFormats[];
+    containers: ServingContainer[];
+    supportedModelFormats?: SupportedModelFormats[];
     replicas?: number;
+    tolerations?: Toleration[];
     volumes?: Volume[];
   };
 };
@@ -934,6 +981,7 @@ export enum KnownLabels {
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+  CONNECTION_TYPE = 'opendatahub.io/connection-type',
 }
 
 type ComponentNames =
@@ -978,8 +1026,10 @@ export type DataScienceClusterInitializationList = {
 };
 
 export type SubscriptionStatusData = {
+  channel?: string;
   installedCSV?: string;
   installPlanRefNamespace?: string;
+  lastUpdated?: string;
 };
 
 export type CronJobKind = {
@@ -1007,9 +1057,83 @@ export type K8sCondition = {
   lastHeartbeatTime?: string;
 };
 
+export type DSPipelineExternalStorageKind = {
+  bucket: string;
+  host: string;
+  port?: '';
+  scheme: string;
+  region: string;
+  s3CredentialsSecret: {
+    accessKey: string;
+    secretKey: string;
+    secretName: string;
+  };
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   spec: {
     dspVersion: string;
+    apiServer?: Partial<{
+      apiServerImage: string;
+      artifactImage: string;
+      artifactScriptConfigMap: Partial<{
+        key: string;
+        name: string;
+      }>;
+      enableSamplePipeline: boolean;
+    }>;
+    database?: Partial<{
+      externalDB: Partial<{
+        host: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        port: string;
+        username: string;
+      }>;
+      image: string;
+      mariaDB: Partial<{
+        image: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        username: string;
+      }>;
+    }>;
+    mlpipelineUI?: {
+      configMap?: string;
+      image: string;
+    };
+    persistentAgent?: Partial<{
+      image: string;
+      pipelineAPIServerName: string;
+    }>;
+    scheduledWorkflow?: Partial<{
+      image: string;
+    }>;
+    objectStorage: Partial<{
+      externalStorage: DSPipelineExternalStorageKind;
+      minio: Partial<{
+        bucket: string;
+        image: string;
+        s3CredentialsSecret: Partial<{
+          accessKey: string;
+          secretKey: string;
+          secretName: string;
+        }>;
+      }>;
+    }>;
+    viewerCRD?: Partial<{
+      image: string;
+    }>;
   };
   status?: {
     conditions?: K8sCondition[];
@@ -1017,6 +1141,53 @@ export type DSPipelineKind = K8sResourceCommon & {
 };
 
 export type TrustyAIKind = K8sResourceCommon & {
+  status?: {
+    conditions?: K8sCondition[];
+  };
+};
+
+export type ModelRegistryKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    grpc: {
+      port: number;
+    };
+    rest: {
+      port: number;
+      serviceRoute: string;
+    };
+  } & EitherNotBoth<
+    {
+      mysql?: {
+        database: string;
+        host: string;
+        passwordSecret?: {
+          key: string;
+          name: string;
+        };
+        port?: number;
+        skipDBCreation?: boolean;
+        username?: string;
+      };
+    },
+    {
+      postgres?: {
+        database: string;
+        host?: string;
+        passwordSecret?: {
+          key: string;
+          name: string;
+        };
+        port: number;
+        skipDBCreation?: boolean;
+        sslMode?: string;
+        username?: string;
+      };
+    }
+  >;
   status?: {
     conditions?: K8sCondition[];
   };

@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Button, ButtonVariant, Flex, FlexItem, Icon, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
-import { fireTrackingEventRaw } from '~/utilities/segmentIOUtils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import useRouteForNotebook from './useRouteForNotebook';
 import { hasStopAnnotation } from './utils';
 
@@ -51,11 +51,13 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
               ? 'var(--pf-v5-global--FontSize--md)'
               : 'var(--pf-v5-global--FontSize--sm)',
           }}
-          onClick={() =>
-            fireTrackingEventRaw('Workbench Opened', { wbName: getNotebookDisplayName(notebook) })
-          }
+          onClick={() => {
+            fireMiscTrackingEvent('Workbench Opened', {
+              wbName: getDisplayNameFromK8sResource(notebook),
+            });
+          }}
         >
-          {label ?? getNotebookDisplayName(notebook)}
+          {label ?? getDisplayNameFromK8sResource(notebook)}
         </Button>
       </FlexItem>
       {error && (

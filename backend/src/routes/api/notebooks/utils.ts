@@ -1,5 +1,7 @@
-import { KubeFastifyInstance, Notebook, NotebookData } from '../../../types';
 import { V1ContainerStatus, V1Pod, V1PodList } from '@kubernetes/client-node';
+import { FastifyRequest } from 'fastify';
+import { isHttpError } from '../../../utils';
+import { KubeFastifyInstance, Notebook, NotebookData } from '../../../types';
 import { getUserName } from '../../../utils/userUtils';
 import {
   createNotebook,
@@ -9,7 +11,6 @@ import {
   getRoute,
   updateNotebook,
 } from '../../../utils/notebookUtils';
-import { FastifyRequest } from 'fastify';
 
 export const getNotebookStatus = async (
   fastify: KubeFastifyInstance,
@@ -17,7 +18,7 @@ export const getNotebookStatus = async (
   name: string,
 ): Promise<{ notebook: Notebook; isRunning: boolean; podUID: string; notebookLink: string }> => {
   const notebook = await getNotebook(fastify, namespace, name);
-  const hasStopAnnotation = !!notebook?.metadata.annotations?.['kubeflow-resource-stopped'];
+  const hasStopAnnotation = !!notebook.metadata.annotations?.['kubeflow-resource-stopped'];
   const [isRunning, podUID] = hasStopAnnotation
     ? [false, '']
     : await listNotebookStatus(fastify, namespace, name);
@@ -47,7 +48,7 @@ export const listNotebookStatus = async (
     `notebook-name=${name}`,
   );
   const pods = (response.body as V1PodList).items;
-  return [pods.some((pod) => checkPodContainersReady(pod)), pods[0]?.metadata.uid || ''];
+  return [pods.some((pod) => checkPodContainersReady(pod)), pods[0]?.metadata?.uid || ''];
 };
 
 export const checkPodContainersReady = (pod: V1Pod): boolean => {
@@ -73,13 +74,12 @@ export const enableNotebook = async (
   const url = request.headers.origin;
 
   try {
-    await getNotebook(fastify, notebookNamespace, name);
-    return await updateNotebook(fastify, username, url, notebookData);
+    const notebook = await getNotebook(fastify, notebookNamespace, name);
+    return await updateNotebook(fastify, username, url ?? '', notebookData, notebook);
   } catch (e) {
-    if (e.response?.statusCode === 404) {
-      return await createNotebook(fastify, username, url, notebookData);
-    } else {
-      throw e;
+    if (isHttpError(e) && e.response.statusCode === 404) {
+      return await createNotebook(fastify, username, url ?? '', notebookData);
     }
+    throw e;
   }
 };

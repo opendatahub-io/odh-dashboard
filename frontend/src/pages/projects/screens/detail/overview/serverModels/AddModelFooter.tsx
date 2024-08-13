@@ -24,7 +24,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform }) => 
 
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
-    servingRuntimeTemplates: { data: templates },
+    servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },

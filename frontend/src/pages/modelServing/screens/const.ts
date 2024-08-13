@@ -1,6 +1,6 @@
-import { ServingRuntimeSize } from './types';
+import { ModelServingSize } from './types';
 
-export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
+export const DEFAULT_MODEL_SERVER_SIZES: ModelServingSize[] = [
   {
     name: 'Small',
     resources: {
@@ -50,9 +50,3 @@ export enum StorageKeys {
   DEFAULT_REGION = 'region',
   PATH = 'path',
 }
-
-export const STORAGE_KEYS_REQUIRED: StorageKeys[] = [
-  StorageKeys.ACCESS_KEY_ID,
-  StorageKeys.SECRET_ACCESS_KEY,
-  StorageKeys.S3_ENDPOINT,
-];

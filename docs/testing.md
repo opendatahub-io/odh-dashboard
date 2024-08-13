@@ -122,9 +122,41 @@ Hook specific assertions:
 
 ## Cypress Tests
 
-Cypress is used to run tests against the frontend while mocking all network requests.
+Cypress is used to run tests against the frontend by either mocking all network requests or directly interacting with a live cluster.
 
-Single command to run all Cypress tests or a specific test (build frontend, start HTTP server, run Cypress):
+### E2E Tests
+
+Cypress e2e tests run against a live cluster.
+
+Before running the Cypress e2e tests, you must populate the test variables by first creating a copy of the `test-variables.yml.example` file and setting the `CY_TEST_CONFIG` env variable value to be the path to this file. Update the variables according to your testing environment.
+
+```bash
+CY_TEST_CONFIG=./test-variables.yml
+```
+
+Cypress e2e tests can make use of the `oc` command line tool. This is useful for test setup and tear down. When run in CI, the default user will be a cluster admin.
+```ts
+cy.exec(`oc new-project test-project`);
+```
+
+Prior to running the Cypress e2e tests, run `oc login` to login as a cluster admin to ensure the test env matches that of our CI and provides a default user for all `oc` commands executed in tests.
+
+To run all Cypress e2e tests, a specific test, or open the Cypress GUI:
+```bash
+npm run cypress:run
+
+npm run cypress:run -- --spec "**/testfile.cy.ts"
+
+npm run cypress:open
+```
+
+Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
+
+### Mocked Tests
+
+Cypress mocked tests run against a standalone frontend while mocking all network requests.
+
+Single command to run all Cypress mock tests or a specific test (build frontend, start HTTP server, run Cypress):
 ```bash
 npm run test:cypress-ci
 
@@ -159,13 +191,15 @@ There are two commands to run Cypress mock tests (always use the `:mock` variant
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
 ```bash
-npm run cypress:open:mock -- -- --config numTestsKeptInMemory=0
+npm run cypress:open:mock -- --config numTestsKeptInMemory=0
 ```
 
 ### Structure
 ```
 /frontend/src/__tests__/cypress
-  /e2e           - All test case files
+  /tests         - Tests
+    /e2e         - Live cluster tests
+    /mocked      - Mocked tests
   /pages         - Page objects
     /components  - Generic objects eg. modal, table
   /support       - Custom commands and test wrappers

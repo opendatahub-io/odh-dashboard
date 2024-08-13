@@ -29,7 +29,7 @@ class StorageModal extends Modal {
 }
 class WorkbenchPage {
   visit(projectName: string) {
-    cy.visit(`/projects/${projectName}?section=workbenches`);
+    cy.visitWithLogin(`/projects/${projectName}?section=workbenches`);
     this.wait();
   }
 
@@ -299,11 +299,15 @@ class CreateSpawnerPage {
   findBucketInput() {
     return cy.findByTestId('field AWS_S3_BUCKET');
   }
+
+  findContainerSizeInput(name: string) {
+    return cy.findByTestId('container-size-group').contains(name);
+  }
 }
 
 class EditSpawnerPage extends CreateSpawnerPage {
   visit(notebookName: string) {
-    cy.visit(`/projects/test-project/spawner/${notebookName}`);
+    cy.visitWithLogin(`/projects/test-project/spawner/${notebookName}`);
     this.wait();
   }
 
@@ -326,11 +330,15 @@ class EditSpawnerPage extends CreateSpawnerPage {
     cy.findByTestId('container-size-group').contains(name).should('exist');
     return this;
   }
+
+  findCancelButton() {
+    return cy.findByTestId('workbench-cancel-button');
+  }
 }
 
 class NotFoundSpawnerPage {
   visit(notebookName: string) {
-    cy.visit(`/projects/test-project/spawner/${notebookName}`);
+    cy.visitWithLogin(`/projects/test-project/spawner/${notebookName}`);
     this.wait();
   }
 

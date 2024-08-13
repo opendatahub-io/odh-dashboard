@@ -11,14 +11,14 @@ const KServeInferenceServiceTable: React.FC = () => {
   const [editKserveResources, setEditKServeResources] = React.useState<
     | {
         inferenceService: InferenceServiceKind;
-        servingRuntime: ServingRuntimeKind;
+        servingRuntime?: ServingRuntimeKind;
       }
     | undefined
   >(undefined);
   const [deleteKserveResources, setDeleteKServeResources] = React.useState<
     | {
         inferenceService: InferenceServiceKind;
-        servingRuntime: ServingRuntimeKind;
+        servingRuntime?: ServingRuntimeKind;
       }
     | undefined
   >(undefined);

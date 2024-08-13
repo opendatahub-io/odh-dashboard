@@ -14,7 +14,7 @@ import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
@@ -49,7 +49,7 @@ export const assembleNotebook = (
     existingTolerations,
     existingResources,
   } = data;
-  const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
+  const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName, 'wb-');
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 

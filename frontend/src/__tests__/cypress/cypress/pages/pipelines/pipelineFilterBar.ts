@@ -1,4 +1,4 @@
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
 class PipelineFilterBar {
   find() {
@@ -12,7 +12,7 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   }
 
   findExperimentInput() {
-    return cy.findByTestId('run-table-toolbar-filter-text-field').find('#experiment-search-input');
+    return cy.findByTestId('pipeline-filter-text-field').find('#experiment-search-input');
   }
 
   findPipelineVersionSelect() {
@@ -70,10 +70,10 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   }
 
   mockExperiments(experiments: ExperimentKFv2[], namespace: string) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments`,
+        path: { namespace, serviceName: 'dspa' },
       },
       {
         experiments,

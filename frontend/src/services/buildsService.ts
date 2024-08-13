@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { BuildStatus } from '~/types';
 
 export const fetchBuildStatuses = (): Promise<BuildStatus[]> => {

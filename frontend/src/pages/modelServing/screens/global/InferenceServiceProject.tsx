@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, Label, Skeleton } from '@patternfly/react-core';
 import { InferenceServiceKind } from '~/k8sTypes';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type InferenceServiceProjectProps = {
   inferenceService: InferenceServiceKind;
@@ -31,7 +31,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({ infer
     <>
       {project ? (
         <>
-          {getProjectDisplayName(project)}{' '}
+          {getDisplayNameFromK8sResource(project)}{' '}
           <Label>
             {project.metadata.labels?.['modelmesh-enabled'] === 'true'
               ? 'Multi-model serving enabled'

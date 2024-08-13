@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Alert, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import './ConfigurePipelinesServerModal.scss';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
@@ -10,7 +9,6 @@ import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
-  DatabaseConnectionKeys,
   EMPTY_DATABASE_CONNECTION,
   ExternalDatabaseSecret,
 } from './const';
@@ -48,7 +46,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     : config.database.value.every(({ key, value }) =>
         DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
           .map((field) => field.key)
-          .includes(key as DatabaseConnectionKeys)
+          .includes(key)
           ? !!value
           : true,
       );

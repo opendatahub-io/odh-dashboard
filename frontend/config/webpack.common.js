@@ -14,11 +14,15 @@ const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
+const COVERAGE = process.env.COVERAGE;
 
-if (OUTPUT_ONLY !== true) {
+if (OUTPUT_ONLY !== 'true') {
   console.info(
     `\nPrepping files...\n  SRC DIR: ${SRC_DIR}\n  OUTPUT DIR: ${DIST_DIR}\n  PUBLIC PATH: ${PUBLIC_PATH}\n`,
   );
+  if (COVERAGE === 'true') {
+    console.info('\nAdding code coverage instrumentation.\n');
+  }
 }
 
 module.exports = (env) => {
@@ -32,6 +36,7 @@ module.exports = (env) => {
           test: /\.(tsx|ts|jsx|js)?$/,
           include: [SRC_DIR, COMMON_DIR],
           use: [
+            COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
             {
               loader: 'ts-loader',
               options: {

@@ -11,10 +11,10 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { BreadcrumbItemType } from '~/types';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import { InferenceServiceKind } from '~/k8sTypes';
-import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import { getBreadcrumbItemComponents } from '~/pages/modelServing/screens/metrics/utils';
 import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import BiasConfigurationTable from './BiasConfigurationTable';
 import BiasConfigurationEmptyState from './BiasConfigurationEmptyState';
 
@@ -52,7 +52,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
         headerAction={
           <Button onClick={() => navigate(`../${MetricsTabKeys.BIAS}`, { relative: 'path' })}>
             {biasMetricConfigs.length === 0
-              ? `Back to ${getInferenceServiceDisplayName(inferenceService)}`
+              ? `Back to ${getDisplayNameFromK8sResource(inferenceService)}`
               : 'View metrics'}
           </Button>
         }

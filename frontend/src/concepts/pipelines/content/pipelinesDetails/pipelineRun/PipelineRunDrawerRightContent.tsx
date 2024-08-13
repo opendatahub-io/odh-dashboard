@@ -11,14 +11,20 @@ import {
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '~/concepts/pipelines/topology';
+import { Execution } from '~/third_party/mlmd';
+import { ArtifactNodeDrawerContent } from './artifacts';
 
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineTask;
+  executions: Execution[];
+  upstreamTaskName?: string;
   onClose: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
+  executions,
+  upstreamTaskName,
   onClose,
 }) => {
   if (!task) {
@@ -27,23 +33,31 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
 
   return (
     <DrawerPanelContent
-      isResizable
-      widths={{ default: 'width_33', lg: 'width_50' }}
-      minSize="500px"
       data-testid="pipeline-run-drawer-right-content"
+      style={{ height: '100%', overflowY: 'auto' }}
     >
-      <DrawerHead>
-        <Title headingLevel="h2" size="xl">
-          {task.name} {task.type === 'artifact' ? 'Artifact details' : ''}
-        </Title>
-        {task.status?.podName && <Text component="small">{task.status.podName}</Text>}
-        <DrawerActions>
-          <DrawerCloseButton onClick={onClose} />
-        </DrawerActions>
-      </DrawerHead>
-      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm">
-        <PipelineRunDrawerRightTabs task={task} />
-      </DrawerPanelBody>
+      {task.type === 'artifact' ? (
+        <ArtifactNodeDrawerContent
+          upstreamTaskName={upstreamTaskName}
+          task={task}
+          onClose={onClose}
+        />
+      ) : (
+        <>
+          <DrawerHead>
+            <Title headingLevel="h2" size="xl">
+              {task.name}
+            </Title>
+            {task.status?.podName && <Text component="small">{task.status.podName}</Text>}
+            <DrawerActions>
+              <DrawerCloseButton onClick={onClose} />
+            </DrawerActions>
+          </DrawerHead>
+          <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm">
+            <PipelineRunDrawerRightTabs task={task} executions={executions} />
+          </DrawerPanelBody>
+        </>
+      )}
     </DrawerPanelContent>
   );
 };

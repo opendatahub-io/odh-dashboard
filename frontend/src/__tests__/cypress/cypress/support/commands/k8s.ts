@@ -5,15 +5,15 @@ import type {
   K8sStatus,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import {
+import type {
   GenericStaticResponse,
   RouteHandlerController,
   RouteMatcherOptions,
 } from 'cypress/types/net-stubbing';
+import type { QueryOptions } from '~/__tests__/cypress/cypress/utils/k8s';
 import {
   getK8sAPIResourceURL,
   getK8sWebSocketResourceURL,
-  QueryOptions,
 } from '~/__tests__/cypress/cypress/utils/k8s';
 
 type WsOptions = {
@@ -35,16 +35,16 @@ declare global {
        * By default all the URL will include the namespace but not the name of the provided resource.
        * This results in the default behavior tailored to listing resources.
        */
-      wsK8s<K extends K8sResourceCommon>(
+      wsK8s: <K extends K8sResourceCommon>(
         type: 'ADDED' | 'DELETED' | 'MODIFIED',
         modelOrOptions: K8sModelCommon | WsOptions,
         resource: K,
-      ): Cypress.Chainable<undefined>;
+      ) => Cypress.Chainable<undefined>;
 
       /**
        * Simplified variant of equivalent function for GET method.
        */
-      interceptK8s<K extends K8sResourceCommon>(
+      interceptK8s: (<K extends K8sResourceCommon>(
         modelOrOptions: K8sModelCommon | K8sOptions,
         response?:
           | K
@@ -53,29 +53,28 @@ declare global {
           | string
           | GenericStaticResponse<string, K | K8sStatus | Patch[] | string>
           | RouteHandlerController,
-      ): Chainable<null>;
-
-      /**
-       * Intercept command for K8s resource.
-       * Provides equivalent functionality to `cy.intercept` where the URL is constructed from the given model and options.
-       *
-       * The default URL will include the name and namespace extracted from the supplied resource.
-       * This can be overridden by supplying options.
-       *
-       * If a payload other than a K8s resource is supplied, ensure that the appropriate options include the resource
-       * name and namespace, if required.
-       */
-      interceptK8s<K extends K8sResourceCommon>(
-        method: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT',
-        modelOrOptions: K8sModelCommon | K8sOptions,
-        response?:
-          | K
-          | K8sStatus
-          | Patch[]
-          | string
-          | GenericStaticResponse<string, K | K8sStatus | Patch[] | string>
-          | RouteHandlerController,
-      ): Chainable<null>;
+      ) => Chainable<null>) &
+        /**
+         * Intercept command for K8s resource.
+         * Provides equivalent functionality to `cy.intercept` where the URL is constructed from the given model and options.
+         *
+         * The default URL will include the name and namespace extracted from the supplied resource.
+         * This can be overridden by supplying options.
+         *
+         * If a payload other than a K8s resource is supplied, ensure that the appropriate options include the resource
+         * name and namespace, if required.
+         */
+        (<K extends K8sResourceCommon>(
+          method: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT',
+          modelOrOptions: K8sModelCommon | K8sOptions,
+          response?:
+            | K
+            | K8sStatus
+            | Patch[]
+            | string
+            | GenericStaticResponse<string, K | K8sStatus | Patch[] | string>
+            | RouteHandlerController,
+        ) => Chainable<null>);
 
       /**
        * Intercept command for listing K8s resources.
@@ -87,13 +86,13 @@ declare global {
        * If a payload other than a list containing at least one K8s resource is supplied, ensure that the appropriate
        * options include the resource name and namespace, if required.
        */
-      interceptK8sList<K extends K8sResourceCommon>(
+      interceptK8sList: <K extends K8sResourceCommon>(
         modelOrOptions: K8sModelCommon | K8sOptions,
         resource:
           | K8sResourceListResult<K>
           | GenericStaticResponse<string, K8sResourceListResult<K> | K8sStatus>
           | RouteHandlerController,
-      ): Chainable<null>;
+      ) => Chainable<null>;
     }
   }
 }

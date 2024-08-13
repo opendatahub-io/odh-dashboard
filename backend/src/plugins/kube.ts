@@ -3,9 +3,9 @@ import fp from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
 import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
+import { errorHandler, isKubeFastifyInstance } from '../utils';
 import { DEV_MODE } from '../utils/constants';
 import { cleanupGPU, initializeWatchedResources } from '../utils/resourceUtils';
-import { User } from '@kubernetes/client-node/dist/config_types';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
@@ -30,7 +30,7 @@ export default fp(async (fastify: FastifyInstance) => {
 
   let currentToken;
   try {
-    currentToken = await getCurrentToken(currentUser);
+    currentToken = await getCurrentToken();
   } catch (e) {
     currentToken = '';
     fastify.log.error(e, 'Failed to retrieve current token');
@@ -46,25 +46,20 @@ export default fp(async (fastify: FastifyInstance) => {
     );
     clusterID = (clusterVersion.body as { spec: { clusterID: string } }).spec.clusterID;
   } catch (e) {
-    fastify.log.error(
-      e,
-      `Failed to retrieve cluster id: ${e.response?.body?.message || e.message}.`,
-    );
+    fastify.log.error(e, `Failed to retrieve cluster id: ${errorHandler(e)}.`);
   }
   let clusterBranding = 'okd';
   try {
     const consoleConfig = await coreV1Api
       .readNamespacedConfigMap('console-config', 'openshift-console')
       .then((result) => result.body);
-    if (consoleConfig?.data?.[CONSOLE_CONFIG_YAML_FIELD]) {
+    if (consoleConfig.data?.[CONSOLE_CONFIG_YAML_FIELD]) {
       const consoleConfigData = jsYaml.load(consoleConfig.data[CONSOLE_CONFIG_YAML_FIELD]);
       clusterBranding = consoleConfigData.customization?.branding || 'okd';
       fastify.log.info(`Cluster Branding: ${clusterBranding}`);
     }
   } catch (e) {
-    fastify.log.error(
-      `Failed to retrieve console cluster info: ${e.response?.body?.message || e.message}`,
-    );
+    fastify.log.error(`Failed to retrieve console cluster info: ${errorHandler(e)}`);
   }
 
   fastify.decorate('kube', {
@@ -83,19 +78,21 @@ export default fp(async (fastify: FastifyInstance) => {
   });
 
   // Initialize the watching of resources
-  initializeWatchedResources(fastify);
+  if (isKubeFastifyInstance(fastify)) {
+    initializeWatchedResources(fastify);
 
-  cleanupGPU(fastify).catch((e) =>
-    fastify.log.error(
-      `Unable to fully convert GPU to use accelerator profiles. ${
-        e.response?.body?.message || e.message || e
-      }`,
-    ),
-  );
+    cleanupGPU(fastify).catch((e) =>
+      fastify.log.error(
+        `Unable to fully convert GPU to use accelerator profiles. ${
+          e.response?.body?.message || e.message || e
+        }`,
+      ),
+    );
+  }
 });
 
-const getCurrentNamespace = async () => {
-  return new Promise((resolve, reject) => {
+const getCurrentNamespace = async () =>
+  new Promise((resolve, reject) => {
     if (currentContext === 'inClusterContext') {
       fs.readFile(
         '/var/run/secrets/kubernetes.io/serviceaccount/namespace',
@@ -113,10 +110,9 @@ const getCurrentNamespace = async () => {
       resolve(currentContext.split('/')[0]);
     }
   });
-};
 
-const getCurrentToken = async (currentUser: User) => {
-  return new Promise((resolve, reject) => {
+const getCurrentToken = async () =>
+  new Promise((resolve, reject) => {
     if (currentContext === 'inClusterContext') {
       const location =
         currentUser?.authProvider?.config?.tokenFile ||
@@ -131,4 +127,3 @@ const getCurrentToken = async (currentUser: User) => {
       resolve(currentUser?.token || '');
     }
   });
-};

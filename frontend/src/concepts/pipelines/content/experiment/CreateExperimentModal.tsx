@@ -10,9 +10,9 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type CreateExperimentModalProps = {
   isOpen: boolean;
@@ -69,7 +69,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ isOpen, o
         <Stack hasGutter>
           <StackItem>
             <FormGroup label="Project" fieldId="project-name">
-              {getProjectDisplayName(project)}
+              {getDisplayNameFromK8sResource(project)}
             </FormGroup>
           </StackItem>
           <StackItem>

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Grid, GridItem, Truncate } from '@patternfly/react-core';
 
 type TaskDetailsPrintKeyValuesProps = {
-  items: { label: string; value: string }[];
+  items: { label: string; value: React.ReactNode }[];
 };
 
 const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ items }) => (

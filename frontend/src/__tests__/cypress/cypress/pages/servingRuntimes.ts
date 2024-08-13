@@ -1,5 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { ServingRuntimeAPIProtocol } from '~/types';
+import type { ServingRuntimeAPIProtocol } from '~/types';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 
 class ServingRuntimeRow {
@@ -32,23 +32,29 @@ class ServingRuntimeRow {
 }
 
 class ServingRuntimes {
-  visit() {
-    cy.visit('/servingRuntimes');
-    this.wait();
+  visit(wait = true) {
+    cy.visitWithLogin('/servingRuntimes');
+    if (wait) {
+      this.wait();
+    }
   }
 
   navigate() {
-    appChrome.findNavItem('Serving runtimes', 'Settings').click();
+    this.findNavItem().click();
     this.wait();
-  }
-
-  findAppTitle() {
-    return cy.findByTestId('app-page-title');
   }
 
   private wait() {
     this.findAddButton();
     cy.testA11y();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem('Serving runtimes', 'Settings');
+  }
+
+  findAppTitle() {
+    return cy.findByTestId('app-page-title');
   }
 
   shouldBeMultiModel(enabled = true) {

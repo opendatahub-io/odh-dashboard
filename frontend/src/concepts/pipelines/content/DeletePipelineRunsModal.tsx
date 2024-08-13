@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
@@ -13,12 +13,12 @@ type DeletePipelineRunsModalProps = {
   onClose: (deleted?: boolean) => void;
 } & (
   | {
-      type: PipelineRunType.Archived;
+      type: PipelineRunType.ARCHIVED;
       toDeleteResources: PipelineRunKFv2[];
     }
   | {
-      type: PipelineRunType.Scheduled;
-      toDeleteResources: PipelineRunJobKFv2[];
+      type: PipelineRunType.SCHEDULED;
+      toDeleteResources: PipelineRecurringRunKFv2[];
     }
 );
 
@@ -47,11 +47,11 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
 
         let callFunc: (opts: K8sAPIOptions, id: string) => Promise<void>;
         switch (type) {
-          case PipelineRunType.Archived:
+          case PipelineRunType.ARCHIVED:
             callFunc = api.deletePipelineRun;
             break;
-          case PipelineRunType.Scheduled:
-            callFunc = api.deletePipelineRunJob;
+          case PipelineRunType.SCHEDULED:
+            callFunc = api.deletePipelineRecurringRun;
             break;
           default:
             // eslint-disable-next-line no-console
@@ -65,7 +65,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
         if (resourceCount === 1) {
           callFunc(
             { signal: abortSignal },
-            type === PipelineRunType.Scheduled
+            type === PipelineRunType.SCHEDULED
               ? toDeleteResources[0].recurring_run_id
               : toDeleteResources[0].run_id,
           )
@@ -81,7 +81,7 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
             toDeleteResources.map((_run, i) =>
               callFunc(
                 { signal: abortSignal },
-                type === PipelineRunType.Scheduled
+                type === PipelineRunType.SCHEDULED
                   ? toDeleteResources[i].recurring_run_id
                   : toDeleteResources[i].run_id,
               ),

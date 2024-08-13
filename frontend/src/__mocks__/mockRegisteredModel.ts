@@ -1,17 +1,27 @@
-import { RegisteredModel, RegisteredModelState } from '~/concepts/modelRegistry/types';
+import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
+import { createModelRegistryLabelsObject } from './utils';
 
-type MockRegisteredModelType = { name?: string; state?: RegisteredModelState };
+type MockRegisteredModelType = {
+  id?: string;
+  name?: string;
+  state?: ModelState;
+  description?: string;
+  labels?: string[];
+};
 
 export const mockRegisteredModel = ({
   name = 'test',
-  state = RegisteredModelState.LIVE,
+  state = ModelState.LIVE,
+  description = '',
+  labels = [],
+  id = '1',
 }: MockRegisteredModelType): RegisteredModel => ({
   createTimeSinceEpoch: '1710404288975',
-  description: 'test',
+  description,
   externalID: '1234132asdfasdf',
-  id: '1',
+  id,
   lastUpdateTimeSinceEpoch: '1710404288975',
   name,
   state,
-  customProperties: {},
+  customProperties: createModelRegistryLabelsObject(labels),
 });

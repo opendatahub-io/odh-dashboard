@@ -2,88 +2,73 @@ import React, { useEffect } from 'react';
 import {
   Button,
   Checkbox,
+  DropdownGroup,
+  Dropdown,
+  DropdownItem,
   DropdownList,
-  Icon,
+  MenuToggle,
   Spinner,
   Stack,
   StackItem,
+  Divider,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
   Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, KebabToggle } from '@patternfly/react-core/deprecated';
 import { OutlinedPlayCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
 import { PauseIcon } from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import { DownloadIcon } from '@patternfly/react-icons/dist/esm/icons/download-icon';
 import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
 import {
-  CheckCircleIcon,
   CompressIcon,
   EllipsisVIcon,
-  ExclamationCircleIcon,
   ExpandIcon,
   OutlinedWindowRestoreIcon,
 } from '@patternfly/react-icons';
 import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import useFetchLogs from '~/concepts/k8s/pods/useFetchLogs';
 import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodContainerLogState';
 import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
 import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 import { downloadAllStepLogs, downloadCurrentStepLog } from '~/concepts/k8s/pods/utils';
-import usePodStepsStates from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodStepsStates';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
-import { PodStepStateType } from '~/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 
-// TODO: If this gets large enough we should look to make this its own component file
-const LogsTab: React.FC<{ task: PipelineTask }> = ({ task }) => {
-  const podName = task.status?.podName;
-  const isFailedPod = task.status?.state === ExecutionStateKF.FAILED;
+interface LogsTabProps {
+  task: PipelineTask;
+}
 
-  if (!podName) {
-    return <>No content</>;
-  }
-
-  return <LogsTabForPodName podName={podName} isFailedPod={isFailedPod} />;
-};
-
-/** Must be a non-empty podName -- use LogsTabForTask for safer usage */
-const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = ({
-  podName,
-  isFailedPod,
-}) => {
+const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
   const { namespace } = usePipelinesAPI();
+  const podName = task.status?.podName ?? '';
+  const isFailedPod = task.status?.state === ExecutionStateKF.FAILED;
   const {
     pod,
     podLoaded,
     podStatus,
     podError,
     podContainers,
-    podContainerStatuses,
     selectedContainer,
+    defaultContainerName,
     setSelectedContainer,
   } = usePodContainerLogState(podName);
   const [isPaused, setIsPaused] = React.useState(false);
   const containerName = selectedContainer?.name ?? '';
+  const [open, setOpen] = React.useState(false);
   const [logs, logsLoaded, logsError] = useFetchLogs(
     podName,
     containerName,
     !isPaused,
     LOG_TAIL_LINES,
   );
-  const sortedContainerStatuses = podContainers.map((podContainer) =>
-    podContainerStatuses.find(
-      (podContainerStatus) => podContainerStatus?.name === podContainer.name,
-    ),
-  );
-  const podStepStates = usePodStepsStates(sortedContainerStatuses, podName);
+
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
   const logViewerRef = React.useRef<{ scrollToBottom: () => void }>();
@@ -123,7 +108,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     scrollOffsetToBottom,
     scrollUpdateWasRequested,
   }) => {
-    if (!scrollUpdateWasRequested) {
+    if (!podStatus?.completed && logsLoaded && !scrollUpdateWasRequested) {
       if (scrollOffsetToBottom > 0) {
         setIsPaused(true);
       } else {
@@ -154,6 +139,11 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     downloadCurrentStepLog(namespace, podName, selectedContainer.name, podStatus?.completed)
       .catch((e) => setDownloadError(e))
       .finally(() => setDownloading(false));
+  };
+
+  const onChange = (selectedContainerName: string) => {
+    setSelectedContainer(podContainers.find((c) => c.name === selectedContainerName) ?? null);
+    setOpen(false);
   };
 
   const onToggleExpand = (
@@ -242,65 +232,100 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                     >
                       {!showSearchbar && (
                         <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
-                          <SimpleDropdownSelect
-                            dataTestId="logs-step-select"
-                            isDisabled={podStepStates.length <= 1}
-                            options={podStepStates.map((podStepState) => ({
-                              key: podStepState.stepName,
-                              label: podStepState.stepName,
-                              dropdownLabel: (
-                                <>
-                                  <span className="pf-v5-u-mr-sm">{podStepState.stepName}</span>
-                                  {podStepState.state === PodStepStateType.loading ? (
-                                    <Spinner size="sm" />
-                                  ) : podStepState.state === PodStepStateType.error ? (
-                                    <Icon status="danger">
-                                      <ExclamationCircleIcon />
-                                    </Icon>
-                                  ) : (
-                                    <Icon status="success">
-                                      <CheckCircleIcon />
-                                    </Icon>
-                                  )}
-                                </>
-                              ),
-                            }))}
-                            value={containerName}
-                            placeholder="Select container..."
-                            onChange={(v) => {
-                              setSelectedContainer(podContainers.find((c) => c.name === v) ?? null);
-                            }}
-                          />
+                          <Dropdown
+                            isOpen={open}
+                            onSelect={() => setOpen(false)}
+                            onOpenChange={(isOpen: boolean) => setOpen(isOpen)}
+                            toggle={(toggleRef) => (
+                              <MenuToggle
+                                data-testid="logs-step-select"
+                                ref={toggleRef}
+                                isDisabled={podContainers.length <= 1}
+                                onClick={() => setOpen(!open)}
+                                isExpanded={open}
+                              >
+                                <Truncate
+                                  content={
+                                    podContainers.find((key) => key.name === containerName)?.name ??
+                                    'Select container...'
+                                  }
+                                  className="truncate-no-min-width"
+                                />
+                              </MenuToggle>
+                            )}
+                            shouldFocusToggleOnSelect
+                          >
+                            {defaultContainerName && (
+                              <>
+                                <DropdownGroup label="Task output logs" key="Task output logs">
+                                  <DropdownList>
+                                    <DropdownItem
+                                      key={defaultContainerName}
+                                      onClick={() => onChange(defaultContainerName)}
+                                    >
+                                      {defaultContainerName}
+                                    </DropdownItem>
+                                  </DropdownList>
+                                </DropdownGroup>
+                                <Divider component="li" />
+                              </>
+                            )}
+                            <DropdownGroup
+                              label="Operation output logs"
+                              key="Operation output logs"
+                            >
+                              <DropdownList>
+                                {podContainers
+                                  .filter(
+                                    (podContainer) => podContainer.name !== defaultContainerName,
+                                  )
+                                  .map((container) => (
+                                    <DropdownItem
+                                      data-testid={`dropdown-item ${container.name}`}
+                                      key={container.name}
+                                      onClick={() => {
+                                        onChange(container.name);
+                                      }}
+                                    >
+                                      {container.name}
+                                    </DropdownItem>
+                                  ))}
+                              </DropdownList>
+                            </DropdownGroup>
+                          </Dropdown>
                         </ToolbarItem>
                       )}
                       <ToolbarItem spacer={{ default: 'spacerNone' }} style={{ maxWidth: '300px' }}>
-                        <Tooltip content="Search">
-                          <LogViewerSearch
-                            onFocus={() => setIsPaused(true)}
-                            placeholder="Search"
-                            minSearchChars={0}
-                            expandableInput={{
-                              isExpanded: showSearchbar,
-                              onToggleExpand,
-                              toggleAriaLabel: 'Expandable search input toggle',
-                            }}
-                          />
-                        </Tooltip>
+                        <LogViewerSearch
+                          onFocus={() => {
+                            if (!podStatus?.completed && logsLoaded) {
+                              setIsPaused(true);
+                            }
+                          }}
+                          placeholder="Search"
+                          minSearchChars={0}
+                          expandableInput={{
+                            isExpanded: showSearchbar,
+                            onToggleExpand,
+                            toggleAriaLabel: 'Expandable search input toggle',
+                          }}
+                        />
                       </ToolbarItem>
-                      {!podStatus?.completed && (
+                      {(!podStatus?.completed || isPaused) && (
                         <ToolbarItem spacer={{ default: 'spacerNone' }}>
                           <Button
                             variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
                             onClick={() => setIsPaused(!isPaused)}
                             isDisabled={!!error}
+                            data-testid="logs-pause-refresh-button"
                           >
-                            {!logsLoaded || podStatus?.podInitializing ? (
-                              <Tooltip content="Loading log">
-                                <Spinner size="sm" />
-                              </Tooltip>
-                            ) : isPaused ? (
+                            {isPaused ? (
                               <Tooltip content="Resume refreshing">
                                 <PlayIcon />
+                              </Tooltip>
+                            ) : !logsLoaded || podStatus?.podInitializing ? (
+                              <Tooltip content="Loading log">
+                                <Spinner size="sm" />
                               </Tooltip>
                             ) : (
                               <Tooltip content="Pause refreshing">
@@ -345,25 +370,28 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                       </ToolbarItem>
                       <ToolbarItem spacer={{ default: 'spacerNone' }}>
                         <Dropdown
-                          isPlain
-                          position="right"
+                          popperProps={{ position: 'right' }}
                           isOpen={isKebabOpen}
-                          toggle={
-                            <KebabToggle
+                          onOpenChange={(isOpen: boolean) => setIsKebabOpen(isOpen)}
+                          toggle={(toggleRef) => (
+                            <MenuToggle
+                              ref={toggleRef}
+                              variant="plain"
                               data-testid="logs-kebab-toggle"
-                              onToggle={() => {
+                              onClick={() => {
                                 setIsKebabOpen(!isKebabOpen);
                               }}
+                              isExpanded={isKebabOpen}
                             >
                               <EllipsisVIcon />
-                            </KebabToggle>
-                          }
+                            </MenuToggle>
+                          )}
+                          shouldFocusToggleOnSelect
                         >
                           <DropdownList>
                             <DropdownItem
                               isDisabled={!logs}
-                              href={`${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`}
-                              component="a"
+                              to={`${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               icon={<OutlinedWindowRestoreIcon />}
@@ -376,7 +404,6 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                               onClick={onExpandClick}
                               key="action"
                               icon={!isFullScreen ? <ExpandIcon /> : <CompressIcon />}
-                              component="button"
                             >
                               {!isFullScreen ? 'Expand' : 'Collapse'}
                             </DropdownItem>

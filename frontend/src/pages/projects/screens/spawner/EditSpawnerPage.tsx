@@ -13,8 +13,8 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { NotebookState } from '~/pages/projects/notebook/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import SpawnerPage from './SpawnerPage';
 
 const EditSpawnerPage: React.FC = () => {
@@ -71,7 +71,7 @@ const EditSpawnerPage: React.FC = () => {
           />
           <EmptyStateBody>
             We were unable to find a notebook by this name in your project{' '}
-            {getProjectDisplayName(currentProject)}.
+            {getDisplayNameFromK8sResource(currentProject)}.
           </EmptyStateBody>
           <EmptyStateFooter>
             <Button
@@ -79,7 +79,7 @@ const EditSpawnerPage: React.FC = () => {
               variant="primary"
               onClick={() => navigate(`/projects/${currentProject.metadata.name}`)}
             >
-              Return to {getProjectDisplayName(currentProject)}
+              Return to {getDisplayNameFromK8sResource(currentProject)}
             </Button>
           </EmptyStateFooter>
         </EmptyState>

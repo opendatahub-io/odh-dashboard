@@ -19,7 +19,9 @@ const BiasChart: React.FC<BiasChartProps> = ({ biasMetricConfig }) => {
     BIAS_CHART_CONFIGS[metricType];
 
   const metric = React.useMemo(() => {
-    const metricData = data[modelMetricKey].data as PrometheusQueryRangeResponseDataResult[];
+    const metricData = data[modelMetricKey].data.filter(
+      (x): x is PrometheusQueryRangeResponseDataResult => 'metric' in x,
+    );
 
     const values = metricData.find((x) => x.metric.request === id)?.values || [];
 

@@ -14,6 +14,7 @@ import { RefreshIntervalValue } from '~/concepts/metrics/const';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PROMETHEUS_BIAS_PATH } from '~/api/prometheus/const';
+import { EitherNotBoth } from '~/typeHelpers';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 import {
   defaultResponsePredicate,
@@ -22,17 +23,26 @@ import {
 
 export const useModelServingMetrics = (
   type: PerformanceMetricType,
-  queries: { [key in ModelMetricType]: string } | { [key in ServerMetricType]: string },
+  queries: EitherNotBoth<
+    { [key in ModelMetricType]: string },
+    { [key in ServerMetricType]: string }
+  >,
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
   refreshInterval: RefreshIntervalTitle,
   namespace: string,
 ): {
-  data: Record<
-    ServerMetricType | ModelMetricType,
-    ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
-  >;
+  data: {
+    [ServerMetricType.REQUEST_COUNT]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ServerMetricType.AVG_RESPONSE_TIME]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+    [ServerMetricType.CPU_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ServerMetricType.MEMORY_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ModelMetricType.REQUEST_COUNT_FAILED]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ModelMetricType.TRUSTY_AI_SPD]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+    [ModelMetricType.TRUSTY_AI_DIR]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+  };
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
@@ -43,7 +53,7 @@ export const useModelServingMetrics = (
 
   const serverRequestCount = useQueryRangeResourceData(
     performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
-    (queries as { [key in ServerMetricType]: string })[ServerMetricType.REQUEST_COUNT],
+    queries[ServerMetricType.REQUEST_COUNT] ?? '',
     end,
     timeframe,
     defaultResponsePredicate,
@@ -53,7 +63,7 @@ export const useModelServingMetrics = (
   const serverAverageResponseTime =
     useQueryRangeResourceData<PrometheusQueryRangeResponseDataResult>(
       performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
-      (queries as { [key in ServerMetricType]: string })[ServerMetricType.AVG_RESPONSE_TIME],
+      queries[ServerMetricType.AVG_RESPONSE_TIME] ?? '',
       end,
       timeframe,
       prometheusQueryRangeResponsePredicate,
@@ -62,7 +72,7 @@ export const useModelServingMetrics = (
 
   const serverCPUUtilization = useQueryRangeResourceData(
     performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
-    (queries as { [key in ServerMetricType]: string })[ServerMetricType.CPU_UTILIZATION],
+    queries[ServerMetricType.CPU_UTILIZATION] ?? '',
     end,
     timeframe,
     defaultResponsePredicate,
@@ -71,7 +81,7 @@ export const useModelServingMetrics = (
 
   const serverMemoryUtilization = useQueryRangeResourceData(
     performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
-    (queries as { [key in ServerMetricType]: string })[ServerMetricType.MEMORY_UTILIZATION],
+    queries[ServerMetricType.MEMORY_UTILIZATION] ?? '',
     end,
     timeframe,
     defaultResponsePredicate,
@@ -80,7 +90,7 @@ export const useModelServingMetrics = (
 
   const modelRequestSuccessCount = useQueryRangeResourceData(
     performanceMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
-    (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_SUCCESS],
+    queries[ModelMetricType.REQUEST_COUNT_SUCCESS] ?? '',
     end,
     timeframe,
     defaultResponsePredicate,
@@ -89,7 +99,7 @@ export const useModelServingMetrics = (
 
   const modelRequestFailedCount = useQueryRangeResourceData(
     performanceMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
-    (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_FAILED],
+    queries[ModelMetricType.REQUEST_COUNT_FAILED] ?? '',
     end,
     timeframe,
     defaultResponsePredicate,
@@ -98,7 +108,7 @@ export const useModelServingMetrics = (
 
   const modelTrustyAISPD = useQueryRangeResourceData(
     biasMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
-    (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_SPD],
+    queries[ModelMetricType.TRUSTY_AI_SPD] ?? '',
     end,
     timeframe,
     prometheusQueryRangeResponsePredicate,
@@ -108,7 +118,7 @@ export const useModelServingMetrics = (
 
   const modelTrustyAIDIR = useQueryRangeResourceData(
     biasMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
-    (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_DIR],
+    queries[ModelMetricType.TRUSTY_AI_DIR] ?? '',
     end,
     timeframe,
     prometheusQueryRangeResponsePredicate,

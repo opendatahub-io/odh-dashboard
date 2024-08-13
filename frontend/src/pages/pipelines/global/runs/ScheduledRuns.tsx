@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import {
   Bullseye,
@@ -8,25 +8,20 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateHeader,
-  Button,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-
-import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
-import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { scheduleRunRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PipelineRunType } from './types';
+import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
+import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelineRecurringRunsTable } from '~/concepts/pipelines/content/tables/pipelineRecurringRun/usePipelineRecurringRunTable';
+import PipelineRecurringRunTable from '~/concepts/pipelines/content/tables/pipelineRecurringRun/PipelineRecurringRunTable';
 
 const ScheduledRuns: React.FC = () => {
-  const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
-  const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineRunJobTable();
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
+  const { experimentId, pipelineVersionId } = useParams();
+  const [[{ items: recurringRuns, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
+    usePipelineRecurringRunsTable({ experimentId, pipelineVersionId });
+  const isExperimentArchived = useIsExperimentArchived();
 
   if (error) {
     return (
@@ -61,35 +56,28 @@ const ScheduledRuns: React.FC = () => {
         />
 
         <EmptyStateBody>
-          Schedules dictate when and how many times a run is executed. To get started, schedule
-          runs.
+          Schedules dictate when and how many times a run is executed.{' '}
+          {!isExperimentArchived && 'To get started, create a schedule.'}
         </EmptyStateBody>
 
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <Button
-              data-testid="schedule-run-button"
-              variant="primary"
-              onClick={() =>
-                navigate({
-                  pathname: scheduleRunRoute(
-                    namespace,
-                    isExperimentsAvailable ? experimentId : undefined,
-                  ),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
-                })
-              }
-            >
-              Schedule run
-            </Button>
-          </EmptyStateActions>
-        </EmptyStateFooter>
+        {!isExperimentArchived && (
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <CreateScheduleButton />
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        )}
       </EmptyState>
     );
   }
 
   return (
-    <PipelineRunJobTable jobs={jobs} loading={!loaded} totalSize={totalSize} {...tableProps} />
+    <PipelineRecurringRunTable
+      recurringRuns={recurringRuns}
+      loading={!loaded}
+      totalSize={totalSize}
+      {...tableProps}
+    />
   );
 };
 

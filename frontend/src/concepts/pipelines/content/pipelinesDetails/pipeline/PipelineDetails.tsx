@@ -3,13 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
   Flex,
   FlexItem,
+  PageSection,
   Tab,
   TabContent,
+  TabContentBody,
   Tabs,
   TabTitleText,
   Truncate,
@@ -25,14 +24,18 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { routePipelineDetailsNamespace, routePipelinesNamespace } from '~/routes';
+import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '~/routes';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
+import { PipelineSummaryDescriptionList } from './PipelineSummaryDescriptionList';
+import PipelineNotSupported from './PipelineNotSupported';
 
 enum PipelineDetailsTab {
   GRAPH,
+  SUMMARY,
   YAML,
 }
 
@@ -51,7 +54,16 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
     usePipelineVersionById(pipelineId, pipelineVersionId);
   const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
 
-  const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersion?.pipeline_spec);
+  const nodes = usePipelineTaskTopology(pipelineVersion?.pipeline_spec);
+  const isInvalidPipelineVersion = isArgoWorkflow(pipelineVersion?.pipeline_spec);
+
+  const selectedNode = React.useMemo(() => {
+    if (isInvalidPipelineVersion) {
+      return null;
+    }
+    return nodes.find((n) => n.id === selectedId);
+  }, [isInvalidPipelineVersion, nodes, selectedId]);
+
   const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && !!pipelineVersion?.pipeline_spec;
 
   if (pipelineVersionLoadError || pipelineLoadError) {
@@ -74,98 +86,136 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
     );
   }
 
+  const panelContent = selectedNode ? (
+    <SelectedTaskDrawerContent
+      task={selectedNode.data.pipelineTask}
+      onClose={() => setSelectedId(null)}
+    />
+  ) : null;
+
   return (
     <>
-      <Drawer isExpanded={!!selectedId}>
-        <DrawerContent
-          panelContent={
-            <SelectedTaskDrawerContent
-              task={selectedId ? taskMap[selectedId] : undefined}
-              onClose={() => setSelectedId(null)}
-            />
-          }
-        >
-          <DrawerContentBody style={{ display: 'flex', flexDirection: 'column' }}>
-            <ApplicationsPage
-              breadcrumb={
-                <Breadcrumb>
-                  {breadcrumbPath}
-                  <BreadcrumbItem>{pipeline?.display_name || 'Loading...'}</BreadcrumbItem>
-                  <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                    <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
-                  </BreadcrumbItem>
-                </Breadcrumb>
-              }
-              title={<Truncate content={pipelineVersion?.display_name || 'Loading...'} />}
-              {...(pipelineVersion && {
-                description: (
-                  <MarkdownView
-                    component="span"
-                    conciseDisplay
-                    markdown={pipelineVersion.description}
-                  />
-                ),
-              })}
-              empty={false}
-              loaded={isLoaded}
-              headerAction={
-                isPipelineVersionLoaded && (
-                  <Flex
-                    spaceItems={{ default: 'spaceItemsMd' }}
-                    alignItems={{ default: 'alignItemsFlexStart' }}
-                  >
-                    <FlexItem style={{ width: '300px' }}>
-                      <PipelineVersionSelector
-                        pipelineId={pipeline?.pipeline_id}
-                        selection={pipelineVersion?.display_name}
-                        onSelect={(version) =>
-                          navigate(
-                            routePipelineDetailsNamespace(
-                              namespace,
-                              version.pipeline_id,
-                              version.pipeline_version_id,
-                            ),
-                          )
-                        }
-                      />
-                    </FlexItem>
-                    <FlexItem>
-                      {isLoaded && (
-                        <PipelineDetailsActions
-                          onDelete={() => setDeletionOpen(true)}
-                          pipeline={pipeline}
-                          pipelineVersion={pipelineVersion}
-                        />
-                      )}
-                    </FlexItem>
-                  </Flex>
-                )
-              }
+      <ApplicationsPage
+        breadcrumb={
+          <Breadcrumb>
+            {breadcrumbPath}
+            <BreadcrumbItem style={{ maxWidth: 300 }}>
+              {/* TODO: Remove the custom className after upgrading to PFv6 */}
+              <Truncate
+                content={pipeline?.display_name || 'Loading...'}
+                className="truncate-no-min-width"
+              />
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+              {/* TODO: Remove the custom className after upgrading to PFv6 */}
+              <Truncate
+                content={pipelineVersion?.display_name || 'Loading...'}
+                className="truncate-no-min-width"
+              />
+            </BreadcrumbItem>
+          </Breadcrumb>
+        }
+        title={
+          <Truncate
+            content={pipelineVersion?.display_name || 'Loading...'}
+            // TODO: Remove the custom className after upgrading to PFv6
+            className="truncate-no-min-width"
+          />
+        }
+        {...(pipelineVersion && {
+          description: (
+            <MarkdownView component="span" conciseDisplay markdown={pipelineVersion.description} />
+          ),
+        })}
+        empty={false}
+        loaded={isLoaded}
+        headerAction={
+          isPipelineVersionLoaded && (
+            <Flex
+              spaceItems={{ default: 'spaceItemsMd' }}
+              alignItems={{ default: 'alignItemsFlexStart' }}
             >
-              <Tabs
-                style={{ flexShrink: 0 }}
-                activeKey={activeTabKey}
-                onSelect={(e, tabIndex) => {
-                  setActiveTabKey(tabIndex);
-                  setSelectedId(null);
-                }}
-                aria-label="Pipeline Details tabs"
-                role="region"
-              >
-                <Tab
-                  eventKey={PipelineDetailsTab.GRAPH}
-                  title={<TabTitleText>Graph</TabTitleText>}
-                  aria-label="Pipeline Graph Tab"
-                  tabContentId={`tabContent-${PipelineDetailsTab.GRAPH}`}
+              <FlexItem style={{ width: '300px' }}>
+                <PipelineVersionSelector
+                  pipelineId={pipeline?.pipeline_id}
+                  selection={pipelineVersion?.display_name}
+                  onSelect={(version) =>
+                    navigate(
+                      pipelineVersionDetailsRoute(
+                        namespace,
+                        version.pipeline_id,
+                        version.pipeline_version_id,
+                      ),
+                    )
+                  }
                 />
-                <Tab
-                  eventKey={PipelineDetailsTab.YAML}
-                  title={<TabTitleText>YAML</TabTitleText>}
-                  aria-label="Pipeline YAML Tab"
-                  tabContentId={`tabContent-${PipelineDetailsTab.YAML}`}
-                />
-              </Tabs>
-              <div style={{ flexGrow: 1 }}>
+              </FlexItem>
+              <FlexItem>
+                {isLoaded && (
+                  <PipelineDetailsActions
+                    onDelete={() => setDeletionOpen(true)}
+                    pipeline={pipeline}
+                    pipelineVersion={pipelineVersion}
+                    isPipelineSupported={!isArgoWorkflow(pipelineVersion.pipeline_spec)}
+                  />
+                )}
+              </FlexItem>
+            </Flex>
+          )
+        }
+      >
+        {isInvalidPipelineVersion ? (
+          <PipelineNotSupported />
+        ) : (
+          <PageSection
+            isFilled
+            padding={{ default: 'noPadding' }}
+            style={{ flexBasis: 0, overflowY: 'hidden' }}
+            variant="light"
+          >
+            <Flex
+              direction={{ default: 'column' }}
+              style={{ height: '100%' }}
+              spaceItems={{ default: 'spaceItemsNone' }}
+            >
+              <FlexItem>
+                <Tabs
+                  activeKey={activeTabKey}
+                  onSelect={(e, tabIndex) => {
+                    setActiveTabKey(tabIndex);
+                    setSelectedId(null);
+                  }}
+                  aria-label="Pipeline Details tabs"
+                  role="region"
+                >
+                  <Tab
+                    eventKey={PipelineDetailsTab.GRAPH}
+                    title={<TabTitleText>Graph</TabTitleText>}
+                    aria-label="Pipeline Graph Tab"
+                    tabContentId={`tabContent-${PipelineDetailsTab.GRAPH}`}
+                  />
+                  <Tab
+                    eventKey={PipelineDetailsTab.SUMMARY}
+                    title={<TabTitleText>Summary</TabTitleText>}
+                    aria-label="Pipeline Summary Tab"
+                  >
+                    <TabContentBody hasPadding>
+                      <PipelineSummaryDescriptionList
+                        pipeline={pipeline}
+                        version={pipelineVersion}
+                      />
+                    </TabContentBody>
+                  </Tab>
+                  <Tab
+                    eventKey={PipelineDetailsTab.YAML}
+                    title={<TabTitleText>Pipeline spec</TabTitleText>}
+                    data-testid="pipeline-yaml-tab"
+                    aria-label="Pipeline YAML Tab"
+                    tabContentId={`tabContent-${PipelineDetailsTab.YAML}`}
+                  />
+                </Tabs>
+              </FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
                 <TabContent
                   id={`tabContent-${PipelineDetailsTab.GRAPH}`}
                   eventKey={PipelineDetailsTab.GRAPH}
@@ -188,6 +238,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                           setSelectedId(firstId);
                         }
                       }}
+                      sidePanel={panelContent}
                     />
                   )}
                 </TabContent>
@@ -196,21 +247,23 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   eventKey={PipelineDetailsTab.YAML}
                   activeKey={activeTabKey}
                   hidden={PipelineDetailsTab.YAML !== activeTabKey}
-                  style={{ height: '100%' }}
+                  className="pf-v5-u-h-100"
                 >
-                  <PipelineDetailsYAML
-                    filename={`Pipeline ${
-                      getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??
-                      'details'
-                    }`}
-                    content={pipelineVersion?.pipeline_spec}
-                  />
+                  <TabContentBody hasPadding className="pf-v5-u-h-100">
+                    <PipelineDetailsYAML
+                      filename={`Pipeline ${
+                        getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??
+                        'details'
+                      }`}
+                      content={pipelineVersion?.pipeline_spec}
+                    />
+                  </TabContentBody>
                 </TabContent>
-              </div>
-            </ApplicationsPage>
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
+              </FlexItem>
+            </Flex>
+          </PageSection>
+        )}
+      </ApplicationsPage>
       {pipeline && (
         <DeletePipelinesModal
           isOpen={isDeletionOpen}
@@ -222,7 +275,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           onClose={(deleted) => {
             setDeletionOpen(false);
             if (deleted) {
-              navigate(routePipelinesNamespace(namespace));
+              navigate(pipelinesBaseRoute(namespace));
             }
           }}
         />

@@ -1,7 +1,6 @@
 import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
 import { SortableData } from '~/components/table';
-import { getProjectDisplayName } from '~/pages/projects/utils';
-import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 const COL_EXPAND: SortableData<InferenceServiceKind> = {
   field: 'expand',
@@ -13,7 +12,7 @@ const COL_NAME: SortableData<InferenceServiceKind> = {
   label: 'Model name',
   width: 20,
   sortable: (a, b) =>
-    getInferenceServiceDisplayName(a).localeCompare(getInferenceServiceDisplayName(b)),
+    getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
 };
 const buildProjectCol = (projects: ProjectKind[]): SortableData<InferenceServiceKind> => ({
   field: 'project',
@@ -34,7 +33,9 @@ const buildProjectCol = (projects: ProjectKind[]): SortableData<InferenceService
     }
 
     // Properly sort by display name
-    return getProjectDisplayName(projectA).localeCompare(getProjectDisplayName(projectB));
+    return getDisplayNameFromK8sResource(projectA).localeCompare(
+      getDisplayNameFromK8sResource(projectB),
+    );
   },
 });
 const COL_ENDPOINT: SortableData<InferenceServiceKind> = {
@@ -102,7 +103,8 @@ export const tokenColumns: SortableData<SecretKind>[] = [
     field: 'name',
     label: 'Token name',
     width: 20,
-    sortable: (a, b) => getTokenDisplayName(a).localeCompare(getTokenDisplayName(b)),
+    sortable: (a, b) =>
+      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
   },
   {
     field: 'token',

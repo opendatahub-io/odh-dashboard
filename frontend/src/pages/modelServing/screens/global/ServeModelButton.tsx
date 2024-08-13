@@ -21,7 +21,7 @@ const ServeModelButton: React.FC = () => {
   const {
     inferenceServices: { refresh: refreshInferenceServices },
     servingRuntimes: { refresh: refreshServingRuntimes },
-    servingRuntimeTemplates: { data: templates },
+    servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },

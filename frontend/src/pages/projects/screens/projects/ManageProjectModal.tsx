@@ -4,13 +4,16 @@ import { createProject, updateProject } from '~/api';
 import { useUser } from '~/redux/selectors';
 import { ProjectKind } from '~/k8sTypes';
 import {
-  getProjectDescription,
-  getProjectDisplayName,
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
   isValidK8sName,
-} from '~/pages/projects/utils';
+} from '~/concepts/k8s/utils';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -36,8 +39,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const canSubmit =
     !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
 
-  const editNameValue = editProjectData ? getProjectDisplayName(editProjectData) : '';
-  const editDescriptionValue = editProjectData ? getProjectDescription(editProjectData) : '';
+  const editNameValue = editProjectData ? getDisplayNameFromK8sResource(editProjectData) : '';
+  const editDescriptionValue = editProjectData
+    ? getDescriptionFromK8sResource(editProjectData)
+    : '';
   const editResourceNameValue = editProjectData ? editProjectData.metadata.name : undefined;
   React.useEffect(() => {
     setNameDesc({
@@ -49,11 +54,24 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
 
   const onBeforeClose = (newProjectName?: string) => {
     onClose(newProjectName);
+    if (newProjectName) {
+      fireFormTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        projectName: newProjectName,
+      });
+    }
     setFetching(false);
     setError(undefined);
     setNameDesc({ name: '', k8sName: undefined, description: '' });
   };
   const handleError = (e: Error) => {
+    fireFormTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      projectName: '',
+      error: e.message,
+    });
     setError(e);
     setFetching(false);
   };
@@ -88,7 +106,16 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         >
           {editProjectData ? 'Update' : 'Create'}
         </Button>,
-        <Button key="cancel" variant="link" onClick={() => onBeforeClose()}>
+        <Button
+          key="cancel"
+          variant="link"
+          onClick={() => {
+            onBeforeClose();
+            fireFormTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
+              outcome: TrackingOutcome.cancel,
+            });
+          }}
+        >
           Cancel
         </Button>,
       ]}

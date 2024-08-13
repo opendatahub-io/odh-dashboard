@@ -1,11 +1,6 @@
 import { K8sAPIOptions } from '~/k8sTypes';
 
-export enum RegisteredModelState {
-  LIVE = 'LIVE',
-  ARCHIVED = 'ARCHIVED',
-}
-
-export enum ModelVersionState {
+export enum ModelState {
   LIVE = 'LIVE',
   ARCHIVED = 'ARCHIVED',
 }
@@ -35,6 +30,57 @@ export enum ModelArtifactState {
   REFERENCE = 'REFERENCE',
 }
 
+export enum ModelRegistryMetadataType {
+  INT = 'MetadataIntValue',
+  DOUBLE = 'MetadataDoubleValue',
+  STRING = 'MetadataStringValue',
+  STRUCT = 'MetadataStructValue',
+  PROTO = 'MetadataProtoValue',
+  BOOL = 'MetadataBoolValue',
+}
+
+export type ModelRegistryCustomPropertyInt = {
+  metadataType: ModelRegistryMetadataType.INT;
+  int_value: string; // int64-formatted string
+};
+
+export type ModelRegistryCustomPropertyDouble = {
+  metadataType: ModelRegistryMetadataType.DOUBLE;
+  double_value: number;
+};
+
+export type ModelRegistryCustomPropertyString = {
+  metadataType: ModelRegistryMetadataType.STRING;
+  string_value: string;
+};
+
+export type ModelRegistryCustomPropertyStruct = {
+  metadataType: ModelRegistryMetadataType.STRUCT;
+  struct_value: string; // Base64 encoded bytes for struct value
+};
+
+export type ModelRegistryCustomPropertyProto = {
+  metadataType: ModelRegistryMetadataType.PROTO;
+  type: string; // url describing proto value
+  proto_value: string; // Base64 encoded bytes for proto value
+};
+
+export type ModelRegistryCustomPropertyBool = {
+  metadataType: ModelRegistryMetadataType.BOOL;
+  bool_value: boolean;
+};
+
+export type ModelRegistryCustomProperty =
+  | ModelRegistryCustomPropertyInt
+  | ModelRegistryCustomPropertyDouble
+  | ModelRegistryCustomPropertyString
+  | ModelRegistryCustomPropertyStruct
+  | ModelRegistryCustomPropertyProto
+  | ModelRegistryCustomPropertyBool;
+
+export type ModelRegistryCustomProperties = Record<string, ModelRegistryCustomProperty>;
+export type ModelRegistryStringCustomProperties = Record<string, ModelRegistryCustomPropertyString>;
+
 export type ModelRegistryBase = {
   id: string;
   name: string;
@@ -42,7 +88,7 @@ export type ModelRegistryBase = {
   description?: string;
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch: string;
-  customProperties: Record<string, Record<string, string>>;
+  customProperties: ModelRegistryCustomProperties;
 };
 
 export type ModelArtifact = ModelRegistryBase & {
@@ -58,13 +104,13 @@ export type ModelArtifact = ModelRegistryBase & {
 };
 
 export type ModelVersion = ModelRegistryBase & {
-  state?: ModelVersionState;
+  state?: ModelState;
   author?: string;
-  registeredModelID: string;
+  registeredModelId: string;
 };
 
 export type RegisteredModel = ModelRegistryBase & {
-  state?: RegisteredModelState;
+  state?: ModelState;
 };
 
 export type InferenceService = ModelRegistryBase & {
@@ -99,7 +145,7 @@ export type CreateModelVersionData = Omit<
 
 export type CreateModelArtifactData = Omit<
   ModelArtifact,
-  'lastUpdateTimeSinceEpoch' | 'createTimeSinceEpoch' | 'id' | 'artifactType'
+  'lastUpdateTimeSinceEpoch' | 'createTimeSinceEpoch' | 'id'
 >;
 
 export type ModelRegistryListParams = {
@@ -124,14 +170,26 @@ export type CreateModelVersion = (
   data: CreateModelVersionData,
 ) => Promise<ModelVersion>;
 
+export type CreateModelVersionForRegisteredModel = (
+  opts: K8sAPIOptions,
+  registeredModelId: string,
+  data: CreateModelVersionData,
+) => Promise<ModelVersion>;
+
 export type CreateModelArtifact = (
   opts: K8sAPIOptions,
   data: CreateModelArtifactData,
 ) => Promise<ModelArtifact>;
 
+export type CreateModelArtifactForModelVersion = (
+  opts: K8sAPIOptions,
+  modelVersionId: string,
+  data: CreateModelArtifactData,
+) => Promise<ModelArtifact>;
+
 export type GetRegisteredModel = (
   opts: K8sAPIOptions,
-  registeredModelID: string,
+  registeredModelId: string,
 ) => Promise<RegisteredModel>;
 
 export type GetModelVersion = (
@@ -155,10 +213,15 @@ export type GetModelVersionsByRegisteredModel = (
   registeredmodelId: string,
 ) => Promise<ModelVersionList>;
 
+export type GetModelArtifactsByModelVersion = (
+  opts: K8sAPIOptions,
+  modelVersionId: string,
+) => Promise<ModelArtifactList>;
+
 export type PatchRegisteredModel = (
   opts: K8sAPIOptions,
   data: Partial<RegisteredModel>,
-  registeredModelID: string,
+  registeredModelId: string,
 ) => Promise<RegisteredModel>;
 
 export type PatchModelVersion = (
@@ -176,7 +239,9 @@ export type PatchModelArtifact = (
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersion: CreateModelVersion;
+  createModelVersionForRegisteredModel: CreateModelVersionForRegisteredModel;
   createModelArtifact: CreateModelArtifact;
+  createModelArtifactForModelVersion: CreateModelArtifactForModelVersion;
   getRegisteredModel: GetRegisteredModel;
   getModelVersion: GetModelVersion;
   getModelArtifact: GetModelArtifact;
@@ -184,6 +249,7 @@ export type ModelRegistryAPIs = {
   listModelVersions: GetListModelVersions;
   listRegisteredModels: GetListRegisteredModels;
   getModelVersionsByRegisteredModel: GetModelVersionsByRegisteredModel;
+  getModelArtifactsByModelVersion: GetModelArtifactsByModelVersion;
   patchRegisteredModel: PatchRegisteredModel;
   patchModelVersion: PatchModelVersion;
   patchModelArtifact: PatchModelArtifact;

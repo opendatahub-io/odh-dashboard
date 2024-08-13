@@ -1,20 +1,13 @@
 import React from 'react';
 
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateVariant,
-  ExpandableSection,
-  Flex,
-  Switch,
-} from '@patternfly/react-core';
+import { ExpandableSection, Flex, Switch } from '@patternfly/react-core';
 import { InnerScrollContainer, TableVariant, Td, Tr } from '@patternfly/react-table';
 
 import { SortableData, Table } from '~/components/table';
 import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
 import { normalizeInputParamValue } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
 
 export const CompareRunParamsSection: React.FunctionComponent = () => {
   const { loaded, selectedRuns } = useCompareRuns();
@@ -141,19 +134,14 @@ export const CompareRunParamsSection: React.FunctionComponent = () => {
         <InnerScrollContainer>
           <Table
             loading={!loaded}
-            data={Object.entries(runParamsMap).sort()}
+            data={Object.entries(runParamsMap).toSorted()}
             columns={hasParameters ? runNameColumns : []}
             hasNestedHeader
             emptyTableView={
-              <EmptyState
-                variant={EmptyStateVariant.xs}
+              <CompareRunsEmptyState
+                title="No parameters"
                 data-testid="compare-runs-params-empty-state"
-              >
-                <EmptyStateHeader titleText="No parameters" headingLevel="h4" />
-                <EmptyStateBody>
-                  Select runs from the <b>Run list</b> to compare parameters.
-                </EmptyStateBody>
-              </EmptyState>
+              />
             }
             rowRenderer={rowRenderer}
             variant={TableVariant.compact}

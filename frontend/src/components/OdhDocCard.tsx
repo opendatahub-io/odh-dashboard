@@ -11,7 +11,6 @@ import {
   StackItem,
   Text,
   TextContent,
-  Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContextValues } from '@patternfly/quickstarts';
@@ -22,25 +21,27 @@ import {
   launchQuickStart,
   LaunchStatusEnum,
 } from '~/utilities/quickStartUtils';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import FavoriteButton from './FavoriteButton';
+import TruncatedText from './TruncatedText';
 
 import './OdhCard.scss';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
-  favorite: boolean;
-  updateFavorite: (isFavorite: boolean) => void;
-};
+  showFavorite?: boolean;
+  favorite?: boolean;
+  updateFavorite?: (isFavorite: boolean) => void;
+} & React.HTMLProps<HTMLElement>;
 
 // fire an event when any resource on the Resource page is accessed
 const fireResourceAccessedEvent =
   (name: string, type: string, qsContext?: QuickStartContextValues) => () => {
     const quickStartLabel = getQuickStartLabel(name, qsContext);
-    fireTrackingEvent(
+    fireMiscTrackingEvent(
       type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
       {
         name,
@@ -54,7 +55,13 @@ const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Continue,
   LaunchStatusEnum.Close,
 ];
-const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
+const OdhDocCard: React.FC<OdhDocCardProps> = ({
+  odhDoc,
+  showFavorite = true,
+  favorite = false,
+  updateFavorite,
+  ...rest
+}) => {
   const [qsContext, selected] = useQuickStartCardSelected(
     odhDoc.metadata.name,
     odhDoc.metadata.name,
@@ -151,12 +158,16 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       isSelected={selected}
       isSelectable
       isClickable
+      {...rest}
     >
       <CardHeader
         actions={{
-          actions: (
-            <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
-          ),
+          actions: showFavorite ? (
+            <FavoriteButton
+              isFavorite={favorite}
+              onClick={() => updateFavorite && updateFavorite(!favorite)}
+            />
+          ) : undefined,
           hasNoOffset: true,
           className: undefined,
         }}
@@ -178,9 +189,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
             <DocCardBadges odhDoc={odhDoc} />
           </StackItem>
           <StackItem>
-            <Tooltip content={odhDoc.spec.description}>
-              <span className="odh-card__body-text">{odhDoc.spec.description}</span>
-            </Tooltip>
+            <TruncatedText maxLines={4} content={odhDoc.spec.description} />
           </StackItem>
         </Stack>
       </CardBody>

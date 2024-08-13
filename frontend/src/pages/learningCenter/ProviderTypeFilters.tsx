@@ -39,8 +39,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
     return allTypes;
   }, [categoryApps, docApps]);
 
-  const onFilterChange = (docType: string, e: React.SyntheticEvent<HTMLElement>): void => {
-    const { checked } = e.target as React.AllHTMLAttributes<HTMLInputElement>;
+  const onFilterChange = (docType: string, checked: boolean): void => {
     const updatedQuery = [...providerTypeFilters];
     const index = updatedQuery.indexOf(docType);
     if (checked && index === -1) {
@@ -69,7 +68,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
       showAll={showAll}
     >
       {Object.keys(providerTypes)
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           if (a.toLowerCase().includes(`${ODH_PRODUCT_NAME}`)) {
             return -1;
           }
@@ -81,7 +80,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
             id={providerType}
             key={providerType}
             checked={providerTypeFilters.includes(providerType)}
-            onClick={(e) => onFilterChange(providerType, e)}
+            onChange={(_, checked) => onFilterChange(providerType, checked)}
             title={providerType}
           >
             {`${providerType} (${providerTypes[providerType]})`}

@@ -12,7 +12,7 @@ import {
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { runDetailsRoute } from '~/routes';
+import { experimentRunsRoute, runDetailsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type CompareRunTableRowProps = {
@@ -37,7 +37,15 @@ const CompareRunTableRow: React.FC<CompareRunTableRowProps> = ({
         <TableRowTitleDescription
           title={
             <TableText wrapModifier="truncate">
-              <Link to={runDetailsRoute(namespace, run.run_id, run.experiment_id)}>
+              <Link
+                to={runDetailsRoute(
+                  namespace,
+                  run.run_id,
+                  run.experiment_id,
+                  version?.pipeline_id,
+                  version?.pipeline_version_id,
+                )}
+              >
                 {run.display_name}
               </Link>
             </TableText>
@@ -46,7 +54,15 @@ const CompareRunTableRow: React.FC<CompareRunTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Experiment">
-        {isExperimentLoaded ? experiment?.display_name || 'Default' : <Skeleton />}
+        {isExperimentLoaded ? (
+          <TableText wrapModifier="truncate">
+            <Link to={experimentRunsRoute(namespace, run.experiment_id)}>
+              {experiment?.display_name || 'Default'}
+            </Link>
+          </TableText>
+        ) : (
+          <Skeleton />
+        )}
       </Td>
       <Td modifier="truncate" dataLabel="Pipeline version">
         <PipelineVersionLink

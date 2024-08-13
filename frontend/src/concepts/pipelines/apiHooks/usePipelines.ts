@@ -2,8 +2,14 @@ import * as React from 'react';
 import { FetchState, NotReadyError } from '~/utilities/useFetchState';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
-import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
+import {
+  ListPipelines,
+  PipelineListPaged,
+  PipelineOptions,
+  PipelineParams,
+} from '~/concepts/pipelines/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { K8sAPIOptions } from '~/k8sTypes';
 
 const usePipelines = (
   options?: PipelineOptions,
@@ -37,6 +43,46 @@ export const useSafePipelines = (
           .then((result) => ({ ...result, items: result.pipelines }));
       },
       [api, apiAvailable, pipelinesServer.compatible],
+    ),
+    options,
+    refreshRate,
+  );
+};
+
+async function getAllPipelines(
+  opts: K8sAPIOptions,
+  params: PipelineParams | undefined,
+  listPipelines: ListPipelines,
+): Promise<PipelineKFv2[]> {
+  const result = await listPipelines(opts, params);
+  let allPipelines = result.pipelines ?? [];
+
+  if (result.next_page_token) {
+    const nextPipelines = await getAllPipelines(
+      opts,
+      { ...params, pageToken: result.next_page_token },
+      listPipelines,
+    );
+    allPipelines = allPipelines.concat(nextPipelines);
+  }
+
+  return allPipelines;
+}
+
+export const useAllPipelines = (
+  options?: PipelineOptions,
+  refreshRate?: number,
+): FetchState<PipelineListPaged<PipelineKFv2>> => {
+  const { api } = usePipelinesAPI();
+
+  return usePipelineQuery<PipelineKFv2>(
+    React.useCallback(
+      async (opts, params) => {
+        const allPipelines = await getAllPipelines(opts, params, api.listPipelines);
+
+        return { items: allPipelines };
+      },
+      [api.listPipelines],
     ),
     options,
     refreshRate,

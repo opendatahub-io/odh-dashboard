@@ -11,6 +11,7 @@ import {
   ResourceType,
   parseRuntimeInfoFromExecutions,
   parseVolumeMounts,
+  getExecutionLinkedArtifactMap,
 } from '~/concepts/pipelines/topology/parseUtils';
 import {
   ArtifactStateKF,
@@ -25,21 +26,16 @@ import {
   TaskKF,
   TriggerStrategy,
 } from '~/concepts/pipelines/kfTypes';
-import { Artifact, Execution, Value } from '~/third_party/mlmd';
+import { Artifact, Execution, Value, Event } from '~/third_party/mlmd';
 
 describe('pipeline topology parseUtils', () => {
   describe('parseInputOutput', () => {
-    it('returns undefined when no definition is provided', () => {
-      const result = parseInputOutput();
-      expect(result).toBeUndefined();
-    });
-
     it('returns data with params when the definition includes parameters', () => {
       const testDefinition = {
         parameters: { 'some-string-param': { parameterType: InputDefinitionParameterType.STRING } },
       };
 
-      const result = parseInputOutput(testDefinition);
+      const result = parseInputOutput(testDefinition, []);
       expect(result).toEqual({ params: [{ label: 'some-string-param', type: 'STRING' }] });
     });
 
@@ -55,7 +51,7 @@ describe('pipeline topology parseUtils', () => {
         },
       };
 
-      const result = parseInputOutput(testDefinition);
+      const result = parseInputOutput(testDefinition, []);
       expect(result).toEqual({
         artifacts: [{ label: 'some-artifact', type: 'system.Artifact (v1)' }],
       });
@@ -166,23 +162,23 @@ describe('pipeline topology parseUtils', () => {
     const testTaskId = 'test-task-id';
 
     it('returns undefined when executions are not provided', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId);
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when executions is null', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, null);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, null);
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when executions are empty', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, []);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, []);
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when there are no match executions', () => {
       const mockExecution = new Execution();
-      const result = parseRuntimeInfoFromExecutions(testTaskId, [mockExecution]);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
       expect(result).toBeUndefined();
     });
 
@@ -193,7 +189,7 @@ describe('pipeline topology parseUtils', () => {
       mockExecution.setCreateTimeSinceEpoch(1713285296322);
       mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
       mockExecution.setLastKnownState(Execution.State.COMPLETE);
-      const result = parseRuntimeInfoFromExecutions(testTaskId, [mockExecution]);
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
       expect(result).toStrictEqual({
         completeTime: '2024-04-16T16:34:56.524Z',
         podName: undefined,
@@ -417,11 +413,25 @@ describe('pipeline topology parseUtils', () => {
         taskInfo: { name: 'task-2' },
         triggerPolicy: { strategy: TriggerStrategy.ALL_UPSTREAM_TASKS_SUCCEEDED },
       },
+      'task-3': {
+        cachingOptions: { enableCache: true },
+        componentRef: { name: 'comp-task-3' },
+        dependentTasks: [],
+        inputs: {
+          artifacts: {
+            'task-3-artifact-3': {
+              componentInputArtifact: 'test-artifact',
+            },
+          },
+        },
+        taskInfo: { name: 'task-3' },
+        triggerPolicy: { strategy: TriggerStrategy.ALL_UPSTREAM_TASKS_SUCCEEDED },
+      },
     };
     const consoleWarnSpy = jest.spyOn(global.console, 'warn');
 
     it('returns empty object when no task artifacts exist', () => {
-      const result = parseTasksForArtifactRelationship({
+      const result = parseTasksForArtifactRelationship('root', {
         'task-1': { ...testTasks['task-1'], inputs: {} },
         'task-2': { ...testTasks['task-2'], inputs: {} },
       });
@@ -429,21 +439,18 @@ describe('pipeline topology parseUtils', () => {
     });
 
     it('returns task artifact map when artifacts are provided', () => {
-      const result = parseTasksForArtifactRelationship(testTasks);
+      const result = parseTasksForArtifactRelationship('root', testTasks);
 
       expect(result).toEqual({
-        'some-dag-task-2': [
-          { outputArtifactKey: 'task-1-artifact-name', artifactId: 'task-1-artifact-1' },
-        ],
-        'some-dag-task-1': [
-          { outputArtifactKey: 'task-2-artifact-name', artifactId: 'task-2-artifact-2' },
-        ],
+        'task-1': [{ artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-2.task-1-artifact-name' }],
+        'task-2': [{ artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-1.task-2-artifact-name' }],
+        'task-3': [{ artifactNodeId: 'GROUP.root.ARTIFACT..test-artifact' }],
       });
     });
 
     describe('returns warning with unmapped artifact for a task when', () => {
       it('no producerTask is found', () => {
-        const result = parseTasksForArtifactRelationship({
+        const result = parseTasksForArtifactRelationship('root', {
           ...testTasks,
           'task-2': {
             ...testTasks['task-2'],
@@ -464,17 +471,17 @@ describe('pipeline topology parseUtils', () => {
           taskOutputArtifact: { outputArtifactKey: 'task-2-artifact-name', producerTask: '' },
         });
         expect(result).toEqual({
-          'some-dag-task-2': [
+          'task-1': [
             {
-              artifactId: 'task-1-artifact-1',
-              outputArtifactKey: 'task-1-artifact-name',
+              artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-2.task-1-artifact-name',
             },
           ],
+          'task-3': [{ artifactNodeId: 'GROUP.root.ARTIFACT..test-artifact' }],
         });
       });
 
       it('no outputArtifactKey is found', () => {
-        const result = parseTasksForArtifactRelationship({
+        const result = parseTasksForArtifactRelationship('root', {
           ...testTasks,
           'task-2': {
             ...testTasks['task-2'],
@@ -495,17 +502,17 @@ describe('pipeline topology parseUtils', () => {
           taskOutputArtifact: { outputArtifactKey: '', producerTask: 'some-dag-task-1' },
         });
         expect(result).toEqual({
-          'some-dag-task-2': [
+          'task-1': [
             {
-              artifactId: 'task-1-artifact-1',
-              outputArtifactKey: 'task-1-artifact-name',
+              artifactNodeId: 'GROUP.root.ARTIFACT.some-dag-task-2.task-1-artifact-name',
             },
           ],
+          'task-3': [{ artifactNodeId: 'GROUP.root.ARTIFACT..test-artifact' }],
         });
       });
 
       it('no taskOutputArtifact is found', () => {
-        const result = parseTasksForArtifactRelationship({
+        const result = parseTasksForArtifactRelationship('root', {
           'task-1': {
             ...testTasks['task-1'],
             inputs: {
@@ -591,6 +598,10 @@ describe('pipeline topology parseUtils', () => {
                         producerTask: 'test-task-1',
                       },
                     },
+                    {
+                      mountPath: 'path-2',
+                      constant: 'test-constant-value',
+                    },
                   ],
                 },
               },
@@ -599,7 +610,45 @@ describe('pipeline topology parseUtils', () => {
         },
       };
       const result = parseVolumeMounts(testPlatformSpec, testExecutorLabel);
-      expect(result).toEqual([{ mountPath: 'path-1', name: 'test-task-1' }]);
+      expect(result).toEqual([
+        { mountPath: 'path-1', name: 'test-task-1' },
+        { mountPath: 'path-2', name: 'test-constant-value' },
+      ]);
+    });
+  });
+});
+
+describe('getExecutionLinkedArtifactMap', () => {
+  it('returns an empty object when artifacts or events are not provided', () => {
+    const result = getExecutionLinkedArtifactMap(undefined, undefined);
+    expect(result).toEqual({});
+  });
+
+  it('returns an empty object when artifacts or events are empty', () => {
+    const result = getExecutionLinkedArtifactMap([], []);
+    expect(result).toEqual({});
+  });
+
+  it('returns the correct linked artifact map', () => {
+    const artifacts = [new Artifact().setId(1), new Artifact().setId(2), new Artifact().setId(3)];
+    const events = [
+      new Event().setArtifactId(1).setExecutionId(1),
+      new Event().setArtifactId(2).setExecutionId(1),
+      new Event().setArtifactId(3).setExecutionId(2),
+      new Event().setArtifactId(1).setExecutionId(2),
+    ];
+
+    const result = getExecutionLinkedArtifactMap(artifacts, events);
+
+    expect(result).toEqual({
+      1: [
+        { event: events[0], artifact: artifacts[0] },
+        { event: events[1], artifact: artifacts[1] },
+      ],
+      2: [
+        { event: events[2], artifact: artifacts[2] },
+        { event: events[3], artifact: artifacts[0] },
+      ],
     });
   });
 });

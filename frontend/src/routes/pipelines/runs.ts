@@ -1,77 +1,90 @@
 import {
-  routePipelineRunCloneNamespace,
-  routePipelineRunCreateNamespace,
-  routePipelineRunDetailsNamespace,
-  routePipelineRunJobCloneNamespace,
-  routePipelineRunJobDetailsNamespace,
-  routePipelineRunsNamespace,
+  pipelineVersionCloneRunRoute,
+  pipelineVersionCloneRecurringRunRoute,
+  pipelineVersionCreateRunRoute,
+  pipelineVersionCreateRecurringRunRoute,
+  pipelineVersionRunDetailsRoute,
+  pipelineVersionRecurringRunDetailsRoute,
 } from './global';
 import {
-  experimentRunsRoute,
+  experimentRecurringRunDetailsRoute,
   experimentRunDetailsRoute,
-  experimentScheduleDetailsRoute,
+  experimentsCloneRecurringRunRoute,
   experimentsCloneRunRoute,
-  experimentsCloneScheduleRoute,
+  experimentsCreateRecurringRunRoute,
   experimentsCreateRunRoute,
-  experimentsScheduleRunRoute,
 } from './experiments';
 
-export const runsBaseRoute = (
-  namespace: string | undefined,
-  experimentId: string | undefined,
-): string =>
-  experimentId
-    ? experimentRunsRoute(namespace, experimentId)
-    : routePipelineRunsNamespace(namespace);
-
-export const cloneScheduleRoute = (
+export const cloneRecurringRunRoute = (
   namespace: string,
   recurringRunId: string,
   experimentId: string | undefined,
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
 ): string =>
   experimentId
-    ? experimentsCloneScheduleRoute(namespace, experimentId, recurringRunId)
-    : routePipelineRunJobCloneNamespace(namespace, recurringRunId);
+    ? experimentsCloneRecurringRunRoute(namespace, experimentId, recurringRunId)
+    : pipelineVersionCloneRecurringRunRoute(
+        namespace,
+        pipelineId,
+        pipelineVersionId,
+        recurringRunId,
+      );
 
-export const scheduleRunRoute = (
+export const createRecurringRunRoute = (
   namespace: string | undefined,
   experimentId: string | undefined,
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
 ): string =>
   experimentId
-    ? experimentsScheduleRunRoute(namespace, experimentId)
-    : routePipelineRunCreateNamespace(namespace);
+    ? experimentsCreateRecurringRunRoute(namespace, experimentId)
+    : pipelineVersionCreateRecurringRunRoute(namespace, pipelineId, pipelineVersionId);
 
 export const createRunRoute = (
   namespace: string | undefined,
   experimentId: string | undefined,
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
 ): string =>
   experimentId
     ? experimentsCreateRunRoute(namespace, experimentId)
-    : routePipelineRunCreateNamespace(namespace);
+    : pipelineVersionCreateRunRoute(namespace, pipelineId, pipelineVersionId);
 
-export const scheduleDetailsRoute = (
+export const recurringRunDetailsRoute = (
   namespace: string,
   recurringRunId: string,
   experimentId: string | undefined,
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
 ): string =>
   experimentId
-    ? experimentScheduleDetailsRoute(namespace, experimentId, recurringRunId)
-    : routePipelineRunJobDetailsNamespace(namespace, recurringRunId);
+    ? experimentRecurringRunDetailsRoute(namespace, experimentId, recurringRunId)
+    : pipelineVersionRecurringRunDetailsRoute(
+        namespace,
+        pipelineId,
+        pipelineVersionId,
+        recurringRunId,
+      );
 
 export const runDetailsRoute = (
   namespace: string,
   runId: string,
   experimentId: string | undefined,
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
 ): string =>
   experimentId
     ? experimentRunDetailsRoute(namespace, experimentId, runId)
-    : routePipelineRunDetailsNamespace(namespace, runId);
+    : pipelineVersionRunDetailsRoute(namespace, pipelineId, pipelineVersionId, runId);
 
 export const cloneRunRoute = (
   namespace: string,
   runId: string,
   experimentId: string | undefined,
+  pipelineId: string | undefined,
+  pipelineVersionId: string | undefined,
 ): string =>
   experimentId
     ? experimentsCloneRunRoute(namespace, experimentId, runId)
-    : routePipelineRunCloneNamespace(namespace, runId);
+    : pipelineVersionCloneRunRoute(namespace, pipelineId, pipelineVersionId, runId);

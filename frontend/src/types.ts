@@ -1,10 +1,27 @@
 /*
  * Common types, should be kept up to date with backend types
  */
+
+import {
+  K8sResourceCommon as SDKK8sResourceCommon,
+  WatchK8sResult,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import {
+  AcceleratorProfileKind,
+  DashboardCommonConfig,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+} from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+
+export type DevFeatureFlags = {
+  devFeatureFlags: Partial<DashboardCommonConfig> | null;
+  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
+  resetDevFeatureFlags: () => void;
+  setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+};
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
   data: {
@@ -111,8 +128,6 @@ export type ConfigMap = {
   data?: Record<string, string>;
 } & K8sResourceCommon;
 
-export type EnvVarResource = Secret | ConfigMap;
-
 export enum EnvVarResourceType {
   Secret = 'Secret',
   ConfigMap = 'ConfigMap',
@@ -181,6 +196,7 @@ export enum OdhDocumentType {
 }
 
 export type OdhDocument = {
+  kind?: string;
   metadata: {
     name: string;
     annotations?: { [key: string]: string };
@@ -220,6 +236,13 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+export type SubscriptionStatusData = {
+  channel?: string;
+  installedCSV?: string;
+  installPlanRefNamespace?: string;
+  lastUpdated?: string;
+};
+
 type K8sMetadata = {
   name: string;
   namespace?: string;
@@ -251,10 +274,6 @@ declare global {
   }
 }
 
-export type ODHSegmentKey = {
-  segmentKey: string;
-};
-
 export type ApplicationAction = {
   label: string;
   href: string;
@@ -264,28 +283,6 @@ export type ApplicationAction = {
 export type Section = {
   label?: string;
   actions: ApplicationAction[];
-};
-
-export enum TrackingOutcome {
-  submit = 'submit',
-  cancel = 'cancel',
-}
-
-export type TrackingEventProperties = {
-  name?: string;
-  anonymousID?: string;
-  type?: string;
-  term?: string;
-  accelerator?: string;
-  acceleratorCount?: number;
-  lastSelectedSize?: string;
-  lastSelectedImage?: string;
-  projectName?: string;
-  notebookName?: string;
-  lastActivity?: string;
-  outcome?: TrackingOutcome;
-  success?: boolean;
-  error?: string;
 };
 
 export type NotebookPort = {
@@ -330,26 +327,6 @@ export type PodContainer = {
   securityContext?: unknown;
 };
 
-export type PodStepState = { stepName: string; state: PodStepStateType };
-
-export enum PodStepStateType {
-  success = 'Success',
-  error = 'Error',
-  loading = 'Loading',
-}
-
-export type PodContainerStatus = {
-  name?: string;
-  ready: boolean;
-  state?: {
-    running?: boolean | undefined;
-    waiting?: boolean | undefined;
-    terminated?: boolean | undefined;
-  };
-};
-
-export type PodContainerStatuses = (PodContainerStatus | undefined)[];
-
 export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
@@ -390,13 +367,6 @@ export type NotebookRunningState = {
   podUID: string;
   notebookLink: string;
 };
-
-export type NotebookList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: Notebook[];
-} & K8sResourceCommon;
 
 export type Route = {
   apiVersion?: string;
@@ -536,13 +506,6 @@ export type ImageStream = {
   status?: ImageStreamStatus;
 } & K8sResourceCommon;
 
-export type ImageStreamList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: ImageStream[];
-} & K8sResourceCommon;
-
 export type NameVersionPair = {
   name: string;
   version: string;
@@ -574,27 +537,6 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = K8sResourceCommon & {
-  spec: {
-    accessModes: string[];
-    resources: {
-      requests: {
-        storage: string;
-      };
-    };
-    storageClassName?: string;
-    volumeMode: 'Filesystem' | 'Block';
-  };
-  status?: Record<string, any>; // eslint-disable-line
-};
-
-export type PersistentVolumeClaimList = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: Record<string, unknown>;
-  items: PersistentVolumeClaim[];
-};
-
 export type Volume = {
   name: string;
   emptyDir?: Record<string, unknown>;
@@ -608,40 +550,12 @@ export type Volume = {
 
 export type VolumeMount = { mountPath: string; name: string };
 
-/**
- * @deprecated -- use K8sStatus
- * Copy from partial of V1Status that will returned by the delete CoreV1Api
- */
-export type DeleteStatus = {
-  apiVersion?: string;
-  code?: number;
-  kind?: string;
-  message?: string;
-  reason?: string;
-  status?: string;
-};
-
-export type RoleBindingSubject = {
-  kind: string;
-  apiGroup: string;
-  name: string;
-};
-
-export type RoleBinding = {
-  subjects: RoleBindingSubject[];
-  roleRef: RoleBindingSubject;
-} & K8sResourceCommon;
-
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,
   resourceName: string,
 ) => Promise<T>;
 
 export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
-
-export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
-
-export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
   involvedObject: {
@@ -696,6 +610,13 @@ export type ImageStreamAndVersion = {
   imageVersion?: ImageStreamSpecTagType;
 };
 
+// This is the workaround to use K8sResourceCommon | K8sResourceCommon[] from SDK to work with utils.
+export type CustomWatchK8sResult<R extends SDKK8sResourceCommon | SDKK8sResourceCommon[]> = [
+  data: WatchK8sResult<R>[0],
+  loaded: WatchK8sResult<R>[1],
+  loadError: Error | undefined,
+];
+
 export type FetchStateObject<T, E = Error> = {
   data: T;
   loaded: boolean;
@@ -705,6 +626,7 @@ export type FetchStateObject<T, E = Error> = {
 
 // TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
 export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
+export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };
 
 export type BreadcrumbItemType = {
   label: string;
@@ -726,3 +648,8 @@ export enum ServingRuntimeAPIProtocol {
   REST = 'REST',
   GRPC = 'gRPC',
 }
+
+export type KeyValuePair = {
+  key: string;
+  value: string;
+};

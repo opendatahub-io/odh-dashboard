@@ -31,7 +31,7 @@ describe('compareTagVersions', () => {
         { name: 'v3', recommended: false },
       ] as ImageTagInfo[],
     };
-    expect(recemendedTagVersion.tag.sort(compareTagVersions)).toEqual([
+    expect(recemendedTagVersion.tag.toSorted(compareTagVersions)).toEqual([
       { name: 'v2', recommended: true },
       { name: 'v3', recommended: false },
       { name: 'v1', recommended: false },

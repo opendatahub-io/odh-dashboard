@@ -1,10 +1,13 @@
 import React from 'react';
 import {
-  ApplicationLauncher,
-  ApplicationLauncherGroup,
-  ApplicationLauncherItem,
-  ApplicationLauncherSeparator,
-} from '@patternfly/react-core/deprecated';
+  Divider,
+  Dropdown,
+  DropdownGroup,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
+} from '@patternfly/react-core';
+import { ThIcon } from '@patternfly/react-icons';
 import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
@@ -12,6 +15,7 @@ import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '~/types';
 import { useAppContext } from './AppContext';
+import './AppLauncher.scss';
 
 const odhConsoleLinkName = 'rhodslink';
 
@@ -71,7 +75,7 @@ const AppLauncher: React.FC = () => {
         (link) =>
           link.spec.location === 'ApplicationMenu' && link.metadata?.name !== odhConsoleLinkName,
       )
-      .sort((a, b) => a.spec.text.localeCompare(b.spec.text));
+      .toSorted((a, b) => a.spec.text.localeCompare(b.spec.text));
 
     const getODHApplications = (): Section[] => {
       const osConsoleAction = getOpenShiftConsoleAction(serverURL);
@@ -110,14 +114,8 @@ const AppLauncher: React.FC = () => {
       return acc;
     }, getODHApplications());
 
-    sections.sort((a, b) => sectionSortValue(a) - sectionSortValue(b));
-
-    return sections;
+    return sections.toSorted((a, b) => sectionSortValue(a) - sectionSortValue(b));
   }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL]);
-
-  const onToggle = () => {
-    setIsOpen((prev) => !prev);
-  };
 
   const onSelect = () => {
     setIsOpen(false);
@@ -129,42 +127,49 @@ const AppLauncher: React.FC = () => {
 
   const renderApplicationLauncherGroup = (section: Section, sectionIndex: number) => {
     const appItems = section.actions.map((action) => (
-      <ApplicationLauncherItem
+      <DropdownItem
+        className="odh-app-launcher__dropdown-item"
         data-testid="application-launcher-item"
+        isExternalLink
         key={action.label}
-        href={action.href}
-        isExternal
+        to={action.href}
         icon={action.image}
-        rel="noopener noreferrer"
-        target="_blank"
       >
         {action.label}
-      </ApplicationLauncherItem>
+      </DropdownItem>
     ));
-    if (sectionIndex < applicationSections.length - 1) {
-      appItems.push(<ApplicationLauncherSeparator key={`separator-${sectionIndex}`} />);
-    }
     return (
-      <ApplicationLauncherGroup
-        key={section.label}
-        label={section.label}
-        data-testid="application-launcher-group"
-      >
-        {appItems}
-      </ApplicationLauncherGroup>
+      <React.Fragment key={section.label}>
+        <DropdownGroup label={section.label} data-testid="application-launcher-group">
+          <DropdownList>{appItems}</DropdownList>
+        </DropdownGroup>
+        {sectionIndex < applicationSections.length - 1 && <Divider />}
+      </React.Fragment>
     );
   };
   return (
-    <ApplicationLauncher
-      data-testid="application-launcher"
+    <Dropdown
       aria-label="Application launcher"
+      popperProps={{ position: 'right' }}
+      onOpenChange={(isOpenChange) => setIsOpen(isOpenChange)}
       onSelect={onSelect}
-      onToggle={onToggle}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          aria-label="Application launcher"
+          variant="plain"
+          onClick={() => setIsOpen(!isOpen)}
+          isExpanded={isOpen}
+          style={{ width: 'auto' }}
+        >
+          <ThIcon />
+        </MenuToggle>
+      )}
       isOpen={isOpen}
-      items={applicationSections.map(renderApplicationLauncherGroup)}
-      position="right"
-      isGrouped
-    />
+      shouldFocusToggleOnSelect
+    >
+      {applicationSections.map(renderApplicationLauncherGroup)}
+    </Dropdown>
   );
 };
 

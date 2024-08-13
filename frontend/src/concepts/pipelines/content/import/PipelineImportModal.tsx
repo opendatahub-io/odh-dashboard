@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
   Alert,
   Button,
@@ -10,12 +12,21 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
+
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
+import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
+import { pipelineVersionDetailsRoute } from '~/routes';
+import {
+  PIPELINE_ARGO_ERROR,
+  PIPELINE_IMPORT_ARGO_ERROR_TEXT,
+} from '~/concepts/pipelines/content/const';
 import PipelineUploadRadio from './PipelineUploadRadio';
-import { PipelineUploadOption } from './utils';
+import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
 
 type PipelineImportModalProps = {
   isOpen: boolean;
@@ -23,11 +34,14 @@ type PipelineImportModalProps = {
 };
 
 const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClose }) => {
-  const { project, api, apiAvailable } = usePipelinesAPI();
+  const navigate = useNavigate();
+  const { project, api, apiAvailable, namespace } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [{ name, description, fileContents, pipelineUrl, uploadOption }, setData, resetData] =
     usePipelineImportModalData();
+  const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
+  const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
 
   const isImportButtonDisabled =
     !apiAvailable ||
@@ -35,25 +49,73 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
     !name ||
     (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
 
-  const onBeforeClose = (pipeline?: PipelineKFv2) => {
-    onClose(pipeline);
-    setImporting(false);
-    setError(undefined);
-    resetData();
-  };
+  const onBeforeClose = React.useCallback(
+    (pipeline?: PipelineKFv2) => {
+      onClose(pipeline);
+      setImporting(false);
+      setError(undefined);
+      resetData();
+      setHasDuplicateName(false);
+    },
+    [onClose, resetData],
+  );
+
+  const onSubmitSuccess = React.useCallback(
+    async (pipeline: PipelineKFv2) => {
+      onBeforeClose(pipeline);
+
+      const { pipeline_versions: versions } = await api.listPipelineVersions(
+        {},
+        pipeline.pipeline_id,
+        {
+          pageSize: 1,
+        },
+      );
+      const versionId = versions?.[0].pipeline_version_id;
+
+      if (versionId) {
+        navigate(pipelineVersionDetailsRoute(namespace, pipeline.pipeline_id, versionId));
+      }
+    },
+    [api, namespace, navigate, onBeforeClose],
+  );
+
+  const checkForDuplicateName = useDebounceCallback(
+    React.useCallback(
+      async (value: string) => {
+        if (value) {
+          const { pipelines: duplicatePipelines } = await api.listPipelines(
+            {},
+            getNameEqualsFilter(value),
+          );
+
+          if (duplicatePipelines?.length) {
+            setHasDuplicateName(true);
+          }
+        }
+      },
+      [api],
+    ),
+    500,
+  );
 
   const onSubmit = () => {
     setImporting(true);
     setError(undefined);
 
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
-      api
-        .uploadPipeline({}, name, description, fileContents)
-        .then((pipeline) => onBeforeClose(pipeline))
-        .catch((e) => {
-          setImporting(false);
-          setError(e);
-        });
+      if (isArgoWorkflow) {
+        setImporting(false);
+        setError(new Error(PIPELINE_IMPORT_ARGO_ERROR_TEXT));
+      } else {
+        api
+          .uploadPipeline({}, name, description, fileContents)
+          .then(onSubmitSuccess)
+          .catch((e) => {
+            setImporting(false);
+            setError(e);
+          });
+      }
     } else {
       api
         .createPipelineAndVersion(
@@ -74,7 +136,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
             },
           },
         )
-        .then((pipeline) => onBeforeClose(pipeline))
+        .then(onSubmitSuccess)
         .catch((e) => {
           setImporting(false);
           setError(e);
@@ -109,7 +171,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
         <Stack hasGutter>
           <StackItem>
             <FormGroup label="Project" fieldId="project-name">
-              {getProjectDisplayName(project)}
+              {getDisplayNameFromK8sResource(project)}
             </FormGroup>
           </StackItem>
           <StackItem>
@@ -121,8 +183,14 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
                 data-testid="pipeline-name"
                 name="pipeline-name"
                 value={name}
-                onChange={(e, value) => setData('name', value)}
+                onChange={(_e, value) => {
+                  setHasDuplicateName(false);
+                  setData('name', value);
+                  checkForDuplicateName(value);
+                }}
               />
+
+              {hasDuplicateName && <DuplicateNameHelperText name={name} />}
             </FormGroup>
           </StackItem>
           <StackItem>
@@ -134,7 +202,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
                 data-testid="pipeline-description"
                 name="pipeline-description"
                 value={description}
-                onChange={(e, value) => setData('description', value)}
+                onChange={(_e, value) => setData('description', value)}
               />
             </FormGroup>
           </StackItem>
@@ -152,7 +220,12 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
           </StackItem>
           {error && (
             <StackItem>
-              <Alert title="Error creating pipeline" isInline variant="danger">
+              <Alert
+                data-testid="import-modal-error"
+                title={isArgoWorkflow ? PIPELINE_ARGO_ERROR : 'Error creating pipeline'}
+                isInline
+                variant="danger"
+              >
                 {error.message}
               </Alert>
             </StackItem>

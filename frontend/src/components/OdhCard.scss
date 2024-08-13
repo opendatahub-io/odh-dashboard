@@ -73,15 +73,6 @@
     align-items: center;
   }
 
-  .pf-v5-c-card__body {
-    .odh-card__body-text {
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-  }
-
   &__coming-soon {
     color: var(--pf-v5-global--disabled-color--100);
     font-size: var(--pf-v5-global--FontSize--md);

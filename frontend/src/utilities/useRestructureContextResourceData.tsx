@@ -1,10 +1,10 @@
 import React from 'react';
 import { FetchState } from '~/utilities/useFetchState';
-import { ContextResourceData } from '~/types';
+import { PendingContextResourceData } from '~/types';
 
 const useRestructureContextResourceData = <T,>(
   resourceData: [...FetchState<T[]>, boolean],
-): ContextResourceData<T> & { pending: boolean } => {
+): PendingContextResourceData<T> => {
   const [data, loaded, error, refresh, pending] = resourceData;
   return React.useMemo(
     () => ({

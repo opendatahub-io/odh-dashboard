@@ -1,19 +1,9 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Icon,
-  Popover,
-  Split,
-  SplitItem,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
-import { getNotebookDescription, getNotebookDisplayName } from '~/pages/projects/utils';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle';
 import { NotebookKind } from '~/k8sTypes';
@@ -22,6 +12,8 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '~/components/table';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { NotebookSize } from '~/types';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -51,7 +43,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
-  const { size: notebookSize, error: sizeError } = useNotebookDeploymentSize(obj.notebook);
+  const { size: notebookSize } = useNotebookDeploymentSize(obj.notebook);
+  const lastDeployedSize: NotebookSize = {
+    name: 'Custom',
+    resources: obj.notebook.spec.template.spec.containers[0].resources ?? {
+      limits: {},
+      requests: {},
+    },
+  };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
 
   return (
@@ -82,12 +81,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 src={typedObjectImage(ProjectObjectType.notebook)}
                 alt="workbenches"
               />
-              <div style={{ whiteSpace: 'nowrap' }}>{getNotebookDisplayName(obj.notebook)}</div>
+              <div style={{ whiteSpace: 'nowrap' }}>
+                {getDisplayNameFromK8sResource(obj.notebook)}
+              </div>
             </div>
           ) : (
             <TableRowTitleDescription
-              title={getNotebookDisplayName(obj.notebook)}
-              description={getNotebookDescription(obj.notebook)}
+              title={getDisplayNameFromK8sResource(obj.notebook)}
+              description={getDescriptionFromK8sResource(obj.notebook)}
               resource={obj.notebook}
             />
           )}
@@ -122,7 +123,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   }
                 >
                   <DashboardPopupIconButton
-                    aria-label="Notebook image has out of date Elrya version"
+                    aria-label="Notebook image has out of date Elyra version"
                     data-testid="outdated-elyra-info"
                     icon={
                       <Icon status="info">
@@ -141,14 +142,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               spaceItems={{ default: 'spaceItemsXs' }}
               alignItems={{ default: 'alignItemsCenter' }}
             >
-              <FlexItem>{notebookSize?.name ?? 'Unknown'}</FlexItem>
-              {sizeError && (
-                <Tooltip content={sizeError}>
-                  <Icon aria-label="error icon" role="button" status="danger" tabIndex={0}>
-                    <ExclamationCircleIcon />
-                  </Icon>
-                </Tooltip>
-              )}
+              <FlexItem>{notebookSize?.name ?? <i>{lastDeployedSize.name}</i>}</FlexItem>
             </Flex>
           </Td>
         ) : null}
@@ -210,7 +204,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           </Td>
           <Td dataLabel="Limits">
             <ExpandableRowContent>
-              {notebookSize && <NotebookSizeDetails notebookSize={notebookSize} />}
+              <NotebookSizeDetails notebookSize={notebookSize || lastDeployedSize} />
             </ExpandableRowContent>
           </Td>
           <Td />

@@ -3,39 +3,37 @@ import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from '@patter
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 
 interface CollapsibleSectionProps {
-  initialOpen?: boolean;
+  open?: boolean;
+  setOpen?: (update: boolean) => void;
   title: string;
+  titleVariant?: TextVariants.h1 | TextVariants.h2;
   children?: React.ReactNode;
   id?: string;
   showChildrenWhenClosed?: boolean;
-  onOpenChange?: (isOpen: boolean) => void;
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
-  initialOpen = true,
+  open,
+  setOpen,
   title,
+  titleVariant = TextVariants.h2,
   children,
   id,
   showChildrenWhenClosed,
-  onOpenChange,
 }) => {
-  const [open, setOpen] = React.useState<boolean>(initialOpen);
-  const localId = id || title.replace(' ', '-');
+  const [innerOpen, setInnerOpen] = React.useState<boolean>(true);
+  const localId = id || title.replace(/ /g, '-');
   const titleId = `${localId}-title`;
 
   return (
-    <div
-      style={{
-        padding: open ? undefined : 'var(--pf-v5-global--spacer--md)',
-      }}
-    >
+    <>
       <Flex
         gap={{ default: 'gapMd' }}
+        alignItems={{ default: 'alignItemsCenter' }}
         style={
-          open || showChildrenWhenClosed
+          (open ?? innerOpen) || showChildrenWhenClosed
             ? {
                 marginBottom: 'var(--pf-v5-global--spacer--md)',
-                marginLeft: open ? 'var(--pf-v5-global--spacer--md)' : undefined,
               }
             : undefined
         }
@@ -44,30 +42,30 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           <Button
             aria-labelledby={titleId}
             aria-expanded={open}
-            isInline
-            variant="link"
-            onClick={() => {
-              setOpen((prev) => {
-                if (onOpenChange) {
-                  onOpenChange(!prev);
-                }
-                return !prev;
-              });
+            variant="plain"
+            style={{
+              paddingLeft: 0,
+              paddingRight: 0,
+              fontSize:
+                titleVariant === TextVariants.h2
+                  ? 'var(--pf-v5-global--FontSize--xl)'
+                  : 'var(--pf-v5-global--FontSize--2xl)',
             }}
+            onClick={() => (setOpen ? setOpen(!open) : setInnerOpen((prev) => !prev))}
           >
-            {open ? <AngleDownIcon /> : <AngleRightIcon />}
+            {open ?? innerOpen ? <AngleDownIcon /> : <AngleRightIcon />}
           </Button>
         </FlexItem>
         <FlexItem>
           <TextContent>
-            <Text id={titleId} component={TextVariants.h2}>
+            <Text id={titleId} component={titleVariant}>
               {title}
             </Text>
           </TextContent>
         </FlexItem>
       </Flex>
-      {open || showChildrenWhenClosed ? children : null}
-    </div>
+      {(open ?? innerOpen) || showChildrenWhenClosed ? children : null}
+    </>
   );
 };
 

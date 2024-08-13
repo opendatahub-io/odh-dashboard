@@ -9,12 +9,12 @@ import {
 } from '@patternfly/react-table';
 import { Flex, FlexItem, Text } from '@patternfly/react-core';
 import { HddIcon } from '@patternfly/react-icons';
-import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { TableRowTitleDescription } from '~/components/table';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 
@@ -71,13 +71,13 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-              <TableRowTitleDescription title={getPvcDisplayName(obj)} resource={obj} />
+              <TableRowTitleDescription title={getDisplayNameFromK8sResource(obj)} resource={obj} />
             </FlexItem>
             <FlexItem>
               <StorageWarningStatus obj={obj} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
             </FlexItem>
           </Flex>
-          <Text>{getPvcDescription(obj)}</Text>
+          <Text>{getDescriptionFromK8sResource(obj)}</Text>
         </Td>
         <Td dataLabel="Type">
           <Text>

@@ -3,10 +3,10 @@ import { K8sAPIOptions } from '~/k8sTypes';
 import { BaseMetricCreationResponse, BaseMetricListResponse, BaseMetricRequest } from '~/api';
 import { handleTrustyAIFailures } from './errorUtils';
 
-export const getAllRequests =
+export const getAllBiasRequests =
   (hostPath: string) =>
   (opts: K8sAPIOptions): Promise<BaseMetricListResponse> =>
-    handleTrustyAIFailures(proxyGET(hostPath, '/metrics/all/requests', {}, opts));
+    handleTrustyAIFailures(proxyGET(hostPath, '/metrics/all/requests', { type: 'fairness' }, opts));
 
 export const getSpdRequests =
   (hostPath: string) =>

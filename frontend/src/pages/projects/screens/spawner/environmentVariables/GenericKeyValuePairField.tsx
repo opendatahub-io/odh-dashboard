@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
-import PasswordInput from '~/pages/projects/components/PasswordInput';
+import PasswordInput from '~/components/PasswordInput';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import { removeArrayItem, updateArrayValue } from './utils';
 

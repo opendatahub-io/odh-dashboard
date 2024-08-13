@@ -1,18 +1,21 @@
 import { StatusResponse } from '~/redux/types';
 
-export const mockStatus = (): StatusResponse => ({
+export const mockStatus = (options?: {
+  isAdmin?: boolean;
+  isAllowed?: boolean;
+}): StatusResponse => ({
   kube: {
-    currentContext: 'opendatahub/admin-user-datahub-redhat-com:6443/admin-user',
+    currentContext: 'test-user/api-test-user-dev-datahub-redhat-com:6443',
     currentUser: {
-      name: 'admin-user/api-admin-user-dev-datahub-redhat-com:6443',
+      name: 'inClusterUser',
       token: 'test-token-value',
     },
     namespace: 'opendatahub',
-    userName: 'admin-user',
+    userName: 'test-user',
     clusterID: '16855612-2bb7-4a4c-9ff0-72rasdfd5',
     clusterBranding: 'ocp',
-    isAdmin: true,
-    isAllowed: true,
-    serverURL: 'https://api.admin-user.dev.datahub.redhat.com:6443',
+    isAdmin: options?.isAdmin ?? false,
+    isAllowed: options?.isAllowed ?? true,
+    serverURL: 'https://api.test-user.dev.datahub.redhat.com:6443',
   },
 });

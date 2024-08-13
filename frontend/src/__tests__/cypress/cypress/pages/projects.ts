@@ -2,7 +2,9 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { TableRow } from './components/table';
+import { TableToolbar } from './components/TableToolbar';
 
+class ProjectListToolbar extends TableToolbar {}
 class NotebookRow extends TableRow {
   findNotebookImageAvailability() {
     return cy.findByTestId('notebook-image-availability');
@@ -18,14 +20,22 @@ class NotebookRow extends TableRow {
 }
 
 class ProjectRow extends TableRow {
-  shouldHaveProjectIcon() {
-    return this.find().findByTestId('ds-project-image').should('exist');
+  findEnableSwitch() {
+    return this.find().pfSwitch('notebook-status-switch');
+  }
+
+  findNotebookRouteLink() {
+    return this.find().findByTestId('notebook-route-link');
+  }
+
+  findNotebookStatusText() {
+    return this.find().findByTestId('notebook-status-text');
   }
 }
 
 class ProjectListPage {
   visit() {
-    cy.visit('/projects');
+    cy.visitWithLogin('/projects');
     this.wait();
   }
 
@@ -41,6 +51,11 @@ class ProjectListPage {
 
   shouldHaveProjects() {
     this.findProjectsTable().should('exist');
+    return this;
+  }
+
+  shouldReturnNotFound() {
+    cy.findByTestId('not-found-page').should('exist');
     return this;
   }
 
@@ -63,6 +78,22 @@ class ProjectListPage {
 
   findProjectLink(projectName: string) {
     return this.findProjectsTable().findByRole('link', { name: projectName });
+  }
+
+  findEmptyResults() {
+    return cy.findByTestId('no-result-found-title');
+  }
+
+  findSortButton(name: string) {
+    return this.findProjectsTable().find('thead').findByRole('button', { name });
+  }
+
+  getTableToolbar() {
+    return new ProjectListToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+  }
+
+  findCreateWorkbenchButton() {
+    return cy.findByRole('button', { name: 'Create a workbench' });
   }
 }
 
@@ -96,12 +127,12 @@ class DataConnectionRow extends TableRow {
 
 class ProjectDetails {
   visit(project: string) {
-    cy.visit(`/projects/${project}`);
+    cy.visitWithLogin(`/projects/${project}`);
     this.wait();
   }
 
   visitSection(project: string, section: string) {
-    cy.visit(`/projects/${project}?section=${section}`);
+    cy.visitWithLogin(`/projects/${project}?section=${section}`);
     this.wait(section);
   }
 
@@ -185,6 +216,14 @@ class ProjectDetails {
 
   findUnsupportedPipelineVersionAlert() {
     return cy.findByTestId('unsupported-pipeline-version-alert');
+  }
+
+  private findKserveModelsTable() {
+    return cy.findByTestId('kserve-inference-service-table');
+  }
+
+  getKserveModelMetricLink(name: string) {
+    return this.findKserveModelsTable().findByTestId(`metrics-link-${name}`);
   }
 }
 

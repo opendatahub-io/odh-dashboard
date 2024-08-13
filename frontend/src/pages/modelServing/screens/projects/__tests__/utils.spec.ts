@@ -3,30 +3,35 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   filterOutConnectionsWithoutBucket,
   getProjectModelServingPlatform,
+  getUrlFromKserveInferenceService,
 } from '~/pages/modelServing/screens/projects/utils';
-import { DataConnection } from '~/pages/projects/types';
-import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
+import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 
 describe('filterOutConnectionsWithoutBucket', () => {
   it('should return an empty array if input connections array is empty', () => {
-    const inputConnections: DataConnection[] = [];
+    const inputConnections: LabeledDataConnection[] = [];
     const result = filterOutConnectionsWithoutBucket(inputConnections);
     expect(result).toEqual([]);
   });
 
   it('should filter out connections without an AWS_S3_BUCKET property', () => {
     const dataConnections = [
-      mockDataConnection({ name: 'name1', s3Bucket: 'bucket1' }),
-      mockDataConnection({ name: 'name2', s3Bucket: '' }),
-      mockDataConnection({ name: 'name3', s3Bucket: 'bucket2' }),
+      { dataConnection: mockDataConnection({ name: 'name1', s3Bucket: 'bucket1' }) },
+      { dataConnection: mockDataConnection({ name: 'name2', s3Bucket: '' }) },
+      { dataConnection: mockDataConnection({ name: 'name3', s3Bucket: 'bucket2' }) },
     ];
 
     const result = filterOutConnectionsWithoutBucket(dataConnections);
 
     expect(result).toMatchObject([
-      { data: { data: { Name: 'name1' } } },
-      { data: { data: { Name: 'name3' } } },
+      {
+        dataConnection: { data: { data: { Name: 'name1' } } },
+      },
+      {
+        dataConnection: { data: { data: { Name: 'name3' } } },
+      },
     ]);
   });
 });
@@ -123,5 +128,29 @@ describe('getProjectModelServingPlatform', () => {
         getMockServingPlatformStatuses({ kServeEnabled: false }),
       ),
     ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI });
+  });
+});
+
+describe('getUrlsFromKserveInferenceService', () => {
+  it('should return the url from the inference service status', () => {
+    const url = 'https://test-kserve.apps.kserve-pm.dev.com';
+    const inferenceService = mockInferenceServiceK8sResource({
+      url,
+    });
+    expect(getUrlFromKserveInferenceService(inferenceService)).toBe(url);
+  });
+  it('should return undefined if the inference service status does not have an address', () => {
+    const url = '';
+    const inferenceService = mockInferenceServiceK8sResource({
+      url,
+    });
+    expect(getUrlFromKserveInferenceService(inferenceService)).toBeUndefined();
+  });
+  it('should return undefined if the inference service status is an internal service', () => {
+    const url = 'http://test.kserve.svc.cluster.local';
+    const inferenceService = mockInferenceServiceK8sResource({
+      url,
+    });
+    expect(getUrlFromKserveInferenceService(inferenceService)).toBeUndefined();
   });
 });

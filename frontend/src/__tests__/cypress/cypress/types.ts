@@ -1,4 +1,4 @@
-import { RouteMatcher } from 'cypress/types/net-stubbing';
+import type { RouteMatcher } from 'cypress/types/net-stubbing';
 
 export type Snapshot = {
   method: string;
@@ -17,4 +17,16 @@ export type InterceptSnapshot = {
     alias: string,
     controlled?: boolean,
   ): Cypress.Chainable<InterceptTrigger | null>;
+};
+
+export type UserAuthConfig = {
+  AUTH_TYPE: string;
+  USERNAME: string;
+  PASSWORD: string;
+};
+
+export type TestConfig = {
+  ODH_DASHBOARD_URL: string;
+  TEST_USER: UserAuthConfig;
+  OCP_ADMIN_USER: UserAuthConfig;
 };

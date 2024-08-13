@@ -1,26 +1,31 @@
 import React from 'react';
-import { Label, Split, SplitItem } from '@patternfly/react-core';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
+import { PipelineRunKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
 
-type RunJobTitleProps = {
+type RecurringRunTitleProps = {
   run: PipelineRunKFv2;
   statusIcon?: boolean;
   pipelineRunLabel?: boolean;
 };
 
-const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
+const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
   run,
   statusIcon,
   pipelineRunLabel,
 }) => {
-  const { icon, label } = computeRunStatus(run);
+  const { icon, label, color } = computeRunStatus(run);
+
+  const isArchived = run.storage_state === StorageStateKF.ARCHIVED;
 
   return (
     <>
       <Split hasGutter>
-        <SplitItem>{run.display_name}</SplitItem>
+        <SplitItem>
+          {/* TODO: Remove the custom className after upgrading to PFv6 */}
+          <Truncate content={run.display_name} className="truncate-no-min-width" />
+        </SplitItem>
         {pipelineRunLabel && (
           <SplitItem>
             <PipelineRunTypeLabel run={run} />
@@ -28,7 +33,14 @@ const PipelineDetailsTitle: React.FC<RunJobTitleProps> = ({
         )}
         {statusIcon && (
           <SplitItem>
-            <Label icon={icon}>{label}</Label>
+            <Label color={color} icon={icon}>
+              {label}
+            </Label>
+          </SplitItem>
+        )}
+        {isArchived && (
+          <SplitItem>
+            <Label>Archived</Label>
           </SplitItem>
         )}
       </Split>

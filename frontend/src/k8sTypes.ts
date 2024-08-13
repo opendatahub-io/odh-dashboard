@@ -1,5 +1,5 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { EitherNotBoth, EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
@@ -15,13 +15,15 @@ import {
   VolumeMount,
   ContainerResourceAttributes,
 } from './types';
-import { ServingRuntimeSize } from './pages/modelServing/screens/types';
+import { ModelServingSize } from './pages/modelServing/screens/types';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+  LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
+  PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
 }
 
 export type K8sVerb =
@@ -38,7 +40,7 @@ export type K8sVerb =
  * Annotations that we will use to allow the user flexibility in describing items outside of the
  * k8s structure.
  */
-type DisplayNameAnnotations = Partial<{
+export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string; // the description provided by the user
   'openshift.io/display-name': string; // the name provided by the user
 }>;
@@ -344,11 +346,17 @@ export type PodKind = K8sResourceCommon & {
   status?: {
     phase: string;
     conditions: K8sCondition[];
-    containerStatuses?: {
-      name?: string;
-      ready: boolean;
-      state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
-    }[];
+    containerStatuses?: PodContainerStatus[];
+  };
+};
+
+export type PodContainerStatus = {
+  name: string;
+  ready: boolean;
+  state?: {
+    running?: boolean | undefined;
+    waiting?: boolean | undefined;
+    terminated?: boolean | undefined;
   };
 };
 
@@ -366,10 +374,6 @@ export type ProjectKind = K8sResourceCommon & {
   };
 };
 
-export type DashboardProjectKind = ProjectKind & {
-  labels: DashboardLabels & Partial<ModelServingProjectLabels>;
-};
-
 export type ServiceAccountKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
@@ -382,9 +386,9 @@ export type ServiceAccountKind = K8sResourceCommon & {
 };
 
 export type ServingContainer = {
-  args: string[];
-  image: string;
   name: string;
+  args?: string[];
+  image?: string;
   affinity?: PodAffinity;
   resources?: ContainerResources;
   volumeMounts?: VolumeMount[];
@@ -398,13 +402,13 @@ export type ServingRuntimeKind = K8sResourceCommon & {
   };
   spec: {
     builtInAdapter?: {
-      serverType: string;
-      runtimeManagementPort: number;
+      serverType?: string;
+      runtimeManagementPort?: number;
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
     containers: ServingContainer[];
-    supportedModelFormats: SupportedModelFormats[];
+    supportedModelFormats?: SupportedModelFormats[];
     replicas?: number;
     tolerations?: Toleration[];
     volumes?: Volume[];
@@ -419,6 +423,10 @@ export type SupportedModelFormats = {
 
 export type InferenceServiceAnnotations = Partial<{
   'security.opendatahub.io/enable-auth': string;
+}>;
+
+export type InferenceServiceLabels = Partial<{
+  'networking.knative.dev/visibility': string;
 }>;
 
 export type InferenceServiceKind = K8sResourceCommon & {
@@ -441,8 +449,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
   spec: {
     predictor: {
       tolerations?: Toleration[];
-      model: {
-        modelFormat: {
+      model?: {
+        modelFormat?: {
           name: string;
           version?: string;
         };
@@ -450,9 +458,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
         runtime?: string;
         storageUri?: string;
         storage?: {
-          key: string;
+          key?: string;
           parameters?: Record<string, string>;
-          path: string;
+          path?: string;
           schemaPath?: string;
         };
       };
@@ -461,42 +469,54 @@ export type InferenceServiceKind = K8sResourceCommon & {
     };
   };
   status?: {
-    components: {
+    components?: {
       predictor?: {
-        grpcUrl: string;
-        restUrl: string;
-        url: string;
+        grpcUrl?: string;
+        restUrl?: string;
+        url?: string;
       };
     };
-    conditions: {
-      lastTransitionTime: string;
+    conditions?: {
+      lastTransitionTime?: string;
       status: string;
       type: string;
     }[];
-    modelStatus: {
-      copies: {
-        failedCopies: number;
-        totalCopies: number;
+    modelStatus?: {
+      copies?: {
+        failedCopies?: number;
+        totalCopies?: number;
       };
       lastFailureInfo?: {
-        location: string;
-        message: string;
-        modelRevisionName: string;
-        reason: string;
-        time: string;
+        location?: string;
+        message?: string;
+        modelRevisionName?: string;
+        reason?: string;
+        time?: string;
       };
-      states: {
+      states?: {
         activeModelState: string;
-        targetModelState: string;
+        targetModelState?: string;
       };
       transitionStatus: string;
     };
     url: string;
+    address?: {
+      CACerts?: string;
+      audience?: string;
+      name?: string;
+      url?: string;
+    };
   };
 };
 
 export type RoleBindingSubject = {
   kind: string;
+  apiGroup?: string;
+  name: string;
+};
+
+export type RoleBindingRoleRef = {
+  kind: 'Role' | 'ClusterRole';
   apiGroup?: string;
   name: string;
 };
@@ -507,7 +527,7 @@ export type RoleBindingKind = K8sResourceCommon & {
     namespace: string;
   };
   subjects: RoleBindingSubject[];
-  roleRef: RoleBindingSubject;
+  roleRef: RoleBindingRoleRef;
 };
 
 export type RouteKind = K8sResourceCommon & {
@@ -919,6 +939,11 @@ export type WorkloadPodSet = {
   };
 };
 
+export enum WorkloadOwnerType {
+  RayCluster = 'RayCluster',
+  Job = 'Job',
+}
+
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-Workload
 export type WorkloadKind = K8sResourceCommon & {
   apiVersion: 'kueue.x-k8s.io/v1beta1';
@@ -1001,6 +1026,51 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
     denied?: boolean;
     reason?: string;
     evaluationError?: string;
+  };
+};
+
+export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
+  spec: {
+    namespace: string;
+  };
+  status?: {
+    incomplete: boolean;
+    nonResourceRules: {
+      verbs: string[];
+      nonResourceURLs?: string[];
+    }[];
+    resourceRules: {
+      verbs: string[];
+      apiGroups?: string[];
+      resourceNames?: string[];
+      resources?: string[];
+    }[];
+    evaluationError?: string;
+  };
+};
+
+export type ServiceKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+    labels?: Partial<{
+      'opendatahub.io/user': string;
+      component: string;
+    }>;
+  };
+  spec: {
+    selector: {
+      app: string;
+      component: string;
+    };
+    ports: {
+      name?: string;
+      protocol?: string;
+      appProtocol?: string;
+      port?: number;
+      targetPort?: number | string;
+    }[];
   };
 };
 
@@ -1196,6 +1266,7 @@ export type DashboardCommonConfig = {
   disableISVBadges: boolean;
   disableAppLauncher: boolean;
   disableUserManagement: boolean;
+  disableHome: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
   disableProjectSharing: boolean;
@@ -1205,19 +1276,16 @@ export type DashboardCommonConfig = {
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableKServeAuth: boolean;
+  disableKServeMetrics: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
   // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
   disablePipelineExperiments: boolean;
+  disableS3Endpoint: boolean;
+  disableArtifactsAPI: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
-};
-
-export type OperatorStatus = {
-  /** Operator is installed and will be cloned to the namespace on creation */
-  available: boolean;
-  /** Has a detection gone underway or is the available a static default */
-  queriedForStatus: boolean;
+  disableConnectionTypes: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -1228,7 +1296,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
-    modelServerSizes?: ServingRuntimeSize[];
+    modelServerSizes?: ModelServingSize[];
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
@@ -1273,10 +1341,18 @@ export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in StackComponent]?: boolean };
   phase?: string;
+  release?: {
+    name: string;
+    version: string;
+  };
 };
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
+  release?: {
+    name?: string;
+    version?: string;
+  };
   phase?: string;
 };
 
@@ -1284,6 +1360,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: DisplayNameAnnotations;
   };
   spec: {
     grpc: {
@@ -1293,16 +1370,35 @@ export type ModelRegistryKind = K8sResourceCommon & {
       port: number;
       serviceRoute: string;
     };
-    mysql: {
-      database: string;
-      host: string;
-      port?: number;
-    };
-    postgres: {
-      database: string;
-      host?: string;
-    };
-  };
+  } & EitherNotBoth<
+    {
+      mysql?: {
+        database: string;
+        host: string;
+        passwordSecret?: {
+          key: string;
+          name: string;
+        };
+        port?: number;
+        skipDBCreation?: boolean;
+        username?: string;
+      };
+    },
+    {
+      postgres?: {
+        database: string;
+        host?: string;
+        passwordSecret?: {
+          key: string;
+          name: string;
+        };
+        port: number;
+        skipDBCreation?: boolean;
+        sslMode?: string;
+        username?: string;
+      };
+    }
+  >;
   status?: {
     conditions?: K8sCondition[];
   };

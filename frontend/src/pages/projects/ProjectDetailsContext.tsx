@@ -10,29 +10,28 @@ import {
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { ContextResourceData } from '~/types';
+import { ContextResourceData, CustomWatchK8sResult } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InvalidProject from '~/concepts/projects/InvalidProject';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import useTemplates from '~/pages/modelServing/customServingRuntimes/useTemplates';
 import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getTokenNames } from '~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useGroups, useTemplates } from '~/api';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
-import useGroups from './projectSharing/useGroups';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -42,17 +41,18 @@ type ProjectDetailsContextType = {
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
-  servingRuntimeTemplates: ContextResourceData<TemplateKind>;
+  servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
   servingRuntimeTemplateDisablement: ContextResourceData<string>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
   projectSharingRB: ContextResourceData<RoleBindingKind>;
-  groups: ContextResourceData<GroupKind>;
+  groups: CustomWatchK8sResult<GroupKind[]>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   // We never will get into a case without a project, so fudge the default value
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   currentProject: null as unknown as ProjectKind,
   refreshAllProjectData: () => undefined,
   filterTokens: () => [],
@@ -60,13 +60,13 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   pvcs: DEFAULT_CONTEXT_DATA,
   dataConnections: DEFAULT_CONTEXT_DATA,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
-  servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
   projectSharingRB: DEFAULT_CONTEXT_DATA,
-  groups: DEFAULT_CONTEXT_DATA,
+  groups: DEFAULT_LIST_WATCH_RESULT,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -79,9 +79,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
-  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
-    useTemplates(dashboardNamespace),
-  );
+  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
+
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
     useTemplateOrder(dashboardNamespace),
   );
@@ -93,18 +92,16 @@ const ProjectDetailsContextProvider: React.FC = () => {
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
-  const groups = useContextResourceData<GroupKind>(useGroups());
+  const groups = useGroups();
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
-  const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateDisablement.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const projectSharingRefresh = projectSharingRB.refresh;
-  const groupsRefresh = groups.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
@@ -113,8 +110,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeRefresh();
     inferenceServiceRefresh();
     projectSharingRefresh();
-    groupsRefresh();
-    servingRuntimeTemplateRefresh();
+
     servingRuntimeTemplateOrderRefresh();
     servingRuntimeTemplateDisablementRefresh();
   }, [
@@ -122,12 +118,10 @@ const ProjectDetailsContextProvider: React.FC = () => {
     pvcRefresh,
     dataConnectionRefresh,
     servingRuntimeRefresh,
-    servingRuntimeTemplateRefresh,
     servingRuntimeTemplateOrderRefresh,
     servingRuntimeTemplateDisablementRefresh,
     inferenceServiceRefresh,
     projectSharingRefresh,
-    groupsRefresh,
   ]);
 
   const filterTokens = React.useCallback(

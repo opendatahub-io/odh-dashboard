@@ -1,13 +1,13 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { getClusterSettings, updateClusterSettings } from './clusterSettingsUtils';
-import { ClusterSettings } from '../../../types';
+import { ClusterSettings, KubeFastifyInstance } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
     secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      return getClusterSettings(fastify)
+      return getClusterSettings(fastify, request)
         .then((res) => {
           return res;
         })

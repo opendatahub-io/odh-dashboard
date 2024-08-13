@@ -9,7 +9,7 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',
-  SCHEDULED = 'job',
+  SCHEDULED = 'schedule',
 }
 export enum ScheduledType {
   PERIODIC = 'periodic',
@@ -60,7 +60,7 @@ export type SafeRunFormData = RunFormData & {
 };
 
 export const runTypeCategory: Record<PipelineRunType, 'run' | 'schedule'> = {
-  [PipelineRunType.Active]: 'run',
-  [PipelineRunType.Archived]: 'run',
-  [PipelineRunType.Scheduled]: 'schedule',
+  [PipelineRunType.ACTIVE]: 'run',
+  [PipelineRunType.ARCHIVED]: 'run',
+  [PipelineRunType.SCHEDULED]: 'schedule',
 };

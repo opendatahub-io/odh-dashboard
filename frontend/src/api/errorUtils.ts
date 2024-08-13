@@ -2,7 +2,7 @@ import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 
 export const isK8sStatus = (data: unknown): data is K8sStatus =>
-  (data as K8sStatus).kind === 'Status';
+  typeof data === 'object' && data !== null && 'kind' in data && data.kind === 'Status';
 
 export class K8sStatusError extends Error {
   public statusObject: K8sStatus;
@@ -18,6 +18,7 @@ const isAxiosErrorWithResponseMessage = (
   error?: Error | AxiosError,
 ): error is AxiosError<{ message: string }> =>
   Boolean(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     error && typeof (error as AxiosError<{ message: string }>).response?.data.message === 'string',
   );
 

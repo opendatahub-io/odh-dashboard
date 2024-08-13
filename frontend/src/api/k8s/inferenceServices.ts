@@ -10,9 +10,10 @@ import {
 import { InferenceServiceModel } from '~/api/models';
 import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { ContainerResources } from '~/types';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions } from './utils';
 
@@ -24,13 +25,20 @@ export const assembleInferenceService = (
   inferenceService?: InferenceServiceKind,
   acceleratorState?: AcceleratorProfileState,
 ): InferenceServiceKind => {
-  const { storage, format, servingRuntimeName, project, maxReplicas, minReplicas, tokenAuth } =
-    data;
+  const {
+    storage,
+    format,
+    servingRuntimeName,
+    project,
+    modelSize,
+    maxReplicas,
+    minReplicas,
+    tokenAuth,
+    externalRoute,
+  } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
   const { path, dataConnection } = storage;
   const dataConnectionKey = secretKey || dataConnection;
-
-  const { tolerations, resources } = assemblePodSpecOptions({}, acceleratorState);
 
   const updateInferenceService: InferenceServiceKind = inferenceService
     ? {
@@ -47,6 +55,11 @@ export const assembleInferenceService = (
                   'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
                   ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
                 }),
+          },
+          labels: {
+            ...inferenceService.metadata.labels,
+            ...(!isModelMesh &&
+              !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
           },
         },
         spec: {
@@ -75,6 +88,8 @@ export const assembleInferenceService = (
           namespace: project,
           labels: {
             [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+            ...(!isModelMesh &&
+              !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
           },
           annotations: {
             'openshift.io/display-name': data.name.trim(),
@@ -111,12 +126,33 @@ export const assembleInferenceService = (
     delete updateInferenceService.metadata.annotations['serving.knative.openshift.io/token-auth'];
   }
 
-  if (!isModelMesh && tolerations.length !== 0) {
-    updateInferenceService.spec.predictor.tolerations = tolerations;
+  if (externalRoute && updateInferenceService.metadata.labels) {
+    delete updateInferenceService.metadata.labels['networking.knative.dev/visibility'];
   }
 
-  if (!isModelMesh && resources.limits && resources.requests) {
-    updateInferenceService.spec.predictor.model.resources = resources;
+  // Resource and Accelerator support for KServe
+  if (!isModelMesh) {
+    const resourceSettings: ContainerResources = {
+      requests: {
+        cpu: modelSize.resources.requests?.cpu,
+        memory: modelSize.resources.requests?.memory,
+      },
+      limits: {
+        cpu: modelSize.resources.limits?.cpu,
+        memory: modelSize.resources.limits?.memory,
+      },
+    };
+
+    const { tolerations, resources } = assemblePodSpecOptions(resourceSettings, acceleratorState);
+
+    if (tolerations.length !== 0) {
+      updateInferenceService.spec.predictor.tolerations = tolerations;
+    }
+
+    updateInferenceService.spec.predictor.model = {
+      ...updateInferenceService.spec.predictor.model,
+      resources,
+    };
   }
 
   return updateInferenceService;

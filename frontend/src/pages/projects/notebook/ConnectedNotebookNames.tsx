@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Badge, List, ListItem, Spinner } from '@patternfly/react-core';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useRelatedNotebooks, { ConnectedNotebookContext } from './useRelatedNotebooks';
 
 type ConnectedNotebookNamesProps = {
@@ -35,7 +35,7 @@ const ConnectedNotebookNames: React.FC<ConnectedNotebookNamesProps> = ({
     <List isPlain>
       {connectedNotebooks.map((notebook) => (
         <ListItem key={notebook.metadata.uid}>
-          <Badge isRead>{getNotebookDisplayName(notebook)}</Badge>
+          <Badge isRead>{getDisplayNameFromK8sResource(notebook)}</Badge>
         </ListItem>
       ))}
     </List>

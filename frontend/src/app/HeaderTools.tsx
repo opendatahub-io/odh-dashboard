@@ -7,19 +7,19 @@ import {
   ToolbarItem,
   Button,
   Tooltip,
-} from '@patternfly/react-core';
-import {
-  Dropdown,
-  DropdownPosition,
-  DropdownToggle,
+  MenuToggleElement,
+  MenuToggle,
   DropdownItem,
-} from '@patternfly/react-core/deprecated';
+  Dropdown,
+  DropdownList,
+} from '@patternfly/react-core';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE } from '~/utilities/const';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
+import AboutDialog from '~/app/AboutDialog';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { logout } from './appUtils';
@@ -31,6 +31,7 @@ interface HeaderToolsProps {
 const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
+  const [aboutShown, setAboutShown] = React.useState(false);
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
@@ -57,7 +58,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     </DropdownItem>,
   ];
 
-  if (DEV_MODE && !isImpersonating) {
+  if (!EXT_CLUSTER && DEV_MODE && !isImpersonating) {
     userMenuItems.unshift(
       <DropdownItem
         key="impersonate"
@@ -82,7 +83,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="documentation"
         onClick={handleHelpClick}
-        href={DOC_LINK}
+        to={DOC_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -95,7 +96,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="support"
         onClick={handleHelpClick}
-        href={SUPPORT_LINK}
+        to={SUPPORT_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -108,7 +109,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="community"
         onClick={handleHelpClick}
-        href={COMMUNITY_LINK}
+        to={COMMUNITY_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -117,12 +118,25 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     );
   }
 
+  helpMenuItems.push(
+    <DropdownItem
+      key="about"
+      data-testid="help-about-item"
+      onClick={() => {
+        handleHelpClick();
+        setAboutShown(true);
+      }}
+    >
+      About
+    </DropdownItem>,
+  );
+
   return (
     <Toolbar isFullHeight>
       <ToolbarContent>
         <ToolbarGroup variant="icon-button-group" align={{ default: 'alignRight' }}>
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
-            <ToolbarItem>
+            <ToolbarItem data-testid="application-launcher">
               <AppLauncher />
             </ToolbarItem>
           ) : null}
@@ -134,26 +148,27 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               onClick={onNotificationsClick}
             />
           </ToolbarItem>
-          {helpMenuItems.length > 0 ? (
-            <ToolbarItem>
-              <Dropdown
-                isPlain
-                position={DropdownPosition.right}
-                toggle={
-                  <DropdownToggle
-                    aria-label="Help items"
-                    toggleIndicator={null}
-                    id="help-icon-toggle"
-                    onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
-                  >
-                    <QuestionCircleIcon />
-                  </DropdownToggle>
-                }
-                isOpen={helpMenuOpen}
-                dropdownItems={helpMenuItems}
-              />
-            </ToolbarItem>
-          ) : null}
+          <ToolbarItem>
+            <Dropdown
+              popperProps={{ position: 'right' }}
+              onOpenChange={(isOpen) => setHelpMenuOpen(isOpen)}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  variant="plain"
+                  aria-label="Help items"
+                  id="help-icon-toggle"
+                  ref={toggleRef}
+                  onClick={() => setHelpMenuOpen(!helpMenuOpen)}
+                  isExpanded={helpMenuOpen}
+                >
+                  <QuestionCircleIcon />
+                </MenuToggle>
+              )}
+              isOpen={helpMenuOpen}
+            >
+              <DropdownList>{helpMenuItems}</DropdownList>
+            </Dropdown>
+          </ToolbarItem>
         </ToolbarGroup>
         {DEV_MODE && isImpersonating && (
           <ToolbarItem>
@@ -175,18 +190,27 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         )}
         <ToolbarItem>
           <Dropdown
-            isPlain
-            position={DropdownPosition.right}
-            toggle={
-              <DropdownToggle id="user-menu-toggle" onToggle={() => setUserMenuOpen(!userMenuOpen)}>
+            popperProps={{ position: 'right' }}
+            onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                variant="plainText"
+                aria-label="User menu"
+                id="user-menu-toggle"
+                ref={toggleRef}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                isExpanded={userMenuOpen}
+              >
                 {userName}
-              </DropdownToggle>
-            }
+              </MenuToggle>
+            )}
             isOpen={userMenuOpen}
-            dropdownItems={userMenuItems}
-          />
+          >
+            <DropdownList>{userMenuItems}</DropdownList>
+          </Dropdown>
         </ToolbarItem>
       </ToolbarContent>
+      {aboutShown ? <AboutDialog onClose={() => setAboutShown(false)} /> : null}
     </Toolbar>
   );
 };

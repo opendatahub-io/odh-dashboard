@@ -1,11 +1,16 @@
 class EnabledPage {
   visit() {
-    cy.visit('/');
+    cy.visitWithLogin('/enabled');
     this.wait();
   }
 
-  private wait() {
+  shouldHaveEnabledPageSection() {
     cy.findByTestId('enabled-application').should('be.visible');
+    return this;
+  }
+
+  private wait() {
+    this.shouldHaveEnabledPageSection();
     cy.testA11y();
   }
 }

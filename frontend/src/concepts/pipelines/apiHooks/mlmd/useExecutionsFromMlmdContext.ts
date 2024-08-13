@@ -11,10 +11,10 @@ import useFetchState, {
 export const useExecutionsFromMlmdContext = (
   context: MlmdContext | null,
   refreshRate?: number,
-): FetchState<Execution[] | null> => {
+): FetchState<Execution[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<Execution[] | null>>(async () => {
+  const call = React.useCallback<FetchStateCallbackPromise<Execution[]>>(async () => {
     if (!context) {
       return Promise.reject(new NotReadyError('No context'));
     }
@@ -25,7 +25,7 @@ export const useExecutionsFromMlmdContext = (
     return res.getExecutionsList();
   }, [metadataStoreServiceClient, context]);
 
-  return useFetchState(call, null, {
+  return useFetchState(call, [], {
     refreshRate,
   });
 };

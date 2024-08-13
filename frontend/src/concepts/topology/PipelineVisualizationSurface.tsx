@@ -9,7 +9,10 @@ import {
   TopologyView,
   useVisualizationController,
   VisualizationSurface,
-  getSpacerNodes,
+  addSpacerNodes,
+  DEFAULT_SPACER_NODE_TYPE,
+  DEFAULT_EDGE_TYPE,
+  TopologySideBar,
 } from '@patternfly/react-topology';
 import {
   EmptyState,
@@ -18,28 +21,65 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { css } from '@patternfly/react-styles';
+import { NODE_HEIGHT, NODE_WIDTH } from './const';
+import './PipelineVisualizationSurface.scss';
 
 type PipelineVisualizationSurfaceProps = {
   nodes: PipelineNodeModel[];
   selectedIds?: string[];
+  sidePanel?: React.ReactElement | null;
 };
 
 const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> = ({
   nodes,
   selectedIds,
+  sidePanel,
 }) => {
   const controller = useVisualizationController();
   const [error, setError] = React.useState<Error | null>();
-  React.useEffect(() => {
-    const spacerNodes = getSpacerNodes(nodes);
 
-    // Dagre likes the root nodes to be first in the order
-    const renderNodes = [...spacerNodes, ...nodes].sort(
-      (a, b) => (a.runAfterTasks?.length ?? 0) - (b.runAfterTasks?.length ?? 0),
-    );
+  const selectedNode = React.useMemo(() => {
+    if (selectedIds?.[0]) {
+      const node = controller.getNodeById(selectedIds[0]);
+      if (node) {
+        return node;
+      }
+    }
+    return null;
+  }, [selectedIds, controller]);
+
+  React.useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout | null;
+    if (selectedNode) {
+      // Use a timeout in order to allow the side panel to be shown and window size recomputed
+      resizeTimeout = setTimeout(() => {
+        controller.getGraph().panIntoView(selectedNode, { offset: 20, minimumVisible: 100 });
+        resizeTimeout = null;
+      }, 500);
+    }
+    return () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+    };
+  }, [selectedIds, controller, selectedNode]);
+
+  React.useEffect(() => {
+    const currentModel = controller.toModel();
+    const updateNodes = nodes.map((node) => {
+      const currentNode = currentModel.nodes?.find((n) => n.id === node.id);
+      if (currentNode) {
+        return { ...node, collapsed: currentNode.collapsed };
+      }
+      return node;
+    });
+
+    const renderNodes = addSpacerNodes(updateNodes);
 
     // TODO: We can have a weird edge issue if the node is off by a few pixels vertically from the center
     const edges = getEdgesFromNodes(renderNodes);
+
     try {
       controller.fromModel(
         {
@@ -57,6 +97,55 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       }
     }
   }, [controller, nodes]);
+
+  const collapseAllCallback = React.useCallback(
+    (collapseAll: boolean) => {
+      // First, expand/collapse all nodes
+      if (collapseAll) {
+        controller.getGraph().collapseAll();
+      } else {
+        controller.getGraph().expandAll();
+      }
+      // We must recreate the model based on what is visible
+      const model = controller.toModel();
+
+      // Get all the non-spacer nodes, mark them all visible again
+      const nonSpacerNodes = model
+        .nodes!.filter((n) => n.type !== DEFAULT_SPACER_NODE_TYPE)
+        .map((n) => ({
+          ...n,
+          visible: true,
+        }));
+
+      // If collapsing, set the size of the collapsed group nodes
+      if (collapseAll) {
+        nonSpacerNodes.forEach((node) => {
+          const newNode = node;
+          if (node.group && node.collapsed) {
+            newNode.width = NODE_WIDTH;
+            newNode.height = NODE_HEIGHT;
+          }
+        });
+      }
+      // Determine the new set of nodes, including the spacer nodes
+      const pipelineNodes = addSpacerNodes(nonSpacerNodes);
+
+      // Determine the new edges
+      const edges = getEdgesFromNodes(
+        pipelineNodes,
+        DEFAULT_SPACER_NODE_TYPE,
+        DEFAULT_EDGE_TYPE,
+        DEFAULT_EDGE_TYPE,
+      );
+
+      // Apply the new model and run the layout
+      controller.fromModel({ nodes: pipelineNodes, edges }, true);
+      controller.getGraph().layout();
+      controller.getGraph().fit(80);
+    },
+    [controller],
+  );
+
   if (error) {
     return (
       <EmptyState data-id="error-empty-state">
@@ -72,10 +161,13 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
 
   return (
     <TopologyView
+      className={css('pipeline-visualization', !!selectedNode && 'm-is-open')}
       controlBar={
         <TopologyControlBar
           controlButtons={createTopologyControlButtons({
             ...defaultControlButtonsOptions,
+            expandAll: !!collapseAllCallback,
+            collapseAll: !!collapseAllCallback,
             zoomInCallback: action(() => {
               controller.getGraph().scaleBy(4 / 3);
             }),
@@ -89,10 +181,19 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
               controller.getGraph().reset();
               controller.getGraph().layout();
             }),
+            expandAllCallback: action(() => {
+              collapseAllCallback(false);
+            }),
+            collapseAllCallback: action(() => {
+              collapseAllCallback(true);
+            }),
             legend: false,
           })}
         />
       }
+      sideBarOpen={!!selectedNode}
+      sideBarResizable
+      sideBar={<TopologySideBar resizable>{sidePanel}</TopologySideBar>}
     >
       <VisualizationSurface state={{ selectedIds }} />
     </TopologyView>

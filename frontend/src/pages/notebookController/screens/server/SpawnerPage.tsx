@@ -13,22 +13,22 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
 import {
+  ConfigMap,
+  EnvVarResourceType,
   ImageInfo,
   ImageTag,
-  VariableRow,
   ImageTagInfo,
-  ConfigMap,
-  Secret,
-  EnvVarResourceType,
   NotebookState,
+  Secret,
+  VariableRow,
 } from '~/types';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
 import { enableNotebook, stopNotebook } from '~/services/notebookService';
 import {
-  generateEnvVarFileNameFromUsername,
-  verifyResource,
-  useNotebookUserState,
   classifyEnvVars,
+  generateEnvVarFileNameFromUsername,
+  useNotebookUserState,
+  verifyResource,
 } from '~/utilities/notebookControllerUtils';
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
@@ -37,9 +37,11 @@ import useNotification from '~/utilities/useNotification';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -47,13 +49,14 @@ import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import ImageSelector from './ImageSelector';
 import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
+import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 import '~/pages/notebookController/NotebookController.scss';
-import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
+  const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
@@ -229,7 +232,8 @@ const SpawnerPage: React.FC = () => {
   };
 
   const fireStartServerEvent = () => {
-    fireTrackingEvent('Notebook Server Started', {
+    fireFormTrackingEvent('Notebook Server Started', {
+      outcome: TrackingOutcome.submit,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
         : acceleratorProfile.useExisting
@@ -260,6 +264,11 @@ const SpawnerPage: React.FC = () => {
         refreshNotebookForStart();
       })
       .catch((e) => {
+        fireFormTrackingEvent('Notebook Server Started', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: e.message,
+        });
         setSubmitError(e);
         setCreateInProgress(false);
         // We had issues spawning the notebook -- try to stop it
@@ -283,13 +292,13 @@ const SpawnerPage: React.FC = () => {
         loadError={loadError}
         empty={images.length === 0}
       >
-        <Form maxWidth="1000px">
+        <Form maxWidth="1000px" data-testid="notebook-server-form">
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                {[...images]
+                {images
                   .filter((image) => !image.error)
-                  .sort(checkOrder)
+                  .toSorted(checkOrder)
                   .map((image) => (
                     <GridItem key={image.name}>
                       <ImageSelector
@@ -341,6 +350,7 @@ const SpawnerPage: React.FC = () => {
             <ActionGroup>
               <Button
                 data-id="start-server-button"
+                data-testid="start-server-button"
                 variant="primary"
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
@@ -357,12 +367,13 @@ const SpawnerPage: React.FC = () => {
               </Button>
               <Button
                 data-id="cancel-button"
+                data-testid="cancel-start-server-button"
                 variant="secondary"
                 onClick={() => {
                   if (impersonatedUsername) {
                     setImpersonating();
                   } else {
-                    navigate('/');
+                    navigate(isHomeAvailable ? '/enabled' : '/');
                   }
                 }}
               >

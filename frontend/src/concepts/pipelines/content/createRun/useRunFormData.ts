@@ -11,10 +11,10 @@ import {
 import {
   DateTimeKF,
   ExperimentKFv2,
-  PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
-  PipelineVersionKFv2,
+  RuntimeConfigParameters,
+  StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -25,7 +25,11 @@ import {
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString, convertSecondsToPeriodicTime } from '~/utilities/time';
-import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   if (!kfTime) {
@@ -39,10 +43,10 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 
 const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  initialData?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
 ): void => {
   React.useEffect(() => {
-    if (!initialData || !isPipelineRunJob(initialData)) {
+    if (!initialData || !isPipelineRecurringRun(initialData)) {
       return;
     }
 
@@ -98,55 +102,78 @@ const useUpdateExperimentFormData = (
   const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
-    if (!formData.experiment && experiment) {
+    // on create run page, we always check the experiment archived state
+    // no matter it's duplicated or carried from the create schedules pages
+    if (formData.runType.type === RunTypeOption.ONE_TRIGGER) {
+      if (formData.experiment) {
+        if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
+          setFormValue('experiment', null);
+        }
+      } else if (experiment) {
+        if (experiment.storage_state === StorageStateKF.ARCHIVED) {
+          setFormValue('experiment', null);
+        } else {
+          setFormValue('experiment', experiment);
+        }
+      }
+    } else if (!formData.experiment && experiment) {
+      // else, on create schedules page, we do what we did before
       setFormValue('experiment', experiment);
     }
-  }, [formData.experiment, setFormValue, experiment]);
+  }, [formData.experiment, setFormValue, experiment, formData.runType.type]);
 };
 
-const useUpdatePipelineFormData = (
-  formState: GenericObjectState<RunFormData>,
-  pipeline: PipelineKFv2 | null | undefined,
-  version: PipelineVersionKFv2 | null | undefined,
+const useUpdateCloneData = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
 ) => {
-  const [formData, setFormValue] = formState;
+  const cloneRunPipelineId = initialData?.pipeline_version_reference?.pipeline_id || '';
+  const cloneRunVersionId = initialData?.pipeline_version_reference?.pipeline_version_id || '';
+  const cloneRunExperimentId = initialData?.experiment_id || '';
+  const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
+  const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
+  const [cloneExperiment] = useExperimentById(cloneRunExperimentId);
 
   React.useEffect(() => {
-    if (!formData.pipeline && pipeline) {
-      setFormValue('pipeline', pipeline);
+    if (!initialData) {
+      return;
     }
-
-    if (!formData.version && version && formData.pipeline?.pipeline_id === pipeline?.pipeline_id) {
-      setFormValue('version', version);
-    }
-  }, [formData.pipeline, formData.version, pipeline, setFormValue, version]);
+    setFunction('experiment', cloneExperiment);
+    setFunction('pipeline', cloneRunPipeline);
+    setFunction('version', cloneRunPipelineVersion);
+  }, [setFunction, initialData, cloneExperiment, cloneRunPipeline, cloneRunPipelineVersion]);
 };
 
 const useRunFormData = (
-  run?: PipelineRunKFv2 | PipelineRunJobKFv2 | null,
+  run?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
-  const { pipeline, version, experiment } = initialFormData || {};
+  const { pipeline, version, experiment, nameDesc } = initialFormData || {};
 
   const formState = useGenericObjectState<RunFormData>({
     project,
-    nameDesc: {
-      name: run?.display_name ? `Duplicate of ${run.display_name}` : '',
-      description: run?.description ?? '',
-    },
+    nameDesc: nameDesc ?? { name: '', description: '' },
     pipeline: pipeline ?? null,
     version: version ?? null,
     experiment: experiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: run?.runtime_config?.parameters || {},
+    params:
+      run?.runtime_config?.parameters ||
+      Object.entries(getInputDefinitionParams(version) || {}).reduce(
+        (acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
+          acc[paramKey] = paramValue.defaultValue ?? '';
+          return acc;
+        },
+        {},
+      ),
     ...initialFormData,
   });
   const [, setFormValue] = formState;
 
   useUpdateExperimentFormData(formState, experiment);
-  useUpdatePipelineFormData(formState, pipeline, version);
   useUpdateRunType(setFormValue, run);
+  useUpdateCloneData(setFormValue, run);
 
   return formState;
 };

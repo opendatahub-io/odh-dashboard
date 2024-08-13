@@ -1,28 +1,23 @@
-import { InferenceServiceKind, ProjectKind, SecretKind, PodKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource, getProjectDisplayName } from '~/pages/projects/utils';
+import { InferenceServiceKind, ProjectKind, PodKind } from '~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
-
-export const getInferenceServiceDisplayName = (is: InferenceServiceKind): string =>
-  getDisplayNameFromK8sResource(is);
-
-export const getTokenDisplayName = (secret: SecretKind): string =>
-  getDisplayNameFromK8sResource(secret);
+import { asEnumMember } from '~/utilities/utils';
 
 export const getInferenceServiceActiveModelState = (
   is: InferenceServiceKind,
 ): InferenceServiceModelState =>
-  <InferenceServiceModelState | undefined>is.status?.modelStatus.states.activeModelState ||
-  <InferenceServiceModelState | undefined>is.status?.modelStatus.states.targetModelState ||
+  asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
+  asEnumMember(is.status?.modelStatus?.states?.targetModelState, InferenceServiceModelState) ||
   InferenceServiceModelState.UNKNOWN;
 
 export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
-  const activeModelState = is.status?.modelStatus.states.activeModelState;
-  const targetModelState = is.status?.modelStatus.states.targetModelState;
+  const activeModelState = is.status?.modelStatus?.states?.activeModelState;
+  const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
   const failedToLoad = InferenceServiceModelState.FAILED_TO_LOAD;
   const isFailedToLoad = activeModelState === failedToLoad || targetModelState === failedToLoad;
 
-  const lastFailureMessage = is.status?.modelStatus.lastFailureInfo?.message;
+  const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
   const stateMessage = activeModelState ?? targetModelState ?? 'Unknown';
 
   return isFailedToLoad ? lastFailureMessage ?? stateMessage : stateMessage;
@@ -33,7 +28,7 @@ export const getInferenceServiceProjectDisplayName = (
   projects: ProjectKind[],
 ): string => {
   const project = projects.find(({ metadata: { name } }) => name === is.metadata.namespace);
-  return project ? getProjectDisplayName(project) : 'Unknown';
+  return project ? getDisplayNameFromK8sResource(project) : 'Unknown';
 };
 
 export const checkModelStatus = (model: PodKind): ModelStatus => {

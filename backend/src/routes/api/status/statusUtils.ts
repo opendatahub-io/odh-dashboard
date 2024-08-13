@@ -12,7 +12,12 @@ export const status = async (
   const kubeContext = fastify.kube.currentContext;
   const { config, currentContext, namespace, currentUser, clusterID, clusterBranding } =
     fastify.kube;
-  const { server } = config.getCurrentCluster();
+  const currentCluster = config.getCurrentCluster();
+  if (currentCluster === null) {
+    throw new Error('The current cluster cannot be null');
+  }
+
+  const { server } = currentCluster;
 
   const userName = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, userName, namespace);

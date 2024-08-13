@@ -8,7 +8,7 @@ import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../ty
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus, passThroughResource } from '../k8s/pass-through';
 
-const createSelfSubjectAccessReview = (
+export const createSelfSubjectAccessReview = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   resourceAttributes: V1ResourceAttributes,

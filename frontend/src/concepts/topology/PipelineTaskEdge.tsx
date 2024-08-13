@@ -2,18 +2,22 @@ import * as React from 'react';
 import {
   DEFAULT_SPACER_NODE_TYPE,
   GraphElement,
-  Edge,
   EdgeTerminalType,
   observer,
   TaskEdge,
+  WithSelectionProps,
+  isEdge,
 } from '@patternfly/react-topology';
 
-interface PipelineTaskEdgeProps {
+interface PipelineTaskEdgeProps extends WithSelectionProps {
   element: GraphElement;
 }
 
 const PipelineTaskEdge: React.FC<PipelineTaskEdgeProps> = ({ element, ...props }) => {
-  const edge = element as Edge;
+  if (!isEdge(element)) {
+    throw new Error('Element is not Edge');
+  }
+  const edge = element;
   return (
     <TaskEdge
       element={edge}

@@ -1,15 +1,17 @@
 /* eslint-disable camelcase */
-import {
+import type {
+  ArgoWorkflowPipelineVersion,
   ExperimentKFv2,
   PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
-import { buildMockExperiments, buildMockJobKF, buildMockRunKF } from '~/__mocks__';
+import { buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
 
 class ParamsSection extends Contextual<HTMLElement> {
   findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -56,6 +58,13 @@ export class CreateRunPage {
 
   findPipelineVersionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('pipeline-version-toggle-button');
+  }
+
+  findPipelineVersionByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {
+    return this.find()
+      .findByTestId('pipeline-version-selector-table-list')
+      .find('td')
+      .contains(name);
   }
 
   findScheduledRunTypeSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -143,11 +152,11 @@ export class CreateRunPage {
   }
 
   fillName(value: string): void {
-    this.findNameInput().type(value);
+    this.findNameInput().clear().type(value);
   }
 
   fillDescription(value: string): void {
-    this.findDescriptionInput().type(value);
+    this.findDescriptionInput().clear().type(value);
   }
 
   selectExperimentByName(name: string): void {
@@ -158,17 +167,66 @@ export class CreateRunPage {
     cy.findByTestId('pipeline-selector-table-list').find('td').contains(name).click();
   }
 
-  mockGetExperiments(namespace: string, experiments?: ExperimentKFv2[]): Cypress.Chainable<null> {
-    return cy.intercept(
-      { pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/experiments` },
-      buildMockExperiments(experiments),
+  mockGetExperiments(namespace: string, experiments: ExperimentKFv2[]): Cypress.Chainable<null> {
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+      {
+        path: { namespace, serviceName: 'dspa' },
+      },
+      (req) => {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { filter, sort_by, page_size } = req.query;
+        let results = experiments;
+        if (sort_by) {
+          const fields = sort_by.toString().split(' ');
+          const sortField = fields[0];
+          const sortDirection = fields[1];
+          // more fields to be added
+          if (sortField === 'created_at') {
+            if (sortDirection === 'desc') {
+              results = results.toSorted(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+              );
+            } else {
+              results = results.toSorted(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+              );
+            }
+          }
+        }
+        if (filter) {
+          const { predicates } = JSON.parse(filter.toString());
+
+          if (predicates.length > 0) {
+            predicates.forEach((predicate: { key: string; string_value: string }) => {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              const { key, string_value } = predicate;
+              if (key === 'storage_state') {
+                results = results.filter((experiment) => experiment.storage_state === string_value);
+              }
+              if (key === 'name') {
+                results = results.filter((experiment) =>
+                  experiment.display_name.includes(string_value),
+                );
+              }
+            });
+          }
+        }
+
+        if (page_size) {
+          results = results.slice(0, Number(page_size));
+        }
+
+        req.reply({ experiments: results, total_size: results.length });
+      },
     );
   }
 
   mockGetPipelines(namespace: string, pipelines: PipelineKFv2[]): Cypress.Chainable<null> {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines`,
+        path: { namespace, serviceName: 'dspa' },
       },
       buildMockPipelines(pipelines),
     );
@@ -176,14 +234,12 @@ export class CreateRunPage {
 
   mockGetPipelineVersions(
     namespace: string,
-    versions: PipelineVersionKFv2[],
+    versions: (PipelineVersionKFv2 | ArgoWorkflowPipelineVersion)[],
     pipelineId: string,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/${pipelineId}/versions`,
-      },
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+      { path: { namespace, serviceName: 'dspa', pipelineId } },
       buildMockPipelineVersionsV2(versions),
     );
   }
@@ -193,10 +249,10 @@ export class CreateRunPage {
     pipelineVersion: PipelineVersionKFv2,
     { run_id, ...run }: Partial<PipelineRunKFv2>,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs`,
+        path: { namespace, serviceName: 'dspa' },
         times: 1,
       },
       (req) => {
@@ -220,14 +276,11 @@ export class CreateRunPage {
   mockCreateRecurringRun(
     namespace: string,
     pipelineVersion: PipelineVersionKFv2,
-    { recurring_run_id, ...recurringRun }: Partial<PipelineRunJobKFv2>,
+    { recurring_run_id, ...recurringRun }: Partial<PipelineRecurringRunKFv2>,
   ): Cypress.Chainable<null> {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns`,
-        times: 1,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      { path: { namespace, serviceName: 'dspa' }, times: 1 },
       (req) => {
         const data = {
           display_name: recurringRun.display_name,
@@ -243,7 +296,7 @@ export class CreateRunPage {
         expect(JSON.stringify(req.body.runtime_config)).to.equal(
           JSON.stringify(recurringRun.runtime_config),
         );
-        req.reply(buildMockJobKF({ ...data, recurring_run_id }));
+        req.reply(buildMockRecurringRunKF({ ...data, recurring_run_id }));
       },
     );
   }

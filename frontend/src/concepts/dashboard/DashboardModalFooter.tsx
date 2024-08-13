@@ -4,12 +4,14 @@ import {
   ActionListItem,
   Alert,
   Button,
+  ButtonProps,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 
 type DashboardModalFooterProps = {
   submitLabel: string;
+  submitButtonVariant?: ButtonProps['variant'];
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitDisabled: boolean;
@@ -21,6 +23,7 @@ type DashboardModalFooterProps = {
 
 const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   submitLabel,
+  submitButtonVariant = 'primary',
   onSubmit,
   onCancel,
   isSubmitDisabled,
@@ -43,7 +46,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
         <ActionListItem>
           <Button
             key="submit"
-            variant="primary"
+            variant={submitButtonVariant}
             isDisabled={isSubmitDisabled}
             onClick={onSubmit}
             isLoading={isSubmitLoading}

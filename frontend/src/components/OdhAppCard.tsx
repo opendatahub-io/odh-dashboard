@@ -9,9 +9,12 @@ import {
   CardFooter,
   CardHeader,
   Popover,
+  Dropdown,
+  DropdownItem,
+  MenuToggle,
+  DropdownList,
 } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, KebabToggle } from '@patternfly/react-core/deprecated';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import { getLaunchStatus, launchQuickStart } from '~/utilities/quickStartUtils';
 import EnableModal from '~/pages/exploreApplication/EnableModal';
@@ -40,10 +43,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
-
-  const onToggle = (value: boolean) => {
-    setIsOpen(value);
-  };
 
   const onOpenKebab = () => {
     setIsOpen(!isOpen);
@@ -83,7 +82,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   };
 
   const dropdownItems = [
-    <DropdownItem key="docs" href={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
+    <DropdownItem key="docs" to={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
       View documentation <ExternalLinkAltIcon />
     </DropdownItem>,
   ];
@@ -105,7 +104,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     <CardFooter className="odh-card__footer">
       {odhApp.metadata.name === 'jupyter' ? (
         odhApp.spec.internalRoute ? (
-          <Link to={odhApp.spec.internalRoute} className="odh-card__footer__link">
+          <Link
+            data-testid="jupyter-app-link"
+            to="/notebookController"
+            className="odh-card__footer__link"
+          >
             Launch application
           </Link>
         ) : null
@@ -183,12 +186,23 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
               {disabled ? disabledPopover : null}
               <Dropdown
                 onSelect={onOpenKebab}
-                toggle={<KebabToggle onToggle={(e, value: boolean) => onToggle(value)} />}
+                onOpenChange={(isOpened) => setIsOpen(isOpened)}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    variant="plain"
+                    aria-label="Actions"
+                    ref={toggleRef}
+                    onClick={() => setIsOpen(!isOpen)}
+                    isExpanded={isOpen}
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
                 isOpen={isOpen}
-                isPlain
-                dropdownItems={dropdownItems}
-                position="right"
-              />
+                popperProps={{ position: 'right' }}
+              >
+                <DropdownList>{dropdownItems}</DropdownList>
+              </Dropdown>
             </>
           ),
           hasNoOffset: true,

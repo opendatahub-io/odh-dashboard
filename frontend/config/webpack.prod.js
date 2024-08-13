@@ -16,7 +16,7 @@ const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 
-if (OUTPUT_ONLY !== true) {
+if (OUTPUT_ONLY !== 'true') {
   console.info(`Cleaning OUTPUT DIR...\n  ${DIST_DIR}\n`);
 }
 
@@ -44,6 +44,7 @@ module.exports = merge(
       new MiniCssExtractPlugin({
         filename: '[name].css',
         chunkFilename: '[name].bundle.css',
+        ignoreOrder: true,
       }),
     ],
     module: {

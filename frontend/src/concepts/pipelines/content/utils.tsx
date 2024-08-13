@@ -7,13 +7,11 @@ import {
   QuestionCircleIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { Icon } from '@patternfly/react-core';
+import { Icon, LabelProps } from '@patternfly/react-core';
 import {
   PipelineCoreResourceKFv2,
-  PipelineKFv2,
-  PipelineRunJobKFv2,
+  PipelineRecurringRunKFv2,
   PipelineRunKFv2,
-  PipelineVersionKFv2,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
@@ -22,6 +20,7 @@ import { relativeTime } from '~/utilities/time';
 export type RunStatusDetails = {
   icon: React.ReactNode;
   label: PipelineRunKFv2['state'] | string;
+  color?: LabelProps['color'];
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
   createdAt?: string;
@@ -38,6 +37,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
   let status: React.ComponentProps<typeof Icon>['status'];
   let details: string | undefined;
   let label: string;
+  let color: LabelProps['color'];
   const createdAt = relativeTime(Date.now(), new Date(run.created_at).getTime());
 
   switch (run.state) {
@@ -58,11 +58,13 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
     case RuntimeStateKF.SUCCEEDED:
       icon = <CheckCircleIcon />;
       status = 'success';
+      color = 'green';
       label = runtimeStateLabels[RuntimeStateKF.SUCCEEDED];
       break;
     case RuntimeStateKF.FAILED:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
+      color = 'red';
       label = runtimeStateLabels[RuntimeStateKF.FAILED];
       details = run.error?.message;
       break;
@@ -85,7 +87,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
       details = run.state;
   }
 
-  return { icon, label, status, details, createdAt };
+  return { icon, label, color, status, details, createdAt };
 };
 
 export const getPipelineAndVersionDeleteString = (
@@ -99,20 +101,7 @@ export const getPipelineResourceUniqueID = (resource: PipelineCoreResourceKFv2):
 export const isPipelineRun = (resource: PipelineCoreResourceKFv2): resource is PipelineRunKFv2 =>
   'run_id' in resource;
 
-export const isPipelineRunJob = (
+export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKFv2,
-): resource is PipelineRunJobKFv2 => 'recurring_run_id' in resource && !('run_id' in resource);
-
-export const isPipelineVersion = (
-  resource: PipelineCoreResourceKFv2,
-): resource is PipelineVersionKFv2 =>
-  'pipeline_version_id' in resource &&
-  'pipeline_id' in resource &&
-  !('recurring_run_id' in resource) &&
-  !('run_id' in resource);
-
-export const isPipeline = (resource: PipelineCoreResourceKFv2): resource is PipelineKFv2 =>
-  'pipeline_id' in resource &&
-  !('pipeline_version_id' in resource) &&
-  !('recurring_run_id' in resource) &&
-  !('run_id' in resource);
+): resource is PipelineRecurringRunKFv2 =>
+  'recurring_run_id' in resource && !('run_id' in resource);

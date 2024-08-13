@@ -34,14 +34,14 @@ export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ isOpen, runs, 
     >
       {isSingleArchiving ? (
         <StackItem>
-          The run will be archived and sent to the <b>{PipelineRunTabTitle.Archived}</b> runs tab,
-          where it can be restored.
+          The run will be archived and sent to the <b>{PipelineRunTabTitle.ARCHIVED}</b> tab, where
+          it can be restored.
         </StackItem>
       ) : (
         <>
           <StackItem>
             <b>{runs.length}</b> runs will be archived and sent to the{' '}
-            <b>{PipelineRunTabTitle.Archived}</b> tab.
+            <b>{PipelineRunTabTitle.ARCHIVED}</b> tab.
           </StackItem>
           <StackItem>
             <BulkActionExpandableSection title="Selected runs">

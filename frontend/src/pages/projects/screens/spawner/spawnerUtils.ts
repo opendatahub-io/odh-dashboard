@@ -1,7 +1,6 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { BYONImage, NotebookSize, Volume, VolumeMount } from '~/types';
+import { NotebookSize, Volume, VolumeMount } from '~/types';
 import {
   BuildKind,
   ImageStreamKind,
@@ -53,9 +52,12 @@ export const useMergeDefaultPVCName = (
   };
 };
 
-export const getVersion = (version?: string, prefix?: string): string => {
+export const getVersion = (version?: string | number, prefix?: string): string => {
   if (!version) {
     return '';
+  }
+  if (typeof version === 'number') {
+    return `${prefix || ''}${version}`;
   }
   const versionString =
     version.startsWith('v') || version.startsWith('V') ? version.slice(1) : version;
@@ -82,7 +84,10 @@ export const getImageVersionSelectOptionObject = (
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>
-  (object as ImageVersionSelectOptionObjectType | undefined)?.imageVersion !== undefined;
+  typeof object === 'object' &&
+  object !== null &&
+  'imageVersion' in object &&
+  object.imageVersion !== undefined;
 /******************* Compare utils for sorting *******************/
 const getBuildNumber = (build: BuildKind): number => {
   const buildNumber = build.metadata.annotations?.['openshift.io/build.number'] || '-1';
@@ -248,7 +253,7 @@ export const getDefaultVersionForImageStream = (
     return undefined;
   }
 
-  const sortedVersions = [...availableVersions].sort(compareTagVersions);
+  const sortedVersions = availableVersions.toSorted(compareTagVersions);
 
   // Return the most recent version
   return sortedVersions[0];
@@ -431,14 +436,3 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean 
     (activeTag === undefined || activeTag.items === null)
   );
 };
-
-export const convertBYONImageToK8sResource = (image: BYONImage): K8sResourceCommon => ({
-  kind: 'ImageStream',
-  apiVersion: 'image.openshift.io/v1',
-  metadata: {
-    name: image.id,
-    annotations: {
-      'openshift.io/display-name': image.name,
-    },
-  },
-});

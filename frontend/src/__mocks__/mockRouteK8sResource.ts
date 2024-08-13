@@ -140,3 +140,60 @@ export const mockRouteK8sResourceModelServing = ({
     ],
   },
 });
+
+export const mockRouteK8sResourceModelRegistry = ({
+  name = 'modelregistry-sample',
+  namespace = 'shared',
+}: MockResourceConfigType): RouteKind => ({
+  kind: 'Route',
+  apiVersion: 'route.openshift.io/v1',
+  metadata: {
+    name,
+    namespace,
+    uid: genUID('route'),
+    resourceVersion: '4789458',
+    creationTimestamp: '2023-02-14T21:44:13Z',
+    labels: {
+      app: name,
+      component: 'model-registry',
+    },
+    annotations: {
+      'openshift.io/host.generated': 'true',
+    },
+    managedFields: [],
+  },
+  spec: {
+    path: '',
+    host: `${name}-${namespace}.apps.user.com`,
+    to: {
+      kind: 'Service',
+      name,
+      weight: 100,
+    },
+    port: {
+      targetPort: 'oauth-proxy',
+    },
+    tls: {
+      termination: 'reencrypt',
+      insecureEdgeTerminationPolicy: 'Redirect',
+    },
+    wildcardPolicy: 'None',
+  },
+  status: {
+    ingress: [
+      {
+        host: `${name}-${namespace}.apps.user.com`,
+        routerName: 'default',
+        conditions: [
+          {
+            type: 'Admitted',
+            status: 'True',
+            lastTransitionTime: '2023-02-14T21:44:13Z',
+          },
+        ],
+        wildcardPolicy: 'None',
+        routerCanonicalHostname: 'router-default.apps.user.com',
+      },
+    ],
+  },
+});

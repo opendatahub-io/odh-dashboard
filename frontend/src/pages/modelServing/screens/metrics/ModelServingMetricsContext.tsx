@@ -24,10 +24,16 @@ export enum ModelMetricType {
 }
 
 type ModelServingMetricsContextType = {
-  data: Record<
-    ModelMetricType | ServerMetricType,
-    ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
-  >;
+  data: {
+    [ServerMetricType.REQUEST_COUNT]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ServerMetricType.AVG_RESPONSE_TIME]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+    [ServerMetricType.CPU_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ServerMetricType.MEMORY_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ModelMetricType.REQUEST_COUNT_FAILED]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: ContextResourceData<PrometheusQueryRangeResultValue>;
+    [ModelMetricType.TRUSTY_AI_SPD]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+    [ModelMetricType.TRUSTY_AI_DIR]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+  };
   refresh: () => void;
   namespace: string;
 };

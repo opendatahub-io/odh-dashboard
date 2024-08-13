@@ -5,8 +5,11 @@ import {
   ToolbarItem,
   ToolbarChip,
   Tooltip,
+  Dropdown,
+  DropdownItem,
+  MenuToggle,
+  DropdownList,
 } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { FilterIcon } from '@patternfly/react-icons';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
@@ -16,65 +19,81 @@ type FilterOptionRenders = {
   label?: string;
 };
 
-type PipelineFilterBarProps<Options extends FilterOptions> = {
+type ToolbarFilterProps<T extends string> = React.ComponentProps<typeof ToolbarGroup> & {
   children?: React.ReactNode;
-  filterOptions: { [key in Options]?: string };
-  filterOptionRenders: Record<Options, (props: FilterOptionRenders) => React.ReactNode>;
-  filterData: Record<Options, string | { label: string; value: string } | undefined>;
-  onFilterUpdate: (filterType: Options, value?: string | { label: string; value: string }) => void;
+  filterOptions: { [key in T]?: string };
+  filterOptionRenders: Record<T, (props: FilterOptionRenders) => React.ReactNode>;
+  filterData: Record<T, string | { label: string; value: string } | undefined>;
+  onFilterUpdate: (filterType: T, value?: string | { label: string; value: string }) => void;
   onClearFilters: () => void;
+  testId?: string;
 };
 
 export type FilterProps = Pick<
-  React.ComponentProps<typeof PipelineFilterBar>,
+  React.ComponentProps<typeof FilterToolbar>,
   'filterData' | 'onFilterUpdate' | 'onClearFilters'
 >;
 
-const PipelineFilterBar = <Options extends FilterOptions>({
+export function FilterToolbar<T extends string>({
   filterOptions,
   filterOptionRenders,
   filterData,
   onFilterUpdate,
   onClearFilters,
   children,
-  ...props
-}: PipelineFilterBarProps<Options>): React.JSX.Element => {
-  const keys = Object.keys(filterOptions) as Array<Options>;
+  testId = 'filter-toolbar',
+  ...toolbarGroupProps
+}: ToolbarFilterProps<T>): React.JSX.Element {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const keys = Object.keys(filterOptions) as Array<T>;
   const [open, setOpen] = React.useState(false);
-  const [currentFilterType, setCurrentFilterType] = React.useState<Options>(keys[0]);
-  const isToolbarChip = (v: unknown): v is ToolbarChip & { key: Options } =>
-    !!v && Object.keys(v as ToolbarChip).every((k) => ['key', 'node'].includes(k));
+  const [currentFilterType, setCurrentFilterType] = React.useState<T>(keys[0]);
+  const isToolbarChip = (v: unknown): v is ToolbarChip & { key: T } =>
+    !!v && Object.keys(v).every((k) => ['key', 'node'].includes(k));
+  const filterItem = filterData[currentFilterType];
 
   return (
     <>
-      <ToolbarGroup variant="filter-group" data-testid="pipeline-filter-toolbar" {...props}>
+      <ToolbarGroup variant="filter-group" data-testid={testId} {...toolbarGroupProps}>
         <ToolbarItem>
           <Dropdown
-            toggle={
-              <DropdownToggle id="pipeline-filter-toggle-button" onToggle={() => setOpen(!open)}>
+            onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+            shouldFocusToggleOnSelect
+            toggle={(toggleRef) => (
+              <MenuToggle
+                data-testid={`${testId}-dropdown`}
+                id={`${testId}-toggle-button`}
+                ref={toggleRef}
+                aria-label="Pipeline Filter toggle"
+                onClick={() => setOpen(!open)}
+                isExpanded={open}
+              >
                 <>
                   <FilterIcon /> {filterOptions[currentFilterType]}
                 </>
-              </DropdownToggle>
-            }
+              </MenuToggle>
+            )}
             isOpen={open}
-            dropdownItems={keys.map((filterKey) => (
-              <DropdownItem
-                key={filterKey.toString()}
-                onClick={() => {
-                  setOpen(false);
-                  setCurrentFilterType(filterKey);
-                }}
-              >
-                {filterOptions[filterKey]}
-              </DropdownItem>
-            ))}
-            data-testid="pipeline-filter-dropdown"
-          />
+          >
+            <DropdownList>
+              {keys.map((filterKey) => (
+                <DropdownItem
+                  key={filterKey}
+                  id={filterKey}
+                  onClick={() => {
+                    setOpen(false);
+                    setCurrentFilterType(filterKey);
+                  }}
+                >
+                  {filterOptions[filterKey]}
+                </DropdownItem>
+              ))}
+            </DropdownList>
+          </Dropdown>
         </ToolbarItem>
         <ToolbarFilter
           categoryName="Filters"
-          data-testid="run-table-toolbar-filter-text-field"
+          data-testid={`${testId}-text-field`}
           variant="search-filter"
           chips={keys
             .map<ToolbarChip | null>((filterKey) => {
@@ -100,7 +119,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
             .filter(isToolbarChip)}
           deleteChip={(_, chip) => {
             if (isToolbarChip(chip)) {
-              onFilterUpdate(chip.key);
+              onFilterUpdate(chip.key, '');
             }
           }}
           deleteChipGroup={() => onClearFilters()}
@@ -108,15 +127,17 @@ const PipelineFilterBar = <Options extends FilterOptions>({
           {filterOptionRenders[currentFilterType]({
             onChange: (value, label) =>
               onFilterUpdate(currentFilterType, label && value ? { label, value } : value),
-            ...(typeof filterData[currentFilterType] === 'string'
-              ? { value: filterData[currentFilterType] as string }
-              : (filterData[currentFilterType] as { label: string; value: string })),
+            ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
           })}
         </ToolbarFilter>
       </ToolbarGroup>
       {children}
     </>
   );
-};
+}
+
+const PipelineFilterBar = <Options extends FilterOptions>(
+  props: ToolbarFilterProps<Options>,
+): React.JSX.Element => <FilterToolbar {...props} testId="pipeline-filter" />;
 
 export default PipelineFilterBar;

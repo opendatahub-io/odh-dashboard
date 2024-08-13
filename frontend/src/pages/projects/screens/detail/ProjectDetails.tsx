@@ -3,7 +3,6 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem } from '@patternfly/react-co
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getProjectDescription, getProjectDisplayName } from '~/pages/projects/utils';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
@@ -15,6 +14,7 @@ import { typedObjectImage, ProjectObjectType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -32,8 +32,8 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const displayName = getProjectDisplayName(currentProject);
-  const description = getProjectDescription(currentProject);
+  const displayName = getDisplayNameFromK8sResource(currentProject);
+  const description = getDescriptionFromK8sResource(currentProject);
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;

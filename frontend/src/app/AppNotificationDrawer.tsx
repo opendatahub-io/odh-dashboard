@@ -25,7 +25,7 @@ interface AppNotificationDrawerProps {
 
 const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }) => {
   const stateNotifications: AppNotification[] = useAppSelector((state) => state.notifications);
-  const notifications = [...stateNotifications].sort(
+  const notifications = stateNotifications.toSorted(
     (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
   const dispatch = useAppDispatch();

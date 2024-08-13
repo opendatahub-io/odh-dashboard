@@ -3,12 +3,15 @@ import { useProjects } from '~/api';
 import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { isAvailableProject } from '~/concepts/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { isAvailableProject } from './utils';
+
+const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
+  getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
 type ProjectsContextType = {
   projects: ProjectKind[];
-  dataScienceProjects: ProjectKind[];
   modelServingProjects: ProjectKind[];
   /** eg. Terminating state, etc */
   nonActiveProjects: ProjectKind[];
@@ -29,7 +32,6 @@ type ProjectsContextType = {
 
 export const ProjectsContext = React.createContext<ProjectsContextType>({
   projects: [],
-  dataScienceProjects: [],
   modelServingProjects: [],
   nonActiveProjects: [],
   preferredProject: null,
@@ -50,15 +52,13 @@ type ProjectsProviderProps = {
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
-  const [projectData, loaded, error] = useProjects();
-  const loadError = error as Error | undefined;
+  const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const { projects, dataScienceProjects, modelServingProjects, nonActiveProjects } = React.useMemo(
+  const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
       projectData.reduce<{
         projects: ProjectKind[];
-        dataScienceProjects: ProjectKind[];
         modelServingProjects: ProjectKind[];
         nonActiveProjects: ProjectKind[];
       }>(
@@ -67,9 +67,6 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
             if (project.status?.phase === 'Active') {
               // Project that is active
               states.projects.push(project);
-              if (project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]) {
-                states.dataScienceProjects.push(project);
-              }
               if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]) {
                 // Model Serving active projects
                 states.modelServingProjects.push(project);
@@ -82,7 +79,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
 
           return states;
         },
-        { projects: [], dataScienceProjects: [], modelServingProjects: [], nonActiveProjects: [] },
+        { projects: [], modelServingProjects: [], nonActiveProjects: [] },
       ),
     [projectData, dashboardNamespace],
   );
@@ -119,32 +116,23 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [],
   );
 
-  const updatePreferredProject = React.useCallback<ProjectsContextType['updatePreferredProject']>(
-    (project) => {
-      setPreferredProject(project);
-    },
-    [],
-  );
-
   const contextValue = React.useMemo(
     () => ({
-      projects,
-      dataScienceProjects,
-      modelServingProjects,
-      nonActiveProjects,
+      projects: projects.toSorted(projectSorter),
+      modelServingProjects: modelServingProjects.toSorted(projectSorter),
+      nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
       preferredProject,
-      updatePreferredProject,
+      updatePreferredProject: setPreferredProject,
       loaded,
       loadError,
       waitForProject,
     }),
     [
       projects,
-      dataScienceProjects,
       modelServingProjects,
       nonActiveProjects,
       preferredProject,
-      updatePreferredProject,
+      setPreferredProject,
       loaded,
       loadError,
       waitForProject,

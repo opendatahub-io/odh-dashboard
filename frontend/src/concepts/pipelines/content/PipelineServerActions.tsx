@@ -1,15 +1,17 @@
 import * as React from 'react';
-import { Tooltip } from '@patternfly/react-core';
 import {
+  Tooltip,
   Dropdown,
   DropdownItem,
-  DropdownSeparator,
-  DropdownToggle,
-  KebabToggle,
-} from '@patternfly/react-core/deprecated';
+  MenuToggle,
+  Divider,
+  DropdownList,
+} from '@patternfly/react-core';
+import { EllipsisVIcon } from '@patternfly/react-icons';
 import { DeleteServerModal, ViewServerModal, usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineServerActionsProps = {
   variant?: 'kebab' | 'dropdown';
@@ -28,49 +30,67 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
 
   const DropdownComponent = (
     <Dropdown
+      onOpenChange={(isOpened) => setOpen(isOpened)}
       onSelect={() => setOpen(false)}
-      toggle={
+      toggle={(toggleRef) =>
         variant === 'kebab' ? (
-          <KebabToggle isDisabled={isDisabled} onToggle={() => setOpen(!open)} />
-        ) : (
-          <DropdownToggle
-            toggleVariant="secondary"
+          <MenuToggle
+            data-testid="pipeline-server-action"
+            aria-label="Pipeline server action kebab toggle"
+            variant="plain"
+            ref={toggleRef}
+            onClick={() => setOpen(!open)}
+            isExpanded={open}
             isDisabled={isDisabled}
-            onToggle={() => setOpen(!open)}
+          >
+            <EllipsisVIcon />
+          </MenuToggle>
+        ) : (
+          <MenuToggle
+            aria-label="Actions"
+            data-testid="pipeline-server-action"
+            variant="secondary"
+            ref={toggleRef}
+            isDisabled={isDisabled}
+            onClick={() => {
+              setOpen(!open);
+            }}
           >
             Pipeline server actions
-          </DropdownToggle>
+          </MenuToggle>
         )
       }
       isOpen={open}
-      position="right"
-      isPlain={variant === 'kebab'}
-      dropdownItems={[
-        <DropdownItem key="view-server-details" onClick={() => setViewOpen(true)}>
-          View pipeline server configuration
-        </DropdownItem>,
-        <DropdownSeparator key="separator" />,
-        <DropdownItem
-          onClick={() => {
-            setDeleteOpen(true);
-          }}
-          key="delete-server"
-        >
-          Delete pipeline server
-        </DropdownItem>,
-        ...(variant === 'kebab'
-          ? [
-              <DropdownItem
-                key="delete"
-                onClick={() => setDeletePipelinesOpen(true)}
-                isDisabled={pipelines.length === 0 && versions.length === 0}
-              >
-                Delete
-              </DropdownItem>,
-            ]
-          : []),
-      ]}
-    />
+      popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
+    >
+      <DropdownList>
+        {[
+          <DropdownItem key="view-server-details" onClick={() => setViewOpen(true)}>
+            View pipeline server configuration
+          </DropdownItem>,
+          <Divider key="separator" />,
+          <DropdownItem
+            onClick={() => {
+              setDeleteOpen(true);
+            }}
+            key="delete-server"
+          >
+            Delete pipeline server
+          </DropdownItem>,
+          ...(variant === 'kebab'
+            ? [
+                <DropdownItem
+                  key="delete"
+                  onClick={() => setDeletePipelinesOpen(true)}
+                  isDisabled={pipelines.length === 0 && versions.length === 0}
+                >
+                  Delete
+                </DropdownItem>,
+              ]
+            : []),
+        ]}
+      </DropdownList>
+    </Dropdown>
   );
 
   if (isDisabled) {

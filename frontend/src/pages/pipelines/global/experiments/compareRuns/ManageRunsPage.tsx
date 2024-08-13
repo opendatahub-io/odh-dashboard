@@ -13,11 +13,12 @@ import {
   Button,
   Breadcrumb,
   BreadcrumbItem,
+  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { CompareRunsSearchParam, PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
+import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
 import {
   experimentRunsRoute,
   experimentsBaseRoute,
@@ -25,15 +26,15 @@ import {
   experimentsCreateRunRoute,
 } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useExperimentByParams } from '~/pages/pipelines/global/experiments/useExperimentByParams';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineFilter, {
   FilterOptions,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ManageRunsTable } from './ManageRunsTable';
 
 interface ManageRunsPageInternalProps {
@@ -88,7 +89,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
 
         <EmptyStateBody>
           To get started, create a run. Alternatively, go to the{' '}
-          <b>{PipelineRunTabTitle.Schedules}</b> tab and create a schedule to execute recurring
+          <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring
           runs.
         </EmptyStateBody>
 
@@ -98,10 +99,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
               data-testid="create-run-button"
               variant="primary"
               onClick={() =>
-                navigate({
-                  pathname: experimentsCreateRunRoute(namespace, experiment.experiment_id),
-                  search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
-                })
+                navigate(experimentsCreateRunRoute(namespace, experiment.experiment_id))
               }
             >
               Create run
@@ -121,14 +119,15 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
         <Breadcrumb data-testid="manage-runs-page-breadcrumb">
           <BreadcrumbItem key="experiments">
             <Link to={experimentsBaseRoute(namespace)}>
-              Experiments - {getProjectDisplayName(project)}
+              Experiments - {getDisplayNameFromK8sResource(project)}
             </Link>
           </BreadcrumbItem>
 
           <BreadcrumbItem key="experiment">
             {experiment.display_name ? (
               <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-                {experiment.display_name}
+                {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                <Truncate content={experiment.display_name} className="truncate-no-min-width" />
               </Link>
             ) : (
               'Loading...'
@@ -165,6 +164,6 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
 };
 
 export const ManageRunsPage: React.FC = () => {
-  const experiment = useExperimentByParams();
+  const { experiment } = React.useContext(ExperimentContext);
   return experiment ? <ManageRunsPageInternal experiment={experiment} /> : null;
 };

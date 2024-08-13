@@ -4,12 +4,12 @@ import {
   MenuContent,
   MenuGroup,
   MenuItem,
+  Dropdown,
   MenuItemAction,
   MenuList,
   TextContent,
   MenuToggle,
 } from '@patternfly/react-core';
-import { Dropdown, DropdownPosition } from '@patternfly/react-core/deprecated';
 import React from 'react';
 import { EyeIcon, EyeSlashIcon, KeyIcon } from '@patternfly/react-icons';
 import styles from '@patternfly/react-styles/css/components/Menu/menu';
@@ -76,9 +76,18 @@ export const PipelineDropdown = ({
   };
   return (
     <Dropdown
-      menuAppendTo="parent"
-      position={DropdownPosition.right}
-      toggle={<MenuToggle onClick={onToggle} icon={<KeyIcon />} />}
+      onOpenChange={(isOpened) => setIsOpen(isOpened)}
+      popperProps={{ position: 'right' }}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          data-testid="select-data-connection"
+          ref={toggleRef}
+          onClick={onToggle}
+          isExpanded={isOpen}
+        >
+          <KeyIcon />
+        </MenuToggle>
+      )}
       isOpen={isOpen}
     >
       <Menu onSelect={onSelect} isScrollable isPlain>

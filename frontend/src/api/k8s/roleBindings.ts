@@ -6,46 +6,20 @@ import {
   k8sListResource,
   k8sPatchResource,
   K8sStatus,
+  K8sResourceCommon,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, RoleBindingKind } from '~/k8sTypes';
-import { RoleBindingModel } from '~/api/models';
 import {
-  ProjectSharingRBType,
-  ProjectSharingRoleType,
-} from '~/pages/projects/projectSharing/types';
+  K8sAPIOptions,
+  KnownLabels,
+  RoleBindingKind,
+  RoleBindingRoleRef,
+  RoleBindingSubject,
+} from '~/k8sTypes';
+import { RoleBindingModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-
-export const generateRoleBindingData = (
-  rbName: string,
-  dashboardNamespace: string,
-  projectName: string,
-): RoleBindingKind => {
-  const roleBindingObject: RoleBindingKind = {
-    apiVersion: 'rbac.authorization.k8s.io/v1',
-    kind: 'RoleBinding',
-    metadata: {
-      name: rbName,
-      namespace: dashboardNamespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-      },
-    },
-    roleRef: {
-      apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'ClusterRole',
-      name: 'system:image-puller',
-    },
-    subjects: [
-      {
-        apiGroup: 'rbac.authorization.k8s.io',
-        kind: 'Group',
-        name: `system:serviceaccounts:${projectName}`,
-      },
-    ],
-  };
-  return roleBindingObject;
-};
+import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
+import { addOwnerReference } from '~/api/k8sUtils';
 
 export const generateRoleBindingServingRuntime = (
   name: string,
@@ -77,11 +51,17 @@ export const generateRoleBindingServingRuntime = (
   return roleBindingObject;
 };
 
-export const generateRoleBindingProjectSharing = (
+export const generateRoleBindingPermissions = (
   namespace: string,
-  rbSubjectType: ProjectSharingRBType,
-  rbSubjectName: string,
-  rbRoleRefType: ProjectSharingRoleType,
+  rbSubjectKind: RoleBindingSubject['kind'],
+  rbSubjectName: RoleBindingSubject['name'],
+  rbRoleRefName: RoleBindingPermissionsRoleType | string, //string because with MR this can include MR name
+  rbRoleRefKind: RoleBindingRoleRef['kind'],
+  rbLabels: { [key: string]: string } = {
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    [KnownLabels.PROJECT_SHARING]: 'true',
+  },
+  ownerReference?: K8sResourceCommon,
 ): RoleBindingKind => {
   const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
@@ -89,25 +69,22 @@ export const generateRoleBindingProjectSharing = (
     metadata: {
       name: `dashboard-permissions-${genRandomChars()}`,
       namespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-        [KnownLabels.PROJECT_SHARING]: 'true',
-      },
+      labels: rbLabels,
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'ClusterRole',
-      name: rbRoleRefType,
+      kind: rbRoleRefKind,
+      name: rbRoleRefName,
     },
     subjects: [
       {
         apiGroup: 'rbac.authorization.k8s.io',
-        kind: rbSubjectType,
+        kind: rbSubjectKind,
         name: rbSubjectName,
       },
     ],
   };
-  return roleBindingObject;
+  return addOwnerReference(roleBindingObject, ownerReference);
 };
 
 export const listRoleBindings = (
@@ -150,23 +127,6 @@ export const deleteRoleBinding = (
       opts,
     ),
   );
-
-export const patchRoleBindingName = (
-  rbName: string,
-  namespace: string,
-  rbRoleRefType: ProjectSharingRoleType,
-): Promise<RoleBindingKind> =>
-  k8sPatchResource<RoleBindingKind>({
-    model: RoleBindingModel,
-    queryOptions: { name: rbName, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/roleRef/name',
-        value: rbRoleRefType,
-      },
-    ],
-  });
 
 export const patchRoleBindingOwnerRef = (
   rbName: string,

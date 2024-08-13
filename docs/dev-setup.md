@@ -7,7 +7,7 @@ ODH requires the following to run:
 - [NodeJS and NPM](https://nodejs.org/)
   - Node recommended version -> `18.16.0`
   - NPM recommended version -> `9.6.7`
-- [OpenShift CLI](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html)
+- [OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html)
 - [kustomize](https://github.com/kubernetes-sigs/kustomize) (if you need to do deployment)
 
 ### Additional tooling
@@ -38,7 +38,7 @@ This is the default context for running a local UI.  Make sure you build the pro
 
 > Note: You must be logged-in with `oc` before you can start the backend. Details for that are in the the [contribution guidelines](../CONTRIBUTING.md#give-your-dev-env-access).
 
-> Note: The CLI logged-in user will need to be a `cluster-admin` level user on the cluster to mimic the Dashboard Service Account level of permissions. You could also bind the [cluster role](../manifests/base/cluster-role.yaml) to your user as we do with the service account [binding](../manifests/base/cluster-role-binding.yaml).
+> Note: The CLI logged-in user will need to be a `cluster-admin` level user on the cluster to mimic the Dashboard Service Account level of permissions. You could also bind the [cluster role](../manifests/core-bases/base/cluster-role.yaml) to your user as we do with the service account [binding](../manifests/core-bases/base/cluster-role-binding.yaml).
 
 ```bash
 npm run start

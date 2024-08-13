@@ -1,3 +1,4 @@
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth, ExactlyOne } from '~/typeHelpers';
 
 /* Types pulled from https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec */
@@ -9,8 +10,6 @@ import { EitherNotBoth, ExactlyOne } from '~/typeHelpers';
 export type DateTimeKF = string;
 
 export enum PipelinesFilterOp {
-  UNKNOWN = 'UNKNOWN',
-
   // Operators on scalar values. Only applies to one of |int_value|,
   // |long_value|, |string_value| or |timestamp_value|.
   EQUALS = 'EQUALS',
@@ -57,6 +56,21 @@ export enum ArtifactType {
   SLICED_CLASSIFICATION_METRICS = 'system.SlicedClassificationMetrics',
   HTML = 'system.HTML',
   MARKDOWN = 'system.Markdown',
+}
+
+export enum ExecutionType {
+  CONTAINER_EXECUTION = 'system.ContainerExecution',
+  DAG_EXECUTION = 'system.DAGExecution',
+}
+
+export enum ExecutionStatus {
+  UNKNOWN = 'Unknown',
+  NEW = 'New',
+  RUNNING = 'Running',
+  COMPLETE = 'Complete',
+  FAILED = 'Failed',
+  CACHED = 'Cached',
+  CANCELED = 'Canceled',
 }
 
 /** @deprecated resource type is no longer a concept in v2 */
@@ -113,8 +127,8 @@ export enum RecurringRunMode {
 
 export enum RecurringRunStatus {
   STATUS_UNSPECIFIED = 'STATUS_UNSPECIFIED',
-  ENABLED = 'ENABLE',
-  DISABLED = 'DISABLE',
+  ENABLED = 'ENABLED',
+  DISABLED = 'DISABLED',
 }
 
 export enum StorageStateKF {
@@ -160,14 +174,16 @@ export type InputOutputArtifactType = {
 };
 
 export type InputOutputDefinition = {
-  artifacts?: Record<
-    string,
-    {
-      artifactType: InputOutputArtifactType;
-    }
-  >;
+  artifacts?: InputOutputDefinitionArtifacts;
   parameters?: ParametersKF;
 };
+
+export type InputOutputDefinitionArtifacts = Record<
+  string,
+  {
+    artifactType: InputOutputArtifactType;
+  }
+>;
 
 type GroupNodeComponent = {
   dag: DAG;
@@ -219,17 +235,22 @@ export type TaskKF = {
   inputs?: {
     artifacts?: Record<
       string,
-      {
-        taskOutputArtifact?: {
-          /** Artifact node name */
-          outputArtifactKey: string;
-          /**
-           * The task string for runAfter
-           * @see DAG.tasks
-           */
-          producerTask: string;
-        };
-      }
+      EitherNotBoth<
+        {
+          taskOutputArtifact?: {
+            /** Artifact node name */
+            outputArtifactKey: string;
+            /**
+             * The task string for runAfter
+             * @see DAG.tasks
+             */
+            producerTask: string;
+          };
+        },
+        {
+          componentInputArtifact: string;
+        }
+      >
     >;
     parameters?: Record<
       string,
@@ -273,6 +294,7 @@ export type PipelineExecutorKF = {
   };
   pvcMount?: {
     mountPath: string;
+    constant?: string;
     taskOutputParameter?: {
       outputParameterKey: string;
       producerTask: string;
@@ -311,9 +333,7 @@ export type PipelineSpec = {
   };
   root: {
     dag: DAG;
-    inputDefinitions?: {
-      parameters: ParametersKF;
-    };
+    inputDefinitions?: InputOutputDefinition;
   };
   schemaVersion: string;
   sdkVersion: string;
@@ -343,6 +363,10 @@ export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
   code_source_url?: string;
   package_url?: UrlKF;
   error?: GoogleRpcStatusKF;
+};
+
+export type ArgoWorkflowPipelineVersion = Omit<PipelineVersionKFv2, 'pipeline_spec'> & {
+  pipeline_spec: K8sResourceCommon;
 };
 
 export type ResourceKeyKF = {
@@ -576,7 +600,7 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
 
 /**
  * @deprecated
- * Use PipelineRunJobKFv2 for all new stories
+ * Use PipelineRecurringRunKFv2 for all new stories
  */
 export type PipelineRunJobKF = PipelineCoreResourceKF & {
   pipeline_spec: PipelineSpecKF;
@@ -597,7 +621,7 @@ export type PipelineVersionReference = {
   pipeline_version_id: string;
 };
 
-export type PipelineRunJobKFv2 = PipelineCoreResourceKFv2 & {
+export type PipelineRecurringRunKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_spec?: PipelineSpecKF;
   service_account?: string;
   max_concurrency: string;
@@ -646,6 +670,7 @@ export type ExperimentKFv2 = {
   created_at: string;
   namespace?: string;
   storage_state: StorageStateKF;
+  last_run_created_at: string;
 };
 
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{
@@ -657,8 +682,8 @@ export type ListPipelinesResponseKF = PipelineKFCallCommon<{
 export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
   runs: PipelineRunKFv2[];
 }>;
-export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
-  recurringRuns: PipelineRunJobKFv2[];
+export type ListPipelineRecurringRunsResourceKF = PipelineKFCallCommon<{
+  recurringRuns: PipelineRecurringRunKFv2[];
 }>;
 export type ListPipelineVersionsKF = PipelineKFCallCommon<{
   pipeline_versions: PipelineVersionKFv2[];
@@ -679,7 +704,7 @@ export type CreatePipelineVersionKFData = Omit<
 
 export type CreateExperimentKFData = Omit<
   ExperimentKFv2,
-  'experiment_id' | 'created_at' | 'namespace' | 'storage_state'
+  'experiment_id' | 'created_at' | 'namespace' | 'storage_state' | 'last_run_created_at'
 >;
 export type CreatePipelineRunKFData = Omit<
   PipelineRunKFv2,
@@ -696,8 +721,8 @@ export type CreatePipelineRunKFData = Omit<
   | 'run_details'
 >;
 
-export type CreatePipelineRunJobKFData = Omit<
-  PipelineRunJobKFv2,
+export type CreatePipelineRecurringRunKFData = Omit<
+  PipelineRecurringRunKFv2,
   | 'recurring_run_id'
   | 'status'
   | 'created_at'

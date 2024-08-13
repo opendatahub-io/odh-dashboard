@@ -7,11 +7,7 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import {
-  DataConnection,
-  NamespaceApplicationCase,
-  UpdateObjectAtPropAndValue,
-} from '~/pages/projects/types';
+import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
@@ -19,16 +15,18 @@ import {
   InferenceServiceStorageType,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
-  ServingRuntimeSize,
+  ModelServingSize,
+  LabeledDataConnection,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import {
+  getInferenceServiceSize,
   getServingRuntimeSize,
   getServingRuntimeTokens,
   setUpTokenAuth,
@@ -46,7 +44,7 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
 
-export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
+export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_MODEL_SERVER_SIZES;
@@ -63,6 +61,9 @@ export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind)
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
+export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
+
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
 
@@ -72,7 +73,7 @@ export const getInferenceServiceFromServingRuntime = (
 ): InferenceServiceKind[] =>
   inferenceServices.filter(
     (inferenceService) =>
-      inferenceService.spec.predictor.model.runtime === servingRuntime.metadata.name,
+      inferenceService.spec.predictor.model?.runtime === servingRuntime.metadata.name,
   );
 
 export const useCreateServingRuntimeObject = (existingData?: {
@@ -82,7 +83,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
   data: CreatingServingRuntimeObject,
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
-  sizes: ServingRuntimeSize[],
+  sizes: ModelServingSize[],
 ] => {
   const { dashboardConfig } = useAppContext();
 
@@ -110,7 +111,9 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
-  const existingSize = getServingRuntimeSize(sizes, existingData?.servingRuntime);
+  const existingSize = useDeepCompareMemoize(
+    getServingRuntimeSize(sizes, existingData?.servingRuntime),
+  );
 
   const existingExternalRoute =
     existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
@@ -147,6 +150,10 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   name: '',
   project: '',
   servingRuntimeName: '',
+  modelSize: {
+    name: '',
+    resources: {},
+  },
   storage: {
     type: InferenceServiceStorageType.EXISTING_STORAGE,
     path: '',
@@ -171,9 +178,16 @@ export const useCreateInferenceServiceObject = (
   data: CreatingInferenceServiceObject,
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   resetDefaults: () => void,
+  sizes: ModelServingSize[],
 ] => {
-  const createInferenceServiceState =
-    useGenericObjectState<CreatingInferenceServiceObject>(defaultInferenceService);
+  const { dashboardConfig } = useAppContext();
+
+  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
+
+  const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
+    ...defaultInferenceService,
+    modelSize: sizes[0],
+  });
 
   const [, setCreateData] = createInferenceServiceState;
 
@@ -181,26 +195,33 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
     existingData?.metadata.name ||
     '';
-  const existingStorage = existingData?.spec.predictor.model.storage || undefined;
-  const existingServingRuntime = existingData?.spec.predictor.model.runtime || '';
+  const existingStorage =
+    useDeepCompareMemoize(existingData?.spec.predictor.model?.storage) || undefined;
+  const existingServingRuntime = existingData?.spec.predictor.model?.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
-  const existingFormat = existingData?.spec.predictor.model.modelFormat || undefined;
+  const existingFormat =
+    useDeepCompareMemoize(existingData?.spec.predictor.model?.modelFormat) || undefined;
   const existingMinReplicas =
     existingData?.spec.predictor.minReplicas || existingServingRuntimeData?.spec.replicas || 1;
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
 
-  const existingExternalRoute = false; // TODO: Change this in the future in case we have an External Route
+  const existingExternalRoute =
+    existingData?.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
   const existingTokenAuth =
     existingData?.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(secrets));
+  const existingSize = useDeepCompareMemoize(
+    getInferenceServiceSize(sizes, existingData, existingServingRuntimeData),
+  );
 
   React.useEffect(() => {
     if (existingName) {
       setCreateData('name', existingName);
       setCreateData('servingRuntimeName', existingServingRuntime);
       setCreateData('project', existingProject);
+      setCreateData('modelSize', existingSize);
       setCreateData('storage', {
         type: InferenceServiceStorageType.EXISTING_STORAGE,
         path: existingStorage?.path || '',
@@ -223,6 +244,7 @@ export const useCreateInferenceServiceObject = (
     existingName,
     existingStorage,
     existingFormat,
+    existingSize,
     existingServingRuntime,
     existingProject,
     existingMinReplicas,
@@ -233,11 +255,9 @@ export const useCreateInferenceServiceObject = (
     existingTokens,
   ]);
 
-  return createInferenceServiceState;
+  return [...createInferenceServiceState, sizes];
 };
 
-export const getModelServerDisplayName = (server: ServingRuntimeKind): string =>
-  getDisplayNameFromK8sResource(server);
 export const getProjectModelServingPlatform = (
   project: ProjectKind | null,
   platformStatuses: ServingPlatformStatuses,
@@ -504,11 +524,19 @@ export const submitServingRuntimeResourcesWithDryRun = async (
 
 export const getUrlFromKserveInferenceService = (
   inferenceService: InferenceServiceKind,
-): string | undefined => inferenceService.status?.url;
+): string | undefined =>
+  isUrlInternalService(inferenceService.status?.url) || !inferenceService.status?.url
+    ? undefined
+    : inferenceService.status.url;
+
+export const isUrlInternalService = (url: string | undefined): boolean =>
+  url !== undefined && url.endsWith('.svc.cluster.local');
 
 export const filterOutConnectionsWithoutBucket = (
-  connections: DataConnection[],
-): DataConnection[] =>
+  connections: LabeledDataConnection[],
+): LabeledDataConnection[] =>
   connections.filter(
-    (obj) => isDataConnectionAWS(obj) && obj.data.data.AWS_S3_BUCKET.trim() !== '',
+    (obj) =>
+      isDataConnectionAWS(obj.dataConnection) &&
+      obj.dataConnection.data.data.AWS_S3_BUCKET.trim() !== '',
   );

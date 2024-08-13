@@ -33,6 +33,10 @@ export class Card {
     return this.find().findByTestId('cardbody');
   }
 
+  findApplicationLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('jupyter-app-link');
+  }
+
   findExploreCard(metadataName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(['card', metadataName]);
   }

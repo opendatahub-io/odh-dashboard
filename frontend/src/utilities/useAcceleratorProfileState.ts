@@ -10,7 +10,7 @@ import {
   TolerationOperator,
 } from '~/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
-import { getAcceleratorProfileCount } from '~/utilities/utils';
+import { getAcceleratorProfileCount, isEnumMember } from '~/utilities/utils';
 
 export type AcceleratorProfileState = {
   acceleratorProfile?: AcceleratorProfileKind;
@@ -65,9 +65,8 @@ const useAcceleratorProfileState = (
       } else {
         // check if there is accelerator usage in the container
         // this is to handle the case where the accelerator is disabled, deleted, or empty
-        const containerResourceAttributes = Object.values(ContainerResourceAttributes) as string[];
         const possibleAcceleratorRequests = Object.entries(resources.requests ?? {})
-          .filter(([key]) => !containerResourceAttributes.includes(key))
+          .filter(([key]) => !isEnumMember(key, ContainerResourceAttributes))
           .map(([key, value]) => ({ identifier: key, count: value }));
         if (possibleAcceleratorRequests.length > 0) {
           // check if they are just using the nvidia.com/gpu

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { BYONImage, ImageInfo, ResponseStatus } from '~/types';
 
 export const fetchImages = (): Promise<ImageInfo[]> => {

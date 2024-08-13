@@ -25,7 +25,8 @@ import {
 } from '~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '~/api/models';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -106,6 +107,37 @@ describe('assembleInferenceService', () => {
     );
   });
 
+  it('should have the right labels when creating for Kserve with public route', async () => {
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: false }),
+    );
+
+    expect(inferenceService.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+      'cluster-local',
+    );
+
+    const missingExternalRoute = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: true }),
+    );
+
+    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+      undefined,
+    );
+  });
+
+  it('should have the right labels when creating for Modelmesh with public route', async () => {
+    const missingExternalRoute = assembleInferenceService(
+      mockInferenceServiceModalData({ externalRoute: true }),
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
+      undefined,
+    );
+  });
+
   it('should handle name and display name', async () => {
     const displayName = 'Llama model';
 
@@ -156,8 +188,8 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.tolerations?.[0].key).toBe(
       mockAcceleratorProfile({}).spec.tolerations?.[0].key,
     );
-    expect(inferenceService.spec.predictor.model.resources?.limits?.['nvidia.com/gpu']).toBe(1);
-    expect(inferenceService.spec.predictor.model.resources?.requests?.['nvidia.com/gpu']).toBe(1);
+    expect(inferenceService.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
+    expect(inferenceService.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
   });
 
   it('should not add accelerator if modelmesh and accelerator found', async () => {
@@ -180,7 +212,7 @@ describe('assembleInferenceService', () => {
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
-    expect(inferenceService.spec.predictor.model.resources).toBeUndefined();
+    expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
   });
 
   it('should provide max and min replicas if provided', async () => {
@@ -233,6 +265,89 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.maxReplicas).toBeUndefined();
     expect(inferenceService.spec.predictor.minReplicas).toBeUndefined();
   });
+
+  it('should add requests on kserve', async () => {
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
+      count: 1,
+      additionalOptions: {},
+      useExisting: false,
+    };
+
+    const modelSize: ModelServingSize = {
+      name: 'Small',
+      resources: {
+        requests: {
+          cpu: '1',
+          memory: '1Gi',
+        },
+        limits: {
+          cpu: '2',
+          memory: '2Gi',
+        },
+      },
+    };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ modelSize }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      acceleratorProfileState,
+    );
+
+    expect(inferenceService.spec.predictor.model?.resources?.requests?.cpu).toBe(
+      modelSize.resources.requests?.cpu,
+    );
+    expect(inferenceService.spec.predictor.model?.resources?.requests?.memory).toBe(
+      modelSize.resources.requests?.memory,
+    );
+    expect(inferenceService.spec.predictor.model?.resources?.limits?.cpu).toBe(
+      modelSize.resources.limits?.cpu,
+    );
+    expect(inferenceService.spec.predictor.model?.resources?.limits?.memory).toBe(
+      modelSize.resources.limits?.memory,
+    );
+  });
+
+  it('should omit requests on mdoelmesh', async () => {
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
+      count: 1,
+      additionalOptions: {},
+      useExisting: false,
+    };
+
+    const modelSize: ModelServingSize = {
+      name: 'Small',
+      resources: {
+        requests: {
+          cpu: '1',
+          memory: '1Gi',
+        },
+        limits: {
+          cpu: '2',
+          memory: '2Gi',
+        },
+      },
+    };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ modelSize }),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      acceleratorProfileState,
+    );
+
+    expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
+  });
 });
 
 describe('listInferenceService', () => {
@@ -244,12 +359,7 @@ describe('listInferenceService', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: { queryParams: {} },
     });
   });
@@ -260,12 +370,7 @@ describe('listInferenceService', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: { queryParams: {} },
     });
   });
@@ -514,12 +619,7 @@ describe('deleteInferenceService', () => {
       fetchOptions: {
         requestInit: {},
       },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: {
         name: 'test',
         ns: 'test-project',
@@ -538,12 +638,7 @@ describe('deleteInferenceService', () => {
       fetchOptions: {
         requestInit: {},
       },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: {
         name: 'test',
         ns: 'test-project',
@@ -561,12 +656,7 @@ describe('deleteInferenceService', () => {
       fetchOptions: {
         requestInit: {},
       },
-      model: {
-        apiGroup: 'serving.kserve.io',
-        apiVersion: 'v1beta1',
-        kind: 'InferenceService',
-        plural: 'inferenceservices',
-      },
+      model: InferenceServiceModel,
       queryOptions: {
         name: 'test',
         ns: 'test-project',

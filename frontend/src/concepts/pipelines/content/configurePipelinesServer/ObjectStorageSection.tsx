@@ -1,20 +1,19 @@
+import React from 'react';
 import {
-  FormSection,
-  Title,
   FormGroup,
-  Text,
   TextInput,
   InputGroup,
   Tooltip,
   InputGroupItem,
+  Alert,
+  Popover,
 } from '@patternfly/react-core';
-import React from 'react';
 import { DataConnection } from '~/pages/projects/types';
-import { PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
+import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
-import { PipelineServerConfigType } from './types';
-import './ConfigurePipelinesServerModal.scss';
+import FormSection from '~/components/pf-overrides/FormSection';
 import { PipelineDropdown } from './PipelineDropdown';
+import { PipelineServerConfigType } from './types';
 
 export type FieldOptions = {
   key: string;
@@ -47,14 +46,8 @@ export const ObjectStorageSection = ({
 
   return (
     <FormSection
-      title={
-        <>
-          <Title headingLevel="h2">Object storage connection</Title>
-          <Text component="p" className="form-subtitle-text">
-            To store pipeline artifacts. Must be S3 compatible
-          </Text>
-        </>
-      }
+      title="Object storage connection"
+      description="To store pipeline artifacts. Must be S3 compatible"
     >
       {PIPELINE_AWS_FIELDS.map((field) =>
         field.key === 'AWS_ACCESS_KEY_ID' ? (
@@ -63,6 +56,7 @@ export const ObjectStorageSection = ({
               <InputGroupItem isFill>
                 <TextInput
                   aria-label={`Field list ${field.key}`}
+                  data-testid={`field ${field.key}`}
                   isRequired={field.isRequired}
                   value={
                     config.objectStorage.newValue.find((data) => data.key === field.key)?.value ||
@@ -84,14 +78,41 @@ export const ObjectStorageSection = ({
             </InputGroup>
           </FormGroup>
         ) : (
-          <FieldListField
-            key={field.key}
-            value={
-              config.objectStorage.newValue.find((data) => data.key === field.key)?.value || ''
-            }
-            options={field}
-            onChange={onChange}
-          />
+          <>
+            <FieldListField
+              key={field.key}
+              value={
+                config.objectStorage.newValue.find((data) => data.key === field.key)?.value || ''
+              }
+              options={field}
+              onChange={onChange}
+            />
+
+            {field.key === AwsKeys.AWS_S3_BUCKET && (
+              <Popover
+                aria-label="bucket tooltip"
+                headerContent="Where is my data stored within the bucket?"
+                position="right"
+                hasAutoWidth
+                bodyContent={
+                  <div className="pf-v5-u-mt-md">
+                    Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
+                    <br />
+                    When running a pipeline, artifacts will be stored in dedicated folders at the{' '}
+                    <b>/root</b> directory.
+                  </div>
+                }
+              >
+                <Alert
+                  variant="info"
+                  isInline
+                  isPlain
+                  title="Where is my data stored within the bucket?"
+                  style={{ width: 'fit-content' }}
+                />
+              </Popover>
+            )}
+          </>
         ),
       )}
     </FormSection>

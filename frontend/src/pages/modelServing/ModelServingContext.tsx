@@ -17,8 +17,8 @@ import {
   ProjectKind,
   SecretKind,
 } from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
-import { ContextResourceData } from '~/types';
+import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
+import { ContextResourceData, CustomWatchK8sResult } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { DataConnection } from '~/pages/projects/types';
@@ -27,9 +27,9 @@ import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { useTemplates } from '~/api';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
-import useTemplates from './customServingRuntimes/useTemplates';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from './customServingRuntimes/useTemplateDisablement';
 import { getTokenNames } from './utils';
@@ -39,7 +39,7 @@ type ModelServingContextType = {
   refreshAllData: () => void;
   filterTokens: (servingRuntime?: string) => SecretKind[];
   dataConnections: ContextResourceData<DataConnection>;
-  servingRuntimeTemplates: ContextResourceData<TemplateKind>;
+  servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
   servingRuntimeTemplateDisablement: ContextResourceData<string>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
@@ -60,7 +60,7 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   refreshAllData: () => undefined,
   filterTokens: () => [],
   dataConnections: DEFAULT_CONTEXT_DATA,
-  servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
@@ -80,9 +80,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
-  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
-    useTemplates(dashboardNamespace),
-  );
+  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
+
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
     useTemplateOrder(dashboardNamespace),
   );
@@ -137,7 +136,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     notInstalledError ||
     servingRuntimes.error ||
     inferenceServices.error ||
-    servingRuntimeTemplates.error ||
+    servingRuntimeTemplates[2] ||
     servingRuntimeTemplateOrder.error ||
     servingRuntimeTemplateDisablement.error ||
     serverSecrets.error ||
@@ -148,7 +147,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         notInstalledError?.message ||
           servingRuntimes.error?.message ||
           inferenceServices.error?.message ||
-          servingRuntimeTemplates.error?.message ||
+          servingRuntimeTemplates[2]?.message ||
           servingRuntimeTemplateOrder.error?.message ||
           servingRuntimeTemplateDisablement.error?.message ||
           dataConnections.error?.message,
@@ -165,7 +164,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
             {notInstalledError?.message ||
               servingRuntimes.error?.message ||
               inferenceServices.error?.message ||
-              servingRuntimeTemplates.error?.message ||
+              servingRuntimeTemplates[2]?.message ||
               servingRuntimeTemplateOrder.error?.message ||
               servingRuntimeTemplateDisablement.error?.message ||
               serverSecrets.error?.message ||

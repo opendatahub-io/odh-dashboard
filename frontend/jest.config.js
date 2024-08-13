@@ -20,6 +20,7 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',
     '~/(.*)': '<rootDir>/src/$1',
+    '^monaco-editor$': '<rootDir>/src/__tests__/unit/__mocks__/monaco-editor.ts',
   },
 
   // The test environment that will be used for testing.
@@ -27,7 +28,7 @@ module.exports = {
 
   // include projects from node_modules as required
   transformIgnorePatterns: [
-    'node_modules/(?!yaml|@openshift|lodash-es|uuid|@patternfly/react-icons|d3|delaunator|robust-predicates|internmap)',
+    'node_modules/(?!yaml|@openshift|lodash-es|uuid|@patternfly|d3|delaunator|robust-predicates|internmap|monaco-editor)',
   ],
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing

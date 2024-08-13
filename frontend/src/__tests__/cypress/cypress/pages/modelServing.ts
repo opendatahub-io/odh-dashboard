@@ -8,7 +8,7 @@ import { TableToolbar } from './components/TableToolbar';
 class ModelServingToolbar extends TableToolbar {}
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visit(`/modelServing${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
     this.wait();
   }
 
@@ -59,6 +59,10 @@ class ModelServingGlobal {
 
   getModelRow(name: string) {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
+  }
+
+  getModelMetricLink(name: string) {
+    return this.findModelsTable().findByTestId(`metrics-link-${name}`);
   }
 
   findEmptyResults() {
@@ -137,6 +141,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('field AWS_S3_BUCKET');
   }
 
+  findLocationRegionInput() {
+    return this.find().findByTestId('field AWS_DEFAULT_REGION');
+  }
+
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
   }
@@ -159,8 +167,16 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('serving-runtime-name-input');
   }
 
+  findModelServerSizeValue() {
+    return this.find().findByLabelText('Model server size');
+  }
+
   findServingRuntimeTemplateDropdown() {
     return this.find().findByTestId('serving-runtime-template-selection');
+  }
+
+  findAuthenticationSection() {
+    return this.find().findByTestId('auth-section');
   }
 
   findModelRouteCheckbox() {
@@ -216,6 +232,14 @@ class ModelServingRow extends TableRow {
       .should(enabled ? 'not.exist' : 'exist');
     return this;
   }
+
+  findInternalServiceButton() {
+    return this.find().findByTestId('internal-service-button');
+  }
+
+  findInternalServicePopover() {
+    return cy.findByTestId('internal-service-popover');
+  }
 }
 
 class ModelMeshRow extends ModelServingRow {
@@ -267,6 +291,14 @@ class InferenceServiceRow extends TableRow {
 
   findAPIProtocol() {
     return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findInternalServiceButton() {
+    return this.find().findByTestId('internal-service-button');
+  }
+
+  findInternalServicePopover() {
+    return cy.findByTestId('internal-service-popover');
   }
 }
 class ServingPlatformCard extends Contextual<HTMLElement> {

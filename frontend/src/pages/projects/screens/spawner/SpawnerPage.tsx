@@ -16,26 +16,20 @@ import GenericSidebar from '~/components/GenericSidebar';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NameDescType } from '~/pages/projects/types';
-import {
-  getNotebookDescription,
-  getNotebookDisplayName,
-  getProjectDisplayName,
-} from '~/pages/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
-import { useNotebookSize } from './useNotebookSize';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
@@ -47,6 +41,7 @@ import {
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+import { useNotebookSizeState } from './useNotebookSizeState';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -54,7 +49,7 @@ type SpawnerPageProps = {
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const { currentProject, dataConnections } = React.useContext(ProjectDetailsContext);
-  const displayName = getProjectDisplayName(currentProject);
+  const displayName = getDisplayNameFromK8sResource(currentProject);
 
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
     name: '',
@@ -65,7 +60,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
+  const { selectedSize, setSelectedSize, sizes } = useNotebookSizeState(existingNotebook);
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
     string[] | undefined
   >();
@@ -82,9 +77,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   React.useEffect(() => {
     if (existingNotebook) {
       setNameDesc({
-        name: getNotebookDisplayName(existingNotebook),
+        name: getDisplayNameFromK8sResource(existingNotebook),
         k8sName: existingNotebook.metadata.name,
-        description: getNotebookDescription(existingNotebook),
+        description: getDescriptionFromK8sResource(existingNotebook),
       });
     }
   }, [existingNotebook, setStorageData]);
@@ -99,13 +94,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [data, loaded, loadError]);
 
-  const { size: notebookSize } = useNotebookDeploymentSize(existingNotebook);
-  React.useEffect(() => {
-    if (notebookSize) {
-      setSelectedSize(notebookSize.name);
-    }
-  }, [notebookSize, setSelectedSize]);
-
   const [notebookAcceleratorProfileState, setNotebookAcceleratorProfileState] =
     useNotebookAcceleratorProfile(existingNotebook);
 
@@ -119,7 +107,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [selectedImage.imageStream]);
 
-  const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
+  const editNotebookDisplayName = existingNotebook
+    ? getDisplayNameFromK8sResource(existingNotebook)
+    : '';
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
 

@@ -2,33 +2,46 @@ import * as React from 'react';
 import { FetchStateObject, PrometheusQueryResponse } from '~/types';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
-import { WorkloadKind } from '~/k8sTypes';
-import { getWorkloadOwnerJobName } from '~/concepts/distributedWorkloads/utils';
+import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
+import { TopWorkloadUsageType, getWorkloadOwner } from '~/concepts/distributedWorkloads/utils';
 import usePrometheusQuery from './usePrometheusQuery';
 
+export type WorkloadMetricIndexedByOwner = Record<
+  WorkloadOwnerType,
+  { [ownerName: string]: number }
+>;
+
+export const EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER: WorkloadMetricIndexedByOwner = {
+  [WorkloadOwnerType.RayCluster]: {},
+  [WorkloadOwnerType.Job]: {},
+};
+
 export type WorkloadMetricPromQueryResponse = PrometheusQueryResponse<{
-  metric: { workload: string; workload_type: string };
+  metric: { owner_kind: WorkloadOwnerType; owner_name: string };
 }>;
 
-export const indexNumericValuesByJobName = (
+export const indexWorkloadMetricByOwner = (
   promResponse: WorkloadMetricPromQueryResponse | null,
-): Record<string, number> => {
+): WorkloadMetricIndexedByOwner => {
   if (!promResponse) {
-    return {};
+    return EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER;
   }
   return promResponse.data.result.reduce((acc, { metric, value }) => {
     const valueStr = value[1];
     if (valueStr && !Number.isNaN(Number(valueStr))) {
-      acc[metric.workload] = Number(valueStr);
+      return {
+        ...acc,
+        [metric.owner_kind]: { ...acc[metric.owner_kind], [metric.owner_name]: Number(valueStr) },
+      };
     }
     return acc;
-  }, {} as Record<string, number>);
+  }, EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER);
 };
 
-const useWorkloadMetricIndexedByJobName = (
+const useWorkloadMetricIndexedByOwner = (
   query?: string,
   refreshRate = 0,
-): FetchStateObject<Record<string, number>> => {
+): FetchStateObject<WorkloadMetricIndexedByOwner> => {
   const promQueryFetchObj = useMakeFetchObject(
     usePrometheusQuery<WorkloadMetricPromQueryResponse>('/api/prometheus/query', query, {
       refreshRate,
@@ -37,7 +50,7 @@ const useWorkloadMetricIndexedByJobName = (
   return React.useMemo(
     () => ({
       ...promQueryFetchObj,
-      data: indexNumericValuesByJobName(promQueryFetchObj.data),
+      data: indexWorkloadMetricByOwner(promQueryFetchObj.data),
     }),
     [promQueryFetchObj],
   );
@@ -49,13 +62,10 @@ export type WorkloadCurrentUsage = {
 };
 
 export type WorkloadWithUsage = {
-  workload: WorkloadKind | 'other';
+  workload: WorkloadKind;
   usage: number | undefined;
 };
-export type TopWorkloadsByUsage = Record<
-  keyof WorkloadCurrentUsage,
-  { totalUsage: number; topWorkloads: WorkloadWithUsage[] }
->;
+export type TopWorkloadsByUsage = Record<keyof WorkloadCurrentUsage, TopWorkloadUsageType>;
 
 export const getTotalUsage = (workloadsWithUsage: WorkloadWithUsage[]): number =>
   workloadsWithUsage.reduce((prev, current) => prev + (current.usage || 0), 0);
@@ -64,33 +74,26 @@ export const getTopResourceConsumingWorkloads = (
   workloads: WorkloadKind[],
   getWorkloadCurrentUsage: (workload: WorkloadKind) => WorkloadCurrentUsage,
 ): TopWorkloadsByUsage => {
-  const getTopWorkloadsFor = (
-    usageType: keyof WorkloadCurrentUsage,
-  ): { totalUsage: number; topWorkloads: WorkloadWithUsage[] } => {
+  const getTopWorkloadsFor = (usageType: keyof WorkloadCurrentUsage): TopWorkloadUsageType => {
     const workloadsSortedByUsage: WorkloadWithUsage[] = workloads
       .map((workload) => ({
         workload,
         usage: getWorkloadCurrentUsage(workload)[usageType],
       }))
       .filter(({ usage }) => usage !== undefined)
-      .sort((a, b) => (b.usage || 0) - (a.usage || 0));
-    const top5Workloads = workloadsSortedByUsage.slice(0, 5);
-    const restOfWorkloads = workloadsSortedByUsage.slice(5, workloadsSortedByUsage.length);
+      .toSorted((a, b) => (b.usage || 0) - (a.usage || 0));
+
+    const topWorkloads =
+      workloadsSortedByUsage.length === 6
+        ? workloadsSortedByUsage
+        : workloadsSortedByUsage.slice(0, 5);
     return {
       totalUsage: getTotalUsage(workloadsSortedByUsage),
-      topWorkloads: [
-        ...top5Workloads,
-        ...(restOfWorkloads.length === 1
-          ? restOfWorkloads
-          : restOfWorkloads.length > 1
-          ? [
-              {
-                workload: 'other',
-                usage: getTotalUsage(restOfWorkloads),
-              } satisfies WorkloadWithUsage,
-            ]
-          : []),
-      ],
+      topWorkloads,
+      otherUsage:
+        workloadsSortedByUsage.length < 7
+          ? undefined
+          : getTotalUsage(workloadsSortedByUsage.slice(5, workloadsSortedByUsage.length)),
     };
   };
   return {
@@ -100,8 +103,8 @@ export const getTopResourceConsumingWorkloads = (
 };
 
 export type DWProjectCurrentMetricsValues = {
-  cpuCoresUsedByJobName: Record<string, number>;
-  memoryBytesUsedByJobName: Record<string, number>;
+  cpuCoresUsedByWorkloadOwner: WorkloadMetricIndexedByOwner;
+  memoryBytesUsedByWorkloadOwner: WorkloadMetricIndexedByOwner;
 };
 export type DWProjectCurrentMetricType = keyof DWProjectCurrentMetricsValues;
 export type DWProjectCurrentMetrics = FetchStateObject<{
@@ -116,21 +119,21 @@ export type DWProjectCurrentMetrics = FetchStateObject<{
 export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
   ...DEFAULT_VALUE_FETCH_STATE,
   data: {
-    cpuCoresUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
-    memoryBytesUsedByJobName: DEFAULT_VALUE_FETCH_STATE,
+    cpuCoresUsedByWorkloadOwner: DEFAULT_VALUE_FETCH_STATE,
+    memoryBytesUsedByWorkloadOwner: DEFAULT_VALUE_FETCH_STATE,
   },
   getWorkloadCurrentUsage: () => ({ cpuCoresUsed: undefined, memoryBytesUsed: undefined }),
   topWorkloadsByUsage: {
-    cpuCoresUsed: { totalUsage: 0, topWorkloads: [] },
-    memoryBytesUsed: { totalUsage: 0, topWorkloads: [] },
+    cpuCoresUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
+    memoryBytesUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
   },
 };
 
 const getDWProjectCurrentMetricsQueries = (
   namespace: string,
 ): Record<DWProjectCurrentMetricType, string> => ({
-  cpuCoresUsedByJobName: `namespace=${namespace}&query=sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster="", namespace="${namespace}"} * on(namespace,pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster="", namespace="${namespace}", workload_type="job"}) by (workload, workload_type)`,
-  memoryBytesUsedByJobName: `namespace=${namespace}&query=sum(container_memory_working_set_bytes{job="kubelet", metrics_path="/metrics/cadvisor", cluster="", namespace="${namespace}", container!="", image!=""} * on(namespace,pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster="", namespace="${namespace}", workload_type="job"}) by (workload, workload_type)`,
+  cpuCoresUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)`,
+  memoryBytesUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)`,
 });
 
 export const useDWProjectCurrentMetrics = (
@@ -140,26 +143,30 @@ export const useDWProjectCurrentMetrics = (
 ): DWProjectCurrentMetrics => {
   const queries = getDWProjectCurrentMetricsQueries(namespace);
   const data: DWProjectCurrentMetrics['data'] = {
-    cpuCoresUsedByJobName: useWorkloadMetricIndexedByJobName(
-      queries.cpuCoresUsedByJobName,
+    cpuCoresUsedByWorkloadOwner: useWorkloadMetricIndexedByOwner(
+      queries.cpuCoresUsedByWorkloadOwner,
       refreshRate,
     ),
-    memoryBytesUsedByJobName: useWorkloadMetricIndexedByJobName(
-      queries.memoryBytesUsedByJobName,
+    memoryBytesUsedByWorkloadOwner: useWorkloadMetricIndexedByOwner(
+      queries.memoryBytesUsedByWorkloadOwner,
       refreshRate,
     ),
   };
-  const cpuCoresUsedByJobNameRefresh = data.cpuCoresUsedByJobName.refresh;
-  const memoryBytesUsedByJobNameRefresh = data.memoryBytesUsedByJobName.refresh;
+  const cpuCoresUsedByWorkloadOwnerRefresh = data.cpuCoresUsedByWorkloadOwner.refresh;
+  const memoryBytesUsedByWorkloadOwnerRefresh = data.memoryBytesUsedByWorkloadOwner.refresh;
   const getWorkloadCurrentUsage = React.useCallback(
     (workload: WorkloadKind) => {
-      const jobName = getWorkloadOwnerJobName(workload);
+      const owner = getWorkloadOwner(workload);
       return {
-        cpuCoresUsed: jobName ? data.cpuCoresUsedByJobName.data?.[jobName] : undefined,
-        memoryBytesUsed: jobName ? data.memoryBytesUsedByJobName.data?.[jobName] : undefined,
+        cpuCoresUsed: owner
+          ? data.cpuCoresUsedByWorkloadOwner.data?.[owner.kind][owner.name]
+          : undefined,
+        memoryBytesUsed: owner
+          ? data.memoryBytesUsedByWorkloadOwner.data?.[owner.kind][owner.name]
+          : undefined,
       };
     },
-    [data.cpuCoresUsedByJobName, data.memoryBytesUsedByJobName],
+    [data.cpuCoresUsedByWorkloadOwner, data.memoryBytesUsedByWorkloadOwner],
   );
   const topWorkloadsByUsage: TopWorkloadsByUsage = React.useMemo(
     () => getTopResourceConsumingWorkloads(workloads, getWorkloadCurrentUsage),
@@ -168,9 +175,9 @@ export const useDWProjectCurrentMetrics = (
   return {
     data,
     refresh: React.useCallback(() => {
-      cpuCoresUsedByJobNameRefresh();
-      memoryBytesUsedByJobNameRefresh();
-    }, [cpuCoresUsedByJobNameRefresh, memoryBytesUsedByJobNameRefresh]),
+      cpuCoresUsedByWorkloadOwnerRefresh();
+      memoryBytesUsedByWorkloadOwnerRefresh();
+    }, [cpuCoresUsedByWorkloadOwnerRefresh, memoryBytesUsedByWorkloadOwnerRefresh]),
     loaded: Object.values(data).every(({ loaded }) => loaded),
     error: Object.values(data).find(({ error }) => !!error)?.error,
     getWorkloadCurrentUsage,

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 
 export const updateImpersonateSettings = (impersonate: boolean): Promise<void> => {
   const url = '/api/dev-impersonate';

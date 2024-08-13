@@ -13,6 +13,7 @@ import {
   MenuToggle,
   SearchInput,
   Spinner,
+  Truncate,
 } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
@@ -127,9 +128,14 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
           isFullWidth
           data-testid="pipeline-toggle-button"
         >
-          {initialLoaded
-            ? selection || (totalSize === 0 ? 'No pipelines available' : 'Select a pipeline')
-            : 'Loading pipelines'}
+          <Truncate
+            content={
+              initialLoaded
+                ? selection || (totalSize === 0 ? 'No pipelines available' : 'Select a pipeline')
+                : 'Loading pipelines'
+            }
+            className="truncate-no-min-width"
+          />
         </MenuToggle>
       }
       menu={menu}

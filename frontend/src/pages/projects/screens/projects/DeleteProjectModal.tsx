@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { ProjectKind } from '~/k8sTypes';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import { TrackingOutcome } from '~/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
@@ -18,9 +18,9 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
 
   const onBeforeClose = (deleted: boolean) => {
     if (!deleted) {
-      fireTrackingEvent(deleteProjectEventType, { outcome: TrackingOutcome.cancel });
+      fireFormTrackingEvent(deleteProjectEventType, { outcome: TrackingOutcome.cancel });
     } else {
-      fireTrackingEvent(deleteProjectEventType, {
+      fireFormTrackingEvent(deleteProjectEventType, {
         outcome: TrackingOutcome.submit,
         success: true,
       });
@@ -30,7 +30,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
     setError(undefined);
   };
 
-  const displayName = deleteData ? getProjectDisplayName(deleteData) : 'this project';
+  const displayName = deleteData ? getDisplayNameFromK8sResource(deleteData) : 'this project';
 
   return (
     <DeleteModal
@@ -45,7 +45,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
           deleteProject(deleteData.metadata.name)
             .then(() => onBeforeClose(true))
             .catch((e) => {
-              fireTrackingEvent(deleteProjectEventType, {
+              fireFormTrackingEvent(deleteProjectEventType, {
                 outcome: TrackingOutcome.submit,
                 success: false,
                 error: e,

@@ -1,22 +1,26 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { routePipelineRunCreateNamespacePipelinesPage, routePipelineRunsNamespace } from '~/routes';
+import {
+  pipelineVersionCreateRecurringRunRoute,
+  pipelineVersionCreateRunRoute,
+  pipelineVersionDetailsRoute,
+  pipelineVersionRecurringRunsRoute,
+  pipelineVersionRunsRoute,
+} from '~/routes';
+import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import {
+  PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
+  PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
+} from '~/concepts/pipelines/content/const';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
-  pipelineVersionDetailsPath: (
-    namespace: string,
-    pipelineId: string,
-    pipelineVersionId: string,
-  ) => string;
   version: PipelineVersionKFv2;
   isDisabled: boolean;
   pipeline: PipelineKFv2;
@@ -26,7 +30,6 @@ type PipelineVersionTableRowProps = {
 const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   isChecked,
   onToggleCheck,
-  pipelineVersionDetailsPath,
   version,
   isDisabled,
   pipeline,
@@ -35,9 +38,10 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const createdDate = new Date(version.created_at);
+  const isCreateDisabled = isArgoWorkflow(version.pipeline_spec);
 
   return (
-    <Tr>
+    <Tr data-testid={`pipeline-version-row ${version.pipeline_version_id}`}>
       <CheckboxTd
         id={version.pipeline_version_id}
         isChecked={isChecked}
@@ -47,19 +51,20 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
       <Td>
         <TableRowTitleDescription
           title={
-            <Link
-              to={pipelineVersionDetailsPath(
-                namespace,
-                version.pipeline_id,
-                version.pipeline_version_id,
-              )}
-            >
-              {version.display_name}
-            </Link>
+            <TableText wrapModifier="truncate">
+              <Link
+                to={pipelineVersionDetailsRoute(
+                  namespace,
+                  version.pipeline_id,
+                  version.pipeline_version_id,
+                )}
+              >
+                {version.display_name}
+              </Link>
+            </TableText>
           }
           description={version.description}
           descriptionAsMarkdown
-          testId={`table-row-title-${version.display_name}`}
         />
       </Td>
       <Td>
@@ -71,24 +76,34 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
             {
               title: 'Create run',
               onClick: () => {
-                navigate(routePipelineRunCreateNamespacePipelinesPage(namespace), {
-                  state: { lastPipeline: pipeline, lastVersion: version },
-                });
-              },
-            },
-            {
-              title: 'Schedule run',
-              onClick: () => {
                 navigate(
-                  {
-                    pathname: routePipelineRunCreateNamespacePipelinesPage(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
-                  },
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: version },
-                  },
+                  pipelineVersionCreateRunRoute(
+                    namespace,
+                    pipeline.pipeline_id,
+                    version.pipeline_version_id,
+                  ),
                 );
               },
+              isAriaDisabled: isCreateDisabled,
+              tooltipProps: isCreateDisabled
+                ? { content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }
+                : undefined,
+            },
+            {
+              title: 'Create schedule',
+              onClick: () => {
+                navigate(
+                  pipelineVersionCreateRecurringRunRoute(
+                    namespace,
+                    pipeline.pipeline_id,
+                    version.pipeline_version_id,
+                  ),
+                );
+              },
+              isAriaDisabled: isCreateDisabled,
+              tooltipProps: isCreateDisabled
+                ? { content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }
+                : undefined,
             },
             {
               isSeparator: true,
@@ -97,13 +112,11 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               title: 'View runs',
               onClick: () => {
                 navigate(
-                  {
-                    pathname: routePipelineRunsNamespace(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Active}`,
-                  },
-                  {
-                    state: { lastVersion: version },
-                  },
+                  pipelineVersionRunsRoute(
+                    namespace,
+                    pipeline.pipeline_id,
+                    version.pipeline_version_id,
+                  ),
                 );
               },
             },
@@ -111,13 +124,11 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               title: 'View schedules',
               onClick: () => {
                 navigate(
-                  {
-                    pathname: routePipelineRunsNamespace(namespace),
-                    search: `?${PipelineRunSearchParam.RunType}=${PipelineRunType.Scheduled}`,
-                  },
-                  {
-                    state: { lastVersion: version },
-                  },
+                  pipelineVersionRecurringRunsRoute(
+                    namespace,
+                    pipeline.pipeline_id,
+                    version.pipeline_version_id,
+                  ),
                 );
               },
             },

@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router';
-import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import BiasConfigurationPage from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationPage';
-import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
 const ProjectModelMetricsConfigurationPage: React.FC = () => {
@@ -12,11 +11,11 @@ const ProjectModelMetricsConfigurationPage: React.FC = () => {
       breadcrumbItems={[
         { label: 'Data science projects', link: '/projects' },
         {
-          label: getProjectDisplayName(currentProject),
+          label: getDisplayNameFromK8sResource(currentProject),
           link: `/projects/${currentProject.metadata.name}`,
         },
         {
-          label: getInferenceServiceDisplayName(model),
+          label: getDisplayNameFromK8sResource(model),
           link: `/projects/${currentProject.metadata.name}/metrics/model/${model.metadata.name}`,
         },
         { label: 'Metric configuration', isActive: true },

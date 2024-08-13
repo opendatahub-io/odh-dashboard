@@ -1,4 +1,5 @@
-import WebSocket, { WebSocketServer } from 'ws';
+import type WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -7,10 +8,10 @@ declare global {
       /**
        * Send data to through websockets to all matching connections.
        */
-      wsSend(
+      wsSend: (
         matcher: string | { pathname: string; searchParams?: URLSearchParams },
         data: string | object,
-      ): void;
+      ) => void;
     }
   }
 }

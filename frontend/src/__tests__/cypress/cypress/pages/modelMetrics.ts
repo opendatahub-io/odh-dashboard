@@ -14,6 +14,10 @@ class ModelMetricsGlobal {
   getMetricsChart(title: string) {
     return new ModelMetricsChart(() => cy.findByTestId(`metrics-card-${title}`).parents());
   }
+
+  getAllMetricsCharts() {
+    return cy.findAllByTestId(/metrics-card-.*/);
+  }
 }
 
 class ModelMetricsChart extends Contextual<HTMLTableRowElement> {
@@ -28,11 +32,11 @@ class ModelMetricsChart extends Contextual<HTMLTableRowElement> {
 
 class ModelMetricsPerformance extends ModelMetricsGlobal {
   visit(project: string, model: string) {
-    cy.visit(`/modelServing/${project}/metrics/${model}/performance`);
+    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/performance`);
     this.wait();
   }
 
-  private wait() {
+  protected wait() {
     cy.findByTestId('performance-metrics-loaded');
     cy.testA11y();
   }
@@ -42,9 +46,23 @@ class ModelMetricsPerformance extends ModelMetricsGlobal {
   }
 }
 
+class ModelMetricsKserve extends ModelMetricsPerformance {
+  findKserveAreaDisabledCard() {
+    return cy.findByTestId('kserve-metrics-disabled');
+  }
+
+  findUnsupportedRuntimeCard() {
+    return cy.findByTestId('kserve-metrics-runtime-unsupported');
+  }
+
+  findUnknownErrorCard() {
+    return cy.findByTestId('kserve-unknown-error');
+  }
+}
+
 class ModelMetricsBias extends ModelMetricsGlobal {
   visit(project: string, model: string, disableA11y = false) {
-    cy.visit(`/modelServing/${project}/metrics/${model}/bias`);
+    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/bias`);
 
     // TODO: disableA11y should be removed once this PF bug is resolved: https://github.com/patternfly/patternfly-react/issues/9968
     this.wait(disableA11y);
@@ -85,7 +103,7 @@ class ModelMetricsBias extends ModelMetricsGlobal {
 
 class ServerMetrics extends ModelMetricsGlobal {
   visit(project: string, server: string) {
-    cy.visit(`/projects/${project}/metrics/server/${server}`);
+    cy.visitWithLogin(`/projects/${project}/metrics/server/${server}`);
     this.wait();
   }
 
@@ -97,7 +115,7 @@ class ServerMetrics extends ModelMetricsGlobal {
 
 class ModelMetricsConfigureSection {
   visit(project: string, model: string) {
-    cy.visit(`/modelServing/${project}/metrics/${model}/configure`);
+    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/configure`);
     this.wait();
   }
 
@@ -181,3 +199,4 @@ export const modelMetricsBias = new ModelMetricsBias();
 export const serverMetrics = new ServerMetrics();
 export const modelMetricsConfigureSection = new ModelMetricsConfigureSection();
 export const configureBiasMetricModal = new ConfigureBiasMetricModal();
+export const modelMetricsKserve = new ModelMetricsKserve();

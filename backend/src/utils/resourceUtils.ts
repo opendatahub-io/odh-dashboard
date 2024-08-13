@@ -3,7 +3,7 @@ import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
-  BUILD_PHASE,
+  BuildPhase,
   BuildKind,
   BuildStatus,
   ConsoleLinkKind,
@@ -33,6 +33,8 @@ import { blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from './componentUtils';
 import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
+import { RecursivePartial } from '../typeHelpers';
+import { FastifyRequest } from 'fastify';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -56,24 +58,28 @@ let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 let quickStartWatcher: ResourceWatcher<QuickStart>;
 
-const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
-  const dashboardName = process.env['DASHBOARD_CONFIG'] || dashboardConfigMapName;
-  return fetchOrCreateDashboardCR(fastify, dashboardName).then((dashboardCR) => {
-    return migrateTemplateDisablement(fastify, dashboardCR).then((dashboardCR) => [dashboardCR]);
-  });
+const DASHBOARD_CONFIG = {
+  group: 'opendatahub.io',
+  version: 'v1alpha',
+  plural: 'odhdashboardconfigs',
+  dashboardName: process.env['DASHBOARD_CONFIG'] || dashboardConfigMapName,
 };
 
-const fetchOrCreateDashboardCR = async (
-  fastify: KubeFastifyInstance,
-  dashboardName: string,
-): Promise<DashboardConfig> => {
+const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
+  return fetchOrCreateDashboardCR(fastify)
+    .then((dashboardCR) => migrateTemplateDisablement(fastify, dashboardCR))
+    .then((dashboardCR) => migrateBiasTrustyForRHOAI(fastify, dashboardCR))
+    .then((dashboardCR) => [dashboardCR]);
+};
+
+const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
     .getNamespacedCustomObject(
-      'opendatahub.io',
-      'v1alpha',
+      DASHBOARD_CONFIG.group,
+      DASHBOARD_CONFIG.version,
       fastify.kube.namespace,
-      'odhdashboardconfigs',
-      dashboardName,
+      DASHBOARD_CONFIG.plural,
+      DASHBOARD_CONFIG.dashboardName,
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
@@ -105,10 +111,10 @@ const fetchOrCreateDashboardCR = async (
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
     .createNamespacedCustomObject(
-      'opendatahub.io',
-      'v1alpha',
+      DASHBOARD_CONFIG.group,
+      DASHBOARD_CONFIG.version,
       fastify.kube.namespace,
-      'odhdashboardconfigs',
+      DASHBOARD_CONFIG.plural,
       blankDashboardCR,
     )
     .then((result) => [result.body])
@@ -142,8 +148,10 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionS
           };
         };
         const subs = res?.body.items?.map((sub) => ({
+          channel: sub.spec.channel,
           installedCSV: sub.status?.installedCSV,
           installPlanRefNamespace: sub.status?.installPlanRef?.namespace,
+          lastUpdated: sub.status.lastUpdated,
         }));
         remainingItemCount = res.body?.metadata?.remainingItemCount;
         _continue = res.body?.metadata?.continue;
@@ -419,7 +427,7 @@ const getBuildNumber = (build: BuildKind): number => {
   return !!buildNumber && parseInt(buildNumber, 10);
 };
 
-const PENDING_PHASES = [BUILD_PHASE.new, BUILD_PHASE.pending, BUILD_PHASE.cancelled];
+const PENDING_PHASES = [BuildPhase.new, BuildPhase.pending, BuildPhase.cancelled];
 
 const compareBuilds = (b1: BuildKind, b2: BuildKind) => {
   const b1Pending = PENDING_PHASES.includes(b1.status.phase);
@@ -460,7 +468,7 @@ const getBuildConfigStatus = (
       if (bcBuilds.length === 0) {
         return {
           name: notebookName,
-          status: BUILD_PHASE.none,
+          status: BuildPhase.none,
         };
       }
       const mostRecent = bcBuilds.sort(compareBuilds).pop();
@@ -474,7 +482,7 @@ const getBuildConfigStatus = (
       fastify.log.error(e.response?.body?.message || e.message, 'failed to get build configs');
       return {
         name: notebookName,
-        status: BUILD_PHASE.pending,
+        status: BuildPhase.pending,
       };
     });
 };
@@ -543,8 +551,32 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
 
-export const getDashboardConfig = (): DashboardConfig => {
-  return dashboardConfigWatcher.getResources()?.[0];
+const FEATURE_FLAGS_HEADER = 'x-odh-feature-flags';
+
+// if inspecting feature flags, provide the request to ensure overridden feature flags are considered
+export const getDashboardConfig = (request?: FastifyRequest): DashboardConfig => {
+  const dashboardConfig = dashboardConfigWatcher.getResources()?.[0];
+  if (request) {
+    const flagsHeader = request.headers[FEATURE_FLAGS_HEADER];
+    if (typeof flagsHeader === 'string') {
+      try {
+        const featureFlags = JSON.parse(flagsHeader);
+        return {
+          ...dashboardConfig,
+          spec: {
+            ...dashboardConfig.spec,
+            dashboardConfig: {
+              ...dashboardConfig.spec.dashboardConfig,
+              ...featureFlags,
+            },
+          },
+        };
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return dashboardConfig;
 };
 
 export const updateDashboardConfig = (): Promise<void> => {
@@ -645,8 +677,11 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
     ) {
       // if gpu detected on cluster, create our default migrated-gpu
       const acceleratorDetected = await getDetectedAccelerators(fastify);
+      const hasNvidiaNodes = Object.keys(acceleratorDetected.total).some(
+        (nodeKey) => nodeKey === 'nvidia.com/gpu',
+      );
 
-      if (acceleratorDetected.configured) {
+      if (acceleratorDetected.configured && hasNvidiaNodes) {
         const payload: AcceleratorProfileKind = {
           kind: 'AcceleratorProfile',
           apiVersion: 'dashboard.opendatahub.io/v1',
@@ -830,7 +865,7 @@ export const cleanupDSPSuffix = async (fastify: KubeFastifyInstance): Promise<vo
 /**
  * @deprecated - Look to remove asap (see comments below)
  * Migrate the template enablement from a current annotation in the Template Object to a list in ODHDashboardConfig
- * We are migrating this from v2.11.0, so we can remove this code when we no longer support that version.
+ * We are migrating this from Dashboard v2.11.0, so we can remove this code when we no longer support that version.
  */
 export const migrateTemplateDisablement = async (
   fastify: KubeFastifyInstance,
@@ -867,10 +902,10 @@ export const migrateTemplateDisablement = async (
 
         return fastify.kube.customObjectsApi
           .patchNamespacedCustomObject(
-            'opendatahub.io',
-            'v1alpha',
+            DASHBOARD_CONFIG.group,
+            DASHBOARD_CONFIG.version,
             dashboardConfig.metadata.namespace,
-            'odhdashboardconfigs',
+            DASHBOARD_CONFIG.plural,
             dashboardConfig.metadata.name,
             [
               {
@@ -903,6 +938,66 @@ export const migrateTemplateDisablement = async (
       );
       return dashboardConfig;
     });
+};
+
+/**
+ * TODO: There should be a better way to go about this... but the namespace is unlikely to ever change
+ */
+export const isRHOAI = (fastify: KubeFastifyInstance): boolean =>
+  fastify.kube.namespace === 'redhat-ods-applications';
+
+/**
+ * As we release Dashboard v2.24.0 we will be re-enabling Trusty for RHOAI, but not for Bias Metrics.
+ * This means we will need to make sure Bias is in a state of disabled as the API won't be available.
+ */
+export const migrateBiasTrustyForRHOAI = async (
+  fastify: KubeFastifyInstance,
+  dashboardConfig: DashboardConfig,
+): Promise<DashboardConfig> => {
+  if (!isRHOAI(fastify)) {
+    // ODH deployment, leave trusty as-is
+    return dashboardConfig;
+  }
+
+  // For RHOAI deployments...
+  const patchChange: RecursivePartial<DashboardConfig> = {
+    spec: { dashboardConfig: { disableBiasMetrics: true } },
+  };
+  try {
+    switch (dashboardConfig.spec.dashboardConfig.disableBiasMetrics) {
+      case true:
+        // Explicitly disabled - ideal state, ignore
+        fastify.log.info('TrustyAI BiasMetrics disabled. No change applied.');
+        return dashboardConfig;
+      case false:
+        // Explicitly enabled - bad state, disable both locally and with a patch
+        await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+          DASHBOARD_CONFIG.group,
+          DASHBOARD_CONFIG.version,
+          dashboardConfig.metadata.namespace,
+          DASHBOARD_CONFIG.plural,
+          dashboardConfig.metadata.name,
+          patchChange,
+          undefined,
+          undefined,
+          undefined,
+          {
+            headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+          },
+        );
+        fastify.log.info(
+          'TrustyAI BiasMetrics was enabled. Patched OdhDashboardConfig to disable.',
+        );
+        return _.merge({}, dashboardConfig, patchChange);
+      case undefined:
+      default:
+      // Invalid / Missing state - do nothing
+    }
+  } catch (e) {
+    fastify.log.error(e, 'TrustyAI BiasMetrics error.');
+  }
+
+  return dashboardConfig;
 };
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>

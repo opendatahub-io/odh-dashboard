@@ -18,7 +18,7 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 const CustomServingRuntimeEditTemplate: React.FC = () => {
   const {
-    servingRuntimeTemplates: { data },
+    servingRuntimeTemplates: [data],
   } = React.useContext(CustomServingRuntimeContext);
   const navigate = useNavigate();
   const { servingRuntimeName } = useParams();

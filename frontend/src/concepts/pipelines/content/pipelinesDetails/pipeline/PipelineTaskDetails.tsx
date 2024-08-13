@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import TaskDetailsCodeBlock from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
 import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
@@ -10,16 +10,9 @@ type TaskDetailsProps = {
 };
 
 const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
-  let groupAlert: React.ReactNode | null = null;
-  if (task.type === 'groupTask') {
-    // TODO: remove when we support group details
-    groupAlert = <Alert isInline variant="info" title="Content may be missing" />;
-  }
-
   if (!task.inputs && !task.outputs && !task.steps) {
     return (
       <Stack hasGutter>
-        {groupAlert && <StackItem>{groupAlert}</StackItem>}
         <StackItem>No content</StackItem>
       </Stack>
     );
@@ -27,12 +20,11 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
 
   return (
     <Stack hasGutter>
-      {groupAlert && <StackItem>{groupAlert}</StackItem>}
       {task.inputs && (
         <StackItem>
           <TaskDetailsInputOutput
             type="Input"
-            artifacts={task.inputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            artifacts={task.inputs.artifacts}
             params={task.inputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
           />
         </StackItem>
@@ -41,7 +33,7 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
         <StackItem>
           <TaskDetailsInputOutput
             type="Output"
-            artifacts={task.outputs.artifacts?.map((a) => ({ label: a.label, value: a.type }))}
+            artifacts={task.outputs.artifacts}
             params={task.outputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
           />
         </StackItem>
@@ -49,19 +41,29 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
       {task.steps?.map((step, i) => (
         <React.Fragment key={i}>
           <StackItem>
-            <TaskDetailsSection title="Image">{step.image}</TaskDetailsSection>
+            <TaskDetailsSection testId="task-detail-image" title="Image">
+              {step.image}
+            </TaskDetailsSection>
           </StackItem>
           {step.command && (
             <StackItem>
               <TaskDetailsSection title="Command">
-                <TaskDetailsCodeBlock id="command" content={step.command.join('\n')} />
+                <TaskDetailsCodeBlock
+                  id="command"
+                  testId="command-task-detail-code-block"
+                  content={step.command.join('\n')}
+                />
               </TaskDetailsSection>
             </StackItem>
           )}
           {step.args && (
             <StackItem>
               <TaskDetailsSection title="Arguments">
-                <TaskDetailsCodeBlock id="args" content={step.args.join('\n')} />
+                <TaskDetailsCodeBlock
+                  id="args"
+                  testId="arguments-task-detail-code-block"
+                  content={step.args.join('\n')}
+                />
               </TaskDetailsSection>
             </StackItem>
           )}

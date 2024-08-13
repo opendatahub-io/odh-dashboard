@@ -17,6 +17,7 @@ import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
 import { EnvVarType, VariableRow } from '~/types';
 
 import '~/pages/notebookController/NotebookController.scss';
+import { asEnumMember } from '~/utilities/utils';
 
 type EnvironmentVariablesFieldProps = {
   fieldIndex: string;
@@ -88,7 +89,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                 type={
                   showPassword && variableType === 'password'
                     ? TextInputTypes.text
-                    : (variable.type as TextInputTypes)
+                    : asEnumMember(variable.type, TextInputTypes) ?? undefined
                 }
                 value={variable.value}
                 onChange={(e, newValue) =>

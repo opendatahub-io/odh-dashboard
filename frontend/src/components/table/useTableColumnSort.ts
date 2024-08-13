@@ -89,7 +89,7 @@ const useTableColumnSort = <T>(
         return data;
       }
 
-      return [...data].sort((a, b) => {
+      return data.toSorted((a, b) => {
         const columnField =
           activeSortIndex < columns.length
             ? columns[activeSortIndex]
@@ -105,7 +105,9 @@ const useTableColumnSort = <T>(
             return 0;
           }
 
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const dataValueA = a[columnField.field as keyof T];
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const dataValueB = b[columnField.field as keyof T];
           if (typeof dataValueA === 'string' && typeof dataValueB === 'string') {
             return dataValueA.localeCompare(dataValueB);

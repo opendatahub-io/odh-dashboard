@@ -4,8 +4,18 @@ import { InvalidArgoDeploymentAlert } from '~/concepts/pipelines/content/Invalid
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
-import { globExperimentsAll, globPipelineRunsAll, globPipelinesAll } from '~/routes';
+import {
+  globArtifactsAll,
+  globExecutionsAll,
+  globExperimentsAll,
+  globPipelinesAll,
+} from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
+import { SupportedArea } from '~/concepts/areas';
+import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
+
+const HomePage = React.lazy(() => import('../pages/home/Home'));
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
@@ -23,12 +33,14 @@ const NotebookController = React.lazy(
 );
 
 const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
-const GlobalPipelineRunsRoutes = React.lazy(
-  () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
-);
 const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
+const GlobalPipelineExecutionsRoutes = React.lazy(
+  () => import('../pages/pipelines/GlobalPipelineExecutionsRoutes'),
+);
+
+const GlobalArtifactsRoutes = React.lazy(() => import('../pages/pipelines/GlobalArtifactsRoutes'));
 
 const GlobalDistributedWorkloadsRoutes = React.lazy(
   () => import('../pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
@@ -56,6 +68,7 @@ const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/Mode
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
+  const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
 
   if (!isAllowed) {
     return (
@@ -69,7 +82,14 @@ const AppRoutes: React.FC = () => {
     <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <InvalidArgoDeploymentAlert />
       <Routes>
-        <Route path="/" element={<InstalledApplications />} />
+        {isHomeAvailable ? (
+          <>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/enabled" element={<InstalledApplications />} />
+          </>
+        ) : (
+          <Route path="/" element={<InstalledApplications />} />
+        )}
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
 
@@ -89,8 +109,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
-        <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
+        <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
+        <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 
@@ -102,6 +123,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
+            <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}

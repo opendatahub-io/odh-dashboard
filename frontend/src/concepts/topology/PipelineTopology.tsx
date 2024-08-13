@@ -5,6 +5,8 @@ import {
   VisualizationProvider,
 } from '@patternfly/react-topology';
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import PipelineVersionError from '~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
+import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
 
@@ -12,12 +14,16 @@ type PipelineTopologyProps = {
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
   nodes: PipelineNodeModel[];
+  versionError?: Error;
+  sidePanel?: React.ReactElement | null;
 };
 
 const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   nodes,
   selectedIds,
   onSelectionChange,
+  versionError,
+  sidePanel,
 }) => {
   const controller = useTopologyController('g1');
 
@@ -36,6 +42,20 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
     return undefined;
   }, [controller, onSelectionChange]);
 
+  if (versionError) {
+    return (
+      <PipelineVersionError
+        title="Pipeline run graph unavailable"
+        description="The pipeline version that this run graph belongs to has been deleted."
+        testId="run-graph-error-state"
+      />
+    );
+  }
+
+  if (!nodes.length) {
+    return <PipelineTopologyEmpty />;
+  }
+
   if (!controller) {
     return (
       <Bullseye>
@@ -46,7 +66,7 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
 
   return (
     <VisualizationProvider controller={controller}>
-      <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} />
+      <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} sidePanel={sidePanel} />
     </VisualizationProvider>
   );
 };

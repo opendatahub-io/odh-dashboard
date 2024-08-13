@@ -1,4 +1,4 @@
-import { CreatePipelineAndVersionKFData, PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { CreatePipelineAndVersionKFData, PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelineV2 } from '~/__mocks__/mockPipelinesProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -51,11 +51,19 @@ class PipelineImportModal extends Modal {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
+  findUploadError() {
+    return this.find().findByTestId('pipeline-file-upload-error');
+  }
+
+  findImportModalError() {
+    return this.find().findByTestId('import-modal-error');
+  }
+
   mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/create',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/create`,
+        path: { namespace, serviceName: 'dspa' },
         times: 1,
       },
       buildMockPipelineV2(params.pipeline),
@@ -63,12 +71,9 @@ class PipelineImportModal extends Modal {
   }
 
   mockUploadPipeline(params: Partial<PipelineKFv2>, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/pipelines/upload`,
-        times: 1,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload',
+      { path: { namespace, serviceName: 'dspa' }, times: 1 },
       buildMockPipelineV2(params),
     );
   }

@@ -3,11 +3,9 @@ import {
   k8sCreateResource,
   k8sUpdateResource,
   k8sDeleteResource,
-  useK8sWatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockAxiosError } from '~/__mocks__/mockAxiosError';
 import {
@@ -15,46 +13,48 @@ import {
   createProject,
   deleteProject,
   getModelServingProjects,
-  getModelServingProjectsAvailable,
   getProjects,
   updateProject,
   useProjects,
 } from '~/api/k8s/projects';
-import { ProjectModel } from '~/api/models';
+import { ProjectModel, ProjectRequestModel } from '~/api/models';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { listServingRuntimes } from '~/api/k8s/servingRuntimes';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ProjectKind } from '~/k8sTypes';
 import { groupVersionKind } from '~/api/k8sUtils';
+import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sUpdateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
-  useK8sWatchResource: jest.fn(),
+}));
+
+jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
   listServingRuntimes: jest.fn(),
 }));
 
-jest.mock('axios');
+jest.mock('~/utilities/axios');
 
 const mockedAxios = jest.mocked(axios);
-const listServingRuntimesMock = jest.mocked(listServingRuntimes);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<ProjectKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<ProjectKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<ProjectKind>);
-const useK8sWatchResourceMock = jest.mocked(useK8sWatchResource<ProjectKind[]>);
+const useK8sWatchResourceListMock = jest.mocked(useK8sWatchResourceList<ProjectKind[]>);
 
 describe('useProjects', () => {
   it('should wrap useK8sWatchResource to watch projects', async () => {
-    const mockReturnValue: ReturnType<typeof useK8sWatchResourceMock> = [[], false, false];
-    useK8sWatchResourceMock.mockReturnValue(mockReturnValue);
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
     expect(useProjects()).toBe(mockReturnValue);
-    expect(useK8sWatchResourceMock).toHaveBeenCalledWith(
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
       {
         isList: true,
         groupVersionKind: groupVersionKind(ProjectModel),
@@ -118,12 +118,6 @@ describe('createProject', () => {
       applied,
     },
   });
-  const projectRequest = {
-    apiGroup: 'project.openshift.io',
-    apiVersion: 'v1',
-    kind: 'ProjectRequest',
-    plural: 'projectrequests',
-  };
 
   it('should create a project when k8s name is given', async () => {
     const projectMock = mockProjectK8sResource({ k8sName });
@@ -133,7 +127,7 @@ describe('createProject', () => {
     expect(result).toStrictEqual(k8sName);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
-      model: projectRequest,
+      model: ProjectRequestModel,
       resource: {
         apiVersion: 'project.openshift.io/v1',
         kind: 'ProjectRequest',
@@ -156,7 +150,7 @@ describe('createProject', () => {
     expect(result).toStrictEqual(displayName);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
-      model: projectRequest,
+      model: ProjectRequestModel,
       resource: {
         apiVersion: 'project.openshift.io/v1',
         kind: 'ProjectRequest',
@@ -254,47 +248,6 @@ describe('getModelServingProjects', () => {
         queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
       },
     });
-  });
-});
-
-describe('getModelServingProjectsAvailable', () => {
-  it('should successfully return model serving when project associated to it is available', async () => {
-    const projectMock = mockProjectK8sResource({});
-    listServingRuntimesMock.mockResolvedValue([mockServingRuntimeK8sResource({})]);
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([projectMock]));
-    const result = await getModelServingProjectsAvailable();
-    expect(result).toStrictEqual([projectMock]);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(listServingRuntimesMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenLastCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: ProjectModel,
-      queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
-      },
-    });
-  });
-
-  it('should return empty array when no serving runtime is associated with  project', async () => {
-    listServingRuntimesMock.mockResolvedValue([]);
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockProjectK8sResource({})]));
-    const result = await getModelServingProjectsAvailable();
-    expect(result).toStrictEqual([]);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(listServingRuntimesMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: ProjectModel,
-      queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
-      },
-    });
-  });
-
-  it('should handle errors and rethrows', async () => {
-    k8sListResourceMock.mockRejectedValue(new Error('error'));
-    await expect(getModelServingProjectsAvailable()).rejects.toThrow('error');
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
   });
 });
 

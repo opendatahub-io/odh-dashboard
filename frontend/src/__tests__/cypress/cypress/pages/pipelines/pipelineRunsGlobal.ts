@@ -1,11 +1,15 @@
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelineRunsGlobal {
-  visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
-    cy.visit(
-      `/pipelineRuns/${projectName}${
-        runType ? `?${PipelineRunSearchParam.RunType}=${runType}` : ''
+  visit(
+    projectName: string,
+    pipelineId: string,
+    versionId: string,
+    runType?: 'active' | 'archived' | 'scheduled',
+  ) {
+    cy.visitWithLogin(
+      `/pipelines/${projectName}/${pipelineId}/${versionId}${
+        runType === 'scheduled' ? '/schedules' : `/runs${runType ? `/${runType}` : ''}`
       }`,
     );
     this.wait();
@@ -25,11 +29,11 @@ class PipelineRunsGlobal {
   }
 
   findActiveRunsTab() {
-    return cy.findByRole('tab', { name: 'Active tab' });
+    return cy.findByTestId('active-runs-tab');
   }
 
   findArchivedRunsTab() {
-    return cy.findByRole('tab', { name: 'Archived tab' });
+    return cy.findByTestId('archived-runs-tab');
   }
 
   findProjectSelect() {

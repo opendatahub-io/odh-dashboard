@@ -18,11 +18,12 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceStatus from '~/pages/modelServing/screens/global/InferenceServiceStatus';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import InferenceServiceServingRuntime from '~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '~/pages/modelServing/screens/global/InferenceServiceEndpoint';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas/';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -33,11 +34,12 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   servingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  const modelMesh = isModelMesh(inferenceService);
 
-  const modelMetricsSupported =
-    modelMetricsEnabled &&
-    inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
-  const inferenceServiceDisplayName = getInferenceServiceDisplayName(inferenceService);
+  const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
+
+  const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 
   return (
     <GalleryItem key={inferenceService.metadata.uid}>

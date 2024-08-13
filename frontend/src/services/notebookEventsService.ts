@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '~/utilities/axios';
 import { K8sEvent } from '~/types';
 
 export const getNotebookEvents = (

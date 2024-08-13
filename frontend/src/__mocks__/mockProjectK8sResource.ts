@@ -3,19 +3,23 @@ import { genUID } from '~/__mocks__/mockUtils';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
+  hasAnnotations?: boolean;
   username?: string;
   displayName?: string;
   description?: string;
   k8sName?: string;
+  creationTimestamp?: string;
   enableModelMesh?: boolean;
   isDSProject?: boolean;
   phase?: 'Active' | 'Terminating';
 };
 
 export const mockProjectK8sResource = ({
+  hasAnnotations = true,
   username = 'test-user',
   displayName = 'Test Project',
   k8sName = 'test-project',
+  creationTimestamp = '2023-02-14T21:43:59Z',
   enableModelMesh,
   description = '',
   isDSProject = true,
@@ -26,7 +30,7 @@ export const mockProjectK8sResource = ({
   metadata: {
     name: k8sName,
     uid: genUID('project'),
-    creationTimestamp: '2023-02-14T21:43:59Z',
+    creationTimestamp,
     labels: {
       'kubernetes.io/metadata.name': k8sName,
       ...(enableModelMesh !== undefined && {
@@ -34,11 +38,13 @@ export const mockProjectK8sResource = ({
       }),
       ...(isDSProject && { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },
-    annotations: {
-      'openshift.io/description': description,
-      'openshift.io/display-name': displayName,
-      'openshift.io/requester': username,
-    },
+    ...(hasAnnotations && {
+      annotations: {
+        ...(description && { 'openshift.io/description': description }),
+        ...(displayName && { 'openshift.io/display-name': displayName }),
+        ...(username && { 'openshift.io/requester': username }),
+      },
+    }),
     resourceVersion: '1',
   },
   status: {

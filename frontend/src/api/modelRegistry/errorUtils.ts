@@ -2,7 +2,7 @@ import { ModelRegistryError } from '~/concepts/modelRegistry/types';
 import { isCommonStateError } from '~/utilities/useFetchState';
 
 const isError = (e: unknown): e is ModelRegistryError =>
-  ['code', 'message'].every((key) => key in (e as ModelRegistryError));
+  typeof e === 'object' && e !== null && ['code', 'message'].every((key) => key in e);
 
 export const handleModelRegistryFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise

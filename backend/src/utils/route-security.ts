@@ -1,17 +1,17 @@
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { getOpenshiftUser, getUserName, usernameTranslate } from './userUtils';
+import { createCustomError } from './requestUtils';
+import { isUserAdmin } from './adminUtils';
+import { getNamespaces } from './notebookUtils';
+import { logRequestDetails } from './fileUtils';
+import { DEV_MODE, MODEL_REGISTRY_NAMESPACE } from './constants';
 import {
-  K8sResourceCommon,
+  K8sNamespacedResourceCommon,
   KubeFastifyInstance,
   NotebookData,
   NotebookState,
   OauthFastifyRequest,
 } from '../types';
-import { getOpenshiftUser, getUserName, usernameTranslate } from './userUtils';
-import { createCustomError } from './requestUtils';
-import { FastifyReply, FastifyRequest } from 'fastify';
-import { isUserAdmin } from './adminUtils';
-import { getNamespaces } from './notebookUtils';
-import { logRequestDetails } from './fileUtils';
-import { DEV_MODE } from './constants';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -26,7 +26,7 @@ const testAdmin = async (
     return true;
   }
 
-  if (needsAdmin && !isAdmin) {
+  if (needsAdmin) {
     // Not an admin, route needs one -- reject
     fastify.log.error(
       `A Non-Admin User (${username}) made a request against an endpoint that requires an admin.`,
@@ -63,9 +63,9 @@ const requestSecurityGuardNotebook = async (
 const requestSecurityGuard = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
-  name: string,
   namespace: string,
   needsAdmin: boolean,
+  name?: string,
 ): Promise<void> => {
   const { notebookNamespace, dashboardNamespace } = getNamespaces(fastify);
   const username = await getUserName(fastify, request);
@@ -73,7 +73,7 @@ const requestSecurityGuard = async (
   const isReadRequest = request.method.toLowerCase() === 'get';
 
   // Check to see if a request was made against one of our namespaces
-  if (![notebookNamespace, dashboardNamespace].includes(namespace)) {
+  if (![notebookNamespace, dashboardNamespace, MODEL_REGISTRY_NAMESPACE].includes(namespace)) {
     // Not a valid namespace -- cannot make direct calls to just any namespace no matter who you are
     fastify.log.error(
       `User requested a resource that was not in our namespaces. Namespace: ${namespace}`,
@@ -131,23 +131,41 @@ type K8sTargetParams = { name?: string; namespace: string };
 const isRequestParams = (
   request: FastifyRequest,
 ): request is OauthFastifyRequest<{ Params: K8sTargetParams }> =>
-  !!(request.params as K8sTargetParams)?.namespace;
+  'params' in request &&
+  !!request.params &&
+  typeof request.params === 'object' &&
+  'namespace' in request.params &&
+  !!request.params.namespace;
 
 const isRequestBody = (
   request: FastifyRequest,
-): request is OauthFastifyRequest<{ Body: K8sResourceCommon }> =>
-  !!(request?.body as K8sResourceCommon)?.metadata?.namespace;
+): request is OauthFastifyRequest<{ Body: K8sNamespacedResourceCommon }> =>
+  'body' in request &&
+  !!request.body &&
+  typeof request.body === 'object' &&
+  'metadata' in request.body &&
+  !!request.body.metadata &&
+  typeof request.body.metadata === 'object' &&
+  'namespace' in request.body.metadata &&
+  !!request.body.metadata.namespace &&
+  typeof request.body.metadata.namespace !== 'undefined';
+
+const isNotebookData = (obj: unknown): obj is NotebookData =>
+  typeof obj === 'object' && !!obj && ('username' in obj || 'state' in obj);
 
 const isRequestNotebookAdmin = (
   request: FastifyRequest,
 ): request is OauthFastifyRequest<{ Body: NotebookData }> =>
-  !!(request?.body as NotebookData)?.username;
+  'body' in request && !!request.body && isNotebookData(request.body) && !!request.body.username;
 
 const isRequestNotebookEndpoint = (
   request: FastifyRequest,
 ): request is OauthFastifyRequest<{ Body: NotebookData }> =>
   request.url === '/api/notebooks' &&
-  Object.values(NotebookState).includes((request.body as NotebookData)?.state);
+  'body' in request &&
+  !!request.body &&
+  isNotebookData(request.body) &&
+  Object.values(NotebookState).includes(request.body.state);
 
 /** Determine which type of call it is -- request body data or request params. */
 const handleSecurityOnRouteData = async (
@@ -161,23 +179,22 @@ const handleSecurityOnRouteData = async (
     await requestSecurityGuard(
       fastify,
       request,
-      request.body.metadata.name,
       request.body.metadata.namespace,
       needsAdmin,
+      request.body.metadata.name,
     );
   } else if (isRequestParams(request)) {
     await requestSecurityGuard(
       fastify,
       request,
-      request.params.name,
       request.params.namespace,
       needsAdmin,
+      request.params.name,
     );
   } else if (isRequestNotebookAdmin(request)) {
-    await requestSecurityGuardNotebook(fastify, request, request.body.username);
+    await requestSecurityGuardNotebook(fastify, request, request.body.username ?? '');
   } else if (isRequestNotebookEndpoint(request)) {
     // Endpoint has self validation internal
-    return;
   } else {
     // Route is un-parameterized
     if (await testAdmin(fastify, request, needsAdmin)) {

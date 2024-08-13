@@ -77,6 +77,7 @@
       "always",
       { "exceptAfterSingleLine": false }
     ],
+    "@typescript-eslint/method-signature-style": "error",
     "@typescript-eslint/naming-convention": [
       "error",
       {
@@ -110,22 +111,33 @@
     "no-restricted-imports": [
       "error",
       {
+        "paths": [
+          {
+            "name": "^axios$",
+            "importNames": ["default"],
+            "message": "Import from `~/utilities/axios` instead."
+          }
+        ],
         "patterns": [
           {
             "group": ["~/api/**"],
-            "message": "Read from '~/api' instead."
+            "message": "Import from '~/api' instead."
           },
           {
             "group": ["~/components/table/**", "!~/components/table/useTableColumnSort"],
-            "message": "Read from '~/components/table' instead."
+            "message": "Import from '~/components/table' instead."
           },
           {
             "group": ["~/concepts/area/**"],
-            "message": "Read from '~/concepts/area' instead."
+            "message": "Import from '~/concepts/area' instead."
           },
           {
             "group": ["~/components/table/useTableColumnSort"],
             "message": "The data will be sorted in the table, don't use this hook outside of '~/components/table' repo. For more information, please check the props of the Table component."
+          },
+          {
+            "group": ["~/__mocks__/third_party/mlmd", "~/__mocks__/third_party/mlmd/*"],
+            "message": "Importing from '~/__mocks__/third_party/mlmd/' is restricted to '~/__mocks__/mlmd/'."
           }
         ]
       }
@@ -199,6 +211,10 @@
         "object": "Promise",
         "property": "allSettled",
         "message": "Avoid using Promise.allSettled, use allSettledPromises utility function instead."
+      },
+      {
+        "property": "sort",
+        "message": "Avoid using .sort, use .toSorted instead."
       }
     ],
     "import/newline-after-import": "error",
@@ -278,7 +294,101 @@
         "plugin:prettier/recommended",
         "prettier",
         "plugin:cypress/recommended"
+      ],
+      "overrides": [
+        {
+          "files": [
+            "./src/__tests__/cypress/cypress/pages/*.ts",
+            "./src/__tests__/cypress/cypress/tests/e2e/*.ts"
+          ],
+          "rules": {
+            "no-restricted-syntax": [
+              "error",
+              {
+                "selector": "CallExpression[callee.property.name='visit'][callee.object.name='cy']",
+                "message": "Use `cy.visitWithLogin` in page objects and e2e tests instead of `cy.visit`."
+              }
+            ]
+          }
+        }
       ]
+    },
+    {
+      "files": ["*.ts", "*.tsx"],
+      "excludedFiles": ["src/__mocks__/**", "src/__tests__/**"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "Literal[value=/\\bRed Hat OpenShift AI\\b/i],JSXText[value=/\\bRed Hat OpenShift AI\\b/i]",
+            "message": "Do not hard code product name `Red Hat OpenShift AI`. Use `~/utilities/const#ODH_PRODUCT_NAME` instead."
+          },
+          {
+            "selector": "Literal[value=/\\bOpen Data Hub\\b/i],JSXText[value=/\\bOpen Data Hub\\b/i]",
+            "message": "Do not hard code product name `Open Data Hub`. Use `~/utilities/const#ODH_PRODUCT_NAME` instead."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["*.ts", "*.tsx"],
+      "excludedFiles": ["**/__mocks__/**", "**/__tests__/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/__tests__/cypress/**"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "Literal[value=/\\bRed Hat OpenShift AI\\b/i],JSXText[value=/\\bRed Hat OpenShift AI\\b/i]",
+            "message": "Do not hard code product name `Red Hat OpenShift AI`. Use `Cypress.env('ODH_PRODUCT_NAME')` instead."
+          },
+          {
+            "selector": "Literal[value=/\\bOpen Data Hub\\b/i],JSXText[value=/\\bOpen Data Hub\\b/i]",
+            "message": "Do not hard code product name `Open Data Hub`. Use `Cypress.env('ODH_PRODUCT_NAME')` instead."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/__mocks__/mlmd/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/__tests__/cypress/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-imports": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector":"ImportDeclaration[importKind!='type'][source.value=/^~\\u002F(?!(__tests__|__mocks__|.*(types|Types|getCorePipelineSpec|utils)).*)/]",
+            "message": "Must use 'import type' when importing. If you are importing enums that are flagged, please go to the .eslintrc file and add it to the regular expression."
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@patternfly/**"
+                ],
+                "message": "Cypress tests should only import mocks and types from outside the Cypress test directory."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

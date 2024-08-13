@@ -1,37 +1,60 @@
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Truncate } from '@patternfly/react-core';
 
+import { useParams, Link } from 'react-router-dom';
 import RunPage from '~/concepts/pipelines/content/createRun/RunPage';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import useCloneRunData from '~/concepts/pipelines/content/createRun/useCloneRunData';
-import { PathProps, PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import { asEnumMember } from '~/utilities/utils';
-import { runTypeCategory } from './types';
+import { PathProps } from '~/concepts/pipelines/content/types';
+import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { RunTypeOption } from './types';
 
-const CloneRunPage: React.FC<PathProps> = ({ breadcrumbPath, contextPath }) => {
-  const [run, loaded, error] = useCloneRunData();
-  const { runType: runTypeString } = useGetSearchParamValues([PipelineRunSearchParam.RunType]);
-  const runType = asEnumMember(runTypeString, PipelineRunType);
-  const title = `Duplicate ${runTypeCategory[runType || PipelineRunType.Active]}`;
+type CloneRunPageProps = {
+  detailsRedirect: (runId: string) => string;
+  contextExperiment?: ExperimentKFv2 | null;
+  contextPipeline?: PipelineKFv2 | null;
+  contextPipelineVersion?: PipelineVersionKFv2 | null;
+};
+
+const CloneRunPage: React.FC<PathProps & CloneRunPageProps> = ({
+  breadcrumbPath,
+  contextPath,
+  detailsRedirect,
+  ...props
+}) => {
+  const { runId } = useParams();
+  const [run, loaded, error] = usePipelineRunById(runId);
 
   return (
     <ApplicationsPage
-      title={title}
+      title="Duplicate run"
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
-          <BreadcrumbItem isActive>
-            {run ? `Duplicate of ${run.display_name}` : 'Duplicate'}
+          <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+            {run ? (
+              <Link to={detailsRedirect(run.run_id)}>
+                {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                <Truncate content={run.display_name} className="truncate-no-min-width" />
+              </Link>
+            ) : (
+              'Loading...'
+            )}
           </BreadcrumbItem>
+          <BreadcrumbItem isActive>Duplicate run</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded={loaded}
       loadError={error}
       empty={false}
     >
-      <RunPage cloneRun={run} contextPath={contextPath} testId="clone-run-page" />
+      <RunPage
+        cloneRun={run}
+        contextPath={contextPath}
+        runType={RunTypeOption.ONE_TRIGGER}
+        testId="clone-run-page"
+        {...props}
+      />
     </ApplicationsPage>
   );
 };

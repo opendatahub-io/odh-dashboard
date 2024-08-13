@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
 import { NotebookKind } from '~/k8sTypes';
-import { getNotebookDisplayName } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeleteModalConnectedAlertProps = {
   loaded: boolean;
@@ -30,7 +30,7 @@ const DeleteModalConnectedAlert: React.FC<DeleteModalConnectedAlertProps> = ({
       title={
         <>
           This resource is connected to{' '}
-          {connectedNotebooks.map((notebook) => getNotebookDisplayName(notebook)).join(', ')}
+          {connectedNotebooks.map((notebook) => getDisplayNameFromK8sResource(notebook)).join(', ')}
         </>
       }
     >

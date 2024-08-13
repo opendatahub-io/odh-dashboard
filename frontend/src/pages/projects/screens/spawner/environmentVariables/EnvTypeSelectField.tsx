@@ -4,6 +4,7 @@ import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { EnvironmentVariableType, EnvVariable } from '~/pages/projects/types';
 import IndentSection from '~/pages/projects/components/IndentSection';
+import { asEnumMember } from '~/utilities/utils';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
 type EnvTypeSelectFieldProps = {
@@ -32,10 +33,13 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               aria-label="Select environment variable type"
               onSelect={(e, value) => {
                 if (typeof value === 'string') {
-                  onUpdate({
-                    type: value as EnvironmentVariableType,
-                  });
-                  setOpen(false);
+                  const enumValue = asEnumMember(value, EnvironmentVariableType);
+                  if (enumValue !== null) {
+                    onUpdate({
+                      type: enumValue,
+                    });
+                    setOpen(false);
+                  }
                 }
               }}
             >

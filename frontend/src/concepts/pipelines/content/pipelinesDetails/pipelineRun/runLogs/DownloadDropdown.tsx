@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 
 type DownloadDropdownProps = {
@@ -17,22 +17,27 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 
   return (
     <Dropdown
-      isPlain
-      position="right"
-      toggle={
-        <DropdownToggle
+      popperProps={{ position: 'right' }}
+      onOpenChange={(isOpenChange) => setIsDownloadDropdownOpen(isOpenChange)}
+      shouldFocusToggleOnSelect
+      toggle={(toggleRef) => (
+        <MenuToggle
           data-testid="download-steps-toggle"
           className="pf-v5-u-px-sm"
-          style={{ width: '60px' }}
+          ref={toggleRef}
+          variant="plainText"
+          style={{ width: '70px' }}
           aria-label="Download step logs"
           id="download-steps-logs-toggle"
-          onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
+          onClick={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
+          isExpanded={isDownloadDropdownOpen}
         >
           <DownloadIcon />
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={isDownloadDropdownOpen}
-      dropdownItems={[
+    >
+      <DropdownList>
         <DropdownItem
           data-testid="download-current-step-logs"
           isDisabled={isSingleStepLogsEmpty}
@@ -40,12 +45,12 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
           onClick={onDownload}
         >
           Download current step log
-        </DropdownItem>,
+        </DropdownItem>
         <DropdownItem key="all-step-logs" onClick={onDownloadAll}>
           Download all step logs
-        </DropdownItem>,
-      ]}
-    />
+        </DropdownItem>
+      </DropdownList>
+    </Dropdown>
   );
 };
 export default DownloadDropdown;

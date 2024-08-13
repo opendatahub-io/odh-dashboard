@@ -1,0 +1,579 @@
+{
+  "Data Science Projects > should start with an empty project list > builds": {
+    "method": "GET",
+    "url": "/api/builds",
+    "statusCode": 200,
+    "body": []
+  },
+  "Data Science Projects > should start with an empty project list > status": {
+    "method": "GET",
+    "url": "/api/status",
+    "statusCode": 200,
+    "body": {
+      "kube": {
+        "currentContext": "default/api-test-dev-datahub-redhat-com:6443/kube:admin",
+        "currentUser": {
+          "name": "kube:admin/api-test-dev-datahub-redhat-com:6443",
+          "token": "sha256~token"
+        },
+        "namespace": "opendatahub",
+        "userName": "regularuser1",
+        "clusterID": "31c87101-105c-34dd-b7ab-77a423b6952b",
+        "clusterBranding": "ocp",
+        "isAdmin": false,
+        "isAllowed": true,
+        "serverURL": "https://api.test.dev.datahub.redhat.com:6443",
+        "isImpersonating": true
+      }
+    }
+  },
+  "Data Science Projects > should start with an empty project list > config": {
+    "method": "GET",
+    "url": "/api/config",
+    "statusCode": 200,
+    "body": {
+      "apiVersion": "opendatahub.io/v1alpha",
+      "kind": "OdhDashboardConfig",
+      "metadata": {
+        "name": "odh-dashboard-config",
+        "labels": { "opendatahub.io/dashboard": "true" },
+        "creationTimestamp": "2023-10-26T20:14:48Z",
+        "generation": 19,
+        "managedFields": [
+          {
+            "apiVersion": "opendatahub.io/v1alpha",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": { "f:labels": { ".": {}, "f:opendatahub.io/dashboard": {} } },
+              "f:spec": {
+                ".": {},
+                "f:dashboardConfig": {
+                  ".": {},
+                  "f:disableBiasMetrics": {},
+                  "f:disablePerformanceMetrics": {},
+                  "f:disableTracking": {},
+                  "f:enablement": {},
+                },
+                "f:groupsConfig": { ".": {}, "f:adminGroups": {}, "f:allowedGroups": {} },
+                "f:notebookController": {
+                  ".": {},
+                  "f:enabled": {},
+                  "f:notebookTolerationSettings": { ".": {}, "f:enabled": {}, "f:key": {} },
+                  "f:pvcSize": {}
+                },
+                "f:templateOrder": {}
+              }
+            },
+            "manager": "unknown",
+            "operation": "Update",
+            "time": "2023-11-02T16:01:24Z"
+          },
+          {
+            "apiVersion": "opendatahub.io/v1alpha",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:dashboardConfig": {
+                  "f:disableBYONImageStream": {},
+                  "f:disableClusterManager": {},
+                  "f:disableCustomServingRuntimes": {},
+                  "f:disableISVBadges": {},
+                  "f:disableInfo": {},
+                  "f:disableKServe": {},
+                  "f:disableModelMesh": {},
+                  "f:disableModelServing": {},
+                  "f:disablePipelines": {},
+                  "f:disableProjectSharing": {},
+                  "f:disableProjects": {},
+                  "f:disableSupport": {},
+                  "f:disableUserManagement": {}
+                }
+              }
+            },
+            "manager": "Mozilla",
+            "operation": "Update",
+            "time": "2023-11-09T16:46:52Z"
+          }
+        ],
+        "namespace": "opendatahub",
+        "resourceVersion": "131745228",
+        "uid": "3062e264-f8b2-47c2-bf8f-32a428ae6711"
+      },
+      "spec": {
+        "dashboardConfig": {
+          "enablement": true,
+          "disableInfo": false,
+          "disableSupport": false,
+          "disableClusterManager": false,
+          "disableTracking": true,
+          "disableBYONImageStream": false,
+          "disableISVBadges": false,
+          "disableAppLauncher": false,
+          "disableUserManagement": false,
+          "disableProjects": false,
+          "disableModelServing": false,
+          "disableProjectSharing": false,
+          "disableCustomServingRuntimes": false,
+          "disablePipelines": false,
+          "disableKServe": false,
+          "disableModelMesh": false
+        },
+        "notebookController": {
+          "enabled": true,
+          "notebookTolerationSettings": { "enabled": false, "key": "NotebooksOnly" },
+          "pvcSize": "20Gi"
+        },
+        "groupsConfig": { "adminGroups": "odh-admins", "allowedGroups": "system:authenticated" },
+        "templateOrder": []
+      },
+      "status": {
+        "dependencyOperators": {
+          "redhatOpenshiftPipelines": { "available": true, "queriedForStatus": true }
+        }
+      }
+    }
+  },
+  "Data Science Projects > should start with an empty project list > projects": {
+    "method": "GET",
+    "url": "/api/k8s/apis/project.openshift.io/v1/projects",
+    "statusCode": 200,
+    "body": {
+      "kind": "ProjectList",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {},
+      "items": []
+    }
+  },
+  "Data Science Projects > should create project > create-test-project": {
+    "method": "POST",
+    "url": "/api/k8s/apis/project.openshift.io/v1/projectrequests",
+    "statusCode": 200,
+    "body": {
+      "kind": "Project",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {
+        "name": "test-project",
+        "uid": "2b9260f9-c674-4745-b193-11fdb27421f4",
+        "resourceVersion": "153955223",
+        "creationTimestamp": "2023-11-24T18:35:28Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "test-project",
+          "pod-security.kubernetes.io/audit": "restricted",
+          "pod-security.kubernetes.io/audit-version": "v1.24",
+          "pod-security.kubernetes.io/warn": "restricted",
+          "pod-security.kubernetes.io/warn-version": "v1.24"
+        },
+        "annotations": {
+          "openshift.io/description": "Test project description.",
+          "openshift.io/display-name": "My Test Project",
+          "openshift.io/requester": "regularuser1",
+          "openshift.io/sa.scc.mcs": "s0:c31,c15",
+          "openshift.io/sa.scc.supplemental-groups": "1000960000/10000",
+          "openshift.io/sa.scc.uid-range": "1000960000/10000"
+        },
+        "managedFields": [
+          {
+            "manager": "cluster-policy-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-11-24T18:35:28Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:openshift.io/sa.scc.mcs": {},
+                  "f:openshift.io/sa.scc.supplemental-groups": {},
+                  "f:openshift.io/sa.scc.uid-range": {}
+                },
+                "f:labels": {
+                  "f:pod-security.kubernetes.io/audit": {},
+                  "f:pod-security.kubernetes.io/audit-version": {},
+                  "f:pod-security.kubernetes.io/warn": {},
+                  "f:pod-security.kubernetes.io/warn-version": {}
+                }
+              }
+            }
+          },
+          {
+            "manager": "openshift-apiserver",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-11-24T18:35:28Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:openshift.io/description": {},
+                  "f:openshift.io/display-name": {},
+                  "f:openshift.io/requester": {}
+                },
+                "f:labels": { ".": {}, "f:kubernetes.io/metadata.name": {} }
+              }
+            }
+          },
+          {
+            "manager": "openshift-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-11-24T18:35:28Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": { "f:spec": { "f:finalizers": {} } },
+            "subresource": "finalize"
+          }
+        ]
+      },
+      "spec": { "finalizers": ["kubernetes"] },
+      "status": { "phase": "Active" }
+    }
+  },
+  "Data Science Projects > should create project > update-project": {
+    "method": "GET",
+    "url": "/api/namespaces/test-project/0",
+    "statusCode": 200,
+    "body": { "applied": true }
+  },
+  "Data Science Projects > should create project > projects-1": {
+    "method": "GET",
+    "url": "/api/k8s/apis/project.openshift.io/v1/projects",
+    "statusCode": 200,
+    "body": {
+      "kind": "ProjectList",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {},
+      "items": [
+        {
+          "metadata": {
+            "name": "test-project",
+            "uid": "2b9260f9-c674-4745-b193-11fdb27421f4",
+            "resourceVersion": "153955295",
+            "creationTimestamp": "2023-11-24T18:35:28Z",
+            "labels": {
+              "kubernetes.io/metadata.name": "test-project",
+              "opendatahub.io/dashboard": "true",
+              "openshift-pipelines.tekton.dev/namespace-reconcile-version": "1.12.2",
+              "pod-security.kubernetes.io/audit": "baseline",
+              "pod-security.kubernetes.io/audit-version": "v1.24",
+              "pod-security.kubernetes.io/warn": "baseline",
+              "pod-security.kubernetes.io/warn-version": "v1.24"
+            },
+            "annotations": {
+              "openshift.io/description": "Test project description.",
+              "openshift.io/display-name": "My Test Project",
+              "openshift.io/requester": "regularuser1",
+              "openshift.io/sa.scc.mcs": "s0:c31,c15",
+              "openshift.io/sa.scc.supplemental-groups": "1000960000/10000",
+              "openshift.io/sa.scc.uid-range": "1000960000/10000"
+            },
+            "managedFields": [
+              {
+                "manager": "openshift-apiserver",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:openshift.io/description": {},
+                      "f:openshift.io/display-name": {},
+                      "f:openshift.io/requester": {}
+                    },
+                    "f:labels": { ".": {}, "f:kubernetes.io/metadata.name": {} }
+                  }
+                }
+              },
+              {
+                "manager": "openshift-controller-manager",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": { "f:spec": { "f:finalizers": {} } },
+                "subresource": "finalize"
+              },
+              {
+                "manager": "unknown",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": { "f:metadata": { "f:labels": { "f:opendatahub.io/dashboard": {} } } }
+              },
+              {
+                "manager": "cluster-policy-controller",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:29Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      "f:openshift.io/sa.scc.mcs": {},
+                      "f:openshift.io/sa.scc.supplemental-groups": {},
+                      "f:openshift.io/sa.scc.uid-range": {}
+                    },
+                    "f:labels": {
+                      "f:pod-security.kubernetes.io/audit": {},
+                      "f:pod-security.kubernetes.io/audit-version": {},
+                      "f:pod-security.kubernetes.io/warn": {},
+                      "f:pod-security.kubernetes.io/warn-version": {}
+                    }
+                  }
+                }
+              },
+              {
+                "manager": "openshift-pipelines-operator",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:30Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:labels": {
+                      "f:openshift-pipelines.tekton.dev/namespace-reconcile-version": {}
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "spec": { "finalizers": ["kubernetes"] },
+          "status": { "phase": "Active" }
+        }
+      ]
+    }
+  },
+  "Data Science Projects > should list the new project > projects-1": {
+    "method": "GET",
+    "url": "/api/k8s/apis/project.openshift.io/v1/projects",
+    "statusCode": 200,
+    "body": {
+      "kind": "ProjectList",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {},
+      "items": [
+        {
+          "metadata": {
+            "name": "test-project",
+            "uid": "2b9260f9-c674-4745-b193-11fdb27421f4",
+            "resourceVersion": "153955295",
+            "creationTimestamp": "2023-11-24T18:35:28Z",
+            "labels": {
+              "kubernetes.io/metadata.name": "test-project",
+              "opendatahub.io/dashboard": "true",
+              "openshift-pipelines.tekton.dev/namespace-reconcile-version": "1.12.2",
+              "pod-security.kubernetes.io/audit": "baseline",
+              "pod-security.kubernetes.io/audit-version": "v1.24",
+              "pod-security.kubernetes.io/warn": "baseline",
+              "pod-security.kubernetes.io/warn-version": "v1.24"
+            },
+            "annotations": {
+              "openshift.io/description": "Test project description.",
+              "openshift.io/display-name": "My Test Project",
+              "openshift.io/requester": "regularuser1",
+              "openshift.io/sa.scc.mcs": "s0:c31,c15",
+              "openshift.io/sa.scc.supplemental-groups": "1000960000/10000",
+              "openshift.io/sa.scc.uid-range": "1000960000/10000"
+            },
+            "managedFields": [
+              {
+                "manager": "openshift-apiserver",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:openshift.io/description": {},
+                      "f:openshift.io/display-name": {},
+                      "f:openshift.io/requester": {}
+                    },
+                    "f:labels": { ".": {}, "f:kubernetes.io/metadata.name": {} }
+                  }
+                }
+              },
+              {
+                "manager": "openshift-controller-manager",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": { "f:spec": { "f:finalizers": {} } },
+                "subresource": "finalize"
+              },
+              {
+                "manager": "unknown",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": { "f:metadata": { "f:labels": { "f:opendatahub.io/dashboard": {} } } }
+              },
+              {
+                "manager": "cluster-policy-controller",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:29Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      "f:openshift.io/sa.scc.mcs": {},
+                      "f:openshift.io/sa.scc.supplemental-groups": {},
+                      "f:openshift.io/sa.scc.uid-range": {}
+                    },
+                    "f:labels": {
+                      "f:pod-security.kubernetes.io/audit": {},
+                      "f:pod-security.kubernetes.io/audit-version": {},
+                      "f:pod-security.kubernetes.io/warn": {},
+                      "f:pod-security.kubernetes.io/warn-version": {}
+                    }
+                  }
+                }
+              },
+              {
+                "manager": "openshift-pipelines-operator",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:30Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:labels": {
+                      "f:openshift-pipelines.tekton.dev/namespace-reconcile-version": {}
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "spec": { "finalizers": ["kubernetes"] },
+          "status": { "phase": "Active" }
+        }
+      ]
+    }
+  },
+  "Data Science Projects > should delete project > delete-project": {
+    "method": "DELETE",
+    "url": "/api/k8s/apis/project.openshift.io/v1/projects/test-project",
+    "statusCode": 200,
+    "body": { "kind": "Status", "apiVersion": "v1", "metadata": {}, "status": "Success" }
+  },
+  "Data Science Projects > should delete project > projects-0": {
+    "method": "GET",
+    "url": "/api/k8s/apis/project.openshift.io/v1/projects",
+    "statusCode": 200,
+    "body": {
+      "kind": "ProjectList",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {},
+      "items": [
+        {
+          "metadata": {
+            "name": "test-project",
+            "uid": "2b9260f9-c674-4745-b193-11fdb27421f4",
+            "resourceVersion": "153955535",
+            "creationTimestamp": "2023-11-24T18:35:28Z",
+            "deletionTimestamp": "2023-11-24T18:35:42Z",
+            "labels": {
+              "kubernetes.io/metadata.name": "test-project",
+              "opendatahub.io/dashboard": "true",
+              "openshift-pipelines.tekton.dev/namespace-reconcile-version": "1.12.2",
+              "pod-security.kubernetes.io/audit": "baseline",
+              "pod-security.kubernetes.io/audit-version": "v1.24",
+              "pod-security.kubernetes.io/warn": "baseline",
+              "pod-security.kubernetes.io/warn-version": "v1.24"
+            },
+            "annotations": {
+              "openshift.io/description": "Test project description.",
+              "openshift.io/display-name": "My Test Project",
+              "openshift.io/requester": "regularuser1",
+              "openshift.io/sa.scc.mcs": "s0:c31,c15",
+              "openshift.io/sa.scc.supplemental-groups": "1000960000/10000",
+              "openshift.io/sa.scc.uid-range": "1000960000/10000"
+            },
+            "managedFields": [
+              {
+                "manager": "openshift-apiserver",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:openshift.io/description": {},
+                      "f:openshift.io/display-name": {},
+                      "f:openshift.io/requester": {}
+                    },
+                    "f:labels": { ".": {}, "f:kubernetes.io/metadata.name": {} }
+                  }
+                }
+              },
+              {
+                "manager": "openshift-controller-manager",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": { "f:spec": { "f:finalizers": {} } },
+                "subresource": "finalize"
+              },
+              {
+                "manager": "unknown",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:28Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": { "f:metadata": { "f:labels": { "f:opendatahub.io/dashboard": {} } } }
+              },
+              {
+                "manager": "cluster-policy-controller",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:29Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      "f:openshift.io/sa.scc.mcs": {},
+                      "f:openshift.io/sa.scc.supplemental-groups": {},
+                      "f:openshift.io/sa.scc.uid-range": {}
+                    },
+                    "f:labels": {
+                      "f:pod-security.kubernetes.io/audit": {},
+                      "f:pod-security.kubernetes.io/audit-version": {},
+                      "f:pod-security.kubernetes.io/warn": {},
+                      "f:pod-security.kubernetes.io/warn-version": {}
+                    }
+                  }
+                }
+              },
+              {
+                "manager": "openshift-pipelines-operator",
+                "operation": "Update",
+                "apiVersion": "v1",
+                "time": "2023-11-24T18:35:30Z",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:labels": {
+                      "f:openshift-pipelines.tekton.dev/namespace-reconcile-version": {}
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "spec": { "finalizers": ["kubernetes"] },
+          "status": { "phase": "Terminating" }
+        }
+      ]
+    }
+  }
+}

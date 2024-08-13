@@ -51,7 +51,7 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
             ...inferenceServices
               .filter(
                 (inferenceService) =>
-                  inferenceService.spec.predictor.model.runtime === servingRuntime.metadata.name,
+                  inferenceService.spec.predictor.model?.runtime === servingRuntime.metadata.name,
               )
               .map((inferenceService) =>
                 deleteInferenceService(

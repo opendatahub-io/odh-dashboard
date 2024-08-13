@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { asEnumMember } from '~/utilities/utils';
 import {
@@ -9,37 +9,37 @@ import {
   PipelineRunType,
   PipelineRunTabTitle,
 } from '~/pages/pipelines/global/runs';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 
 import './GlobalPipelineRunsTabs.scss';
 
-const GlobalPipelineRunsTab: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const runType = asEnumMember<typeof PipelineRunType>(
-    searchParams.get(PipelineRunSearchParam.RunType),
-    PipelineRunType,
-  );
+type GlobalPipelineRunsTabsProps = {
+  basePath: string;
+  tab: PipelineRunType;
+};
 
-  React.useEffect(() => {
-    if (runType && !Object.values(PipelineRunType).includes(runType)) {
-      searchParams.delete(PipelineRunSearchParam.RunType);
-      setSearchParams(searchParams);
-    }
-  }, [runType, searchParams, setSearchParams]);
+const GlobalPipelineRunsTabs: React.FC<GlobalPipelineRunsTabsProps> = ({ tab, basePath }) => {
+  const navigate = useNavigate();
 
   return (
     <Tabs
-      activeKey={runType || PipelineRunType.Active}
-      onSelect={(_event, tabId) => setSearchParams({ runType: tabId as PipelineRunType })}
+      activeKey={tab}
+      onSelect={(_event, tabId) => {
+        const enumValue = asEnumMember(tabId, PipelineRunType);
+        navigate(
+          `${basePath}/${
+            enumValue === PipelineRunType.SCHEDULED ? 'schedules' : `runs/${enumValue}`
+          }`,
+        );
+      }}
       aria-label="Pipeline run page tabs"
       role="region"
       className="odh-pipeline-runs-page-tabs"
       data-testid="pipeline-runs-global-tabs"
     >
       <Tab
-        eventKey={PipelineRunType.Active}
-        title={<TabTitleText>{PipelineRunTabTitle.Active}</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Active} tab`}
+        eventKey={PipelineRunType.ACTIVE}
+        title={<TabTitleText>{PipelineRunTabTitle.ACTIVE}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.ACTIVE} tab`}
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="active-runs-tab"
       >
@@ -49,21 +49,9 @@ const GlobalPipelineRunsTab: React.FC = () => {
       </Tab>
 
       <Tab
-        eventKey={PipelineRunType.Scheduled}
-        title={<TabTitleText>{PipelineRunTabTitle.Schedules}</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Schedules} tab`}
-        className="odh-pipeline-runs-page-tabs__content"
-        data-testid="schedules-tab"
-      >
-        <PageSection isFilled variant="light">
-          <ScheduledRuns />
-        </PageSection>
-      </Tab>
-
-      <Tab
-        eventKey={PipelineRunType.Archived}
-        title={<TabTitleText>{PipelineRunTabTitle.Archived}</TabTitleText>}
-        aria-label={`${PipelineRunTabTitle.Archived} tab`}
+        eventKey={PipelineRunType.ARCHIVED}
+        title={<TabTitleText>{PipelineRunTabTitle.ARCHIVED}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.ARCHIVED} tab`}
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="archived-runs-tab"
       >
@@ -71,8 +59,20 @@ const GlobalPipelineRunsTab: React.FC = () => {
           <ArchivedRuns />
         </PageSection>
       </Tab>
+
+      <Tab
+        eventKey={PipelineRunType.SCHEDULED}
+        title={<TabTitleText>{PipelineRunTabTitle.SCHEDULES}</TabTitleText>}
+        aria-label={`${PipelineRunTabTitle.SCHEDULES} tab`}
+        className="odh-pipeline-runs-page-tabs__content"
+        data-testid="schedules-tab"
+      >
+        <PageSection isFilled variant="light">
+          <ScheduledRuns />
+        </PageSection>
+      </Tab>
     </Tabs>
   );
 };
 
-export default GlobalPipelineRunsTab;
+export default GlobalPipelineRunsTabs;

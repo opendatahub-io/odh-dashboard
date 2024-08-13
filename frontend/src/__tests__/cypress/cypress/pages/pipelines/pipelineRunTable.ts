@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineRunJobKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class PipelineRunsRow extends TableRow {
@@ -10,15 +10,21 @@ class PipelineRunsRow extends TableRow {
   findColumnName(name: string) {
     return this.find().find(`[data-label=Name]`).contains(name);
   }
+}
 
-  findColumnVersion(name: string) {
-    return this.find().find(`[data-label="Pipeline"]`).contains(name);
-  }
-
-  findStatusSwitchByRowName() {
-    return this.find().findByTestId('job-status-switch');
+class PipelineRunTableRow extends PipelineRunsRow {
+  findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.find().findKebab().click();
+    return cy.findByTestId('pipeline-run-table-row-actions').findByRole('menuitem', { name });
   }
 }
+
+class PipelineRecurringRunTableRow extends PipelineRunsRow {
+  findStatusSwitchByRowName() {
+    return this.find().findByTestId('recurring-run-status-switch');
+  }
+}
+
 class PipelineRunsTable {
   protected testId = '';
 
@@ -31,12 +37,6 @@ class PipelineRunsTable {
 
   find() {
     return cy.findByTestId(this.testId);
-  }
-
-  getRowByName(name: string) {
-    return new PipelineRunsRow(() =>
-      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
-    );
   }
 
   shouldRowNotBeVisible(name: string) {
@@ -66,11 +66,9 @@ class PipelineRunsTable {
   }
 
   mockRestoreRun(runId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${runId}:unarchive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      { path: { namespace, serviceName: 'dspa', runId: `${runId}:unarchive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -78,11 +76,9 @@ class PipelineRunsTable {
   }
 
   mockArchiveRun(runId: string, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs/${runId}:archive`,
-      },
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      { path: { namespace, serviceName: 'dspa', runId: `${runId}:archive` } },
       (req) => {
         req.reply({ body: {} });
       },
@@ -95,10 +91,10 @@ class PipelineRunsTable {
     namespace: string,
     times?: number,
   ) {
-    return cy.intercept(
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
       {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/runs`,
+        path: { namespace, serviceName: 'dspa' },
         ...(times && { times }),
       },
       (req) => {
@@ -124,6 +120,12 @@ class ActiveRunsTable extends PipelineRunsTable {
   mockGetActiveRuns(runs: PipelineRunKFv2[], namespace: string, times?: number) {
     return this.mockGetRuns(runs, [], namespace, times);
   }
+
+  getRowByName(name: string) {
+    return new PipelineRunTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
 }
 class ArchivedRunsTable extends PipelineRunsTable {
   constructor() {
@@ -133,11 +135,23 @@ class ArchivedRunsTable extends PipelineRunsTable {
   mockGetArchivedRuns(runs: PipelineRunKFv2[], namespace: string, times?: number) {
     return this.mockGetRuns([], runs, namespace, times);
   }
+
+  getRowByName(name: string) {
+    return new PipelineRunTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
 }
 
-class PipelineRunJobTable extends PipelineRunsTable {
+class PipelineRecurringRunTable extends PipelineRunsTable {
   constructor() {
     super('schedules');
+  }
+
+  getRowByName(name: string) {
+    return new PipelineRecurringRunTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
   }
 
   findEmptyState() {
@@ -152,50 +166,52 @@ class PipelineRunJobTable extends PipelineRunsTable {
   }
 
   findFilterTextField() {
-    return cy
-      .findByTestId('schedules-table-toolbar')
-      .findByTestId('run-table-toolbar-filter-text-field');
+    return cy.findByTestId('schedules-table-toolbar').findByTestId('pipeline-filter-text-field');
   }
 
   findExperimentFilterSelect() {
     return cy.findByTestId('experiment-search-select');
   }
 
-  mockGetJobs(jobs: PipelineRunJobKFv2[], namespace: string) {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns`,
-      },
-      { recurringRuns: jobs, total_size: jobs.length },
+  mockGetRecurringRuns(recurringRuns: PipelineRecurringRunKFv2[], namespace: string) {
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      { path: { namespace, serviceName: 'dspa' } },
+      { recurringRuns, total_size: recurringRuns.length },
     );
   }
 
-  mockGetJob(job: PipelineRunJobKFv2, namespace: string) {
-    return cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}`,
-      },
-      job,
+  mockGetRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      { path: { namespace, serviceName: 'dspa', recurringRunId: recurringRun.recurring_run_id } },
+      recurringRun,
     );
   }
 
-  mockEnableJob(job: PipelineRunJobKFv2, namespace: string) {
-    return cy.intercept(
+  mockEnableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}:enable`,
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: `${recurringRun.recurring_run_id}:'enable'`,
+        },
       },
       {},
     );
   }
 
-  mockDisableJob(job: PipelineRunJobKFv2, namespace: string) {
-    return cy.intercept(
+  mockDisableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
       {
-        method: 'POST',
-        pathname: `/api/service/pipelines/${namespace}/dspa/apis/v2beta1/recurringruns/${job.recurring_run_id}:disable`,
+        path: {
+          namespace,
+          serviceName: 'dspa',
+          recurringRunId: `${recurringRun.recurring_run_id}:disable`,
+        },
       },
       {},
     );
@@ -204,4 +220,4 @@ class PipelineRunJobTable extends PipelineRunsTable {
 
 export const activeRunsTable = new ActiveRunsTable();
 export const archivedRunsTable = new ArchivedRunsTable();
-export const pipelineRunJobTable = new PipelineRunJobTable();
+export const pipelineRecurringRunTable = new PipelineRecurringRunTable();

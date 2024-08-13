@@ -1,42 +1,67 @@
 import React from 'react';
 
-import { Alert, AlertActionCloseButton, Button, FormSection } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Alert, AlertActionCloseButton, FormSection } from '@patternfly/react-core';
+import { useParams, Link } from 'react-router-dom';
 
-import { PipelineRunTabTitle, PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { createRunRoute, scheduleRunRoute } from '~/routes';
+import { createRecurringRunRoute, createRunRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 
 interface RunTypeSectionProps {
-  runType: PipelineRunType;
+  data: RunFormData;
+  isCloned: boolean;
 }
 
-export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
-  const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
+export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isCloned }) => {
+  const { namespace, experimentId, pipelineId, pipelineVersionId } = useParams();
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   let runTypeValue = 'Run once immediately after creation';
-  let alertProps = {
-    title: 'Go to Schedules to create schedules that execute recurring runs',
-    label: `Go to ${PipelineRunTabTitle.Schedules}`,
-    search: '?runType=scheduled',
-    pathname: scheduleRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined),
-  };
+  let alertTitle = (
+    <>
+      To create a schedule that executes recurring runs,{' '}
+      <Link
+        to={createRecurringRunRoute(
+          namespace,
+          isExperimentsAvailable ? experimentId : undefined,
+          pipelineId,
+          pipelineVersionId,
+        )}
+        state={{ locationData: data }}
+        data-testid="run-type-section-alert-link"
+      >
+        go to the {PipelineRunTabTitle.SCHEDULES} tab
+      </Link>
+      .
+    </>
+  );
 
-  if (runType === PipelineRunType.Scheduled) {
+  if (data.runType.type === RunTypeOption.SCHEDULED) {
     runTypeValue = 'Schedule recurring run';
-    alertProps = {
-      title: 'Go to Active runs to create a run that executes once immediately after creation.',
-      label: `Go to ${PipelineRunTabTitle.Active} runs`,
-      search: '?runType=active',
-      pathname: createRunRoute(namespace, isExperimentsAvailable ? experimentId : undefined),
-    };
+    alertTitle = (
+      <>
+        To create a non-recurring run,{' '}
+        <Link
+          to={createRunRoute(
+            namespace,
+            isExperimentsAvailable ? experimentId : undefined,
+            pipelineId,
+            pipelineVersionId,
+          )}
+          state={{ locationData: data }}
+          data-testid="run-type-section-alert-link"
+        >
+          go to the {PipelineRunTabTitle.ACTIVE} tab
+        </Link>
+        .
+      </>
+    );
   }
 
   return (
@@ -46,21 +71,11 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ runType }) => {
     >
       {runTypeValue}
 
-      {isAlertOpen && (
+      {isAlertOpen && !isCloned && (
         <Alert
           isInline
           variant="info"
-          title={alertProps.title}
-          actionLinks={
-            <Button
-              isInline
-              variant="link"
-              onClick={() => navigate({ pathname: alertProps.pathname, search: alertProps.search })}
-              data-testid="run-type-section-alert-link"
-            >
-              {alertProps.label}
-            </Button>
-          }
+          title={alertTitle}
           actionClose={<AlertActionCloseButton onClose={() => setIsAlertOpen(false)} />}
         />
       )}

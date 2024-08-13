@@ -6,13 +6,13 @@ import {
   StorageType,
   UpdateObjectAtPropAndValue,
 } from '~/pages/projects/types';
-import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
 
 export const useCreateStorageObjectForNotebook = (
@@ -42,8 +42,8 @@ export const useCreateStorageObjectForNotebook = (
 
   const [, setCreateData] = createDataState;
 
-  const existingName = existingData ? getPvcDisplayName(existingData) : '';
-  const existingDescription = existingData ? getPvcDescription(existingData) : '';
+  const existingName = existingData ? getDisplayNameFromK8sResource(existingData) : '';
+  const existingDescription = existingData ? getDescriptionFromK8sResource(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : size;
   const { notebooks: relatedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.REMOVABLE_PVC,

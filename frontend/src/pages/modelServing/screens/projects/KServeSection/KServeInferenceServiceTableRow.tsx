@@ -21,11 +21,11 @@ type KServeInferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
   onEditKServe: (obj: {
     inferenceService: InferenceServiceKind;
-    servingRuntime: ServingRuntimeKind;
+    servingRuntime?: ServingRuntimeKind;
   }) => void;
   onDeleteKServe: (obj: {
     inferenceService: InferenceServiceKind;
-    servingRuntime: ServingRuntimeKind;
+    servingRuntime?: ServingRuntimeKind;
   }) => void;
   rowIndex: number;
 };
@@ -43,11 +43,11 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     servingRuntimes: { data: servingRuntimes },
   } = React.useContext(ProjectDetailsContext);
 
-  const frameworkName = obj.spec.predictor.model.modelFormat.name;
-  const frameworkVersion = obj.spec.predictor.model.modelFormat.version;
+  const frameworkName = obj.spec.predictor.model?.modelFormat?.name;
+  const frameworkVersion = obj.spec.predictor.model?.modelFormat?.version;
 
   const servingRuntime = servingRuntimes.find(
-    (sr) => sr.metadata.name === obj.spec.predictor.model.runtime,
+    (sr) => sr.metadata.name === obj.spec.predictor.model?.runtime,
   );
 
   return (
@@ -67,22 +67,8 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
           isGlobal={false}
           showServingRuntime
           servingRuntime={servingRuntime}
-          onDeleteInferenceService={() => {
-            if (servingRuntime) {
-              onDeleteKServe({
-                inferenceService: obj,
-                servingRuntime,
-              });
-            }
-          }}
-          onEditInferenceService={() => {
-            if (servingRuntime) {
-              onEditKServe({
-                inferenceService: obj,
-                servingRuntime,
-              });
-            }
-          }}
+          onDeleteInferenceService={() => onDeleteKServe({ inferenceService: obj, servingRuntime })}
+          onEditInferenceService={() => onEditKServe({ inferenceService: obj, servingRuntime })}
         />
       </ResourceTr>
       <ResourceTr isExpanded={isExpanded} resource={obj}>
@@ -109,7 +95,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                 <StackItem>
                   <DescriptionList>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Token authorization</DescriptionListTerm>
+                      <DescriptionListTerm>Token authentication</DescriptionListTerm>
                       <DescriptionListDescription>
                         <ServingRuntimeTokensTable
                           obj={obj}
