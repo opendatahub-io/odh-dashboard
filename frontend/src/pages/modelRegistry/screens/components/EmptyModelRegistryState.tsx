@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Button,
   ButtonVariant,
@@ -7,10 +8,10 @@ import {
   EmptyStateFooter,
   EmptyStateHeader,
   EmptyStateIcon,
+  EmptyStateIconProps,
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import * as React from 'react';
 
 type EmptyModelRegistryStateType = {
   testid?: string;
@@ -20,6 +21,8 @@ type EmptyModelRegistryStateType = {
   primaryActionOnClick?: () => void;
   secondaryActionText?: string;
   secondaryActionOnClick?: () => void;
+  headerIcon?: EmptyStateIconProps['icon'];
+  customAction?: React.ReactNode;
 };
 
 const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
@@ -30,13 +33,18 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
   secondaryActionText,
   primaryActionOnClick,
   secondaryActionOnClick,
+  headerIcon,
+  customAction,
 }) => (
   <EmptyState variant={EmptyStateVariant.sm} data-testid={testid}>
-    <EmptyStateHeader titleText={title} icon={<EmptyStateIcon icon={PlusCircleIcon} />} />
+    <EmptyStateHeader
+      titleText={title}
+      icon={<EmptyStateIcon icon={headerIcon ?? PlusCircleIcon} />}
+    />
     <EmptyStateBody>{description}</EmptyStateBody>
     <EmptyStateFooter>
-      <EmptyStateActions>
-        {primaryActionText && (
+      {primaryActionText && (
+        <EmptyStateActions>
           <Button
             data-testid="empty-model-registry-primary-action"
             variant={ButtonVariant.primary}
@@ -44,10 +52,11 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
           >
             {primaryActionText}
           </Button>
-        )}
-      </EmptyStateActions>
-      <EmptyStateActions>
-        {secondaryActionText && (
+        </EmptyStateActions>
+      )}
+
+      {secondaryActionText && (
+        <EmptyStateActions>
           <Button
             data-testid="empty-model-registry-secondary-action"
             variant="link"
@@ -55,8 +64,10 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
           >
             {secondaryActionText}
           </Button>
-        )}
-      </EmptyStateActions>
+        </EmptyStateActions>
+      )}
+
+      {customAction && <EmptyStateActions>{customAction}</EmptyStateActions>}
     </EmptyStateFooter>
   </EmptyState>
 );
