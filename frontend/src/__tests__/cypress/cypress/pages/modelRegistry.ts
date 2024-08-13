@@ -144,6 +144,10 @@ class ModelRegistry {
     return this.findTable().find('thead').findByRole('button', { name });
   }
 
+  findModelRegistry() {
+    return cy.get('#model-registry-selector-dropdown');
+  }
+
   findModelVersionsTableHeaderButton(name: string) {
     return this.findModelVersionsTable().find('thead').findByRole('button', { name });
   }
