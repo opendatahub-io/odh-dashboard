@@ -14,6 +14,7 @@ import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/componen
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -30,6 +31,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const { apiState } = React.useContext(ModelRegistryContext);
 
   const actions = isArchiveRow
@@ -42,8 +44,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
     : [
         {
           title: 'Deploy',
-          // TODO: Implement functionality for onClick. This will be added in another PR
-          onClick: () => undefined,
+          onClick: () => setIsDeployModalOpen(true),
         },
         {
           title: 'Archive version',
@@ -104,6 +105,11 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           }
           isOpen={isArchiveModalOpen}
           modelVersionName={mv.name}
+        />
+        <DeployRegisteredModelModal
+          onCancel={() => setIsDeployModalOpen(false)}
+          isOpen={isDeployModalOpen}
+          modelVersion={mv}
         />
         <RestoreModelVersionModal
           onCancel={() => setIsRestoreModalOpen(false)}

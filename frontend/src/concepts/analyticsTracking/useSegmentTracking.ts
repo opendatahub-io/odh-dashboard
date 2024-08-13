@@ -12,13 +12,14 @@ export const useSegmentTracking = (): void => {
   const username = useAppSelector((state) => state.user);
   const clusterID = useAppSelector((state) => state.clusterID);
   const [userProps, uPropsLoaded] = useTrackUser(username);
+  const disableTrackingConfig = dashboardConfig.spec.dashboardConfig.disableTracking;
 
   React.useEffect(() => {
     if (segmentKey && loaded && !loadError && username && clusterID && uPropsLoaded) {
       window.clusterID = clusterID;
       initSegment({
         segmentKey,
-        enabled: !dashboardConfig.spec.dashboardConfig.disableTracking,
+        enabled: !disableTrackingConfig,
       }).then(() => {
         fireIdentifyEvent(userProps);
         firePageEvent();
@@ -30,7 +31,7 @@ export const useSegmentTracking = (): void => {
     loaded,
     segmentKey,
     username,
-    dashboardConfig,
+    disableTrackingConfig,
     userProps,
     uPropsLoaded,
   ]);
