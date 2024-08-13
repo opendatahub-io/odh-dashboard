@@ -117,14 +117,14 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   return (
     <Modal
-      title={!editInfo ? 'Deploy model' : 'Edit model'}
+      title={editInfo ? 'Edit model' : 'Deploy model'}
       description="Configure properties for deploying your model"
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter
-          submitLabel={!editInfo ? 'Deploy' : 'Redeploy'}
+          submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
           isSubmitDisabled={isDisabled}

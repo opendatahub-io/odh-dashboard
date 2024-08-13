@@ -384,3 +384,4 @@ export const modelServingSection = new ModelServingSection();
 export const createServingRuntimeModal = new ServingRuntimeModal(false);
 export const editServingRuntimeModal = new ServingRuntimeModal(true);
 export const kserveModal = new KServeModal();
+export const kserveModalEdit = new KServeModal(true);
