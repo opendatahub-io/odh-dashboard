@@ -32,8 +32,6 @@ export enum SupportedArea {
   /* Pipelines areas */
   DS_PIPELINES = 'ds-pipelines',
   PIPELINE_EXPERIMENTS = 'pipeline-experiments',
-  S3_ENDPOINT = 's3-endpoint',
-  ARTIFACT_API = 's3-artifact-api',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',

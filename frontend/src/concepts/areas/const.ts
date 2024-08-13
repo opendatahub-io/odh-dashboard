@@ -25,8 +25,6 @@ export const allFeatureFlags: string[] = Object.keys({
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
   disablePipelineExperiments: false,
-  disableS3Endpoint: false,
-  disableArtifactsAPI: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
   disableConnectionTypes: false,
@@ -103,16 +101,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PIPELINE_EXPERIMENTS]: {
     featureFlags: ['disablePipelineExperiments'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
-  },
-
-  [SupportedArea.ARTIFACT_API]: {
-    featureFlags: ['disableArtifactsAPI'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
-  },
-
-  [SupportedArea.S3_ENDPOINT]: {
-    featureFlags: ['disableS3Endpoint'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {

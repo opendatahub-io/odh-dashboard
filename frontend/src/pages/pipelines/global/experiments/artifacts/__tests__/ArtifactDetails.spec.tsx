@@ -59,8 +59,6 @@ describe('ArtifactDetails', () => {
 
   beforeEach(() => {
     useArtifactStorageSpy.mockReturnValue({
-      enabled: true,
-      getStorageObject: jest.fn().mockResolvedValue(''),
       getStorageObjectUrl: jest.fn().mockResolvedValue('https://example.com/s3-url'),
       getStorageObjectSize: jest.fn().mockResolvedValue(1e9), // Mocking 1 GB size
     });
