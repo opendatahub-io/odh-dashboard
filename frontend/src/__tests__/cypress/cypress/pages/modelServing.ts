@@ -80,7 +80,7 @@ class ModelServingGlobal {
 
 class InferenceServiceModal extends Modal {
   constructor(private edit = false) {
-    super(edit ? 'Edit model' : 'Deploy model');
+    super(`${edit ? 'Edit' : 'Deploy'} model`);
   }
 
   findSubmitButton() {
@@ -156,7 +156,7 @@ class InferenceServiceModal extends Modal {
 
 class ServingRuntimeModal extends Modal {
   constructor(private edit = false) {
-    super(edit ? 'Edit model server' : 'Add model server');
+    super(`${edit ? 'Edit' : 'Add'} model server`);
   }
 
   findSubmitButton() {
