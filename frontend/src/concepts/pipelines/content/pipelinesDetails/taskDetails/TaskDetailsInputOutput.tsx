@@ -27,7 +27,7 @@ const TaskDetailsInputOutput: React.FC<TaskDetailsInputOutputProps> = ({
       if (artifact) {
         return {
           label: artifactInputOutput.label,
-          value: <ArtifactUriLink uri={artifact.getUri()} type={artifact.getType()} />,
+          value: <ArtifactUriLink artifact={artifact} />,
         };
       }
 

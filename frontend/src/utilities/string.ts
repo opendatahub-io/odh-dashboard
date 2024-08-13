@@ -14,6 +14,16 @@ export const downloadString = (filename: string, data: string): void => {
   document.body.removeChild(element);
 };
 
+export const triggerFileDownload = (filename: string, href: string): void => {
+  const element = document.createElement('a');
+  element.href = href;
+  element.download = filename;
+  element.target = '_blank';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+};
+
 /**
  * This function replaces the first occurrence of a numeric part in the input string
  * with the specified replacement numeric value.

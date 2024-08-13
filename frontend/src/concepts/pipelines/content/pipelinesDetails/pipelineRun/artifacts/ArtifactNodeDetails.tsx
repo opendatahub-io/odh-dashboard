@@ -33,7 +33,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
   upstreamTaskName,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const artifactName = getArtifactName(artifact.toObject());
+  const artifactName = getArtifactName(artifact);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   return (
@@ -88,7 +88,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
             <DescriptionListGroup>
               <DescriptionListTerm>{artifactName}</DescriptionListTerm>
               <DescriptionListDescription>
-                <ArtifactUriLink uri={artifact.getUri()} type={artifact.getType()} />
+                <ArtifactUriLink artifact={artifact} />
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>

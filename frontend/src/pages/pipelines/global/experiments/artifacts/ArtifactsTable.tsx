@@ -145,20 +145,20 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   );
 
   const rowRenderer = React.useCallback(
-    (artifact: Artifact.AsObject) => (
-      <Tr key={artifact.id}>
+    (artifact: Artifact) => (
+      <Tr key={artifact.getId()}>
         <Td dataLabel="Artifact">
-          <Link to={artifactsDetailsRoute(namespace, artifact.id)}>
+          <Link to={artifactsDetailsRoute(namespace, artifact.getId())}>
             {getArtifactName(artifact)}
           </Link>
         </Td>
-        <Td dataLabel="ID">{artifact.id}</Td>
-        <Td dataLabel="Type">{artifact.type}</Td>
+        <Td dataLabel="ID">{artifact.getId()}</Td>
+        <Td dataLabel="Type">{artifact.getType()}</Td>
         <Td dataLabel="URI">
-          <ArtifactUriLink uri={artifact.uri} type={artifact.type} />
+          <ArtifactUriLink artifact={artifact} />
         </Td>
         <Td dataLabel="Created">
-          <PipelinesTableRowTime date={new Date(artifact.createTimeSinceEpoch)} />
+          <PipelinesTableRowTime date={new Date(artifact.getCreateTimeSinceEpoch())} />
         </Td>
       </Tr>
     ),
@@ -168,7 +168,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   return (
     <TableBase
       loading={!isLoaded}
-      data={artifacts?.map((artifact) => artifact.toObject()) ?? []}
+      data={artifacts ?? []}
       columns={columns}
       enablePagination="compact"
       page={page}
