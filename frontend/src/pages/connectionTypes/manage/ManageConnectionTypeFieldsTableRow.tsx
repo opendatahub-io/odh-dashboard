@@ -86,7 +86,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
       <Td dataLabel={columns[4]}>
         <Switch
           aria-label="toggle field required"
-          isChecked={row.required}
+          isChecked={row.required || false}
           data-testid="field-required"
           onChange={() => onChange({ ...row, required: !row.required })}
         />
