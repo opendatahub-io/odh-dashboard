@@ -43,12 +43,6 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       ]
     : [
         {
-          title: 'Deploy',
-          isDisabled: true,
-          // TODO: Implement functionality for onClick. This will be added in another PR
-          onClick: () => undefined,
-        },
-        {
           title: 'Archive model',
           onClick: () => setIsArchiveModalOpen(true),
         },
