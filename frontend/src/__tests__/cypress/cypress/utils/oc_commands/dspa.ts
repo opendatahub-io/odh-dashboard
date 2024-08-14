@@ -1,5 +1,9 @@
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
-import type { DspaSecretReplacements, DspaReplacements } from '~/__tests__/cypress/cypress/types';
+import type {
+  DspaSecretReplacements,
+  DspaReplacements,
+  CommandLineResult,
+} from '~/__tests__/cypress/cypress/types';
 import { applyOpenShiftYaml } from './baseCommands';
 
 /**
@@ -17,12 +21,10 @@ import { applyOpenShiftYaml } from './baseCommands';
 export const createDSPASecret = (
   dspaSecretReplacements: DspaSecretReplacements,
   yamlFilePath = 'resources/yaml/dspa_secret.yaml',
-) => {
-  cy.fixture(yamlFilePath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> => {
+  return cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaSecretReplacements);
-    applyOpenShiftYaml(modifiedYamlContent).then((result) => {
-      return result;
-    });
+    return applyOpenShiftYaml(modifiedYamlContent);
   });
 };
 
@@ -40,8 +42,8 @@ export const createDSPASecret = (
 export const createDSPA = (
   dspaReplacements: DspaReplacements,
   yamlFilePath = 'resources/yaml/dspa.yaml',
-) => {
-  cy.fixture(yamlFilePath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> => {
+  return cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
     applyOpenShiftYaml(modifiedYamlContent).then((result) => {
       return result;

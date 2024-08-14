@@ -1,3 +1,5 @@
+import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+
 /**
  * Create an Openshift Project
  *
@@ -5,11 +7,15 @@
  * @param displayName Project Display Name
  * @returns Result Object of the operation
  */
-export const createOpenShiftProject = (projectName: string, displayName?: string) => {
+export const createOpenShiftProject = (
+  projectName: string,
+  displayName?: string,
+): Cypress.Chainable<CommandLineResult> => {
   const finalDisplayName = displayName || projectName;
   const ocCommand = finalDisplayName
     ? `oc new-project ${projectName} --display-name='${finalDisplayName}'`
     : `oc new-project ${projectName}`;
+
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
       cy.log(`ERROR provisioning ${projectName} Project
@@ -27,7 +33,11 @@ export const createOpenShiftProject = (projectName: string, displayName?: string
  * @param projectName OpenShift Project name
  * @returns Result Object of the operation
  */
-export const deleteOpenShiftProject = (projectName: string) => {
+export const deleteOpenShiftProject = (
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete project ${projectName}`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then(() => {});
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    return result;
+  });
 };

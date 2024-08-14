@@ -1,5 +1,4 @@
 import type { RouteMatcher } from 'cypress/types/net-stubbing';
-import type { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 export type Snapshot = {
   method: string;
@@ -58,6 +57,12 @@ export type DspaReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
+};
+
+export type CommandLineResult = {
+  code: number;
+  stdout: string;
+  stderr: string;
 };
 
 export type TestConfig = {
