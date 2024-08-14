@@ -1,14 +1,12 @@
 import React from 'react';
 import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { extractS3UriComponents } from '~/concepts/pipelines/content/artifacts/utils';
+import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 import { MarkdownAndTitle } from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
 import {
   getFullArtifactPathLabel,
   getFullArtifactPaths,
 } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
-import { fetchStorageObject, fetchStorageObjectSize } from '~/services/storageService';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 
 const useFetchMarkdownMaps = (
@@ -18,8 +16,9 @@ const useFetchMarkdownMaps = (
   runMap: Record<string, PipelineRunKFv2>;
   configsLoaded: boolean;
 } => {
-  const { namespace } = usePipelinesAPI();
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
+  const artifactStorage = useArtifactStorage();
+
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
   >({});
@@ -39,22 +38,25 @@ const useFetchMarkdownMaps = (
         .filter((path) => !!path.linkedArtifact.artifact.getUri())
         .map(async (path) => {
           const { run } = path;
-          const uriComponents = extractS3UriComponents(path.linkedArtifact.artifact.getUri());
-          if (!uriComponents) {
+          let sizeBytes: number | undefined;
+          let text: string | undefined;
+
+          if (artifactStorage.enabled) {
+            sizeBytes = await artifactStorage
+              .getStorageObjectSize(path.linkedArtifact.artifact)
+              .catch(() => undefined);
+            text = await artifactStorage
+              .getStorageObject(path.linkedArtifact.artifact)
+              .catch(() => undefined);
+          }
+
+          if (text === undefined) {
             return null;
           }
-          const sizeBytes = await fetchStorageObjectSize(namespace, uriComponents.path).catch(
-            () => undefined,
-          );
-          const text = await fetchStorageObject(namespace, uriComponents.path).catch(() => null);
-
-          if (text === null) {
-            return null;
-          }
-
           return { run, sizeBytes, text, path };
         }),
-    [fullArtifactPaths, namespace],
+
+    [artifactStorage, fullArtifactPaths],
   );
 
   React.useEffect(() => {

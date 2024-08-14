@@ -50,6 +50,8 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
+import type { ArtifactStorage } from '~/concepts/pipelines/types';
+import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -567,6 +569,14 @@ declare global {
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
+          options: {
+            query: { view: string };
+            path: { namespace: string; serviceName: string; artifactId: number };
+          },
+          response: OdhResponse<ArtifactStorage>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/storage/:namespace',
           options: {
             query: { key: string; peek?: number };
@@ -581,6 +591,24 @@ declare global {
             path: { namespace: string };
           },
           response: OdhResponse<number>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/connection-types',
+          response: ConnectionTypeConfigMap[],
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/connection-types/:name',
+          options: {
+            path: { name: string };
+          },
+          response: { success: boolean; error: string },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/connection-types/:name',
+          options: {
+            path: { name: string };
+          },
+          response: ConnectionTypeConfigMap,
         ) => Cypress.Chainable<null>);
     }
   }

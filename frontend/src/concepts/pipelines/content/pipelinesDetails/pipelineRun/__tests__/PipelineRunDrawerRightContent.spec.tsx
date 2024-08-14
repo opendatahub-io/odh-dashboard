@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Drawer } from '@patternfly/react-core';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-
+import { act } from 'react-dom/test-utils';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { Artifact } from '~/third_party/mlmd';
@@ -39,14 +39,46 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
+jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+  usePipelinesAPI: jest.fn(() => ({
+    pipelinesServer: {
+      initializing: false,
+      installed: true,
+      compatible: true,
+      timedOut: false,
+      name: 'dspa',
+    },
+    namespace: 'Test namespace',
+    project: {
+      metadata: {
+        name: 'Test namespace',
+      },
+      kind: 'Project',
+    },
+    apiAvailable: true,
+    api: {
+      getArtifact: jest.fn(() =>
+        // eslint-disable-next-line camelcase
+        Promise.resolve({ download_url: 'https://example.com/download-url' }),
+      ),
+    },
+  })),
+}));
+
 describe('PipelineRunDrawerRightContent', () => {
-  it('renders artifact drawer tabs when the task prop is of type "artifact"', () => {
-    render(
-      <BrowserRouter>
-        <Drawer isExpanded>
-          <PipelineRunDrawerRightContent task={artifactTask} executions={[]} onClose={jest.fn()} />
-        </Drawer>
-      </BrowserRouter>,
+  it('renders artifact drawer tabs when the task prop is of type "artifact"', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <Drawer isExpanded>
+            <PipelineRunDrawerRightContent
+              task={artifactTask}
+              executions={[]}
+              onClose={jest.fn()}
+            />
+          </Drawer>
+        </BrowserRouter>,
+      ),
     );
 
     const tabs = screen.getAllByRole('tab');
@@ -56,17 +88,19 @@ describe('PipelineRunDrawerRightContent', () => {
     expect(screen.getByRole('tab', { name: 'Visualization' })).toBeVisible();
   });
 
-  it('renders task drawer tabs when the task prop is of type "groupTask"', () => {
-    render(
-      <BrowserRouter>
-        <Drawer isExpanded>
-          <PipelineRunDrawerRightContent
-            task={{ ...task, type: 'groupTask' }}
-            executions={[]}
-            onClose={jest.fn()}
-          />
-        </Drawer>
-      </BrowserRouter>,
+  it('renders task drawer tabs when the task prop is of type "groupTask"', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <Drawer isExpanded>
+            <PipelineRunDrawerRightContent
+              task={{ ...task, type: 'groupTask' }}
+              executions={[]}
+              onClose={jest.fn()}
+            />
+          </Drawer>
+        </BrowserRouter>,
+      ),
     );
 
     const tabs = screen.getAllByRole('tab');
@@ -78,13 +112,15 @@ describe('PipelineRunDrawerRightContent', () => {
     expect(screen.getByRole('tab', { name: 'Logs' })).toBeVisible();
   });
 
-  it('renders task drawer tabs when the task prop is of type "task"', () => {
-    render(
-      <BrowserRouter>
-        <Drawer isExpanded>
-          <PipelineRunDrawerRightContent task={task} executions={[]} onClose={jest.fn()} />
-        </Drawer>
-      </BrowserRouter>,
+  it('renders task drawer tabs when the task prop is of type "task"', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <Drawer isExpanded>
+            <PipelineRunDrawerRightContent task={task} executions={[]} onClose={jest.fn()} />
+          </Drawer>
+        </BrowserRouter>,
+      ),
     );
 
     const tabs = screen.getAllByRole('tab');

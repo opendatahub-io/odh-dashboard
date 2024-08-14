@@ -16,10 +16,13 @@ import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
+  nameFieldLabel?: string;
   descriptionFieldId: string;
+  descriptionFieldLabel?: string;
   data: NameDescType;
   setData?: (data: NameDescType) => void;
   autoFocusName?: boolean;
+  K8sLabelName?: string;
   showK8sName?: boolean;
   disableK8sName?: boolean;
   maxLength?: number;
@@ -29,10 +32,13 @@ type NameDescriptionFieldProps = {
 
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   nameFieldId,
+  nameFieldLabel = 'Name',
   descriptionFieldId,
+  descriptionFieldLabel = 'Description',
   data,
   setData,
   autoFocusName,
+  K8sLabelName = 'Resource name',
   showK8sName,
   disableK8sName,
   maxLength,
@@ -58,7 +64,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Name" isRequired fieldId={nameFieldId}>
+        <FormGroup label={nameFieldLabel} isRequired fieldId={nameFieldId}>
           <TextInput
             aria-readonly={!setData}
             isRequired
@@ -90,7 +96,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
       {showK8sName && (
         <StackItem>
           <FormGroup
-            label="Resource name"
+            label={K8sLabelName}
             labelIcon={
               <Tooltip
                 position="right"
@@ -145,7 +151,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
         </StackItem>
       )}
       <StackItem>
-        <FormGroup label="Description" fieldId={descriptionFieldId}>
+        <FormGroup label={descriptionFieldLabel} fieldId={descriptionFieldId}>
           <TextArea
             aria-readonly={!setData}
             resizeOrientation="vertical"

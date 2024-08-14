@@ -15,6 +15,7 @@ import pipelineEmptyStateImg from '~/images/empty-state-pipelines.svg';
 import clusterStorageEmptyStateImg from '~/images/empty-state-cluster-storage.svg';
 import modelServerEmptyStateImg from '~/images/empty-state-model-serving.svg';
 import dataConnectionEmptyStateImg from '~/images/empty-state-data-connections.svg';
+import modelRegistryEmptyStateImg from '~/images/empty-state-model-registries.svg';
 
 import './vars.scss';
 
@@ -114,8 +115,9 @@ export const typedEmptyImage = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.clusterStorage:
       return clusterStorageEmptyStateImg;
     case ProjectObjectType.modelServer:
-    case ProjectObjectType.registeredModels:
       return modelServerEmptyStateImg;
+    case ProjectObjectType.registeredModels:
+      return modelRegistryEmptyStateImg;
     case ProjectObjectType.dataConnection:
       return dataConnectionEmptyStateImg;
     default:

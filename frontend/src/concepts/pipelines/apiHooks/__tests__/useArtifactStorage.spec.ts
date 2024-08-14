@@ -88,7 +88,7 @@ describe('useArtifactStorage', () => {
       const storageObject = await result.current.getStorageObject(artifact);
       const storageObjectSize = await result.current.getStorageObjectSize(artifact);
       const storageObjectUrl = await result.current.getStorageObjectUrl(artifact);
-      expect(storageObject).toBe('<html>hello world</html>');
+      expect(storageObject).toBe('http://rhoai.v1/namespace/45456');
       expect(storageObjectSize).toBe(60);
       expect(storageObjectUrl).toBe('http://rhoai.v1/namespace/45456');
     }

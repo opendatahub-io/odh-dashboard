@@ -66,7 +66,7 @@ class ModelRegistry {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Registered models');
+    cy.findByTestId('app-page-title').contains('Model registry');
     cy.testA11y();
   }
 
@@ -77,6 +77,10 @@ class ModelRegistry {
   shouldBeEmpty() {
     cy.findByTestId('empty-state-title').should('exist');
     return this;
+  }
+
+  findModelRegistryEmptyState() {
+    return cy.findByTestId('empty-model-registries-state');
   }
 
   shouldregisteredModelsEmpty() {
@@ -138,6 +142,10 @@ class ModelRegistry {
 
   findRegisteredModelTableHeaderButton(name: string) {
     return this.findTable().find('thead').findByRole('button', { name });
+  }
+
+  findModelRegistry() {
+    return cy.get('#model-registry-selector-dropdown');
   }
 
   findModelVersionsTableHeaderButton(name: string) {

@@ -267,6 +267,19 @@ export type TaskKF = {
 
 export type DAG = {
   tasks: Record<string, TaskKF>;
+  outputs?: {
+    artifacts?: Record<
+      string,
+      {
+        artifactSelectors?: [
+          {
+            outputArtifactKey: string;
+            producerSubtask: string;
+          },
+        ];
+      }
+    >;
+  };
   // TODO: determine if there are more properties
 };
 
@@ -334,6 +347,7 @@ export type PipelineSpec = {
   root: {
     dag: DAG;
     inputDefinitions?: InputOutputDefinition;
+    outputDefinitions?: InputOutputDefinition;
   };
   schemaVersion: string;
   sdkVersion: string;

@@ -16,6 +16,7 @@ import { MAX_STORAGE_OBJECT_SIZE } from '~/services/storageService';
 import { bytesAsRoundedGiB } from '~/utilities/number';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type MarkdownCompareProps = {
   configMap: Record<string, MarkdownAndTitle[]>;
@@ -37,7 +38,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
   isEmpty,
 }) => {
   const [expandedGraph, setExpandedGraph] = React.useState<MarkdownAndTitle | undefined>(undefined);
-
+  const isArtifactApiAvailable = useIsAreaAvailable(SupportedArea.ARTIFACT_API).status;
   if (!isLoaded) {
     return (
       <Bullseye>
@@ -66,7 +67,11 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
         </StackItem>
       )}
       <StackItem>
-        <MarkdownView markdown={config.config} />
+        {isArtifactApiAvailable ? (
+          <iframe data-testid="markdown-compare" src={config.config} title="markdown view" />
+        ) : (
+          <MarkdownView markdown={config.config} />
+        )}
       </StackItem>
     </Stack>
   );
