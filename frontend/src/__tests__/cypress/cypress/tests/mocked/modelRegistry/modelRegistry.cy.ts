@@ -12,17 +12,19 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockSelfSubjectRulesReview } from '~/__mocks__/mockSelfSubjectRulesReview';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
+import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
+import type { ServiceKind } from '~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
 type HandlersProps = {
   disableModelRegistryFeature?: boolean;
+  modelRegistries?: ServiceKind[];
   registeredModels?: RegisteredModel[];
   modelVersions?: ModelVersion[];
   allowed?: boolean;
@@ -30,6 +32,10 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableModelRegistryFeature = false,
+  modelRegistries = [
+    mockModelRegistryService({ name: 'modelregistry-sample' }),
+    mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+  ],
   registeredModels = [
     mockRegisteredModel({
       name: 'Fraud detection model',
@@ -76,13 +82,7 @@ const initIntercepts = ({
 
   cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview());
 
-  cy.interceptK8sList(
-    ServiceModel,
-    mockK8sResourceList([
-      mockModelRegistryService({ name: 'modelregistry-sample' }),
-      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
-    ]),
-  );
+  cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
 
   cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'modelregistry-sample' }));
 
@@ -139,6 +139,17 @@ describe('Model Registry core', () => {
     modelRegistry.landingPage();
 
     modelRegistry.tabEnabled();
+  });
+
+  it('Renders empty state with no model registries', () => {
+    initIntercepts({
+      disableModelRegistryFeature: false,
+      modelRegistries: [],
+    });
+
+    modelRegistry.visit();
+    modelRegistry.navigate();
+    modelRegistry.findModelRegistryEmptyState().should('exist');
   });
 
   it('No registered models in the selected Model Registry', () => {

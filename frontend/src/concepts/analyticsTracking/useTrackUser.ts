@@ -8,7 +8,6 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
   const { isAdmin } = useUser();
   const [anonymousId, setAnonymousId] = React.useState<string | undefined>(undefined);
 
-  const [loaded, setLoaded] = React.useState(false);
   const createReviewResource: AccessReviewResourceAttributes = {
     group: 'project.openshift.io',
     resource: 'projectrequests',
@@ -27,15 +26,12 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
       return aId;
     };
 
-    if (!anonymousId) {
-      computeAnonymousUserId().then((val) => {
-        setAnonymousId(val);
-      });
-    }
-    if (acLoaded && anonymousId) {
-      setLoaded(true);
-    }
-  }, [username, anonymousId, acLoaded]);
+    computeAnonymousUserId().then((val) => {
+      setAnonymousId(val);
+    });
+    // compute anonymousId only once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const props: IdentifyEventProperties = React.useMemo(
     () => ({
@@ -46,5 +42,5 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
     [isAdmin, allowCreate, anonymousId],
   );
 
-  return [props, loaded];
+  return [props, acLoaded && !!anonymousId];
 };

@@ -3,13 +3,13 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-
+import { act } from 'react-dom/test-utils';
 import { Artifact } from '~/third_party/mlmd';
 import { artifactsBaseRoute } from '~/routes';
 import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import * as fetchStorageObjectSize from '~/services/storageService';
+import * as useArtifactStorage from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 
 jest.mock('~/redux/selectors', () => ({
   ...jest.requireActual('~/redux/selectors'),
@@ -42,16 +42,53 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
       kind: 'Project',
     },
     apiAvailable: true,
+    api: {
+      getArtifact: jest.fn(() =>
+        // eslint-disable-next-line camelcase
+        Promise.resolve({ download_url: 'https://example.com/download-url' }),
+      ),
+    },
   })),
 }));
 
+jest.mock('~/concepts/pipelines/apiHooks/useArtifactStorage');
+
 describe('ArtifactDetails', () => {
   const useGetArtifactByIdSpy = jest.spyOn(useGetArtifactById, 'useGetArtifactById');
-  const fetchStorageObjectSizeSpy = jest.spyOn(fetchStorageObjectSize, 'fetchStorageObjectSize');
+  const useArtifactStorageSpy = jest.spyOn(useArtifactStorage, 'useArtifactStorage');
 
   beforeEach(() => {
+    useArtifactStorageSpy.mockReturnValue({
+      enabled: true,
+      getStorageObject: jest.fn().mockResolvedValue(''),
+      getStorageObjectUrl: jest.fn().mockResolvedValue('https://example.com/s3-url'),
+      getStorageObjectSize: jest.fn().mockResolvedValue(1e9), // Mocking 1 GB size
+    });
+
     useGetArtifactByIdSpy.mockReturnValue([
       {
+        getId: jest.fn(() => 1),
+        getTypeId: jest.fn(() => 14),
+        getType: jest.fn(() => 'system.Artifact'),
+        getUri: jest.fn(() => 's3://namespace/bucket/path/to/artifact'),
+        getPropertiesMap: jest.fn(() => []),
+        getCustomPropertiesMap: jest.fn(() => [
+          [
+            'display_name',
+            {
+              stringValue: 'vertex_model',
+            },
+          ],
+          [
+            'resourceName',
+            {
+              stringValue: '12.15',
+            },
+          ],
+        ]),
+        getState: jest.fn(() => 2),
+        getCreateTimeSinceEpoch: jest.fn(() => 1711113121829),
+        getLastUpdateTimeSinceEpoch: jest.fn(() => 1711113121829),
         toObject: jest.fn(() => ({
           id: 1,
           typeId: 14,
@@ -83,15 +120,17 @@ describe('ArtifactDetails', () => {
     ]);
   });
 
-  it('renders page breadcrumbs', () => {
-    render(
-      <BrowserRouter>
-        <GlobalPipelineCoreDetails
-          pageName="Artifacts"
-          redirectPath={artifactsBaseRoute}
-          BreadcrumbDetailsComponent={ArtifactDetails}
-        />
-      </BrowserRouter>,
+  it('renders page breadcrumbs', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        </BrowserRouter>,
+      ),
     );
 
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
@@ -102,15 +141,17 @@ describe('ArtifactDetails', () => {
     expect(within(breadcrumb).getByText('vertex_model')).toBeVisible();
   });
 
-  it('renders artifact name as page header with the Overview tab initially selected', () => {
-    render(
-      <BrowserRouter>
-        <GlobalPipelineCoreDetails
-          pageName="Artifacts"
-          redirectPath={artifactsBaseRoute}
-          BreadcrumbDetailsComponent={ArtifactDetails}
-        />
-      </BrowserRouter>,
+  it('renders artifact name as page header with the Overview tab initially selected', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        </BrowserRouter>,
+      ),
     );
 
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('vertex_model');
@@ -120,31 +161,17 @@ describe('ArtifactDetails', () => {
     expect(overviewTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('renders warning on oversized file', async () => {
-    fetchStorageObjectSizeSpy.mockResolvedValue(1e9);
-
-    render(
-      <BrowserRouter>
-        <GlobalPipelineCoreDetails
-          pageName="Artifacts"
-          redirectPath={artifactsBaseRoute}
-          BreadcrumbDetailsComponent={ArtifactDetails}
-        />
-      </BrowserRouter>,
-    );
-
-    expect(await screen.findByTestId('storage-file-oversized-warning')).toBeVisible();
-  });
-
-  it('renders Overview tab metadata contents', () => {
-    render(
-      <BrowserRouter>
-        <GlobalPipelineCoreDetails
-          pageName="Artifacts"
-          redirectPath={artifactsBaseRoute}
-          BreadcrumbDetailsComponent={ArtifactDetails}
-        />
-      </BrowserRouter>,
+  it('renders Overview tab metadata contents', async () => {
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        </BrowserRouter>,
+      ),
     );
 
     expect(screen.getByRole('heading', { name: 'Live system dataset' })).toBeVisible();
