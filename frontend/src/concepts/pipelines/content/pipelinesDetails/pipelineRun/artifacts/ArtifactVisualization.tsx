@@ -187,7 +187,11 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
           </StackItem>
           <StackItem>
             {isArtifactApiAvailable ? (
-              <iframe src={downloadedArtifact} title="Artifact details" />
+              <iframe
+                src={downloadedArtifact}
+                data-testid="artifact-visualization"
+                title="Artifact details"
+              />
             ) : (
               <MarkdownView markdown={downloadedArtifact} />
             )}
