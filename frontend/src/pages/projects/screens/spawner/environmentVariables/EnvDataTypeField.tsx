@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import IndentSection from '~/pages/projects/components/IndentSection';
+import { getDashboardMainContainer } from '~/utilities/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 
 type EnvDataTypeFieldProps = {
   options: { [value: string]: { label: string; render: React.ReactNode } };
@@ -9,38 +10,27 @@ type EnvDataTypeFieldProps = {
   onSelection: (value: string) => void;
 };
 
-const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelection, selection }) => {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <Stack hasGutter>
-      <StackItem data-testid="env-data-type-field">
-        <Select
-          isOpen={open}
-          onToggle={() => setOpen(!open)}
-          selections={selection}
-          placeholderText="Select one"
-          onSelect={(e, value) => {
-            if (typeof value === 'string') {
-              onSelection(value);
-              setOpen(false);
-            }
-          }}
-        >
-          {Object.keys(options).map((option) => (
-            <SelectOption key={option} value={option}>
-              {options[option].label}
-            </SelectOption>
-          ))}
-        </Select>
+const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelection, selection }) => (
+  <Stack hasGutter>
+    <StackItem data-testid="env-data-type-field">
+      <SimpleSelect
+        popperProps={{ appendTo: getDashboardMainContainer() }}
+        isFullWidth
+        toggleLabel={selection ? options[selection].label : 'Select one'}
+        value={selection}
+        options={Object.keys(options).map((option) => ({
+          key: option,
+          label: options[option].label,
+        }))}
+        onChange={onSelection}
+      />
+    </StackItem>
+    {selection && (
+      <StackItem>
+        <IndentSection>{options[selection].render}</IndentSection>
       </StackItem>
-      {selection && (
-        <StackItem>
-          <IndentSection>{options[selection].render}</IndentSection>
-        </StackItem>
-      )}
-    </Stack>
-  );
-};
+    )}
+  </Stack>
+);
 
 export default EnvDataTypeField;

@@ -5,10 +5,6 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  MenuToggle,
-  Select,
-  SelectList,
-  SelectOption,
 } from '@patternfly/react-core';
 import { ImageVersionSelectDataType } from '~/pages/projects/screens/spawner/types';
 import {
@@ -22,6 +18,7 @@ import {
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagType } from '~/k8sTypes';
 import { isElyraVersionOutOfDate } from '~/concepts/pipelines/elyra/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
@@ -35,8 +32,6 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   setSelectedImageVersion,
   data,
 }) => {
-  const [versionSelectionOpen, setVersionSelectionOpen] = React.useState(false);
-
   const { imageStream, buildStatuses, imageVersions } = data;
 
   if (!imageStream || getAvailableVersionsForImageStream(imageStream, buildStatuses).length <= 1) {
@@ -52,18 +47,17 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     // Cannot wrap the SelectOption with Tooltip because Select component requires SelectOption as the children
     // Can only wrap the SelectOption children with Tooltip
     // But in this way, you will only see the tooltip when you hover the option main text (excluding description), not the whole button
-    return (
-      <SelectOption
-        key={`${imageStream.metadata.name}-${imageVersion.name}`}
-        value={optionObject}
-        description={getImageVersionSoftwareString(imageVersion)}
-        isDisabled={!checkTagBuildValid(buildStatuses, imageStream, imageVersion)}
-      >
+    return {
+      key: `${imageStream.metadata.name}-${imageVersion.name}`,
+      label: `${imageStream.metadata.name}-${imageVersion.name}`,
+      dropdownLabel: (
         <ImageVersionTooltip dependencies={getImageVersionDependencies(imageVersion, false)}>
           {optionObject.toString()}
         </ImageVersionTooltip>
-      </SelectOption>
-    );
+      ),
+      description: getImageVersionSoftwareString(imageVersion),
+      isDisabled: !checkTagBuildValid(buildStatuses, imageStream, imageVersion),
+    };
   });
 
   const isSelectedImageVersionOutOfDate =
@@ -71,33 +65,27 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
 
   return (
     <FormGroup isRequired label="Version selection" fieldId="workbench-image-version-selection">
-      <Select
-        id="workbench-image-version-selection"
-        toggle={(toggleRef) => (
-          <MenuToggle
-            isFullWidth
-            ref={toggleRef}
-            onClick={() => setVersionSelectionOpen(!versionSelectionOpen)}
-            isExpanded={versionSelectionOpen}
-          >
-            {selectedImageVersion?.name ?? 'Select one'}
-          </MenuToggle>
-        )}
-        onSelect={(e, selection) => {
+      <SimpleSelect
+        options={options}
+        onChange={(selection) => {
+          const selectedObject = selectOptionObjects.find(
+            (o) => selection === `${imageStream.metadata.name}-${o.imageVersion.name}`,
+          );
           // We know selection here is ImageVersionSelectOptionObjectType
-          if (isImageVersionSelectOptionObject(selection)) {
-            setSelectedImageVersion(selection.imageVersion);
-            setVersionSelectionOpen(false);
+          if (selectedObject && isImageVersionSelectOptionObject(selectedObject)) {
+            setSelectedImageVersion(selectedObject.imageVersion);
           }
         }}
+        id="workbench-image-version-selection"
+        isFullWidth
+        value={
+          selectedImageVersion
+            ? `${imageStream.metadata.name}-${selectedImageVersion.name}`
+            : undefined
+        }
+        toggleLabel={selectedImageVersion?.name ?? 'Select one'}
         aria-label="Image version select"
-        isOpen={versionSelectionOpen}
-        selected={selectedImageVersion}
-        onOpenChange={(isOpen) => setVersionSelectionOpen(isOpen)}
-        shouldFocusToggleOnSelect
-      >
-        <SelectList>{options}</SelectList>
-      </Select>
+      />
       <FormHelperText>
         {isSelectedImageVersionOutOfDate && (
           <Alert

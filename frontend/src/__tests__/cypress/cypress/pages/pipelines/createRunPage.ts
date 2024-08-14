@@ -72,11 +72,11 @@ export class CreateRunPage {
   }
 
   findScheduledRunTypeSelectorPeriodic(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('menuitem', { name: 'Periodic' });
+    return this.find().findByRole('option', { name: 'Periodic' });
   }
 
   findScheduledRunTypeSelectorCron(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('menuitem', { name: 'Cron' });
+    return this.find().findByRole('option', { name: 'Cron' });
   }
 
   findScheduledRunRunEvery(): Cypress.Chainable<JQuery<HTMLElement>> {

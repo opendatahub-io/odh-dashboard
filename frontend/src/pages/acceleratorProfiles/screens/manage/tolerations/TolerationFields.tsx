@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { effectDropdownOptions, operatorDropdownOptions } from './const';
@@ -36,7 +36,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
   return (
     <>
       <FormGroup label="Operator" fieldId="operator-select">
-        <SimpleDropdownSelect
+        <SimpleSelect
           isFullWidth
           options={operatorDropdownOptions}
           value={toleration.operator || ''}
@@ -46,7 +46,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
       </FormGroup>
 
       <FormGroup label="Effect" fieldId="effect-select">
-        <SimpleDropdownSelect
+        <SimpleSelect
           isFullWidth
           options={effectDropdownOptions}
           value={toleration.effect || ''}

@@ -218,9 +218,8 @@ export const checkConfigurationFieldsValid = (
   checkThresholdValid(metricType, configurations.thresholdDelta) &&
   checkBatchSizeValid(configurations.batchSize);
 
-export const isMetricType = (
-  metricType: string | SelectOptionObject,
-): metricType is BiasMetricType => isEnumMember(metricType.toString(), BiasMetricType);
+export const isMetricType = (metricType: string | null): metricType is BiasMetricType =>
+  isEnumMember(metricType, BiasMetricType);
 
 export const byId =
   <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>

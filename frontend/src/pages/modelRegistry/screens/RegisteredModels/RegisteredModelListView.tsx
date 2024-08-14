@@ -4,7 +4,7 @@ import { FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -68,7 +68,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
         deleteChipGroup={() => setSearch('')}
         categoryName="Keyword"
       >
-        <SimpleDropdownSelect
+        <SimpleSelect
           options={searchTypes.map((key) => ({
             key,
             label: key,
