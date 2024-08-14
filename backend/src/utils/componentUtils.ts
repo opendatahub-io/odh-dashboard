@@ -203,6 +203,12 @@ const getCSVForApp = (
         return csv;
       }
       return undefined;
+    })
+    .catch((e) => {
+      if (e?.statusCode === 404) {
+        fastify.log.error(e);
+      }
+      return undefined;
     });
 };
 
