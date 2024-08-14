@@ -17,7 +17,7 @@ import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import SimpleSelect from '~/components/SimpleSelect';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -82,7 +82,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                 deleteChipGroup={() => setSearch('')}
                 categoryName={searchType}
               >
-                <SimpleDropdownSelect
+                <SimpleSelect
                   dataTestId="model-versions-table-filter"
                   options={searchTypes.map((key) => ({
                     key,

@@ -588,7 +588,7 @@ describe('Pipeline create runs', () => {
     it('creates a schedule with trigger type cron without whitespace', () => {
       // Fill out the form with a schedule and submit
       createScheduleRunCommonTest();
-      createSchedulePage.findScheduledRunTypeSelector().findDropdownItem('Cron').click();
+      createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m');
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
@@ -623,7 +623,7 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule with trigger type cron with whitespace', () => {
       createScheduleRunCommonTest();
-      createSchedulePage.findScheduledRunTypeSelector().findDropdownItem('Cron').click();
+      createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m ');
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)

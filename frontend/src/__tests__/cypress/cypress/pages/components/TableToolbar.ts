@@ -6,7 +6,7 @@ export class TableToolbar extends Contextual<HTMLElement> {
   }
 
   findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+    return this.findToggleButton(id).parents().findByRole('option', { name });
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {

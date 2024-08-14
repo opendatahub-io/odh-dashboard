@@ -159,7 +159,7 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableSearch().focused().clear();
 
     // filtering by owner
-    modelRegistry.findModelVersionsTableFilter().findDropdownItem('Owner').click();
+    modelRegistry.findModelVersionsTableFilter().findSelectOption('Owner').click();
     modelRegistry.findModelVersionsTableSearch().type('Test author');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('Test author');

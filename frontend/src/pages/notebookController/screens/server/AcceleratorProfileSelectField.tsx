@@ -16,7 +16,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorProfileKind } from '~/k8sTypes';
-import SimpleDropdownSelect, { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import useDetectedAccelerators from './useDetectedAccelerators';
@@ -76,7 +76,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
 
   const enabledAcceleratorProfiles = acceleratorProfiles.filter((ac) => ac.spec.enabled);
 
-  const formatOption = (cr: AcceleratorProfileKind): SimpleDropdownOption => {
+  const formatOption = (cr: AcceleratorProfileKind): SimpleSelectOption => {
     const displayName = `${cr.spec.displayName}${!cr.spec.enabled ? ' (disabled)' : ''}`;
 
     return {
@@ -97,7 +97,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     };
   };
 
-  const options: SimpleDropdownOption[] = enabledAcceleratorProfiles
+  const options: SimpleSelectOption[] = enabledAcceleratorProfiles
     .toSorted((a, b) => {
       const aSupported = isAcceleratorProfileSupported(a);
       const bSupported = isAcceleratorProfileSupported(b);
@@ -168,7 +168,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             ) : undefined
           }
         >
-          <SimpleDropdownSelect
+          <SimpleSelect
             isFullWidth
             options={options}
             value={useExisting ? 'use-existing' : acceleratorProfile?.metadata.name ?? ''}

@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Button, Flex } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
 import { EnvVarCategoryType, EnvVarType, VariableRow } from '~/types';
+import { getDashboardMainContainer } from '~/utilities/utils';
+import SimpleSelect from '~/components/SimpleSelect';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {
@@ -19,15 +20,6 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
   categories,
   onUpdate,
 }) => {
-  const [typeDropdownOpen, setTypeDropdownOpen] = React.useState(false);
-  const categoryOptions = categories.map((category) => (
-    <SelectOption value={category.name} key={category.name} />
-  ));
-  const selectOptions = [
-    <SelectOption value={CUSTOM_VARIABLE} key={CUSTOM_VARIABLE} />,
-    ...categoryOptions,
-  ];
-
   const removeVariables = () => {
     onUpdate();
   };
@@ -71,23 +63,22 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
     };
 
     onUpdate(updatedRow);
-    setTypeDropdownOpen(false);
   };
 
   return (
     <div className="odh-notebook-controller__env-var-row">
       <Flex>
-        <Select
-          isOpen={typeDropdownOpen}
-          onToggle={() => setTypeDropdownOpen(!typeDropdownOpen)}
+        <SimpleSelect
+          toggleProps={{ style: { width: '70%' } }}
+          toggleLabel={variableRow.variableType}
           aria-labelledby="container-size"
-          selections={variableRow.variableType}
-          onSelect={(e, selection) => {
-            updateVariableType(selection.toString());
-          }}
-        >
-          {selectOptions}
-        </Select>
+          options={[
+            { key: CUSTOM_VARIABLE, label: CUSTOM_VARIABLE },
+            ...categories.map((category) => ({ key: category.name, label: category.name })),
+          ]}
+          popperProps={{ appendTo: getDashboardMainContainer() }}
+          onChange={updateVariableType}
+        />
         <Button
           aria-label="Remove environment variable"
           data-id="remove-env-var-button"
