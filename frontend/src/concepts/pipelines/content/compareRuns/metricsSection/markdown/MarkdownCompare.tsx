@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Alert,
   Bullseye,
   Divider,
   Flex,
@@ -11,12 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
 import { PipelineRunArtifactSelect } from '~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
-import MarkdownView from '~/components/MarkdownView';
-import { MAX_STORAGE_OBJECT_SIZE } from '~/services/storageService';
-import { bytesAsRoundedGiB } from '~/utilities/number';
 import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type MarkdownCompareProps = {
   configMap: Record<string, MarkdownAndTitle[]>;
@@ -38,7 +33,6 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
   isEmpty,
 }) => {
   const [expandedGraph, setExpandedGraph] = React.useState<MarkdownAndTitle | undefined>(undefined);
-  const isArtifactApiAvailable = useIsAreaAvailable(SupportedArea.ARTIFACT_API).status;
   if (!isLoaded) {
     return (
       <Bullseye>
@@ -57,21 +51,8 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
 
   const renderMarkdownWithSize = (config: MarkdownAndTitle) => (
     <Stack hasGutter>
-      {config.fileSize && config.fileSize > MAX_STORAGE_OBJECT_SIZE && (
-        <StackItem data-testid="markdown-oversized-warning">
-          <Alert isInline variant="warning" title="Oversized file">
-            {`This file is ${bytesAsRoundedGiB(
-              config.fileSize,
-            )} GiB in size but we do not fetch files over 100MB. To view the full file, please download it from your S3 bucket.`}
-          </Alert>
-        </StackItem>
-      )}
       <StackItem>
-        {isArtifactApiAvailable ? (
-          <iframe data-testid="markdown-compare" src={config.config} title="markdown view" />
-        ) : (
-          <MarkdownView markdown={config.config} />
-        )}
+        <iframe data-testid="markdown-compare" src={config.config} title="markdown view" />
       </StackItem>
     </Stack>
   );

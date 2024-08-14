@@ -11,12 +11,11 @@ import {
 } from '~/__mocks__/mlmd/mockGetArtifacts';
 import {
   buildMockPipelineV2,
-  mockDashboardConfig,
   mockMetricsVisualizationRun,
   mockMetricsVisualizationVersion,
 } from '~/__mocks__';
-import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
 import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
 import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 import { initMlmdIntercepts } from './mlmdUtils';
 
@@ -49,7 +48,7 @@ describe('Artifacts', () => {
       const scalarMetricsRow = artifactsTable.getRowByName('scalar metrics');
       scalarMetricsRow.findId().should('have.text', '1');
       scalarMetricsRow.findType().should('have.text', 'system.Metrics');
-      scalarMetricsRow.findUri().should('have.text', 's3://scalar-metrics-uri');
+      scalarMetricsRow.findUri().should('have.text', 's3://scalar-metrics-uri-scalar-metrics-uri');
       scalarMetricsRow.findCreated().should('have.text', '23 Jan 2021');
 
       const datasetRow = artifactsTable.getRowByName('dataset');
@@ -159,7 +158,7 @@ describe('Artifacts', () => {
       artifactDetails
         .findDatasetItemByLabel('URI')
         .next()
-        .should('include.text', 's3://scalar-metrics-uri');
+        .should('include.text', 's3://scalar-metrics-uri-scalar-metrics-uri');
       artifactDetails.findCustomPropItemByLabel('accuracy').next().should('have.text', '92');
       artifactDetails
         .findCustomPropItemByLabel('display_name')
@@ -169,27 +168,7 @@ describe('Artifacts', () => {
   });
 
   describe('artifact in pipeline run details page', () => {
-    it('only url text when both artifactsAPI and s3Endpoint are disabled', () => {
-      initPipelineTopologyIntercepts({ disableArtifactsAPI: true, disableS3Endpoint: true });
-      pipelineRunDetails.visit(
-        projectName,
-        mockPipeline.pipeline_id,
-        mockMetricsVisualizationVersion.pipeline_version_id,
-        mockMetricsVisualizationRun.run_id,
-      );
-
-      pipelineRunDetails.findTaskNode('markdown-visualization').click();
-
-      pipelineRunDetails
-        .findArtifactItems('markdown_artifact')
-        .should(
-          'contain.text',
-          's3://aballant-pipelines/metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
-        );
-    });
-
-    it('url is clickable when artifact api is enabled', () => {
-      initPipelineTopologyIntercepts({ disableArtifactsAPI: false, disableS3Endpoint: false });
+    it('url is clickable', () => {
       pipelineRunDetails.visit(
         projectName,
         mockPipeline.pipeline_id,
@@ -215,12 +194,11 @@ describe('Artifacts', () => {
   });
   describe('Pipeline run visualization tab', () => {
     beforeEach(() => {
-      initPipelineTopologyIntercepts({});
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
         {
           query: { view: 'DOWNLOAD' },
-          path: { namespace: projectName, serviceName: 'dspa', artifactId: 18 },
+          path: { namespace: projectName, serviceName: 'dspa', artifactId: '18' },
         },
         mockArtifactStorage({ namespace: projectName, artifactId: '18' }),
       );
@@ -247,22 +225,11 @@ describe('Artifacts', () => {
   });
 });
 
-type InitPipelineTopologyInterceptsType = {
-  disableArtifactsAPI?: boolean;
-  disableS3Endpoint?: boolean;
-};
-
-const initPipelineTopologyIntercepts = ({
-  disableArtifactsAPI = false,
-  disableS3Endpoint = false,
-}: InitPipelineTopologyInterceptsType) => {
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableArtifactsAPI,
-      disableS3Endpoint,
-    }),
-  );
+export const initIntercepts = (): void => {
+  configIntercept();
+  dspaIntercepts(projectName);
+  projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);
+  initMlmdIntercepts(projectName);
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
     {
@@ -293,7 +260,6 @@ const initPipelineTopologyIntercepts = ({
     },
     mockMetricsVisualizationRun,
   );
-  initMlmdIntercepts(projectName);
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
     {
@@ -301,7 +267,7 @@ const initPipelineTopologyIntercepts = ({
       path: {
         namespace: projectName,
         serviceName: 'dspa',
-        artifactId: 16,
+        artifactId: '16',
       },
     },
     mockArtifactStorage({
@@ -316,10 +282,4 @@ const initPipelineTopologyIntercepts = ({
       artifact_size: '5098',
     }),
   );
-};
-
-export const initIntercepts = (): void => {
-  configIntercept();
-  dspaIntercepts(projectName);
-  projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);
 };

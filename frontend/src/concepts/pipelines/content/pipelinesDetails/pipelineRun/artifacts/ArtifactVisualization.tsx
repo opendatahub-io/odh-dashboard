@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  Alert,
   Bullseye,
   EmptyState,
   EmptyStateBody,
@@ -26,12 +25,7 @@ import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
 import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
 import { isConfusionMatrix } from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
-import { MAX_STORAGE_OBJECT_SIZE } from '~/services/storageService';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { extractS3UriComponents } from '~/concepts/pipelines/content/artifacts/utils';
-import MarkdownView from '~/components/MarkdownView';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { bytesAsRoundedGiB } from '~/utilities/number';
 import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 import { getArtifactProperties } from './utils';
 
@@ -40,43 +34,28 @@ interface ArtifactVisualizationProps {
 }
 
 export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ artifact }) => {
-  const [downloadedArtifact, setDownloadedArtifact] = React.useState<string | null>(null);
-  const [downloadedArtifactSize, setDownloadedArtifactSize] = React.useState<number | null>(null);
+  const [downloadedArtifactUrl, setDownloadedArtifactUrl] = React.useState<string | undefined>();
   const [loading, setLoading] = React.useState<boolean>(false);
   const { namespace } = usePipelinesAPI();
-  const isArtifactApiAvailable = useIsAreaAvailable(SupportedArea.ARTIFACT_API).status;
-  const artifactStorage = useArtifactStorage();
+  const { getStorageObjectUrl } = useArtifactStorage();
   const artifactType = artifact.getType();
 
   React.useEffect(() => {
-    if (!artifactStorage.enabled) {
-      return;
-    }
-
     if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
       const uri = artifact.getUri();
       if (uri) {
-        const uriComponents = extractS3UriComponents(uri);
-        if (uriComponents) {
-          const downloadArtifact = async (currentArtifact: Artifact) => {
-            await artifactStorage
-              .getStorageObjectSize(currentArtifact)
-              .then((size) => setDownloadedArtifactSize(size))
-              .catch(() => null);
-            await artifactStorage
-              .getStorageObject(artifact)
-              .then((text) => setDownloadedArtifact(text))
-              .catch(() => null);
-            setLoading(false);
-          };
-          setLoading(true);
-          setDownloadedArtifact(null);
-          setDownloadedArtifactSize(null);
-          downloadArtifact(artifact);
-        }
+        const downloadArtifact = async () => {
+          await getStorageObjectUrl(artifact)
+            .then((url) => setDownloadedArtifactUrl(url))
+            .catch(() => null);
+          setLoading(false);
+        };
+        setLoading(true);
+        setDownloadedArtifactUrl(undefined);
+        downloadArtifact();
       }
     }
-  }, [artifact, artifactStorage, artifactType, namespace]);
+  }, [artifact, getStorageObjectUrl, artifactType, namespace]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');
@@ -170,31 +149,18 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
         </Bullseye>
       );
     }
-    if (downloadedArtifact) {
+    if (downloadedArtifactUrl) {
       return (
         <Stack className="pf-v5-u-pt-lg pf-v5-u-pb-lg" hasGutter>
-          {downloadedArtifactSize && downloadedArtifactSize > MAX_STORAGE_OBJECT_SIZE && (
-            <StackItem>
-              <Alert isInline variant="warning" title="Oversized file">
-                {`This file is ${bytesAsRoundedGiB(
-                  downloadedArtifactSize,
-                )} GB in size but we do not fetch files over 100MB. To view the full file, please download it from your S3 bucket.`}
-              </Alert>
-            </StackItem>
-          )}
           <StackItem>
             <Title headingLevel="h3">Artifact details</Title>
           </StackItem>
           <StackItem>
-            {isArtifactApiAvailable ? (
-              <iframe
-                src={downloadedArtifact}
-                data-testid="artifact-visualization"
-                title="Artifact details"
-              />
-            ) : (
-              <MarkdownView markdown={downloadedArtifact} />
-            )}
+            <iframe
+              src={downloadedArtifactUrl}
+              data-testid="artifact-visualization"
+              title="Artifact details"
+            />
           </StackItem>
         </Stack>
       );

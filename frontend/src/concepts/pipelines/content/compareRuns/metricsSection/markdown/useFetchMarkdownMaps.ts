@@ -17,7 +17,7 @@ const useFetchMarkdownMaps = (
   configsLoaded: boolean;
 } => {
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
-  const artifactStorage = useArtifactStorage();
+  const { getStorageObjectUrl } = useArtifactStorage();
 
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
@@ -39,24 +39,18 @@ const useFetchMarkdownMaps = (
         .map(async (path) => {
           const { run } = path;
           let sizeBytes: number | undefined;
-          let text: string | undefined;
 
-          if (artifactStorage.enabled) {
-            sizeBytes = await artifactStorage
-              .getStorageObjectSize(path.linkedArtifact.artifact)
-              .catch(() => undefined);
-            text = await artifactStorage
-              .getStorageObject(path.linkedArtifact.artifact)
-              .catch(() => undefined);
-          }
+          const url = await getStorageObjectUrl(path.linkedArtifact.artifact).catch(
+            () => undefined,
+          );
 
-          if (text === undefined) {
+          if (url === undefined) {
             return null;
           }
-          return { run, sizeBytes, text, path };
+          return { run, sizeBytes, url, path };
         }),
 
-    [artifactStorage, fullArtifactPaths],
+    [fullArtifactPaths, getStorageObjectUrl],
   );
 
   React.useEffect(() => {
@@ -67,12 +61,12 @@ const useFetchMarkdownMaps = (
     allSettledPromises(fetchStorageObjectPromises).then(([successes]) => {
       successes.forEach((result) => {
         if (result.value) {
-          const { text, sizeBytes, run, path } = result.value;
+          const { url, sizeBytes, run, path } = result.value;
           setRunMapBuilder((runMap) => ({ ...runMap, [run.run_id]: run }));
 
           const config = {
             title: getFullArtifactPathLabel(path),
-            config: text,
+            config: url,
             fileSize: sizeBytes,
           };
 

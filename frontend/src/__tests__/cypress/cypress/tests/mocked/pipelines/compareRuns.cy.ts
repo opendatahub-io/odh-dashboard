@@ -211,30 +211,9 @@ describe('Compare runs', () => {
   });
 
   describe('Metrics', () => {
-    describe('Metrics when s3endpoint feature flag is available and artifactapi is unavailable', () => {
+    describe('Metrics', () => {
       beforeEach(() => {
         initIntercepts({});
-
-        cy.interceptOdh(
-          'GET /api/storage/:namespace/size',
-          {
-            query: {
-              key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
-            },
-            path: { namespace: projectName },
-          },
-          { body: 61 },
-        );
-        cy.interceptOdh(
-          'GET /api/storage/:namespace',
-          {
-            query: {
-              key: 'metrics-visualization-pipeline/16dbff18-a3d5-4684-90ac-4e6198a9da0f/markdown-visualization/markdown_artifact',
-            },
-            path: { namespace: projectName },
-          },
-          '<html>helloWorld</html>',
-        );
         compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
           mockRun.run_id,
           mockRun2.run_id,
@@ -338,20 +317,6 @@ describe('Compare runs', () => {
           .should('exist');
       });
 
-      it('display markdown based on selections from Run list', () => {
-        compareRunsMetricsContent.findMarkdownTab().click();
-        let markDown = compareRunsMetricsContent
-          .findMarkdownTabContent()
-          .findMarkdownSelect(mockRun.run_id);
-        markDown.findArtifactContent().should('have.text', 'helloWorld');
-        markDown = compareRunsMetricsContent
-          .findMarkdownTabContent()
-          .findMarkdownSelect(mockRun2.run_id);
-        markDown.findArtifactContent().should('have.text', 'helloWorld');
-        markDown.findExpandButton().click();
-        compareRunsMetricsContent.findMarkdownTabContent().findExpandedMarkdown().should('exist');
-      });
-
       it('displays ROC curve empty state when no artifacts are found', () => {
         compareRunsMetricsContent.findRocCurveTab().click();
         const content = compareRunsMetricsContent.findRocCurveTabContent();
@@ -359,9 +324,9 @@ describe('Compare runs', () => {
         content.findRocCurveTableEmptyState().should('exist');
       });
     });
-    describe('Metrics when artifactApi feature flag is available', () => {
+    describe('Metrics', () => {
       beforeEach(() => {
-        initIntercepts({ disableArtifactAPI: false });
+        initIntercepts({});
         compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
           mockRun.run_id,
           mockRun2.run_id,
@@ -371,7 +336,7 @@ describe('Compare runs', () => {
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
           {
             query: { view: 'DOWNLOAD' },
-            path: { namespace: projectName, serviceName: 'dspa', artifactId: 16 },
+            path: { namespace: projectName, serviceName: 'dspa', artifactId: '16' },
           },
           mockArtifactStorage({ namespace: projectName }),
         );
@@ -451,16 +416,13 @@ describe('Compare runs', () => {
 
 type InterceptsType = {
   noMetrics?: boolean;
-  disableArtifactAPI?: boolean;
 };
 
-const initIntercepts = ({ noMetrics, disableArtifactAPI = true }: InterceptsType) => {
+const initIntercepts = ({ noMetrics }: InterceptsType) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disablePipelineExperiments: false,
-      disableS3Endpoint: false,
-      disableArtifactsAPI: disableArtifactAPI,
     }),
   );
   cy.interceptK8sList(
