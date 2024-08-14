@@ -86,7 +86,7 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
       'opendatahub.io/enabled'?: 'true' | 'false';
       'opendatahub.io/username'?: string;
     };
-    labels?: DashboardLabels & {
+    labels: DashboardLabels & {
       'opendatahub.io/connection-type': 'true';
     };
   };

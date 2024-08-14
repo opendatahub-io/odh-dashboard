@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Label, Switch, Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
@@ -19,9 +20,12 @@ type ConnectionTypesTableRowProps = {
 };
 
 const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({ obj, onUpdate }) => {
+  const navigate = useNavigate();
   const notification = useNotification();
   const [isUpdating, setIsUpdating] = React.useState(false);
-  const [isEnabled, setIsEnabled] = React.useState(false);
+  const [isEnabled, setIsEnabled] = React.useState(
+    () => obj.metadata.annotations?.['opendatahub.io/enabled'] === 'true',
+  );
   const createdDate = obj.metadata.creationTimestamp
     ? new Date(obj.metadata.creationTimestamp)
     : undefined;
@@ -94,11 +98,11 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({ obj, 
           items={[
             {
               title: 'Edit',
-              isAriaDisabled: true,
+              onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
             },
             {
               title: 'Duplicate',
-              isAriaDisabled: true,
+              onClick: () => navigate(`/connectionTypes/duplicate/${obj.metadata.name}`),
             },
             {
               title: 'Delete',

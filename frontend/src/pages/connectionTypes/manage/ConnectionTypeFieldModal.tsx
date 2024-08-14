@@ -4,7 +4,7 @@ import {
   ConnectionTypeFieldType,
   SectionField,
 } from '~/concepts/connectionTypes/types';
-import ConnectionTypeSectionModal from '~/pages/connectionTypes/create/ConnectionTypeSectionModal';
+import ConnectionTypeSectionModal from './ConnectionTypeSectionModal';
 
 type Props = {
   field?: ConnectionTypeField;
