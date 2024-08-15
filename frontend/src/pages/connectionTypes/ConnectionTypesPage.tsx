@@ -5,7 +5,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import EmptyConnectionTypes from '~/pages/connectionTypes/EmptyConnectionTypes';
 
-const ConnectionTypes: React.FC = () => {
+const ConnectionTypesPage: React.FC = () => {
   const [connectionTypes, loaded, loadError, refresh] = useWatchConnectionTypes();
 
   return (
@@ -24,4 +24,4 @@ const ConnectionTypes: React.FC = () => {
   );
 };
 
-export default ConnectionTypes;
+export default ConnectionTypesPage;

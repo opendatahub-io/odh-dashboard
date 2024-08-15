@@ -12,15 +12,12 @@ import {
   getDisplayNameFromK8sResource,
 } from '~/concepts/k8s/utils';
 
-interface ConnectionTypesTableProps {
+type Props = {
   connectionTypes: ConnectionTypeConfigMapObj[];
   onUpdate: () => void;
-}
+};
 
-const ConnectionTypesTable: React.FC<ConnectionTypesTableProps> = ({
-  connectionTypes,
-  onUpdate,
-}) => {
+const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) => {
   const [filterData, setFilterData] = React.useState<FilterDataType>(initialFilterData);
   const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), [setFilterData]);
 

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
 
-const ConnectionTypesPage = React.lazy(() => import('./ConnectionTypes'));
-const CreateConnectionTypePage = React.lazy(() => import('./create/CreateConnectionTypePage'));
+const ConnectionTypesPage = React.lazy(() => import('./ConnectionTypesPage'));
+const CreateConnectionTypePage = React.lazy(() => import('./manage/CreateConnectionTypePage'));
 const DuplicateConnectionTypePage = React.lazy(
-  () => import('./create/DuplicateConnectionTypePage'),
+  () => import('./manage/DuplicateConnectionTypePage'),
 );
-const EditConnectionTypePage = React.lazy(() => import('./create/EditConnectionTypePage'));
+const EditConnectionTypePage = React.lazy(() => import('./manage/EditConnectionTypePage'));
 
 const ConnectionTypeRoutes: React.FC = () => (
   <Routes>

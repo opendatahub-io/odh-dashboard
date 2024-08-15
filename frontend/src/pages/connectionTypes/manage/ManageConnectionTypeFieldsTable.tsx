@@ -14,9 +14,9 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
-import ConnectionTypeFieldModal from '~/pages/connectionTypes/create/ConnectionTypeFieldModal';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import { CreateConnectionTypeFieldsTableRow } from './CreateConnectionTypeFieldsTableRow';
+import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
+import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 
 type EmptyFieldsTableProps = {
   onAddSection: () => void;
@@ -45,15 +45,12 @@ const EmptyFieldsTable: React.FC<EmptyFieldsTableProps> = ({ onAddSection, onAdd
   </Bullseye>
 );
 
-type CreateConnectionTypeFieldsTableProps = {
+type Props = {
   fields: ConnectionTypeField[];
   onFieldsChange: (fields: ConnectionTypeField[]) => void;
 };
 
-export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeFieldsTableProps> = ({
-  fields,
-  onFieldsChange,
-}) => {
+const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChange }) => {
   const [modalField, setModalField] = React.useState<
     { field?: ConnectionTypeField; index?: number; isEdit?: boolean } | undefined
   >();
@@ -81,7 +78,7 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
             </Thead>
             <Tbody>
               {fields.map((row, index) => (
-                <CreateConnectionTypeFieldsTableRow
+                <ManageConnectionTypeFieldsTableRow
                   key={index}
                   row={row}
                   columns={columns}
@@ -174,3 +171,5 @@ export const CreateConnectionTypeFieldsTable: React.FC<CreateConnectionTypeField
     </>
   );
 };
+
+export default ManageConnectionTypeFieldsTable;

@@ -18,7 +18,7 @@ type Props = {
   onChange: (updatedField: ConnectionTypeField) => void;
 };
 
-export const CreateConnectionTypeFieldsTableRow: React.FC<Props> = ({
+const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
   columns,
   onEdit,
@@ -112,3 +112,5 @@ export const CreateConnectionTypeFieldsTableRow: React.FC<Props> = ({
     </Tr>
   );
 };
+
+export default ManageConnectionTypeFieldsTableRow;

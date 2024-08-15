@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Checkbox,
   Form,
@@ -9,7 +10,6 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
-import { createConnectionType } from '~/services/connectionTypesService';
 import { useUser } from '~/redux/selectors';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
@@ -21,17 +21,19 @@ import {
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NameDescType } from '~/pages/projects/types';
-import { CreateConnectionTypeFooter } from './CreateConnectionTypeFooter';
-import { CreateConnectionTypeFieldsTable } from './CreateConnectionTypeFieldsTable';
-import { CreateConnectionTypeBreadcrumbs } from './CreateConnectionTypeBreadcrumbs';
+import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
+import ManageConnectionTypeFieldsTable from './ManageConnectionTypeFieldsTable';
+import ManageConnectionTypeBreadcrumbs from './ManageConnectionTypeBreadcrumbs';
 
-type CreateConnectionTypePageProps = {
+type Props = {
   prefill?: ConnectionTypeConfigMapObj;
+  isEdit?: boolean;
+  onSave: (obj: ConnectionTypeConfigMapObj) => Promise<void>;
 };
 
-const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ prefill }) => {
+const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) => {
   const navigate = useNavigate();
-  const { username } = useUser();
+  const { username: currentUsername } = useUser();
 
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
@@ -41,7 +43,10 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
     description: prefillDescription,
     enabled: prefillEnabled,
     fields: prefillFields,
+    username: prefillUsername,
   } = extractConnectionTypeFromMap(prefill);
+
+  const username = prefillUsername || currentUsername;
 
   const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>({
     k8sName: prefillK8sName,
@@ -55,7 +60,7 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
   const previewConnectionTypeObj = React.useMemo(
     () =>
       createConnectionTypeObj(
-        translateDisplayNameForK8s(connectionNameDesc.name),
+        connectionNameDesc.k8sName || translateDisplayNameForK8s(connectionNameDesc.name),
         connectionNameDesc.name,
         connectionNameDesc.description,
         connectionEnabled,
@@ -65,27 +70,10 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
     [connectionNameDesc, connectionEnabled, connectionFields, username],
   );
 
-  const [isCreateLoading, setIsCreateLoading] = React.useState(false);
-  const [createError, setCreateError] = React.useState<string>();
-
   const isValid = React.useMemo(() => {
     const trimmedName = connectionNameDesc.name.trim();
     return Boolean(trimmedName);
   }, [connectionNameDesc.name]);
-
-  const onSave = async () => {
-    if (isValid) {
-      setIsCreateLoading(true);
-      setCreateError(undefined);
-      const response = await createConnectionType(previewConnectionTypeObj);
-      if (response.error) {
-        setCreateError(response.error);
-      } else {
-        navigate('/connectionTypes');
-      }
-      setIsCreateLoading(false);
-    }
-  };
 
   const onCancel = () => {
     navigate('/connectionTypes');
@@ -98,11 +86,11 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
       obj={previewConnectionTypeObj}
     >
       <ApplicationsPage
-        title="Create connection type"
+        title={isEdit ? 'Edit connection type' : 'Create connection type'}
         loaded
         empty={false}
         errorMessage="Unable load to connection types"
-        breadcrumb={<CreateConnectionTypeBreadcrumbs />}
+        breadcrumb={<ManageConnectionTypeBreadcrumbs />}
         headerAction={
           isDrawerExpanded ? undefined : (
             <Button
@@ -117,6 +105,15 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
           )
         }
       >
+        {isEdit ? (
+          <PageSection variant="light" className="pf-v5-u-pt-0">
+            <Alert
+              isInline
+              variant="warning"
+              title="Editing this connection will not affect existing connections of this type."
+            />
+          </PageSection>
+        ) : undefined}
         <PageSection isFilled variant="light" className="pf-v5-u-pt-0">
           <Form>
             <FormSection title="Type details" style={{ maxWidth: 625 }}>
@@ -144,7 +141,7 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
               Add fields to prompt users to input information, and optionally assign default values
               to those fields.
               <FormGroup>
-                <CreateConnectionTypeFieldsTable
+                <ManageConnectionTypeFieldsTable
                   fields={connectionFields}
                   onFieldsChange={(fields) => setConnectionFields(fields)}
                 />
@@ -152,12 +149,20 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
             </FormSection>
           </Form>
         </PageSection>
-        <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
+        <PageSection
+          stickyOnBreakpoint={{ default: 'bottom' }}
+          variant="light"
+          style={{ flexGrow: 0 }}
+        >
           <CreateConnectionTypeFooter
-            onSave={onSave}
+            onSave={() =>
+              onSave(previewConnectionTypeObj).then(() => {
+                navigate('/connectionTypes');
+              })
+            }
             onCancel={onCancel}
-            createDisable={!isValid || isCreateLoading}
-            errorMessage={createError}
+            isSaveDisabled={!isValid}
+            saveButtonLabel={isEdit ? 'Save' : 'Create'}
           />
         </PageSection>
       </ApplicationsPage>
@@ -165,4 +170,4 @@ const CreateConnectionTypePage: React.FC<CreateConnectionTypePageProps> = ({ pre
   );
 };
 
-export default CreateConnectionTypePage;
+export default ManageConnectionTypePage;

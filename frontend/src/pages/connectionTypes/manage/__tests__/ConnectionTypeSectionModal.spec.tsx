@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
-import ConnectionTypeSectionModal from '~/pages/connectionTypes/create/ConnectionTypeSectionModal';
+import ConnectionTypeSectionModal from '~/pages/connectionTypes/manage/ConnectionTypeSectionModal';
 import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 
 describe('ConnectionTypeSectionModal', () => {
