@@ -85,6 +85,8 @@ export type ModelRegistryBase = {
   id: string;
   name: string;
   externalID?: string;
+  author?: string;
+  owner?: string;
   description?: string;
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch: string;
@@ -94,7 +96,6 @@ export type ModelRegistryBase = {
 export type ModelArtifact = ModelRegistryBase & {
   uri?: string;
   state?: ModelArtifactState;
-  author?: string;
   modelFormatName?: string;
   storageKey?: string;
   storagePath?: string;
@@ -105,7 +106,6 @@ export type ModelArtifact = ModelRegistryBase & {
 
 export type ModelVersion = ModelRegistryBase & {
   state?: ModelState;
-  author?: string;
   registeredModelId: string;
 };
 

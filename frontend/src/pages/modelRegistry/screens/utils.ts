@@ -154,9 +154,8 @@ export const filterRegisteredModels = (
           (rm.description && rm.description.toLowerCase().includes(search.toLowerCase()))
         );
 
-      case SearchType.AUTHOR:
-        // TODO Implement owner search functionality once RHOAIENG-7566 is completed.
-        return;
+      case SearchType.OWNER:
+        return rm.owner && rm.owner.toLowerCase().includes(search.toLowerCase());
 
       default:
         return true;
