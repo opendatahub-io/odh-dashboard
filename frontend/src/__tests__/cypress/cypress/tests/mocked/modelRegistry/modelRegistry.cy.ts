@@ -181,12 +181,15 @@ describe('Model Registry core', () => {
 =======
 =======
       registeredModelRow.findOwner().contains('Author 1');
+<<<<<<< HEAD
 >>>>>>> f9da61fb (updated tests)
       registeredModelRow.findOwner().should(($owner) => {
         const text = $owner.text();
         expect(text).to.be.oneOf(['Author 1', '-']);
       });
 >>>>>>> 8ca179e7 (fixed lint and test)
+=======
+>>>>>>> 05749f70 (removed assertion)
 
       // Label popover
       registeredModelRow.findLabelPopoverText().contains('2 more');
