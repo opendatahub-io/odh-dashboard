@@ -71,7 +71,7 @@ class PermissionTable extends Contextual<HTMLElement> {
   }
 
   findNameSelect() {
-    return this.find().get(`[aria-label="Name selection"]`);
+    return this.find().get(`[aria-label="Type to filter"]`);
   }
 
   getTableRow(name: string) {
