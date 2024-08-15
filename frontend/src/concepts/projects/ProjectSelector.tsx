@@ -22,6 +22,7 @@ type ProjectSelectorProps = {
   filterLabel?: string;
   showTitle?: boolean;
   selectorLabel?: string;
+  isFullWidth?: boolean;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -33,6 +34,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   filterLabel,
   showTitle = false,
   selectorLabel = 'Project',
+  isFullWidth = false,
 }) => {
   const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
   const selection = projects.find(byName(namespace));
@@ -60,6 +62,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           variant={primary ? 'primary' : undefined}
           onClick={() => setDropdownOpen(!dropdownOpen)}
           isExpanded={dropdownOpen}
+          isFullWidth={isFullWidth}
           data-testid="project-selector-dropdown"
         >
           {toggleLabel}
