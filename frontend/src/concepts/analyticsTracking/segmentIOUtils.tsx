@@ -72,7 +72,9 @@ export const firePageEvent = (): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
     /* eslint-disable-next-line no-console */
-    console.log(`Page event triggered for version ${INTERNAL_DASHBOARD_VERSION}`);
+    console.log(
+      `Page event triggered for version ${INTERNAL_DASHBOARD_VERSION} : ${window.location.pathname}`,
+    );
   } else if (window.analytics) {
     window.analytics.page(
       undefined,
@@ -108,6 +110,10 @@ export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => 
       isAdmin: properties.isAdmin,
       canCreateProjects: properties.canCreateProjects,
     };
-    window.analytics.identify(properties.anonymousID, traits);
+    if (properties.userID) {
+      window.analytics.identify(properties.userID, traits);
+    } else {
+      window.analytics.identify(properties.anonymousID, traits);
+    }
   }
 };

@@ -42,6 +42,7 @@ export type AppState = {
   // user state
   isAdmin?: boolean;
   user?: string;
+  userID?: string;
   userLoading: boolean;
   userError?: Error | null;
   isImpersonating?: boolean;

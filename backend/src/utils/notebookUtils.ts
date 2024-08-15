@@ -20,7 +20,7 @@ import {
   TolerationOperator,
   VolumeMount,
 } from '../types';
-import { getUserName, usernameTranslate } from './userUtils';
+import { getUserInfo, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
 import {
   PatchUtils,
@@ -389,7 +389,7 @@ export const stopNotebook = async (
     Body: NotebookData;
   }>,
 ): Promise<Notebook> => {
-  const username = request.body.username || (await getUserName(fastify, request));
+  const username = request.body.username || (await getUserInfo(fastify, request)).userName;
   const name = generateNotebookNameFromUsername(username);
   const { notebookNamespace } = getNamespaces(fastify);
 
