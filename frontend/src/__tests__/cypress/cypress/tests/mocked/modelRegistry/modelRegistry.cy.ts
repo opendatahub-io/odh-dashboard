@@ -66,10 +66,7 @@ const initIntercepts = ({
       ],
     }),
   ],
-  modelVersions = [
-    mockModelVersion({ author: 'Author 1' }),
-    mockModelVersion({ name: 'model version' }),
-  ],
+  modelVersions = [mockModelVersion({ name: 'model version' })],
   allowed = true,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -179,8 +176,12 @@ describe('Model Registry core', () => {
           'A machine learning model trained to detect fraudulent transactions in financial data',
         );
 <<<<<<< HEAD
+<<<<<<< HEAD
       registeredModelRow.findAuthor().contains('Author 1');
 =======
+=======
+      registeredModelRow.findOwner().contains('Author 1');
+>>>>>>> f9da61fb (updated tests)
       registeredModelRow.findOwner().should(($owner) => {
         const text = $owner.text();
         expect(text).to.be.oneOf(['Author 1', '-']);

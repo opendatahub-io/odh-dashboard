@@ -4,6 +4,8 @@ import { createModelRegistryLabelsObject } from './utils';
 type MockRegisteredModelType = {
   id?: string;
   name?: string;
+  author?: string;
+  owner?: string;
   state?: ModelState;
   description?: string;
   labels?: string[];
@@ -11,6 +13,8 @@ type MockRegisteredModelType = {
 
 export const mockRegisteredModel = ({
   name = 'test',
+  author = 'Author 1',
+  owner = 'Author 1',
   state = ModelState.LIVE,
   description = '',
   labels = [],
@@ -23,5 +27,7 @@ export const mockRegisteredModel = ({
   lastUpdateTimeSinceEpoch: '1710404288975',
   name,
   state,
+  author,
+  owner,
   customProperties: createModelRegistryLabelsObject(labels),
 });
