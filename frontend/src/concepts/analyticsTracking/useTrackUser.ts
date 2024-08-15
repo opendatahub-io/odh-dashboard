@@ -4,9 +4,12 @@ import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { IdentifyEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
-export const useTrackUser = (username?: string): [IdentifyEventProperties, boolean] => {
+export const useTrackUser = (
+  username?: string,
+  ssoUserID?: string,
+): [IdentifyEventProperties, boolean] => {
   const { isAdmin } = useUser();
-  const [anonymousId, setAnonymousId] = React.useState<string | undefined>(undefined);
+  const [userID, setUserID] = React.useState<string | undefined>(ssoUserID);
 
   const createReviewResource: AccessReviewResourceAttributes = {
     group: 'project.openshift.io',
@@ -26,9 +29,11 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
       return aId;
     };
 
-    computeAnonymousUserId().then((val) => {
-      setAnonymousId(val);
-    });
+    if (!ssoUserID) {
+      computeAnonymousUserId().then((val) => {
+        setUserID(val);
+      });
+    }
     // compute anonymousId only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -37,10 +42,10 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
     () => ({
       isAdmin,
       canCreateProjects: allowCreate,
-      anonymousID: anonymousId,
+      userID,
     }),
-    [isAdmin, allowCreate, anonymousId],
+    [isAdmin, allowCreate, userID],
   );
 
-  return [props, acLoaded && !!anonymousId];
+  return [props, acLoaded && !!userID];
 };

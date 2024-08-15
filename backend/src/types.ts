@@ -276,6 +276,7 @@ export type KubeStatus = {
   currentUser: User;
   namespace: string;
   userName: string | string[];
+  userID?: string;
   clusterID: string;
   clusterBranding: string;
   isAdmin: boolean;
