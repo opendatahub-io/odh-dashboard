@@ -10,9 +10,9 @@ export const extractConnectionTypeFromMap = (
   fields: ConnectionTypeField[];
 } => ({
   k8sName: configMap?.metadata.name ?? '',
-  name: configMap?.metadata.annotations['openshift.io/display-name'] ?? '',
-  description: configMap?.metadata.annotations['openshift.io/description'] ?? '',
-  enabled: configMap?.metadata.annotations['opendatahub.io/enabled'] === 'true',
+  name: configMap?.metadata.annotations?.['openshift.io/display-name'] ?? '',
+  description: configMap?.metadata.annotations?.['openshift.io/description'] ?? '',
+  enabled: configMap?.metadata.annotations?.['opendatahub.io/enabled'] === 'true',
   fields: configMap?.data?.fields ?? [],
 });
 

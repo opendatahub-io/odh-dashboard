@@ -3,11 +3,22 @@ import {
   mockConnectionTypeConfigMapObj,
 } from '~/__mocks__/mockConnectionType';
 import { createConnectionTypePage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
-import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockDashboardConfig } from '~/__mocks__';
 
 describe('create', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableConnectionTypes: false,
+      }),
+    );
+  });
+
   it('Display base page', () => {
-    asClusterAdminUser();
     createConnectionTypePage.visitCreatePage();
 
     createConnectionTypePage.findConnectionTypeName().should('exist');
@@ -17,7 +28,6 @@ describe('create', () => {
   });
 
   it('Allows create button with valid name', () => {
-    asClusterAdminUser();
     createConnectionTypePage.visitCreatePage();
 
     createConnectionTypePage.findConnectionTypeName().should('have.value', '');
@@ -32,7 +42,14 @@ describe('duplicate', () => {
   const existing = mockConnectionTypeConfigMapObj({ name: 'existing' });
 
   beforeEach(() => {
-    asClusterAdminUser();
+    asProductAdminUser();
+
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableConnectionTypes: false,
+      }),
+    );
     cy.interceptOdh(
       'GET /api/connection-types/:name',
       { path: { name: 'existing' } },
@@ -47,11 +64,11 @@ describe('duplicate', () => {
       .findConnectionTypeName()
       .should(
         'have.value',
-        `Duplicate of ${existing.metadata.annotations['openshift.io/display-name']}`,
+        `Duplicate of ${existing.metadata.annotations?.['openshift.io/display-name']}`,
       );
     createConnectionTypePage
       .findConnectionTypeDesc()
-      .should('have.value', existing.metadata.annotations['openshift.io/description']);
+      .should('have.value', existing.metadata.annotations?.['openshift.io/description']);
     createConnectionTypePage.findConnectionTypeEnableCheckbox().should('be.checked');
   });
 

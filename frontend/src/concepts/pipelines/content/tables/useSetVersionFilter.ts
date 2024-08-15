@@ -2,8 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
-import { FilterProps } from './PipelineFilterBar';
-import { FilterOptions } from './usePipelineFilter';
+import { FilterOptions, FilterProps } from './usePipelineFilter';
 
 /**
  * Update filter with the last location-stored pipeline version.

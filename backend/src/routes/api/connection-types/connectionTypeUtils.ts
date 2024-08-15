@@ -128,9 +128,9 @@ export const patchConnectionType = async (
   const { dashboardNamespace } = getNamespaces(fastify);
 
   if (
-    (partialConfigMap.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] &&
+    (partialConfigMap.metadata?.labels?.[KnownLabels.DASHBOARD_RESOURCE] &&
       partialConfigMap.metadata.labels[KnownLabels.DASHBOARD_RESOURCE] !== 'true') ||
-    (partialConfigMap.metadata.labels?.[KnownLabels.CONNECTION_TYPE] &&
+    (partialConfigMap.metadata?.labels?.[KnownLabels.CONNECTION_TYPE] &&
       partialConfigMap.metadata.labels[KnownLabels.CONNECTION_TYPE] !== 'true')
   ) {
     const error = 'Unable to update connection type, incorrect labels.';
