@@ -592,7 +592,23 @@ declare global {
           options: {
             path: { name: string };
           },
-          response: ConnectionTypeConfigMap,
+          response: OdhResponse<ConnectionTypeConfigMap>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/connection-types',
+          response: ConnectionTypeConfigMap[],
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /api/connection-types/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<SuccessErrorResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/connection-types/:name',
+          options: {
+            path: { name: string };
+          },
+          response: SuccessErrorResponse,
         ) => Cypress.Chainable<null>);
     }
   }

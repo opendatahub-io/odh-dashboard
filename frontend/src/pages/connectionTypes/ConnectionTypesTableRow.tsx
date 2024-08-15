@@ -17,9 +17,14 @@ import {
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;
   onUpdate: () => void;
+  handleDelete: (cr: ConnectionTypeConfigMapObj) => void;
 };
 
-const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({ obj, onUpdate }) => {
+const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
+  obj,
+  onUpdate,
+  handleDelete,
+}) => {
   const navigate = useNavigate();
   const notification = useNotification();
   const [isUpdating, setIsUpdating] = React.useState(false);
@@ -106,7 +111,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({ obj, 
             },
             {
               title: 'Delete',
-              isAriaDisabled: true,
+              onClick: () => handleDelete(obj),
             },
           ]}
         />
