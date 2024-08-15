@@ -13,7 +13,6 @@ import {
   InputGroupItem,
   InputGroupText,
   PageSection,
-  Panel,
   Radio,
   Split,
   SplitItem,
