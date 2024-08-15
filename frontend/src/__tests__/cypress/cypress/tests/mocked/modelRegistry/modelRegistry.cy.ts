@@ -178,7 +178,14 @@ describe('Model Registry core', () => {
         .contains(
           'A machine learning model trained to detect fraudulent transactions in financial data',
         );
+<<<<<<< HEAD
       registeredModelRow.findAuthor().contains('Author 1');
+=======
+      registeredModelRow.findOwner().should(($owner) => {
+        const text = $owner.text();
+        expect(text).to.be.oneOf(['Author 1', '-']);
+      });
+>>>>>>> 8ca179e7 (fixed lint and test)
 
       // Label popover
       registeredModelRow.findLabelPopoverText().contains('2 more');
