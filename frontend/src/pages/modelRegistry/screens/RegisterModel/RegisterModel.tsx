@@ -13,6 +13,7 @@ import {
   InputGroupItem,
   InputGroupText,
   PageSection,
+  Panel,
   Radio,
   Split,
   SplitItem,
@@ -37,7 +38,6 @@ import {
   RegisterVersionFormData,
 } from './useRegisterModelData';
 import { registerModel } from './utils';
-import './RegisterModel.scss';
 import { ConnectionModal } from './ConnectionModal';
 
 const RegisterModel: React.FC = () => {
@@ -209,92 +209,105 @@ const RegisterModel: React.FC = () => {
                 title="Model location"
                 description="Specify the model location by providing either the object storage details or the URI."
               >
-                <Radio
-                  isChecked={modelLocationType === ModelLocationType.ObjectStorage}
-                  name="location-type-object-storage"
-                  onChange={() => {
-                    setData('modelLocationType', ModelLocationType.ObjectStorage);
-                  }}
-                  label={
-                    <Split>
-                      <SplitItem isFilled>Object storage</SplitItem>
-                      {modelLocationType === ModelLocationType.ObjectStorage && (
+                <Split>
+                  <SplitItem isFilled>
+                    <Radio
+                      isChecked={modelLocationType === ModelLocationType.ObjectStorage}
+                      name="location-type-object-storage"
+                      onChange={() => {
+                        setData('modelLocationType', ModelLocationType.ObjectStorage);
+                      }}
+                      label="Object storage"
+                      id="location-type-object-storage"
+                    />
+                  </SplitItem>
+                  {modelLocationType === ModelLocationType.ObjectStorage && (
+                    <SplitItem>
+                      <Button
+                        data-testid="object-storage-autofill-button"
+                        variant="link"
+                        isInline
+                        icon={<OptimizeIcon />}
+                        onClick={() => setAutofillModalOpen(true)}
+                      >
+                        Autofill from data connection
+                      </Button>
+                    </SplitItem>
+                  )}
+                </Split>
+                {modelLocationType === ModelLocationType.ObjectStorage && (
+                  <>
+                    <FormGroup
+                      className={spacing.mlLg}
+                      label="Endpoint"
+                      isRequired
+                      fieldId="location-endpoint"
+                    >
+                      <TextInput
+                        isRequired
+                        type="text"
+                        id="location-endpoint"
+                        name="location-endpoint"
+                        value={modelLocationEndpoint}
+                        onChange={(_e, value) => setData('modelLocationEndpoint', value)}
+                      />
+                    </FormGroup>
+                    <FormGroup
+                      className={spacing.mlLg}
+                      label="Bucket"
+                      isRequired
+                      fieldId="location-bucket"
+                    >
+                      <TextInput
+                        isRequired
+                        type="text"
+                        id="location-bucket"
+                        name="location-bucket"
+                        value={modelLocationBucket}
+                        onChange={(_e, value) => setData('modelLocationBucket', value)}
+                      />
+                    </FormGroup>
+                    <FormGroup className={spacing.mlLg} label="Region" fieldId="location-region">
+                      <TextInput
+                        type="text"
+                        id="location-region"
+                        name="location-region"
+                        value={modelLocationRegion}
+                        onChange={(_e, value) => setData('modelLocationRegion', value)}
+                      />
+                    </FormGroup>
+                    <FormGroup
+                      className={spacing.mlLg}
+                      label="Path"
+                      isRequired
+                      fieldId="location-path"
+                    >
+                      <Split hasGutter>
                         <SplitItem>
-                          <Button
-                            data-testid="object-storage-autofill-button"
-                            variant="link"
-                            isInline
-                            icon={<OptimizeIcon />}
-                            onClick={() => setAutofillModalOpen(true)}
-                          >
-                            Autofill from data connection
-                          </Button>
+                          <InputGroupText isPlain>/</InputGroupText>
                         </SplitItem>
-                      )}
-                    </Split>
-                  }
-                  id="location-type-object-storage"
-                  body={
-                    modelLocationType === ModelLocationType.ObjectStorage && (
-                      <Form>
-                        <FormGroup label="Endpoint" isRequired fieldId="location-endpoint">
-                          <TextInput
-                            isRequired
-                            type="text"
-                            id="location-endpoint"
-                            name="location-endpoint"
-                            value={modelLocationEndpoint}
-                            onChange={(_e, value) => setData('modelLocationEndpoint', value)}
-                          />
-                        </FormGroup>
-                        <FormGroup label="Bucket" isRequired fieldId="location-bucket">
-                          <TextInput
-                            isRequired
-                            type="text"
-                            id="location-bucket"
-                            name="location-bucket"
-                            value={modelLocationBucket}
-                            onChange={(_e, value) => setData('modelLocationBucket', value)}
-                          />
-                        </FormGroup>
-                        <FormGroup label="Region" fieldId="location-region">
-                          <TextInput
-                            type="text"
-                            id="location-region"
-                            name="location-region"
-                            value={modelLocationRegion}
-                            onChange={(_e, value) => setData('modelLocationRegion', value)}
-                          />
-                        </FormGroup>
-                        <FormGroup label="Path" isRequired fieldId="location-path">
-                          <Split hasGutter>
-                            <SplitItem>
-                              <InputGroupText isPlain>/</InputGroupText>
-                            </SplitItem>
-                            <SplitItem isFilled>
-                              <InputGroupItem>
-                                <TextInput
-                                  isRequired
-                                  type="text"
-                                  id="location-path"
-                                  name="location-path"
-                                  value={modelLocationPath}
-                                  onChange={(_e, value) => setData('modelLocationPath', value)}
-                                />
-                              </InputGroupItem>
-                            </SplitItem>
-                          </Split>
-                          <HelperText>
-                            <HelperTextItem>
-                              Enter a path to a model or folder. This path cannot point to a root
-                              folder.
-                            </HelperTextItem>
-                          </HelperText>
-                        </FormGroup>
-                      </Form>
-                    )
-                  }
-                />
+                        <SplitItem isFilled>
+                          <InputGroupItem>
+                            <TextInput
+                              isRequired
+                              type="text"
+                              id="location-path"
+                              name="location-path"
+                              value={modelLocationPath}
+                              onChange={(_e, value) => setData('modelLocationPath', value)}
+                            />
+                          </InputGroupItem>
+                        </SplitItem>
+                      </Split>
+                      <HelperText>
+                        <HelperTextItem>
+                          Enter a path to a model or folder. This path cannot point to a root
+                          folder.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormGroup>
+                  </>
+                )}
                 <Radio
                   isChecked={modelLocationType === ModelLocationType.URI}
                   name="location-type-uri"

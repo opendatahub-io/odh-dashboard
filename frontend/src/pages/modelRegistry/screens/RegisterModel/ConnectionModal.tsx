@@ -1,16 +1,8 @@
 import React from 'react';
-import { Modal, Button, FormGroup, HelperText, Form } from '@patternfly/react-core';
+import { Modal, Button, FormGroup, HelperText, Form, FormHelperText } from '@patternfly/react-core';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import { DataConnection } from '~/pages/projects/types';
 import { ConnectionDropdown } from './ConnectionDropdown';
-
-export type ConnectionInfoType = {
-  name: string;
-  endpoint: string;
-  bucket: string;
-  region: string;
-  path: string;
-};
 
 export const ConnectionModal: React.FC<{
   isOpen: boolean;
@@ -26,7 +18,7 @@ export const ConnectionModal: React.FC<{
       data-testid="connection-autofill-modal"
       variant="medium"
       title="Autofill from data connection"
-      description="Select a project to list its [object storage]/[URI] data connections. Select a data connection to autofill the model location."
+      description="Select a project to list its object storage data connections. Select a data connection to autofill the model location."
       onClose={() => {
         setProject(undefined);
         setConnection(undefined);
@@ -68,9 +60,11 @@ export const ConnectionModal: React.FC<{
             selectedConnection={connection}
             project={project}
           />
-          <HelperText>
-            Data connection list includes only object storage types that contain a bucket.
-          </HelperText>
+          <FormHelperText>
+            <HelperText>
+              Data connection list includes only object storage types that contain a bucket.
+            </HelperText>
+          </FormHelperText>
         </FormGroup>
       </Form>
     </Modal>
