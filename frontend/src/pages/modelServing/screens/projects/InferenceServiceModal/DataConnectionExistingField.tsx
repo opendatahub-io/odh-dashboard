@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Button, FormGroup, Popover, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  FormGroup,
+  Label,
+  Popover,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
@@ -31,6 +40,22 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
   const selectedDataConnection = connectionsWithoutBucket.find(
     (connection) => connection.dataConnection.data.metadata.name === data.storage.dataConnection,
   );
+
+  const getLabeledOption = (connection: LabeledDataConnection) => (
+    <Flex
+      spaceItems={{ default: 'spaceItemsXs' }}
+      data-testid={`inference-service-data-connection ${connection.dataConnection.data.metadata.name}`}
+    >
+      <FlexItem>{getDataConnectionDisplayName(connection.dataConnection)}</FlexItem>
+      {connection.isRecommended && (
+        <FlexItem>
+          <Label color="blue" isCompact>
+            Recommended
+          </Label>
+        </FlexItem>
+      )}
+    </Flex>
+  );
   return (
     <Stack hasGutter>
       <StackItem>
@@ -56,13 +81,12 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
             isDisabled={isDataConnectionsEmpty}
             options={connectionsWithoutBucket.map((connection) => ({
               key: connection.dataConnection.data.metadata.name,
+              dropdownLabel: getLabeledOption(connection),
               label: getDataConnectionDisplayName(connection.dataConnection),
             }))}
             value={data.storage.dataConnection}
             toggleLabel={
-              selectedDataConnection
-                ? getDataConnectionDisplayName(selectedDataConnection.dataConnection)
-                : placeholderText
+              selectedDataConnection ? getLabeledOption(selectedDataConnection) : placeholderText
             }
             onChange={(option) => {
               setData('storage', {

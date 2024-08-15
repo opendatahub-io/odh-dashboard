@@ -47,7 +47,7 @@ describe('useProjectErrorForRegisteredModel', () => {
     const renderResult = testHook(useProjectErrorForRegisteredModel)(undefined, undefined);
     // wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual(undefined);
+    expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
   });
 
   it('should return undefined when only kServe is supported', async () => {
@@ -58,7 +58,7 @@ describe('useProjectErrorForRegisteredModel', () => {
     );
     // wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual(undefined);
+    expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
   });
 
   it('should return undefined when only modelMesh is supported with server deployed', async () => {
@@ -69,7 +69,7 @@ describe('useProjectErrorForRegisteredModel', () => {
     );
     // wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual(undefined);
+    expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
   });
 
   it('should return error when only modelMesh is supported with no server deployed', async () => {
@@ -80,9 +80,10 @@ describe('useProjectErrorForRegisteredModel', () => {
     );
     // wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual(
-      new Error('Cannot deploy the model until you configure a model server'),
-    );
+    expect(renderResult).hookToStrictEqual({
+      loaded: true,
+      error: new Error('Cannot deploy the model until you configure a model server'),
+    });
   });
 
   it('should return error when platform is not selected', async () => {
@@ -90,8 +91,9 @@ describe('useProjectErrorForRegisteredModel', () => {
     const renderResult = testHook(useProjectErrorForRegisteredModel)('test-project', undefined);
     // wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual(
-      new Error('Cannot deploy the model until you select a model serving platform'),
-    );
+    expect(renderResult).hookToStrictEqual({
+      loaded: true,
+      error: new Error('Cannot deploy the model until you select a model serving platform'),
+    });
   });
 });

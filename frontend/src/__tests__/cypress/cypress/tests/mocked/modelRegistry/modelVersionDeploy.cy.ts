@@ -287,7 +287,7 @@ describe('Deploy model version', () => {
 
     // Validate data connection section
     kserveModal.findExistingDataConnectionOption().should('be.checked');
-    kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+    kserveModal.findExistingConnectionSelect().should('contain.text', 'Test SecretRecommended');
     kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
   });
 
@@ -310,6 +310,14 @@ describe('Deploy model version', () => {
           endPoint: 'dGVzdC1lbmRwb2ludA==',
           region: 'dGVzdC1yZWdpb24=',
         }),
+        mockSecretK8sResource({
+          name: 'test-secret-not-match',
+          displayName: 'Test Secret Not Match',
+          namespace: 'kserve-project',
+          s3Bucket: 'dGVzdC1idWNrZXQ=',
+          endPoint: 'dGVzdC1lbmRwb2ludC1ub3QtbWF0Y2g=', // endpoint not match
+          region: 'dGVzdC1yZWdpb24=',
+        }),
       ]),
     );
 
@@ -322,5 +330,15 @@ describe('Deploy model version', () => {
     kserveModal.findExistingDataConnectionOption().should('be.checked');
     kserveModal.findExistingConnectionSelect().should('contain.text', 'Select...');
     kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+
+    // Make sure recommended label is there
+    kserveModal.selectExistingConnectionSelectOptionByResourceName('test-secret');
+    kserveModal.findExistingConnectionSelect().should('contain.text', 'Recommended');
+
+    kserveModal.selectExistingConnectionSelectOptionByResourceName('test-secret-2');
+    kserveModal.findExistingConnectionSelect().should('contain.text', 'Recommended');
+
+    kserveModal.selectExistingConnectionSelectOptionByResourceName('test-secret-not-match');
+    kserveModal.findExistingConnectionSelect().should('not.contain.text', 'Recommended');
   });
 });

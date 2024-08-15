@@ -37,13 +37,14 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     selectedProject,
     servingPlatformStatuses,
   );
-  const projectError = useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
+  const { loaded: projectDeployStatusLoaded, error: projectError } =
+    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const error = platformError || projectError;
 
   const {
     registeredModelDeployInfo,
-    loaded,
+    loaded: deployInfoLoaded,
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion);
 
@@ -52,7 +53,11 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     onCancel();
   }, [onCancel]);
 
-  if (!selectedProject || !platform) {
+  if (
+    (platform === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
+    !selectedProject ||
+    !platform
+  ) {
     return (
       <Modal
         title="Deploy model"
@@ -75,7 +80,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
             <Alert variant="danger" isInline title={deployInfoError.name}>
               {deployInfoError.message}
             </Alert>
-          ) : !loaded ? (
+          ) : !deployInfoLoaded ? (
             <Spinner />
           ) : (
             <ProjectSelector
