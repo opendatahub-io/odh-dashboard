@@ -66,7 +66,10 @@ const initIntercepts = ({
       ],
     }),
   ],
-  modelVersions = [mockModelVersion({ name: 'model version' })],
+  modelVersions = [
+    mockModelVersion({ author: 'Author 1' }),
+    mockModelVersion({ name: 'model version' }),
+  ],
   allowed = true,
 }: HandlersProps) => {
   cy.interceptOdh(

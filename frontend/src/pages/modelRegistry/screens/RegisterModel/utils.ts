@@ -33,7 +33,7 @@ export const registerModel = async (
       name: formData.modelName,
       description: formData.modelDescription,
       customProperties: {},
-      author,
+      owner: author,
       state: ModelState.LIVE,
     },
   );

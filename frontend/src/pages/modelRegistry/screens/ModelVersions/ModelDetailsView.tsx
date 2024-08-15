@@ -82,7 +82,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ registeredModel: rm
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Owner">
-            <Text data-testid="registered-model-owner">{rm.author || '-'}</Text>
+            <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Last modified at"
