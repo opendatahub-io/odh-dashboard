@@ -169,7 +169,7 @@ class ProjectDetails {
     );
   }
 
-  findImportPipelineButton(timeout = 4000) {
+  findImportPipelineButton(timeout?: undefined) {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
