@@ -178,7 +178,7 @@ describe('Model Registry core', () => {
         .contains(
           'A machine learning model trained to detect fraudulent transactions in financial data',
         );
-      registeredModelRow.findOwner().contains('Author 1');
+      registeredModelRow.findAuthor().contains('Author 1');
 
       // Label popover
       registeredModelRow.findLabelPopoverText().contains('2 more');

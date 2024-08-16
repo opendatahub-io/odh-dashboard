@@ -21,7 +21,7 @@ const ModelRegistrySettings: React.FC = () => {
   return (
     <>
       <ApplicationsPage
-        title="Model Registry Settings"
+        title="Model registry settings"
         description="Manage model registry settings for all users in your organization."
         loaded={loaded}
         loadError={loadError}

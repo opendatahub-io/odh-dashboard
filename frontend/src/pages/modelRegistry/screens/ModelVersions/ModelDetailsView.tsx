@@ -5,7 +5,7 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
-import RegisteredModelOwner from '~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelOwner';
+import RegisteredModelAuthor from '~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelAuthor';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
   getLabels,
@@ -82,8 +82,8 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ registeredModel: rm
               {rm.id}
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Owner">
-            <RegisteredModelOwner registeredModelId={rm.id} />
+          <DashboardDescriptionListGroup title="Author">
+            <RegisteredModelAuthor registeredModelId={rm.id} />
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Last modified at"

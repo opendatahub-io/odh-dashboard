@@ -18,8 +18,8 @@ export const mvColumns: SortableData<ModelVersion>[] = [
     },
   },
   {
-    field: 'owner',
-    label: 'Owner',
+    field: 'author',
+    label: 'Author',
     sortable: (a: ModelVersion, b: ModelVersion): number => {
       const first = a.author || '';
       const second = b.author || '';

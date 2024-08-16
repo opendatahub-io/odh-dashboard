@@ -38,12 +38,12 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
         </PageSection>
       </Tab>
       <Tab
-        eventKey={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
-        title={<TabTitleText>{ModelVersionDetailsTabTitle.REGISTERED_DEPLOYMENTS}</TabTitleText>}
-        aria-label="Registered deployments tab"
-        data-testid="registered-deployments-tab"
+        eventKey={ModelVersionDetailsTab.DEPLOYMENTS}
+        title={<TabTitleText>{ModelVersionDetailsTabTitle.DEPLOYMENTS}</TabTitleText>}
+        aria-label="Deployments tab"
+        data-testid="deployments-tab"
       >
-        <PageSection isFilled variant="light" data-testid="registered-deployments-tab-content">
+        <PageSection isFilled variant="light" data-testid="deployments-tab-content">
           <ModelVersionRegisteredDeploymentsView modelVersion={mv} />
         </PageSection>
       </Tab>

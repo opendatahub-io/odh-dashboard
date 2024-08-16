@@ -37,7 +37,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
       <EmptyModelRegistryState
         testid="empty-registered-models"
         title="No models in selected registry"
-        description={`${preferredModelRegistry?.metadata.name} has no models registered to it. Register model to this registry, or select a different one.`}
+        description={`${preferredModelRegistry?.metadata.name} has no active registered models. Register a model in this registry, or select a different registry.`}
         primaryActionText="Register model"
         secondaryActionText="View archived models"
         primaryActionOnClick={() => {

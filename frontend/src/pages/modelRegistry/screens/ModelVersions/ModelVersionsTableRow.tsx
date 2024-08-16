@@ -47,7 +47,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           onClick: () => setIsDeployModalOpen(true),
         },
         {
-          title: 'Archive version',
+          title: 'Archive model version',
           onClick: () => setIsArchiveModalOpen(true),
         },
       ];
@@ -85,7 +85,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       <Td dataLabel="Last modified">
         <ModelTimestamp timeSinceEpoch={mv.lastUpdateTimeSinceEpoch} />
       </Td>
-      <Td dataLabel="Owner">{mv.author}</Td>
+      <Td dataLabel="Author">{mv.author}</Td>
       <Td dataLabel="Labels">
         <ModelLabels customProperties={mv.customProperties} name={mv.name} />
       </Td>

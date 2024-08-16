@@ -28,7 +28,7 @@ const RegisteredModelsArchiveListView: React.FC<RegisteredModelsArchiveListViewP
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = [SearchType.KEYWORD, SearchType.OWNER];
+  const searchTypes = [SearchType.KEYWORD, SearchType.AUTHOR];
 
   const filteredRegisteredModels = filterRegisteredModels(
     unfilteredRegisteredModels,
