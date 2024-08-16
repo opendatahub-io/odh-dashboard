@@ -8,6 +8,7 @@ import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
   modelVersionArchiveDetailsUrl,
+  modelVersionDeploymentsUrl,
   modelVersionUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
@@ -107,6 +108,15 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           modelVersionName={mv.name}
         />
         <DeployRegisteredModelModal
+          onSubmit={() =>
+            navigate(
+              modelVersionDeploymentsUrl(
+                mv.id,
+                mv.registeredModelId,
+                preferredModelRegistry?.metadata.name,
+              ),
+            )
+          }
           onCancel={() => setIsDeployModalOpen(false)}
           isOpen={isDeployModalOpen}
           modelVersion={mv}

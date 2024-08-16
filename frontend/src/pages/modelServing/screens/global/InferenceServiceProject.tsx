@@ -6,9 +6,13 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type InferenceServiceProjectProps = {
   inferenceService: InferenceServiceKind;
+  isCompact?: boolean;
 };
 
-const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({ inferenceService }) => {
+const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
+  inferenceService,
+  isCompact,
+}) => {
   const { modelServingProjects, loaded, loadError } = React.useContext(ProjectsContext);
 
   if (!loaded) {
@@ -32,7 +36,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({ infer
       {project ? (
         <>
           {getDisplayNameFromK8sResource(project)}{' '}
-          <Label>
+          <Label isCompact={isCompact}>
             {project.metadata.labels?.['modelmesh-enabled'] === 'true'
               ? 'Multi-model serving enabled'
               : 'Single-model serving enabled'}

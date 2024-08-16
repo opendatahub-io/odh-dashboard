@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
+  getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
@@ -224,7 +225,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     );
 
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
-      createDataInferenceService,
+      {
+        ...createDataInferenceService,
+        ...getCreateInferenceServiceLabels(registeredModelDeployInfo),
+      },
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
       false,
@@ -243,7 +247,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           submitInferenceServiceResource({ dryRun: false }),
         ]),
       )
-      .then(() => onSuccess())
+      .then(onSuccess)
       .catch((e) => {
         setErrorModal(e);
       });

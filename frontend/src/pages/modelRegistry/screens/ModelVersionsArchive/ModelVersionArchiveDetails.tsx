@@ -12,6 +12,9 @@ import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/componen
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
 import { ModelState } from '~/concepts/modelRegistry/types';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
 
 type ModelVersionsArchiveDetailsProps = {
@@ -32,8 +35,12 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
-  const [mv, mvLoaded, mvLoadError, refresh] = useModelVersionById(mvId);
+  const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const inferenceServices = useMakeFetchObject(
+    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+  );
+  const servingRuntimes = useMakeFetchObject(useServingRuntimes());
 
   return (
     <>
@@ -68,7 +75,15 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
         loaded={mvLoaded}
         provideChildrenPadding
       >
-        {mv !== null && <ModelVersionDetailsTabs tab={tab} modelVersion={mv} refresh={refresh} />}
+        {mv !== null && (
+          <ModelVersionDetailsTabs
+            tab={tab}
+            modelVersion={mv}
+            inferenceServices={inferenceServices}
+            servingRuntimes={servingRuntimes}
+            refresh={refreshModelVersion}
+          />
+        )}
       </ApplicationsPage>
       {mv !== null && (
         <RestoreModelVersionModal

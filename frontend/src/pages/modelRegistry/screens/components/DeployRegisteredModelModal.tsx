@@ -15,15 +15,17 @@ import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/u
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 
 interface DeployRegisteredModelModalProps {
-  onCancel: () => void;
   isOpen: boolean;
   modelVersion: ModelVersion;
+  onCancel: () => void;
+  onSubmit?: () => void;
 }
 
 const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   isOpen,
-  onCancel,
   modelVersion,
+  onCancel,
+  onSubmit,
 }) => {
   const {
     servingRuntimeTemplates: [templates],
@@ -48,10 +50,17 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion);
 
-  const onClose = React.useCallback(() => {
-    setSelectedProject(null);
-    onCancel();
-  }, [onCancel]);
+  const onClose = React.useCallback(
+    (submit: boolean) => {
+      if (submit) {
+        onSubmit?.();
+      }
+
+      setSelectedProject(null);
+      onCancel();
+    },
+    [onCancel, onSubmit],
+  );
 
   if (
     (platform === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
@@ -64,12 +73,12 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         description="Configure properties for deploying your model"
         variant="medium"
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={() => onClose(false)}
         actions={[
           <Button key="deploy" variant="primary" isDisabled>
             Deploy
           </Button>,
-          <Button key="cancel" variant="link" onClick={onClose}>
+          <Button key="cancel" variant="link" onClick={() => onClose(false)}>
             Cancel
           </Button>,
         ]}

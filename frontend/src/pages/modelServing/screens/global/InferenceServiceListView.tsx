@@ -50,6 +50,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
 
   return (
     <InferenceServiceTable
+      isGlobal
       clearFilters={resetFilters}
       servingRuntimes={servingRuntimes}
       inferenceServices={filteredInferenceServices}
