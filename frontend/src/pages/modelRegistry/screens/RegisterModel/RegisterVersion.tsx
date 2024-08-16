@@ -13,11 +13,7 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import {
-  modelRegistryUrl,
-  modelVersionUrl,
-  registeredModelUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { filterLiveModels } from '~/concepts/modelRegistry/utils';
 import { ValueOf } from '~/typeHelpers';
@@ -58,8 +54,8 @@ const RegisterVersion: React.FC = () => {
       return; // We shouldn't be able to hit this due to form validation
     }
     handleSubmit(async () => {
-      const { modelVersion } = await registerVersion(apiState, registeredModel, formData, author);
-      navigate(modelVersionUrl(modelVersion.id, registeredModel.id, mrName));
+      await registerVersion(apiState, registeredModel, formData, author);
+      navigate(registeredModelUrl(registeredModel.id, mrName));
     });
   };
   const onCancel = () =>
