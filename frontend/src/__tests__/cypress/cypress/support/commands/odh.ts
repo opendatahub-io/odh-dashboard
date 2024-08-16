@@ -572,36 +572,20 @@ declare global {
           type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
           options: {
             query: { view: string };
-            path: { namespace: string; serviceName: string; artifactId: number };
+            path: { namespace: string; serviceName: string; artifactId: string };
           },
           response: OdhResponse<ArtifactStorage>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/storage/:namespace',
-          options: {
-            query: { key: string; peek?: number };
-            path: { namespace: string };
-          },
-          response: OdhResponse<string>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /api/storage/:namespace/size',
-          options: {
-            query: { key: string };
-            path: { namespace: string };
-          },
-          response: OdhResponse<number>,
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'GET /api/connection-types',
-          response: ConnectionTypeConfigMap[],
+          response: OdhResponse<ConnectionTypeConfigMap[]>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PATCH /api/connection-types/:name',
           options: {
             path: { name: string };
           },
-          response: { success: boolean; error: string },
+          response: OdhResponse<SuccessErrorResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/connection-types/:name',

@@ -14,18 +14,17 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
   const isClassificationMetrics = artifact.getType() === ArtifactType.CLASSIFICATION_METRICS;
   const [loading, setLoading] = React.useState<boolean>(false);
 
-  const artifactStorage = useArtifactStorage();
+  const { getStorageObjectUrl } = useArtifactStorage();
 
   const handleOnClick = async () => {
-    if (artifactStorage.enabled) {
-      const url = await artifactStorage.getStorageObjectUrl(artifact);
-      return url;
-    }
-    return undefined;
+    const url = await getStorageObjectUrl(artifact);
+    return url;
   };
 
-  if (!artifactStorage.enabled || isClassificationMetrics) {
-    return artifact.getUri();
+  const uri = artifact.getUri();
+
+  if (isClassificationMetrics) {
+    return uri;
   }
 
   return (
@@ -60,7 +59,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
               });
           }}
         >
-          <Truncate content={artifact.getUri()} position="middle" trailingNumChars={30} />
+          <Truncate content={uri} position="middle" trailingNumChars={30} />
         </Button>
       </FlexItem>
     </Flex>

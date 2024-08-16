@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ReactElement } from 'react';
 import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
-import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { Link } from 'react-router-dom';
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -272,9 +271,6 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
     compareTo: byId(id),
   };
 };
-export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
-  'biasMetricConfig' in obj;
-
 export const convertInputType = (input: string): number | boolean | string => {
   if (input !== '' && !Number.isNaN(Number(input))) {
     return Number(input);

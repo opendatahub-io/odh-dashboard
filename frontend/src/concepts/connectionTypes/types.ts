@@ -31,15 +31,17 @@ type Field<T extends ConnectionTypeFieldType | string> = {
   description?: string;
 };
 
+export type ConnectionTypeCommonProperties<V = string> = {
+  defaultValue?: V;
+  defaultReadOnly?: boolean;
+};
+
 // P default to an empty set of properties
 // eslint-disable-next-line @typescript-eslint/ban-types
-type DataField<T extends ConnectionTypeFieldType | string, V = string, P = {}> = Field<T> & {
+export type DataField<T extends ConnectionTypeFieldType | string, V = string, P = {}> = Field<T> & {
   envVar: string;
   required?: boolean;
-  properties: P & {
-    defaultValue?: V;
-    defaultReadOnly?: boolean;
-  };
+  properties: P & ConnectionTypeCommonProperties<V>;
 };
 
 export type SectionField = Field<ConnectionTypeFieldType.Section | 'section'>;
@@ -82,7 +84,7 @@ export type ConnectionTypeDataField = Exclude<ConnectionTypeField, SectionField>
 export type ConnectionTypeConfigMap = K8sResourceCommon & {
   metadata: {
     name: string;
-    annotations: DisplayNameAnnotations & {
+    annotations?: DisplayNameAnnotations & {
       'opendatahub.io/enabled'?: 'true' | 'false';
       'opendatahub.io/username'?: string;
     };

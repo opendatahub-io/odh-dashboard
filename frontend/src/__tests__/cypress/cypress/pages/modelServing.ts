@@ -121,6 +121,12 @@ class InferenceServiceModal extends Modal {
       .findByRole('button', { name: 'Options menu' });
   }
 
+  selectExistingConnectionSelectOptionByResourceName(name: string) {
+    this.findExistingConnectionSelect()
+      .findSelectOptionByTestId(`inference-service-data-connection ${name}`)
+      .click();
+  }
+
   findLocationNameInput() {
     return this.find().findByTestId('field Name');
   }

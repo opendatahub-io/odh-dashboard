@@ -56,18 +56,27 @@ export const updateConnectionType = (
 };
 
 export const updateConnectionTypeEnabled = (
-  name: string,
+  connectionType: ConnectionTypeConfigMapObj,
   enabled: boolean,
 ): Promise<ResponseStatus> => {
-  const url = `/api/connection-types/${name}`;
+  const url = `/api/connection-types/${connectionType.metadata.name}`;
+
+  const patch = [];
+  if (!('annotations' in connectionType.metadata)) {
+    patch.push({
+      path: '/metadata/annotations',
+      op: 'add',
+      value: {},
+    });
+  }
+  patch.push({
+    op: connectionType.metadata.annotations?.['opendatahub.io/enabled'] ? 'replace' : 'add',
+    path: '/metadata/annotations/opendatahub.io~1enabled',
+    value: String(enabled),
+  });
+
   return axios
-    .patch(url, [
-      {
-        op: 'replace',
-        path: '/metadata/annotations/opendatahub.io~1enabled',
-        value: enabled,
-      },
-    ])
+    .patch(url, patch)
     .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);

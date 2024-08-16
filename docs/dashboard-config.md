@@ -63,8 +63,6 @@ spec:
     disableBiasMetrics: false
     disablePerformanceMetrics: false
     disablePipelineExperiments: true
-    disableS3Endpoint: true
-    disableArtifactsAPI: true
     disableDistributedWorkloads: false
     disableConnectionTypes: false
 ```
@@ -161,8 +159,6 @@ spec:
     disableBiasMetrics: false
     disablePerformanceMetrics: false
     disablePipelineExperiments: false
-    disableS3Endpoint: true
-    disableArtifactsAPI: true
   notebookController:
     enabled: true
     gpuSetting: autodetect

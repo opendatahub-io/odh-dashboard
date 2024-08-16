@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, FormGroup } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
+import TypeaheadSelect from '~/components/TypeaheadSelect';
 
 type ExistingDataConnectionFieldProps = {
   fieldId: string;
@@ -15,10 +15,20 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
   selectedDataConnection,
   setDataConnection,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
   const {
     dataConnections: { data: connections, loaded, error },
   } = React.useContext(ProjectDetailsContext);
+
+  const selectOptions = React.useMemo(
+    () =>
+      loaded
+        ? connections.map((connection) => ({
+            value: connection.data.metadata.name,
+            content: getDataConnectionDisplayName(connection),
+          }))
+        : [],
+    [connections, loaded],
+  );
 
   if (error) {
     return (
@@ -45,32 +55,15 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
       fieldId={fieldId}
       data-testid="data-connection-group"
     >
-      <Select
-        variant="typeahead"
-        selections={selectedDataConnection}
-        isOpen={isOpen}
-        onClear={() => {
-          setDataConnection(undefined);
-          setOpen(false);
-        }}
-        isDisabled={empty}
-        onSelect={(e, selection) => {
-          if (typeof selection === 'string') {
-            setDataConnection(selection);
-            setOpen(false);
-          }
-        }}
-        onToggle={(e, isExpanded) => setOpen(isExpanded)}
-        placeholderText={placeholderText}
-        direction="up"
-        menuAppendTo="parent"
-      >
-        {connections.map((connection) => (
-          <SelectOption key={connection.data.metadata.name} value={connection.data.metadata.name}>
-            {getDataConnectionDisplayName(connection)}
-          </SelectOption>
-        ))}
-      </Select>
+      <TypeaheadSelect
+        selectOptions={selectOptions}
+        selected={selectedDataConnection}
+        onSelect={(_ev, selection) => setDataConnection(String(selection))}
+        onClearSelection={() => setDataConnection()}
+        placeholder={placeholderText}
+        noOptionsFoundMessage={(filter) => `No data connection was found for "${filter}"`}
+        isDisabled={!loaded || connections.length === 0}
+      />
     </FormGroup>
   );
 };

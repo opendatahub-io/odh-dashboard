@@ -6,7 +6,6 @@ import {
   DrawerActions,
   DrawerCloseButton,
   DrawerContent,
-  DrawerContentBody,
   Title,
   DrawerPanelBody,
   Card,
@@ -68,9 +67,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
 
   return (
     <Drawer isExpanded={isExpanded} isInline>
-      <DrawerContent panelContent={panelContent}>
-        <DrawerContentBody>{children}</DrawerContentBody>
-      </DrawerContent>
+      <DrawerContent panelContent={panelContent}>{children}</DrawerContent>
     </Drawer>
   );
 };

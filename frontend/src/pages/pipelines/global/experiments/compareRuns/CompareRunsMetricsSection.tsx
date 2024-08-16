@@ -17,7 +17,6 @@ import ScalarMetricTable from '~/concepts/pipelines/content/compareRuns/metricsS
 import RocCurveCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/roc/RocCurveCompare';
 import ConfusionMatrixCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/ConfusionMatrixCompare';
 import MarkdownCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useFetchMarkdownMaps from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/useFetchMarkdownMaps';
 
 export const CompareRunMetricsSection: React.FunctionComponent = () => {
@@ -28,7 +27,6 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     MetricSectionTabLabels.SCALAR,
   );
-  const isS3EndpointAvailable = useIsAreaAvailable(SupportedArea.S3_ENDPOINT).status;
 
   const runArtifacts: RunArtifact[] = React.useMemo(
     () => getRunArtifacts(mlmdPackages),
@@ -117,22 +115,20 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
             />
           </TabContentBody>
         </Tab>
-        {isS3EndpointAvailable && (
-          <Tab
-            eventKey={MetricSectionTabLabels.MARKDOWN}
-            title={<TabTitleText>{MetricSectionTabLabels.MARKDOWN}</TabTitleText>}
-            data-testid="compare-runs-markdown-tab"
-          >
-            <TabContentBody hasPadding data-testid="compare-runs-markdown-tab-content">
-              <MarkdownCompare
-                configMap={selectedConfigMap}
-                runMap={selectedRunMap}
-                isEmpty={isEmpty}
-                isLoaded={isLoaded && configsLoaded}
-              />
-            </TabContentBody>
-          </Tab>
-        )}
+        <Tab
+          eventKey={MetricSectionTabLabels.MARKDOWN}
+          title={<TabTitleText>{MetricSectionTabLabels.MARKDOWN}</TabTitleText>}
+          data-testid="compare-runs-markdown-tab"
+        >
+          <TabContentBody hasPadding data-testid="compare-runs-markdown-tab-content">
+            <MarkdownCompare
+              configMap={selectedConfigMap}
+              runMap={selectedRunMap}
+              isEmpty={isEmpty}
+              isLoaded={isLoaded && configsLoaded}
+            />
+          </TabContentBody>
+        </Tab>
       </Tabs>
     </ExpandableSection>
   );

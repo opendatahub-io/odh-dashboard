@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { FilterProps } from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import { PipelinesFilterOp, PipelinesFilterPredicate } from '~/concepts/pipelines/kfTypes';
 
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
+import FilterToolbar from '~/components/FilterToolbar';
 
 export enum FilterOptions {
   NAME = 'name',
@@ -20,6 +20,11 @@ export const getDataValue = (data: string | { value: string } | undefined): stri
   }
   return data.value;
 };
+
+export type FilterProps = Pick<
+  React.ComponentProps<typeof FilterToolbar>,
+  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+>;
 
 const defaultFilterData: FilterProps['filterData'] = {
   [FilterOptions.NAME]: '',

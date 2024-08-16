@@ -53,6 +53,12 @@ declare global {
        * @param name the name of the option
        */
       findSelectOption: (name: string | RegExp) => Cypress.Chainable<JQuery>;
+      /**
+       * Finds a patternfly select option by first opening the select menu if not already opened.
+       *
+       * @param testId the name of the option
+       */
+      findSelectOptionByTestId: (testId: string) => Cypress.Chainable<JQuery>;
 
       /**
        * Shortcut to first clear the previous value and then type text into DOM element.
@@ -196,6 +202,16 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
     }
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
     return cy.findByRole('option', { name });
+  });
+});
+
+Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (subject, testId) => {
+  Cypress.log({ displayName: 'findSelectOptionByTestId', message: testId });
+  return cy.wrap(subject).then(($el) => {
+    if ($el.find('[aria-expanded=false]').addBack().length) {
+      cy.wrap($el).click();
+    }
+    return cy.wrap($el).parent().findByTestId(testId);
   });
 });
 

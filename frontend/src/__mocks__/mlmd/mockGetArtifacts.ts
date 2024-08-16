@@ -8,7 +8,7 @@ export const mockedArtifactsResponse: GetArtifactsResponse = {
       id: 1,
       typeId: 14,
       type: 'system.Metrics',
-      uri: 's3://scalar-metrics-uri',
+      uri: 's3://scalar-metrics-uri-scalar-metrics-uri',
       properties: {},
       customProperties: {
         accuracy: { doubleValue: 92 },

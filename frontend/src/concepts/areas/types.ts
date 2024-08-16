@@ -32,14 +32,13 @@ export enum SupportedArea {
   /* Pipelines areas */
   DS_PIPELINES = 'ds-pipelines',
   PIPELINE_EXPERIMENTS = 'pipeline-experiments',
-  S3_ENDPOINT = 's3-endpoint',
-  ARTIFACT_API = 's3-artifact-api',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
   CLUSTER_SETTINGS = 'cluster-settings',
   USER_MANAGEMENT = 'user-management',
   ACCELERATOR_PROFILES = 'accelerator-profiles',
+  CONNECTION_TYPES = 'connections-types',
 
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',
@@ -61,8 +60,6 @@ export enum SupportedArea {
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
-
-  DATA_CONNECTIONS_TYPES = 'data-connections-types',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

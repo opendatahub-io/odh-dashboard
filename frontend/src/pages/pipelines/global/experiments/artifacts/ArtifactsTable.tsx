@@ -8,12 +8,12 @@ import { Artifact } from '~/third_party/mlmd';
 import { TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { FilterToolbar } from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleSelect from '~/components/SimpleSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '~/routes';
 import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
+import FilterToolbar from '~/components/FilterToolbar';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import { getArtifactName } from './utils';
 

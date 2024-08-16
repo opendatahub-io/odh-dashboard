@@ -92,7 +92,7 @@ class ModelRegistry {
   }
 
   shouldModelRegistrySelectorExist() {
-    cy.get('#model-registry-selector-dropdown').should('exist');
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
   }
 
   shouldtableToolbarExist() {
@@ -145,7 +145,7 @@ class ModelRegistry {
   }
 
   findModelRegistry() {
-    return cy.get('#model-registry-selector-dropdown');
+    return cy.findByTestId('model-registry-selector-dropdown');
   }
 
   findModelVersionsTableHeaderButton(name: string) {

@@ -33,6 +33,26 @@ class RegisterModelPage {
     return cy.get(selector);
   }
 
+  findObjectStorageAutofillButton() {
+    return cy.findByTestId('object-storage-autofill-button');
+  }
+
+  findConnectionAutofillModal() {
+    return cy.findByTestId('connection-autofill-modal');
+  }
+
+  findProjectSelector() {
+    return this.findConnectionAutofillModal().findByTestId('project-selector-dropdown');
+  }
+
+  findConnectionSelector() {
+    return this.findConnectionAutofillModal().findByTestId('select-data-connection');
+  }
+
+  findAutofillButton() {
+    return cy.findByTestId('autofill-modal-button');
+  }
+
   findSubmitButton() {
     return cy.findByTestId('create-button');
   }

@@ -25,8 +25,6 @@ export const allFeatureFlags: string[] = Object.keys({
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
   disablePipelineExperiments: false,
-  disableS3Endpoint: false,
-  disableArtifactsAPI: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
   disableConnectionTypes: false,
@@ -45,6 +43,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.CUSTOM_RUNTIMES]: {
     featureFlags: ['disableCustomServingRuntimes'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.CONNECTION_TYPES]: {
+    featureFlags: ['disableConnectionTypes'],
   },
   [SupportedArea.DS_PIPELINES]: {
     featureFlags: ['disablePipelines'],
@@ -105,16 +106,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disablePipelineExperiments'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
-
-  [SupportedArea.ARTIFACT_API]: {
-    featureFlags: ['disableArtifactsAPI'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
-  },
-
-  [SupportedArea.S3_ENDPOINT]: {
-    featureFlags: ['disableS3Endpoint'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
-  },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],
     requiredComponents: [StackComponent.KUEUE],
@@ -123,8 +114,5 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-  },
-  [SupportedArea.DATA_CONNECTIONS_TYPES]: {
-    featureFlags: ['disableConnectionTypes'],
   },
 };

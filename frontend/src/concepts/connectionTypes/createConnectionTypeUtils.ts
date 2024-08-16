@@ -7,12 +7,14 @@ export const extractConnectionTypeFromMap = (
   name: string;
   description: string;
   enabled: boolean;
+  username: string;
   fields: ConnectionTypeField[];
 } => ({
   k8sName: configMap?.metadata.name ?? '',
-  name: configMap?.metadata.annotations['openshift.io/display-name'] ?? '',
-  description: configMap?.metadata.annotations['openshift.io/description'] ?? '',
-  enabled: configMap?.metadata.annotations['opendatahub.io/enabled'] === 'true',
+  name: configMap?.metadata.annotations?.['openshift.io/display-name'] ?? '',
+  description: configMap?.metadata.annotations?.['openshift.io/description'] ?? '',
+  enabled: configMap?.metadata.annotations?.['opendatahub.io/enabled'] === 'true',
+  username: configMap?.metadata.annotations?.['opendatahub.io/username'] ?? '',
   fields: configMap?.data?.fields ?? [],
 });
 
