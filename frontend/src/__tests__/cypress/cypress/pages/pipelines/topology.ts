@@ -122,11 +122,11 @@ class RunDetails extends PipelinesTopology {
     return new DetailsItem(() => cy.findByTestId(`detail-item-${key}`));
   }
 
-  private findStatusLabel(timeout = 10) {
+  private findStatusLabel(timeout?: number) {
     return cy.get('[data-testid="status-icon"]', { timeout });
   }
 
-  expectStatusLabelToBe(statusValue: string, timeout = 180000) {
+  expectStatusLabelToBe(statusValue: string, timeout?: number) {
     this.findStatusLabel(timeout).should('have.text', statusValue);
   }
 
