@@ -30,7 +30,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = React.useMemo(() => [SearchType.KEYWORD], []); // TODO Add owner once RHOAIENG-7566 is completed.
+  const searchTypes = React.useMemo(() => [SearchType.KEYWORD, SearchType.OWNER], []);
 
   if (unfilteredRegisteredModels.length === 0) {
     return (

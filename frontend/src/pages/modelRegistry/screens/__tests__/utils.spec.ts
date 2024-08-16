@@ -266,6 +266,7 @@ describe('getPatchBody', () => {
   it('returns a given RegisteredModel with id/name/timestamps removed, customProperties updated and other values unchanged', () => {
     const registeredModel = mockRegisteredModel({
       id: '1',
+      owner: 'Author 1',
       name: 'test-model',
       description: 'Description here',
       labels: [],
@@ -285,6 +286,7 @@ describe('getPatchBody', () => {
       customProperties: {
         label1: { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
       },
+      owner: 'Author 1',
       state: ModelState.LIVE,
       externalID: '1234132asdfasdf',
     } satisfies Partial<RegisteredModel>);

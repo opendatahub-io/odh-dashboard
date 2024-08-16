@@ -14,7 +14,6 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
 import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
-import RegisteredModelAuthor from './RegisteredModelAuthor';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -76,8 +75,8 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       <Td dataLabel="Last modified">
         <ModelTimestamp timeSinceEpoch={rm.lastUpdateTimeSinceEpoch} />
       </Td>
-      <Td dataLabel="Author">
-        <RegisteredModelAuthor registeredModelId={rm.id} />
+      <Td dataLabel="Owner">
+        <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
       </Td>
       <Td isActionCell>
         <ActionsColumn items={actions} />
