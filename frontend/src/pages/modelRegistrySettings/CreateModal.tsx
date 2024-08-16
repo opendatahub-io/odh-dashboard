@@ -157,8 +157,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
           }}
         />
         <FormSection
-          title="Database"
-          description="This is where model data is stored. You need to connect to an external database."
+          title="Connect to external MySQL database"
+          description="This external database is where model data is stored."
         >
           <FormGroup label="Host" isRequired fieldId="mr-host">
             <TextInput

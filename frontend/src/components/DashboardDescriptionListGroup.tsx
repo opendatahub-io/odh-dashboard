@@ -6,6 +6,8 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Flex,
+  FlexItem,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
@@ -25,6 +27,7 @@ type EditableProps = {
 
 export type DashboardDescriptionListGroupProps = {
   title: React.ReactNode;
+  tooltip?: React.ReactNode;
   action?: React.ReactNode;
   isEmpty?: boolean;
   contentWhenEmpty?: React.ReactNode;
@@ -34,6 +37,7 @@ export type DashboardDescriptionListGroupProps = {
 const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps> = (props) => {
   const {
     title,
+    tooltip,
     action,
     isEmpty,
     contentWhenEmpty,
@@ -96,7 +100,15 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
           </Split>
         </DescriptionListTerm>
       ) : (
-        <DescriptionListTerm>{title}</DescriptionListTerm>
+        <DescriptionListTerm>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>{title}</FlexItem>
+            {tooltip}
+          </Flex>
+        </DescriptionListTerm>
       )}
       <DescriptionListDescription className={isEmpty && !isEditing ? text.disabledColor_100 : ''}>
         {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}

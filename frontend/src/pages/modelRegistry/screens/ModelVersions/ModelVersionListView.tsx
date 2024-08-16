@@ -42,7 +42,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = [SearchType.KEYWORD, SearchType.OWNER];
+  const searchTypes = [SearchType.KEYWORD, SearchType.AUTHOR];
 
   const [isArchivedModelVersionKebabOpen, setIsArchivedModelVersionKebabOpen] =
     React.useState(false);
@@ -54,7 +54,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
       <EmptyModelRegistryState
         testid="empty-model-versions"
         title="No versions"
-        description={`${rm?.name} has no versions registered to it. Register a version to this model.`}
+        description={`${rm?.name} has no registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         secondaryActionText="View archived versions"
         primaryActionOnClick={() => {

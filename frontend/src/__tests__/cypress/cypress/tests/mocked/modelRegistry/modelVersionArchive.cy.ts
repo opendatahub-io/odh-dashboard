@@ -246,7 +246,7 @@ describe('Archiving version', () => {
     modelVersionArchive.visitModelVersionList();
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
-    modelVersionRow.findKebabAction('Archive version').click();
+    modelVersionRow.findKebabAction('Archive model version').click();
     archiveVersionModal.findArchiveButton().should('be.disabled');
     archiveVersionModal.findModalTextInput().fill('model version 3');
     archiveVersionModal.findArchiveButton().should('be.enabled').click();

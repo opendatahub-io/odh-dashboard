@@ -348,8 +348,8 @@ describe('filterModelVersions', () => {
     expect(filtered).toEqual([modelVersions[1]]);
   });
 
-  test('filters by owner', () => {
-    const filtered = filterModelVersions(modelVersions, 'Author3', SearchType.OWNER);
+  test('filters by author', () => {
+    const filtered = filterModelVersions(modelVersions, 'Author3', SearchType.AUTHOR);
     expect(filtered).toEqual([modelVersions[2]]);
   });
 

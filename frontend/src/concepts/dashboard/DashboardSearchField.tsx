@@ -18,7 +18,7 @@ export enum SearchType {
   PROVIDER = 'Provider',
   IDENTIFIER = 'Identifier',
   KEYWORD = 'Keyword',
-  OWNER = 'Owner',
+  AUTHOR = 'Author',
 }
 
 type DashboardSearchFieldProps = {
