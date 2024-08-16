@@ -65,6 +65,9 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('An admin User can Import and Run a Pipeline', () => {
+    //TODO: Delete this once https://issues.redhat.com/browse/RHOAIENG-10719 is fixed
+    cy.on('uncaught:exception', () => false);
+
     // Login as an admin
     cy.visitWithLogin('/', ADMIN_USER);
 
