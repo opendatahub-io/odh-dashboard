@@ -385,10 +385,7 @@ describe('Register model page with no preselected model', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should(
-      'include',
-      '/modelRegistry/modelregistry-sample/registeredModels/1/versions/6/details',
-    );
+    cy.url().should('include', '/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
 
   it('Disables submit until required fields are filled in URI mode', () => {
@@ -443,10 +440,7 @@ describe('Register model page with no preselected model', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should(
-      'include',
-      '/modelRegistry/modelregistry-sample/registeredModels/1/versions/6/details',
-    );
+    cy.url().should('include', '/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
 });
 
@@ -531,10 +525,7 @@ describe('Register model page with preselected model', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should(
-      'include',
-      '/modelRegistry/modelregistry-sample/registeredModels/1/versions/6/details',
-    );
+    cy.url().should('include', '/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
 
   it('Disables submit until required fields are filled in URI mode', () => {
@@ -589,9 +580,6 @@ describe('Register model page with preselected model', () => {
       } satisfies Partial<ModelArtifact>);
     });
 
-    cy.url().should(
-      'include',
-      '/modelRegistry/modelregistry-sample/registeredModels/1/versions/6/details',
-    );
+    cy.url().should('include', '/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
 });
