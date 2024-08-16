@@ -30,19 +30,21 @@ const KServeInferenceServiceTable: React.FC = () => {
     serverSecrets: { refresh: refreshServerSecrets },
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
+  const columns = getKServeInferenceServiceColumns();
 
   return (
     <>
       <Table
         data={inferenceServices}
         data-testid="kserve-inference-service-table"
-        columns={getKServeInferenceServiceColumns()}
+        columns={columns}
         disableRowRenderSupport
         defaultSortColumn={1}
         rowRenderer={(modelServer, rowIndex) => (
           <KServeInferenceServiceTableRow
             key={modelServer.metadata.uid}
             obj={modelServer}
+            columnNames={columns.map((column) => column.field)}
             onEditKServe={(obj) => setEditKServeResources(obj)}
             onDeleteKServe={(obj) => setDeleteKServeResources(obj)}
             rowIndex={rowIndex}

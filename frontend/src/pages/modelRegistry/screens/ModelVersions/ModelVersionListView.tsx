@@ -21,7 +21,10 @@ import SimpleSelect from '~/components/SimpleSelect';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionArchiveUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  modelVersionArchiveUrl,
+  registerVersionForModelUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
 import ModelVersionsTable from './ModelVersionsTable';
 
@@ -42,7 +45,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = [SearchType.KEYWORD, SearchType.OWNER];
+  const searchTypes = [SearchType.KEYWORD, SearchType.AUTHOR];
 
   const [isArchivedModelVersionKebabOpen, setIsArchivedModelVersionKebabOpen] =
     React.useState(false);
@@ -54,11 +57,11 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
       <EmptyModelRegistryState
         testid="empty-model-versions"
         title="No versions"
-        description={`${rm?.name} has no versions registered to it. Register a version to this model.`}
+        description={`${rm?.name} has no registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         secondaryActionText="View archived versions"
         primaryActionOnClick={() => {
-          // TODO: Add primary action
+          navigate(registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name));
         }}
         secondaryActionOnClick={() => {
           navigate(modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name));
@@ -113,7 +116,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             </ToolbarGroup>
           </ToolbarToggleGroup>
           <ToolbarItem>
-            <Button variant="secondary">Register new version</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                navigate(registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name));
+              }}
+            >
+              Register new version
+            </Button>
           </ToolbarItem>
           <ToolbarItem>
             <Dropdown

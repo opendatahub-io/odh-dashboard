@@ -13,6 +13,7 @@ import {
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -118,7 +119,14 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             {modelArtifact.items[0]?.modelFormatName}
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Owner">{mv.author}</DashboardDescriptionListGroup>
+          <DashboardDescriptionListGroup
+            title="Author"
+            tooltip={
+              <DashboardHelpTooltip content="The author is the user who registered the model version." />
+            }
+          >
+            {mv.author}
+          </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Last modified at"
             isEmpty={!mv.lastUpdateTimeSinceEpoch}
@@ -127,7 +135,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <ModelTimestamp timeSinceEpoch={mv.lastUpdateTimeSinceEpoch} />
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
-            title="Created at"
+            title="Registered"
             isEmpty={!mv.createTimeSinceEpoch}
             contentWhenEmpty="Unknown"
           >

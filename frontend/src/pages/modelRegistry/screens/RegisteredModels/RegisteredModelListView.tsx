@@ -30,14 +30,14 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = React.useMemo(() => [SearchType.KEYWORD], []); // TODO Add owner once RHOAIENG-7566 is completed.
+  const searchTypes = React.useMemo(() => [SearchType.KEYWORD, SearchType.OWNER], []);
 
   if (unfilteredRegisteredModels.length === 0) {
     return (
       <EmptyModelRegistryState
         testid="empty-registered-models"
         title="No models in selected registry"
-        description={`${preferredModelRegistry?.metadata.name} has no models registered to it. Register model to this registry, or select a different one.`}
+        description={`${preferredModelRegistry?.metadata.name} has no active registered models. Register a model in this registry, or select a different registry.`}
         primaryActionText="Register model"
         secondaryActionText="View archived models"
         primaryActionOnClick={() => {

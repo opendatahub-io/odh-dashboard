@@ -146,11 +146,11 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableHeaderButton('Version name').click();
     modelRegistry.findModelVersionsTableHeaderButton('Version name').should(be.sortDescending);
 
-    // sort by model version owner
-    modelRegistry.findModelVersionsTableHeaderButton('Owner').click();
-    modelRegistry.findModelVersionsTableHeaderButton('Owner').should(be.sortAscending);
-    modelRegistry.findModelVersionsTableHeaderButton('Owner').click();
-    modelRegistry.findModelVersionsTableHeaderButton('Owner').should(be.sortDescending);
+    // sort by model version author
+    modelRegistry.findModelVersionsTableHeaderButton('Author').click();
+    modelRegistry.findModelVersionsTableHeaderButton('Author').should(be.sortAscending);
+    modelRegistry.findModelVersionsTableHeaderButton('Author').click();
+    modelRegistry.findModelVersionsTableHeaderButton('Author').should(be.sortDescending);
 
     // filtering by keyword
     modelRegistry.findModelVersionsTableSearch().type('new model version');
@@ -158,8 +158,8 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableRows().contains('new model version');
     modelRegistry.findModelVersionsTableSearch().focused().clear();
 
-    // filtering by owner
-    modelRegistry.findModelVersionsTableFilter().findSelectOption('Owner').click();
+    // filtering by model version author
+    modelRegistry.findModelVersionsTableFilter().findSelectOption('Author').click();
     modelRegistry.findModelVersionsTableSearch().type('Test author');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('Test author');

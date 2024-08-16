@@ -69,14 +69,12 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
         <StackItem>
           <TextContent>
             <Text component="p">
-              Only the <strong>{mr.metadata.name}</strong> itself will be removed. You&apos;ll need
-              to manually delete all data in the connected database. Additionally, the default group{' '}
-              <strong>{`${mr.metadata.name}-users`}</strong> and any permissions associated with{' '}
-              <strong>{mr.metadata.name}</strong> will be deleted. Any other groups and roles
-              created by you will need to be manually deleted.
+              The <strong>{mr.metadata.name}</strong> model registry, its default group, and any
+              permissions associated with it will be deleted. Data located in the database connected
+              to the registry will be unaffected.
             </Text>
             <Text component="p">
-              Type <strong>{mr.metadata.name}</strong> to confirm deletion.
+              Type <strong>{mr.metadata.name}</strong> to confirm deletion:
             </Text>
           </TextContent>
         </StackItem>

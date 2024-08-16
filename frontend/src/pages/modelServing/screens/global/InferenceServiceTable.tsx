@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { Table } from '~/components/table';
-import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { SortableData, Table } from '~/components/table';
+import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { isModelMesh } from '~/pages/modelServing/utils';
@@ -14,7 +14,10 @@ import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
 type InferenceServiceTableProps = {
   inferenceServices: InferenceServiceKind[];
   servingRuntimes: ServingRuntimeKind[];
-  refresh: () => void;
+  isGlobal?: boolean;
+  isLoading?: boolean;
+  getColumns?: (projects: ProjectKind[]) => SortableData<InferenceServiceKind>[];
+  refresh?: () => void;
   clearFilters?: () => void;
   filterTokens?: (servingRuntime?: string | undefined) => SecretKind[];
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
@@ -27,15 +30,27 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   clearFilters,
   enablePagination,
   toolbarContent,
+  isGlobal,
+  isLoading,
+  getColumns,
 }) => {
   const { modelServingProjects: projects } = React.useContext(ProjectsContext);
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
-  const isGlobal = !!clearFilters;
-  const mappedColumns = isGlobal
-    ? getGlobalInferenceServiceColumns(projects)
-    : getProjectInferenceServiceColumns();
+  const mappedColumns = React.useMemo(() => {
+    const columns = getColumns?.(projects);
+
+    if (columns) {
+      return columns;
+    }
+
+    if (isGlobal) {
+      return getGlobalInferenceServiceColumns(projects);
+    }
+
+    return getProjectInferenceServiceColumns();
+  }, [getColumns, isGlobal, projects]);
 
   return (
     <>
@@ -43,11 +58,12 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         data-testid="inference-service-table"
         data={inferenceServices}
         columns={mappedColumns}
+        loading={isLoading}
         variant={isGlobal ? undefined : 'compact'}
         toolbarContent={toolbarContent}
         enablePagination={enablePagination}
         emptyTableView={
-          isGlobal ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
+          clearFilters ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
         }
         rowRenderer={(is) => (
           <ResourceTr key={is.metadata.uid} resource={is}>
@@ -57,7 +73,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
                 (sr) => sr.metadata.name === is.spec.predictor.model?.runtime,
               )}
               isGlobal={isGlobal}
-              showServingRuntime={isGlobal}
+              columnNames={mappedColumns.map((column) => column.field)}
               onDeleteInferenceService={setDeleteInferenceService}
               onEditInferenceService={setEditInferenceService}
             />
@@ -76,7 +92,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         }
         onClose={(deleted) => {
           if (deleted) {
-            refresh();
+            refresh?.();
           }
           setDeleteInferenceService(undefined);
         }}
@@ -86,7 +102,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         editInfo={editInferenceService}
         onClose={(edited) => {
           if (edited) {
-            refresh();
+            refresh?.();
           }
           setEditInferenceService(undefined);
         }}
@@ -107,7 +123,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         }}
         onClose={(edited) => {
           if (edited) {
-            refresh();
+            refresh?.();
           }
           setEditInferenceService(undefined);
         }}

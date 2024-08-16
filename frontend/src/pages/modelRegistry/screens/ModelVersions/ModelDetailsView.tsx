@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { ClipboardCopy, DescriptionList, Flex, FlexItem } from '@patternfly/react-core';
+import { ClipboardCopy, DescriptionList, Flex, FlexItem, Text } from '@patternfly/react-core';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
-import RegisteredModelOwner from '~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelOwner';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
   getLabels,
@@ -83,7 +82,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ registeredModel: rm
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Owner">
-            <RegisteredModelOwner registeredModelId={rm.id} />
+            <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Last modified at"

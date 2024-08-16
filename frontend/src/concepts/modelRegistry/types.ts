@@ -111,6 +111,7 @@ export type ModelVersion = ModelRegistryBase & {
 
 export type RegisteredModel = ModelRegistryBase & {
   state?: ModelState;
+  owner?: string;
 };
 
 export type InferenceService = ModelRegistryBase & {

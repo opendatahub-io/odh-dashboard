@@ -27,6 +27,7 @@ import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifac
 import { isConfusionMatrix } from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { getArtifactProperties } from './utils';
 
 interface ArtifactVisualizationProps {
@@ -40,12 +41,14 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
   const { getStorageObjectUrl } = useArtifactStorage();
   const artifactType = artifact.getType();
 
+  const memoizedArtifact = useDeepCompareMemoize(artifact);
+
   React.useEffect(() => {
     if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
-      const uri = artifact.getUri();
+      const uri = memoizedArtifact.getUri();
       if (uri) {
         const downloadArtifact = async () => {
-          await getStorageObjectUrl(artifact)
+          await getStorageObjectUrl(memoizedArtifact)
             .then((url) => setDownloadedArtifactUrl(url))
             .catch(() => null);
           setLoading(false);
@@ -55,7 +58,7 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
         downloadArtifact();
       }
     }
-  }, [artifact, getStorageObjectUrl, artifactType, namespace]);
+  }, [memoizedArtifact, getStorageObjectUrl, artifactType, namespace]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');

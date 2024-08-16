@@ -1,5 +1,19 @@
+export const modelRegistryUrl = (preferredModelRegistry?: string): string =>
+  `/modelRegistry/${preferredModelRegistry}`;
+
+export const registeredModelsUrl = (preferredModelRegistry?: string): string =>
+  `${modelRegistryUrl(preferredModelRegistry)}/registeredModels`;
+
 export const registeredModelUrl = (rmId?: string, preferredModelRegistry?: string): string =>
-  `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}`;
+  `${registeredModelsUrl(preferredModelRegistry)}/${rmId}`;
+
+export const registeredModelArchiveUrl = (preferredModelRegistry?: string): string =>
+  `${registeredModelsUrl(preferredModelRegistry)}/archive`;
+
+export const registeredModelArchiveDetailsUrl = (
+  rmId?: string,
+  preferredModelRegistry?: string,
+): string => `${registeredModelArchiveUrl(preferredModelRegistry)}/${rmId}`;
 
 export const modelVersionListUrl = (rmId?: string, preferredModelRegistry?: string): string =>
   `${registeredModelUrl(rmId, preferredModelRegistry)}/versions`;
@@ -8,28 +22,30 @@ export const modelVersionUrl = (
   mvId: string,
   rmId?: string,
   preferredModelRegistry?: string,
-): string => `${registeredModelUrl(rmId, preferredModelRegistry)}/versions/${mvId}`;
+): string => `${modelVersionListUrl(rmId, preferredModelRegistry)}/${mvId}`;
 
 export const modelVersionArchiveUrl = (rmId?: string, preferredModelRegistry?: string): string =>
-  `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/archive`;
-
-export const registeredModelArchiveUrl = (preferredModelRegistry?: string): string =>
-  `/modelRegistry/${preferredModelRegistry}/registeredModels/archive`;
-
-export const registerModelUrl = (preferredModelRegistry?: string): string =>
-  `/modelRegistry/${preferredModelRegistry}/registerModel`;
-
-export const registeredModelsUrl = (preferredModelRegistry?: string): string =>
-  `/modelRegistry/${preferredModelRegistry}/registeredModels`;
-
-export const registeredModelArchiveDetailsUrl = (
-  rmId?: string,
-  preferredModelRegistry?: string,
-): string => `/modelRegistry/${preferredModelRegistry}/registeredModels/archive/${rmId}`;
+  `${modelVersionListUrl(rmId, preferredModelRegistry)}/archive`;
 
 export const modelVersionArchiveDetailsUrl = (
   mvId: string,
   rmId?: string,
   preferredModelRegistry?: string,
-): string =>
-  `/modelRegistry/${preferredModelRegistry}/registeredModels/${rmId}/versions/archive/${mvId}`;
+): string => `${modelVersionArchiveUrl(rmId, preferredModelRegistry)}/${mvId}`;
+
+export const registerModelUrl = (preferredModelRegistry?: string): string =>
+  `${modelRegistryUrl(preferredModelRegistry)}/registerModel`;
+
+export const registerVersionUrl = (preferredModelRegistry?: string): string =>
+  `${modelRegistryUrl(preferredModelRegistry)}/registerVersion`;
+
+export const registerVersionForModelUrl = (
+  rmId?: string,
+  preferredModelRegistry?: string,
+): string => `${registeredModelUrl(rmId, preferredModelRegistry)}/registerVersion`;
+
+export const modelVersionDeploymentsUrl = (
+  mvId: string,
+  rmId?: string,
+  preferredModelRegistry?: string,
+): string => `${modelVersionUrl(mvId, rmId, preferredModelRegistry)}/deployments`;

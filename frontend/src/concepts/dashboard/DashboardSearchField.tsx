@@ -18,6 +18,7 @@ export enum SearchType {
   PROVIDER = 'Provider',
   IDENTIFIER = 'Identifier',
   KEYWORD = 'Keyword',
+  AUTHOR = 'Author',
   OWNER = 'Owner',
 }
 

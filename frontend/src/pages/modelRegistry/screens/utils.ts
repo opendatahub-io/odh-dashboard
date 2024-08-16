@@ -5,7 +5,6 @@ import {
   ModelRegistryMetadataType,
   ModelRegistryStringCustomProperties,
   ModelVersion,
-  ModelState,
   RegisteredModel,
 } from '~/concepts/modelRegistry/types';
 import { KeyValuePair } from '~/types';
@@ -125,7 +124,7 @@ export const filterModelVersions = (
           (mv.description && mv.description.toLowerCase().includes(search.toLowerCase()))
         );
 
-      case SearchType.OWNER:
+      case SearchType.AUTHOR:
         return (
           mv.author &&
           (mv.author.toLowerCase().includes(search.toLowerCase()) ||
@@ -155,22 +154,9 @@ export const filterRegisteredModels = (
         );
 
       case SearchType.OWNER:
-        // TODO Implement owner search functionality once RHOAIENG-7566 is completed.
-        return;
+        return rm.owner && rm.owner.toLowerCase().includes(search.toLowerCase());
 
       default:
         return true;
     }
   });
-
-export const filterArchiveVersions = (modelVersions: ModelVersion[]): ModelVersion[] =>
-  modelVersions.filter((mv) => mv.state === ModelState.ARCHIVED);
-
-export const filterLiveVersions = (modelVersions: ModelVersion[]): ModelVersion[] =>
-  modelVersions.filter((mv) => mv.state === ModelState.LIVE);
-
-export const filterArchiveModels = (registeredModels: RegisteredModel[]): RegisteredModel[] =>
-  registeredModels.filter((rm) => rm.state === ModelState.ARCHIVED);
-
-export const filterLiveModels = (registeredModels: RegisteredModel[]): RegisteredModel[] =>
-  registeredModels.filter((rm) => rm.state === ModelState.LIVE);

@@ -14,14 +14,15 @@ import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
 import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
+import { ColumnField } from './data';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
-  isGlobal: boolean;
+  isGlobal?: boolean;
   servingRuntime?: ServingRuntimeKind;
+  columnNames: string[];
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
   onEditInferenceService: (obj: InferenceServiceKind) => void;
-  showServingRuntime?: boolean;
 };
 
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
@@ -30,7 +31,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   onDeleteInferenceService,
   onEditInferenceService,
   isGlobal,
-  showServingRuntime,
+  columnNames,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
@@ -72,16 +73,19 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           )}
         </ResourceNameTooltip>
       </Td>
+
       {isGlobal && (
         <Td dataLabel="Project">
-          <InferenceServiceProject inferenceService={inferenceService} />
+          <InferenceServiceProject inferenceService={inferenceService} isCompact />
         </Td>
       )}
-      {showServingRuntime && (
+
+      {columnNames.includes(ColumnField.ServingRuntime) && (
         <Td dataLabel="Serving Runtime">
           <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
         </Td>
       )}
+
       <Td dataLabel="Inference endpoint">
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
@@ -89,34 +93,41 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           isKserve={!modelMesh}
         />
       </Td>
-      <Td dataLabel="API protocol">
-        <InferenceServiceAPIProtocol
-          servingRuntime={servingRuntime}
-          isMultiModel={modelMeshMetricsSupported}
-        />
-      </Td>
+
+      {columnNames.includes(ColumnField.ApiProtocol) && (
+        <Td dataLabel="API protocol">
+          <InferenceServiceAPIProtocol
+            servingRuntime={servingRuntime}
+            isMultiModel={modelMeshMetricsSupported}
+          />
+        </Td>
+      )}
+
       <Td dataLabel="Status">
         <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
       </Td>
-      <Td isActionCell>
-        <ResourceActionsColumn
-          resource={inferenceService}
-          items={[
-            {
-              title: 'Edit',
-              onClick: () => {
-                onEditInferenceService(inferenceService);
+
+      {columnNames.includes(ColumnField.Kebab) && (
+        <Td dataLabel="Kebab" isActionCell>
+          <ResourceActionsColumn
+            resource={inferenceService}
+            items={[
+              {
+                title: 'Edit',
+                onClick: () => {
+                  onEditInferenceService(inferenceService);
+                },
               },
-            },
-            {
-              title: 'Delete',
-              onClick: () => {
-                onDeleteInferenceService(inferenceService);
+              {
+                title: 'Delete',
+                onClick: () => {
+                  onDeleteInferenceService(inferenceService);
+                },
               },
-            },
-          ]}
-        />
-      </Td>
+            ]}
+          />
+        </Td>
+      )}
     </>
   );
 };

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { FetchStateObject } from '~/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeploymentsView';
@@ -10,12 +12,16 @@ import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeplo
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
   modelVersion: ModelVersion;
+  inferenceServices: FetchStateObject<InferenceServiceKind[]>;
+  servingRuntimes: FetchStateObject<ServingRuntimeKind[]>;
   refresh: () => void;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   tab,
   modelVersion: mv,
+  inferenceServices,
+  servingRuntimes,
   refresh,
 }) => {
   const navigate = useNavigate();
@@ -38,13 +44,16 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
         </PageSection>
       </Tab>
       <Tab
-        eventKey={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
-        title={<TabTitleText>{ModelVersionDetailsTabTitle.REGISTERED_DEPLOYMENTS}</TabTitleText>}
-        aria-label="Registered deployments tab"
-        data-testid="registered-deployments-tab"
+        eventKey={ModelVersionDetailsTab.DEPLOYMENTS}
+        title={<TabTitleText>{ModelVersionDetailsTabTitle.DEPLOYMENTS}</TabTitleText>}
+        aria-label="Deployments tab"
+        data-testid="deployments-tab"
       >
-        <PageSection isFilled variant="light" data-testid="registered-deployments-tab-content">
-          <ModelVersionRegisteredDeploymentsView modelVersion={mv} />
+        <PageSection isFilled variant="light" data-testid="deployments-tab-content">
+          <ModelVersionRegisteredDeploymentsView
+            inferenceServices={inferenceServices}
+            servingRuntimes={servingRuntimes}
+          />
         </PageSection>
       </Tab>
     </Tabs>

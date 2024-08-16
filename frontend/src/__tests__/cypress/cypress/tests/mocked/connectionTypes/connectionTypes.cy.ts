@@ -6,6 +6,7 @@ import {
 import { connectionTypesPage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
 import { mockDashboardConfig } from '~/__mocks__';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 it('Connection types should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -75,5 +76,33 @@ describe('Connection types', () => {
     row2.shouldHaveDescription('description 2');
     row2.shouldShowPreInstalledLabel();
     row2.shouldBeDisabled();
+  });
+
+  it('should delete connection type', () => {
+    connectionTypesPage.visit();
+    cy.interceptOdh(
+      'DELETE /api/connection-types/:name',
+      {
+        path: { name: 'test-2' },
+      },
+      { success: true },
+    ).as('delete');
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({}),
+      mockConnectionTypeConfigMap({
+        name: 'no-display-name',
+        displayName: '',
+        description: 'description 2',
+        username: 'Pre-installed',
+        enabled: false,
+      }),
+    ]);
+
+    connectionTypesPage.shouldHaveConnectionTypes();
+    connectionTypesPage.getConnectionTypeRow('Test display name').findKebabAction('Delete').click();
+    deleteModal.findSubmitButton().should('be.disabled');
+    deleteModal.findInput().fill('Test display name');
+    deleteModal.findSubmitButton().should('be.enabled').click();
+    cy.wait('@delete');
   });
 });

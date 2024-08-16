@@ -85,7 +85,9 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
       {registeredModelFormat && models.length !== 0 && (
         <FormHelperText>
           <HelperText>
-            <HelperTextItem>The source model format is {registeredModelFormat}</HelperTextItem>
+            <HelperTextItem>
+              The format of the source model is {registeredModelFormat}
+            </HelperTextItem>
           </HelperText>
         </FormHelperText>
       )}

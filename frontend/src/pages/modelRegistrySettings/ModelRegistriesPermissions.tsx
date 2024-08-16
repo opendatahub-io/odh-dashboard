@@ -51,7 +51,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={`Manage permissions of ${mrName}`}
+      title={`Manage ${mrName} permissions`}
       description="Manage access to this model registry for individual users and user groups, and for service accounts in a project."
       breadcrumb={
         <Breadcrumb>
