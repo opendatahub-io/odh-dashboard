@@ -11,9 +11,8 @@ export const createOpenShiftProject = (
   projectName: string,
   displayName?: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const finalDisplayName = displayName || projectName;
-  const ocCommand = finalDisplayName
-    ? `oc new-project ${projectName} --display-name='${finalDisplayName}'`
+  const ocCommand = displayName
+    ? `oc new-project ${projectName} --display-name='${displayName}'`
     : `oc new-project ${projectName}`;
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
