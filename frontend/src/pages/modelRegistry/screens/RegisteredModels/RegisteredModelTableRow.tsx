@@ -14,10 +14,6 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
 import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
-<<<<<<< HEAD
-import RegisteredModelAuthor from './RegisteredModelAuthor';
-=======
->>>>>>> b0f9e160 (changed the source of Owner and updated field to be searchable and sortable)
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -79,13 +75,8 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       <Td dataLabel="Last modified">
         <ModelTimestamp timeSinceEpoch={rm.lastUpdateTimeSinceEpoch} />
       </Td>
-<<<<<<< HEAD
-      <Td dataLabel="Author">
-        <RegisteredModelAuthor registeredModelId={rm.id} />
-=======
       <Td dataLabel="Owner">
         <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
->>>>>>> b0f9e160 (changed the source of Owner and updated field to be searchable and sortable)
       </Td>
       <Td isActionCell>
         <ActionsColumn items={actions} />

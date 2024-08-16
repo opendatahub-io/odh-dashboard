@@ -30,8 +30,8 @@ class ModelRegistryTableRow extends TableRow {
     return this.find().findByTestId('description');
   }
 
-  findAuthor() {
-    return this.find().findByTestId('registered-model-author');
+  findOwner() {
+    return this.find().findByTestId('registered-model-owner');
   }
 
   findLabelPopoverText() {
