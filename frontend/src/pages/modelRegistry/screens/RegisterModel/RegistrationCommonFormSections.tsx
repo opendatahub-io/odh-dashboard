@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Form,
   FormGroup,
   TextInput,
   TextArea,
@@ -222,18 +221,16 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
           id="location-type-uri"
           body={
             modelLocationType === ModelLocationType.URI && (
-              <Form>
-                <FormGroup label="URI" isRequired fieldId="location-uri">
-                  <TextInput
-                    isRequired
-                    type="text"
-                    id="location-uri"
-                    name="location-uri"
-                    value={modelLocationURI}
-                    onChange={(_e, value) => setData('modelLocationURI', value)}
-                  />
-                </FormGroup>
-              </Form>
+              <FormGroup label="URI" isRequired fieldId="location-uri">
+                <TextInput
+                  isRequired
+                  type="text"
+                  id="location-uri"
+                  name="location-uri"
+                  value={modelLocationURI}
+                  onChange={(_e, value) => setData('modelLocationURI', value)}
+                />
+              </FormGroup>
             )
           }
         />
