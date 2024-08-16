@@ -45,8 +45,6 @@ export const createDSPA = (
 ): Cypress.Chainable<CommandLineResult> => {
   return cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dspaReplacements);
-    applyOpenShiftYaml(modifiedYamlContent).then((result) => {
-      return result;
-    });
+    return applyOpenShiftYaml(modifiedYamlContent);
   });
 };
