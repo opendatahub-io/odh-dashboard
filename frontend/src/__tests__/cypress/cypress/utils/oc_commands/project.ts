@@ -37,7 +37,5 @@ export const deleteOpenShiftProject = (
   projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete project ${projectName}`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    return result;
-  });
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
