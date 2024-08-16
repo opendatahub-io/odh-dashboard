@@ -5,7 +5,7 @@ export type Row<T> = T & {
   id: string;
 };
 
-type useDraggableTableControlled<T> = {
+type DraggableTableControlled<T> = {
   tableProps: {
     className: string | undefined;
     tbodyProps: {
@@ -25,7 +25,7 @@ type useDraggableTableControlled<T> = {
 const useDraggableTableControlled = <T>(
   savedItemOrder: T[],
   setSavedItemOrder: (itemOrder: T[]) => void,
-): useDraggableTableControlled<T> => {
+): DraggableTableControlled<T> => {
   const [draggedItemId, setDraggedItemId] = React.useState('');
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -37,7 +37,7 @@ const useDraggableTableControlled = <T>(
     setTempItemOrder(savedItemOrder.map((r, i) => ({ ...r, id: String(i) })));
   }, [savedItemOrder]);
 
-  const onDragStart = React.useCallback<useDraggableTableControlled<T>['rowProps']['onDragStart']>(
+  const onDragStart = React.useCallback<DraggableTableControlled<T>['rowProps']['onDragStart']>(
     (assignableEvent) => {
       assignableEvent.dataTransfer.effectAllowed = 'move';
       assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
@@ -94,7 +94,7 @@ const useDraggableTableControlled = <T>(
   );
 
   const onDragLeave = React.useCallback<
-    useDraggableTableControlled<T>['tableProps']['tbodyProps']['onDragLeave']
+    DraggableTableControlled<T>['tableProps']['tbodyProps']['onDragLeave']
   >(
     (evt) => {
       if (!isValidDrop(evt)) {
@@ -106,7 +106,7 @@ const useDraggableTableControlled = <T>(
   );
 
   const onDragOver = React.useCallback<
-    useDraggableTableControlled<T>['tableProps']['tbodyProps']['onDragOver']
+    DraggableTableControlled<T>['tableProps']['tbodyProps']['onDragOver']
   >(
     (evt) => {
       evt.preventDefault();
@@ -135,7 +135,7 @@ const useDraggableTableControlled = <T>(
     [draggedItemId, draggingToItemIndex, tempItemOrder, moveItem],
   );
 
-  const onDrop = React.useCallback<useDraggableTableControlled<T>['rowProps']['onDrop']>(
+  const onDrop = React.useCallback<DraggableTableControlled<T>['rowProps']['onDrop']>(
     (evt) => {
       if (isValidDrop(evt)) {
         setSavedItemOrder(tempItemOrder);
@@ -146,7 +146,7 @@ const useDraggableTableControlled = <T>(
     [isValidDrop, onDragCancel, setSavedItemOrder, tempItemOrder],
   );
 
-  const onDragEnd = React.useCallback<useDraggableTableControlled<T>['rowProps']['onDrop']>((evt) => {
+  const onDragEnd = React.useCallback<DraggableTableControlled<T>['rowProps']['onDrop']>((evt) => {
     const target = evt.currentTarget;
     target.classList.remove(styles.modifiers.ghostRow);
     target.setAttribute('aria-pressed', 'false');
