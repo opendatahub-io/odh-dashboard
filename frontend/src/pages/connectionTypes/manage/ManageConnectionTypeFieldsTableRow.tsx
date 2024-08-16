@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Button, Label, Switch, Text, TextContent, Truncate } from '@patternfly/react-core';
+import { Button, Label, Switch, Truncate } from '@patternfly/react-core';
 import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
@@ -35,9 +35,9 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           <Label color="blue" data-testid="section-heading">
             Section heading
           </Label>
-          <TextContent>
-            <Text className="pf-v5-u-color-200">{row.description}</Text>
-          </TextContent>
+          <div className="pf-v5-u-color-200">
+            <Truncate content={row.description ?? ''} />
+          </div>
         </Td>
         <Td isActionCell modifier="nowrap">
           <Button variant="secondary" onClick={() => onAddField(row)}>
@@ -68,11 +68,9 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
     <Tr id={row.name} data-testid="row">
       <Td dataLabel={columns[0]} data-testid="field-name">
         {row.name}
-        <TextContent>
-          <Text className="pf-v5-u-color-200">
-            <Truncate content={row.description ?? ''} />
-          </Text>
-        </TextContent>
+        <div className="pf-v5-u-color-200">
+          <Truncate content={row.description ?? ''} />
+        </div>
       </Td>
       <Td dataLabel={columns[1]} data-testid="field-type">
         {fieldTypeToString(row)}

@@ -14,6 +14,7 @@ const ShortTextFormField: React.FC<Props> = ({ field, isPreview, onChange, value
   <DataFormFieldGroup field={field} isPreview={!!isPreview}>
     {(id) => (
       <TextInput
+        data-testid="short-text-value-input"
         aria-readonly={isPreview}
         autoComplete="off"
         isRequired={field.required}

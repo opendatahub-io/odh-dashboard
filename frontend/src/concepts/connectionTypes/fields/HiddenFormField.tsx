@@ -14,6 +14,7 @@ const HiddenFormField: React.FC<Props> = ({ field, isPreview, onChange, value })
   <DataFormFieldGroup field={field} isPreview={!!isPreview}>
     {(id) => (
       <PasswordInput
+        data-testid="hidden-value-input"
         aria-readonly={isPreview}
         autoComplete="off"
         isRequired={field.required}

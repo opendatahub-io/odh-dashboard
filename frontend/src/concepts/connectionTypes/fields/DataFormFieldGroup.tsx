@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  ValidatedOptions,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
 import FormGroupText from '~/components/FormGroupText';
 import UnspecifiedValue from '~/concepts/connectionTypes/fields/UnspecifiedValue';
@@ -10,6 +17,7 @@ type Props<T extends ConnectionTypeDataField> = {
   isPreview: boolean;
   children: (id: string) => React.ReactNode;
   renderDefaultValue?: boolean;
+  validationError?: string;
 };
 
 const DataFormFieldGroup = <T extends ConnectionTypeDataField>({
@@ -17,6 +25,7 @@ const DataFormFieldGroup = <T extends ConnectionTypeDataField>({
   isPreview,
   children,
   renderDefaultValue = true,
+  validationError,
 }: Props<T>): React.ReactNode => {
   const id = `${field.type}-${field.envVar}`;
   return (
@@ -34,6 +43,15 @@ const DataFormFieldGroup = <T extends ConnectionTypeDataField>({
       ) : (
         children(id)
       )}
+      {validationError ? (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem icon={<ExclamationCircleIcon />} variant={ValidatedOptions.error}>
+              {validationError}
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      ) : null}
     </FormGroup>
   );
 };

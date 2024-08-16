@@ -24,7 +24,7 @@ describe('ConnectionTypeDataFieldModal', () => {
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
-    const fieldDefaultValueInput = screen.getByTestId('field-default-value-input');
+    const fieldDefaultValueInput = screen.getByTestId('short-text-value-input');
 
     act(() => {
       fireEvent.change(fieldNameInput, { target: { value: 'new-field' } });
@@ -71,7 +71,7 @@ describe('ConnectionTypeDataFieldModal', () => {
       hiddenSelect.click();
     });
 
-    const fieldDefaultValueInput = screen.getByTestId('field-default-value-input');
+    const fieldDefaultValueInput = screen.getByTestId('hidden-value-input');
     act(() => {
       fireEvent.change(fieldDefaultValueInput, { target: { value: 'default value' } });
     });
