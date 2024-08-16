@@ -11,6 +11,8 @@ import ModelVersionsArchiveDetails from './screens/ModelVersionsArchive/ModelVer
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/RegisteredModelArchiveDetails';
 import RegisterModel from './screens/RegisterModel/RegisterModel';
+import RegisterVersion from './screens/RegisterModel/RegisterVersion';
+import { modelRegistryUrl } from './screens/routeUtils';
 
 const ModelRegistryRoutes: React.FC = () => (
   <Routes>
@@ -18,7 +20,7 @@ const ModelRegistryRoutes: React.FC = () => (
       path={'/:modelRegistry?/*'}
       element={
         <ModelRegistryCoreLoader
-          getInvalidRedirectPath={(modelRegistry) => `/modelRegistry/${modelRegistry}`}
+          getInvalidRedirectPath={(modelRegistry) => modelRegistryUrl(modelRegistry)}
         />
       }
     >
@@ -33,6 +35,7 @@ const ModelRegistryRoutes: React.FC = () => (
           path={ModelVersionsTab.DETAILS}
           element={<ModelVersions tab={ModelVersionsTab.DETAILS} empty={false} />}
         />
+        <Route path="registerVersion" element={<RegisterVersion />} />
         <Route path="versions/:modelVersionId">
           <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} />} />
           <Route
@@ -40,12 +43,9 @@ const ModelRegistryRoutes: React.FC = () => (
             element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
           />
           <Route
-            path={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+            path={ModelVersionDetailsTab.DEPLOYMENTS}
             element={
-              <ModelVersionsDetails
-                tab={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
-                empty={false}
-              />
+              <ModelVersionsDetails tab={ModelVersionDetailsTab.DEPLOYMENTS} empty={false} />
             }
           />
           <Route path="*" element={<Navigate to="." />} />
@@ -61,10 +61,10 @@ const ModelRegistryRoutes: React.FC = () => (
               }
             />
             <Route
-              path={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+              path={ModelVersionDetailsTab.DEPLOYMENTS}
               element={
                 <ModelVersionsArchiveDetails
-                  tab={ModelVersionDetailsTab.REGISTERED_DEPLOYMENTS}
+                  tab={ModelVersionDetailsTab.DEPLOYMENTS}
                   empty={false}
                 />
               }
@@ -96,6 +96,7 @@ const ModelRegistryRoutes: React.FC = () => (
         <Route path="*" element={<Navigate to="." />} />
       </Route>
       <Route path="registerModel" element={<RegisterModel />} />
+      <Route path="registerVersion" element={<RegisterVersion />} />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </Routes>

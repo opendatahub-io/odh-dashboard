@@ -6,6 +6,7 @@ import ConnectionTypesTableRow from '~/pages/connectionTypes/ConnectionTypesTabl
 import ConnectionTypesTableToolbar from '~/pages/connectionTypes/ConnectionTypesTableToolbar';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { Table } from '~/components/table';
+import DeleteConnectionTypeModal from '~/pages/connectionTypes/DeleteConnectionTypeModal';
 import {
   getCreatorFromK8sResource,
   getDescriptionFromK8sResource,
@@ -20,6 +21,10 @@ type Props = {
 const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) => {
   const [filterData, setFilterData] = React.useState<FilterDataType>(initialFilterData);
   const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), [setFilterData]);
+
+  const [deleteConnectionType, setDeleteConnectionType] = React.useState<
+    ConnectionTypeConfigMapObj | undefined
+  >();
 
   const filteredConnectionTypes = React.useMemo(
     () =>
@@ -48,29 +53,44 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
   };
 
   return (
-    <Table
-      variant="compact"
-      data={filteredConnectionTypes}
-      columns={connectionTypeColumns}
-      defaultSortColumn={0}
-      data-testid="connection-types-table"
-      rowRenderer={(connectionType) => (
-        <ConnectionTypesTableRow
-          key={connectionType.metadata.name}
-          obj={connectionType}
-          onUpdate={onUpdate}
+    <>
+      <Table
+        variant="compact"
+        data={filteredConnectionTypes}
+        columns={connectionTypeColumns}
+        defaultSortColumn={0}
+        data-testid="connection-types-table"
+        rowRenderer={(connectionType) => (
+          <ConnectionTypesTableRow
+            key={connectionType.metadata.name}
+            obj={connectionType}
+            onUpdate={onUpdate}
+            handleDelete={(connection) => setDeleteConnectionType(connection)}
+          />
+        )}
+        toolbarContent={
+          <ConnectionTypesTableToolbar
+            filterData={filterData}
+            setFilterData={setFilterData}
+            onClearFilters={onClearFilters}
+          />
+        }
+        disableItemCount
+        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        id="connectionTypes-list-table"
+      />
+      {deleteConnectionType ? (
+        <DeleteConnectionTypeModal
+          connectionType={deleteConnectionType}
+          onClose={(deleted) => {
+            if (deleted) {
+              onUpdate();
+            }
+            setDeleteConnectionType(undefined);
+          }}
         />
-      )}
-      toolbarContent={
-        <ConnectionTypesTableToolbar
-          filterData={filterData}
-          setFilterData={setFilterData}
-          onClearFilters={onClearFilters}
-        />
-      }
-      disableItemCount
-      emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
-    />
+      ) : null}
+    </>
   );
 };
 

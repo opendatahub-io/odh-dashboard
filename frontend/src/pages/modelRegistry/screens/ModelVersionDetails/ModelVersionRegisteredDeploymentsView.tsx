@@ -14,8 +14,8 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
   //TODO: implement component
   return (
     <EmptyModelRegistryState
-      title="No registered deployments"
-      description="You can deploy this version using Actions dropdown in the header"
+      title="No deployments from model registry"
+      description="No deployments initiated from model registry for this model version."
     />
   );
 };

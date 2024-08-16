@@ -5,12 +5,7 @@ export enum ModelLocationType {
   URI = 'URI',
 }
 
-export type RegisterModelFormData = RegisterVersionFormData & {
-  modelName: string;
-  modelDescription: string;
-};
-
-export type RegisterVersionFormData = {
+export type RegistrationCommonFormData = {
   versionName: string;
   versionDescription: string;
   sourceModelFormat: string;
@@ -23,7 +18,16 @@ export type RegisterVersionFormData = {
   modelLocationURI: string;
 };
 
-const registerVersionFormDataDefaults: RegisterVersionFormData = {
+export type RegisterModelFormData = RegistrationCommonFormData & {
+  modelName: string;
+  modelDescription: string;
+};
+
+export type RegisterVersionFormData = RegistrationCommonFormData & {
+  registeredModelId: string;
+};
+
+const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   versionName: '',
   versionDescription: '',
   sourceModelFormat: '',
@@ -35,14 +39,25 @@ const registerVersionFormDataDefaults: RegisterVersionFormData = {
   modelLocationPath: '',
   modelLocationURI: '',
 };
+
 const registerModelFormDataDefaults: RegisterModelFormData = {
-  ...registerVersionFormDataDefaults,
+  ...registrationCommonFormDataDefaults,
   modelName: '',
   modelDescription: '',
+};
+
+const registerVersionFormDataDefaults: RegisterVersionFormData = {
+  ...registrationCommonFormDataDefaults,
+  registeredModelId: '',
 };
 
 export const useRegisterModelData = (): GenericObjectState<RegisterModelFormData> =>
   useGenericObjectState<RegisterModelFormData>(registerModelFormDataDefaults);
 
-export const useRegisterVersionData = (): GenericObjectState<RegisterVersionFormData> =>
-  useGenericObjectState<RegisterVersionFormData>(registerVersionFormDataDefaults);
+export const useRegisterVersionData = (
+  registeredModelId?: string,
+): GenericObjectState<RegisterVersionFormData> =>
+  useGenericObjectState<RegisterVersionFormData>({
+    ...registerVersionFormDataDefaults,
+    registeredModelId: registeredModelId || '',
+  });

@@ -171,6 +171,7 @@ describe('Restoring archive model', () => {
         description: '',
         externalID: '1234132asdfasdf',
         state: 'LIVE',
+        owner: 'Author 1',
       });
     });
   });
@@ -200,6 +201,7 @@ describe('Restoring archive model', () => {
         description: '',
         externalID: '1234132asdfasdf',
         state: 'LIVE',
+        owner: 'Author 1',
       });
     });
   });
@@ -233,6 +235,7 @@ describe('Archiving model', () => {
         description: '',
         externalID: '1234132asdfasdf',
         state: 'ARCHIVED',
+        owner: 'Author 1',
       });
     });
   });
@@ -266,6 +269,7 @@ describe('Archiving model', () => {
         description: '',
         externalID: '1234132asdfasdf',
         state: 'ARCHIVED',
+        owner: 'Author 1',
       });
     });
   });

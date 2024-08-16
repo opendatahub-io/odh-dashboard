@@ -46,7 +46,7 @@ const ViewDatabaseConfigModal: React.FC<ViewDatabaseConfigModalProps> = ({
   return (
     <Modal
       title="View database configuration"
-      description="This external database is where model data is stored."
+      description="Database configuration cannot be edited after registry creation. To change the database configuration, you must delete the registry and create a new one."
       isOpen={isOpen}
       onClose={onClose}
       variant="medium"
