@@ -1,7 +1,15 @@
 import React from 'react';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 
-export type Row<T> = T & {
+export type Row<T> = {
+  data: T;
+  id: string;
+};
+
+export type RowProps = {
+  onDragStart: React.DragEventHandler<HTMLTableRowElement>;
+  onDragEnd: React.DragEventHandler<HTMLTableRowElement>;
+  onDrop: React.DragEventHandler<HTMLTableRowElement>;
   id: string;
 };
 
@@ -14,12 +22,10 @@ type DraggableTableControlled<T> = {
       ref: React.MutableRefObject<HTMLTableSectionElement | null>;
     };
   };
-  rowProps: {
-    onDragStart: React.DragEventHandler<HTMLTableRowElement>;
-    onDragEnd: React.DragEventHandler<HTMLTableRowElement>;
-    onDrop: React.DragEventHandler<HTMLTableRowElement>;
-  };
-  rowsToRender: Row<T>[];
+  rowsToRender: {
+    data: T;
+    rowProps: RowProps;
+  }[];
 };
 
 const useDraggableTableControlled = <T>(
@@ -34,10 +40,10 @@ const useDraggableTableControlled = <T>(
   const [tempItemOrder, setTempItemOrder] = React.useState<Row<T>[]>([]);
 
   React.useEffect(() => {
-    setTempItemOrder(savedItemOrder.map((r, i) => ({ ...r, id: String(i) })));
+    setTempItemOrder(savedItemOrder.map((r, i) => ({ data: r, id: String(i) })));
   }, [savedItemOrder]);
 
-  const onDragStart = React.useCallback<DraggableTableControlled<T>['rowProps']['onDragStart']>(
+  const onDragStart = React.useCallback<React.DragEventHandler<HTMLTableRowElement>>(
     (assignableEvent) => {
       assignableEvent.dataTransfer.effectAllowed = 'move';
       assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
@@ -135,10 +141,10 @@ const useDraggableTableControlled = <T>(
     [draggedItemId, draggingToItemIndex, tempItemOrder, moveItem],
   );
 
-  const onDrop = React.useCallback<DraggableTableControlled<T>['rowProps']['onDrop']>(
+  const onDrop = React.useCallback<React.DragEventHandler<HTMLTableRowElement>>(
     (evt) => {
       if (isValidDrop(evt)) {
-        setSavedItemOrder(tempItemOrder);
+        setSavedItemOrder(tempItemOrder.map((i) => i.data));
       } else {
         onDragCancel();
       }
@@ -146,7 +152,7 @@ const useDraggableTableControlled = <T>(
     [isValidDrop, onDragCancel, setSavedItemOrder, tempItemOrder],
   );
 
-  const onDragEnd = React.useCallback<DraggableTableControlled<T>['rowProps']['onDrop']>((evt) => {
+  const onDragEnd = React.useCallback<React.DragEventHandler<HTMLTableRowElement>>((evt) => {
     const target = evt.currentTarget;
     target.classList.remove(styles.modifiers.ghostRow);
     target.setAttribute('aria-pressed', 'false');
@@ -160,12 +166,10 @@ const useDraggableTableControlled = <T>(
       className: isDragging ? styles.modifiers.dragOver : undefined,
       tbodyProps: { onDragOver, onDragLeave, ref: bodyRef },
     },
-    rowProps: {
-      onDragStart,
-      onDragEnd,
-      onDrop,
-    },
-    rowsToRender: tempItemOrder,
+    rowsToRender: tempItemOrder.map((i) => ({
+      data: i.data,
+      rowProps: { id: i.id, onDragStart, onDragEnd, onDrop },
+    })),
   };
 };
 

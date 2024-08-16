@@ -7,17 +7,17 @@ import {
   SectionField,
 } from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
-import { Row } from '~/utilities/useDraggableTableControlled';
+import type { RowProps } from '~/utilities/useDraggableTableControlled';
 
 type Props = {
-  row: Row<ConnectionTypeField>;
+  row: ConnectionTypeField;
   columns: string[];
   onEdit: () => void;
   onDelete: () => void;
   onDuplicate: (field: ConnectionTypeField) => void;
   onAddField: (parentSection: SectionField) => void;
   onChange: (updatedField: ConnectionTypeField) => void;
-};
+} & RowProps;
 
 const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
@@ -31,10 +31,10 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
 }) => {
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
-      <Tr id={row.id} draggable isStriped data-testid="row" {...props}>
+      <Tr draggable isStriped data-testid="row" {...props}>
         <Td
           draggableRow={{
-            id: `draggable-row-${row.id}`,
+            id: `draggable-row-${props.id}`,
           }}
         />
         <Td dataLabel={columns[0]} colSpan={5} data-testid="field-name">
@@ -72,10 +72,10 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   }
 
   return (
-    <Tr id={row.id} draggable data-testid="row" {...props}>
+    <Tr draggable data-testid="row" {...props}>
       <Td
         draggableRow={{
-          id: `draggable-row-${row.id}`,
+          id: `draggable-row-${props.id}`,
         }}
       />
       <Td dataLabel={columns[0]} data-testid="field-name">

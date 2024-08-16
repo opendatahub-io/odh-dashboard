@@ -64,7 +64,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
     'Required',
   ];
 
-  const { tableProps, rowProps, rowsToRender } = useDraggableTableControlled<ConnectionTypeField>(
+  const { tableProps, rowsToRender } = useDraggableTableControlled<ConnectionTypeField>(
     fields,
     onFieldsChange,
   );
@@ -83,7 +83,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               </Tr>
             </Thead>
             <Tbody {...tableProps.tbodyProps}>
-              {rowsToRender.map((row, index) => (
+              {rowsToRender.map(({ data: row, rowProps }, index) => (
                 <ManageConnectionTypeFieldsTableRow
                   key={index}
                   row={row}
