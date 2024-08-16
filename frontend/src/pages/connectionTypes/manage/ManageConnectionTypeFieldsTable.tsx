@@ -15,6 +15,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+import useDraggableTable from '~/utilities/useDraggableTableControlled';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 
@@ -63,21 +64,26 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
     'Required',
   ];
 
-  // TODO: drag and drop rows
+  const { tableProps, rowProps, rowsToRender } = useDraggableTable<ConnectionTypeField>(
+    fields,
+    onFieldsChange,
+  );
+
   return (
     <>
       {fields.length > 0 ? (
         <>
-          <Table data-testid="connection-type-fields-table">
+          <Table data-testid="connection-type-fields-table" className={tableProps.className}>
             <Thead>
               <Tr>
+                <Th screenReaderText="Drag and drop" />
                 {columns.map((column, columnIndex) => (
                   <Th key={columnIndex}>{column}</Th>
                 ))}
               </Tr>
             </Thead>
-            <Tbody>
-              {fields.map((row, index) => (
+            <Tbody {...tableProps.tbodyProps}>
+              {rowsToRender.map((row, index) => (
                 <ManageConnectionTypeFieldsTableRow
                   key={index}
                   row={row}
@@ -86,9 +92,10 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                     setModalField({
                       field: row,
                       isEdit: true,
+                      index,
                     });
                   }}
-                  onDelete={() => onFieldsChange(fields.filter((f) => f !== row))}
+                  onDelete={() => onFieldsChange(fields.filter((f, i) => i !== index))}
                   onDuplicate={(field) => {
                     setModalField({
                       field: structuredClone(field),
@@ -111,6 +118,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                       ...fields.slice(index + 1),
                     ]);
                   }}
+                  {...rowProps}
                 />
               ))}
             </Tbody>
@@ -148,10 +156,13 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
           onClose={() => setModalField(undefined)}
           isOpen
           onSubmit={(field) => {
-            const i = modalField.field ? fields.indexOf(modalField.field) : -1;
-            if (i >= 0) {
+            if (modalField.field && modalField.isEdit && modalField.index !== undefined) {
               // update
-              onFieldsChange([...fields.slice(0, i), field, ...fields.slice(i + 1)]);
+              onFieldsChange([
+                ...fields.slice(0, modalField.index),
+                field,
+                ...fields.slice(modalField.index + 1),
+              ]);
             } else if (modalField.index != null) {
               // insert
               onFieldsChange([

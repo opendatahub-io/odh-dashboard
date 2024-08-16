@@ -7,9 +7,10 @@ import {
   SectionField,
 } from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
+import { Row } from '~/utilities/useDraggableTableControlled';
 
 type Props = {
-  row: ConnectionTypeField;
+  row: Row<ConnectionTypeField>;
   columns: string[];
   onEdit: () => void;
   onDelete: () => void;
@@ -26,10 +27,16 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   onDuplicate,
   onAddField,
   onChange,
+  ...props
 }) => {
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
-      <Tr id={row.name} isStriped data-testid="row">
+      <Tr id={row.id} draggable isStriped data-testid="row" {...props}>
+        <Td
+          draggableRow={{
+            id: `draggable-row-${row.id}`,
+          }}
+        />
         <Td dataLabel={columns[0]} colSpan={5} data-testid="field-name">
           {row.name}{' '}
           <Label color="blue" data-testid="section-heading">
@@ -65,13 +72,16 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   }
 
   return (
-    <Tr id={row.name} data-testid="row">
+    <Tr id={row.id} draggable data-testid="row" {...props}>
+      <Td
+        draggableRow={{
+          id: `draggable-row-${row.id}`,
+        }}
+      />
       <Td dataLabel={columns[0]} data-testid="field-name">
         {row.name}
         <TextContent>
-          <Text className="pf-v5-u-color-200">
-            <Truncate content={row.description ?? ''} />
-          </Text>
+          <Truncate className="pf-v5-u-color-200" content={row.description ?? ''} />
         </TextContent>
       </Td>
       <Td dataLabel={columns[1]} data-testid="field-type">
