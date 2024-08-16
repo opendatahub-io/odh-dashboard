@@ -17,8 +17,10 @@ describe('HiddenFormField', () => {
       },
     };
 
-    render(<HiddenFormField field={field} value="supplied-value" onChange={onChange} />);
-    const input = screen.getByLabelText('test-name');
+    const result = render(
+      <HiddenFormField id="test" field={field} value="supplied-value" onChange={onChange} />,
+    );
+    const input = result.container.getElementsByTagName('input')[0];
     expect(input.getAttribute('type')).toBe('password');
     expect(input).toHaveValue('supplied-value');
     expect(input).not.toBeDisabled();
@@ -40,8 +42,16 @@ describe('HiddenFormField', () => {
       },
     };
 
-    render(<HiddenFormField field={field} value="supplied-value" onChange={onChange} isPreview />);
-    const input = screen.getByLabelText('test-name');
+    const result = render(
+      <HiddenFormField
+        id="test"
+        field={field}
+        value="supplied-value"
+        onChange={onChange}
+        mode="preview"
+      />,
+    );
+    const input = result.container.getElementsByTagName('input')[0];
     expect(input.getAttribute('type')).toBe('password');
     expect(input).toHaveValue('default-value');
     expect(input).not.toBeDisabled();
@@ -64,7 +74,7 @@ describe('HiddenFormField', () => {
       },
     };
 
-    render(<HiddenFormField field={field} value="supplied-value" />);
+    render(<HiddenFormField id="test" field={field} value="supplied-value" />);
     expect(screen.queryByRole('test-name')).not.toBeInTheDocument();
     expect(screen.queryByText('••••••••••')).toBeInTheDocument();
   });

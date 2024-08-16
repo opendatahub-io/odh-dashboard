@@ -1,18 +1,13 @@
 import * as React from 'react';
 import { TextArea } from '@patternfly/react-core';
 import { TextField } from '~/concepts/connectionTypes/types';
-import DataFormFieldGroup from '~/concepts/connectionTypes/fields/DataFormFieldGroup';
+import { FieldProps } from '~/concepts/connectionTypes/fields/types';
+import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
-type Props = {
-  field: TextField;
-  isPreview?: boolean;
-  value?: string;
-  onChange?: (value: string) => void;
-};
-
-const TextFormField: React.FC<Props> = ({ field, isPreview, onChange, value }) => (
-  <DataFormFieldGroup field={field} isPreview={!!isPreview}>
-    {(id) => (
+const TextFormField: React.FC<FieldProps<TextField>> = ({ id, field, mode, onChange, value }) => {
+  const isPreview = mode === 'preview';
+  return (
+    <DefaultValueTextRenderer id={id} field={field} mode={mode}>
       <TextArea
         aria-readonly={isPreview}
         autoComplete="off"
@@ -23,8 +18,8 @@ const TextFormField: React.FC<Props> = ({ field, isPreview, onChange, value }) =
         value={(isPreview ? field.properties.defaultValue : value) ?? ''}
         onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
       />
-    )}
-  </DataFormFieldGroup>
-);
+    </DefaultValueTextRenderer>
+  );
+};
 
 export default TextFormField;

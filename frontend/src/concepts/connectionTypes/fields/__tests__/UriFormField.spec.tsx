@@ -17,7 +17,7 @@ describe('UriFormField', () => {
       },
     };
 
-    render(<UriFormField field={field} value="http://bar.com" onChange={onChange} />);
+    render(<UriFormField id="test" field={field} value="http://bar.com" onChange={onChange} />);
     const input = screen.getByRole('textbox');
     expect(input).toHaveValue('http://bar.com');
     expect(input).not.toBeDisabled();
@@ -39,7 +39,15 @@ describe('UriFormField', () => {
       },
     };
 
-    render(<UriFormField field={field} value="http://bar.com" onChange={onChange} isPreview />);
+    render(
+      <UriFormField
+        id="test"
+        field={field}
+        value="http://bar.com"
+        onChange={onChange}
+        mode="preview"
+      />,
+    );
     const input = screen.getByRole('textbox');
     expect(input).toHaveValue('http://foo.com');
     expect(input).not.toBeDisabled();
@@ -62,7 +70,7 @@ describe('UriFormField', () => {
       },
     };
 
-    render(<UriFormField field={field} value="http://bar.com" />);
+    render(<UriFormField id="test" field={field} value="http://bar.com" />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByText('http://foo.com')).toBeInTheDocument();
   });

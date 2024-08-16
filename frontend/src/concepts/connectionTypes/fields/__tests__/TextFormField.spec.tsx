@@ -17,7 +17,7 @@ describe('TextFormField', () => {
       },
     };
 
-    render(<TextFormField field={field} value="supplied-value" onChange={onChange} />);
+    render(<TextFormField id="test" field={field} value="supplied-value" onChange={onChange} />);
     const input = screen.getByRole('textbox');
     expect(input).toHaveValue('supplied-value');
     expect(input).not.toBeDisabled();
@@ -39,7 +39,15 @@ describe('TextFormField', () => {
       },
     };
 
-    render(<TextFormField field={field} value="supplied-value" onChange={onChange} isPreview />);
+    render(
+      <TextFormField
+        id="test"
+        field={field}
+        value="supplied-value"
+        onChange={onChange}
+        mode="preview"
+      />,
+    );
     const input = screen.getByRole('textbox');
     expect(input).toHaveValue('default-value');
     expect(input).not.toBeDisabled();
@@ -62,7 +70,7 @@ describe('TextFormField', () => {
       },
     };
 
-    render(<TextFormField field={field} value="supplied-value" />);
+    render(<TextFormField id="test" field={field} value="supplied-value" />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByText('default-value')).toBeInTheDocument();
   });

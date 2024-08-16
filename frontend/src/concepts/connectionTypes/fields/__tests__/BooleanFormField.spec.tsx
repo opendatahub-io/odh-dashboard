@@ -18,7 +18,7 @@ describe('BooleanFormField', () => {
       },
     };
 
-    render(<BooleanFormField field={field} value onChange={onChange} />);
+    render(<BooleanFormField id="test" field={field} value onChange={onChange} />);
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).toBeChecked();
     expect(checkbox).not.toBeDisabled();
@@ -42,7 +42,9 @@ describe('BooleanFormField', () => {
       },
     };
 
-    render(<BooleanFormField field={field} value={false} onChange={onChange} isPreview />);
+    render(
+      <BooleanFormField id="test" field={field} value={false} onChange={onChange} mode="preview" />,
+    );
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).toBeChecked();
     expect(checkbox).not.toBeDisabled();
@@ -67,7 +69,7 @@ describe('BooleanFormField', () => {
       },
     };
 
-    render(<BooleanFormField field={field} value={false} onChange={onChange} />);
+    render(<BooleanFormField id="test" field={field} value={false} onChange={onChange} />);
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).toBeChecked();
     expect(checkbox).toBeDisabled();

@@ -44,7 +44,7 @@ describe('User Management', () => {
     userGroupSection.findChipItem('system:authenticated').should('exist');
     userGroupSection.clearMultiChipItem();
     userGroupSection.findErrorText().should('exist');
-    userGroupSection.selectMultiGroup('odh-admins', false);
+    userGroupSection.selectMultiGroup('odh-admins');
     userGroupSection.findChipItem(/^odh-admins$/).should('exist');
     userGroupSection.findMultiGroupSelectButton().click();
     userManagement.findSubmitButton().should('be.enabled');
