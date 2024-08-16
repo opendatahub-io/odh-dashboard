@@ -177,7 +177,7 @@ class PipelineDetails extends PipelinesTopology {
     return new DashboardCodeEditor(() => cy.findByTestId('pipeline-dashboard-code-editor'));
   }
 
-  findPageTitle(timeout = 10000) {
+  findPageTitle(timeout?: number) {
     return cy.findByTestId('app-page-title', { timeout });
   }
 
