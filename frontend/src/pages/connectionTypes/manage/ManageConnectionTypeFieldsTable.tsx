@@ -15,7 +15,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import useDraggableTable from '~/utilities/useDraggableTableControlled';
+import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 
@@ -64,7 +64,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
     'Required',
   ];
 
-  const { tableProps, rowProps, rowsToRender } = useDraggableTable<ConnectionTypeField>(
+  const { tableProps, rowProps, rowsToRender } = useDraggableTableControlled<ConnectionTypeField>(
     fields,
     onFieldsChange,
   );
