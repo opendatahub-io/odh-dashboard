@@ -26,6 +26,17 @@ class CreateConnectionTypeTableRow extends TableRow {
   findRequired() {
     return this.find().findByTestId('field-required');
   }
+
+  dragToIndex(i: number) {
+    const dataTransfer = new DataTransfer();
+    this.find().trigger('dragstart', { dataTransfer });
+    createConnectionTypePage
+      .getFieldsTableRow(i)
+      .find()
+      .trigger('dragover', { dataTransfer })
+      .trigger('drop', { dataTransfer })
+      .trigger('dragend');
+  }
 }
 
 class CreateConnectionTypePage {
@@ -36,6 +47,11 @@ class CreateConnectionTypePage {
 
   visitDuplicatePage(name = 'existing') {
     cy.visitWithLogin(`/connectionTypes/duplicate/${name}`);
+    cy.findAllByText('Create connection type').should('exist');
+  }
+
+  visitEditPage(name = 'existing') {
+    cy.visitWithLogin(`/connectionTypes/edit/${name}`);
     cy.findAllByText('Create connection type').should('exist');
   }
 
