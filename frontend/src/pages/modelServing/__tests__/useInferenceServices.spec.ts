@@ -184,6 +184,7 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable([false, true, true, true]);
   });
+
   it('should fail to fetch InferenceService', async () => {
     useModelServingEnabledMock.mockReturnValue(true);
     k8sListResourceMock.mockRejectedValue(new Error('error'));
@@ -197,5 +198,56 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToStrictEqual(standardUseFetchState([], false, new Error('error')));
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable([false, true, false, true]);
+  });
+
+  it('has "dashboard" labelSelector by default', async () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useAccessReviewMock.mockReturnValue([true, true]);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+
+    testHook(useInferenceServices)();
+
+    expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
+      labelSelector: 'opendatahub.io/dashboard=true',
+    });
+  });
+
+  it('includes "registered-model-id" labelSelector when "registeredModelId" is specified', async () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useAccessReviewMock.mockReturnValue([true, true]);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+
+    testHook(useInferenceServices)(undefined, 'some-registered-model-id');
+
+    expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
+      labelSelector:
+        'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/registered-model-id=some-registered-model-id',
+    });
+  });
+
+  it('includes "model-version-id" labelSelector when "modelVersionId" is specified', async () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useAccessReviewMock.mockReturnValue([true, true]);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+
+    testHook(useInferenceServices)(undefined, undefined, 'some-model-version-id');
+
+    expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
+      labelSelector:
+        'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/model-version-id=some-model-version-id',
+    });
+  });
+
+  it('includes appropriate labelSelectors when "modelVersionId" and "registeredModelId" are specified', async () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useAccessReviewMock.mockReturnValue([true, true]);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+
+    testHook(useInferenceServices)(undefined, 'some-registered-model-id', 'some-model-version-id');
+
+    expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
+      labelSelector:
+        'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/registered-model-id=some-registered-model-id,modelregistry.opendatahub.io/model-version-id=some-model-version-id',
+    });
   });
 });

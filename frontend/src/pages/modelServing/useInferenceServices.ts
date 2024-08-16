@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes, InferenceServiceKind } from '~/k8sTypes';
+import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
@@ -15,7 +15,11 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'list',
 };
 
-const useInferenceServices = (namespace?: string): FetchState<InferenceServiceKind[]> => {
+const useInferenceServices = (
+  namespace?: string,
+  registeredModelId?: string,
+  modelVersionId?: string,
+): FetchState<InferenceServiceKind[]> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -34,9 +38,17 @@ const useInferenceServices = (namespace?: string): FetchState<InferenceServiceKi
 
       const getInferenceServices = allowCreate ? listInferenceService : getInferenceServiceContext;
 
-      return getInferenceServices(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE, opts);
+      return getInferenceServices(
+        namespace,
+        [
+          LABEL_SELECTOR_DASHBOARD_RESOURCE,
+          ...(registeredModelId ? [`${KnownLabels.REGISTERED_MODEL_ID}=${registeredModelId}`] : []),
+          ...(modelVersionId ? [`${KnownLabels.MODEL_VERSION_ID}=${modelVersionId}`] : []),
+        ].join(','),
+        opts,
+      );
     },
-    [namespace, modelServingEnabled, rbacLoaded, allowCreate],
+    [modelServingEnabled, rbacLoaded, allowCreate, namespace, registeredModelId, modelVersionId],
   );
 
   return useFetchState(callback, [], {

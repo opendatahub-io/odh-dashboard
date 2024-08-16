@@ -43,6 +43,7 @@ import {
 } from '~/api';
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
+import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -540,3 +541,24 @@ export const filterOutConnectionsWithoutBucket = (
       isDataConnectionAWS(obj.dataConnection) &&
       obj.dataConnection.data.data.AWS_S3_BUCKET.trim() !== '',
   );
+
+export const getCreateInferenceServiceLabels = (
+  data: Pick<RegisteredModelDeployInfo, 'registeredModelId' | 'modelVersionId'> | undefined,
+): { labels: Record<string, string> } | undefined => {
+  if (data?.registeredModelId || data?.modelVersionId) {
+    const { registeredModelId, modelVersionId } = data;
+
+    return {
+      labels: {
+        ...(registeredModelId && {
+          'modelregistry.opendatahub.io/registered-model-id': registeredModelId,
+        }),
+        ...(modelVersionId && {
+          'modelregistry.opendatahub.io/model-version-id': modelVersionId,
+        }),
+      },
+    };
+  }
+
+  return undefined;
+};

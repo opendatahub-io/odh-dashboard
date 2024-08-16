@@ -11,10 +11,12 @@ import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
+  refresh: () => void;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
+  refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -67,6 +69,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         </DropdownList>
       </Dropdown>
       <DeployRegisteredModelModal
+        onSubmit={refresh}
         onCancel={() => setIsDeployModalOpen(false)}
         isOpen={isDeployModalOpen}
         modelVersion={mv}

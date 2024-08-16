@@ -46,6 +46,14 @@ class ModelVersionDetails {
   findModelVersionDropdownItem(name: string) {
     return cy.findByTestId('model-version-selector-list').find('li').contains(name);
   }
+
+  findDetailsTab() {
+    return cy.findByTestId('model-versions-details-tab');
+  }
+
+  findRegisteredDeploymentsTab() {
+    return cy.findByTestId('deployments-tab');
+  }
 }
 
 export const modelVersionDetails = new ModelVersionDetails();

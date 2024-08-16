@@ -2,6 +2,7 @@ import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   filterOutConnectionsWithoutBucket,
+  getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
   getUrlFromKserveInferenceService,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -152,5 +153,52 @@ describe('getUrlsFromKserveInferenceService', () => {
       url,
     });
     expect(getUrlFromKserveInferenceService(inferenceService)).toBeUndefined();
+  });
+});
+
+describe('getCreateInferenceServiceLabels', () => {
+  it('returns undefined when "registeredModelId" and "modelVersionId" are undefined', () => {
+    const createLabels = getCreateInferenceServiceLabels({
+      registeredModelId: undefined,
+      modelVersionId: undefined,
+    });
+    expect(createLabels).toBeUndefined();
+  });
+
+  it('returns labels with "registered-model-id" when "registeredModelId" is defined', () => {
+    const createLabels = getCreateInferenceServiceLabels({
+      registeredModelId: 'some-register-model-id',
+      modelVersionId: undefined,
+    });
+    expect(createLabels).toEqual({
+      labels: {
+        'modelregistry.opendatahub.io/registered-model-id': 'some-register-model-id',
+      },
+    });
+  });
+
+  it('returns labels with "model-version-id" when "modelVersionId" is defined', () => {
+    const createLabels = getCreateInferenceServiceLabels({
+      registeredModelId: undefined,
+      modelVersionId: 'some-model-version-id',
+    });
+    expect(createLabels).toEqual({
+      labels: {
+        'modelregistry.opendatahub.io/model-version-id': 'some-model-version-id',
+      },
+    });
+  });
+
+  it('returns labels with "registered-model-id" and "model-version-id" when registeredModelId and "modelVersionId" are defined', () => {
+    const createLabels = getCreateInferenceServiceLabels({
+      registeredModelId: 'some-register-model-id',
+      modelVersionId: 'some-model-version-id',
+    });
+    expect(createLabels).toEqual({
+      labels: {
+        'modelregistry.opendatahub.io/model-version-id': 'some-model-version-id',
+        'modelregistry.opendatahub.io/registered-model-id': 'some-register-model-id',
+      },
+    });
   });
 });

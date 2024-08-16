@@ -7,6 +7,9 @@ import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersi
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { modelVersionUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -26,7 +29,17 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
-  const [mv, mvLoaded, mvLoadError, refresh] = useModelVersionById(mvId);
+  const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
+  const inferenceServices = useMakeFetchObject(
+    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+  );
+  const servingRuntimes = useMakeFetchObject(useServingRuntimes());
+
+  const refresh = React.useCallback(() => {
+    refreshModelVersion();
+    inferenceServices.refresh();
+    servingRuntimes.refresh();
+  }, [inferenceServices, servingRuntimes, refreshModelVersion]);
 
   return (
     <ApplicationsPage
@@ -72,7 +85,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
               />
             </FlexItem>
             <FlexItem>
-              <ModelVersionsDetailsHeaderActions mv={mv} />
+              <ModelVersionsDetailsHeaderActions mv={mv} refresh={refresh} />
             </FlexItem>
           </Flex>
         )
@@ -82,7 +95,15 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
       loaded={mvLoaded}
       provideChildrenPadding
     >
-      {mv !== null && <ModelVersionDetailsTabs tab={tab} modelVersion={mv} refresh={refresh} />}
+      {mv !== null && (
+        <ModelVersionDetailsTabs
+          tab={tab}
+          modelVersion={mv}
+          inferenceServices={inferenceServices}
+          servingRuntimes={servingRuntimes}
+          refresh={refresh}
+        />
+      )}
     </ApplicationsPage>
   );
 };

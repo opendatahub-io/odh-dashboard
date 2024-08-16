@@ -90,6 +90,7 @@ export const assembleInferenceService = (
             [KnownLabels.DASHBOARD_RESOURCE]: 'true',
             ...(!isModelMesh &&
               !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
+            ...data.labels,
           },
           annotations: {
             'openshift.io/display-name': data.name.trim(),

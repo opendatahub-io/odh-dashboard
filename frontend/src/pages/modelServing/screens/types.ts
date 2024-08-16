@@ -67,6 +67,7 @@ export type CreatingInferenceServiceObject = {
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];
+  labels?: Record<string, string>;
 };
 
 export enum InferenceServiceStorageType {
