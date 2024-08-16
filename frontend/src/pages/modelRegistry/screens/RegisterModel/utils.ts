@@ -11,6 +11,7 @@ import {
   ModelLocationType,
   RegisterModelFormData,
   RegisterVersionFormData,
+  RegistrationCommonFormData,
 } from './useRegisterModelData';
 
 export type RegisterModelCreatedResources = RegisterVersionCreatedResources & {
@@ -48,7 +49,7 @@ export const registerModel = async (
 export const registerVersion = async (
   apiState: ModelRegistryAPIState,
   registeredModel: RegisteredModel,
-  formData: RegisterVersionFormData,
+  formData: Omit<RegisterVersionFormData, 'registeredModelId'>,
   author: string,
 ): Promise<RegisterVersionCreatedResources> => {
   const modelVersion = await apiState.api.createModelVersionForRegisteredModel(
@@ -87,3 +88,26 @@ export const registerVersion = async (
   });
   return { modelVersion, modelArtifact };
 };
+
+const isSubmitDisabledForCommonFields = (formData: RegistrationCommonFormData): boolean => {
+  const {
+    versionName,
+    modelLocationType,
+    modelLocationURI,
+    modelLocationBucket,
+    modelLocationEndpoint,
+    modelLocationPath,
+  } = formData;
+  return (
+    !versionName ||
+    (modelLocationType === ModelLocationType.URI && !modelLocationURI) ||
+    (modelLocationType === ModelLocationType.ObjectStorage &&
+      (!modelLocationBucket || !modelLocationEndpoint || !modelLocationPath))
+  );
+};
+
+export const isRegisterModelSubmitDisabled = (formData: RegisterModelFormData): boolean =>
+  !formData.modelName || isSubmitDisabledForCommonFields(formData);
+
+export const isRegisterVersionSubmitDisabled = (formData: RegisterVersionFormData): boolean =>
+  !formData.registeredModelId || isSubmitDisabledForCommonFields(formData);

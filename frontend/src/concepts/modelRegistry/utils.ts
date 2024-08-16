@@ -1,3 +1,5 @@
+import { ModelVersion, ModelState, RegisteredModel } from './types';
+
 export type ObjectStorageFields = {
   endpoint: string;
   bucket: string;
@@ -37,3 +39,27 @@ export const uriToObjectStorageFields = (uri: string): ObjectStorageFields | nul
     return null;
   }
 };
+
+export const getLastCreatedItem = <T extends { createTimeSinceEpoch?: string }>(
+  items?: T[],
+): T | undefined =>
+  items?.toSorted(
+    ({ createTimeSinceEpoch: createTimeA }, { createTimeSinceEpoch: createTimeB }) => {
+      if (!createTimeA || !createTimeB) {
+        return 0;
+      }
+      return Number(createTimeB) - Number(createTimeA);
+    },
+  )[0];
+
+export const filterArchiveVersions = (modelVersions: ModelVersion[]): ModelVersion[] =>
+  modelVersions.filter((mv) => mv.state === ModelState.ARCHIVED);
+
+export const filterLiveVersions = (modelVersions: ModelVersion[]): ModelVersion[] =>
+  modelVersions.filter((mv) => mv.state === ModelState.LIVE);
+
+export const filterArchiveModels = (registeredModels: RegisteredModel[]): RegisteredModel[] =>
+  registeredModels.filter((rm) => rm.state === ModelState.ARCHIVED);
+
+export const filterLiveModels = (registeredModels: RegisteredModel[]): RegisteredModel[] =>
+  registeredModels.filter((rm) => rm.state === ModelState.LIVE);

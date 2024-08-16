@@ -3,9 +3,10 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
+import { filterLiveModels } from '~/concepts/modelRegistry/utils';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
-import { filterLiveModels } from './utils';
+import { modelRegistryUrl } from './routeUtils';
 
 type ModelRegistryProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -28,7 +29,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
       description="Select a model registry to view and manage your registered models. Model registries provide a structured and organized way to store, share, version, deploy, and track models."
       headerContent={
         <ModelRegistrySelectorNavigator
-          getRedirectPath={(modelRegistryName) => `/modelRegistry/${modelRegistryName}`}
+          getRedirectPath={(modelRegistryName) => modelRegistryUrl(modelRegistryName)}
         />
       }
       loadError={loadError}
