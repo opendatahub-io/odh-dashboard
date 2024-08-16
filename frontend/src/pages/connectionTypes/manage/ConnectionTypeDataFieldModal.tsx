@@ -19,13 +19,13 @@ import {
 import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
-  ConnectionTypeCommonProperties,
   ConnectionTypeDataField,
+  connectionTypeDataFields,
   ConnectionTypeFieldType,
 } from '~/concepts/connectionTypes/types';
-import { TextForm } from '~/pages/connectionTypes/fields/TextForm';
 import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 
 const ENV_VAR_NAME_REGEX = new RegExp('^[-._a-zA-Z][-._a-zA-Z0-9]*$');
 
@@ -34,17 +34,17 @@ const isConnectionTypeFieldType = (
 ): fieldType is ConnectionTypeFieldType =>
   isEnumMember(fieldType?.toString(), ConnectionTypeFieldType);
 
-interface ConnectionTypeFieldModalProps {
+type Props = {
   field?: ConnectionTypeDataField;
   isOpen?: boolean;
   onClose: () => void;
   onSubmit: (field: ConnectionTypeDataField) => void;
   isEdit?: boolean;
-}
+};
 
 const fieldTypeLabels: { [key: string]: string } = {
   [ConnectionTypeFieldType.Boolean]: 'Boolean',
-  [ConnectionTypeFieldType.Dropdown]: 'Short text',
+  [ConnectionTypeFieldType.Dropdown]: 'Dropdown',
   [ConnectionTypeFieldType.File]: 'File',
   [ConnectionTypeFieldType.Hidden]: 'Hidden',
   [ConnectionTypeFieldType.Numeric]: 'Numeric',
@@ -53,14 +53,7 @@ const fieldTypeLabels: { [key: string]: string } = {
   [ConnectionTypeFieldType.URI]: 'URI',
 };
 
-const validateForType = (value: string, fieldType: ConnectionTypeFieldType): ValidatedOptions => {
-  switch (fieldType) {
-    default:
-      return ValidatedOptions.default;
-  }
-};
-
-export const ConnectionTypeDataFieldModal: React.FC<ConnectionTypeFieldModalProps> = ({
+export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   field,
   isOpen,
   onClose,
@@ -70,63 +63,48 @@ export const ConnectionTypeDataFieldModal: React.FC<ConnectionTypeFieldModalProp
   const [name, setName] = React.useState<string>(field?.name || '');
   const [description, setDescription] = React.useState<string | undefined>(field?.description);
   const [envVar, setEnvVar] = React.useState<string>(field?.envVar || '');
-  const [fieldType, setFieldType] = React.useState<ConnectionTypeFieldType>(
-    ConnectionTypeFieldType.ShortText,
+  const [fieldType, setFieldType] = React.useState<ConnectionTypeFieldType | undefined>(
+    field?.type
+      ? // Cast from specific type to generic type
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
+        (field.type as ConnectionTypeFieldType)
+      : undefined,
   );
   const [required, setRequired] = React.useState<boolean | undefined>(field?.required);
   const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState<boolean>(false);
-  const [textProperties, setTextProperties] = React.useState<ConnectionTypeCommonProperties>(
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
-    (field?.properties as any) || {},
-  );
+  const [properties, setProperties] = React.useState<unknown>(field?.properties || {});
+  const [isPropertiesValid, setPropertiesValid] = React.useState(true);
 
   const envVarValidation =
     !envVar || ENV_VAR_NAME_REGEX.test(envVar) ? ValidatedOptions.default : ValidatedOptions.error;
-  const valid = React.useMemo(
-    () => !!name && !!envVar && envVarValidation === ValidatedOptions.default,
-    [envVar, envVarValidation, name],
-  );
+  const isValid =
+    !!fieldType &&
+    isPropertiesValid &&
+    !!name &&
+    !!envVar &&
+    envVarValidation === ValidatedOptions.default;
+
+  const newField = fieldType
+    ? // Cast from specific type to generic type
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
+      ({
+        type: fieldType,
+        name,
+        description,
+        envVar,
+        required,
+        properties,
+      } as ConnectionTypeDataField)
+    : undefined;
 
   const handleSubmit = () => {
-    switch (fieldType) {
-      case ConnectionTypeFieldType.Hidden:
-      case ConnectionTypeFieldType.File:
-      case ConnectionTypeFieldType.ShortText:
-      case ConnectionTypeFieldType.Text:
-      case ConnectionTypeFieldType.URI:
-        onSubmit({
-          name,
-          description,
-          envVar,
-          type: fieldType,
-          properties: {
-            defaultValue: textProperties.defaultValue,
-            defaultReadOnly: textProperties.defaultValue
-              ? textProperties.defaultReadOnly
-              : undefined,
-          },
-          required,
-        });
+    if (isValid) {
+      if (newField) {
+        onSubmit(newField);
+      }
+      onClose();
     }
-    onClose();
   };
-
-  const fieldTypeForm = React.useMemo(() => {
-    switch (fieldType) {
-      case ConnectionTypeFieldType.Hidden:
-      case ConnectionTypeFieldType.File:
-      case ConnectionTypeFieldType.ShortText:
-      case ConnectionTypeFieldType.Text:
-        return (
-          <TextForm
-            properties={textProperties}
-            onChange={(updatedProperties) => setTextProperties(updatedProperties)}
-            validate={(value) => validateForType(value, fieldType)}
-          />
-        );
-    }
-    return null;
-  }, [fieldType, textProperties]);
 
   return (
     <Modal
@@ -139,7 +117,7 @@ export const ConnectionTypeDataFieldModal: React.FC<ConnectionTypeFieldModalProp
           onCancel={onClose}
           onSubmit={handleSubmit}
           submitLabel={isEdit ? 'Edit' : 'Add'}
-          isSubmitDisabled={!valid}
+          isSubmitDisabled={!isValid}
           alertTitle="Error"
         />
       }
@@ -224,6 +202,7 @@ export const ConnectionTypeDataFieldModal: React.FC<ConnectionTypeFieldModalProp
             selected={fieldType}
             onSelect={(_e, selection) => {
               if (isConnectionTypeFieldType(selection)) {
+                setProperties({});
                 setFieldType(selection);
                 setIsTypeSelectOpen(false);
               }
@@ -239,27 +218,29 @@ export const ConnectionTypeDataFieldModal: React.FC<ConnectionTypeFieldModalProp
                 }}
                 isExpanded={isOpen}
               >
-                {fieldTypeLabels[fieldType]}
+                {fieldType ? fieldTypeLabels[fieldType] : ''}
               </MenuToggle>
             )}
           >
             <SelectList>
-              <SelectOption
-                value={ConnectionTypeFieldType.ShortText}
-                data-testid="field-short-text-select"
-              >
-                {fieldTypeLabels[ConnectionTypeFieldType.ShortText]}
-              </SelectOption>
-              <SelectOption
-                value={ConnectionTypeFieldType.Hidden}
-                data-testid="field-hidden-select"
-              >
-                {fieldTypeLabels[ConnectionTypeFieldType.Hidden]}
-              </SelectOption>
+              {connectionTypeDataFields
+                .map((value) => ({ label: fieldTypeLabels[value], value }))
+                .toSorted((a, b) => a.label.localeCompare(b.label))
+                .map(({ value, label }) => (
+                  <SelectOption key={value} value={value} data-testid={`field-${value}-select`}>
+                    {label}
+                  </SelectOption>
+                ))}
             </SelectList>
           </Select>
         </FormGroup>
-        {fieldTypeForm}
+        {newField ? (
+          <DataFieldPropertiesForm
+            field={newField}
+            onChange={setProperties}
+            onValidate={setPropertiesValid}
+          />
+        ) : undefined}
         <FormGroup fieldId="isRequired">
           <Checkbox
             id="isRequired"

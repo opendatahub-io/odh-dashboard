@@ -1,29 +1,32 @@
 import * as React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import { ShortTextField } from '~/concepts/connectionTypes/types';
-import DataFormFieldGroup from '~/concepts/connectionTypes/fields/DataFormFieldGroup';
+import { FieldProps } from '~/concepts/connectionTypes/fields/types';
+import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
-type Props = {
-  field: ShortTextField;
-  isPreview?: boolean;
-  value?: string;
-  onChange?: (value: string) => void;
-};
-
-const ShortTextFormField: React.FC<Props> = ({ field, isPreview, onChange, value }) => (
-  <DataFormFieldGroup field={field} isPreview={!!isPreview}>
-    {(id) => (
+const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
+  id,
+  field,
+  mode,
+  onChange,
+  value,
+  'data-testid': dataTestId,
+}) => {
+  const isPreview = mode === 'preview';
+  return (
+    <DefaultValueTextRenderer id={id} field={field} mode={mode}>
       <TextInput
         aria-readonly={isPreview}
         autoComplete="off"
         isRequired={field.required}
         id={id}
         name={id}
+        data-testid={dataTestId}
         value={(isPreview ? field.properties.defaultValue : value) ?? ''}
         onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
       />
-    )}
-  </DataFormFieldGroup>
-);
+    </DefaultValueTextRenderer>
+  );
+};
 
 export default ShortTextFormField;

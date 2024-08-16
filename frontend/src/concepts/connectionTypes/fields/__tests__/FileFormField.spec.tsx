@@ -17,7 +17,7 @@ describe('FileFormField', () => {
       },
     };
 
-    render(<FileFormField field={field} value="supplied-value" onChange={onChange} />);
+    render(<FileFormField id="test" field={field} value="supplied-value" onChange={onChange} />);
     const [, contentInput] = screen.getAllByRole('textbox');
     expect(contentInput).toHaveValue('supplied-value');
     expect(contentInput).not.toBeDisabled();
@@ -42,7 +42,15 @@ describe('FileFormField', () => {
       },
     };
 
-    render(<FileFormField field={field} value="supplied-value" onChange={onChange} isPreview />);
+    render(
+      <FileFormField
+        id="test"
+        field={field}
+        value="supplied-value"
+        onChange={onChange}
+        mode="preview"
+      />,
+    );
     const [, contentInput] = screen.getAllByRole('textbox');
     expect(contentInput).toHaveValue('default-value');
     expect(contentInput).toBeDisabled();
@@ -67,7 +75,7 @@ describe('FileFormField', () => {
       },
     };
 
-    render(<FileFormField field={field} value="supplied-value" onChange={onChange} />);
+    render(<FileFormField id="test" field={field} value="supplied-value" onChange={onChange} />);
     const [, contentInput] = screen.getAllByRole('textbox');
     expect(contentInput).toHaveValue('default-value');
     expect(contentInput).toBeDisabled();

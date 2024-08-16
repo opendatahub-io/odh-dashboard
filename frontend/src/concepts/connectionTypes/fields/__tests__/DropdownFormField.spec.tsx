@@ -24,7 +24,7 @@ describe('DropdownFormField', () => {
         },
       };
 
-      render(<DropdownFormField field={field} value={['2']} onChange={onChange} />);
+      render(<DropdownFormField id="test" field={field} value={['2']} onChange={onChange} />);
       const input = screen.getByRole('button');
       expect(input).toHaveTextContent('Two');
       expect(input).not.toBeDisabled();
@@ -57,7 +57,15 @@ describe('DropdownFormField', () => {
         },
       };
 
-      render(<DropdownFormField field={field} value={['2']} onChange={onChange} isPreview />);
+      render(
+        <DropdownFormField
+          id="test"
+          field={field}
+          value={['2']}
+          onChange={onChange}
+          mode="preview"
+        />,
+      );
       const input = screen.getByRole('button');
       expect(input).toHaveTextContent('Three');
       expect(input).not.toBeDisabled();
@@ -96,7 +104,15 @@ describe('DropdownFormField', () => {
         },
       };
 
-      render(<DropdownFormField field={field} value={['2']} onChange={onChange} isPreview />);
+      render(
+        <DropdownFormField
+          id="test"
+          field={field}
+          value={['2']}
+          onChange={onChange}
+          mode="preview"
+        />,
+      );
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
       expect(screen.queryByText('Three')).toBeInTheDocument();
     });
@@ -120,7 +136,7 @@ describe('DropdownFormField', () => {
         },
       };
 
-      render(<DropdownFormField field={field} value={['1', '2']} onChange={onChange} />);
+      render(<DropdownFormField id="test" field={field} value={['1', '2']} onChange={onChange} />);
       const input = screen.getByRole('button');
       expect(input).toHaveTextContent('Count 2 selected');
       expect(input).not.toBeDisabled();
@@ -165,7 +181,15 @@ describe('DropdownFormField', () => {
         },
       };
 
-      render(<DropdownFormField field={field} value={['1', '2']} onChange={onChange} isPreview />);
+      render(
+        <DropdownFormField
+          id="test"
+          field={field}
+          value={['1', '2']}
+          onChange={onChange}
+          mode="preview"
+        />,
+      );
       const input = screen.getByRole('button');
       expect(input).toHaveTextContent('Count 1 selected');
       expect(input).not.toBeDisabled();
@@ -203,7 +227,15 @@ describe('DropdownFormField', () => {
         },
       };
 
-      render(<DropdownFormField field={field} value={['1', '2']} onChange={onChange} isPreview />);
+      render(
+        <DropdownFormField
+          id="test"
+          field={field}
+          value={['1', '2']}
+          onChange={onChange}
+          mode="preview"
+        />,
+      );
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
       expect(screen.queryByText('Two, Three')).toBeInTheDocument();
     });

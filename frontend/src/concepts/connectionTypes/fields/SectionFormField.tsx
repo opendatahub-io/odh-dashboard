@@ -5,10 +5,15 @@ import FormSection from '~/components/pf-overrides/FormSection';
 type Props = {
   field: SectionField;
   children?: React.ReactNode;
+  'data-testid'?: string;
 };
 
-const SectionFormField: React.FC<Props> = ({ field: { name, description }, children }) => (
-  <FormSection title={name} description={description}>
+const SectionFormField: React.FC<Props> = ({
+  field: { name, description },
+  children,
+  'data-testid': dataTestId,
+}) => (
+  <FormSection title={name} description={description} data-testud={dataTestId}>
     {children}
   </FormSection>
 );

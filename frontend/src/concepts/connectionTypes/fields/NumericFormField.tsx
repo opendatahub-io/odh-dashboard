@@ -1,23 +1,26 @@
 import * as React from 'react';
 import { NumericField } from '~/concepts/connectionTypes/types';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
-import DataFormFieldGroup from '~/concepts/connectionTypes/fields/DataFormFieldGroup';
+import { FieldProps } from '~/concepts/connectionTypes/fields/types';
+import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
-type Props = {
-  field: NumericField;
-  isPreview?: boolean;
-  value?: number;
-  onChange?: (value: number) => void;
-};
-
-const NumericFormField: React.FC<Props> = ({ field, isPreview, onChange, value }) => (
-  <DataFormFieldGroup field={field} isPreview={!!isPreview}>
-    {(id) => (
+const NumericFormField: React.FC<FieldProps<NumericField>> = ({
+  id,
+  field,
+  mode,
+  onChange,
+  value,
+  'data-testid': dataTestId,
+}) => {
+  const isPreview = mode === 'preview';
+  return (
+    <DefaultValueTextRenderer id={id} field={field} mode={mode}>
       <NumberInputWrapper
         inputProps={{
           'aria-readonly': isPreview,
           id,
           name: id,
+          'data-testid': dataTestId,
           placeholder: `${field.properties.defaultValue ?? ''}`,
         }}
         inputName={id}
@@ -25,8 +28,8 @@ const NumericFormField: React.FC<Props> = ({ field, isPreview, onChange, value }
         // NumberInput shows a disabled input if no onChange provided
         onChange={isPreview || !onChange ? () => undefined : onChange}
       />
-    )}
-  </DataFormFieldGroup>
-);
+    </DefaultValueTextRenderer>
+  );
+};
 
 export default NumericFormField;

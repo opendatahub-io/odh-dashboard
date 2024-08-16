@@ -36,8 +36,10 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({
           submitLabel={isEdit ? 'Edit' : 'Add'}
           onCancel={onClose}
           onSubmit={() => {
-            onSubmit({ type: 'section', name, description });
-            onClose();
+            if (isValid) {
+              onSubmit({ type: 'section', name, description });
+              onClose();
+            }
           }}
           isSubmitDisabled={!isValid}
           alertTitle=""
