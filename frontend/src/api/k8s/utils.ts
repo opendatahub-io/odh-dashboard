@@ -1,3 +1,4 @@
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   PodAffinity,
   ContainerResources,
@@ -11,7 +12,8 @@ import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState'
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
-  acceleratorProfileState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   tolerationSettings?: TolerationSettings,
   existingTolerations?: Toleration[],
   affinitySettings?: PodAffinity,
@@ -27,38 +29,37 @@ export const assemblePodSpecOptions = (
     requests: { ...existingResources?.requests, ...resourceSettings.requests },
   };
 
-  if (
-    acceleratorProfileState?.additionalOptions?.useExisting &&
-    !acceleratorProfileState.useExisting
-  ) {
+  // if not using existing settings, just use the new settings
+  if (!selectedAcceleratorProfile?.useExistingSettings) {
     resources = structuredClone(resourceSettings);
   }
 
   // Clear the last accelerator from the resources
-  if (acceleratorProfileState?.initialAcceleratorProfile) {
+  if (initialAcceleratorProfile?.acceleratorProfile) {
     if (resources.limits) {
-      delete resources.limits[acceleratorProfileState.initialAcceleratorProfile.spec.identifier];
+      delete resources.limits[initialAcceleratorProfile.acceleratorProfile.spec.identifier];
     }
     if (resources.requests) {
-      delete resources.requests[acceleratorProfileState.initialAcceleratorProfile.spec.identifier];
+      delete resources.requests[initialAcceleratorProfile.acceleratorProfile.spec.identifier];
     }
   }
 
   // Add back the new accelerator to the resources if count > 0
-  if (acceleratorProfileState?.acceleratorProfile && acceleratorProfileState.count > 0) {
+  if (selectedAcceleratorProfile?.profile && selectedAcceleratorProfile.count > 0) {
     if (resources.limits) {
-      resources.limits[acceleratorProfileState.acceleratorProfile.spec.identifier] =
-        acceleratorProfileState.count;
+      resources.limits[selectedAcceleratorProfile.profile.spec.identifier] =
+        selectedAcceleratorProfile.count;
     }
     if (resources.requests) {
-      resources.requests[acceleratorProfileState.acceleratorProfile.spec.identifier] =
-        acceleratorProfileState.count;
+      resources.requests[selectedAcceleratorProfile.profile.spec.identifier] =
+        selectedAcceleratorProfile.count;
     }
   }
 
   const tolerations = determineTolerations(
     tolerationSettings,
-    acceleratorProfileState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     existingTolerations,
   );
   return { affinity, tolerations, resources };

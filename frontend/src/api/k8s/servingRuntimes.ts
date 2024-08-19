@@ -19,6 +19,7 @@ import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
@@ -28,7 +29,8 @@ export const assembleServingRuntime = (
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
-  acceleratorProfileState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   isModelMesh?: boolean,
 ): ServingRuntimeKind => {
   const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth } = data;
@@ -71,7 +73,7 @@ export const assembleServingRuntime = (
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
           'opendatahub.io/accelerator-name':
-            acceleratorProfileState?.acceleratorProfile?.metadata.name || '',
+            selectedAcceleratorProfile?.profile?.metadata.name || '',
         }),
       },
     };
@@ -80,8 +82,7 @@ export const assembleServingRuntime = (
       ...updatedServingRuntime.metadata,
       annotations: {
         ...annotations,
-        'opendatahub.io/accelerator-name':
-          acceleratorProfileState?.acceleratorProfile?.metadata.name || '',
+        'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.profile?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
@@ -107,7 +108,8 @@ export const assembleServingRuntime = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     resourceSettings,
-    acceleratorProfileState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     undefined,
     servingRuntime.spec.tolerations,
     undefined,
@@ -210,7 +212,8 @@ export const updateServingRuntime = (options: {
   existingData: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  acceleratorProfileState?: AcceleratorProfileState;
+  initialAcceleratorProfile?: AcceleratorProfileState;
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState;
   isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {
@@ -218,7 +221,8 @@ export const updateServingRuntime = (options: {
     existingData,
     isCustomServingRuntimesEnabled,
     opts,
-    acceleratorProfileState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     isModelMesh,
   } = options;
 
@@ -228,7 +232,8 @@ export const updateServingRuntime = (options: {
     existingData,
     isCustomServingRuntimesEnabled,
     true,
-    acceleratorProfileState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     isModelMesh,
   );
 
@@ -249,7 +254,8 @@ export const createServingRuntime = (options: {
   servingRuntime: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  acceleratorProfileState?: AcceleratorProfileState;
+  initialAcceleratorProfile?: AcceleratorProfileState;
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState;
   isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {
@@ -258,7 +264,8 @@ export const createServingRuntime = (options: {
     servingRuntime,
     isCustomServingRuntimesEnabled,
     opts,
-    acceleratorProfileState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     isModelMesh,
   } = options;
   const assembledServingRuntime = assembleServingRuntime(
@@ -267,7 +274,8 @@ export const createServingRuntime = (options: {
     servingRuntime,
     isCustomServingRuntimesEnabled,
     false,
-    acceleratorProfileState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     isModelMesh,
   );
 

@@ -41,7 +41,8 @@ export const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    acceleratorProfile,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -55,7 +56,8 @@ export const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    acceleratorProfile,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
     tolerationSettings,
     existingTolerations,
     undefined,
@@ -107,8 +109,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name':
-          acceleratorProfile.acceleratorProfile?.metadata.name || '',
+        'opendatahub.io/accelerator-name': selectedAcceleratorProfile.profile?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,

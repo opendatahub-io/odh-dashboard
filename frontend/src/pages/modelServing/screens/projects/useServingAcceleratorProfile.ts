@@ -2,12 +2,11 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import useAcceleratorProfileState, {
   AcceleratorProfileState,
 } from '~/utilities/useAcceleratorProfileState';
-import { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 const useServingAcceleratorProfile = (
   servingRuntime?: ServingRuntimeKind | null,
   inferenceService?: InferenceServiceKind | null,
-): GenericObjectState<AcceleratorProfileState> => {
+): AcceleratorProfileState => {
   const acceleratorProfileName =
     servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
   const resources =

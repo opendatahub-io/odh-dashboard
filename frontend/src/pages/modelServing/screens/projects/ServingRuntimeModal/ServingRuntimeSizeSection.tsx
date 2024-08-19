@@ -9,7 +9,9 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import AcceleratorProfileSelectField, {
+  AcceleratorProfileSelectFieldState,
+} from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import SimpleSelect from '~/components/SimpleSelect';
@@ -23,7 +25,8 @@ type ServingRuntimeSizeSectionProps = {
   sizes: ModelServingSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
   acceleratorProfileState: AcceleratorProfileState;
-  setAcceleratorProfileState: UpdateObjectAtPropAndValue<AcceleratorProfileState>;
+  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  setSelectedAcceleratorProfile: UpdateObjectAtPropAndValue<AcceleratorProfileSelectFieldState>;
   infoContent?: string;
 };
 
@@ -33,7 +36,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   sizes,
   servingRuntimeSelected,
   acceleratorProfileState,
-  setAcceleratorProfileState,
+  selectedAcceleratorProfile,
+  setSelectedAcceleratorProfile,
   infoContent,
 }) => {
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
@@ -111,10 +115,11 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
         <FormGroup>
           <AcceleratorProfileSelectField
             acceleratorProfileState={acceleratorProfileState}
-            setAcceleratorProfileState={setAcceleratorProfileState}
             supportedAcceleratorProfiles={supportedAcceleratorProfiles}
             resourceDisplayName="serving runtime"
             infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
+            selectedAcceleratorProfile={selectedAcceleratorProfile}
+            setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
           />
         </FormGroup>
       )}

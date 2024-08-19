@@ -28,7 +28,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   isDisabled,
 }) => {
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
-  const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
+  const acceleratorProfile = useNotebookAcceleratorProfile(notebook);
   const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
@@ -55,10 +55,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
     (action: 'started' | 'stopped') => {
       fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
         outcome: TrackingOutcome.submit,
-        acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
+        acceleratorCount: acceleratorProfile.unknownProfileDetected
+          ? undefined
+          : acceleratorProfile.count,
         accelerator: acceleratorProfile.acceleratorProfile
           ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
-          : acceleratorProfile.useExisting
+          : acceleratorProfile.unknownProfileDetected
           ? 'Unknown'
           : 'None',
         lastSelectedSize:

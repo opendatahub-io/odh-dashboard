@@ -3,11 +3,10 @@ import { Notebook } from '~/types';
 import useAcceleratorProfileState, {
   AcceleratorProfileState,
 } from '~/utilities/useAcceleratorProfileState';
-import { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 const useNotebookAcceleratorProfile = (
   notebook?: NotebookKind | Notebook | null,
-): GenericObjectState<AcceleratorProfileState> => {
+): AcceleratorProfileState => {
   const name = notebook?.metadata.annotations?.['opendatahub.io/accelerator-name'];
   const resources = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,

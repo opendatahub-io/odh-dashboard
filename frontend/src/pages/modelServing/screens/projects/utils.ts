@@ -44,6 +44,7 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -314,7 +315,8 @@ const createInferenceServiceAndDataConnection = (
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
-  acceleratorProfileState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   dryRun = false,
 ) => {
   if (!existingStorage) {
@@ -325,14 +327,16 @@ const createInferenceServiceAndDataConnection = (
             editInfo,
             secret.metadata.name,
             isModelMesh,
-            acceleratorProfileState,
+            initialAcceleratorProfile,
+            selectedAcceleratorProfile,
             dryRun,
           )
         : createInferenceService(
             inferenceServiceData,
             secret.metadata.name,
             isModelMesh,
-            acceleratorProfileState,
+            initialAcceleratorProfile,
+            selectedAcceleratorProfile,
             dryRun,
           ),
     );
@@ -343,14 +347,16 @@ const createInferenceServiceAndDataConnection = (
         editInfo,
         undefined,
         isModelMesh,
-        acceleratorProfileState,
+        initialAcceleratorProfile,
+        selectedAcceleratorProfile,
         dryRun,
       )
     : createInferenceService(
         inferenceServiceData,
         undefined,
         isModelMesh,
-        acceleratorProfileState,
+        initialAcceleratorProfile,
+        selectedAcceleratorProfile,
         dryRun,
       );
 };
@@ -360,7 +366,8 @@ export const getSubmitInferenceServiceResourceFn = (
   editInfo?: InferenceServiceKind,
   servingRuntimeName?: string,
   isModelMesh?: boolean,
-  acceleratorProfileState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   allowCreate?: boolean,
   secrets?: SecretKind[],
 ): ((opts: { dryRun?: boolean }) => Promise<void>) => {
@@ -389,7 +396,8 @@ export const getSubmitInferenceServiceResourceFn = (
       existingStorage,
       editInfo,
       isModelMesh,
-      acceleratorProfileState,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
       dryRun,
     ).then((inferenceService) =>
       setUpTokenAuth(
@@ -421,7 +429,8 @@ export const getSubmitServingRuntimeResourcesFn = (
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  acceleratorProfileState: AcceleratorProfileState,
+  initialAcceleratorProfile: AcceleratorProfileState,
+  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -443,9 +452,9 @@ export const getSubmitServingRuntimeResourcesFn = (
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
-  const controlledState = isGpuDisabled(servingRuntimeSelected)
-    ? { count: 0, acceleratorProfiles: [], useExisting: false }
-    : acceleratorProfileState;
+  const controlledState: AcceleratorProfileSelectFieldState = isGpuDisabled(servingRuntimeSelected)
+    ? { count: 0, useExistingSettings: false }
+    : selectedAcceleratorProfile;
 
   if (!editInfo && !currentProject) {
     // This should be impossible to hit on resource creation, current project is undefined only on edit
@@ -472,7 +481,8 @@ export const getSubmitServingRuntimeResourcesFn = (
               opts: {
                 dryRun,
               },
-              acceleratorProfileState: controlledState,
+              selectedAcceleratorProfile: controlledState,
+              initialAcceleratorProfile,
               isModelMesh,
             }),
             setUpTokenAuth(
@@ -496,7 +506,8 @@ export const getSubmitServingRuntimeResourcesFn = (
               opts: {
                 dryRun,
               },
-              acceleratorProfileState: controlledState,
+              selectedAcceleratorProfile: controlledState,
+              initialAcceleratorProfile,
               isModelMesh,
             }).then((servingRuntime) =>
               setUpTokenAuth(
