@@ -47,12 +47,21 @@ export type DisplayNameAnnotations = Partial<{
   'openshift.io/display-name': string; // the name provided by the user
 }>;
 
+export type StorageClassConfig = {
+  displayName: string;
+  isEnabled: boolean;
+  isDefault: boolean;
+  lastModified: string;
+  description?: string;
+};
+
 type StorageClassAnnotations = Partial<{
   // if true, enables any persistent volume claim (PVC) that does not specify a specific storage class to automatically be provisioned.
   // Only one, if any, StorageClass per cluster can be set as default.
   'storageclass.kubernetes.io/is-default-class': 'true' | 'false';
   // the description provided by the cluster admin or Container Storage Interface (CSI) provider
   'kubernetes.io/description': string;
+  'opendatahub.io/sc-config': StorageClassConfig;
 }>;
 
 export type K8sDSGResource = K8sResourceCommon & {
