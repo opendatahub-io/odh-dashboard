@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, FormSection, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
@@ -75,7 +75,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
     });
 
   return (
-    <FormSection title="Compute resources per replica">
+    <>
       <FormGroup
         label="Model server size"
         labelIcon={
@@ -87,6 +87,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             </Popover>
           ) : undefined
         }
+        fieldId="model-server-size-selection"
+        isRequired
       >
         <Stack hasGutter>
           <StackItem>
@@ -94,6 +96,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
               dataTestId="model-server-size-selection"
               isFullWidth
               options={sizeOptions()}
+              toggleProps={{ id: 'model-server-size-selection' }}
               toggleLabel={data.modelSize.name || 'Select a model server size'}
               onChange={(option) => {
                 const valuesSelected = sizeCustom.find((element) => element.name === option);
@@ -112,18 +115,16 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
         </Stack>
       </FormGroup>
       {!gpuDisabled && (
-        <FormGroup>
-          <AcceleratorProfileSelectField
-            acceleratorProfileState={acceleratorProfileState}
-            supportedAcceleratorProfiles={supportedAcceleratorProfiles}
-            resourceDisplayName="serving runtime"
-            infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
-            selectedAcceleratorProfile={selectedAcceleratorProfile}
-            setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
-          />
-        </FormGroup>
+        <AcceleratorProfileSelectField
+          acceleratorProfileState={acceleratorProfileState}
+          supportedAcceleratorProfiles={supportedAcceleratorProfiles}
+          resourceDisplayName="serving runtime"
+          infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
+          selectedAcceleratorProfile={selectedAcceleratorProfile}
+          setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+        />
       )}
-    </FormSection>
+    </>
   );
 };
 

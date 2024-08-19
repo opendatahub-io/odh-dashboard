@@ -74,9 +74,8 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
             </Button>
           </Popover>
         )}
-        <FormGroup label="Name" isRequired>
+        <FormGroup label="Name" fieldId="inference-service-data-connection" isRequired>
           <SimpleSelect
-            id="inference-service-data-connection"
             isFullWidth
             isDisabled={isDataConnectionsEmpty}
             options={connectionsWithoutBucket.map((connection) => ({
@@ -84,6 +83,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
               dropdownLabel: getLabeledOption(connection),
               label: getDataConnectionDisplayName(connection.dataConnection),
             }))}
+            toggleProps={{ id: 'inference-service-data-connection' }}
             value={data.storage.dataConnection}
             toggleLabel={
               selectedDataConnection ? getLabeledOption(selectedDataConnection) : placeholderText
