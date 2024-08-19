@@ -110,10 +110,6 @@ export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => 
       isAdmin: properties.isAdmin,
       canCreateProjects: properties.canCreateProjects,
     };
-    if (properties.userID) {
-      window.analytics.identify(properties.userID, traits);
-    } else {
-      window.analytics.identify(properties.anonymousID, traits);
-    }
+    window.analytics.identify(properties.userID, traits);
   }
 };

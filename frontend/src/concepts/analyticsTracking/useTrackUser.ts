@@ -6,10 +6,10 @@ import { IdentifyEventProperties } from '~/concepts/analyticsTracking/trackingPr
 
 export const useTrackUser = (
   username?: string,
-  userID?: string,
+  ssoUserID?: string,
 ): [IdentifyEventProperties, boolean] => {
   const { isAdmin } = useUser();
-  const [anonymousId, setAnonymousId] = React.useState<string | undefined>(userID);
+  const [userID, setUserID] = React.useState<string | undefined>(ssoUserID);
 
   const createReviewResource: AccessReviewResourceAttributes = {
     group: 'project.openshift.io',
@@ -29,9 +29,9 @@ export const useTrackUser = (
       return aId;
     };
 
-    if (!userID) {
+    if (!ssoUserID) {
       computeAnonymousUserId().then((val) => {
-        setAnonymousId(val);
+        setUserID(val);
       });
     }
     // compute anonymousId only once
@@ -42,11 +42,10 @@ export const useTrackUser = (
     () => ({
       isAdmin,
       canCreateProjects: allowCreate,
-      anonymousID: anonymousId,
-      userID,
+      userID: userID,
     }),
-    [isAdmin, allowCreate, anonymousId, userID],
+    [isAdmin, allowCreate, userID, ssoUserID],
   );
 
-  return [props, acLoaded && !!anonymousId];
+  return [props, acLoaded && !!userID];
 };
