@@ -27,13 +27,6 @@ const useAcceleratorProfileState = (
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
 ): AcceleratorProfileState => {
-  // const [acceleratorProfileState, setData] = useGenericObjectState<AcceleratorProfileState>({
-  // acceleratorProfiles: [],
-  // acceleratorProfile: undefined,
-  // count: 0,
-  // unknownProfileDetected: false,
-  // });
-
   const { dashboardNamespace } = useDashboardNamespace();
   const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(dashboardNamespace);
 
@@ -53,9 +46,6 @@ const useAcceleratorProfileState = (
       );
 
       if (acceleratorProfile) {
-        // setData('acceleratorProfile', acceleratorProfile);
-        // setData('count', getAcceleratorProfileCount(acceleratorProfile, resources));
-        // setData('unknownProfileDetected', false);
         return {
           acceleratorProfiles,
           acceleratorProfile,
@@ -89,9 +79,6 @@ const useAcceleratorProfileState = (
           );
 
           if (migratedAcceleratorProfile) {
-            // setData('acceleratorProfile', migratedAcceleratorProfile);
-            // setData('count', Number(nvidiaAcceleratorRequests.count ?? 0));
-            // setData('unknownProfileDetected', false);
             return {
               acceleratorProfiles,
               acceleratorProfile: migratedAcceleratorProfile,
@@ -120,10 +107,6 @@ const useAcceleratorProfileState = (
             },
           };
 
-          // setData('acceleratorProfile', fakeAcceleratorProfile);
-          // setData('acceleratorProfiles', [fakeAcceleratorProfile, ...acceleratorProfiles]);
-          // setData('count', Number(nvidiaAcceleratorRequests.count ?? 0));
-          // setData('unknownProfileDetected', false);
           return {
             acceleratorProfiles: [fakeAcceleratorProfile, ...acceleratorProfiles],
             acceleratorProfile: fakeAcceleratorProfile,
@@ -131,10 +114,6 @@ const useAcceleratorProfileState = (
             unknownProfileDetected: false,
           };
         }
-        // fallback to using the existing accelerator
-        // setData('unknownProfileDetected', true);
-        // setData('acceleratorProfile', undefined);
-        // setData('count', 0);
         return {
           acceleratorProfiles,
           acceleratorProfile: undefined,
