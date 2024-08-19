@@ -1,12 +1,10 @@
 import * as React from 'react';
-import { Button, ButtonVariant, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectOwner } from '~/concepts/projects/utils';
-import { useAppContext } from '~/app/AppContext';
-import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import ProjectTableRow from '~/pages/projects/screens/projects/ProjectTableRow';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -20,7 +18,6 @@ type ProjectListViewProps = {
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
-  const { dashboardConfig } = useAppContext();
   const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
@@ -94,11 +91,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
               </ToolbarItem>
             </ToolbarGroup>
             <ToolbarGroup align={{ default: 'alignRight' }}>
-              {dashboardConfig.spec.notebookController?.enabled && (
-                <ToolbarItem>
-                  <LaunchJupyterButton variant={ButtonVariant.link} />
-                </ToolbarItem>
-              )}
               {allowCreate && (
                 <ToolbarItem>
                   <NewProjectButton

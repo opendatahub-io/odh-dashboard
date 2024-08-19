@@ -1,13 +1,9 @@
 import * as React from 'react';
-import { Button, ButtonVariant } from '@patternfly/react-core';
+import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 
-type LaunchJupyterButtonProps = {
-  variant: ButtonVariant;
-};
-
-const LaunchJupyterButton: React.FC<LaunchJupyterButtonProps> = ({ variant }) => {
+const LaunchJupyterButton: React.FC = () => {
   const navigate = useNavigate();
   const isJupyterEnabled = useCheckJupyterEnabled();
 
@@ -16,16 +12,22 @@ const LaunchJupyterButton: React.FC<LaunchJupyterButtonProps> = ({ variant }) =>
   }
 
   return (
-    <Button
-      href="/notebookController"
-      variant={variant}
-      onClick={(e) => {
-        e.preventDefault();
-        navigate('/notebookController');
-      }}
+    <Tooltip
+      position="left"
+      content="Launch a notebook server to create a standalone notebook outside of a project."
     >
-      Launch Jupyter
-    </Button>
+      <Button
+        href="/notebookController"
+        component="a"
+        variant={ButtonVariant.secondary}
+        onClick={(e) => {
+          e.preventDefault();
+          navigate('/notebookController');
+        }}
+      >
+        Launch standalone notebook server
+      </Button>
+    </Tooltip>
   );
 };
 
