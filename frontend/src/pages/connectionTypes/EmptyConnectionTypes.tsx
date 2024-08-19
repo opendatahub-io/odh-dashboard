@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   EmptyState,
@@ -21,7 +22,11 @@ const EmptyConnectionTypes: React.FC = () => (
       />
       <EmptyStateBody>To get started create a connection type.</EmptyStateBody>
       <EmptyStateFooter>
-        <Button data-testid="add-connection-type" isDisabled>
+        <Button
+          data-testid="add-connection-type"
+          variant="primary"
+          component={(props) => <Link {...props} to="/connectionTypes/create" />}
+        >
           Create connection type
         </Button>
       </EmptyStateFooter>
