@@ -2,6 +2,7 @@ import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
 import { DropdownField, HiddenField, TextField, UriField } from '~/concepts/connectionTypes/types';
 import {
   defaultValueToString,
+  fieldNameToEnvVar,
   fieldTypeToString,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
@@ -223,5 +224,26 @@ describe('fieldTypeToString', () => {
         },
       } satisfies UriField),
     ).toBe('URI');
+  });
+});
+
+describe('fieldNameToEnvVar', () => {
+  it('should replace spaces with underscores', () => {
+    expect(fieldNameToEnvVar('ABC DEF')).toBe('ABC_DEF');
+    expect(fieldNameToEnvVar('   ')).toBe('___');
+    expect(fieldNameToEnvVar(' HI ')).toBe('_HI_');
+  });
+  it('should repalce lowercase with uppercase', () => {
+    expect(fieldNameToEnvVar('one')).toBe('ONE');
+    expect(fieldNameToEnvVar('tWo')).toBe('TWO');
+    expect(fieldNameToEnvVar('THREE_')).toBe('THREE_');
+  });
+  it('should remove invalid characters', () => {
+    expect(fieldNameToEnvVar('a!@#$%^&*()-=_+[]\\{}|;\':"`,./<>?1')).toBe('A-_.1');
+    expect(fieldNameToEnvVar('=== tWo')).toBe('_TWO');
+  });
+  it('should remove numbers at the start', () => {
+    expect(fieldNameToEnvVar('1one')).toBe('ONE');
+    expect(fieldNameToEnvVar('++123 TWO 456')).toBe('_TWO_456');
   });
 });
