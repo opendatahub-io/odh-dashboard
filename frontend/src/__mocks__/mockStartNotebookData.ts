@@ -36,12 +36,16 @@ export const mockStartNotebookData = ({
       },
     },
   },
-  acceleratorProfile: {
+  initialAcceleratorProfile: {
     acceleratorProfile: undefined,
     acceleratorProfiles: [],
-    initialAcceleratorProfile: undefined,
     count: 0,
-    useExisting: false,
+    unknownProfileDetected: false,
+  },
+  selectedAcceleratorProfile: {
+    profile: undefined,
+    count: 0,
+    useExistingSettings: false,
   },
   volumes: [
     {

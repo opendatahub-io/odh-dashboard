@@ -28,6 +28,7 @@ import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -169,10 +170,14 @@ describe('assembleInferenceService', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const inferenceService = assembleInferenceService(
@@ -182,6 +187,7 @@ describe('assembleInferenceService', () => {
       false,
       undefined,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeDefined();
@@ -196,10 +202,14 @@ describe('assembleInferenceService', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const inferenceService = assembleInferenceService(
@@ -209,6 +219,7 @@ describe('assembleInferenceService', () => {
       true,
       undefined,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
@@ -221,10 +232,14 @@ describe('assembleInferenceService', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const inferenceService = assembleInferenceService(
@@ -237,6 +252,7 @@ describe('assembleInferenceService', () => {
       false,
       undefined,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
     );
 
     expect(inferenceService.spec.predictor.maxReplicas).toBe(replicaCount);
@@ -247,10 +263,14 @@ describe('assembleInferenceService', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const inferenceService = assembleInferenceService(
@@ -260,6 +280,7 @@ describe('assembleInferenceService', () => {
       true,
       undefined,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
     );
 
     expect(inferenceService.spec.predictor.maxReplicas).toBeUndefined();
@@ -270,10 +291,14 @@ describe('assembleInferenceService', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const modelSize: ModelServingSize = {
@@ -297,6 +322,7 @@ describe('assembleInferenceService', () => {
       false,
       undefined,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
     );
 
     expect(inferenceService.spec.predictor.model?.resources?.requests?.cpu).toBe(
@@ -317,10 +343,14 @@ describe('assembleInferenceService', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const modelSize: ModelServingSize = {
@@ -344,6 +374,7 @@ describe('assembleInferenceService', () => {
       true,
       undefined,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
     );
 
     expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
