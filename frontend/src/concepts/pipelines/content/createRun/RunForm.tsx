@@ -106,7 +106,6 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
         projectName={getDisplayNameFromK8sResource(data.project)}
         value={data.experiment}
         onChange={(experiment) => onValueChange('experiment', experiment)}
-        isSchedule={isSchedule}
       />
 
       <FormSection

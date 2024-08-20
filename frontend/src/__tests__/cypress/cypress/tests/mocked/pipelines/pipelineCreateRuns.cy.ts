@@ -550,7 +550,8 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule', () => {
       createScheduleRunCommonTest();
-      createSchedulePage.findExperimentSelect().should('contain.text', 'Default');
+      // Default is archived, so it should not pre-select the default
+      createSchedulePage.findExperimentSelect().should('contain.text', 'Select an experiment');
       createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage
@@ -588,6 +589,8 @@ describe('Pipeline create runs', () => {
     it('creates a schedule with trigger type cron without whitespace', () => {
       // Fill out the form with a schedule and submit
       createScheduleRunCommonTest();
+      createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
+      createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m');
       createSchedulePage
@@ -608,10 +611,10 @@ describe('Pipeline create runs', () => {
           },
           trigger: { cron_schedule: { cron: '@every 5m' } },
           max_concurrency: '10',
-          mode: 'DISABLE',
+          mode: 'ENABLE',
           no_catchup: false,
           service_account: '',
-          experiment_id: 'default',
+          experiment_id: 'experiment-1',
         });
       });
 
@@ -623,6 +626,8 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule with trigger type cron with whitespace', () => {
       createScheduleRunCommonTest();
+      createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
+      createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m ');
       createSchedulePage
@@ -643,10 +648,10 @@ describe('Pipeline create runs', () => {
           },
           trigger: { cron_schedule: { cron: '@every 5m' } },
           max_concurrency: '10',
-          mode: 'DISABLE',
+          mode: 'ENABLE',
           no_catchup: false,
           service_account: '',
-          experiment_id: 'default',
+          experiment_id: 'experiment-1',
         });
       });
     });
@@ -728,6 +733,38 @@ describe('Pipeline create runs', () => {
       verifyRelativeURL(
         `/experiments/${projectName}/experiment-1/schedules/${mockDuplicateRecurringRun.recurring_run_id}`,
       );
+    });
+
+    it('duplicates a schedule with an archived experiment', () => {
+      const [mockRecurringRun] = initialMockRecurringRuns;
+      const mockExperiment = { ...mockExperiments[0], storage_state: StorageStateKF.ARCHIVED };
+
+      // Mock experiments, pipelines & versions for form select dropdowns
+      cloneSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      cloneSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+      cloneSchedulePage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+      cloneSchedulePage.mockGetRecurringRun(projectName, mockRecurringRun);
+      cloneSchedulePage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      cloneSchedulePage.mockGetPipeline(projectName, mockPipeline);
+      cloneSchedulePage.mockGetExperiment(projectName, mockExperiment);
+
+      // Navigate to clone run page for a given schedule
+      cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
+      pipelineRunsGlobal.findSchedulesTab().click();
+      pipelineRecurringRunTable
+        .getRowByName(mockRecurringRun.display_name)
+        .findKebabAction('Duplicate')
+        .click();
+      verifyRelativeURL(
+        `/experiments/${projectName}/experiment-1/schedules/clone/${mockRecurringRun.recurring_run_id}`,
+      );
+
+      // Verify pre-populated values & submit
+      cloneSchedulePage.findExperimentSelect().should('have.text', 'Select an experiment');
     });
 
     it('shows cron & periodic fields', () => {
