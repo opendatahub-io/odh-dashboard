@@ -7,6 +7,8 @@ import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableVie
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ResourceTr from '~/components/ResourceTr';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -91,6 +93,10 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
             : undefined
         }
         onClose={(deleted) => {
+          fireFormTrackingEvent('Model Deleted', {
+            outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+            type: 'multi',
+          });
           if (deleted) {
             refresh?.();
           }
@@ -101,6 +107,10 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         isOpen={!!editInferenceService && isModelMesh(editInferenceService)}
         editInfo={editInferenceService}
         onClose={(edited) => {
+          fireFormTrackingEvent('Model Updated', {
+            outcome: edited ? TrackingOutcome.submit : TrackingOutcome.cancel,
+            type: 'multi',
+          });
           if (edited) {
             refresh?.();
           }
