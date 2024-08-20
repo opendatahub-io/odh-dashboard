@@ -42,9 +42,9 @@ export const useTrackUser = (
     () => ({
       isAdmin,
       canCreateProjects: allowCreate,
-      userID: userID,
+      userID,
     }),
-    [isAdmin, allowCreate, userID, ssoUserID],
+    [isAdmin, allowCreate, userID],
   );
 
   return [props, acLoaded && !!userID];
