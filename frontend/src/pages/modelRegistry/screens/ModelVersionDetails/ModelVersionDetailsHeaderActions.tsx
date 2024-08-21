@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
-import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
   modelVersionArchiveDetailsUrl,
@@ -92,8 +91,9 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           apiState.api
             .patchModelVersion(
               {},
-              // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-              getPatchBodyForModelVersion(mv, { state: ModelState.ARCHIVED }),
+              {
+                state: ModelState.ARCHIVED,
+              },
               mv.id,
             )
             .then(() =>

@@ -6,11 +6,7 @@ import DashboardDescriptionListGroup from '~/components/DashboardDescriptionList
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import {
-  getLabels,
-  getPatchBodyForRegisteredModel,
-  mergeUpdatedLabels,
-} from '~/pages/modelRegistry/screens/utils';
+import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 
 type ModelDetailsViewProps = {
@@ -36,8 +32,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ registeredModel: rm
               apiState.api
                 .patchRegisteredModel(
                   {},
-                  // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                  getPatchBodyForRegisteredModel(rm, { description: value }),
+                  {
+                    description: value,
+                  },
                   rm.id,
                 )
                 .then(refresh)
@@ -50,10 +47,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ registeredModel: rm
               apiState.api
                 .patchRegisteredModel(
                   {},
-                  // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                  getPatchBodyForRegisteredModel(rm, {
+                  {
                     customProperties: mergeUpdatedLabels(rm.customProperties, editedLabels),
-                  }),
+                  },
                   rm.id,
                 )
                 .then(refresh)
@@ -65,8 +61,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ registeredModel: rm
               apiState.api
                 .patchRegisteredModel(
                   {},
-                  // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                  getPatchBodyForRegisteredModel(rm, { customProperties: editedProperties }),
+                  {
+                    customProperties: editedProperties,
+                  },
                   rm.id,
                 )
                 .then(refresh)

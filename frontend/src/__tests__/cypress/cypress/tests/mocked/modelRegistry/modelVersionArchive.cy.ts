@@ -190,10 +190,7 @@ describe('Restoring archive version', () => {
 
     cy.wait('@versionRestored').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'LIVE',
-        description: 'Description of model version',
       });
     });
   });
@@ -219,10 +216,7 @@ describe('Restoring archive version', () => {
 
     cy.wait('@versionRestored').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'LIVE',
-        description: 'Description of model version',
       });
     });
   });
@@ -252,10 +246,7 @@ describe('Archiving version', () => {
     archiveVersionModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@versionArchived').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'ARCHIVED',
-        description: 'Description of model version',
       });
     });
   });
@@ -285,10 +276,7 @@ describe('Archiving version', () => {
     archiveVersionModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@versionArchived').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'ARCHIVED',
-        description: 'Description of model version',
       });
     });
   });

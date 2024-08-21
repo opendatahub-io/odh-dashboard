@@ -12,7 +12,6 @@ import {
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
-import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
 import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
 
 type RegisteredModelTableRowProps = {
@@ -86,8 +85,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
             apiState.api
               .patchRegisteredModel(
                 {},
-                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForRegisteredModel(rm, { state: ModelState.ARCHIVED }),
+                {
+                  state: ModelState.ARCHIVED,
+                },
                 rm.id,
               )
               .then(refresh)
@@ -101,8 +101,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
             apiState.api
               .patchRegisteredModel(
                 {},
-                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForRegisteredModel(rm, { state: ModelState.LIVE }),
+                {
+                  state: ModelState.LIVE,
+                },
                 rm.id,
               )
               .then(() =>

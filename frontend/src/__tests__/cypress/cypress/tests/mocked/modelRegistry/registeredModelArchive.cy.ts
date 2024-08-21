@@ -167,11 +167,7 @@ describe('Restoring archive model', () => {
 
     cy.wait('@modelRestored').then((interception) => {
       expect(interception.request.body).to.eql({
-        customProperties: {},
-        description: '',
-        externalID: '1234132asdfasdf',
         state: 'LIVE',
-        owner: 'Author 1',
       });
     });
   });
@@ -197,11 +193,7 @@ describe('Restoring archive model', () => {
 
     cy.wait('@modelRestored').then((interception) => {
       expect(interception.request.body).to.eql({
-        customProperties: {},
-        description: '',
-        externalID: '1234132asdfasdf',
         state: 'LIVE',
-        owner: 'Author 1',
       });
     });
   });
@@ -231,11 +223,7 @@ describe('Archiving model', () => {
     archiveModelModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@modelArchived').then((interception) => {
       expect(interception.request.body).to.eql({
-        customProperties: {},
-        description: '',
-        externalID: '1234132asdfasdf',
         state: 'ARCHIVED',
-        owner: 'Author 1',
       });
     });
   });
@@ -265,11 +253,7 @@ describe('Archiving model', () => {
     archiveModelModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@modelArchived').then((interception) => {
       expect(interception.request.body).to.eql({
-        customProperties: {},
-        description: '',
-        externalID: '1234132asdfasdf',
         state: 'ARCHIVED',
-        owner: 'Author 1',
       });
     });
   });

@@ -5,11 +5,7 @@ import DashboardDescriptionListGroup from '~/components/DashboardDescriptionList
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import {
-  getLabels,
-  getPatchBodyForModelVersion,
-  mergeUpdatedLabels,
-} from '~/pages/modelRegistry/screens/utils';
+import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -44,8 +40,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               apiState.api
                 .patchModelVersion(
                   {},
-                  // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                  getPatchBodyForModelVersion(mv, { description: value }),
+                  {
+                    description: value,
+                  },
                   mv.id,
                 )
                 .then(refresh)
@@ -58,10 +55,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               apiState.api
                 .patchModelVersion(
                   {},
-                  // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                  getPatchBodyForModelVersion(mv, {
+                  {
                     customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels),
-                  }),
+                  },
                   mv.id,
                 )
                 .then(refresh)
@@ -71,12 +67,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             customProperties={mv.customProperties}
             saveEditedCustomProperties={(editedProperties) =>
               apiState.api
-                .patchModelVersion(
-                  {},
-                  // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                  getPatchBodyForModelVersion(mv, { customProperties: editedProperties }),
-                  mv.id,
-                )
+                .patchModelVersion({}, { customProperties: editedProperties }, mv.id)
                 .then(refresh)
             }
           />
