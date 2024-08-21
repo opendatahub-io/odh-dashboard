@@ -6,7 +6,6 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { getPatchBodyForRegisteredModel } from '~/pages/modelRegistry/screens/utils';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
 import ModelVersionsTabs from '~/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
@@ -84,8 +83,9 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
             apiState.api
               .patchRegisteredModel(
                 {},
-                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForRegisteredModel(rm, { state: ModelState.LIVE }),
+                {
+                  state: ModelState.LIVE,
+                },
                 rm.id,
               )
               .then(() =>

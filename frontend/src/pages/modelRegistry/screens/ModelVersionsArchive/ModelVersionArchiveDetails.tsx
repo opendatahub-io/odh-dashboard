@@ -10,7 +10,6 @@ import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersi
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
@@ -92,8 +91,9 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
             apiState.api
               .patchModelVersion(
                 {},
-                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForModelVersion(mv, { state: ModelState.LIVE }),
+                {
+                  state: ModelState.LIVE,
+                },
                 mv.id,
               )
               .then(() =>
