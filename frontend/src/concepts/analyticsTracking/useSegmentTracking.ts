@@ -10,8 +10,9 @@ export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();
   const { dashboardConfig } = useAppContext();
   const username = useAppSelector((state) => state.user);
+  const userID = useAppSelector((state) => state.userID);
   const clusterID = useAppSelector((state) => state.clusterID);
-  const [userProps, uPropsLoaded] = useTrackUser(username);
+  const [userProps, uPropsLoaded] = useTrackUser(username, userID);
   const disableTrackingConfig = dashboardConfig.spec.dashboardConfig.disableTracking;
 
   React.useEffect(() => {

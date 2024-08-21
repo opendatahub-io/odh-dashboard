@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { LOG_DIR } from './constants';
-import { getUserName } from './userUtils';
+import { getUserInfo } from './userUtils';
 import { getNamespaces } from './notebookUtils';
 import { isUserAdmin } from './adminUtils';
 
@@ -27,13 +27,13 @@ export const logRequestDetails = (
   };
 
   const writeLogAsync = async () => {
-    const username = await getUserName(fastify, request);
+    const userInfo = await getUserInfo(fastify, request);
     const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+    const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace);
 
     writeAdminLog(fastify, {
       ...data,
-      user: username,
+      user: userInfo.userName,
       isAdmin: isAdmin,
     });
   };

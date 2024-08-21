@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getOpenshiftUser, getUserName, usernameTranslate } from './userUtils';
+import { getOpenshiftUser, getUserInfo, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
@@ -18,9 +18,9 @@ const testAdmin = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<boolean> => {
-  const username = await getUserName(fastify, request);
+  const userInfo = await getUserInfo(fastify, request);
   const { dashboardNamespace } = getNamespaces(fastify);
-  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+  const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace);
   if (isAdmin) {
     // User is an admin, pass to caller that we can bypass some logic
     return true;
@@ -29,7 +29,7 @@ const testAdmin = async (
   if (needsAdmin) {
     // Not an admin, route needs one -- reject
     fastify.log.error(
-      `A Non-Admin User (${username}) made a request against an endpoint that requires an admin.`,
+      `A Non-Admin User (${userInfo.userName}) made a request against an endpoint that requires an admin.`,
     );
     throw createCustomError(
       'Not Admin',
@@ -68,8 +68,8 @@ const requestSecurityGuard = async (
   name?: string,
 ): Promise<void> => {
   const { notebookNamespace, dashboardNamespace } = getNamespaces(fastify);
-  const username = await getUserName(fastify, request);
-  const translatedUsername = usernameTranslate(username);
+  const userInfo = await getUserInfo(fastify, request);
+  const translatedUsername = usernameTranslate(userInfo.userName);
   const isReadRequest = request.method.toLowerCase() === 'get';
 
   // Check to see if a request was made against one of our namespaces
@@ -208,11 +208,12 @@ const handleSecurityOnRouteData = async (
     }
 
     // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
-    const username = await getUserName(fastify, request);
+    const userInfo = await getUserInfo(fastify, request);
     const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+    const isAdmin = await isUserAdmin(fastify, userInfo.userName, dashboardNamespace);
     fastify.log.warn(
-      `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
+      `${isAdmin ? 'Admin ' : ''}User
+      ${userInfo.userName} interacted with a resource that was not secure.`,
     );
   }
 };

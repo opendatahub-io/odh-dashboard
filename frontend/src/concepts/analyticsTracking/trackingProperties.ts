@@ -4,7 +4,7 @@ export type ODHSegmentKey = {
 
 export type IdentifyEventProperties = {
   isAdmin: boolean;
-  anonymousID?: string;
+  userID?: string;
   canCreateProjects: boolean;
 };
 
