@@ -20,7 +20,7 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const [acceleratorProfile] = useServingAcceleratorProfile(obj, isvc);
+  const acceleratorProfile = useServingAcceleratorProfile(obj, isvc);
   const selectedAcceleratorProfile = acceleratorProfile.acceleratorProfile;
   const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
@@ -64,12 +64,12 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
               }`
             : enabledAcceleratorProfiles.length === 0
             ? 'No accelerator enabled'
-            : acceleratorProfile.useExisting
+            : acceleratorProfile.unknownProfileDetected
             ? 'Unknown'
             : 'No accelerator selected'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {!acceleratorProfile.useExisting && acceleratorProfile.acceleratorProfile && (
+      {!acceleratorProfile.unknownProfileDetected && acceleratorProfile.acceleratorProfile && (
         <DescriptionListGroup>
           <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
           <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>

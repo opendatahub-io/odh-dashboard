@@ -18,6 +18,8 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import { useAccessReview } from '~/api';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
@@ -49,8 +51,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
-  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
-    useServingAcceleratorProfile(editInfo?.servingRuntime);
+  const initialAcceleratorProfile = useServingAcceleratorProfile(editInfo?.servingRuntime);
+  const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
+    useGenericObjectState<AcceleratorProfileSelectFieldState>({
+      profile: undefined,
+      count: 0,
+      useExistingSettings: false,
+    });
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -78,7 +85,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     actionInProgress ||
     tokenErrors ||
     !inputValueValid ||
-    !isModelServerEditInfoChanged(createData, sizes, acceleratorProfileState, editInfo);
+    !isModelServerEditInfoChanged(
+      createData,
+      sizes,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
+      editInfo,
+    );
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -92,7 +105,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(false);
     resetData();
-    resetAcceleratorProfileData();
   };
 
   const setErrorModal = (e: Error) => {
@@ -115,7 +127,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       namespace,
       editInfo,
       allowCreate,
-      acceleratorProfileState,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
       NamespaceApplicationCase.MODEL_MESH_PROMOTION,
       currentProject,
       undefined,
@@ -162,7 +175,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              acceleratorProfileState={acceleratorProfileState}
+              selectedAcceleratorProfile={selectedAcceleratorProfile}
             />
           </StackItem>
           <StackItem>
@@ -179,8 +192,9 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorProfileState={acceleratorProfileState}
-              setAcceleratorProfileState={setAcceleratorProfileState}
+              acceleratorProfileState={initialAcceleratorProfile}
+              selectedAcceleratorProfile={selectedAcceleratorProfile}
+              setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>

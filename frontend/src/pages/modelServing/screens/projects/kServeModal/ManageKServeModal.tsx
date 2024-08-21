@@ -48,6 +48,8 @@ import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -111,11 +113,19 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const isInferenceServiceNameWithinLimit =
     translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
-  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
-    useServingAcceleratorProfile(
-      editInfo?.servingRuntimeEditInfo?.servingRuntime,
-      editInfo?.inferenceServiceEditInfo,
-    );
+  const acceleratorProfileState = useServingAcceleratorProfile(
+    editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    editInfo?.inferenceServiceEditInfo,
+  );
+  const [
+    selectedAcceleratorProfile,
+    setSelectedAcceleratorProfile,
+    resetSelectedAcceleratorProfile,
+  ] = useGenericObjectState<AcceleratorProfileSelectFieldState>({
+    profile: undefined,
+    count: 0,
+    useExistingSettings: false,
+  });
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
@@ -188,7 +198,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     setActionInProgress(false);
     resetDataServingRuntime();
     resetDataInferenceService();
-    resetAcceleratorProfileData();
+    resetSelectedAcceleratorProfile();
     setAlertVisible(true);
   };
 
@@ -218,6 +228,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.servingRuntimeEditInfo,
       false,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
       NamespaceApplicationCase.KSERVE_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
@@ -233,6 +244,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       servingRuntimeName,
       false,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
       allowCreate,
       editInfo?.secrets,
     );
@@ -329,7 +341,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   setData={setCreateDataServingRuntime}
                   templates={servingRuntimeTemplates || []}
                   isEditing={!!editInfo}
-                  acceleratorProfileState={acceleratorProfileState}
+                  selectedAcceleratorProfile={selectedAcceleratorProfile}
                 />
               </StackItem>
               <StackItem>
@@ -355,7 +367,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   sizes={sizes}
                   servingRuntimeSelected={servingRuntimeSelected}
                   acceleratorProfileState={acceleratorProfileState}
-                  setAcceleratorProfileState={setAcceleratorProfileState}
+                  selectedAcceleratorProfile={selectedAcceleratorProfile}
+                  setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
                   infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
                 />
               </StackItem>

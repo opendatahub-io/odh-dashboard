@@ -28,7 +28,7 @@ const NotebookServerDetails: React.FC = () => {
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
-  const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
+  const acceleratorProfile = useNotebookAcceleratorProfile(notebook);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
@@ -112,12 +112,12 @@ const NotebookServerDetails: React.FC = () => {
           <DescriptionListDescription>
             {acceleratorProfile.acceleratorProfile
               ? acceleratorProfile.acceleratorProfile.spec.displayName
-              : acceleratorProfile.useExisting
+              : acceleratorProfile.unknownProfileDetected
               ? 'Unknown'
               : 'None'}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        {!acceleratorProfile.useExisting && (
+        {!acceleratorProfile.unknownProfileDetected && (
           <DescriptionListGroup>
             <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
             <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>

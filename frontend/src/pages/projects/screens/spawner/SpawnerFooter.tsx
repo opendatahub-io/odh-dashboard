@@ -84,14 +84,15 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     editNotebook,
     existingDataConnections,
   );
-
   const afterStart = (name: string, type: 'created' | 'updated') => {
-    const { acceleratorProfile, notebookSize, image } = startNotebookData;
+    const { selectedAcceleratorProfile, notebookSize, image } = startNotebookData;
     const tep: FormTrackingEventProperties = {
-      acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
-      accelerator: acceleratorProfile.acceleratorProfile
-        ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
-        : acceleratorProfile.useExisting
+      acceleratorCount: selectedAcceleratorProfile.useExistingSettings
+        ? undefined
+        : selectedAcceleratorProfile.count,
+      accelerator: selectedAcceleratorProfile.profile
+        ? `${selectedAcceleratorProfile.profile.spec.displayName} (${selectedAcceleratorProfile.profile.metadata.name}): ${selectedAcceleratorProfile.profile.spec.identifier}`
+        : selectedAcceleratorProfile.useExistingSettings
         ? 'Unknown'
         : 'None',
       lastSelectedSize: notebookSize.name,

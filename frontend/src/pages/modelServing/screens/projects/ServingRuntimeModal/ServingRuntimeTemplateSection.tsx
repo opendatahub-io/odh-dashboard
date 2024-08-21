@@ -10,14 +10,14 @@ import {
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect from '~/components/SimpleSelect';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
-  acceleratorProfileState: AcceleratorProfileState;
+  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
 };
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
@@ -25,7 +25,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   setData,
   templates,
   isEditing,
-  acceleratorProfileState,
+  selectedAcceleratorProfile,
 }) => {
   const filteredTemplates = React.useMemo(
     () =>
@@ -50,7 +50,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         <SplitItem isFilled />
         <SplitItem>
           {isCompatibleWithAcceleratorProfile(
-            acceleratorProfileState.acceleratorProfile?.spec.identifier,
+            selectedAcceleratorProfile.profile?.spec.identifier,
             template.objects[0],
           ) && <Label color="blue">Compatible with accelerator</Label>}
         </SplitItem>

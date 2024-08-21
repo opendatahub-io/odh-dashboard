@@ -14,6 +14,7 @@ import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { ContainerResources } from '~/types';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions } from './utils';
 
@@ -23,7 +24,8 @@ export const assembleInferenceService = (
   editName?: string,
   isModelMesh?: boolean,
   inferenceService?: InferenceServiceKind,
-  acceleratorState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
 ): InferenceServiceKind => {
   const {
     storage,
@@ -144,7 +146,11 @@ export const assembleInferenceService = (
       },
     };
 
-    const { tolerations, resources } = assemblePodSpecOptions(resourceSettings, acceleratorState);
+    const { tolerations, resources } = assemblePodSpecOptions(
+      resourceSettings,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
+    );
 
     if (tolerations.length !== 0) {
       updateInferenceService.spec.predictor.tolerations = tolerations;
@@ -225,7 +231,8 @@ export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   isModelMesh?: boolean,
-  acceleratorState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   dryRun = false,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
@@ -234,7 +241,8 @@ export const createInferenceService = (
     undefined,
     isModelMesh,
     undefined,
-    acceleratorState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
   );
   return k8sCreateResource<InferenceServiceKind>(
     applyK8sAPIOptions(
@@ -252,7 +260,8 @@ export const updateInferenceService = (
   existingData: InferenceServiceKind,
   secretKey?: string,
   isModelMesh?: boolean,
-  acceleratorState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   dryRun = false,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
@@ -261,7 +270,8 @@ export const updateInferenceService = (
     existingData.metadata.name,
     isModelMesh,
     existingData,
-    acceleratorState,
+    initialAcceleratorProfile,
+    selectedAcceleratorProfile,
   );
 
   return k8sUpdateResource<InferenceServiceKind>(

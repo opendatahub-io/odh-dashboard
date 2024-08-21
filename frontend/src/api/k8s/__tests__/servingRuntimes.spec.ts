@@ -25,6 +25,7 @@ import {
 } from '~/api/k8s/servingRuntimes';
 import { ProjectModel, ServingRuntimeModel } from '~/api/models';
 import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
@@ -115,10 +116,14 @@ describe('assembleServingRuntime', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const servingRuntime = assembleServingRuntime(
@@ -131,6 +136,7 @@ describe('assembleServingRuntime', () => {
       true,
       false,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
       true,
     );
 
@@ -143,10 +149,14 @@ describe('assembleServingRuntime', () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
-      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
-      additionalOptions: {},
-      useExisting: false,
+      unknownProfileDetected: false,
+    };
+
+    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+      profile: mockAcceleratorProfile({}),
+      count: 1,
+      useExistingSettings: false,
     };
 
     const servingRuntime = assembleServingRuntime(
@@ -159,6 +169,7 @@ describe('assembleServingRuntime', () => {
       true,
       false,
       acceleratorProfileState,
+      selectedAcceleratorProfile,
       false,
     );
 
@@ -182,6 +193,7 @@ describe('assembleServingRuntime', () => {
       true,
       false,
       undefined,
+      undefined,
       true,
     );
 
@@ -198,6 +210,7 @@ describe('assembleServingRuntime', () => {
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
       false,
+      undefined,
       undefined,
       false,
     );
@@ -426,6 +439,7 @@ describe('updateServingRuntime', () => {
     true,
     false,
     undefined,
+    undefined,
     false,
   );
   it('should update serving runtimes when isCustomServingRuntimesEnabled is false', async () => {
@@ -495,6 +509,7 @@ describe('createServingRuntime', () => {
     MocksevingRuntime,
     true,
     false,
+    undefined,
     undefined,
     false,
   );
