@@ -18,7 +18,6 @@ import {
   SubscriptionKind,
   SubscriptionStatusData,
   Template,
-  TemplateList,
   TolerationEffect,
   TolerationOperator,
 } from '../types';
@@ -67,7 +66,6 @@ const DASHBOARD_CONFIG = {
 
 const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
   return fetchOrCreateDashboardCR(fastify)
-    .then((dashboardCR) => migrateTemplateDisablement(fastify, dashboardCR))
     .then((dashboardCR) => migrateBiasTrustyForRHOAI(fastify, dashboardCR))
     .then((dashboardCR) => [dashboardCR]);
 };
@@ -860,84 +858,6 @@ export const cleanupDSPSuffix = async (fastify: KubeFastifyInstance): Promise<vo
   Promise.all(calls).then(() => {
     fastify.log.info('Completed updating Namespaces');
   });
-};
-
-/**
- * @deprecated - Look to remove asap (see comments below)
- * Migrate the template enablement from a current annotation in the Template Object to a list in ODHDashboardConfig
- * We are migrating this from Dashboard v2.11.0, so we can remove this code when we no longer support that version.
- */
-export const migrateTemplateDisablement = async (
-  fastify: KubeFastifyInstance,
-  dashboardConfig: DashboardConfig,
-): Promise<DashboardConfig> => {
-  if (dashboardConfig.spec.templateDisablement) {
-    return dashboardConfig;
-  }
-
-  const namespace = fastify.kube.namespace;
-  return fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'template.openshift.io',
-      'v1',
-      namespace,
-      'templates',
-      undefined,
-      undefined,
-      undefined,
-      'opendatahub.io/dashboard=true',
-    )
-    .then((response) => response.body as TemplateList)
-    .then((templateList) => {
-      const templatesDisabled = templateList.items
-        .filter(
-          (template) =>
-            template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false',
-        )
-        .map((template) => getServingRuntimeNameFromTemplate(template));
-      if (templatesDisabled.length > 0) {
-        const options = {
-          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH },
-        };
-
-        return fastify.kube.customObjectsApi
-          .patchNamespacedCustomObject(
-            DASHBOARD_CONFIG.group,
-            DASHBOARD_CONFIG.version,
-            dashboardConfig.metadata.namespace,
-            DASHBOARD_CONFIG.plural,
-            dashboardConfig.metadata.name,
-            [
-              {
-                op: 'replace',
-                path: '/spec/templateDisablement',
-                value: templatesDisabled,
-              },
-            ],
-            undefined,
-            undefined,
-            undefined,
-            options,
-          )
-          .then(() => {
-            return {
-              ...dashboardConfig,
-              spec: {
-                ...dashboardConfig.spec,
-                templateDisablement: templatesDisabled,
-              },
-            };
-          });
-      } else {
-        return dashboardConfig;
-      }
-    })
-    .catch((e) => {
-      fastify.log.error(
-        `Error migrating template disablement: ${e.response?.body?.message || e.message || e}`,
-      );
-      return dashboardConfig;
-    });
 };
 
 /**
