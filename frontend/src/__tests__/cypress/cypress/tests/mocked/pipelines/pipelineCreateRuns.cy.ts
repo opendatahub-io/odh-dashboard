@@ -164,11 +164,12 @@ describe('Pipeline create runs', () => {
       );
       createRunPage.find();
 
+      const veryLongDesc = 'Test description'.repeat(30); // A string over 255 characters
       // Fill out the form without a schedule and submit
       createRunPage.fillName(initialMockRuns[0].display_name);
       cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
-      createRunPage.fillDescription('New run description');
+      createRunPage.fillDescription(veryLongDesc);
       createRunPage.findExperimentSelect().should('contain.text', 'Select an experiment');
       createRunPage.findExperimentSelect().should('not.be.disabled').click();
       createRunPage.selectExperimentByName('Test experiment 1');
@@ -189,7 +190,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@createRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'New run',
-          description: 'New run description',
+          description: veryLongDesc.substring(0, 255), // Verify the description in truncated
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
