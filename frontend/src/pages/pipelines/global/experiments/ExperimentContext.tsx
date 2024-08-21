@@ -40,9 +40,12 @@ const ExperimentContextProvider: React.FC = () => {
   );
 };
 
-export const useContextExperimentArchived = (): boolean => {
+export const useContextExperimentArchived = (
+  experimentAvailable?: ExperimentKFv2 | null,
+): boolean => {
   const { experiment } = React.useContext(ExperimentContext);
-  return experiment?.storage_state === StorageStateKF.ARCHIVED;
+  const experimentStorageState = experimentAvailable?.storage_state ?? experiment?.storage_state;
+  return experimentStorageState === StorageStateKF.ARCHIVED;
 };
 
 export default ExperimentContextProvider;
