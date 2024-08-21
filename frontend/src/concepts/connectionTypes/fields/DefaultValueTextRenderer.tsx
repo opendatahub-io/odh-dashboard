@@ -10,11 +10,12 @@ type Props = {
   field: ConnectionTypeDataField;
   mode?: FieldMode;
   children: React.ReactNode;
+  component?: 'div' | 'pre';
 };
 
-const DefaultValueTextRenderer: React.FC<Props> = ({ id, field, mode, children }) =>
+const DefaultValueTextRenderer: React.FC<Props> = ({ id, field, mode, children, component }) =>
   mode !== 'default' && field.properties.defaultReadOnly ? (
-    <FormGroupText id={id}>
+    <FormGroupText id={id} component={component}>
       {defaultValueToString(field) ?? (mode === 'preview' ? <UnspecifiedValue /> : '-')}
     </FormGroupText>
   ) : (

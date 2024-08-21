@@ -1,5 +1,10 @@
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
-import { DropdownField, HiddenField, TextField, UriField } from '~/concepts/connectionTypes/types';
+import {
+  ConnectionTypeFieldType,
+  DropdownField,
+  HiddenField,
+  TextField,
+} from '~/concepts/connectionTypes/types';
 import {
   defaultValueToString,
   fieldTypeToString,
@@ -11,13 +16,15 @@ describe('toConnectionTypeConfigMap / toConnectionTypeConfigMapObj', () => {
   it('should serialize / deserialize connection type fields', () => {
     const ct = mockConnectionTypeConfigMapObj({});
     const configMap = toConnectionTypeConfigMap(ct);
+    expect(typeof configMap.data?.category).toBe('string');
     expect(typeof configMap.data?.fields).toBe('string');
     expect(ct).toEqual(toConnectionTypeConfigMapObj(toConnectionTypeConfigMap(ct)));
   });
 
   it('should serialize / deserialize connection type with missing fields', () => {
-    const ct = mockConnectionTypeConfigMapObj({ fields: undefined });
+    const ct = mockConnectionTypeConfigMapObj({ fields: undefined, category: undefined });
     const configMap = toConnectionTypeConfigMap(ct);
+    expect(configMap.data?.category).toBeUndefined();
     expect(configMap.data?.fields).toBeUndefined();
     expect(ct).toEqual(toConnectionTypeConfigMapObj(configMap));
   });
@@ -82,7 +89,7 @@ describe('defaultValueToString', () => {
           defaultValue: 'test value',
         },
       } satisfies HiddenField),
-    ).toBe('••••••••••');
+    ).toBe('test value');
   });
 
   it('should return single variant dropdown value as string', () => {
@@ -132,7 +139,7 @@ describe('defaultValueToString', () => {
           defaultValue: ['2'],
         },
       } satisfies DropdownField),
-    ).toBe('Two');
+    ).toBe('Two (Value: 2)');
     expect(
       defaultValueToString({
         type: 'dropdown',
@@ -149,7 +156,7 @@ describe('defaultValueToString', () => {
           defaultValue: ['2', '3'],
         },
       } satisfies DropdownField),
-    ).toBe('Two');
+    ).toBe('Two (Value: 2)');
   });
 
   it('should return multi variant dropdown value as string', () => {
@@ -199,29 +206,21 @@ describe('defaultValueToString', () => {
           defaultValue: ['2', '3'],
         },
       } satisfies DropdownField),
-    ).toBe('Two, Three');
+    ).toBe('Two (Value: 2), Three (Value: 3)');
   });
 });
 
 describe('fieldTypeToString', () => {
   it('should return default value as string', () => {
-    expect(
-      fieldTypeToString({
-        type: 'text',
-        name: 'test',
-        envVar: 'test',
-        properties: {},
-      } satisfies TextField),
-    ).toBe('Text');
-    expect(
-      fieldTypeToString({
-        type: 'uri',
-        name: 'test',
-        envVar: 'test',
-        properties: {
-          defaultValue: '',
-        },
-      } satisfies UriField),
-    ).toBe('URI');
+    expect(fieldTypeToString('text')).toBe('Text - Long');
+    expect(fieldTypeToString(ConnectionTypeFieldType.Text)).toBe('Text - Long');
+    expect(fieldTypeToString('short-text')).toBe('Text - Short');
+    expect(fieldTypeToString(ConnectionTypeFieldType.ShortText)).toBe('Text - Short');
+    expect(fieldTypeToString('hidden')).toBe('Text - Hidden');
+    expect(fieldTypeToString(ConnectionTypeFieldType.Hidden)).toBe('Text - Hidden');
+    expect(fieldTypeToString('uri')).toBe('URI');
+    expect(fieldTypeToString(ConnectionTypeFieldType.URI)).toBe('URI');
+    expect(fieldTypeToString('numeric')).toBe('Numeric');
+    expect(fieldTypeToString(ConnectionTypeFieldType.Numeric)).toBe('Numeric');
   });
 });

@@ -9,6 +9,7 @@ export const extractConnectionTypeFromMap = (
   enabled: boolean;
   username: string;
   fields: ConnectionTypeField[];
+  category: string[];
 } => ({
   k8sName: configMap?.metadata.name ?? '',
   name: configMap?.metadata.annotations?.['openshift.io/display-name'] ?? '',
@@ -16,6 +17,7 @@ export const extractConnectionTypeFromMap = (
   enabled: configMap?.metadata.annotations?.['opendatahub.io/enabled'] === 'true',
   username: configMap?.metadata.annotations?.['opendatahub.io/username'] ?? '',
   fields: configMap?.data?.fields ?? [],
+  category: configMap?.data?.category ?? [],
 });
 
 export const createConnectionTypeObj = (
@@ -25,6 +27,7 @@ export const createConnectionTypeObj = (
   enabled: boolean,
   username: string,
   fields: ConnectionTypeField[],
+  category: string[],
 ): ConnectionTypeConfigMapObj => ({
   kind: 'ConfigMap',
   apiVersion: 'v1',
@@ -39,6 +42,7 @@ export const createConnectionTypeObj = (
     labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/connection-type': 'true' },
   },
   data: {
+    category,
     fields,
   },
 });

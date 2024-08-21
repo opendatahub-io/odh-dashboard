@@ -1,4 +1,3 @@
-import { FormSection } from '@patternfly/react-core';
 import * as React from 'react';
 import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
 import DataFormFieldGroup from '~/concepts/connectionTypes/fields/DataFormFieldGroup';
@@ -56,11 +55,11 @@ const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange
             {renderDataFields(fieldGroup.fields)}
           </SectionFormField>
         ) : (
-          <FormSection key="ungrouped-fields">{renderDataFields(fieldGroup.fields)}</FormSection>
+          <React.Fragment key={i}>{renderDataFields(fieldGroup.fields)}</React.Fragment>
         ),
       )}
     </>
   );
 };
 
-export default ConnectionTypeFormFields;
+export default React.memo(ConnectionTypeFormFields);

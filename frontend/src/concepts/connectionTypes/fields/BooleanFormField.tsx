@@ -12,13 +12,23 @@ const BooleanFormField: React.FC<FieldProps<BooleanField>> = ({
   'data-testid': dataTestId,
 }) => {
   const isPreview = mode === 'preview';
+
+  // ensure the value is not undefined
+  React.useEffect(() => {
+    if (value == null) {
+      onChange?.(field.properties.defaultValue ?? false);
+    }
+    // do not run when callback changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   return (
     <Checkbox
       aria-readonly={isPreview}
       id={id}
       name={id}
       data-testid={dataTestId}
-      label={field.properties.label}
+      label={mode === 'default' ? 'Checkbox is selected' : field.properties.label}
       aria-label={field.properties.label || field.name}
       isDisabled={field.properties.defaultReadOnly}
       isChecked={

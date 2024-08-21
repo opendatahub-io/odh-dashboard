@@ -25,7 +25,19 @@ export const connectionTypeDataFields = [
   ConnectionTypeFieldType.URI,
 ];
 
-type Field<T extends ConnectionTypeFieldType | string> = {
+export type ConnectionTypeFieldTypeUnion =
+  | ConnectionTypeFieldType
+  | 'boolean'
+  | 'dropdown'
+  | 'file'
+  | 'hidden'
+  | 'numeric'
+  | 'section'
+  | 'short-text'
+  | 'text'
+  | 'uri';
+
+type Field<T extends ConnectionTypeFieldTypeUnion> = {
   type: T;
   name: string;
   description?: string;
@@ -38,7 +50,7 @@ export type ConnectionTypeCommonProperties<V = string> = {
 
 // P default to an empty set of properties
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type DataField<T extends ConnectionTypeFieldType | string, V = string, P = {}> = Field<T> & {
+export type DataField<T extends ConnectionTypeFieldTypeUnion, V = string, P = {}> = Field<T> & {
   envVar: string;
   required?: boolean;
   properties: P & ConnectionTypeCommonProperties<V>;
@@ -93,6 +105,7 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
     };
   };
   data?: {
+    category?: string;
     // JSON of type ConnectionTypeField
     fields?: string;
   };
@@ -100,6 +113,7 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
 
 export type ConnectionTypeConfigMapObj = Omit<ConnectionTypeConfigMap, 'data'> & {
   data?: {
+    category?: string[];
     fields?: ConnectionTypeField[];
   };
 };
