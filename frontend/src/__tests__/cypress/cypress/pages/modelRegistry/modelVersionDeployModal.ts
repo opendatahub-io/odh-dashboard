@@ -6,11 +6,12 @@ class ModelVersionDeployModal extends Modal {
   }
 
   findProjectSelector() {
-    return cy.findByTestId('deploy-model-project-selector');
+    return this.find().findByTestId('deploy-model-project-selector');
   }
 
   selectProjectByName(name: string) {
-    this.findProjectSelector().findDropdownItem(name).click();
+    this.findProjectSelector().click();
+    this.find().findByRole('menuitem', { name }).click();
   }
 }
 

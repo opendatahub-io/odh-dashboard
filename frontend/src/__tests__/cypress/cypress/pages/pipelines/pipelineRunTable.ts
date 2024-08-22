@@ -54,7 +54,7 @@ class PipelineRunsTable {
   }
 
   findActionsKebab() {
-    return cy.findByRole('button', { name: 'Actions' }).parent();
+    return cy.findByRole('button', { name: 'Actions' });
   }
 
   findEmptyState() {
