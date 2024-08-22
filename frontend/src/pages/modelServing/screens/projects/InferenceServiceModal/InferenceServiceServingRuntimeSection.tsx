@@ -49,7 +49,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
   }
 
   return (
-    <FormGroup label="Model servers" isRequired>
+    <FormGroup label="Model server" fieldId="inference-service-model-selection" isRequired>
       <SimpleSelect
         dataTestId="inference-service-model-selection"
         isDisabled={servingRuntimes.length === 0}
@@ -57,6 +57,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
           key: servingRuntime.metadata.name,
           label: getDisplayNameFromK8sResource(servingRuntime),
         }))}
+        toggleProps={{ id: 'inference-service-model-selection' }}
         isFullWidth
         value={data.servingRuntimeName}
         toggleLabel={

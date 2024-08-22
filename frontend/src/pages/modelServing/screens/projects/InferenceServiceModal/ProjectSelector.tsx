@@ -31,7 +31,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   const { projects } = React.useContext(ProjectsContext);
 
   return (
-    <FormGroup label="Project" isRequired>
+    <FormGroup label="Project" fieldId="deploy-model-project-selector" isRequired>
       <Stack hasGutter>
         <StackItem>
           <Select
@@ -56,6 +56,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 isExpanded={isOpen}
                 isFullWidth
                 data-testid="deploy-model-project-selector"
+                id="deploy-model-project-selector"
               >
                 {selectedProject
                   ? getDisplayNameFromK8sResource(selectedProject)
@@ -82,7 +83,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               <Link
                 to={`/projects/${selectedProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`}
               >
-                Go to {getDisplayNameFromK8sResource(selectedProject)} project page
+                Go to <b>{getDisplayNameFromK8sResource(selectedProject)}</b> project page
               </Link>
             </Alert>
           </StackItem>

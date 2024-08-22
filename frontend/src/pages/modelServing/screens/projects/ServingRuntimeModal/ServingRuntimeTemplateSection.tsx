@@ -59,11 +59,10 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   }));
 
   return (
-    <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
+    <FormGroup label="Serving runtime" fieldId="serving-runtime-template-selection" isRequired>
       <SimpleSelect
         isFullWidth
         isDisabled={isEditing || filteredTemplates.length === 0}
-        id="serving-runtime-template-selection"
         dataTestId="serving-runtime-template-selection"
         aria-label="Select a template"
         options={options}
@@ -72,6 +71,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             ? data.servingRuntimeTemplateName
             : 'Select one'
         }
+        toggleProps={{ id: 'serving-runtime-template-selection' }}
         value={data.servingRuntimeTemplateName}
         onChange={(name) => {
           setData('servingRuntimeTemplateName', name);

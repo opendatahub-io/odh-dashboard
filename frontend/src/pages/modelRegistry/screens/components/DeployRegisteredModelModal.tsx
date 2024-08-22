@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Button, Form, Modal, Spinner } from '@patternfly/react-core';
+import { Alert, Button, Form, FormSection, Modal, Spinner } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
@@ -92,11 +92,13 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
           ) : !deployInfoLoaded ? (
             <Spinner />
           ) : (
-            <ProjectSelector
-              selectedProject={selectedProject}
-              setSelectedProject={setSelectedProject}
-              error={error}
-            />
+            <FormSection title="Model deployment">
+              <ProjectSelector
+                selectedProject={selectedProject}
+                setSelectedProject={setSelectedProject}
+                error={error}
+              />
+            </FormSection>
           )}
         </Form>
       </Modal>

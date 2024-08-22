@@ -4,7 +4,6 @@ import {
   Button,
   Checkbox,
   FormGroup,
-  FormSection,
   Popover,
   Stack,
   StackItem,
@@ -70,27 +69,25 @@ const AuthServingRuntimeSection: React.FC<AuthServingRuntimeSectionProps> = ({
       )}
       {publicRoute && (
         <StackItem>
-          <FormSection title="Model route" titleElement="div">
-            <FormGroup>
-              <Checkbox
-                label="Make deployed models available through an external route"
-                id="alt-form-checkbox-route"
-                data-testid="alt-form-checkbox-route"
-                name="alt-form-checkbox-route"
-                isChecked={data.externalRoute}
-                isDisabled={!allowCreate}
-                onChange={(e, check) => {
-                  setData('externalRoute', check);
-                  if (check && allowCreate) {
-                    setData('tokenAuth', check);
-                    if (data.tokens.length === 0) {
-                      createNewToken();
-                    }
+          <FormGroup fieldId="alt-form-checkbox-route" label="Model route">
+            <Checkbox
+              label="Make deployed models available through an external route"
+              id="alt-form-checkbox-route"
+              data-testid="alt-form-checkbox-route"
+              name="alt-form-checkbox-route"
+              isChecked={data.externalRoute}
+              isDisabled={!allowCreate}
+              onChange={(e, check) => {
+                setData('externalRoute', check);
+                if (check && allowCreate) {
+                  setData('tokenAuth', check);
+                  if (data.tokens.length === 0) {
+                    createNewToken();
                   }
-                }}
-              />
-            </FormGroup>
-          </FormSection>
+                }
+              }}
+            />
+          </FormGroup>
         </StackItem>
       )}
       <StackItem>
