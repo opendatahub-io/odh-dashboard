@@ -98,7 +98,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                       index,
                     });
                   }}
-                  onDelete={() => onFieldsChange(fields.filter((f, i) => i !== index))}
+                  onRemove={() => onFieldsChange(fields.filter((f, i) => i !== index))}
                   onDuplicate={(field) => {
                     setModalField({
                       field: structuredClone(field),

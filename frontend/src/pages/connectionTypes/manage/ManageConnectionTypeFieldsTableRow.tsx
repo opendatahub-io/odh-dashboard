@@ -14,7 +14,7 @@ type Props = {
   row: ConnectionTypeField;
   columns: ThProps[];
   onEdit: () => void;
-  onDelete: () => void;
+  onRemove: () => void;
   onDuplicate: (field: ConnectionTypeField) => void;
   onAddField: (parentSection: SectionField) => void;
   onChange: (updatedField: ConnectionTypeField) => void;
@@ -24,7 +24,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
   columns,
   onEdit,
-  onDelete,
+  onRemove,
   onDuplicate,
   onAddField,
   onChange,
@@ -65,8 +65,8 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
                 onClick: () => onDuplicate({ ...row, name: `Duplicate of ${row.name}` }),
               },
               {
-                title: 'Delete',
-                onClick: () => onDelete(),
+                title: 'Remove',
+                onClick: () => onRemove(),
               },
             ]}
           />
