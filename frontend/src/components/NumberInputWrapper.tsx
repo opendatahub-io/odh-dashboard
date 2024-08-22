@@ -1,14 +1,20 @@
 import * as React from 'react';
 import { NumberInput } from '@patternfly/react-core';
 
+import './NumberInputWrapper.scss';
+
 type NumberInputWrapperProps = {
-  onBlur?: (blurValue: number) => void;
-  onChange?: (newValue: number) => void;
+  onBlur?: (blurValue: number | undefined) => void;
+  onChange?: (newValue: number | undefined) => void;
+  intOnly?: boolean;
+  fullWidth?: boolean;
 } & Omit<React.ComponentProps<typeof NumberInput>, 'onChange' | 'onPlus' | 'onMinus'>;
 
 const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onBlur,
   onChange,
+  intOnly = true,
+  fullWidth = false,
   value,
   validated,
   min,
@@ -16,6 +22,8 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   ...otherProps
 }) => (
   <NumberInput
+    className={fullWidth ? 'odh-number-input-wrapper m-full-width' : undefined}
+    inputProps={{ placeholder: '' }}
     {...otherProps}
     min={min}
     max={max}
@@ -24,26 +32,49 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
     onChange={
       onChange
         ? (e) => {
-            let v = parseInt(e.currentTarget.value);
-            if (min) {
-              v = Math.max(v, min);
+            if (e.type === 'change') {
+              let v: number = intOnly
+                ? parseInt(e.currentTarget.value)
+                : parseFloat(e.currentTarget.value);
+              if (Number.isNaN(v)) {
+                e.currentTarget.value = '';
+                onChange(undefined);
+                return;
+              }
+              if (min) {
+                v = Math.max(v, min);
+              }
+              if (max) {
+                v = Math.min(v, max);
+              }
+              onChange(v);
             }
-            if (max) {
-              v = Math.min(v, max);
-            }
-            onChange(v);
           }
         : undefined
     }
-    onBlur={
-      onBlur &&
-      ((e) => {
-        onBlur(parseInt(e.currentTarget.value));
-      })
+    onBlur={(e) => {
+      // eslint-disable-next-line no-param-reassign
+      e.target.value = value ?? '';
+      if (onBlur) {
+        onBlur(value);
+      }
+    }}
+    onPlus={
+      onChange
+        ? () => {
+            const newVal = (value || 0) + 1;
+            onChange(min ? Math.max(newVal, min) : newVal);
+          }
+        : undefined
     }
-    onPlus={onChange ? () => onChange((value || 0) + 1) : undefined}
-    onMinus={onChange ? () => onChange((value || 0) - 1) : undefined}
+    onMinus={
+      onChange
+        ? () => {
+            const newVal = (value || 0) - 1;
+            onChange(max ? Math.min(newVal, max) : newVal);
+          }
+        : undefined
+    }
   />
 );
-
 export default NumberInputWrapper;

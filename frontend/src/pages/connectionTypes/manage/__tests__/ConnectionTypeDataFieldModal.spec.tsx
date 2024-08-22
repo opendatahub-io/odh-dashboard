@@ -4,11 +4,16 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { act } from 'react-dom/test-utils';
 import { ConnectionTypeDataFieldModal } from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldModal';
 
-describe('ConnectionTypeDataFieldModal', () => {
-  it('should render the modal', () => {
-    const onClose = jest.fn();
-    const onSubmit = jest.fn();
+let onClose: jest.Mock;
+let onSubmit: jest.Mock;
 
+describe('ConnectionTypeDataFieldModal', () => {
+  beforeEach(() => {
+    onClose = jest.fn();
+    onSubmit = jest.fn();
+  });
+
+  it('should render the modal', () => {
     render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
 
     const addButton = screen.getByTestId('modal-submit-button');
@@ -18,10 +23,7 @@ describe('ConnectionTypeDataFieldModal', () => {
   });
 
   it('should add a short text field', async () => {
-    const onCancel = jest.fn();
-    const onSubmit = jest.fn();
-
-    render(<ConnectionTypeDataFieldModal onClose={onCancel} onSubmit={onSubmit} />);
+    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
@@ -66,10 +68,7 @@ describe('ConnectionTypeDataFieldModal', () => {
   });
 
   it('should auto generate env var if not entered', async () => {
-    const onCancel = jest.fn();
-    const onSubmit = jest.fn();
-
-    render(<ConnectionTypeDataFieldModal onClose={onCancel} onSubmit={onSubmit} />);
+    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
@@ -126,5 +125,109 @@ describe('ConnectionTypeDataFieldModal', () => {
       required: undefined,
       type: 'short-text',
     });
+  });
+
+  it('should add a numeric field', async () => {
+    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    const fieldNameInput = screen.getByTestId('field-name-input');
+    const fieldDescriptionInput = screen.getByTestId('field-description-input');
+    const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
+    const typeSelectGroup = screen.getByTestId('field-type-select');
+    const typeSelectToggle = within(typeSelectGroup).getByRole('button');
+
+    act(() => {
+      fireEvent.change(fieldNameInput, { target: { value: 'new-field' } });
+      fireEvent.change(fieldDescriptionInput, { target: { value: 'test description' } });
+      fireEvent.change(fieldEnvVarInput, { target: { value: 'TEST_ENV_VAR' } });
+      typeSelectToggle.click();
+    });
+
+    const numericSelect = within(screen.getByTestId('field-numeric-select')).getByRole('option');
+
+    act(() => {
+      numericSelect.click();
+    });
+
+    await waitFor(() => expect(typeSelectToggle).toHaveAttribute('aria-expanded', 'false'));
+
+    const fieldDefaultValueInput = screen.getByTestId('field-default-value');
+    act(() => {
+      fireEvent.change(fieldDefaultValueInput, { target: { value: '10' } });
+    });
+
+    screen.getByTestId('modal-submit-button').click();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      description: 'test description',
+      envVar: 'TEST_ENV_VAR',
+      name: 'new-field',
+      properties: {
+        defaultReadOnly: undefined,
+        defaultValue: 10,
+      },
+      required: undefined,
+      type: 'numeric',
+    });
+
+    act(() => {
+      fireEvent.change(fieldDefaultValueInput, { target: { value: 'not a number' } });
+    });
+
+    screen.getByTestId('modal-submit-button').click();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      description: 'test description',
+      envVar: 'TEST_ENV_VAR',
+      name: 'new-field',
+      properties: {
+        defaultReadOnly: undefined,
+        defaultValue: undefined,
+      },
+      required: undefined,
+      type: 'numeric',
+    });
+
+    const lowerThreshold = screen.getByTestId('lower-threshold');
+    expect(lowerThreshold).not.toBeVisible();
+
+    const advancedToggle = screen.getByTestId('advanced-settings-toggle');
+    const toggleButton = within(advancedToggle).getByRole('button');
+
+    act(() => {
+      toggleButton.click();
+    });
+
+    expect(lowerThreshold).toBeVisible();
+    act(() => {
+      fireEvent.change(lowerThreshold, { target: { value: '10' } });
+    });
+
+    const upperThreshold = screen.getByTestId('upper-threshold');
+    act(() => {
+      fireEvent.change(upperThreshold, { target: { value: '100' } });
+    });
+
+    screen.getByTestId('modal-submit-button').click();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      description: 'test description',
+      envVar: 'TEST_ENV_VAR',
+      name: 'new-field',
+      properties: {
+        defaultReadOnly: undefined,
+        defaultValue: undefined,
+        min: 10,
+        max: 100,
+      },
+      required: undefined,
+      type: 'numeric',
+    });
+
+    // Setting the min greater than the max should disable the submit button
+    act(() => {
+      fireEvent.change(lowerThreshold, { target: { value: '10000' } });
+    });
+
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
   });
 });

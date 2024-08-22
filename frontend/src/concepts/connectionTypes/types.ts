@@ -78,7 +78,15 @@ export type DropdownField = DataField<
     items?: { label: string; value: string }[];
   }
 >;
-export type NumericField = DataField<ConnectionTypeFieldType.Numeric | 'numeric', number>;
+export type NumericField = DataField<
+  ConnectionTypeFieldType.Numeric | 'numeric',
+  number,
+  {
+    unit?: string;
+    min?: number;
+    max?: number;
+  }
+>;
 
 export type ConnectionTypeField =
   | BooleanField

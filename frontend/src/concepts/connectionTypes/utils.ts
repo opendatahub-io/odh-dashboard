@@ -51,6 +51,11 @@ export const defaultValueToString = <T extends ConnectionTypeDataField>(
         return items.length > 0 ? items.join(', ') : undefined;
       }
       break;
+    case ConnectionTypeFieldType.Numeric:
+      if (defaultValue != null && field.properties.unit) {
+        return `${defaultValue} ${field.properties.unit}`;
+      }
+      break;
   }
   return defaultValue == null ? defaultValue : `${defaultValue}`;
 };
