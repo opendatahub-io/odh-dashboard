@@ -13,23 +13,37 @@ import TruncatedText from '~/components/TruncatedText';
 type Props = {
   row: ConnectionTypeField;
   columns: ThProps[];
+  fields: ConnectionTypeField[];
   onEdit: () => void;
   onRemove: () => void;
   onDuplicate: (field: ConnectionTypeField) => void;
   onAddField: (parentSection: SectionField) => void;
+  onMoveToSection: () => void;
   onChange: (updatedField: ConnectionTypeField) => void;
 } & RowProps;
 
 const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
   columns,
+  fields,
   onEdit,
   onRemove,
   onDuplicate,
   onAddField,
+  onMoveToSection,
   onChange,
   ...props
 }) => {
+  const numSections = React.useMemo(
+    () =>
+      fields.reduce(
+        (accumulator, currentValue) =>
+          currentValue.type === ConnectionTypeFieldType.Section ? accumulator + 1 : accumulator,
+        0,
+      ),
+    [fields],
+  );
+
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
       <Tr draggable isStriped data-testid="row" {...props}>
@@ -118,9 +132,17 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               title: 'Duplicate',
               onClick: () => onDuplicate(row),
             },
+            ...(numSections > 0
+              ? [
+                  {
+                    title: 'Move to section heading',
+                    onClick: () => onMoveToSection(),
+                  },
+                ]
+              : []),
             {
-              title: 'Delete',
-              onClick: () => onDelete(),
+              title: 'Remove',
+              onClick: () => onRemove(),
             },
           ]}
         />

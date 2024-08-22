@@ -18,6 +18,7 @@ import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connect
 import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
+import { ConnectionTypeMoveFieldToSectionModal } from './ConnectionTypeFieldMoveModal';
 
 type EmptyFieldsTableProps = {
   onAddSection: () => void;
@@ -63,6 +64,10 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
   const [modalField, setModalField] = React.useState<
     { field?: ConnectionTypeField; index?: number; isEdit?: boolean } | undefined
   >();
+  const [moveToSectionModalField, setMoveToSectionModalField] = React.useState<{
+    field: ConnectionTypeField;
+    index: number;
+  }>();
 
   const { tableProps, rowsToRender } = useDraggableTableControlled<ConnectionTypeField>(
     fields,
@@ -91,6 +96,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                   key={index}
                   row={row}
                   columns={columns}
+                  fields={fields}
                   onEdit={() => {
                     setModalField({
                       field: row,
@@ -113,6 +119,9 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                     } else {
                       setModalField({});
                     }
+                  }}
+                  onMoveToSection={() => {
+                    setMoveToSectionModalField({ field: row, index });
                   }}
                   onChange={(updatedField) => {
                     onFieldsChange([
@@ -181,6 +190,20 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
           }}
         />
       ) : undefined}
+      {moveToSectionModalField && (
+        <ConnectionTypeMoveFieldToSectionModal
+          field={moveToSectionModalField.field}
+          rows={fields}
+          onClose={() => setMoveToSectionModalField(undefined)}
+          onSubmit={(field, sectionIndex) => {
+            const temp = fields.toSpliced(moveToSectionModalField.index, 1);
+            const newFieldIndex =
+              moveToSectionModalField.index < sectionIndex ? sectionIndex : sectionIndex + 1;
+            onFieldsChange(temp.toSpliced(newFieldIndex, 0, field));
+            setMoveToSectionModalField(undefined);
+          }}
+        />
+      )}
     </>
   );
 };
