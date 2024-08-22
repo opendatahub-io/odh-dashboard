@@ -85,6 +85,17 @@ const initIntercepts = ({
     },
     mockRegisteredModel({}),
   );
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
+    mockModelVersion({ id: '2', name: 'model version' }),
+  );
 };
 describe('Model Versions', () => {
   it('No model versions in the selected registered model', () => {
@@ -98,6 +109,20 @@ describe('Model Versions', () => {
     registeredModelRow.findName().contains('Fraud detection model').click();
     verifyRelativeURL(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     modelRegistry.shouldmodelVersionsEmpty();
+  });
+
+  it('Model versions table browser back button should lead to Registered models table', () => {
+    initIntercepts({
+      disableModelRegistryFeature: false,
+    });
+
+    modelRegistry.visit();
+    const registeredModelRow = modelRegistry.getRow('Fraud detection model');
+    registeredModelRow.findName().contains('Fraud detection model').click();
+    verifyRelativeURL(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    cy.go('back');
+    verifyRelativeURL(`/modelRegistry/modelregistry-sample`);
+    registeredModelRow.findName().contains('Fraud detection model').should('exist');
   });
 
   it('Model versions table', () => {
@@ -163,5 +188,25 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableSearch().type('Test author');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('Test author');
+  });
+
+  it('Model version details back button should lead to versions table', () => {
+    initIntercepts({
+      disableModelRegistryFeature: false,
+    });
+    modelRegistry.visit();
+    const registeredModelRow = modelRegistry.getRow('Fraud detection model');
+    registeredModelRow.findName().contains('Fraud detection model').click();
+    verifyRelativeURL(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('model version');
+    modelVersionRow.findModelVersionName().contains('model version').click();
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/2/details');
+    cy.findByTestId('app-page-title').should('have.text', 'model version');
+    cy.findByTestId('breadcrumb-version-name').should('have.text', 'model version');
+    // Bypass patternfly ExpandableSection error https://github.com/patternfly/patternfly-react/issues/10410
+    // Cannot destructure property 'offsetWidth' of 'this.expandableContentRef.current' as it is null.
+    Cypress.on('uncaught:exception', () => false);
+    cy.go('back');
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
 });

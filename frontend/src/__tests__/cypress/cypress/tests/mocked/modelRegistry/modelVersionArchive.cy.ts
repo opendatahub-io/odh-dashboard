@@ -131,6 +131,22 @@ describe('Model version archive list', () => {
     modelVersionArchive.shouldArchiveVersionsEmpty();
   });
 
+  it('Archived version details browser back button should lead to archived versions table', () => {
+    initIntercepts({});
+    modelVersionArchive.visit();
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/archive');
+    modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
+    const archiveVersionRow = modelVersionArchive.getRow('model version 2');
+    archiveVersionRow.findName().contains('model version 2').click();
+    verifyRelativeURL(
+      '/modelRegistry/modelregistry-sample/registeredModels/1/versions/archive/2/details',
+    );
+    cy.go('back');
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/archive');
+    modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
+    archiveVersionRow.findName().contains('model version 2').should('exist');
+  });
+
   it('Archive version list', () => {
     initIntercepts({});
     modelVersionArchive.visit();
