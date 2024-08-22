@@ -102,23 +102,16 @@ const useUpdateExperimentFormData = (
   const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
-    // on create run page, we always check the experiment archived state
-    // no matter it's duplicated or carried from the create schedules pages
-    if (formData.runType.type === RunTypeOption.ONE_TRIGGER) {
-      if (formData.experiment) {
-        if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
-          setFormValue('experiment', null);
-        }
-      } else if (experiment) {
-        if (experiment.storage_state === StorageStateKF.ARCHIVED) {
-          setFormValue('experiment', null);
-        } else {
-          setFormValue('experiment', experiment);
-        }
+    if (formData.experiment) {
+      if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
+        setFormValue('experiment', null);
       }
-    } else if (!formData.experiment && experiment) {
-      // else, on create schedules page, we do what we did before
-      setFormValue('experiment', experiment);
+    } else if (experiment) {
+      if (experiment.storage_state === StorageStateKF.ARCHIVED) {
+        setFormValue('experiment', null);
+      } else {
+        setFormValue('experiment', experiment);
+      }
     }
   }, [formData.experiment, setFormValue, experiment, formData.runType.type]);
 };
