@@ -44,6 +44,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     enabled: prefillEnabled,
     fields: prefillFields,
     username: prefillUsername,
+    category: prefillCategory,
   } = extractConnectionTypeFromMap(prefill);
 
   const username = prefillUsername || currentUsername;
@@ -56,8 +57,9 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
   const [connectionFields, setConnectionFields] =
     React.useState<ConnectionTypeField[]>(prefillFields);
+  const [category] = React.useState<string[]>(prefillCategory);
 
-  const previewConnectionTypeObj = React.useMemo(
+  const connectionTypeObj = React.useMemo(
     () =>
       createConnectionTypeObj(
         connectionNameDesc.k8sName || translateDisplayNameForK8s(connectionNameDesc.name),
@@ -66,8 +68,9 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         connectionEnabled,
         username,
         connectionFields,
+        category,
       ),
-    [connectionNameDesc, connectionEnabled, connectionFields, username],
+    [connectionNameDesc, connectionEnabled, connectionFields, username, category],
   );
 
   const isValid = React.useMemo(() => {
@@ -83,7 +86,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     <ConnectionTypePreviewDrawer
       isExpanded={isDrawerExpanded}
       onClose={() => setIsDrawerExpanded(false)}
-      obj={previewConnectionTypeObj}
+      obj={connectionTypeObj}
     >
       <ApplicationsPage
         title={isEdit ? 'Edit connection type' : 'Create connection type'}
@@ -143,7 +146,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
               <FormGroup>
                 <ManageConnectionTypeFieldsTable
                   fields={connectionFields}
-                  onFieldsChange={(fields) => setConnectionFields(fields)}
+                  onFieldsChange={setConnectionFields}
                 />
               </FormGroup>
             </FormSection>
@@ -156,7 +159,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         >
           <CreateConnectionTypeFooter
             onSave={() =>
-              onSave(previewConnectionTypeObj).then(() => {
+              onSave(connectionTypeObj).then(() => {
                 navigate('/connectionTypes');
               })
             }

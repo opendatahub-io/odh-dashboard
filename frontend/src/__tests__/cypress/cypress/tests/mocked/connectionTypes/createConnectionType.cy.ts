@@ -89,14 +89,14 @@ describe('duplicate', () => {
     // Row 1 - Short text field
     const row1 = createConnectionTypePage.getFieldsTableRow(1);
     row1.findName().should('contain.text', 'Short text 1');
-    row1.findType().should('have.text', 'Short text');
+    row1.findType().should('have.text', 'Text - Short');
     row1.findDefault().should('have.text', '-');
     row1.findRequired().not('be.checked');
 
     // Row 2 - Short text field
     const row2 = createConnectionTypePage.getFieldsTableRow(2);
     row2.findName().should('contain.text', 'Short text 2');
-    row2.findType().should('have.text', 'Short text');
+    row2.findType().should('have.text', 'Text - Short');
     row2.findDefault().should('have.text', 'This is the default value');
     row2.findRequired().should('be.checked');
   });

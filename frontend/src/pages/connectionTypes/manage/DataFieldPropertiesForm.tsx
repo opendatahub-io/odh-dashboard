@@ -17,6 +17,8 @@ const DataFieldPropertiesForm = <T extends ConnectionTypeDataField>({
 }: Props<T>): React.ReactNode => {
   const [isDefaultValueValid, setDefaultValueValid] = React.useState(true);
   const [isAdvancedValid, setAdvancedValid] = React.useState(true);
+  const isReadOnlyDisabled =
+    field.properties.defaultValue === '' || field.properties.defaultValue == null;
 
   const isValid = isDefaultValueValid && isAdvancedValid;
   React.useEffect(() => {
@@ -46,8 +48,8 @@ const DataFieldPropertiesForm = <T extends ConnectionTypeDataField>({
         <Checkbox
           id="defaultReadOnly"
           label="Default value is read-only"
-          isDisabled={field.properties.defaultValue === '' || field.properties.defaultValue == null}
-          isChecked={(field.properties.defaultValue && field.properties.defaultReadOnly) || false}
+          isDisabled={isReadOnlyDisabled}
+          isChecked={!isReadOnlyDisabled && !!field.properties.defaultReadOnly}
           onChange={(_ev, checked) => onChange({ ...field.properties, defaultReadOnly: checked })}
           data-testid="field-default-value-readonly-checkbox"
         />

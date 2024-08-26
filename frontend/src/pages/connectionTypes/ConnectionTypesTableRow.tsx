@@ -13,6 +13,7 @@ import {
   getDisplayNameFromK8sResource,
   ownedByDSC,
 } from '~/concepts/k8s/utils';
+import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;
@@ -71,25 +72,29 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
 
   return (
     <Tr>
-      <Td dataLabel="Name" width={50}>
+      <Td dataLabel={connectionTypeColumns[0].label} width={50}>
         <TableRowTitleDescription
           title={getDisplayNameFromK8sResource(obj)}
           description={getDescriptionFromK8sResource(obj)}
         />
       </Td>
-      <Td dataLabel="Creator" data-testid="connection-type-creator">
+      <Td dataLabel={connectionTypeColumns[1].label} data-testid="connection-type-creator">
         {ownedByDSC(obj) ? (
           <Label data-testid="connection-type-user-label">{creator}</Label>
         ) : (
           creator
         )}
       </Td>
-      <Td dataLabel="Created" data-testid="connection-type-created" modifier="nowrap">
+      <Td
+        dataLabel={connectionTypeColumns[2].label}
+        data-testid="connection-type-created"
+        modifier="nowrap"
+      >
         <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
           {createdDate ? relativeTime(Date.now(), createdDate.getTime()) : 'Unknown'}
         </Timestamp>
       </Td>
-      <Td dataLabel="Enabled">
+      <Td dataLabel={connectionTypeColumns[3].label}>
         <Switch
           isChecked={isEnabled}
           aria-label="toggle enabled"

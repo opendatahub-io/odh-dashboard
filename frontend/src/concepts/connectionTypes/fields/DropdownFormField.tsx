@@ -52,7 +52,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
           >
             {isMulti ? (
               <>
-                Count{' '}
+                Select {field.name}{' '}
                 <Badge>
                   {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
                   selected
@@ -64,7 +64,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
                     (i) => i.value === field.properties.defaultValue?.[0],
                   )?.label
                 : field.properties.items?.find((i) => value?.includes(i.value))?.label) ||
-              'Select a value'
+              `Select ${field.name}`
             )}
           </MenuToggle>
         )}
@@ -76,6 +76,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
               key={i.value}
               hasCheckbox={isMulti}
               selected={selected?.includes(i.value)}
+              description={`Value: ${i.value}`}
             >
               {i.label}
             </SelectOption>

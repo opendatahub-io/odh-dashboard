@@ -14,6 +14,7 @@ type MockConnectionTypeConfigMap = {
   username?: string;
   preInstalled?: boolean;
   fields?: ConnectionTypeField[];
+  category?: string[];
 };
 
 export const mockConnectionTypeConfigMap = (
@@ -60,6 +61,7 @@ export const mockConnectionTypeConfigMapObj = ({
       : undefined),
   },
   data: {
+    category: 'category' in rest ? rest.category : ['Database', 'Testing'],
     fields: 'fields' in rest ? rest.fields : mockFields,
   },
 });

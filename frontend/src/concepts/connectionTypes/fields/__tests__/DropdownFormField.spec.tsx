@@ -32,7 +32,7 @@ describe('DropdownFormField', () => {
       act(() => {
         input.click();
       });
-      const option = screen.getByRole('option', { name: 'One' });
+      const option = screen.getByRole('option', { name: /One/ });
       act(() => {
         option.click();
       });
@@ -73,7 +73,7 @@ describe('DropdownFormField', () => {
       act(() => {
         input.click();
       });
-      const option = screen.getByRole('option', { name: 'One' });
+      const option = screen.getByRole('option', { name: /One/ });
       act(() => {
         option.click();
       });
@@ -114,7 +114,7 @@ describe('DropdownFormField', () => {
         />,
       );
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
-      expect(screen.queryByText('Three')).toBeInTheDocument();
+      expect(screen.queryByText('Three (Value: 3)')).toBeInTheDocument();
     });
   });
 
@@ -138,15 +138,15 @@ describe('DropdownFormField', () => {
 
       render(<DropdownFormField id="test" field={field} value={['1', '2']} onChange={onChange} />);
       const input = screen.getByRole('button');
-      expect(input).toHaveTextContent('Count 2 selected');
+      expect(input).toHaveTextContent('Select test-name 2 selected');
       expect(input).not.toBeDisabled();
 
       act(() => {
         input.click();
       });
 
-      const checkboxOne = screen.getByLabelText('One');
-      const checkboxThree = screen.getByLabelText('Three');
+      const checkboxOne = screen.getByLabelText('OneValue: 1');
+      const checkboxThree = screen.getByLabelText('ThreeValue: 3');
 
       // close menu
       act(() => {
@@ -191,14 +191,14 @@ describe('DropdownFormField', () => {
         />,
       );
       const input = screen.getByRole('button');
-      expect(input).toHaveTextContent('Count 1 selected');
+      expect(input).toHaveTextContent('Select test-name 1 selected');
       expect(input).not.toBeDisabled();
 
       act(() => {
         input.click();
       });
 
-      const checkboxOne = screen.getByLabelText('One');
+      const checkboxOne = screen.getByLabelText('OneValue: 1');
 
       // close menu
       act(() => {
@@ -237,7 +237,7 @@ describe('DropdownFormField', () => {
         />,
       );
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
-      expect(screen.queryByText('Two, Three')).toBeInTheDocument();
+      expect(screen.queryByText('Two (Value: 2), Three (Value: 3)')).toBeInTheDocument();
     });
   });
 });

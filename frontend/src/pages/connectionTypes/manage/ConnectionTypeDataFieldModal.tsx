@@ -27,6 +27,7 @@ import { fieldNameToEnvVar } from '~/concepts/connectionTypes/utils';
 import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
+import { fieldTypeToString } from '~/concepts/connectionTypes/utils';
 
 const ENV_VAR_NAME_REGEX = new RegExp('^[-._a-zA-Z][-._a-zA-Z0-9]*$');
 
@@ -41,17 +42,6 @@ type Props = {
   onClose: () => void;
   onSubmit: (field: ConnectionTypeDataField) => void;
   isEdit?: boolean;
-};
-
-const fieldTypeLabels: { [key: string]: string } = {
-  [ConnectionTypeFieldType.Boolean]: 'Boolean',
-  [ConnectionTypeFieldType.Dropdown]: 'Dropdown',
-  [ConnectionTypeFieldType.File]: 'File',
-  [ConnectionTypeFieldType.Hidden]: 'Hidden',
-  [ConnectionTypeFieldType.Numeric]: 'Numeric',
-  [ConnectionTypeFieldType.ShortText]: 'Short text',
-  [ConnectionTypeFieldType.Text]: 'Text',
-  [ConnectionTypeFieldType.URI]: 'URI',
 };
 
 export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
@@ -230,13 +220,13 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                 }}
                 isExpanded={isOpen}
               >
-                {fieldType ? fieldTypeLabels[fieldType] : ''}
+                {fieldType ? fieldTypeToString(fieldType) : ''}
               </MenuToggle>
             )}
           >
             <SelectList>
               {connectionTypeDataFields
-                .map((value) => ({ label: fieldTypeLabels[value], value }))
+                .map((value) => ({ label: fieldTypeToString(value), value }))
                 .toSorted((a, b) => a.label.localeCompare(b.label))
                 .map(({ value, label }) => (
                   <SelectOption key={value} value={value} data-testid={`field-${value}-select`}>

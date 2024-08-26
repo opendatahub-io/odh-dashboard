@@ -13,7 +13,7 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, ThProps } from '@patternfly/react-table';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
@@ -51,18 +51,18 @@ type Props = {
   onFieldsChange: (fields: ConnectionTypeField[]) => void;
 };
 
+const columns: ThProps[] = [
+  { label: 'Section heading/field name', width: 30 },
+  { label: 'Type', width: 10 },
+  { label: 'Default value', width: 30 },
+  { label: 'Environment variable', width: 20 },
+  { label: 'Required', width: 10 },
+];
+
 const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChange }) => {
   const [modalField, setModalField] = React.useState<
     { field?: ConnectionTypeField; index?: number; isEdit?: boolean } | undefined
   >();
-
-  const columns = [
-    'Section heading/field name',
-    'Type',
-    'Default value',
-    'Environment variable',
-    'Required',
-  ];
 
   const { tableProps, rowsToRender } = useDraggableTableControlled<ConnectionTypeField>(
     fields,
@@ -78,8 +78,11 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               <Tr>
                 <Th screenReaderText="Drag and drop" />
                 {columns.map((column, columnIndex) => (
-                  <Th key={columnIndex}>{column}</Th>
+                  <Th key={columnIndex} width={column.width}>
+                    {column.label}
+                  </Th>
                 ))}
+                <Th screenReaderText="Actions" />
               </Tr>
             </Thead>
             <Tbody {...tableProps.tbodyProps}>
@@ -182,4 +185,4 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
   );
 };
 
-export default ManageConnectionTypeFieldsTable;
+export default React.memo(ManageConnectionTypeFieldsTable);

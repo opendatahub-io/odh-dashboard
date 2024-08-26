@@ -7,7 +7,7 @@ import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultV
 const TextFormField: React.FC<FieldProps<TextField>> = ({ id, field, mode, onChange, value }) => {
   const isPreview = mode === 'preview';
   return (
-    <DefaultValueTextRenderer id={id} field={field} mode={mode}>
+    <DefaultValueTextRenderer id={id} field={field} mode={mode} component="pre">
       <TextArea
         aria-readonly={isPreview}
         autoComplete="off"

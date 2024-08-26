@@ -76,6 +76,6 @@ describe('HiddenFormField', () => {
 
     render(<HiddenFormField id="test" field={field} value="supplied-value" />);
     expect(screen.queryByRole('test-name')).not.toBeInTheDocument();
-    expect(screen.queryByText('••••••••••')).toBeInTheDocument();
+    expect(screen.queryByText('•••••••••••••')).toBeInTheDocument();
   });
 });
