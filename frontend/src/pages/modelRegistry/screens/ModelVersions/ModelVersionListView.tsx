@@ -27,6 +27,7 @@ import {
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
 import ModelVersionsTable from './ModelVersionsTable';
+import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 
 type ModelVersionListViewProps = {
   modelVersions: ModelVersion[];
@@ -57,6 +58,9 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
       <EmptyModelRegistryState
         testid="empty-model-versions"
         title="No versions"
+        headerIcon={() => (
+          <img src={typedEmptyImage(ProjectObjectType.registeredModels, 'MissingVersion')} />
+        )}
         description={`${rm?.name} has no registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         secondaryActionText="View archived versions"
