@@ -48,7 +48,7 @@ jobs:
         if: ${{ success() }}
         run: npm run test:backend && npm run test:frontend:coverage
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@v4.5.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
