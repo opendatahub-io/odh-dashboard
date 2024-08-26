@@ -6,6 +6,7 @@ type MockResourceConfigType = {
   dspVersion?: string;
   displayName?: string;
   initializing?: boolean;
+  message?: string;
   dspaSecretName?: string;
 };
 
@@ -14,6 +15,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   namespace = 'test-project',
   dspVersion = 'v2',
   initializing = false,
+  message = '',
   dspaSecretName = 'aws-connection-testdb',
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
@@ -21,6 +23,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   metadata: {
     name,
     namespace,
+    creationTimestamp: '2024-08-26T07:45:24Z',
   },
   spec: {
     dspVersion,
@@ -60,6 +63,13 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         reason: 'MinimumReplicasAvailable',
         status: initializing ? 'False' : 'True',
         type: 'APIServerReady',
+      },
+      {
+        lastTransitionTime: '2023-07-20T16:58:12Z',
+        message,
+        reason: 'MinimumReplicasAvailable',
+        status: initializing ? 'False' : 'True',
+        type: 'Ready',
       },
     ],
   },

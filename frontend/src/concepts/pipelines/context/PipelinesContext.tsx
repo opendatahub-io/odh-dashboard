@@ -9,7 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ProjectKind } from '~/k8sTypes';
+import { DSPipelineKind, ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -34,6 +34,7 @@ type PipelineContext = {
   hasCompatibleVersion: boolean;
   crInitializing: boolean;
   crName: string;
+  crStatus: DSPipelineKind['status'];
   serverTimedOut: boolean;
   ignoreTimedOut: () => void;
   namespace: string;
@@ -50,6 +51,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   hasCompatibleVersion: false,
   crInitializing: false,
   crName: '',
+  crStatus: undefined,
   serverTimedOut: false,
   ignoreTimedOut: () => undefined,
   namespace: '',
@@ -139,6 +141,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         hasCompatibleVersion: pipelineNamespaceCR?.spec.dspVersion === 'v2',
         crInitializing: !crLoaded,
         crName: pipelineNamespaceCR?.metadata.name ?? '',
+        crStatus: pipelineNamespaceCR?.status,
         serverTimedOut,
         ignoreTimedOut,
         project,
@@ -288,8 +291,10 @@ export const ViewServerModal = ({
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { namespace, crName, refreshState, ignoreTimedOut } = React.useContext(PipelinesContext);
-
+  const { namespace, crName, crStatus, refreshState, ignoreTimedOut } =
+    React.useContext(PipelinesContext);
+  const errorMessage =
+    crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
   return (
     <Alert
       variant="danger"
@@ -308,6 +313,9 @@ export const PipelineServerTimedOut: React.FC = () => {
       }
     >
       <Stack hasGutter>
+        {errorMessage && (
+          <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
+        )}
         <StackItem>
           We encountered an error creating or loading your pipeline server. To continue, delete this
           pipeline server and create a new one. Deleting this pipeline server will delete all of its

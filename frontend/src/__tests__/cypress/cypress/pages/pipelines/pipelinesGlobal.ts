@@ -16,6 +16,10 @@ class PipelinesGlobal {
     return cy.findByTestId('empty-state-title');
   }
 
+  findPipelineTimeoutErrorMessage() {
+    return cy.findByTestId('timeout-pipeline-error-message');
+  }
+
   findConfigurePipelineServerButton() {
     return cy.findByTestId('create-pipeline-button');
   }
