@@ -34,7 +34,10 @@ class ExecutionFilter {
   }
 
   findTypeSearchFilterItem(item: string) {
-    return this.find().findByTestId('filter-toolbar-text-field').findSelectOption(item);
+    return this.find()
+      .findByTestId('filter-toolbar-text-field')
+      .findByRole('button')
+      .findSelectOption(item);
   }
 }
 

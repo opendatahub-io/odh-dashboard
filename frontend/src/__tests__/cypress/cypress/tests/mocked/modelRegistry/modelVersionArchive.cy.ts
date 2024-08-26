@@ -121,6 +121,10 @@ const initIntercepts = ({
 
 describe('Model version archive list', () => {
   it('No archive versions in the selected registered model', () => {
+    // Bypass patternfly ExpandableSection error https://github.com/patternfly/patternfly-react/issues/10410
+    // Cannot destructure property 'offsetWidth' of 'this.expandableContentRef.current' as it is null.
+    Cypress.on('uncaught:exception', () => false);
+
     initIntercepts({ modelVersions: [mockModelVersion({ id: '3', name: 'model version 2' })] });
     modelVersionArchive.visitModelVersionList();
     verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions');

@@ -19,15 +19,17 @@ type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;
   setSelectedProject: (project: ProjectKind | null) => void;
   error?: Error;
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   selectedProject,
   setSelectedProject,
   error,
+  isOpen,
+  setOpen,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
-
   const { projects } = React.useContext(ProjectsContext);
 
   return (

@@ -177,7 +177,7 @@ Cypress.Commands.add(
 Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findDropdownItem', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.find('[aria-expanded=false]').addBack().length) {
+    if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
     return cy.wrap($el).parent().findByRole('menuitem', { name });
@@ -187,7 +187,7 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
 Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
-    if ($el.find('[aria-expanded=false]').addBack().length) {
+    if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
     return cy.wrap($el).parent().findByTestId(testId);
@@ -197,7 +197,7 @@ Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (su
 Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findSelectOption', message: name });
   return cy.wrap(subject).then(($el) => {
-    if ($el.find('[aria-expanded=false]').addBack().length) {
+    if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
@@ -208,7 +208,7 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
 Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findSelectOptionByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
-    if ($el.find('[aria-expanded=false]').addBack().length) {
+    if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
     return cy.wrap($el).parent().findByTestId(testId);
