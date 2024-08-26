@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify';
-import { KubeFastifyInstance, StorageClassConfig } from '../../../types';
+import { K8sResourceCommon, KubeFastifyInstance, StorageClassConfig } from '../../../types';
 import { isHttpError } from '../../../utils';
 import { errorHandler } from '../../../utils';
 
@@ -7,29 +7,26 @@ export async function updateStorageClassMetadata(
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Body: StorageClassConfig }>,
 ): Promise<{ success: boolean; error: string }> {
-  const { namespace } = fastify.kube;
   const params = request.params as { storageClassName: string };
   const body = request.body as StorageClassConfig;
 
   try {
     // Fetch the existing custom object for the StorageClass
-    const storageClass = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
+    const storageClass = await fastify.kube.customObjectsApi.getClusterCustomObject(
       'storage.k8s.io',
       'v1',
-      namespace,
       'storageclasses',
       params.storageClassName,
     );
 
     // Extract and update the annotations
-    const annotations = (storageClass.body as any).metadata.annotations || {};
+    const annotations = (storageClass.body as K8sResourceCommon).metadata.annotations || {};
     annotations['opendatahub.io/sc-config'] = JSON.stringify(body);
 
     // Patch the StorageClass with the new annotations
-    await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+    await fastify.kube.customObjectsApi.patchClusterCustomObject(
       'storage.k8s.io',
       'v1',
-      namespace,
       'storageclasses',
       params.storageClassName,
       {
