@@ -1,25 +1,32 @@
 import * as React from 'react';
-import { Grid, GridItem, Truncate } from '@patternfly/react-core';
+import {
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+} from '@patternfly/react-core';
 
 type TaskDetailsPrintKeyValuesProps = {
   items: { label: string; value: React.ReactNode }[];
 };
 
 const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ items }) => (
-  <Grid hasGutter>
+  <DescriptionList
+    isHorizontal
+    isCompact
+    horizontalTermWidthModifier={{
+      default: '16ch',
+    }}
+  >
     {items.map((result, i) => (
-      <React.Fragment key={`item-${i}`}>
-        <GridItem span={6}>
-          <b>
-            <Truncate content={result.label} />
-          </b>
-        </GridItem>
-        <GridItem span={6} data-testid={`${result.label}-item`}>
+      <DescriptionListGroup key={`item-${i}`}>
+        <DescriptionListTerm>{result.label}</DescriptionListTerm>
+        <DescriptionListDescription data-testid={`${result.label}-item`}>
           {result.value}
-        </GridItem>
-      </React.Fragment>
+        </DescriptionListDescription>
+      </DescriptionListGroup>
     ))}
-  </Grid>
+  </DescriptionList>
 );
 
 export default TaskDetailsPrintKeyValues;
