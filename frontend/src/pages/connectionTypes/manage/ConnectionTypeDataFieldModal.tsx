@@ -23,6 +23,7 @@ import {
   connectionTypeDataFields,
   ConnectionTypeFieldType,
 } from '~/concepts/connectionTypes/types';
+import { fieldNameToEnvVar } from '~/concepts/connectionTypes/utils';
 import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
@@ -75,6 +76,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   const [properties, setProperties] = React.useState<unknown>(field?.properties || {});
   const [isPropertiesValid, setPropertiesValid] = React.useState(true);
 
+  const [autoGenerateEnvVar, setAutoGenerateEnvVar] = React.useState<boolean>(!envVar);
   const envVarValidation =
     !envVar || ENV_VAR_NAME_REGEX.test(envVar) ? ValidatedOptions.default : ValidatedOptions.error;
   const isValid =
@@ -128,7 +130,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
           <TextInput
             id="name"
             value={name}
-            onChange={(_ev, value) => setName(value)}
+            onChange={(_ev, value) => {
+              setName(value);
+              if (autoGenerateEnvVar) {
+                setEnvVar(fieldNameToEnvVar(value));
+              }
+            }}
             data-testid="field-name-input"
           />
         </FormGroup>
@@ -175,7 +182,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
           <TextInput
             id="envVar"
             value={envVar}
-            onChange={(_ev, value) => setEnvVar(value)}
+            onChange={(_ev, value) => {
+              if (autoGenerateEnvVar) {
+                setAutoGenerateEnvVar(false);
+              }
+              setEnvVar(value);
+            }}
             data-testid="field-env-var-input"
             validated={envVarValidation}
           />

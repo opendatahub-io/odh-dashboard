@@ -57,3 +57,11 @@ export const fieldTypeToString = <T extends ConnectionTypeDataField>(field: T): 
 
   return withCapitalized;
 };
+
+export const fieldNameToEnvVar = (name: string): string => {
+  const spacesAsUnderscores = name.replace(/ /g, '_');
+  const removeInvalid = spacesAsUnderscores.replace(/[^\w\-.]/g, '');
+  const removeNumbersAtStart = removeInvalid.replace(/^[0-9]+/g, '');
+  const allUppercase = removeNumbersAtStart.toUpperCase();
+  return allUppercase;
+};
