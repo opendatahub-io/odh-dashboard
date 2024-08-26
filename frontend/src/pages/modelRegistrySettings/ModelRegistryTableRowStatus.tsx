@@ -56,12 +56,15 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       [ModelRegistryStatus.Degraded]: degradedCondition,
     } = conditionsMap;
 
-    popoverMessages = Object.values(conditionsMap).reduce((messages: string[], condition) => {
-      if (condition?.status === ConditionStatus.False && condition.message) {
-        messages.push(condition.message);
-      }
-      return messages;
-    }, []);
+    popoverMessages =
+      availableCondition?.status === ConditionStatus.False
+        ? Object.values(conditionsMap).reduce((messages: string[], condition) => {
+            if (condition?.status === ConditionStatus.False && condition.message) {
+              messages.push(condition.message);
+            }
+            return messages;
+          }, [])
+        : [];
 
     // Unavailable
     if (availableCondition?.status === ConditionStatus.False) {
