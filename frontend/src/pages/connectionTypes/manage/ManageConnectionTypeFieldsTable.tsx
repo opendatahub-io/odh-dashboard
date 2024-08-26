@@ -13,9 +13,10 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tbody, Tr, Th, ThProps } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
+import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 import { ConnectionTypeMoveFieldToSectionModal } from './ConnectionTypeFieldMoveModal';
@@ -51,14 +52,6 @@ type Props = {
   fields: ConnectionTypeField[];
   onFieldsChange: (fields: ConnectionTypeField[]) => void;
 };
-
-const columns: ThProps[] = [
-  { label: 'Section heading/field name', width: 30 },
-  { label: 'Type', width: 10 },
-  { label: 'Default value', width: 30 },
-  { label: 'Environment variable', width: 20 },
-  { label: 'Required', width: 10 },
-];
 
 const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChange }) => {
   const [modalField, setModalField] = React.useState<
@@ -96,7 +89,6 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                   key={index}
                   row={row}
                   rowIndex={index}
-                  columns={columns}
                   fields={fields}
                   onEdit={() => {
                     setModalField({
@@ -164,6 +156,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
       )}
       {modalField ? (
         <ConnectionTypeFieldModal
+          fields={fields}
           field={modalField.field}
           isEdit={modalField.isEdit}
           onClose={() => setModalField(undefined)}

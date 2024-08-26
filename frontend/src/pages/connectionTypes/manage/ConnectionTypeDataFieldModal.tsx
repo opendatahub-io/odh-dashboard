@@ -14,14 +14,19 @@ import {
   SelectOption,
   TextArea,
   TextInput,
-  ValidatedOptions,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  ExclamationCircleIcon,
+  OutlinedQuestionCircleIcon,
+  WarningTriangleIcon,
+} from '@patternfly/react-icons';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
+  ConnectionTypeField,
   ConnectionTypeFieldType,
+  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { fieldNameToEnvVar, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 import { isEnumMember } from '~/utilities/utils';
@@ -41,6 +46,7 @@ type Props = {
   onClose: () => void;
   onSubmit: (field: ConnectionTypeDataField) => void;
   isEdit?: boolean;
+  fields?: ConnectionTypeField[];
 };
 
 export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
@@ -49,6 +55,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   onClose,
   onSubmit,
   isEdit,
+  fields,
 }) => {
   const [name, setName] = React.useState<string>(field?.name || '');
   const [description, setDescription] = React.useState<string | undefined>(field?.description);
@@ -64,16 +71,16 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState<boolean>(false);
   const [properties, setProperties] = React.useState<unknown>(field?.properties || {});
   const [isPropertiesValid, setPropertiesValid] = React.useState(true);
-
   const [autoGenerateEnvVar, setAutoGenerateEnvVar] = React.useState<boolean>(!envVar);
-  const envVarValidation =
-    !envVar || ENV_VAR_NAME_REGEX.test(envVar) ? ValidatedOptions.default : ValidatedOptions.error;
-  const isValid =
-    !!fieldType &&
-    isPropertiesValid &&
-    !!name &&
-    !!envVar &&
-    envVarValidation === ValidatedOptions.default;
+
+  const isEnvVarConflict = React.useMemo(
+    () => !!fields?.find((f) => f !== field && isConnectionTypeDataField(f) && f.envVar === envVar),
+    [fields, field, envVar],
+  );
+
+  const isEnvVarValid = !envVar || ENV_VAR_NAME_REGEX.test(envVar);
+
+  const isValid = !!fieldType && isPropertiesValid && !!name && !!envVar && isEnvVarValid;
 
   const newField = fieldType
     ? // Cast from specific type to generic type
@@ -178,17 +185,24 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               setEnvVar(value);
             }}
             data-testid="field-env-var-input"
-            validated={envVarValidation}
+            validated={!isEnvVarValid ? 'error' : isEnvVarConflict ? 'warning' : 'default'}
           />
-          {envVarValidation === ValidatedOptions.error ? (
-            <FormHelperText>
+          <FormHelperText>
+            {!isEnvVarValid ? (
               <HelperText>
                 <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
                   {`Invalid variable name. The name must consist of alphabetic characters, digits, '_', '-', or '.', and must not start with a digit.`}
                 </HelperTextItem>
               </HelperText>
-            </FormHelperText>
-          ) : null}
+            ) : undefined}
+            {isEnvVarConflict ? (
+              <HelperText data-testid="envvar-conflict-warning">
+                <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
+                  This environment variable name is already being used for an existing field.
+                </HelperTextItem>
+              </HelperText>
+            ) : undefined}
+          </FormHelperText>
         </FormGroup>
         <FormGroup
           fieldId="fieldType"
@@ -203,6 +217,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             selected={fieldType}
             onSelect={(_e, selection) => {
               if (isConnectionTypeFieldType(selection)) {
+                setPropertiesValid(true);
                 setProperties({});
                 setFieldType(selection);
                 setIsTypeSelectOpen(false);

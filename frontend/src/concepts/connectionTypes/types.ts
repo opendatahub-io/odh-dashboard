@@ -101,6 +101,10 @@ export type ConnectionTypeField =
 
 export type ConnectionTypeDataField = Exclude<ConnectionTypeField, SectionField>;
 
+export const isConnectionTypeDataField = (
+  field: ConnectionTypeField,
+): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
+
 export type ConnectionTypeConfigMap = K8sResourceCommon & {
   metadata: {
     name: string;
