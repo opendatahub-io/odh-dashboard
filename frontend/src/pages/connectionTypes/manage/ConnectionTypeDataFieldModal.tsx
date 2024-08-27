@@ -23,11 +23,10 @@ import {
   connectionTypeDataFields,
   ConnectionTypeFieldType,
 } from '~/concepts/connectionTypes/types';
-import { fieldNameToEnvVar } from '~/concepts/connectionTypes/utils';
+import { fieldNameToEnvVar, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
-import { fieldTypeToString } from '~/concepts/connectionTypes/utils';
 
 const ENV_VAR_NAME_REGEX = new RegExp('^[-._a-zA-Z][-._a-zA-Z0-9]*$');
 
