@@ -106,6 +106,14 @@ class ArtifactDetails {
     return cy.findByTestId(`custom-props-description-list-${label}`);
   }
 
+  findPropSection() {
+    return cy.findByTestId('artifact-properties-section');
+  }
+
+  findCustomPropSection() {
+    return cy.findByTestId('artifact-custom-properties-section');
+  }
+
   mockGetArtifactById(projectName: string, response: GrpcResponse) {
     return cy.interceptOdh(
       'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByID',
