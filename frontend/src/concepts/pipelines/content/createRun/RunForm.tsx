@@ -21,7 +21,12 @@ import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
-import { CreateRunPageSections, RUN_NAME_CHARACTER_LIMIT, runPageSectionTitles } from './const';
+import {
+  CreateRunPageSections,
+  RUN_DESCRIPTION_CHARACTER_LIMIT,
+  RUN_NAME_CHARACTER_LIMIT,
+  runPageSectionTitles,
+} from './const';
 import { getInputDefinitionParams } from './utils';
 
 type RunFormProps = {
@@ -121,7 +126,8 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
           descriptionFieldId="run-description"
           data={data.nameDesc}
           setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
-          maxLength={RUN_NAME_CHARACTER_LIMIT}
+          maxLengthName={RUN_NAME_CHARACTER_LIMIT}
+          maxLengthDesc={RUN_DESCRIPTION_CHARACTER_LIMIT}
           onNameChange={(value) => {
             setHasDuplicateName(false);
             checkForDuplicateName(value);
