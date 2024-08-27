@@ -23,3 +23,4 @@ export * from './mockModelArtifactList';
 export * from './mockModelRegistryService';
 export * from './mockServingRuntimeK8sResource';
 export * from './mockInferenceServiceK8sResource';
+export * from './mockStorageClasses';

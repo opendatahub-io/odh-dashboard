@@ -65,6 +65,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableDistributedWorkloads: false,
       disableModelRegistry: true,
       disableConnectionTypes: true,
+      disableStorageClasses: true,
     },
     notebookController: {
       enabled: true,

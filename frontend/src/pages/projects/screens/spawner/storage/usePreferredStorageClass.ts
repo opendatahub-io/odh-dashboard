@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AppContext } from '~/app/AppContext';
-import { StorageClassKind } from '~/k8sTypes';
+import { Annotation, StorageClassKind } from '~/k8sTypes';
 
 const usePreferredStorageClass = (): StorageClassKind | undefined => {
   const {
@@ -10,10 +10,9 @@ const usePreferredStorageClass = (): StorageClassKind | undefined => {
     storageClasses,
   } = React.useContext(AppContext);
 
-  const defaultClusterStorageClasses = storageClasses.filter((storageclass) =>
-    storageclass.metadata.annotations?.['storageclass.kubernetes.io/is-default-class']?.includes(
-      'true',
-    ),
+  const defaultClusterStorageClasses = storageClasses.filter(
+    (storageclass) =>
+      storageclass.metadata.annotations?.[Annotation.StorageClassIsDefault] === 'true',
   );
 
   const configStorageClassName = notebookController?.storageClassName ?? '';
