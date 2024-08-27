@@ -77,7 +77,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       statusLabel = ModelRegistryStatusLabel.Available;
       icon = <CheckCircleIcon />;
       color = 'green';
-    }   
+    }
     // Progressing
     else if (progressCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Progressing;
