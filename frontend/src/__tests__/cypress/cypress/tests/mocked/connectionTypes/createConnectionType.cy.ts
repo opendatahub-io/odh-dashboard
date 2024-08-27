@@ -136,14 +136,14 @@ describe('edit', () => {
         disableConnectionTypes: false,
       }),
     );
+  });
+
+  it('Drag and drop field rows in table', () => {
     cy.interceptOdh(
       'GET /api/connection-types/:name',
       { path: { name: 'existing' } },
       toConnectionTypeConfigMap(existing),
     );
-  });
-
-  it('Drag and drop field rows in table', () => {
     createConnectionTypePage.visitEditPage('existing');
 
     createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'header1');
@@ -161,5 +161,80 @@ describe('edit', () => {
     createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'field2');
     createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'field1');
     createConnectionTypePage.getFieldsTableRow(2).findName().should('contain.text', 'header1');
+  });
+
+  it('Move field to section modal', () => {
+    cy.interceptOdh(
+      'GET /api/connection-types/:name',
+      { path: { name: 'existing' } },
+      mockConnectionTypeConfigMap({
+        fields: [
+          {
+            type: 'short-text',
+            name: 'field1',
+            envVar: 'short-text-1',
+            properties: {},
+          },
+          {
+            type: 'section',
+            name: 'header1',
+          },
+          {
+            type: 'short-text',
+            name: 'field2',
+            envVar: 'short-text-2',
+            properties: {},
+          },
+          {
+            type: 'section',
+            name: 'header2',
+          },
+          {
+            type: 'short-text',
+            name: 'field3',
+            envVar: 'short-text-3',
+            properties: {},
+          },
+        ],
+      }),
+    );
+    createConnectionTypePage.visitEditPage('existing');
+    createConnectionTypePage.shouldHaveTableRowNames([
+      'field1',
+      'header1',
+      'field2',
+      'header2',
+      'field3',
+    ]);
+
+    createConnectionTypePage
+      .getFieldsTableRow(4)
+      .findKebabAction('Move to section heading')
+      .click();
+    // move to default which is the first section
+    cy.findByTestId('section-heading-select').should('be.disabled');
+    cy.findByTestId('modal-submit-button').click();
+    createConnectionTypePage.shouldHaveTableRowNames([
+      'field1',
+      'header1',
+      'field3',
+      'field2',
+      'header2',
+    ]);
+
+    createConnectionTypePage
+      .getFieldsTableRow(0)
+      .findKebabAction('Move to section heading')
+      .click();
+    cy.findByTestId('section-heading-select').click();
+    cy.findByTestId('section-heading-select').findSelectOption('header2').click();
+    cy.findByTestId('modal-submit-button').click();
+    createConnectionTypePage.shouldHaveTableRowNames([
+      'header1',
+      'field3',
+      'field2',
+      'header2',
+      'field1',
+    ]);
   });
 });
