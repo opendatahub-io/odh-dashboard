@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ConnectionTypeDataField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import BooleanAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/BooleanAdvancedPropertiesForm';
 import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
+import NumericAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/NumericAdvancedPropertiesForm';
 
 const CustomFieldPropertiesForm = <T extends ConnectionTypeDataField>(
   props: AdvancedFieldProps<T>,
@@ -16,7 +17,7 @@ const CustomFieldPropertiesForm = <T extends ConnectionTypeDataField>(
         return BooleanAdvancedPropertiesForm;
 
       case ConnectionTypeFieldType.Numeric:
-        return () => null;
+        return NumericAdvancedPropertiesForm;
 
       case ConnectionTypeFieldType.Dropdown:
         return () => null;

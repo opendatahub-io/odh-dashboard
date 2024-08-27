@@ -21,7 +21,7 @@ const MaxConcurrencyField: React.FC<MaxConcurrencyFieldProps> = ({ onChange, val
       data-testid="maxConcurrencyField"
       min={1}
       max={10}
-      onChange={onChange}
+      onChange={(newValue) => onChange(newValue ?? 0)}
       value={value}
     />
   </FormGroup>
