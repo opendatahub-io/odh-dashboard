@@ -1,14 +1,19 @@
 import { FastifyRequest } from 'fastify';
-import { K8sResourceCommon, KubeFastifyInstance, StorageClassConfig } from '../../../types';
+import {
+  K8sResourceCommon,
+  KubeFastifyInstance,
+  ResponseStatus,
+  StorageClassConfig,
+} from '../../../types';
 import { isHttpError } from '../../../utils';
 import { errorHandler } from '../../../utils';
 
-export async function updateStorageClassMetadata(
+export async function updateStorageClassConfig(
   fastify: KubeFastifyInstance,
-  request: FastifyRequest<{ Body: StorageClassConfig }>,
-): Promise<{ success: boolean; error: string }> {
-  const params = request.params as { storageClassName: string };
-  const body = request.body as StorageClassConfig;
+  request: FastifyRequest<{ Body: StorageClassConfig; Params: { storageClassName: string } }>,
+): Promise<ResponseStatus> {
+  const params = request.params;
+  const body = request.body;
 
   try {
     // Fetch the existing custom object for the StorageClass

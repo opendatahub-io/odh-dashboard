@@ -1199,3 +1199,8 @@ export type ModelRegistryKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+export type ResponseStatus = {
+  success: boolean;
+  error: string;
+};
