@@ -42,6 +42,9 @@ type MultiSelectionProps = {
   selectionRequired?: boolean;
   noSelectedOptionsMessage?: string;
   toggleTestId?: string;
+  isCreatable?: boolean;
+  isCreateOptionOnTop?: boolean;
+  createOptionMessage?: string;
 };
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
@@ -51,11 +54,13 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   placeholder,
   isDisabled,
   ariaLabel = 'Options menu',
-  id,
+  id = 'string',
   toggleId,
   toggleTestId,
   selectionRequired,
   noSelectedOptionsMessage = 'One or more options must be selected',
+  isCreatable = false,
+  createOptionMessage = 'Create "{value}"',
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -84,6 +89,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       setInputValue('');
     }
   };
+
   const groupOptions = selectGroups.reduce<SelectionOptions[]>((acc, g) => {
     acc.push(...g.values);
     return acc;
@@ -156,9 +162,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       case 'Enter':
         if (isOpen && focusedItem) {
           onSelect(focusedItem);
-        }
-        if (!isOpen) {
-          setIsOpen(true);
+        } else if (isCreatable && inputValue.trim()) {
+          createOption(inputValue);
         }
         break;
       case 'Tab':
@@ -178,9 +183,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     setOpen(!isOpen);
     setTimeout(() => textInputRef.current?.focus(), 100);
   };
+
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, valueOfInput: string) => {
     setInputValue(valueOfInput);
   };
+
   const onSelect = (menuItem?: SelectionOptions) => {
     if (menuItem) {
       setValue(
@@ -190,6 +197,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       );
     }
     textInputRef.current?.focus();
+  };
+
+  const createOption = (newOption: string) => {
+    const newSelection = { id: newOption, name: newOption, selected: true };
+    setValue([...allOptions, newSelection]);
+    setInputValue('');
   };
 
   const noSelectedItems = allOptions.filter((option) => option.selected).length === 0;
@@ -267,6 +280,17 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         onOpenChange={() => setOpen(false)}
         toggle={toggle}
       >
+        {isCreatable &&
+          inputValue &&
+          !allOptions.some((option) => option.name.toLowerCase() === inputValue.toLowerCase()) && (
+            <SelectOption
+              key="create-option"
+              value={inputValue}
+              onClick={() => createOption(inputValue)}
+            >
+              {createOptionMessage.replace('{value}', inputValue)}
+            </SelectOption>
+          )}
         {visibleOptions.length === 0 && inputValue ? (
           <SelectList isAriaMultiselectable>
             <SelectOption isDisabled>No results found</SelectOption>

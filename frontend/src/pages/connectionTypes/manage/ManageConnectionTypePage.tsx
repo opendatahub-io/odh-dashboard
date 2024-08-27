@@ -24,18 +24,25 @@ import { NameDescType } from '~/pages/projects/types';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
 import ManageConnectionTypeFieldsTable from './ManageConnectionTypeFieldsTable';
 import ManageConnectionTypeBreadcrumbs from './ManageConnectionTypeBreadcrumbs';
+import { SelectionOptions } from '~/components/MultiSelection';
+import { GroupsConfigField } from '~/pages/groupSettings/groupTypes';
+import { useWatchGroups } from '~/utilities/useWatchGroups';
+import { MultiSelection } from '~/components/MultiSelection';
 
 type Props = {
   prefill?: ConnectionTypeConfigMapObj;
   isEdit?: boolean;
   onSave: (obj: ConnectionTypeConfigMapObj) => Promise<void>;
+  typeAhead?: string[];
 };
 
-const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) => {
+const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave, typeAhead }) => {
   const navigate = useNavigate();
   const { username: currentUsername } = useUser();
 
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
+
+  const { groupSettings, setGroupSettings, setIsGroupSettingsChanged } = useWatchGroups();
 
   const {
     k8sName: prefillK8sName,
@@ -58,6 +65,13 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const [connectionFields, setConnectionFields] =
     React.useState<ConnectionTypeField[]>(prefillFields);
   const [category] = React.useState<string[]>(prefillCategory);
+
+  const [categoryOptions, setCategoryOptions] = React.useState<SelectionOptions[]>([
+    { id: 'object-storage', name: 'Object storage', selected: true },
+    { id: 'database', name: 'Database', selected: false },
+    { id: 'model-registry', name: 'Model registry', selected: false },
+    { id: 'uri', name: 'URI', selected: false },
+  ]);
 
   const connectionTypeObj = React.useMemo(
     () =>
@@ -82,6 +96,38 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     navigate('/connectionTypes');
   };
 
+  const userDesc = 'Select a category for the connection type';
+
+  const handleMenuItemSelection = (newState: SelectionOptions[], field: GroupsConfigField) => {
+    if (field === GroupsConfigField.ADMIN) {
+      setCategoryOptions(newState); // Update the categoryOptions state
+    }
+
+    switch (field) {
+      case GroupsConfigField.ADMIN:
+        setGroupSettings({
+          ...groupSettings,
+          adminGroups: newState.map((opt) => ({
+            id: Number(opt.id),
+            name: opt.name,
+            enabled: opt.selected || false,
+          })),
+        });
+        break;
+      case GroupsConfigField.USER:
+        setGroupSettings({
+          ...groupSettings,
+          allowedGroups: newState.map((opt) => ({
+            id: Number(opt.id),
+            name: opt.name,
+            enabled: opt.selected || false,
+          })),
+        });
+        break;
+    }
+    setIsGroupSettingsChanged(true);
+  };
+
   return (
     <ConnectionTypePreviewDrawer
       isExpanded={isDrawerExpanded}
@@ -92,7 +138,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         title={isEdit ? 'Edit connection type' : 'Create connection type'}
         loaded
         empty={false}
-        errorMessage="Unable load to connection types"
+        errorMessage="Unable to load connection types"
         breadcrumb={<ManageConnectionTypeBreadcrumbs />}
         headerAction={
           isDrawerExpanded ? undefined : (
@@ -129,6 +175,20 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 setData={setConnectionNameDesc}
                 autoFocusName
               />
+
+              <FormGroup label="Category" isRequired>
+                <MultiSelection
+                  id="category-table"
+                  toggleTestId="category-table"
+                  ariaLabel={userDesc}
+                  value={categoryOptions}
+                  setValue={(newState) =>
+                    handleMenuItemSelection(newState, GroupsConfigField.ADMIN)
+                  }
+                  selectionRequired
+                  isCreatable
+                />
+              </FormGroup>
               <FormGroup label="Enable">
                 <Checkbox
                   label="Enable users in your organization to use this connection type when adding connections."

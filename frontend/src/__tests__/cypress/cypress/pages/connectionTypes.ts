@@ -1,6 +1,7 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 import { TableToolbar } from './components/TableToolbar';
+import { Contextual } from './components/Contextual';
 
 class CreateConnectionTypeTableRow extends TableRow {
   findSectionHeading() {
@@ -85,6 +86,57 @@ class CreateConnectionTypePage {
 
   findSubmitButton() {
     return cy.findByTestId('submit-button');
+  }
+}
+
+class UserManagement {
+  getCategorySection() {
+    return new CategorySection(() => cy.findByTestId('category-table'));
+  }
+}
+class CategorySection extends Contextual<HTMLElement> {
+  findCategoryTable() {
+    return cy.findByTestId('category-table');
+  }
+
+  private findChipGroup() {
+    return this.find().findByRole('list', { name: 'Current selections' });
+  }
+
+  findChipItem(name: string | RegExp) {
+    return this.findChipGroup().find('li').contains('span', name);
+  }
+
+  clearMultiChipItem() {
+    this.find().findByRole('button', { name: 'Clear input value' }).click();
+  }
+
+  findMultiGroupInput() {
+    return this.find().find('input');
+  }
+
+  findMultiGroupOptions(name: string) {
+    return this.find().findByRole('option', { name });
+  }
+
+  removeChipItem(name: string) {
+    this.findChipGroup()
+      .find('li')
+      .findByRole('button', { name: `close ${name}` })
+      .click();
+  }
+
+  findErrorText() {
+    return this.find().findByTestId('group-selection-error-text');
+  }
+
+  findMultiGroupSelectButton() {
+    return this.find().findByTestId('category-table');
+  }
+
+  selectMultiGroup(name: string) {
+    this.findMultiGroupSelectButton().click();
+    this.findMultiGroupOptions(name).click();
   }
 }
 
@@ -203,3 +255,4 @@ class ConnectionTypesPage {
 
 export const connectionTypesPage = new ConnectionTypesPage();
 export const createConnectionTypePage = new CreateConnectionTypePage();
+export const userManagement = new UserManagement();

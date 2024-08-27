@@ -2,7 +2,10 @@ import {
   mockConnectionTypeConfigMap,
   mockConnectionTypeConfigMapObj,
 } from '~/__mocks__/mockConnectionType';
-import { createConnectionTypePage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
+import {
+  createConnectionTypePage,
+  userManagement,
+} from '~/__tests__/cypress/cypress/pages/connectionTypes';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDashboardConfig } from '~/__mocks__';
 import type { ConnectionTypeField } from '~/concepts/connectionTypes/types';
@@ -37,6 +40,15 @@ describe('create', () => {
 
     createConnectionTypePage.findConnectionTypeName().type('hello');
     createConnectionTypePage.findSubmitButton().should('be.enabled');
+  });
+
+  it('Selects category or creates new category', () => {
+    createConnectionTypePage.visitCreatePage();
+
+    const categorySection = userManagement.getCategorySection();
+
+    categorySection.findChipItem(/^Object storage$/).should('exist');
+    categorySection.clearMultiChipItem();
   });
 });
 
