@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { render, screen } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
+
 import { userEvent } from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
@@ -125,6 +126,57 @@ describe('ModelRegistryTableRowStatus', () => {
       />,
     );
     expect(screen.getByText('Available')).toBeVisible();
+  });
+  it('renders "Progressing" status', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelRegistryTableRowStatus
+        conditions={[
+          {
+            status: 'True',
+            type: 'Degraded',
+          },
+          {
+            status: 'False',
+            type: 'Available',
+            message: 'Some unavailable message',
+          },
+        ]}
+      />,
+    );
+
+    const label = screen.getByText('Unavailable');
+    expect(label).toBeVisible();
+
+    await user.click(label);
+
+    expect(
+      screen.getByRole('heading', { name: 'danger alert: Service is unavailable' }),
+    ).toBeVisible();
+    expect(screen.getByText('Some unavailable message')).toBeVisible();
+  });
+  it('renders "Degrading" status', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelRegistryTableRowStatus
+        conditions={[
+          {
+            status: 'True',
+            type: 'Degraded',
+          },
+        ]}
+      />,
+    );
+
+    const label = screen.getByText('Degrading');
+    expect(label).toBeVisible();
+
+    await user.click(label);
+
+    const degradingText = screen.getByText(/degrading/i, { exact: false });
+    expect(degradingText).toBeInTheDocument();
   });
 
   it('renders "Progressing" status when conditions are empty', () => {
