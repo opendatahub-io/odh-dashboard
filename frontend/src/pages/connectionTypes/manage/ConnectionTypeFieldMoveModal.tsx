@@ -1,43 +1,38 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  MenuToggle,
-  Modal,
-  Select,
-  SelectList,
-  SelectOption,
-} from '@patternfly/react-core';
+import { Form, FormGroup, Modal } from '@patternfly/react-core';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-
-type SectionSelection = { sectionName: string; sectionIndex: number };
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type Props = {
-  field?: ConnectionTypeField;
-  rows?: ConnectionTypeField[];
+  row: { field: ConnectionTypeField; index: number };
+  fields?: ConnectionTypeField[];
   onClose: () => void;
   onSubmit: (field: ConnectionTypeField, index: number) => void;
 };
 
 export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
-  field,
-  rows,
+  row,
+  fields: fields,
   onClose,
   onSubmit,
 }) => {
   const options = React.useMemo(() => {
-    const temp: SectionSelection[] = [];
-    for (let i = 0; rows && i < rows.length; i++) {
-      if (rows[i].type === ConnectionTypeFieldType.Section) {
-        temp.push({ sectionName: rows[i].name, sectionIndex: i });
+    const parentSectionIndex = fields?.findLastIndex(
+      (r, i) => r.type === ConnectionTypeFieldType.Section && i < row.index,
+    );
+
+    const temp: SimpleSelectOption[] = [];
+    for (let i = 0; fields && i < fields.length; i++) {
+      if (fields[i].type === ConnectionTypeFieldType.Section && i !== parentSectionIndex) {
+        temp.push({ label: fields[i].name, key: String(i) });
       }
     }
-    return temp;
-  }, [rows]);
 
-  const [isSelectOpen, setIsSelectOpen] = React.useState(false);
-  const [selectedSection, setSelectedSection] = React.useState<SectionSelection | undefined>(
+    return temp;
+  }, [fields, row]);
+
+  const [selectedSection, setSelectedSection] = React.useState<SimpleSelectOption | undefined>(
     options[0],
   );
 
@@ -52,8 +47,8 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
           submitLabel="Move"
           onCancel={onClose}
           onSubmit={() => {
-            if (field && selectedSection) {
-              onSubmit(field, selectedSection.sectionIndex);
+            if (selectedSection) {
+              onSubmit(row.field, Number(selectedSection.key));
               onClose();
             }
           }}
@@ -62,51 +57,18 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
         />
       }
     >
-      Select the section heading that <b>{field?.name}</b> will be moved to.
+      Select the section heading that <b>{row.field.name}</b> will be moved to.
       <Form>
-        <FormGroup
-          fieldId="sectionHeading"
-          label="Section heading"
-          isRequired
-          data-testid="section-heading-select"
-        >
-          <Select
+        <FormGroup fieldId="sectionHeading" label="Section heading" isRequired>
+          <SimpleSelect
             id="sectionHeading"
-            isOpen={isSelectOpen}
-            shouldFocusToggleOnSelect
-            selected={selectedSection}
-            onSelect={(_e, value) => {
-              setSelectedSection(options.find((s) => s.sectionIndex === value));
-              setIsSelectOpen(false);
-            }}
-            onOpenChange={(open) => setIsSelectOpen(open)}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                ref={toggleRef}
-                id="type-select"
-                isFullWidth
-                onClick={() => {
-                  setIsSelectOpen((open) => !open);
-                }}
-                isExpanded={isSelectOpen}
-                isDisabled={options.length === 1}
-              >
-                {selectedSection?.sectionName}
-              </MenuToggle>
-            )}
-          >
-            <SelectList>
-              {options.map((s, i) => (
-                <SelectOption
-                  key={s.sectionName}
-                  value={s.sectionIndex}
-                  data-testid={`select-value-${i} select-name-${s.sectionName}`}
-                >
-                  {s.sectionName}
-                </SelectOption>
-              ))}
-            </SelectList>
-          </Select>
+            dataTestId="section-heading-select"
+            options={options}
+            value={selectedSection?.key}
+            onChange={(key) => setSelectedSection(options.find((s) => s.key === key))}
+            isFullWidth
+            isDisabled={options.length === 1}
+          />
         </FormGroup>
       </Form>
     </Modal>

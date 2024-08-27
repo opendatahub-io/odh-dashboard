@@ -12,6 +12,7 @@ import TruncatedText from '~/components/TruncatedText';
 
 type Props = {
   row: ConnectionTypeField;
+  rowIndex: number;
   columns: ThProps[];
   fields: ConnectionTypeField[];
   onEdit: () => void;
@@ -24,6 +25,7 @@ type Props = {
 
 const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
+  rowIndex,
   columns,
   fields,
   onEdit,
@@ -34,15 +36,14 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   onChange,
   ...props
 }) => {
-  const numSections = React.useMemo(
-    () =>
-      fields.reduce(
-        (accumulator, currentValue) =>
-          currentValue.type === ConnectionTypeFieldType.Section ? accumulator + 1 : accumulator,
-        0,
-      ),
-    [fields],
-  );
+  const showMoveToSection = React.useMemo(() => {
+    const parentSection = fields.findLast(
+      (f, i) => f.type === ConnectionTypeFieldType.Section && i < rowIndex,
+    );
+    const numSections = fields.filter((f) => f.type === ConnectionTypeFieldType.Section).length;
+    const potentialSectionsToMoveTo = parentSection ? numSections - 1 : numSections;
+    return potentialSectionsToMoveTo > 0;
+  }, [fields, rowIndex]);
 
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
@@ -132,7 +133,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               title: 'Duplicate',
               onClick: () => onDuplicate(row),
             },
-            ...(numSections > 0
+            ...(showMoveToSection
               ? [
                   {
                     title: 'Move to section heading',

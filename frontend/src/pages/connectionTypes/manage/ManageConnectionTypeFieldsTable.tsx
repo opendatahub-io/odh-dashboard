@@ -95,6 +95,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                 <ManageConnectionTypeFieldsTableRow
                   key={index}
                   row={row}
+                  rowIndex={index}
                   columns={columns}
                   fields={fields}
                   onEdit={() => {
@@ -192,8 +193,8 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
       ) : undefined}
       {moveToSectionModalField && (
         <ConnectionTypeMoveFieldToSectionModal
-          field={moveToSectionModalField.field}
-          rows={fields}
+          row={moveToSectionModalField}
+          fields={fields}
           onClose={() => setMoveToSectionModalField(undefined)}
           onSubmit={(field, sectionIndex) => {
             const temp = fields.toSpliced(moveToSectionModalField.index, 1);

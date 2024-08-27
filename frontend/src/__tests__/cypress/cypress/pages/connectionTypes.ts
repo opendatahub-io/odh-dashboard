@@ -86,6 +86,12 @@ class CreateConnectionTypePage {
   findSubmitButton() {
     return cy.findByTestId('submit-button');
   }
+
+  shouldHaveTableRowNames(rowNames: string[]) {
+    rowNames.map((name, index) =>
+      this.getFieldsTableRow(index).findName().should('contain.text', name),
+    );
+  }
 }
 
 class ConnectionTypesTableToolbar extends TableToolbar {}

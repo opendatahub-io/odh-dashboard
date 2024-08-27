@@ -178,7 +178,6 @@ describe('edit', () => {
           {
             type: 'section',
             name: 'header1',
-            properties: {},
           },
           {
             type: 'short-text',
@@ -189,7 +188,6 @@ describe('edit', () => {
           {
             type: 'section',
             name: 'header2',
-            properties: {},
           },
           {
             type: 'short-text',
@@ -197,36 +195,46 @@ describe('edit', () => {
             envVar: 'short-text-3',
             properties: {},
           },
-        ] as ConnectionTypeField[],
+        ],
       }),
     );
     createConnectionTypePage.visitEditPage('existing');
+    createConnectionTypePage.shouldHaveTableRowNames([
+      'field1',
+      'header1',
+      'field2',
+      'header2',
+      'field3',
+    ]);
 
-    createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'field1');
-    createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'header1');
-    createConnectionTypePage.getFieldsTableRow(2).findName().should('contain.text', 'field2');
-    createConnectionTypePage.getFieldsTableRow(3).findName().should('contain.text', 'header2');
-    createConnectionTypePage.getFieldsTableRow(4).findName().should('contain.text', 'field3');
+    createConnectionTypePage
+      .getFieldsTableRow(4)
+      .findKebabAction('Move to section heading')
+      .click();
+    // move to default which is the first section
+    cy.findByTestId('section-heading-select').should('be.disabled');
+    cy.findByTestId('modal-submit-button').click();
+    createConnectionTypePage.shouldHaveTableRowNames([
+      'field1',
+      'header1',
+      'field3',
+      'field2',
+      'header2',
+    ]);
 
     createConnectionTypePage
       .getFieldsTableRow(0)
       .findKebabAction('Move to section heading')
       .click();
-    // move to default which is the first section
-    cy.findByText('Move').click();
-
-    createConnectionTypePage
-      .getFieldsTableRow(2)
-      .findKebabAction('Move to section heading')
-      .click();
     cy.findByTestId('section-heading-select').click();
-    cy.findByTestId(['select-name-header2']).click();
-    cy.findByText('Move').click();
-
-    createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'header1');
-    createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'field1');
-    createConnectionTypePage.getFieldsTableRow(2).findName().should('contain.text', 'header2');
-    createConnectionTypePage.getFieldsTableRow(3).findName().should('contain.text', 'field2');
-    createConnectionTypePage.getFieldsTableRow(4).findName().should('contain.text', 'field3');
+    cy.findByTestId('section-heading-select').findSelectOption('header2').click();
+    cy.findByTestId('modal-submit-button').click();
+    createConnectionTypePage.shouldHaveTableRowNames([
+      'header1',
+      'field3',
+      'field2',
+      'header2',
+      'field1',
+    ]);
   });
 });
