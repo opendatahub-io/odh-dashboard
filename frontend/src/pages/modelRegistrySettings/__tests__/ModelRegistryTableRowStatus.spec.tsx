@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { screen, render } from '@testing-library/react';
+import { screen, render, waitFor } from '@testing-library/react';
 
 import { userEvent } from '@testing-library/user-event';
 import '@testing-library/jest-dom';
@@ -8,6 +8,48 @@ import '@testing-library/jest-dom';
 import { ModelRegistryTableRowStatus } from '~/pages/modelRegistrySettings/ModelRegistryTableRowStatus';
 
 describe('ModelRegistryTableRowStatus', () => {
+  it('renders "Unavailable" status with correct popover for Istio and Gateway conditions', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelRegistryTableRowStatus
+        conditions={[
+          {
+            status: 'False',
+            type: 'Available',
+            message: 'Service is unavailable',
+          },
+          {
+            status: 'False',
+            type: 'IstioAvailable',
+            message: 'Istio is unavailable',
+          },
+          {
+            status: 'False',
+            type: 'GatewayAvailable',
+            message: 'Gateway is unavailable',
+          },
+        ]}
+      />,
+    );
+
+    const label = screen.getByText('Unavailable');
+    expect(label).toBeVisible();
+
+    await user.click(label);
+
+    await waitFor(() => {
+      // Check for the popover title
+      expect(
+        screen.getByText('Istio resources and Istio Gateway resources are both unavailable'),
+      ).toBeInTheDocument();
+
+      // Check for the condition messages
+      expect(screen.getByText('Service is unavailable')).toBeInTheDocument();
+      expect(screen.getByText('Istio is unavailable')).toBeInTheDocument();
+      expect(screen.getByText('Gateway is unavailable')).toBeInTheDocument();
+    });
+  });
   it('renders "Istio resources and Istio Gateway resources are both unavailable" as popover title', async () => {
     const user = userEvent.setup();
 
