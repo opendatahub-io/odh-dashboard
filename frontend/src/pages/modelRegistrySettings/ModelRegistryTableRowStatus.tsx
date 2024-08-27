@@ -55,9 +55,6 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       [ModelRegistryStatus.Progressing]: progressCondition,
       [ModelRegistryStatus.Degraded]: degradedCondition,
     } = conditionsMap;
-    const lastAvailableConditionTime = new Date(
-      availableCondition?.lastTransitionTime ?? '',
-    ).getTime();
 
     popoverMessages =
       availableCondition?.status === ConditionStatus.False
@@ -65,64 +62,59 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
             if (condition?.status === ConditionStatus.False && condition.message) {
               messages.push(condition.message);
             }
-
             return messages;
           }, [])
         : [];
 
+    // Unavailable
+    if (availableCondition?.status === ConditionStatus.False) {
+      statusLabel = ModelRegistryStatusLabel.Unavailable;
+      icon = <ExclamationCircleIcon />;
+      color = 'red';
+    }
     // Available
-    if (availableCondition?.status === ConditionStatus.True) {
+    else if (availableCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Available;
       icon = <CheckCircleIcon />;
       color = 'green';
     }
     // Progressing
-    else if (
-      progressCondition?.status === ConditionStatus.True &&
-      lastAvailableConditionTime < new Date(progressCondition.lastTransitionTime ?? '').getTime()
-    ) {
+    else if (progressCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Progressing;
       icon = <InProgressIcon />;
       color = 'blue';
     }
     // Degrading
-    else if (
-      degradedCondition?.status === ConditionStatus.True &&
-      lastAvailableConditionTime < new Date(degradedCondition.lastTransitionTime ?? '').getTime()
-    ) {
+    else if (degradedCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Degrading;
       icon = <DegradedIcon />;
       color = 'gold';
       popoverTitle = 'Service is degrading';
     }
-    // Unavailable
-    else {
-      statusLabel = ModelRegistryStatusLabel.Unavailable;
-      icon = <ExclamationCircleIcon />;
-      color = 'red';
+  }
+  // Handle popover logic for Unavailable status
+  if (statusLabel === ModelRegistryStatusLabel.Unavailable) {
+    const {
+      [ModelRegistryStatus.IstioAvailable]: istioAvailableCondition,
+      [ModelRegistryStatus.GatewayAvailable]: gatewayAvailableCondition,
+    } = conditionsMap;
 
-      const {
-        [ModelRegistryStatus.IstioAvailable]: istioAvailableCondition,
-        [ModelRegistryStatus.GatewayAvailable]: gatewayAvailableCondition,
-      } = conditionsMap;
-
-      if (
-        istioAvailableCondition?.status === ConditionStatus.False &&
-        gatewayAvailableCondition?.status === ConditionStatus.False
-      ) {
-        popoverTitle = 'Istio resources and Istio Gateway resources are both unavailable';
-      } else if (istioAvailableCondition?.status === ConditionStatus.False) {
-        popoverTitle = 'Istio resources are unavailable';
-      } else if (gatewayAvailableCondition?.status === ConditionStatus.False) {
-        popoverTitle = 'Istio Gateway resources are unavailable';
-      } else if (
-        istioAvailableCondition?.status === ConditionStatus.True &&
-        gatewayAvailableCondition?.status === ConditionStatus.True
-      ) {
-        popoverTitle = 'Deployment is unavailable';
-      } else {
-        popoverTitle = 'Service is unavailable';
-      }
+    if (
+      istioAvailableCondition?.status === ConditionStatus.False &&
+      gatewayAvailableCondition?.status === ConditionStatus.False
+    ) {
+      popoverTitle = 'Istio resources and Istio Gateway resources are both unavailable';
+    } else if (istioAvailableCondition?.status === ConditionStatus.False) {
+      popoverTitle = 'Istio resources are unavailable';
+    } else if (gatewayAvailableCondition?.status === ConditionStatus.False) {
+      popoverTitle = 'Istio Gateway resources are unavailable';
+    } else if (
+      istioAvailableCondition?.status === ConditionStatus.True &&
+      gatewayAvailableCondition?.status === ConditionStatus.True
+    ) {
+      popoverTitle = 'Deployment is unavailable';
+    } else {
+      popoverTitle = 'Service is unavailable';
     }
   }
 
