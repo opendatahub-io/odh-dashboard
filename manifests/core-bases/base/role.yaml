@@ -4,6 +4,15 @@ metadata:
   name: odh-dashboard
 rules:
   - verbs:
+      - get
+      - list
+      - update
+      - patch
+    apiGroups:
+      - storage.k8s.io
+    resources:
+      - storageclasses
+  - verbs:
       - create
       - get
       - list

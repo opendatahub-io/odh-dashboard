@@ -624,6 +624,14 @@ export type ImageTagInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
+export type StorageClassConfig = {
+  displayName: string;
+  isEnabled: boolean;
+  isDefault: boolean;
+  lastModified: string;
+  description?: string;
+};
+
 export type PersistentVolumeClaimKind = {
   apiVersion?: string;
   kind?: string;
@@ -1190,4 +1198,9 @@ export type ModelRegistryKind = K8sResourceCommon & {
   status?: {
     conditions?: K8sCondition[];
   };
+};
+
+export type ResponseStatus = {
+  success: boolean;
+  error: string;
 };
