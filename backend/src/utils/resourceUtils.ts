@@ -32,7 +32,6 @@ import { blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from './componentUtils';
 import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
-import { RecursivePartial } from '../typeHelpers';
 import { FastifyRequest } from 'fastify';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
@@ -65,9 +64,7 @@ const DASHBOARD_CONFIG = {
 };
 
 const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
-  return fetchOrCreateDashboardCR(fastify)
-    .then((dashboardCR) => migrateBiasTrustyForRHOAI(fastify, dashboardCR))
-    .then((dashboardCR) => [dashboardCR]);
+  return fetchOrCreateDashboardCR(fastify).then((dashboardCR) => [dashboardCR]);
 };
 
 const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
@@ -865,60 +862,6 @@ export const cleanupDSPSuffix = async (fastify: KubeFastifyInstance): Promise<vo
  */
 export const isRHOAI = (fastify: KubeFastifyInstance): boolean =>
   fastify.kube.namespace === 'redhat-ods-applications';
-
-/**
- * As we release Dashboard v2.24.0 we will be re-enabling Trusty for RHOAI, but not for Bias Metrics.
- * This means we will need to make sure Bias is in a state of disabled as the API won't be available.
- */
-export const migrateBiasTrustyForRHOAI = async (
-  fastify: KubeFastifyInstance,
-  dashboardConfig: DashboardConfig,
-): Promise<DashboardConfig> => {
-  if (!isRHOAI(fastify)) {
-    // ODH deployment, leave trusty as-is
-    return dashboardConfig;
-  }
-
-  // For RHOAI deployments...
-  const patchChange: RecursivePartial<DashboardConfig> = {
-    spec: { dashboardConfig: { disableBiasMetrics: true } },
-  };
-  try {
-    switch (dashboardConfig.spec.dashboardConfig.disableBiasMetrics) {
-      case true:
-        // Explicitly disabled - ideal state, ignore
-        fastify.log.info('TrustyAI BiasMetrics disabled. No change applied.');
-        return dashboardConfig;
-      case false:
-        // Explicitly enabled - bad state, disable both locally and with a patch
-        await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-          DASHBOARD_CONFIG.group,
-          DASHBOARD_CONFIG.version,
-          dashboardConfig.metadata.namespace,
-          DASHBOARD_CONFIG.plural,
-          dashboardConfig.metadata.name,
-          patchChange,
-          undefined,
-          undefined,
-          undefined,
-          {
-            headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-          },
-        );
-        fastify.log.info(
-          'TrustyAI BiasMetrics was enabled. Patched OdhDashboardConfig to disable.',
-        );
-        return _.merge({}, dashboardConfig, patchChange);
-      case undefined:
-      default:
-      // Invalid / Missing state - do nothing
-    }
-  } catch (e) {
-    fastify.log.error(e, 'TrustyAI BiasMetrics error.');
-  }
-
-  return dashboardConfig;
-};
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;
