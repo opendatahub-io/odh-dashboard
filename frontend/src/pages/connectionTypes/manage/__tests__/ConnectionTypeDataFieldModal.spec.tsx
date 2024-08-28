@@ -3,11 +3,12 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react-dom/test-utils';
 import { ConnectionTypeDataFieldModal } from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldModal';
-
-let onClose: jest.Mock;
-let onSubmit: jest.Mock;
+import { ShortTextField, TextField } from '~/concepts/connectionTypes/types';
 
 describe('ConnectionTypeDataFieldModal', () => {
+  let onClose: jest.Mock;
+  let onSubmit: jest.Mock;
+
   beforeEach(() => {
     onClose = jest.fn();
     onSubmit = jest.fn();
@@ -229,5 +230,37 @@ describe('ConnectionTypeDataFieldModal', () => {
     });
 
     expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+  });
+
+  it('should display env var conflict warning', () => {
+    const field: ShortTextField = {
+      type: 'short-text',
+      name: 'test',
+      envVar: 'test-envvar',
+      properties: {},
+    };
+    const field2: TextField = {
+      type: 'text',
+      name: 'test-2',
+      envVar: 'test-envvar',
+      properties: {},
+    };
+    render(
+      <ConnectionTypeDataFieldModal
+        onClose={onClose}
+        onSubmit={onSubmit}
+        field={field}
+        fields={[field, field2]}
+      />,
+    );
+    const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
+    screen.getByTestId('envvar-conflict-warning');
+    expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled();
+
+    act(() => {
+      fireEvent.change(fieldEnvVarInput, { target: { value: 'new-env-value' } });
+    });
+
+    expect(screen.queryByTestId('envvar-conflict-warning')).not.toBeInTheDocument();
   });
 });

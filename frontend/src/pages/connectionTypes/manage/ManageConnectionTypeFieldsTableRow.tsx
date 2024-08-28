@@ -1,19 +1,21 @@
 import * as React from 'react';
-import { ActionsColumn, Td, ThProps, Tr } from '@patternfly/react-table';
-import { Button, Label, Switch } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Button, Icon, Label, Switch } from '@patternfly/react-core';
 import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   SectionField,
+  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 import type { RowProps } from '~/utilities/useDraggableTableControlled';
 import TruncatedText from '~/components/TruncatedText';
+import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
 
 type Props = {
   row: ConnectionTypeField;
   rowIndex: number;
-  columns: ThProps[];
   fields: ConnectionTypeField[];
   onEdit: () => void;
   onRemove: () => void;
@@ -26,7 +28,6 @@ type Props = {
 const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
   rowIndex,
-  columns,
   fields,
   onEdit,
   onRemove,
@@ -44,6 +45,16 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
     const potentialSectionsToMoveTo = parentSection ? numSections - 1 : numSections;
     return potentialSectionsToMoveTo > 0;
   }, [fields, rowIndex]);
+
+  const isEnvVarConflict = React.useMemo(
+    () =>
+      row.type === ConnectionTypeFieldType.Section
+        ? false
+        : !!fields.find(
+            (f) => f !== row && isConnectionTypeDataField(f) && f.envVar === row.envVar,
+          ),
+    [row, fields],
+  );
 
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
@@ -113,6 +124,14 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
       </Td>
       <Td dataLabel={columns[3].label} data-testid="field-env">
         {row.envVar || '-'}
+        {isEnvVarConflict ? (
+          <>
+            <Icon status="danger" size="sm" className="pf-v5-u-ml-xs">
+              <ExclamationCircleIcon />
+            </Icon>
+            <span className="pf-v5-u-screen-reader">This environment variable is in conflict.</span>
+          </>
+        ) : undefined}
       </Td>
       <Td dataLabel={columns[4].label}>
         <Switch

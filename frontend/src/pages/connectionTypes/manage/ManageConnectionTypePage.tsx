@@ -10,9 +10,14 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
+import { uniq } from 'lodash-es';
 import { useUser } from '~/redux/selectors';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeField,
+  isConnectionTypeDataField,
+} from '~/concepts/connectionTypes/types';
 import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
 import {
   createConnectionTypeObj,
@@ -73,10 +78,15 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     [connectionNameDesc, connectionEnabled, connectionFields, username, category],
   );
 
+  const isEnvVarConflict = React.useMemo(() => {
+    const envVars = connectionFields.filter(isConnectionTypeDataField).map((f) => f.envVar);
+    return uniq(envVars).length !== envVars.length;
+  }, [connectionFields]);
+
   const isValid = React.useMemo(() => {
     const trimmedName = connectionNameDesc.name.trim();
-    return Boolean(trimmedName);
-  }, [connectionNameDesc.name]);
+    return Boolean(trimmedName) && !isEnvVarConflict;
+  }, [connectionNameDesc.name, isEnvVarConflict]);
 
   const onCancel = () => {
     navigate('/connectionTypes');
@@ -144,6 +154,12 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
               Add fields to prompt users to input information, and optionally assign default values
               to those fields.
               <FormGroup>
+                {isEnvVarConflict ? (
+                  <Alert isInline variant="danger" title="Environment variables conflict">
+                    Environment variables for one or more fields are conflicting. Change them to
+                    resolve and proceed.
+                  </Alert>
+                ) : null}
                 <ManageConnectionTypeFieldsTable
                   fields={connectionFields}
                   onFieldsChange={setConnectionFields}

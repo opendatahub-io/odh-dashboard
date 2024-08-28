@@ -9,6 +9,7 @@ type Props = {
   onClose: () => void;
   onSubmit: (field: ConnectionTypeField) => void;
   isEdit?: boolean;
+  fields?: ConnectionTypeField[];
 };
 
 const ConnectionTypeFieldModal: React.FC<Props> = (props) => {
