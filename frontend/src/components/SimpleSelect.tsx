@@ -7,8 +7,8 @@ import {
   SelectOption,
   SelectGroup,
   Divider,
+  MenuToggleProps,
 } from '@patternfly/react-core';
-import { MenuToggleProps } from '@patternfly/react-core/src/components/MenuToggle/MenuToggle';
 
 import './SimpleSelect.scss';
 
