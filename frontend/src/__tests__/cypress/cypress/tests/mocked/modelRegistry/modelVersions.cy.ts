@@ -203,9 +203,6 @@ describe('Model Versions', () => {
     verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/2/details');
     cy.findByTestId('app-page-title').should('have.text', 'model version');
     cy.findByTestId('breadcrumb-version-name').should('have.text', 'model version');
-    // Bypass patternfly ExpandableSection error https://github.com/patternfly/patternfly-react/issues/10410
-    // Cannot destructure property 'offsetWidth' of 'this.expandableContentRef.current' as it is null.
-    Cypress.on('uncaught:exception', () => false);
     cy.go('back');
     verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
