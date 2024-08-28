@@ -14,6 +14,7 @@ describe('FileFormField', () => {
       envVar: 'test-envVar',
       properties: {
         defaultValue: 'default-value',
+        extensions: ['.jpg', '.svg', '.png'],
       },
     };
 
@@ -23,6 +24,9 @@ describe('FileFormField', () => {
     expect(contentInput).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Upload' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Clear' })).not.toBeDisabled();
+
+    const helperText = screen.getByTestId('file-form-field-helper-text');
+    expect(helperText).toHaveTextContent('.jpg, .svg, or .png');
 
     act(() => {
       fireEvent.change(contentInput, { target: { value: 'new-value' } });

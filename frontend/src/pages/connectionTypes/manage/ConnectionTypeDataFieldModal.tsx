@@ -32,6 +32,7 @@ import { fieldNameToEnvVar, fieldTypeToString } from '~/concepts/connectionTypes
 import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
+import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
 
 const ENV_VAR_NAME_REGEX = new RegExp('^[-._a-zA-Z][-._a-zA-Z0-9]*$');
 
@@ -98,7 +99,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   const handleSubmit = () => {
     if (isValid) {
       if (newField) {
-        onSubmit(newField);
+        onSubmit(prepareFieldForSave(newField));
       }
       onClose();
     }
