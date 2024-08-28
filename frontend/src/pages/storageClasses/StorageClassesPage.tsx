@@ -10,11 +10,12 @@ import {
   AlertActionCloseButton,
 } from '@patternfly/react-core';
 
-import { Annotation, StorageClassConfig } from '~/k8sTypes';
+import { MetadataAnnotation, StorageClassConfig } from '~/k8sTypes';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
+import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
 
 const StorageClassesPage: React.FC = () => {
   const [storageClasses, storageClassesLoaded, storageClassesError] = useStorageClasses();
@@ -22,37 +23,34 @@ const StorageClassesPage: React.FC = () => {
 
   const defaultStorageClass = storageClasses.find(
     (storageClass) =>
-      storageClass.metadata.annotations?.[Annotation.StorageClassIsDefault] === 'true',
+      isOpenshiftDefaultStorageClass(storageClass) ||
+      getStorageClassConfig(storageClass)?.isDefault,
   );
-
-  // Open default class alert when no default class exists
-  React.useEffect(() => {
-    setIsAlertOpen(!defaultStorageClass?.metadata.name);
-  }, [defaultStorageClass?.metadata.name]);
 
   // Add storage class config annotations automatically for all storage classes without them
   React.useEffect(() => {
-    storageClasses.forEach((storageClass, index) => {
+    storageClasses.forEach(async (storageClass, index) => {
       const { metadata } = storageClass;
       const { name: storageClassName } = metadata;
 
-      if (!metadata.annotations?.[Annotation.OdhStorageClassConfig]) {
-        const isDefault = defaultStorageClass?.metadata.uid === metadata.uid;
+      if (!metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
+        let isDefault = defaultStorageClass?.metadata.uid === metadata.uid;
+        let isEnabled = false;
+
+        if (!defaultStorageClass) {
+          isDefault = index === 0;
+          isEnabled = true;
+        }
+
         const storageClassConfig: StorageClassConfig = {
+          isDefault,
+          isEnabled,
           displayName: storageClassName,
-          ...(!defaultStorageClass
-            ? {
-                isEnabled: true,
-                isDefault: index === 0,
-              }
-            : {
-                isDefault,
-                isEnabled: isDefault,
-              }),
           lastModified: new Date().toISOString(),
         };
 
-        updateStorageClassConfig(storageClassName, storageClassConfig);
+        await updateStorageClassConfig(storageClassName, storageClassConfig);
+        setIsAlertOpen(!defaultStorageClass?.metadata.name);
       }
     });
   }, [defaultStorageClass, storageClasses]);

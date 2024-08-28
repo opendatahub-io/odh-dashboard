@@ -73,7 +73,6 @@ const AppRoutes: React.FC = () => {
   const isJupyterEnabled = useCheckJupyterEnabled();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const isConnectionTypesAvailable = useIsAreaAvailable(SupportedArea.CONNECTION_TYPES).status;
-  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
 
   if (!isAllowed) {
     return (
@@ -131,9 +130,7 @@ const AppRoutes: React.FC = () => {
             {isConnectionTypesAvailable ? (
               <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
             ) : null}
-            {isStorageClassesAvailable && (
-              <Route path="/storageClasses/*" element={<StorageClassesPage />} />
-            )}
+            <Route path="/storageClasses/*" element={<StorageClassesPage />} />
             <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>

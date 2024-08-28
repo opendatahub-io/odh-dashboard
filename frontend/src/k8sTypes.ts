@@ -55,7 +55,7 @@ export type StorageClassConfig = {
   description?: string;
 };
 
-export enum Annotation {
+export enum MetadataAnnotation {
   StorageClassIsDefault = 'storageclass.kubernetes.io/is-default-class',
   K8sDescription = 'kubernetes.io/description',
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
@@ -64,10 +64,10 @@ export enum Annotation {
 type StorageClassAnnotations = Partial<{
   // if true, enables any persistent volume claim (PVC) that does not specify a specific storage class to automatically be provisioned.
   // Only one, if any, StorageClass per cluster can be set as default.
-  [Annotation.StorageClassIsDefault]: 'true' | 'false';
+  [MetadataAnnotation.StorageClassIsDefault]: 'true' | 'false';
   // the description provided by the cluster admin or Container Storage Interface (CSI) provider
-  [Annotation.K8sDescription]: string;
-  [Annotation.OdhStorageClassConfig]: string;
+  [MetadataAnnotation.K8sDescription]: string;
+  [MetadataAnnotation.OdhStorageClassConfig]: string;
 }>;
 
 export type K8sDSGResource = K8sResourceCommon & {
