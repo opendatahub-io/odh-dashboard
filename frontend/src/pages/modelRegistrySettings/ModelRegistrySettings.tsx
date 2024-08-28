@@ -12,10 +12,10 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
-import ModelRegistriesTable from './ModelRegistriesTable';
-import CreateModal from './CreateModal';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
+import ModelRegistriesTable from './ModelRegistriesTable';
+import CreateModal from './CreateModal';
 
 const ModelRegistrySettings: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
@@ -23,7 +23,12 @@ const ModelRegistrySettings: React.FC = () => {
   return (
     <>
       <ApplicationsPage
-        title={<TitleWithIcon title="Model Registry Settings" objectType={ProjectObjectType.registeredModels} />}
+        title={
+          <TitleWithIcon
+            title="Model Registry Settings"
+            objectType={ProjectObjectType.registeredModels}
+          />
+        }
         description="Manage model registry settings for all users in your organization."
         loaded={loaded}
         loadError={loadError}

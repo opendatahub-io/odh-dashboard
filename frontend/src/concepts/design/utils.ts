@@ -125,11 +125,11 @@ export const typedEmptyImage = (objectType: ProjectObjectType, option?: string):
     case ProjectObjectType.registeredModels:
       switch (option) {
         case 'MissingModel':
-          return modelRegistryMissingModelImg
+          return modelRegistryMissingModelImg;
         case 'MissingVersion':
-          return modelRegistryMissingVersionImg
+          return modelRegistryMissingVersionImg;
         case 'MissingDeployment':
-          return modelServerEmptyStateImg
+          return modelServerEmptyStateImg;
         default:
           return modelRegistryEmptyStateImg;
       }

@@ -13,9 +13,9 @@ import {
   registeredModelArchiveUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
+import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 
 type RegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
@@ -39,7 +39,10 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
         testid="empty-registered-models"
         title="No models in selected registry"
         headerIcon={() => (
-          <img src={typedEmptyImage(ProjectObjectType.registeredModels, "MissingModel")} />
+          <img
+            src={typedEmptyImage(ProjectObjectType.registeredModels, 'MissingModel')}
+            alt="missing model"
+          />
         )}
         description={`${preferredModelRegistry?.metadata.name} has no active registered models. Register a model in this registry, or select a different registry.`}
         primaryActionText="Register model"

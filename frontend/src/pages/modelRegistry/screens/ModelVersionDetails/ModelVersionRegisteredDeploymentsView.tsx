@@ -6,8 +6,8 @@ import { Alert, Stack } from '@patternfly/react-core';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { getVersionDetailsInferenceServiceColumns } from '~/pages/modelServing/screens/global/data';
-import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import { typedEmptyImage, ProjectObjectType } from '~/concepts/design/utils';
+import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 
 type ModelVersionRegisteredDeploymentsViewProps = Pick<
   React.ComponentProps<typeof ModelVersionDetailsTabs>,
@@ -24,7 +24,10 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
       <EmptyModelRegistryState
         title="No deployments from model registry"
         headerIcon={() => (
-          <img src={typedEmptyImage(ProjectObjectType.registeredModels, "MissingDeployment")} />
+          <img
+            src={typedEmptyImage(ProjectObjectType.registeredModels, 'MissingDeployment')}
+            alt="missing deployment"
+          />
         )}
         description="No deployments initiated from model registry for this model version."
         testid="model-version-deployments-empty-state"

@@ -22,7 +22,6 @@ import truncateStyles from '@patternfly/react-styles/css/components/Truncate/tru
 import { InfoCircleIcon, BlueprintIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -177,7 +176,9 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   return (
     <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <Icon><BlueprintIcon /></Icon>
+      <Icon>
+        <BlueprintIcon />
+      </Icon>
       <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
           <Bullseye>Model registry</Bullseye>

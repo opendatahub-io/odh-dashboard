@@ -21,7 +21,7 @@ const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant = 'link' })
           ? ''
           : ' Before you can work with pipelines, you must first configure a pipeline server in your project.'
       }`}
-      iconImage={typedEmptyImage(ProjectObjectType.pipeline, "MissingModel")}
+      iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
       imageAlt=""
       createButton={
         installed ? (
