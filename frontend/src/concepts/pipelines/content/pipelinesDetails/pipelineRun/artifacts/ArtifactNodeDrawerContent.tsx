@@ -54,6 +54,7 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
             aria-label="Artifact node detail tabs"
             activeKey={activeTab}
             onSelect={(_, tabName: string | number) => setActiveTab(tabName)}
+            style={{ flexShrink: 0 }}
           >
             <Tab
               eventKey={ArtifactNodeDrawerTab.Details}
