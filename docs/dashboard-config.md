@@ -35,6 +35,7 @@ The following are a list of features that are supported, along with there defaul
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
 | disableModelRegistry         | true    | Disables Model Registry from the dashboard.                                                          |
 | disableConnectionTypes       | true    | Disables creating custom data connection types from the dashboard.                                   |
+| disableStorageClasses        | true    | Disables storage classes settings nav item from the dashboard.                                       |
 
 ## Defaults
 
@@ -65,6 +66,7 @@ spec:
     disablePipelineExperiments: true
     disableDistributedWorkloads: false
     disableConnectionTypes: false
+    disableStorageClasses: true
 ```
 
 ## Additional fields

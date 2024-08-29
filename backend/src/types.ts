@@ -40,6 +40,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
       disableConnectionTypes: boolean;
+      disableStorageClasses: boolean;
     };
     groupsConfig?: {
       adminGroups: string;

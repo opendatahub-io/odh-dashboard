@@ -28,6 +28,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
   disableConnectionTypes: false,
+  disableStorageClasses: false,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -46,6 +47,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.CONNECTION_TYPES]: {
     featureFlags: ['disableConnectionTypes'],
+  },
+  [SupportedArea.STORAGE_CLASSES]: {
+    featureFlags: ['disableStorageClasses'],
   },
   [SupportedArea.DS_PIPELINES]: {
     featureFlags: ['disablePipelines'],

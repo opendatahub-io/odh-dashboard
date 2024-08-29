@@ -16,6 +16,7 @@ import clusterStorageEmptyStateImg from '~/images/empty-state-cluster-storage.sv
 import modelServerEmptyStateImg from '~/images/empty-state-model-serving.svg';
 import dataConnectionEmptyStateImg from '~/images/empty-state-data-connections.svg';
 import modelRegistryEmptyStateImg from '~/images/empty-state-model-registries.svg';
+import storageClassesEmptyStateImg from '~/images/empty-state-storage-classes.svg';
 
 import './vars.scss';
 
@@ -40,6 +41,7 @@ export enum ProjectObjectType {
   dataConnection = 'data-connection',
   user = 'user',
   group = 'group',
+  storageClasses = 'storageClasses',
 }
 
 export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
@@ -118,6 +120,8 @@ export const typedEmptyImage = (objectType: ProjectObjectType): string => {
       return modelServerEmptyStateImg;
     case ProjectObjectType.registeredModels:
       return modelRegistryEmptyStateImg;
+    case ProjectObjectType.storageClasses:
+      return storageClassesEmptyStateImg;
     case ProjectObjectType.dataConnection:
       return dataConnectionEmptyStateImg;
     default:
