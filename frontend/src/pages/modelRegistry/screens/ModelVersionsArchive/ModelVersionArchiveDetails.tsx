@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Button, Flex, FlexItem, Label, Text } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Text, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -69,7 +69,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
             Restore version
           </Button>
         }
-        description={mv?.description}
+        description={<Truncate content={mv?.description || ''} />}
         loadError={mvLoadError}
         loaded={mvLoaded}
         provideChildrenPadding
