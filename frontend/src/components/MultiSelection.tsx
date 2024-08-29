@@ -15,8 +15,10 @@ import {
   HelperTextItem,
   SelectGroup,
   Divider,
+  SelectPopperProps,
 } from '@patternfly/react-core';
-import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
+import { TimesIcon } from '@patternfly/react-icons';
+import { WithScrollContainer } from '~/utilities/WithScrollContainer';
 
 export type SelectionOptions = {
   id: number | string;
@@ -42,6 +44,7 @@ type MultiSelectionProps = {
   selectionRequired?: boolean;
   noSelectedOptionsMessage?: string;
   toggleTestId?: string;
+  popperProps?: SelectPopperProps;
 };
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
@@ -56,6 +59,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   toggleTestId,
   selectionRequired,
   noSelectedOptionsMessage = 'One or more options must be selected',
+  popperProps = {},
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -255,28 +259,50 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   );
 
   return (
-    <>
-      <Select
-        id={id}
-        isOpen={isOpen}
-        selected={selected}
-        onSelect={(ev, selection) => {
-          const selectedOption = allOptions.find((option) => option.id === selection);
-          onSelect(selectedOption);
-        }}
-        onOpenChange={() => setOpen(false)}
-        toggle={toggle}
-      >
-        {visibleOptions.length === 0 && inputValue ? (
-          <SelectList isAriaMultiselectable>
-            <SelectOption isDisabled>No results found</SelectOption>
-          </SelectList>
-        ) : null}
-        {selectGroups.map((g, index) => (
-          <>
-            <SelectGroup label={g.name} key={g.id}>
+    <WithScrollContainer>
+      {(scrollContainer) => (
+        <>
+          <Select
+            id={id}
+            isOpen={isOpen}
+            selected={selected}
+            onSelect={(ev, selection) => {
+              const selectedOption = allOptions.find((option) => option.id === selection);
+              onSelect(selectedOption);
+            }}
+            onOpenChange={() => setOpen(false)}
+            toggle={toggle}
+            popperProps={{ appendTo: scrollContainer, ...popperProps }}
+          >
+            {visibleOptions.length === 0 && inputValue ? (
               <SelectList isAriaMultiselectable>
-                {g.values.map((option) => (
+                <SelectOption isDisabled>No results found</SelectOption>
+              </SelectList>
+            ) : null}
+            {selectGroups.map((g, index) => (
+              <>
+                <SelectGroup label={g.name} key={g.id}>
+                  <SelectList isAriaMultiselectable>
+                    {g.values.map((option) => (
+                      <SelectOption
+                        key={option.name}
+                        isFocused={focusedItemIndex === option.index}
+                        id={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
+                        value={option.id}
+                        ref={null}
+                        isSelected={option.selected}
+                      >
+                        {option.name}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </SelectGroup>
+                {index < selectGroups.length - 1 || selectOptions.length ? <Divider /> : null}
+              </>
+            ))}
+            {selectOptions.length ? (
+              <SelectList isAriaMultiselectable>
+                {selectOptions.map((option) => (
                   <SelectOption
                     key={option.name}
                     isFocused={focusedItemIndex === option.index}
@@ -289,34 +315,17 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                   </SelectOption>
                 ))}
               </SelectList>
-            </SelectGroup>
-            {index < selectGroups.length - 1 || selectOptions.length ? <Divider /> : null}
-          </>
-        ))}
-        {selectOptions.length ? (
-          <SelectList isAriaMultiselectable>
-            {selectOptions.map((option) => (
-              <SelectOption
-                key={option.name}
-                isFocused={focusedItemIndex === option.index}
-                id={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
-                value={option.id}
-                ref={null}
-                isSelected={option.selected}
-              >
-                {option.name}
-              </SelectOption>
-            ))}
-          </SelectList>
-        ) : null}
-      </Select>
-      {noSelectedItems && selectionRequired && (
-        <HelperText isLiveRegion>
-          <HelperTextItem variant="error" hasIcon data-testid="group-selection-error-text">
-            {noSelectedOptionsMessage}
-          </HelperTextItem>
-        </HelperText>
+            ) : null}
+          </Select>
+          {noSelectedItems && selectionRequired && (
+            <HelperText isLiveRegion>
+              <HelperTextItem variant="error" hasIcon data-testid="group-selection-error-text">
+                {noSelectedOptionsMessage}
+              </HelperTextItem>
+            </HelperText>
+          )}
+        </>
       )}
-    </>
+    </WithScrollContainer>
   );
 };

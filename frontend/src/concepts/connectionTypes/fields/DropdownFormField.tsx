@@ -3,6 +3,7 @@ import { Badge, MenuToggle, Select, SelectList, SelectOption } from '@patternfly
 import { DropdownField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
+import { WithScrollContainer } from '~/utilities/WithScrollContainer';
 
 const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   id,
@@ -16,73 +17,81 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const isMulti = field.properties.variant === 'multi';
   const selected = isPreview ? field.properties.defaultValue : value;
+
   return (
     <DefaultValueTextRenderer id={id} field={field} mode={mode}>
-      <Select
-        isOpen={isOpen}
-        shouldFocusToggleOnSelect
-        selected={selected}
-        onSelect={
-          isPreview || !onChange
-            ? undefined
-            : (_e, v) => {
-                if (isMulti) {
-                  if (selected?.includes(String(v))) {
-                    onChange(selected.filter((s) => s !== v));
-                  } else {
-                    onChange([...(selected || []), String(v)]);
+      <WithScrollContainer>
+        {(scrollContainer) => (
+          <Select
+            isOpen={isOpen}
+            shouldFocusToggleOnSelect
+            selected={selected}
+            onSelect={
+              isPreview || !onChange
+                ? undefined
+                : (_e, v) => {
+                    if (isMulti) {
+                      if (selected?.includes(String(v))) {
+                        onChange(selected.filter((s) => s !== v));
+                      } else {
+                        onChange([...(selected || []), String(v)]);
+                      }
+                    } else {
+                      onChange([String(v)]);
+                      setIsOpen(false);
+                    }
                   }
-                } else {
-                  onChange([String(v)]);
-                  setIsOpen(false);
-                }
-              }
-        }
-        onOpenChange={(open) => setIsOpen(open)}
-        toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            id={id}
-            data-testid={dataTestId}
-            isFullWidth
-            onClick={() => {
-              setIsOpen((open) => !open);
+            }
+            onOpenChange={(open) => setIsOpen(open)}
+            popperProps={{
+              appendTo: scrollContainer,
             }}
-            isExpanded={isOpen}
-          >
-            {isMulti ? (
-              <>
-                Select {field.name}{' '}
-                <Badge>
-                  {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
-                  selected
-                </Badge>
-              </>
-            ) : (
-              (isPreview
-                ? field.properties.items?.find(
-                    (i) => i.value === field.properties.defaultValue?.[0],
-                  )?.label
-                : field.properties.items?.find((i) => value?.includes(i.value))?.label) ||
-              `Select ${field.name}`
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                id={id}
+                data-testid={dataTestId}
+                isFullWidth
+                onClick={() => {
+                  setIsOpen((open) => !open);
+                }}
+                isExpanded={isOpen}
+              >
+                {isMulti ? (
+                  <>
+                    Select {field.name}{' '}
+                    <Badge>
+                      {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
+                      selected
+                    </Badge>
+                  </>
+                ) : (
+                  (isPreview
+                    ? field.properties.items?.find(
+                        (i) => i.value === field.properties.defaultValue?.[0],
+                      )?.label
+                    : field.properties.items?.find((i) => value?.includes(i.value))?.label) ||
+                  `Select ${field.name}`
+                )}
+              </MenuToggle>
             )}
-          </MenuToggle>
+          >
+            <SelectList>
+              {field.properties.items?.map((i) => (
+                <SelectOption
+                  value={i.value}
+                  key={i.value}
+                  hasCheckbox={isMulti}
+                  selected={selected?.includes(i.value)}
+                  description={`Value: ${i.value}`}
+                >
+                  {i.label}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
         )}
-      >
-        <SelectList>
-          {field.properties.items?.map((i) => (
-            <SelectOption
-              value={i.value}
-              key={i.value}
-              hasCheckbox={isMulti}
-              selected={selected?.includes(i.value)}
-              description={`Value: ${i.value}`}
-            >
-              {i.label}
-            </SelectOption>
-          ))}
-        </SelectList>
-      </Select>
+      </WithScrollContainer>
     </DefaultValueTextRenderer>
   );
 };

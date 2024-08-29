@@ -9,6 +9,7 @@ import {
   Divider,
   MenuToggleProps,
 } from '@patternfly/react-core';
+import { WithScrollContainer } from '~/utilities/WithScrollContainer';
 
 import './SimpleSelect.scss';
 
@@ -56,6 +57,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   icon,
   dataTestId,
   toggleProps,
+  popperProps = {},
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -70,41 +72,66 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const selectedLabel = selectedOption?.label ?? placeholder;
 
   return (
-    <Select
-      {...props}
-      isOpen={open}
-      selected={value || toggleLabel}
-      onSelect={(e, selectValue) => {
-        onChange(
-          String(selectValue),
-          !!selectValue && (findOptionForKey(String(selectValue))?.isPlaceholder ?? false),
-        );
-        setOpen(false);
-      }}
-      onOpenChange={setOpen}
-      toggle={(toggleRef) => (
-        <MenuToggle
-          ref={toggleRef}
-          data-testid={dataTestId}
-          aria-label="Options menu"
-          onClick={() => setOpen(!open)}
-          icon={icon}
-          isExpanded={open}
-          isDisabled={isDisabled}
-          isFullWidth={isFullWidth}
-          {...toggleProps}
+    <WithScrollContainer>
+      {(scrollContainer) => (
+        <Select
+          {...props}
+          popperProps={{ appendTo: scrollContainer, ...popperProps }}
+          isOpen={open}
+          selected={value || toggleLabel}
+          onSelect={(e, selectValue) => {
+            onChange(
+              String(selectValue),
+              !!selectValue && (findOptionForKey(String(selectValue))?.isPlaceholder ?? false),
+            );
+            setOpen(false);
+          }}
+          onOpenChange={setOpen}
+          toggle={(toggleRef) => (
+            <MenuToggle
+              ref={toggleRef}
+              data-testid={dataTestId}
+              aria-label="Options menu"
+              onClick={() => setOpen(!open)}
+              icon={icon}
+              isExpanded={open}
+              isDisabled={isDisabled}
+              isFullWidth={isFullWidth}
+              {...toggleProps}
+            >
+              {toggleLabel || (
+                <Truncate content={selectedLabel} className="truncate-no-min-width" />
+              )}
+            </MenuToggle>
+          )}
+          shouldFocusToggleOnSelect
         >
-          {toggleLabel || <Truncate content={selectedLabel} className="truncate-no-min-width" />}
-        </MenuToggle>
-      )}
-      shouldFocusToggleOnSelect
-    >
-      {groupedOptions?.map((group, index) => (
-        <>
-          {index > 0 ? <Divider /> : null}
-          <SelectGroup key={group.key} label={group.label}>
+          {groupedOptions?.map((group, index) => (
+            <>
+              {index > 0 ? <Divider /> : null}
+              <SelectGroup key={group.key} label={group.label}>
+                <SelectList>
+                  {group.options.map(
+                    ({ key, label, dropdownLabel, description, isDisabled: optionDisabled }) => (
+                      <SelectOption
+                        key={key}
+                        value={key}
+                        description={description}
+                        isDisabled={optionDisabled}
+                        data-testid={key}
+                      >
+                        {dropdownLabel || label}
+                      </SelectOption>
+                    ),
+                  )}
+                </SelectList>
+              </SelectGroup>
+            </>
+          )) ?? null}
+          {options?.length ? (
             <SelectList>
-              {group.options.map(
+              {groupedOptions?.length ? <Divider /> : null}
+              {options.map(
                 ({ key, label, dropdownLabel, description, isDisabled: optionDisabled }) => (
                   <SelectOption
                     key={key}
@@ -118,26 +145,10 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 ),
               )}
             </SelectList>
-          </SelectGroup>
-        </>
-      )) ?? null}
-      {options?.length ? (
-        <SelectList>
-          {groupedOptions?.length ? <Divider /> : null}
-          {options.map(({ key, label, dropdownLabel, description, isDisabled: optionDisabled }) => (
-            <SelectOption
-              key={key}
-              value={key}
-              description={description}
-              isDisabled={optionDisabled}
-              data-testid={key}
-            >
-              {dropdownLabel || label}
-            </SelectOption>
-          ))}
-        </SelectList>
-      ) : null}
-    </Select>
+          ) : null}
+        </Select>
+      )}
+    </WithScrollContainer>
   );
 };
 

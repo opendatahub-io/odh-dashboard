@@ -12,8 +12,10 @@ import {
   Button,
   MenuToggleProps,
   SelectProps,
+  SelectPopperProps,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
+import { WithScrollContainer } from '~/utilities/WithScrollContainer';
 
 export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content' | 'isSelected'> {
   /** Content of the select option. */
@@ -66,6 +68,7 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   toggleWidth?: string;
   /** Additional props passed to the toggle. */
   toggleProps?: MenuToggleProps;
+  popperProps?: SelectPopperProps;
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
@@ -92,6 +95,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   isDisabled,
   toggleWidth,
   toggleProps,
+  popperProps = {},
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -395,31 +399,36 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   );
 
   return (
-    <Select
-      isOpen={isOpen}
-      selected={selected}
-      onSelect={handleSelect}
-      onOpenChange={(open) => !open && closeMenu()}
-      toggle={toggle}
-      ref={innerRef}
-      {...props}
-    >
-      <SelectList>
-        {filteredSelections.map((option, index) => {
-          const { content, value, ...optionProps } = option;
-          return (
-            <SelectOption
-              key={value}
-              value={value}
-              isFocused={focusedItemIndex === index}
-              {...optionProps}
-            >
-              {content}
-            </SelectOption>
-          );
-        })}
-      </SelectList>
-    </Select>
+    <WithScrollContainer>
+      {(scrollContainer) => (
+        <Select
+          isOpen={isOpen}
+          selected={selected}
+          onSelect={handleSelect}
+          onOpenChange={(open) => !open && closeMenu()}
+          toggle={toggle}
+          ref={innerRef}
+          popperProps={{ appendTo: scrollContainer, ...popperProps }}
+          {...props}
+        >
+          <SelectList>
+            {filteredSelections.map((option, index) => {
+              const { content, value, ...optionProps } = option;
+              return (
+                <SelectOption
+                  key={value}
+                  value={value}
+                  isFocused={focusedItemIndex === index}
+                  {...optionProps}
+                >
+                  {content}
+                </SelectOption>
+              );
+            })}
+          </SelectList>
+        </Select>
+      )}
+    </WithScrollContainer>
   );
 };
 
