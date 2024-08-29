@@ -183,6 +183,50 @@ describe('ArtifactNodeDrawerContent', () => {
     await user.click(screen.getByRole('tab', { name: 'Visualization' }));
     expect(screen.getByRole('heading', { name: 'Confusion matrix metrics' })).toBeVisible();
   });
+
+  it('should not render "Dataset" visualization drawer tab', async () => {
+    render(
+      <BrowserRouter>
+        <Drawer isExpanded>
+          <ArtifactNodeDrawerContent
+            task={{
+              ...task,
+              metadata: createArtifact('system.Dataset', {
+                key: 'dataset',
+                value: new Value(),
+              }),
+            }}
+            upstreamTaskName="some-upstream-task"
+            onClose={jest.fn()}
+          />
+        </Drawer>
+      </BrowserRouter>,
+    );
+
+    expect(screen.queryByRole('tab', { name: 'Visualization' })).toBeNull();
+  });
+
+  it('should not render "Model" visualization drawer tab', async () => {
+    render(
+      <BrowserRouter>
+        <Drawer isExpanded>
+          <ArtifactNodeDrawerContent
+            task={{
+              ...task,
+              metadata: createArtifact('system.Model', {
+                key: 'model',
+                value: new Value(),
+              }),
+            }}
+            upstreamTaskName="some-upstream-task"
+            onClose={jest.fn()}
+          />
+        </Drawer>
+      </BrowserRouter>,
+    );
+
+    expect(screen.queryByRole('tab', { name: 'Visualization' })).toBeNull();
+  });
 });
 
 function createArtifact(type: string, customProperty?: { key: string; value: Value }) {
