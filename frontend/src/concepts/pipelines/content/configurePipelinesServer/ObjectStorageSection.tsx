@@ -78,7 +78,7 @@ export const ObjectStorageSection = ({
             </InputGroup>
           </FormGroup>
         ) : (
-          <>
+          <React.Fragment key={field.key}>
             <FieldListField
               key={field.key}
               value={
@@ -112,7 +112,7 @@ export const ObjectStorageSection = ({
                 />
               </Popover>
             )}
-          </>
+          </React.Fragment>
         ),
       )}
     </FormSection>
