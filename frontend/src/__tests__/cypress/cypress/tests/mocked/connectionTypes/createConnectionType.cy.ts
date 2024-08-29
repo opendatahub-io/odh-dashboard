@@ -29,14 +29,39 @@ describe('create', () => {
     createConnectionTypePage.findConnectionTypePreviewToggle().should('exist');
   });
 
-  it('Allows create button with valid name', () => {
+  it('Allows create button with valid name and category', () => {
+    const categorySection = createConnectionTypePage.getCategorySection();
     createConnectionTypePage.visitCreatePage();
 
     createConnectionTypePage.findConnectionTypeName().should('have.value', '');
     createConnectionTypePage.findSubmitButton().should('be.disabled');
 
     createConnectionTypePage.findConnectionTypeName().type('hello');
+    categorySection.findCategoryTable();
+    categorySection.findMultiGroupSelectButton('Object-storage');
     createConnectionTypePage.findSubmitButton().should('be.enabled');
+  });
+
+  it('Selects category or creates new category', () => {
+    createConnectionTypePage.visitCreatePage();
+
+    const categorySection = createConnectionTypePage.getCategorySection();
+
+    categorySection.findCategoryTable();
+    categorySection.findMultiGroupSelectButton('Object-storage');
+
+    categorySection.findChipItem('Object storage').should('exist');
+    categorySection.clearMultiChipItem();
+
+    categorySection.findMultiGroupSelectButton('Object-storage');
+
+    categorySection.findMultiGroupInput().type('Database');
+    categorySection.findMultiGroupSelectButton('Database');
+
+    categorySection.findMultiGroupInput().type('New category');
+
+    categorySection.findMultiGroupSelectButton('Option');
+    categorySection.findChipItem('New category').should('exist');
   });
 });
 

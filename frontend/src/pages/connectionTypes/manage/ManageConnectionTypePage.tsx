@@ -26,6 +26,8 @@ import {
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NameDescType } from '~/pages/projects/types';
+import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
+import { categoryOptions } from '~/pages/connectionTypes/const';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
 import ManageConnectionTypeFieldsTable from './ManageConnectionTypeFieldsTable';
 import ManageConnectionTypeBreadcrumbs from './ManageConnectionTypeBreadcrumbs';
@@ -62,7 +64,16 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
   const [connectionFields, setConnectionFields] =
     React.useState<ConnectionTypeField[]>(prefillFields);
-  const [category] = React.useState<string[]>(prefillCategory);
+  const [category, setCategory] = React.useState<string[]>(prefillCategory);
+
+  const categoryItems = React.useMemo<SelectionOptions[]>(
+    () =>
+      category
+        .filter((c) => !categoryOptions.includes(c))
+        .concat(categoryOptions)
+        .map((c) => ({ id: c, name: c, selected: category.includes(c) })),
+    [category],
+  );
 
   const connectionTypeObj = React.useMemo(
     () =>
@@ -85,8 +96,8 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
 
   const isValid = React.useMemo(() => {
     const trimmedName = connectionNameDesc.name.trim();
-    return Boolean(trimmedName) && !isEnvVarConflict;
-  }, [connectionNameDesc.name, isEnvVarConflict]);
+    return Boolean(trimmedName) && !isEnvVarConflict && category.length > 0;
+  }, [connectionNameDesc.name, isEnvVarConflict, category]);
 
   const onCancel = () => {
     navigate('/connectionTypes');
@@ -102,7 +113,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         title={isEdit ? 'Edit connection type' : 'Create connection type'}
         loaded
         empty={false}
-        errorMessage="Unable load to connection types"
+        errorMessage="Unable to load connection types"
         breadcrumb={<ManageConnectionTypeBreadcrumbs />}
         headerAction={
           isDrawerExpanded ? undefined : (
@@ -139,7 +150,21 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 setData={setConnectionNameDesc}
                 autoFocusName
               />
-              <FormGroup label="Enable">
+              <FormGroup label="Category" fieldId="connection-type-category" isRequired>
+                <MultiSelection
+                  inputId="connection-type-category"
+                  data-testid="connection-type-category"
+                  toggleTestId="connection-type-category-toggle"
+                  ariaLabel="Category"
+                  placeholder="Select a category"
+                  isCreatable
+                  value={categoryItems}
+                  setValue={(value) => {
+                    setCategory(value.filter((v) => v.selected).map((v) => String(v.id)));
+                  }}
+                />
+              </FormGroup>
+              <FormGroup label="Enable" fieldId="connection-type-enable">
                 <Checkbox
                   label="Enable users in your organization to use this connection type when adding connections."
                   id="connection-type-enable"
