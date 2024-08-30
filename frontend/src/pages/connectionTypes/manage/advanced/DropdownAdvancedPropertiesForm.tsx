@@ -73,7 +73,14 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
               name="dropdown-variation-radio"
               label="Single-select"
               isChecked={properties.variant === 'single'}
-              onChange={() => onChange({ ...properties, variant: 'single' })}
+              onChange={() =>
+                onChange({
+                  ...properties,
+                  variant: 'single',
+                  // if there were multiple defaults from a multi select, clear all but one
+                  defaultValue: properties.defaultValue?.length ? [properties.defaultValue[0]] : [],
+                })
+              }
             />
           </FlexItem>
           <FlexItem>
