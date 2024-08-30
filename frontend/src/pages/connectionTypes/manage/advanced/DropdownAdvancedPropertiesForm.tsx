@@ -187,6 +187,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                     data-testid={`dropdown-item-row-remove-${i}`}
                     variant="plain"
                     aria-label="Remove item"
+                    isDisabled={rowsToRender.length === 1 && !r.data.label && !r.data.value}
                     onClick={() => {
                       if (rowsToRender.length === 1) {
                         setDropdownItems([{ label: '', value: '' }]);

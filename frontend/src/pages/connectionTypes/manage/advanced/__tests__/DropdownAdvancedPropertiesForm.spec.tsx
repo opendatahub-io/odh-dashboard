@@ -37,6 +37,7 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
     expect(screen.getAllByTestId('dropdown-item-row').length).toEqual(1);
     expect(screen.getByTestId('dropdown-item-row-label-0')).toHaveValue('');
     expect(screen.getByTestId('dropdown-item-row-value-0')).toHaveValue('');
+    expect(screen.getByTestId('dropdown-item-row-remove-0')).toBeDisabled();
     expect(screen.getByTestId('add-dropdown-table-item')).toBeVisible();
 
     // will preselect 'single' variant on load
