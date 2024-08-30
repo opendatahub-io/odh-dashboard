@@ -14,3 +14,5 @@ export const initialFilterData: Record<ConnectionTypesOptions, string | undefine
   [ConnectionTypesOptions.keyword]: '',
   [ConnectionTypesOptions.createdBy]: '',
 };
+
+export const categoryOptions = ['Object storage', 'Database', 'Model registry', 'URI'];
