@@ -20,12 +20,21 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
   });
 
   React.useEffect(() => {
-    // TODO: warn user of duplicate values in table
-    const duplicates = properties.items?.find((item1, index1) =>
+    // filter out empty rows for validation (they will be removed on save)
+    const itemsWithoutEmptyRows =
+      properties.items?.filter((item) => item.label || item.value) ?? [];
+
+    // TODO: warn user of duplicate values in table (and labels?)
+    const duplicateValues = itemsWithoutEmptyRows.find((item1, index1) =>
       properties.items?.find((item2, index2) => item1.value === item2.value && index1 !== index2),
     );
+    const noMissingValues = itemsWithoutEmptyRows.every((item) => item.value);
+
     onValidate(
-      !!properties.variant && !!properties.items?.every((item) => item.value) && !duplicates,
+      !!properties.variant &&
+        itemsWithoutEmptyRows.length > 0 &&
+        noMissingValues &&
+        !duplicateValues,
     );
   }, [properties.variant, properties.items, onValidate]);
 
@@ -178,9 +187,12 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                     data-testid={`dropdown-item-row-remove-${i}`}
                     variant="plain"
                     aria-label="Remove item"
-                    isDisabled={rowsToRender.length === 1}
                     onClick={() => {
-                      setDropdownItems(dropdownItems.filter((_, index) => i !== index));
+                      if (rowsToRender.length === 1) {
+                        setDropdownItems([{ label: '', value: '' }]);
+                      } else {
+                        setDropdownItems(dropdownItems.filter((_, index) => i !== index));
+                      }
                     }}
                   >
                     <MinusCircleIcon />

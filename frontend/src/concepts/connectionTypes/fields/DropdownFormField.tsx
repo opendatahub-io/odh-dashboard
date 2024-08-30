@@ -85,17 +85,17 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
       >
         <SelectList>
           {field.properties.items?.map(
-            (i) =>
-              (i.value || i.label) && (
+            (item, index) =>
+              (item.value || item.label) && (
                 <SelectOption
-                  value={i.value}
-                  key={i.value}
+                  value={item.value}
+                  key={index}
                   hasCheckbox={isMulti}
-                  isSelected={selected?.includes(i.value)}
-                  description={`Value: ${i.value}`}
-                  isDisabled={!i.value}
+                  isSelected={selected?.includes(item.value)}
+                  description={`Value: ${item.value}`}
+                  isDisabled={!item.value}
                 >
-                  {i.label || i.value}
+                  {item.label || item.value}
                 </SelectOption>
               ),
           )}
