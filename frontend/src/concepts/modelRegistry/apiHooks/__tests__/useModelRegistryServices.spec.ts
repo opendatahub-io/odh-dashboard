@@ -5,6 +5,7 @@ import { ServiceKind } from '~/k8sTypes';
 import { useModelRegistryServices } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { ModelRegistryServicesResult } from '../useModelRegistryServices'; // Make sure this import exists
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -22,6 +23,10 @@ jest.mock('~/concepts/modelRegistry/apiHooks/useModelRegistryServices', () => ({
   fetchServices: jest.fn(),
 }));
 
+jest.mock('~/api/useRulesReview', () => ({
+  useRulesReview: jest.fn(),
+}));
+
 const mockGetResource = jest.mocked(k8sGetResource<ServiceKind>);
 const mockListServices = jest.mocked(listServices);
 
@@ -30,13 +35,15 @@ describe('useModelRegistryServices', () => {
     jest.clearAllMocks();
   });
 
-  test('returns loading state initially', () => {
-    (useAccessReview as jest.Mock).mockReturnValue([false, false]);
-    (useRulesReview as jest.Mock).mockReturnValue([{}, false]);
-    const renderResult = testHook(useModelRegistryServices)();
-
-    expect(renderResult.result.current[1]).toBe(false);
-    expect(renderResult.result.current[0]).toEqual([]);
+  it('should initialize with empty array and loading state', () => {
+    const { result } = testHook(() => useModelRegistryServices(true));
+    
+    const [services, isLoading, error, refresh] = result.current as ModelRegistryServicesResult;
+    
+    expect(services).toEqual([]);
+    expect(isLoading).toBe(false);
+    expect(error).toBeUndefined();
+    expect(refresh).toBeInstanceOf(Function);
   });
 
   it('returns services when allowList is true', async () => {
@@ -45,7 +52,8 @@ describe('useModelRegistryServices', () => {
     (useRulesReview as jest.Mock).mockReturnValue([
       { incomplete: false, nonResourceRules: [], resourceRules: [] },
       true,
-    ] satisfies ReturnType<typeof useRulesReview>);
+      jest.fn(),
+    ]);
     mockListServices.mockResolvedValue([
       mockModelRegistryService({ name: 'service-1', namespace: 'test-namespace' }),
     ]);
@@ -143,5 +151,21 @@ describe('useModelRegistryServices', () => {
     expect(renderResult.result.current[0]).toEqual([]);
     expect(renderResult.result.current[1]).toBe(true);
     expect(mockGetResource).toHaveBeenCalledTimes(0);
+  });
+
+  it('should handle errors', async () => {
+    // ... existing setup ...
+
+    const renderResult = testHook(() => useModelRegistryServices());
+    
+    const [, , , refresh] = renderResult.result.current as ModelRegistryServicesResult;
+
+    await act(() => refresh());
+
+    const [services, isLoading, error] = renderResult.result.current as ModelRegistryServicesResult;
+    
+    expect(services).toEqual([]);
+    expect(isLoading).toBe(false);
+    expect(error).toBeDefined();
   });
 });

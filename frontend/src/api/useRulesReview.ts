@@ -19,11 +19,12 @@ const checkAccess = (ns: string): Promise<SelfSubjectRulesReviewKind> => {
 
 export const useRulesReview = (
   namespace: string,
-): [SelfSubjectRulesReviewKind['status'], boolean] => {
+): [SelfSubjectRulesReviewKind['status'], boolean, () => void] => {
   const [loaded, setLoaded] = React.useState(false);
   const [status, setStatus] = React.useState<SelfSubjectRulesReviewKind['status']>(undefined);
 
-  React.useEffect(() => {
+  const refreshRulesReview = React.useCallback(() => {
+    setLoaded(false);
     checkAccess(namespace)
       .then((result) => {
         if (!result.status?.incomplete && !result.status?.evaluationError) {
@@ -38,5 +39,9 @@ export const useRulesReview = (
       });
   }, [namespace]);
 
-  return [status, loaded];
+  React.useEffect(() => {
+    refreshRulesReview();
+  }, [refreshRulesReview]);
+
+  return [status, loaded, refreshRulesReview];
 };

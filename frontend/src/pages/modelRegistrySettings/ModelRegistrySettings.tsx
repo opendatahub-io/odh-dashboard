@@ -14,12 +14,20 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelRegistriesTable from './ModelRegistriesTable';
 import CreateModal from './CreateModal';
 
 const ModelRegistrySettings: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
-  const [modelRegistries, loaded, loadError, refresh] = useModelRegistriesBackend();
+  const [modelRegistries, loaded, loadError, refreshModelRegistries] = useModelRegistriesBackend();
+  const { refreshRulesReview } = React.useContext(ModelRegistrySelectorContext);
+
+  const refreshAll = React.useCallback(
+    () => Promise.all([refreshModelRegistries(), refreshRulesReview()]),
+    [refreshModelRegistries, refreshRulesReview],
+  );
+
   return (
     <>
       <ApplicationsPage
@@ -57,14 +65,17 @@ const ModelRegistrySettings: React.FC = () => {
       >
         <ModelRegistriesTable
           modelRegistries={modelRegistries}
-          refresh={refresh}
-          onCreateModelRegistryClick={() => setCreateModalOpen(true)}
+          refresh={refreshAll}
+          onCreateModelRegistryClick={() => {
+            setCreateModalOpen(true);
+            return Promise.resolve();
+          }}
         />
       </ApplicationsPage>
       <CreateModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        refresh={refresh}
+        refresh={refreshAll}
       />
     </>
   );
