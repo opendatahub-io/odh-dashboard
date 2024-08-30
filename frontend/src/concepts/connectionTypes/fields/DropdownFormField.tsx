@@ -17,6 +17,25 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const isMulti = field.properties.variant === 'multi';
   const selected = isPreview ? field.properties.defaultValue : value;
   const hasValidOption = field.properties.items?.find((f) => f.value || f.label);
+
+  const menuToggleText = () => {
+    let text = field.name ? `Select ${field.name} ` : 'No values defined yet ';
+    if (!isMulti && isPreview) {
+      const defaultOption = field.properties.items?.find(
+        (i) => i.value === field.properties.defaultValue?.[0],
+      );
+      if (defaultOption) {
+        text = defaultOption.label || defaultOption.value;
+      }
+    } else if (!isMulti && !isPreview) {
+      const currentSelection = field.properties.items?.find((i) => value?.includes(i.value));
+      if (currentSelection) {
+        text = currentSelection.label || currentSelection.value;
+      }
+    }
+    return text;
+  };
+
   return (
     <DefaultValueTextRenderer id={id} field={field} mode={mode}>
       <Select
@@ -52,26 +71,15 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
             isExpanded={isOpen}
             isDisabled={!hasValidOption}
           >
-            {isMulti ? (
-              <>
-                {field.name ? `Select ${field.name} ` : 'No values defined yet '}
+            <>
+              {menuToggleText()}
+              {isMulti && (
                 <Badge>
                   {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
                   selected
                 </Badge>
-              </>
-            ) : (
-              (isPreview
-                ? field.properties.items?.find(
-                    (i) => i.value === field.properties.defaultValue?.[0],
-                  )?.label ||
-                  field.properties.items?.find(
-                    (i) => i.value === field.properties.defaultValue?.[0],
-                  )?.value
-                : field.properties.items?.find((i) => value?.includes(i.value))?.label ||
-                  field.properties.items?.find((i) => value?.includes(i.value))?.value) ||
-              (field.name ? `Select ${field.name} ` : 'No values defined yet')
-            )}
+              )}
+            </>
           </MenuToggle>
         )}
       >
