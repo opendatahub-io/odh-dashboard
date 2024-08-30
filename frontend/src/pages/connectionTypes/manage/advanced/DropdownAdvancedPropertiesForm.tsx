@@ -111,7 +111,8 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
               <Th screenReaderText="Drag and drop" />
               <Th
                 info={{
-                  popover: 'This label is the display name for the dropdown item.',
+                  popover:
+                    'This label is the display name for the dropdown item. If no value is specified, the value is used as the label.',
                   popoverProps: {
                     headerContent: 'Dropdown item label',
                   },
@@ -121,8 +122,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
               </Th>
               <Th
                 info={{
-                  popover:
-                    'This value is associated with the dropdown item. If no value is specified, the label is used as the value.',
+                  popover: 'This value is associated with the dropdown item.',
                   popoverProps: {
                     headerContent: 'Dropdown item value',
                   },
