@@ -20,7 +20,7 @@ export const rmColumns: SortableData<RegisteredModel>[] = [
     sortable: (a: RegisteredModel, b: RegisteredModel): number => {
       const first = parseInt(a.lastUpdateTimeSinceEpoch);
       const second = parseInt(b.lastUpdateTimeSinceEpoch);
-      return new Date(first).getTime() - new Date(second).getTime();
+      return new Date(second).getTime() - new Date(first).getTime();
     },
   },
   {

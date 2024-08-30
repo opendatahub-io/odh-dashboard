@@ -19,7 +19,10 @@ import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
+import {
+  filterModelVersions,
+  sortModelVersionsByCreateTime,
+} from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
   modelVersionArchiveUrl,
@@ -74,7 +77,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
     <ModelVersionsTable
       refresh={refresh}
       clearFilters={() => setSearch('')}
-      modelVersions={filteredModelVersions}
+      modelVersions={sortModelVersionsByCreateTime(filteredModelVersions)}
       toolbarContent={
         <ToolbarContent>
           <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">

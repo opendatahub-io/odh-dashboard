@@ -86,7 +86,7 @@ export type ModelRegistryBase = {
   name: string;
   externalID?: string;
   description?: string;
-  createTimeSinceEpoch?: string;
+  createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
   customProperties: ModelRegistryCustomProperties;
 };
