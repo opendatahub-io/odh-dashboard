@@ -16,24 +16,44 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const isMulti = field.properties.variant === 'multi';
   const selected = isPreview ? field.properties.defaultValue : value;
+  const hasValidOption = field.properties.items?.find((f) => f.value || f.label);
+
+  const menuToggleText = () => {
+    let text = field.name ? `Select ${field.name} ` : 'No values defined yet ';
+    if (!isMulti && isPreview) {
+      const defaultOption = field.properties.items?.find(
+        (i) => i.value === field.properties.defaultValue?.[0],
+      );
+      if (defaultOption) {
+        text = defaultOption.label || defaultOption.value;
+      }
+    } else if (!isMulti && !isPreview) {
+      const currentSelection = field.properties.items?.find((i) => value?.includes(i.value));
+      if (currentSelection) {
+        text = currentSelection.label || currentSelection.value;
+      }
+    }
+    return text;
+  };
+
   return (
     <DefaultValueTextRenderer id={id} field={field} mode={mode}>
       <Select
         isOpen={isOpen}
         shouldFocusToggleOnSelect
-        selected={selected}
         onSelect={
           isPreview || !onChange
             ? undefined
             : (_e, v) => {
-                if (isMulti) {
-                  if (selected?.includes(String(v))) {
-                    onChange(selected.filter((s) => s !== v));
-                  } else {
-                    onChange([...(selected || []), String(v)]);
-                  }
+                if (selected?.includes(String(v))) {
+                  onChange(selected.filter((s) => s !== v));
+                } else if (isMulti) {
+                  onChange([...(selected || []), String(v)]);
                 } else {
                   onChange([String(v)]);
+                }
+
+                if (!isMulti) {
                   setIsOpen(false);
                 }
               }
@@ -49,38 +69,36 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
               setIsOpen((open) => !open);
             }}
             isExpanded={isOpen}
+            isDisabled={!hasValidOption}
           >
-            {isMulti ? (
-              <>
-                Select {field.name}{' '}
+            <>
+              {menuToggleText()}
+              {isMulti && (
                 <Badge>
                   {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
                   selected
                 </Badge>
-              </>
-            ) : (
-              (isPreview
-                ? field.properties.items?.find(
-                    (i) => i.value === field.properties.defaultValue?.[0],
-                  )?.label
-                : field.properties.items?.find((i) => value?.includes(i.value))?.label) ||
-              `Select ${field.name}`
-            )}
+              )}
+            </>
           </MenuToggle>
         )}
       >
         <SelectList>
-          {field.properties.items?.map((i) => (
-            <SelectOption
-              value={i.value}
-              key={i.value}
-              hasCheckbox={isMulti}
-              selected={selected?.includes(i.value)}
-              description={`Value: ${i.value}`}
-            >
-              {i.label}
-            </SelectOption>
-          ))}
+          {field.properties.items?.map(
+            (item, index) =>
+              (item.value || item.label) && (
+                <SelectOption
+                  value={item.value}
+                  key={index}
+                  hasCheckbox={isMulti}
+                  isSelected={selected?.includes(item.value)}
+                  description={`Value: ${item.value}`}
+                  isDisabled={!item.value}
+                >
+                  {item.label || item.value}
+                </SelectOption>
+              ),
+          )}
         </SelectList>
       </Select>
     </DefaultValueTextRenderer>
