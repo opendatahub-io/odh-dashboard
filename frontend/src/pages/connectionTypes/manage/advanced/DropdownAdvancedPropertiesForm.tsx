@@ -1,6 +1,16 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, FormGroup, Radio, TextInput } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Radio,
+  TextInput,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
@@ -23,8 +33,9 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
     // filter out empty rows for validation (they will be removed on save)
     const itemsWithoutEmptyRows =
       properties.items?.filter((item) => item.label || item.value) ?? [];
-
-    // TODO: warn user of duplicate values in table (and labels?)
+    const duplicateLabels = itemsWithoutEmptyRows.find((item1, index1) =>
+      properties.items?.find((item2, index2) => item1.label === item2.label && index1 !== index2),
+    );
     const duplicateValues = itemsWithoutEmptyRows.find((item1, index1) =>
       properties.items?.find((item2, index2) => item1.value === item2.value && index1 !== index2),
     );
@@ -34,6 +45,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
       !!properties.variant &&
         itemsWithoutEmptyRows.length > 0 &&
         noMissingValues &&
+        !duplicateLabels &&
         !duplicateValues,
     );
   }, [properties.variant, properties.items, onValidate]);
@@ -43,11 +55,25 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
     [properties],
   );
   const setDropdownItems = React.useCallback(
-    (newItems: { label: string; value: string }[]) => {
+    (items: { label: string; value: string; labelError?: string; valueError?: string }[]) => {
       // if a default value no longer exists as a possible option, remove it
       const newDefaults = properties.defaultValue?.filter((defaultOption) =>
-        newItems.find((newOption) => defaultOption === newOption.value),
+        items.find((newOption) => defaultOption === newOption.value),
       );
+      const newItems = items.map((item, index) => {
+        const duplicateLabel = items.find(
+          (dup, dupIndex) => item.label && item.label === dup.label && dupIndex < index,
+        );
+        const duplicateValue = items.find(
+          (dup, dupIndex) => item.value && item.value === dup.value && dupIndex < index,
+        );
+        return {
+          label: item.label,
+          value: item.value,
+          ...(duplicateLabel && { labelError: 'Duplicate label already exists' }),
+          ...(duplicateValue && { valueError: 'Duplicate value already exists' }),
+        };
+      });
       onChange({
         ...properties,
         defaultValue: newDefaults,
@@ -60,6 +86,8 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
   const { tableProps, rowsToRender } = useDraggableTableControlled<{
     label: string;
     value: string;
+    labelError?: string;
+    valueError?: string;
   }>(dropdownItems, setDropdownItems);
 
   return (
@@ -106,7 +134,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
       </FormGroup>
       <FormGroup>
         <Table data-testid="connection-type-fields-table" className={tableProps.className}>
-          <Thead>
+          <Thead noWrap>
             <Tr>
               <Th screenReaderText="Drag and drop" />
               <Th
@@ -117,6 +145,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                     headerContent: 'Dropdown item label',
                   },
                 }}
+                width={45}
               >
                 Dropdown item labels
               </Th>
@@ -127,6 +156,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                     headerContent: 'Dropdown item value',
                   },
                 }}
+                width={45}
               >
                 <div>
                   Dropdown item values
@@ -135,7 +165,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                   </span>
                 </div>
               </Th>
-              <Th screenReaderText="Actions" width={10} />
+              <Th screenReaderText="Actions" />
             </Tr>
           </Thead>
           <Tbody {...tableProps.tbodyProps}>
@@ -161,8 +191,18 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                         ...dropdownItems.slice(i + 1),
                       ]);
                     }}
+                    validated={r.data.labelError ? 'error' : undefined}
                     aria-label="dropdown item label"
                   />
+                  {r.data.labelError && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                          {r.data.labelError}
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )}
                 </Td>
                 <Td dataLabel="Dropdown item values">
                   <TextInput
@@ -179,8 +219,18 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                         ...dropdownItems.slice(i + 1),
                       ]);
                     }}
+                    validated={r.data.valueError ? 'error' : undefined}
                     aria-label="dropdown item value"
                   />
+                  {r.data.valueError && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                          {r.data.valueError}
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )}
                 </Td>
                 <Td>
                   <Button

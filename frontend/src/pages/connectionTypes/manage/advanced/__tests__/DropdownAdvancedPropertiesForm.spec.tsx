@@ -140,4 +140,65 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
       items: [{ label: 'b', value: 'b' }],
     });
   });
+
+  it('should show duplicate error message', async () => {
+    let renderResult = render(
+      <DropdownAdvancedPropertiesForm
+        properties={{
+          variant: 'single',
+          items: [
+            { label: 'a', value: 'a' },
+            { label: '', value: '' },
+          ],
+        }}
+        field={field}
+        onChange={onChange}
+        onValidate={onValidate}
+      />,
+    );
+
+    const itemLabel = screen.getByTestId('dropdown-item-row-label-1');
+    act(() => fireEvent.change(itemLabel, { target: { value: 'a' } }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      variant: 'single',
+      items: [
+        { label: 'a', value: 'a' },
+        { label: 'a', value: '', labelError: 'Duplicate label already exists' },
+      ],
+    });
+
+    const itemValue = screen.getByTestId('dropdown-item-row-value-1');
+    act(() => fireEvent.change(itemValue, { target: { value: 'a' } }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      variant: 'single',
+      items: [
+        { label: 'a', value: 'a' },
+        { label: '', value: 'a', valueError: 'Duplicate value already exists' },
+      ],
+    });
+
+    renderResult.unmount();
+    renderResult = render(
+      <DropdownAdvancedPropertiesForm
+        properties={{
+          variant: 'single',
+          items: [
+            { label: 'a', value: 'a' },
+            {
+              label: 'a',
+              value: 'a',
+              labelError: 'Duplicate label already exists',
+              valueError: 'Duplicate value already exists',
+            },
+          ] as { label: string; value: string }[],
+        }}
+        field={field}
+        onChange={onChange}
+        onValidate={onValidate}
+      />,
+    );
+
+    expect(screen.getByText('Duplicate label already exists')).toBeVisible();
+    expect(screen.getByText('Duplicate value already exists')).toBeVisible();
+  });
 });
