@@ -31,11 +31,21 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
       connectionTypes.filter((connectionType) => {
         const keywordFilter = filterData.Keyword?.toLowerCase();
         const createFilter = filterData['Created by']?.toLowerCase();
+        const categoryFilter = filterData.Category?.toLowerCase();
 
         if (
           keywordFilter &&
           !getDisplayNameFromK8sResource(connectionType).toLowerCase().includes(keywordFilter) &&
           !getDescriptionFromK8sResource(connectionType).toLowerCase().includes(keywordFilter)
+        ) {
+          return false;
+        }
+
+        if (
+          categoryFilter &&
+          !connectionType.data?.category?.find((category) =>
+            category.toLowerCase().includes(categoryFilter),
+          )
         ) {
           return false;
         }
@@ -55,6 +65,7 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
   return (
     <>
       <Table
+        isStriped
         variant="compact"
         data={filteredConnectionTypes}
         columns={connectionTypeColumns}

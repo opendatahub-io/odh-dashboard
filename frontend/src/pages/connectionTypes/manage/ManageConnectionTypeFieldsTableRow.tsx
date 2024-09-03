@@ -12,6 +12,7 @@ import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTy
 import type { RowProps } from '~/utilities/useDraggableTableControlled';
 import TruncatedText from '~/components/TruncatedText';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
+import { ConnectionTypeFieldRemoveModal } from '~/pages/connectionTypes/manage/ConnectionTypeFieldRemoveModal';
 
 type Props = {
   row: ConnectionTypeField;
@@ -45,6 +46,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
     const potentialSectionsToMoveTo = parentSection ? numSections - 1 : numSections;
     return potentialSectionsToMoveTo > 0;
   }, [fields, rowIndex]);
+  const [showRemoveField, setShowRemoveField] = React.useState<boolean>();
 
   const isEnvVarConflict = React.useMemo(
     () =>
@@ -64,7 +66,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             id: `draggable-row-${props.id}`,
           }}
         />
-        <Td dataLabel={columns[0].label} data-testid="field-name">
+        <Td colSpan={4} dataLabel={columns[0].label} data-testid="field-name">
           <div>
             {row.name}{' '}
             <Label color="blue" data-testid="section-heading">
@@ -75,7 +77,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             </div>
           </div>
         </Td>
-        <Td colSpan={4} />
+        <Td />
         <Td isActionCell modifier="nowrap">
           <Button variant="secondary" onClick={() => onAddField(row)}>
             Add field
@@ -92,11 +94,23 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               },
               {
                 title: 'Remove',
-                onClick: () => onRemove(),
+                onClick: () => setShowRemoveField(true),
               },
             ]}
           />
         </Td>
+        {showRemoveField ? (
+          <ConnectionTypeFieldRemoveModal
+            field={row.name}
+            isSection
+            onClose={(submit) => {
+              setShowRemoveField(false);
+              if (submit) {
+                onRemove();
+              }
+            }}
+          />
+        ) : null}
       </Tr>
     );
   }
@@ -162,11 +176,23 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               : []),
             {
               title: 'Remove',
-              onClick: () => onRemove(),
+              onClick: () => setShowRemoveField(true),
             },
           ]}
         />
       </Td>
+      {showRemoveField ? (
+        <ConnectionTypeFieldRemoveModal
+          field={row.name}
+          isSection={false}
+          onClose={(submit) => {
+            setShowRemoveField(false);
+            if (submit) {
+              onRemove();
+            }
+          }}
+        />
+      ) : null}
     </Tr>
   );
 };
