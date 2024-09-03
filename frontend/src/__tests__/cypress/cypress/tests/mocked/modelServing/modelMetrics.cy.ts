@@ -39,6 +39,7 @@ import {
 import {
   MOCK_KSERVE_METRICS_CONFIG_2,
   MOCK_KSERVE_METRICS_CONFIG_3,
+  MOCK_KSERVE_METRICS_CONFIG_MISSING_QUERY,
   mockKserveMetricsConfigMap,
 } from '~/__mocks__/mockKserveMetricsConfigMap';
 
@@ -106,10 +107,12 @@ const initIntercepts = ({
     mockServingRuntimeK8sResource({ name: 'test-model', namespace: 'test-project' }),
   );
   cy.interceptOdh('POST /api/prometheus/serving', (req) => {
+    const { query } = req.body;
     // failed http request count has no data
     // all the other serving endpoints get data
-    const { query } = req.body;
-    if (
+    if (/query=undefined\b/.test(query)) {
+      req.reply(mockPrometheusServing({ result: [] }));
+    } else if (
       !(
         query.includes(`modelmesh_api_request_milliseconds_count`) &&
         query.includes(`code%21%3D%27OK`)
@@ -707,6 +710,52 @@ describe('KServe performance metrics', () => {
     modelMetricsKserve.getMetricsChart('Number of incoming requests').shouldHaveData();
     modelMetricsKserve.getMetricsChart('Mean Model Latency').shouldHaveData();
     modelMetricsKserve.getAllMetricsCharts().should('have.length', 2);
+  });
+
+  it('charts should not error out if a query is missing and there is other data', () => {
+    initIntercepts({
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      disableKServeMetrics: false,
+      hasServingData: true,
+      hasBiasData: false,
+      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+    });
+
+    cy.interceptK8s(
+      ConfigMapModel,
+      mockKserveMetricsConfigMap({ config: MOCK_KSERVE_METRICS_CONFIG_MISSING_QUERY }),
+    );
+
+    modelMetricsKserve.visit('test-project', 'test-inference-service');
+    modelMetricsKserve.getAllMetricsCharts().should('have.length', 4);
+    serverMetrics.getMetricsChart('Requests per 5 minutes').shouldHaveData();
+    serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveData();
+    serverMetrics.getMetricsChart('CPU utilization %').shouldHaveData();
+    serverMetrics.getMetricsChart('Memory utilization %').shouldHaveData();
+  });
+
+  it('charts should not error out if a query is missing and there is no data', () => {
+    initIntercepts({
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      disableKServeMetrics: false,
+      hasServingData: false,
+      hasBiasData: false,
+      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+    });
+
+    cy.interceptK8s(
+      ConfigMapModel,
+      mockKserveMetricsConfigMap({ config: MOCK_KSERVE_METRICS_CONFIG_MISSING_QUERY }),
+    );
+
+    modelMetricsKserve.visit('test-project', 'test-inference-service');
+    modelMetricsKserve.getAllMetricsCharts().should('have.length', 4);
+    serverMetrics.getMetricsChart('Requests per 5 minutes').shouldHaveNoData();
+    serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveNoData();
+    serverMetrics.getMetricsChart('CPU utilization %').shouldHaveNoData();
+    serverMetrics.getMetricsChart('Memory utilization %').shouldHaveNoData();
   });
 
   it('charts should show data when serving data is available', () => {

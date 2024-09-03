@@ -32,13 +32,17 @@ const KserveMeanLatencyGraph: React.FC<KserveMeanLatencyGraphProps> = ({
             data: convertPrometheusNaNToZero(inferenceLatency.data),
           },
         },
-        {
-          name: graphDefinition.queries[1].title,
-          metric: {
-            ...requestLatency,
-            data: convertPrometheusNaNToZero(requestLatency.data),
-          },
-        },
+        ...(graphDefinition.queries[1]
+          ? [
+              {
+                name: graphDefinition.queries[1].title,
+                metric: {
+                  ...requestLatency,
+                  data: convertPrometheusNaNToZero(requestLatency.data),
+                },
+              },
+            ]
+          : []),
       ]}
       color="green"
       title={graphDefinition.title}

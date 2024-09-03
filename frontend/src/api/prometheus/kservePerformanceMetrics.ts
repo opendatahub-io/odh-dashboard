@@ -23,8 +23,8 @@ export const useFetchKserveRequestCountData = (
 ): RequestCountData => {
   const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
-  const successQuery = metricsDef.queries[0].query;
-  const failedQuery = metricsDef.queries[1].query;
+  const successQuery = metricsDef.queries[0]?.query;
+  const failedQuery = metricsDef.queries[1]?.query;
 
   const successCount = useQueryRangeResourceData(
     active,
@@ -76,7 +76,7 @@ export const useFetchKserveMeanLatencyData = (
 
   const inferenceLatency = useQueryRangeResourceData(
     active,
-    metricsDef.queries[0].query,
+    metricsDef.queries[0]?.query,
     endInMs,
     timeframe,
     defaultResponsePredicate,
@@ -85,7 +85,7 @@ export const useFetchKserveMeanLatencyData = (
 
   const requestLatency = useQueryRangeResourceData(
     active,
-    metricsDef.queries[1].query,
+    metricsDef.queries[1]?.query,
     endInMs,
     timeframe,
     defaultResponsePredicate,
@@ -123,7 +123,7 @@ export const useFetchKserveCpuUsageData = (
 
   const cpuUsage = useQueryRangeResourceData(
     active,
-    metricsDef.queries[0].query,
+    metricsDef.queries[0]?.query,
     endInMs,
     timeframe,
     defaultResponsePredicate,
@@ -159,7 +159,7 @@ export const useFetchKserveMemoryUsageData = (
 
   const memoryUsage = useQueryRangeResourceData(
     active,
-    metricsDef.queries[0].query,
+    metricsDef.queries[0]?.query,
     endInMs,
     timeframe,
     defaultResponsePredicate,
