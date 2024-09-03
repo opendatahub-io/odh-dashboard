@@ -279,6 +279,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       )
       .then(() => {
         props.success = true;
+        fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
         onSuccess(props);
       })
       .catch((e) => {
