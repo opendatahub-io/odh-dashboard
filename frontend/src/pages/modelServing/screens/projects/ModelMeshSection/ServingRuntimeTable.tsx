@@ -8,6 +8,8 @@ import ServingRuntimeTableRow from '~/pages/modelServing/screens/projects/ModelM
 import DeleteServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/DeleteServingRuntimeModal';
 import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -62,6 +64,9 @@ const ServingRuntimeTable: React.FC = () => {
           servingRuntime={deleteServingRuntime}
           inferenceServices={inferenceServices}
           onClose={(deleted) => {
+            fireFormTrackingEvent('Model Server Deleted', {
+              outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+            });
             if (deleted) {
               refreshServingRuntime();
             }
@@ -95,6 +100,10 @@ const ServingRuntimeTable: React.FC = () => {
               refreshDataConnections();
               setExpandedServingRuntimeName(deployServingRuntime.metadata.name);
             }
+            fireFormTrackingEvent('Model Deployed', {
+              outcome: submit ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              type: 'multi',
+            });
           }}
           projectContext={{
             currentProject,

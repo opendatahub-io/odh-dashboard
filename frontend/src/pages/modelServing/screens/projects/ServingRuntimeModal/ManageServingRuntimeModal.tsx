@@ -20,6 +20,11 @@ import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import { useAccessReview } from '~/api';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
@@ -43,6 +48,8 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'create',
 };
 
+const modelServerAddedName = 'Model Server Added';
+const modelServerEditName = 'Model Server Modified';
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   isOpen,
   onClose,
@@ -101,6 +108,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   );
 
   const onBeforeClose = (submitted: boolean) => {
+    if (!submitted) {
+      fireFormTrackingEvent(editInfo ? modelServerEditName : modelServerAddedName, {
+        outcome: TrackingOutcome.cancel,
+      });
+    }
+
     onClose(submitted);
     setError(undefined);
     setActionInProgress(false);
@@ -120,6 +133,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
+    const props: FormTrackingEventProperties = {
+      outcome: TrackingOutcome.submit,
+      type: createData.servingRuntimeTemplateName,
+      size: createData.modelSize.name,
+    };
+
     submitServingRuntimeResourcesWithDryRun(
       servingRuntimeSelected,
       createData,
@@ -134,8 +153,15 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       undefined,
       true,
     )
-      .then(() => onSuccess())
+      .then(() => {
+        props.success = true;
+        fireFormTrackingEvent(editInfo ? modelServerEditName : modelServerAddedName, props);
+        onSuccess();
+      })
       .catch((e) => {
+        props.success = false;
+        props.errorMessage = e;
+        fireFormTrackingEvent(editInfo ? modelServerEditName : modelServerAddedName, props);
         setErrorModal(e);
       });
   };
