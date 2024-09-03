@@ -38,7 +38,7 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
           stringValue: '211',
         },
         display_name: {
-          stringValue: 'digit-classification',
+          stringValue: 'create-dataset',
         },
         image: {
           stringValue: '',
@@ -66,7 +66,7 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
           stringValue: '',
         },
         task_name: {
-          stringValue: 'digit-classification',
+          stringValue: 'create-dataset',
         },
       },
     },
