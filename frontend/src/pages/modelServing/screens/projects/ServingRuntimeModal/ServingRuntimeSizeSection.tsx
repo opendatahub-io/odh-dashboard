@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, FormSection, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
@@ -9,7 +9,9 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import AcceleratorProfileSelectField, {
+  AcceleratorProfileSelectFieldState,
+} from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import SimpleSelect from '~/components/SimpleSelect';
@@ -23,7 +25,8 @@ type ServingRuntimeSizeSectionProps = {
   sizes: ModelServingSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
   acceleratorProfileState: AcceleratorProfileState;
-  setAcceleratorProfileState: UpdateObjectAtPropAndValue<AcceleratorProfileState>;
+  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  setSelectedAcceleratorProfile: UpdateObjectAtPropAndValue<AcceleratorProfileSelectFieldState>;
   infoContent?: string;
 };
 
@@ -33,7 +36,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   sizes,
   servingRuntimeSelected,
   acceleratorProfileState,
-  setAcceleratorProfileState,
+  selectedAcceleratorProfile,
+  setSelectedAcceleratorProfile,
   infoContent,
 }) => {
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
@@ -71,7 +75,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
     });
 
   return (
-    <FormSection title="Compute resources per replica">
+    <>
       <FormGroup
         label="Model server size"
         labelIcon={
@@ -83,6 +87,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             </Popover>
           ) : undefined
         }
+        fieldId="model-server-size-selection"
+        isRequired
       >
         <Stack hasGutter>
           <StackItem>
@@ -90,6 +96,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
               dataTestId="model-server-size-selection"
               isFullWidth
               options={sizeOptions()}
+              toggleProps={{ id: 'model-server-size-selection' }}
               toggleLabel={data.modelSize.name || 'Select a model server size'}
               onChange={(option) => {
                 const valuesSelected = sizeCustom.find((element) => element.name === option);
@@ -108,17 +115,16 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
         </Stack>
       </FormGroup>
       {!gpuDisabled && (
-        <FormGroup>
-          <AcceleratorProfileSelectField
-            acceleratorProfileState={acceleratorProfileState}
-            setAcceleratorProfileState={setAcceleratorProfileState}
-            supportedAcceleratorProfiles={supportedAcceleratorProfiles}
-            resourceDisplayName="serving runtime"
-            infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
-          />
-        </FormGroup>
+        <AcceleratorProfileSelectField
+          acceleratorProfileState={acceleratorProfileState}
+          supportedAcceleratorProfiles={supportedAcceleratorProfiles}
+          resourceDisplayName="serving runtime"
+          infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
+          selectedAcceleratorProfile={selectedAcceleratorProfile}
+          setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+        />
       )}
-    </FormSection>
+    </>
   );
 };
 

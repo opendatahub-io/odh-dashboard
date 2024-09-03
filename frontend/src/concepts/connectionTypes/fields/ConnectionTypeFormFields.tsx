@@ -1,6 +1,6 @@
-import { FormSection } from '@patternfly/react-core';
 import * as React from 'react';
 import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
+import DataFormFieldGroup from '~/concepts/connectionTypes/fields/DataFormFieldGroup';
 import SectionFormField from '~/concepts/connectionTypes/fields/SectionFormField';
 import {
   ConnectionTypeDataField,
@@ -35,12 +35,16 @@ const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange
 
   const renderDataFields = (dataFields: ConnectionTypeDataField[]) =>
     dataFields.map((field, i) => (
-      <ConnectionTypeDataFormField
-        key={i}
-        field={field}
-        isPreview={isPreview}
-        onChange={onChange}
-      />
+      <DataFormFieldGroup key={i} field={field}>
+        {(id) => (
+          <ConnectionTypeDataFormField
+            id={id}
+            field={field}
+            mode={isPreview ? 'preview' : 'instance'}
+            onChange={onChange ? (v) => onChange(field, v) : undefined}
+          />
+        )}
+      </DataFormFieldGroup>
     ));
 
   return (
@@ -51,11 +55,11 @@ const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange
             {renderDataFields(fieldGroup.fields)}
           </SectionFormField>
         ) : (
-          <FormSection key="ungrouped-fields">{renderDataFields(fieldGroup.fields)}</FormSection>
+          <React.Fragment key={i}>{renderDataFields(fieldGroup.fields)}</React.Fragment>
         ),
       )}
     </>
   );
 };
 
-export default ConnectionTypeFormFields;
+export default React.memo(ConnectionTypeFormFields);

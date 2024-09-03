@@ -61,7 +61,7 @@ describe('NotebookServer', () => {
         notebookSizeName: 'XSmall',
         imageName: 'code-server-notebook',
         imageTagName: '2023.2',
-        acceleratorProfile: { acceleratorProfiles: [], count: 0, useExisting: false },
+        acceleratorProfile: { acceleratorProfiles: [], count: 0, unknownProfileDetected: false },
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
       });

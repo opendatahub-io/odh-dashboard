@@ -17,41 +17,56 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useDetectedAccelerators from './useDetectedAccelerators';
 
 type AcceleratorProfileSelectFieldProps = {
   acceleratorProfileState: AcceleratorProfileState;
-  setAcceleratorProfileState: UpdateObjectAtPropAndValue<AcceleratorProfileState>;
   supportedAcceleratorProfiles?: string[];
   resourceDisplayName?: string;
   infoContent?: string;
+  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  setSelectedAcceleratorProfile: UpdateObjectAtPropAndValue<AcceleratorProfileSelectFieldState>;
 };
+
+export type AcceleratorProfileSelectFieldState =
+  | {
+      profile?: AcceleratorProfileKind;
+      count: number;
+      useExistingSettings: false;
+    }
+  | {
+      profile: undefined;
+      count: 1;
+      useExistingSettings: true;
+    };
 
 const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps> = ({
   acceleratorProfileState,
-  setAcceleratorProfileState,
   supportedAcceleratorProfiles,
   resourceDisplayName = 'image',
   infoContent,
+  selectedAcceleratorProfile,
+  setSelectedAcceleratorProfile,
 }) => {
   const [detectedAccelerators] = useDetectedAccelerators();
 
-  const {
-    acceleratorProfile,
-    count: acceleratorCount,
-    acceleratorProfiles,
-    useExisting,
-    additionalOptions,
-  } = acceleratorProfileState;
+  React.useEffect(() => {
+    setSelectedAcceleratorProfile('profile', acceleratorProfileState.acceleratorProfile);
+    setSelectedAcceleratorProfile('count', acceleratorProfileState.count);
+    setSelectedAcceleratorProfile(
+      'useExistingSettings',
+      acceleratorProfileState.unknownProfileDetected,
+    );
+  }, [acceleratorProfileState, setSelectedAcceleratorProfile]);
 
   const generateAcceleratorCountWarning = (newSize: number) => {
-    if (!acceleratorProfile) {
+    if (!selectedAcceleratorProfile.profile) {
       return '';
     }
 
-    const { identifier } = acceleratorProfile.spec;
+    const { identifier } = selectedAcceleratorProfile.profile.spec;
 
     const detectedAcceleratorCount = Object.entries(detectedAccelerators.available).find(
       ([id]) => identifier === id,
@@ -69,12 +84,14 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     return '';
   };
 
-  const acceleratorCountWarning = generateAcceleratorCountWarning(acceleratorCount);
+  const acceleratorCountWarning = generateAcceleratorCountWarning(selectedAcceleratorProfile.count);
 
   const isAcceleratorProfileSupported = (cr: AcceleratorProfileKind) =>
     supportedAcceleratorProfiles?.includes(cr.spec.identifier);
 
-  const enabledAcceleratorProfiles = acceleratorProfiles.filter((ac) => ac.spec.enabled);
+  const enabledAcceleratorProfiles = acceleratorProfileState.acceleratorProfiles.filter(
+    (ac) => ac.spec.enabled,
+  );
 
   const formatOption = (cr: AcceleratorProfileKind): SimpleSelectOption => {
     const displayName = `${cr.spec.displayName}${!cr.spec.enabled ? ' (disabled)' : ''}`;
@@ -112,13 +129,13 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     .map((ac) => formatOption(ac));
 
   let acceleratorAlertMessage: { title: string; variant: AlertVariant } | null = null;
-  if (acceleratorProfile && supportedAcceleratorProfiles !== undefined) {
+  if (selectedAcceleratorProfile.profile && supportedAcceleratorProfiles !== undefined) {
     if (supportedAcceleratorProfiles.length === 0) {
       acceleratorAlertMessage = {
         title: `The ${resourceDisplayName} you have selected doesn't support the selected accelerator. It is recommended to use a compatible ${resourceDisplayName} for optimal performance.`,
         variant: AlertVariant.info,
       };
-    } else if (!isAcceleratorProfileSupported(acceleratorProfile)) {
+    } else if (!isAcceleratorProfileSupported(selectedAcceleratorProfile.profile)) {
       acceleratorAlertMessage = {
         title: `The ${resourceDisplayName} you have selected is not compatible with the selected accelerator`,
         variant: AlertVariant.warning,
@@ -133,18 +150,21 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     isPlaceholder: true,
   });
 
-  if (additionalOptions?.useExisting) {
+  if (acceleratorProfileState.unknownProfileDetected) {
     options.push({
       key: 'use-existing',
       label: 'Existing settings',
       description: 'Use the existing accelerator settings from the notebook server',
     });
-  } else if (additionalOptions?.useDisabled) {
-    options.push(formatOption(additionalOptions.useDisabled));
+  } else if (
+    selectedAcceleratorProfile.profile &&
+    !selectedAcceleratorProfile.profile.spec.enabled
+  ) {
+    options.push(formatOption(selectedAcceleratorProfile.profile));
   }
 
   const onStep = (step: number) => {
-    setAcceleratorProfileState('count', Math.max(acceleratorCount + step, 1));
+    setSelectedAcceleratorProfile('count', Math.max(selectedAcceleratorProfile.count + step, 1));
   };
 
   // if there is more than a none option, show the dropdown
@@ -167,29 +187,36 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
               </Popover>
             ) : undefined
           }
+          isRequired
         >
           <SimpleSelect
             isFullWidth
             options={options}
-            value={useExisting ? 'use-existing' : acceleratorProfile?.metadata.name ?? ''}
+            value={
+              selectedAcceleratorProfile.useExistingSettings
+                ? 'use-existing'
+                : selectedAcceleratorProfile.profile?.metadata.name ?? ''
+            }
             onChange={(key, isPlaceholder) => {
               if (isPlaceholder) {
                 // none
-                setAcceleratorProfileState('useExisting', false);
-                setAcceleratorProfileState('acceleratorProfile', undefined);
-                setAcceleratorProfileState('count', 0);
+                setSelectedAcceleratorProfile('useExistingSettings', false);
+                setSelectedAcceleratorProfile('profile', undefined);
+                setSelectedAcceleratorProfile('count', 0);
               } else if (key === 'use-existing') {
                 // use existing settings
-                setAcceleratorProfileState('useExisting', true);
-                setAcceleratorProfileState('acceleratorProfile', undefined);
-                setAcceleratorProfileState('count', 0);
+                setSelectedAcceleratorProfile('useExistingSettings', true);
+                setSelectedAcceleratorProfile('profile', undefined);
+                setSelectedAcceleratorProfile('count', 0);
               } else {
                 // normal flow
-                setAcceleratorProfileState('count', 1);
-                setAcceleratorProfileState('useExisting', false);
-                setAcceleratorProfileState(
-                  'acceleratorProfile',
-                  acceleratorProfiles.find((ac) => ac.metadata.name === key),
+                setSelectedAcceleratorProfile('count', 1);
+                setSelectedAcceleratorProfile('useExistingSettings', false);
+                setSelectedAcceleratorProfile(
+                  'profile',
+                  acceleratorProfileState.acceleratorProfiles.find(
+                    (ac) => ac.metadata.name === key,
+                  ),
                 );
               }
             }}
@@ -206,15 +233,15 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           />
         </StackItem>
       )}
-      {acceleratorProfile && (
+      {selectedAcceleratorProfile.profile && (
         <StackItem>
-          <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
+          <FormGroup label="Number of accelerators" fieldId="number-of-accelerators" isRequired>
             <InputGroup>
               <NumberInput
                 inputAriaLabel="Number of accelerators"
                 id="number-of-accelerators"
                 name="number-of-accelerators"
-                value={acceleratorCount}
+                value={selectedAcceleratorProfile.count}
                 validated={acceleratorCountWarning ? 'warning' : 'default'}
                 min={1}
                 onPlus={() => onStep(1)}
@@ -222,7 +249,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 onChange={(event) => {
                   if (isHTMLInputElement(event.target)) {
                     const newSize = Number(event.target.value);
-                    setAcceleratorProfileState('count', Math.max(newSize, 1));
+                    setSelectedAcceleratorProfile('count', Math.max(newSize, 1));
                   }
                 }}
               />

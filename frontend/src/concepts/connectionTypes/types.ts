@@ -25,7 +25,19 @@ export const connectionTypeDataFields = [
   ConnectionTypeFieldType.URI,
 ];
 
-type Field<T extends ConnectionTypeFieldType | string> = {
+export type ConnectionTypeFieldTypeUnion =
+  | ConnectionTypeFieldType
+  | 'boolean'
+  | 'dropdown'
+  | 'file'
+  | 'hidden'
+  | 'numeric'
+  | 'section'
+  | 'short-text'
+  | 'text'
+  | 'uri';
+
+type Field<T extends ConnectionTypeFieldTypeUnion> = {
   type: T;
   name: string;
   description?: string;
@@ -38,7 +50,7 @@ export type ConnectionTypeCommonProperties<V = string> = {
 
 // P default to an empty set of properties
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type DataField<T extends ConnectionTypeFieldType | string, V = string, P = {}> = Field<T> & {
+export type DataField<T extends ConnectionTypeFieldTypeUnion, V = string, P = {}> = Field<T> & {
   envVar: string;
   required?: boolean;
   properties: P & ConnectionTypeCommonProperties<V>;
@@ -47,10 +59,16 @@ export type DataField<T extends ConnectionTypeFieldType | string, V = string, P 
 export type SectionField = Field<ConnectionTypeFieldType.Section | 'section'>;
 
 export type HiddenField = DataField<ConnectionTypeFieldType.Hidden | 'hidden'>;
-export type FileField = DataField<ConnectionTypeFieldType.File | 'file'>;
 export type ShortTextField = DataField<ConnectionTypeFieldType.ShortText | 'short-text'>;
 export type TextField = DataField<ConnectionTypeFieldType.Text | 'text'>;
 export type UriField = DataField<ConnectionTypeFieldType.URI | 'uri'>;
+export type FileField = DataField<
+  ConnectionTypeFieldType.File | 'file',
+  string,
+  {
+    extensions?: string[];
+  }
+>;
 export type BooleanField = DataField<
   ConnectionTypeFieldType.Boolean | 'boolean',
   boolean,
@@ -66,7 +84,15 @@ export type DropdownField = DataField<
     items?: { label: string; value: string }[];
   }
 >;
-export type NumericField = DataField<ConnectionTypeFieldType.Numeric | 'numeric', number>;
+export type NumericField = DataField<
+  ConnectionTypeFieldType.Numeric | 'numeric',
+  number,
+  {
+    unit?: string;
+    min?: number;
+    max?: number;
+  }
+>;
 
 export type ConnectionTypeField =
   | BooleanField
@@ -81,6 +107,10 @@ export type ConnectionTypeField =
 
 export type ConnectionTypeDataField = Exclude<ConnectionTypeField, SectionField>;
 
+export const isConnectionTypeDataField = (
+  field: ConnectionTypeField,
+): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
+
 export type ConnectionTypeConfigMap = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -93,6 +123,7 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
     };
   };
   data?: {
+    category?: string;
     // JSON of type ConnectionTypeField
     fields?: string;
   };
@@ -100,6 +131,7 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
 
 export type ConnectionTypeConfigMapObj = Omit<ConnectionTypeConfigMap, 'data'> & {
   data?: {
+    category?: string[];
     fields?: ConnectionTypeField[];
   };
 };

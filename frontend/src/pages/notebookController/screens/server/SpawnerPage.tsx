@@ -42,6 +42,7 @@ import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/noteb
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -49,7 +50,9 @@ import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import ImageSelector from './ImageSelector';
 import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
-import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
+import AcceleratorProfileSelectField, {
+  AcceleratorProfileSelectFieldState,
+} from './AcceleratorProfileSelectField';
 
 import '~/pages/notebookController/NotebookController.scss';
 
@@ -72,10 +75,16 @@ const SpawnerPage: React.FC = () => {
     tag: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const [acceleratorProfile, setAcceleratorProfile] =
-    useNotebookAcceleratorProfile(currentUserNotebook);
+  const acceleratorProfile = useNotebookAcceleratorProfile(currentUserNotebook);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
+
+  const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
+    useGenericObjectState<AcceleratorProfileSelectFieldState>({
+      profile: undefined,
+      count: 0,
+      useExistingSettings: false,
+    });
 
   const disableSubmit =
     createInProgress || variableRows.some(({ errors }) => Object.keys(errors).length > 0);
@@ -236,10 +245,12 @@ const SpawnerPage: React.FC = () => {
       outcome: TrackingOutcome.submit,
       accelerator: acceleratorProfile.acceleratorProfile
         ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
-        : acceleratorProfile.useExisting
+        : acceleratorProfile.unknownProfileDetected
         ? 'Unknown'
         : 'None',
-      acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
+      acceleratorCount: acceleratorProfile.unknownProfileDetected
+        ? undefined
+        : acceleratorProfile.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
@@ -322,7 +333,8 @@ const SpawnerPage: React.FC = () => {
             />
             <AcceleratorProfileSelectField
               acceleratorProfileState={acceleratorProfile}
-              setAcceleratorProfileState={setAcceleratorProfile}
+              selectedAcceleratorProfile={selectedAcceleratorProfile}
+              setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

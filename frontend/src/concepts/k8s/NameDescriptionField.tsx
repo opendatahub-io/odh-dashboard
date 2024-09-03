@@ -25,7 +25,8 @@ type NameDescriptionFieldProps = {
   K8sLabelName?: string;
   showK8sName?: boolean;
   disableK8sName?: boolean;
-  maxLength?: number;
+  maxLengthName?: number;
+  maxLengthDesc?: number;
   nameHelperText?: React.ReactNode;
   onNameChange?: (value: string) => void;
 };
@@ -41,7 +42,8 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   K8sLabelName = 'Resource name',
   showK8sName,
   disableK8sName,
-  maxLength,
+  maxLengthName,
+  maxLengthDesc,
   nameHelperText,
   onNameChange,
 }) => {
@@ -81,12 +83,12 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
                   }
                 : undefined
             }
-            maxLength={maxLength}
+            maxLength={maxLengthName}
           />
 
-          {maxLength && (
+          {maxLengthName && (
             <HelperText>
-              <HelperTextItem>{`Cannot exceed ${maxLength} characters`}</HelperTextItem>
+              <HelperTextItem>{`Cannot exceed ${maxLengthName} characters`}</HelperTextItem>
             </HelperText>
           )}
 
@@ -160,7 +162,13 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             name={descriptionFieldId}
             value={data.description}
             onChange={setData ? (e, description) => setData({ ...data, description }) : undefined}
+            maxLength={maxLengthDesc}
           />
+          {maxLengthDesc && (
+            <HelperText>
+              <HelperTextItem>{`Cannot exceed ${maxLengthDesc} characters`}</HelperTextItem>
+            </HelperText>
+          )}
         </FormGroup>
       </StackItem>
     </Stack>

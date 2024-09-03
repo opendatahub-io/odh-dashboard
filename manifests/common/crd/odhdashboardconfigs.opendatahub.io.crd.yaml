@@ -75,6 +75,8 @@ spec:
                       type: boolean
                     disableConnectionTypes:
                       type: boolean
+                    disableStorageClasses:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

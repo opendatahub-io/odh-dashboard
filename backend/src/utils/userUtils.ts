@@ -29,6 +29,9 @@ export type OpenShiftUser = {
     name: string;
     uid: string;
     resourceVersion: string;
+    annotations?: {
+      'toolchain.dev.openshift.com/sso-user-id': string;
+    };
   };
   fullName: string;
   identities: string[];
@@ -86,21 +89,27 @@ export const getUser = async (
   }
 };
 
-export const getUserName = async (
+export const getUserInfo = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<string> => {
+): Promise<{ userName: string; userID: string }> => {
   const { currentUser } = fastify.kube;
 
   try {
     const userOauth = await getUser(fastify, request);
-    return userOauth.metadata.name;
+    return {
+      userName: userOauth.metadata.name,
+      userID: userOauth.metadata.annotations?.['toolchain.dev.openshift.com/sso-user-id'],
+    };
   } catch (e) {
     if (DEV_MODE) {
       if (isImpersonating()) {
-        return DEV_IMPERSONATE_USER ?? '';
+        return { userName: DEV_IMPERSONATE_USER ?? '', userID: undefined };
       }
-      return (currentUser.username || currentUser.name).split('/')[0];
+      return {
+        userName: (currentUser.username || currentUser.name).split('/')[0],
+        userID: undefined,
+      };
     }
     fastify.log.error(`Failed to retrieve username: ${errorHandler(e)}`);
     const error = createCustomError(

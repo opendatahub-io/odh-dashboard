@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import { ConnectionTypeDataFieldModal } from '~/pages/connectionTypes/fields/ConnectionTypeDataFieldModal';
+import { ConnectionTypeDataFieldModal } from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldModal';
 import ConnectionTypeSectionModal from './ConnectionTypeSectionModal';
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   onClose: () => void;
   onSubmit: (field: ConnectionTypeField) => void;
   isEdit?: boolean;
+  fields?: ConnectionTypeField[];
 };
 
 const ConnectionTypeFieldModal: React.FC<Props> = (props) => {

@@ -46,6 +46,8 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   ) => TypeaheadSelectOption[];
   /** Callback triggered when the clear button is selected */
   onClearSelection?: () => void;
+  /** Flag to allow clear current selection */
+  allowClear?: boolean;
   /** Placeholder text for the select input. */
   placeholder?: string;
   /** Flag to indicate if the typeahead select allows new items */
@@ -80,6 +82,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   onInputChange,
   filterFunction = defaultFilterFunction,
   onClearSelection,
+  allowClear,
   placeholder = 'Select an option',
   noOptionsAvailableMessage = 'No options are available',
   noOptionsFoundMessage = defaultNoOptionsFoundMessage,
@@ -335,16 +338,20 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const onClearButtonClick = () => {
-    if (selected && onSelect) {
-      onSelect(undefined, selected.value);
+    if (isFiltering && filterValue) {
+      if (selected && onSelect) {
+        onSelect(undefined, selected.value);
+      }
+      setFilterValue('');
+      if (onInputChange) {
+        onInputChange('');
+      }
+      setIsFiltering(false);
     }
-    setFilterValue('');
-    if (onInputChange) {
-      onInputChange('');
-    }
-    setIsFiltering(false);
+
     resetActiveAndFocusedItem();
     textInputRef.current?.focus();
+
     if (onClearSelection) {
       onClearSelection();
     }
@@ -376,14 +383,13 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
           isExpanded={isOpen}
           aria-controls="select-typeahead-listbox"
         />
-
-        <TextInputGroupUtilities
-          {...(!(isFiltering && filterValue) ? { style: { display: 'none' } } : {})}
-        >
-          <Button variant="plain" onClick={onClearButtonClick} aria-label="Clear input value">
-            <TimesIcon aria-hidden />
-          </Button>
-        </TextInputGroupUtilities>
+        {(isFiltering && filterValue) || (allowClear && selected) ? (
+          <TextInputGroupUtilities>
+            <Button variant="plain" onClick={onClearButtonClick} aria-label="Clear input value">
+              <TimesIcon aria-hidden />
+            </Button>
+          </TextInputGroupUtilities>
+        ) : null}
       </TextInputGroup>
     </MenuToggle>
   );

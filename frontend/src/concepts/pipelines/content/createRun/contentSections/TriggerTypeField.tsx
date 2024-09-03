@@ -56,7 +56,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
                 onChange={(value) =>
                   onChange({
                     ...data,
-                    value: replaceNumericPartWithString(data.value, value),
+                    value: replaceNumericPartWithString(data.value, value ?? 0),
                   })
                 }
               />

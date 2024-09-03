@@ -10,9 +10,14 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
+import { uniq } from 'lodash-es';
 import { useUser } from '~/redux/selectors';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeField,
+  isConnectionTypeDataField,
+} from '~/concepts/connectionTypes/types';
 import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
 import {
   createConnectionTypeObj,
@@ -21,6 +26,8 @@ import {
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NameDescType } from '~/pages/projects/types';
+import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
+import { categoryOptions } from '~/pages/connectionTypes/const';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
 import ManageConnectionTypeFieldsTable from './ManageConnectionTypeFieldsTable';
 import ManageConnectionTypeBreadcrumbs from './ManageConnectionTypeBreadcrumbs';
@@ -44,6 +51,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     enabled: prefillEnabled,
     fields: prefillFields,
     username: prefillUsername,
+    category: prefillCategory,
   } = extractConnectionTypeFromMap(prefill);
 
   const username = prefillUsername || currentUsername;
@@ -56,8 +64,18 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
   const [connectionFields, setConnectionFields] =
     React.useState<ConnectionTypeField[]>(prefillFields);
+  const [category, setCategory] = React.useState<string[]>(prefillCategory);
 
-  const previewConnectionTypeObj = React.useMemo(
+  const categoryItems = React.useMemo<SelectionOptions[]>(
+    () =>
+      category
+        .filter((c) => !categoryOptions.includes(c))
+        .concat(categoryOptions)
+        .map((c) => ({ id: c, name: c, selected: category.includes(c) })),
+    [category],
+  );
+
+  const connectionTypeObj = React.useMemo(
     () =>
       createConnectionTypeObj(
         connectionNameDesc.k8sName || translateDisplayNameForK8s(connectionNameDesc.name),
@@ -66,14 +84,20 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         connectionEnabled,
         username,
         connectionFields,
+        category,
       ),
-    [connectionNameDesc, connectionEnabled, connectionFields, username],
+    [connectionNameDesc, connectionEnabled, connectionFields, username, category],
   );
+
+  const isEnvVarConflict = React.useMemo(() => {
+    const envVars = connectionFields.filter(isConnectionTypeDataField).map((f) => f.envVar);
+    return uniq(envVars).length !== envVars.length;
+  }, [connectionFields]);
 
   const isValid = React.useMemo(() => {
     const trimmedName = connectionNameDesc.name.trim();
-    return Boolean(trimmedName);
-  }, [connectionNameDesc.name]);
+    return Boolean(trimmedName) && !isEnvVarConflict && category.length > 0;
+  }, [connectionNameDesc.name, isEnvVarConflict, category]);
 
   const onCancel = () => {
     navigate('/connectionTypes');
@@ -83,13 +107,13 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     <ConnectionTypePreviewDrawer
       isExpanded={isDrawerExpanded}
       onClose={() => setIsDrawerExpanded(false)}
-      obj={previewConnectionTypeObj}
+      obj={connectionTypeObj}
     >
       <ApplicationsPage
         title={isEdit ? 'Edit connection type' : 'Create connection type'}
         loaded
         empty={false}
-        errorMessage="Unable load to connection types"
+        errorMessage="Unable to load connection types"
         breadcrumb={<ManageConnectionTypeBreadcrumbs />}
         headerAction={
           isDrawerExpanded ? undefined : (
@@ -126,7 +150,21 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 setData={setConnectionNameDesc}
                 autoFocusName
               />
-              <FormGroup label="Enable">
+              <FormGroup label="Category" fieldId="connection-type-category" isRequired>
+                <MultiSelection
+                  inputId="connection-type-category"
+                  data-testid="connection-type-category"
+                  toggleTestId="connection-type-category-toggle"
+                  ariaLabel="Category"
+                  placeholder="Select a category"
+                  isCreatable
+                  value={categoryItems}
+                  setValue={(value) => {
+                    setCategory(value.filter((v) => v.selected).map((v) => String(v.id)));
+                  }}
+                />
+              </FormGroup>
+              <FormGroup label="Enable" fieldId="connection-type-enable">
                 <Checkbox
                   label="Enable users in your organization to use this connection type when adding connections."
                   id="connection-type-enable"
@@ -141,9 +179,15 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
               Add fields to prompt users to input information, and optionally assign default values
               to those fields.
               <FormGroup>
+                {isEnvVarConflict ? (
+                  <Alert isInline variant="danger" title="Environment variables conflict">
+                    Environment variables for one or more fields are conflicting. Change them to
+                    resolve and proceed.
+                  </Alert>
+                ) : null}
                 <ManageConnectionTypeFieldsTable
                   fields={connectionFields}
-                  onFieldsChange={(fields) => setConnectionFields(fields)}
+                  onFieldsChange={setConnectionFields}
                 />
               </FormGroup>
             </FormSection>
@@ -156,7 +200,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         >
           <CreateConnectionTypeFooter
             onSave={() =>
-              onSave(previewConnectionTypeObj).then(() => {
+              onSave(connectionTypeObj).then(() => {
                 navigate('/connectionTypes');
               })
             }

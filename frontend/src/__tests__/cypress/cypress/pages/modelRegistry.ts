@@ -46,6 +46,10 @@ class ModelRegistryTableRow extends TableRow {
     cy.findByTestId('popover-label-group').within(() => labels.map((label) => cy.contains(label)));
     return this;
   }
+
+  findModelVersionName() {
+    return this.find().findByTestId('model-version-name');
+  }
 }
 
 class ModelRegistry {

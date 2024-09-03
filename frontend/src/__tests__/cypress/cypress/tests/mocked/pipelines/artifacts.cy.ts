@@ -90,7 +90,7 @@ describe('Artifacts', () => {
           3,
         );
         artifactsGlobal.visit(projectName);
-        artifactsTable.findRows().should('have.length', 5);
+        artifactsTable.findRows().should('have.length', 6);
       });
 
       it('name', () => {
@@ -98,8 +98,10 @@ describe('Artifacts', () => {
         artifactsTable.mockGetArtifacts(
           projectName,
           mockGetArtifactsResponse({
-            artifacts: mockedArtifactsResponse.artifacts.filter((mockArtifact) =>
-              mockArtifact.customProperties.display_name.stringValue?.includes('metrics'),
+            artifacts: mockedArtifactsResponse.artifacts.filter(
+              (mockArtifact) =>
+                Object.entries(mockArtifact.customProperties).length !== 0 &&
+                mockArtifact.customProperties.display_name.stringValue?.includes('metrics'),
             ),
           }),
           1,
@@ -139,13 +141,25 @@ describe('Artifacts', () => {
         );
         artifactsGlobal.findFilterField().click();
         artifactsGlobal.selectFilterType('system.Metrics');
-        artifactsTable.findRows().should('have.length', 1);
+        artifactsTable.findRows().should('have.length', 2);
         artifactsTable.getRowByName('scalar metrics').find().should('be.visible');
       });
     });
   });
 
   describe('details', () => {
+    it('shows empty state for properties and custom properties', () => {
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [mockedArtifactsResponse.artifacts[5]],
+          artifactTypes: [],
+        }),
+      );
+      artifactDetails.visit(projectName, '(No name)', '7');
+      artifactDetails.findPropSection().should('contain.text', 'No properties');
+      artifactDetails.findCustomPropSection().should('contain.text', 'No custom properties');
+    });
     it('shows Overview tab content', () => {
       artifactDetails.mockGetArtifactById(
         projectName,

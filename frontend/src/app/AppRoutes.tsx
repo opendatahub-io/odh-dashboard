@@ -64,6 +64,8 @@ const AcceleratorProfileRoutes = React.lazy(
   () => import('../pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
 );
 
+const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/StorageClassesPage'));
+
 const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
 
 const AppRoutes: React.FC = () => {
@@ -128,6 +130,7 @@ const AppRoutes: React.FC = () => {
             {isConnectionTypesAvailable ? (
               <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
             ) : null}
+            <Route path="/storageClasses/*" element={<StorageClassesPage />} />
             <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>

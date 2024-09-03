@@ -15,7 +15,6 @@ import {
   getProperties,
   mergeUpdatedProperty,
   mergeUpdatedLabels,
-  getPatchBody,
   filterRegisteredModels,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
@@ -259,68 +258,6 @@ describe('mergeUpdatedProperty', () => {
       label1: { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
       prop1: { string_value: 'val1', metadataType: ModelRegistryMetadataType.STRING },
     } satisfies ModelRegistryCustomProperties);
-  });
-});
-
-describe('getPatchBody', () => {
-  it('returns a given RegisteredModel with id/name/timestamps removed, customProperties updated and other values unchanged', () => {
-    const registeredModel = mockRegisteredModel({
-      id: '1',
-      owner: 'Author 1',
-      name: 'test-model',
-      description: 'Description here',
-      labels: [],
-      state: ModelState.LIVE,
-    });
-    const result = getPatchBody(
-      registeredModel,
-      {
-        customProperties: {
-          label1: { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
-        },
-      },
-      [],
-    );
-    expect(result).toEqual({
-      description: 'Description here',
-      customProperties: {
-        label1: { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
-      },
-      owner: 'Author 1',
-      state: ModelState.LIVE,
-      externalID: '1234132asdfasdf',
-    } satisfies Partial<RegisteredModel>);
-  });
-
-  it('returns a given ModelVersion with id/name/timestamps removed, description updated and other values unchanged', () => {
-    const modelVersion = mockModelVersion({
-      author: 'Test author',
-      registeredModelId: '1',
-    });
-    const result = getPatchBody(modelVersion, { description: 'New description' }, []);
-    expect(result).toEqual({
-      author: 'Test author',
-      registeredModelId: '1',
-      description: 'New description',
-      customProperties: {},
-      state: ModelState.LIVE,
-    } satisfies Partial<ModelVersion>);
-  });
-
-  it('excludes given additional properties', () => {
-    const modelVersion = mockModelVersion({
-      author: 'Test author',
-      registeredModelId: '1',
-    });
-    const result = getPatchBody(modelVersion, { description: 'New description' }, [
-      'registeredModelId',
-    ]);
-    expect(result).toEqual({
-      author: 'Test author',
-      description: 'New description',
-      customProperties: {},
-      state: ModelState.LIVE,
-    } satisfies Partial<ModelVersion>);
   });
 });
 

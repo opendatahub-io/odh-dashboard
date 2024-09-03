@@ -97,6 +97,7 @@ describe('getPipelineAPIRoute', () => {
 describe('createPipelinesCR', () => {
   const DSPipelinemock = mockDataSciencePipelineApplicationK8sResource({});
   delete DSPipelinemock.status;
+  delete DSPipelinemock.metadata.creationTimestamp;
   it('should create pipelines CR', async () => {
     k8sCreateResourceMock.mockResolvedValue(DSPipelinemock);
     const result = await createPipelinesCR('test-project', DSPipelinemock.spec);

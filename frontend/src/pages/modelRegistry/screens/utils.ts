@@ -1,6 +1,5 @@
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import {
-  ModelRegistryBase,
   ModelRegistryCustomProperties,
   ModelRegistryMetadataType,
   ModelRegistryStringCustomProperties,
@@ -75,37 +74,6 @@ export const mergeUpdatedProperty = (
   }
   return customPropertiesCopy;
 };
-
-// Returns a patch payload for a Model Registry object, retaining all mutable fields but excluding internal fields to prevent errors
-// TODO this will not be necessary if the backend eventually merges objects on PATCH requests. See https://issues.redhat.com/browse/RHOAIENG-6652
-export const getPatchBody = <T extends ModelRegistryBase>(
-  existingObj: T,
-  updates: Partial<T>,
-  otherExcludedKeys: (keyof T)[],
-): Partial<T> => {
-  const objCopy = { ...existingObj };
-  const excludedKeys: (keyof T)[] = [
-    'id',
-    'name',
-    'createTimeSinceEpoch',
-    'lastUpdateTimeSinceEpoch',
-    ...otherExcludedKeys,
-  ];
-  excludedKeys.forEach((key) => {
-    delete objCopy[key];
-  });
-  return { ...objCopy, ...updates };
-};
-
-export const getPatchBodyForRegisteredModel = (
-  existing: RegisteredModel,
-  updates: Partial<RegisteredModel>,
-): Partial<RegisteredModel> => getPatchBody(existing, updates, []);
-
-export const getPatchBodyForModelVersion = (
-  existing: ModelVersion,
-  updates: Partial<ModelVersion>,
-): Partial<ModelVersion> => getPatchBody(existing, updates, ['registeredModelId']);
 
 export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],

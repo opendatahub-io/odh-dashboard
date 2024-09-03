@@ -1,11 +1,15 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
-import { ConnectionTypeDataField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+import {
+  ConnectionTypeDataField,
+  connectionTypeDataFields,
+  ConnectionTypeFieldType,
+} from '~/concepts/connectionTypes/types';
 import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
 
 describe('ConnectionTypeDataFormField', () => {
-  it('should render field', () => {
+  it('should render field for each connection type', () => {
     const test = (type: ConnectionTypeFieldType) => {
       const field = {
         type,
@@ -14,18 +18,9 @@ describe('ConnectionTypeDataFormField', () => {
         properties: {},
       } as ConnectionTypeDataField;
       expect(
-        render(<ConnectionTypeDataFormField field={field} />).queryByTestId(
-          `field ${type} test-envVar`,
-        ),
-      ).toBeInTheDocument();
+        render(<ConnectionTypeDataFormField id="test" field={field} />).container.firstChild,
+      ).not.toBeNull();
     };
-    test(ConnectionTypeFieldType.Boolean);
-    test(ConnectionTypeFieldType.ShortText);
-    test(ConnectionTypeFieldType.Text);
-    test(ConnectionTypeFieldType.URI);
-    test(ConnectionTypeFieldType.Hidden);
-    test(ConnectionTypeFieldType.File);
-    test(ConnectionTypeFieldType.Numeric);
-    test(ConnectionTypeFieldType.Dropdown);
+    connectionTypeDataFields.forEach((t) => test(t));
   });
 });

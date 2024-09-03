@@ -13,7 +13,6 @@ import {
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { getPatchBodyForModelVersion } from '~/pages/modelRegistry/screens/utils';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
 
@@ -98,8 +97,9 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             apiState.api
               .patchModelVersion(
                 {},
-                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForModelVersion(mv, { state: ModelState.ARCHIVED }),
+                {
+                  state: ModelState.ARCHIVED,
+                },
                 mv.id,
               )
               .then(refresh)
@@ -127,8 +127,9 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             apiState.api
               .patchModelVersion(
                 {},
-                // TODO remove the getPatchBody* functions when https://issues.redhat.com/browse/RHOAIENG-6652 is resolved
-                getPatchBodyForModelVersion(mv, { state: ModelState.LIVE }),
+                {
+                  state: ModelState.LIVE,
+                },
                 mv.id,
               )
               .then(() =>

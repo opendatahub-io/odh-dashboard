@@ -2,6 +2,7 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import _ from 'lodash-es';
 import { Toleration, TolerationEffect, TolerationOperator, TolerationSettings } from '~/types';
 import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
+import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { AcceleratorProfileState } from './useAcceleratorProfileState';
 
 export type TolerationChanges = {
@@ -11,24 +12,25 @@ export type TolerationChanges = {
 
 export const determineTolerations = (
   tolerationSettings?: TolerationSettings,
-  acceleratorProfileState?: AcceleratorProfileState,
+  initialAcceleratorProfile?: AcceleratorProfileState,
+  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   existingTolerations?: Toleration[],
 ): Toleration[] => {
   let tolerations = existingTolerations || [];
 
   // remove old accelerator tolerations if they exist
-  if (acceleratorProfileState?.initialAcceleratorProfile) {
+  if (initialAcceleratorProfile?.acceleratorProfile) {
     tolerations = tolerations.filter(
       (t) =>
-        !acceleratorProfileState.initialAcceleratorProfile?.spec.tolerations?.some((t2) =>
+        !initialAcceleratorProfile.acceleratorProfile?.spec.tolerations?.some((t2) =>
           _.isEqual(t2, t),
         ),
     );
   }
 
   // add new accelerator tolerations if they exist
-  if (acceleratorProfileState?.acceleratorProfile?.spec.tolerations) {
-    tolerations.push(...acceleratorProfileState.acceleratorProfile.spec.tolerations);
+  if (selectedAcceleratorProfile?.profile?.spec.tolerations) {
+    tolerations.push(...selectedAcceleratorProfile.profile.spec.tolerations);
   }
 
   // remove duplicated tolerations
@@ -60,6 +62,7 @@ export const computeNotebooksTolerations = (
 
   const settings = determineTolerations(
     dashboardConfig.spec.notebookController?.notebookTolerationSettings,
+    undefined,
     undefined,
     tolerations,
   );

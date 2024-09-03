@@ -36,3 +36,4 @@ export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
 };
 
 export const RUN_NAME_CHARACTER_LIMIT = 255;
+export const RUN_DESCRIPTION_CHARACTER_LIMIT = 255;

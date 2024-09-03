@@ -1,6 +1,7 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 import { TableToolbar } from './components/TableToolbar';
+import { Contextual } from './components/Contextual';
 
 class CreateConnectionTypeTableRow extends TableRow {
   findSectionHeading() {
@@ -26,6 +27,17 @@ class CreateConnectionTypeTableRow extends TableRow {
   findRequired() {
     return this.find().findByTestId('field-required');
   }
+
+  dragToIndex(i: number) {
+    const dataTransfer = new DataTransfer();
+    this.find().trigger('dragstart', { dataTransfer });
+    createConnectionTypePage
+      .getFieldsTableRow(i)
+      .find()
+      .trigger('dragover', { dataTransfer })
+      .trigger('drop', { dataTransfer })
+      .trigger('dragend');
+  }
 }
 
 class CreateConnectionTypePage {
@@ -36,6 +48,11 @@ class CreateConnectionTypePage {
 
   visitDuplicatePage(name = 'existing') {
     cy.visitWithLogin(`/connectionTypes/duplicate/${name}`);
+    cy.findAllByText('Create connection type').should('exist');
+  }
+
+  visitEditPage(name = 'existing') {
+    cy.visitWithLogin(`/connectionTypes/edit/${name}`);
     cy.findAllByText('Create connection type').should('exist');
   }
 
@@ -69,6 +86,42 @@ class CreateConnectionTypePage {
 
   findSubmitButton() {
     return cy.findByTestId('submit-button');
+  }
+
+  shouldHaveTableRowNames(rowNames: string[]) {
+    rowNames.map((name, index) =>
+      this.getFieldsTableRow(index).findName().should('contain.text', name),
+    );
+  }
+
+  getCategorySection() {
+    return new CategorySection(() => cy.findByTestId('connection-type-category-toggle'));
+  }
+}
+
+class CategorySection extends Contextual<HTMLElement> {
+  findCategoryTable() {
+    return this.find().click();
+  }
+
+  private findChipGroup() {
+    return this.find().findByRole('list', { name: 'Current selections' });
+  }
+
+  findChipItem(name: string | RegExp) {
+    return this.findChipGroup().find('li').contains('span', name);
+  }
+
+  clearMultiChipItem() {
+    this.find().findByRole('button', { name: 'Clear input value' }).click();
+  }
+
+  findMultiGroupInput() {
+    return this.find().find('input');
+  }
+
+  findMultiGroupSelectButton(name: string) {
+    return cy.findByTestId(`select-multi-typeahead-${name}`).click();
   }
 }
 

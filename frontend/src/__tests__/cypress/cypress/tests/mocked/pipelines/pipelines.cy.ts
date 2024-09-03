@@ -522,6 +522,14 @@ describe('Pipelines', () => {
     pipelinesGlobal.findDeletePipelineServerButton().should('exist');
   });
 
+  it('error while creating a pipeline server', () => {
+    initIntercepts({ initializing: true, errorMessage: 'Data connection unsuccessfully verified' });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal
+      .findPipelineTimeoutErrorMessage()
+      .should('have.text', 'Data connection unsuccessfully verified');
+  });
+
   it('incompatible dpsa version shows error with delete option for admin', () => {
     asProductAdminUser();
     initIntercepts({});
@@ -1312,6 +1320,8 @@ type HandlersProps = {
   mockPipelineVersions?: PipelineVersionKFv2[];
   hasNoPipelineVersions?: boolean;
   totalSize?: number;
+  errorMessage?: string;
+  initializing?: boolean;
   nextPageToken?: string | undefined;
 };
 
@@ -1320,13 +1330,21 @@ const initIntercepts = ({
   mockPipelines = [initialMockPipeline],
   mockPipelineVersions = [initialMockPipelineVersion],
   hasNoPipelineVersions = false,
+  initializing,
+  errorMessage,
   totalSize = mockPipelines.length,
   nextPageToken,
 }: HandlersProps): void => {
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
     mockK8sResourceList(
-      isEmpty ? [] : [mockDataSciencePipelineApplicationK8sResource({ namespace: projectName })],
+      isEmpty
+        ? []
+        : [
+            mockDataSciencePipelineApplicationK8sResource({
+              namespace: projectName,
+            }),
+          ],
     ),
   );
   cy.interceptK8s(
@@ -1334,6 +1352,8 @@ const initIntercepts = ({
     mockDataSciencePipelineApplicationK8sResource({
       namespace: projectName,
       dspaSecretName: 'aws-connection-test',
+      initializing,
+      message: errorMessage,
     }),
   );
   cy.interceptK8s(

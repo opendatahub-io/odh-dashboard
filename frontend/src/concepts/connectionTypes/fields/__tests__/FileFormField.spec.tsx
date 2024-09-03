@@ -14,15 +14,19 @@ describe('FileFormField', () => {
       envVar: 'test-envVar',
       properties: {
         defaultValue: 'default-value',
+        extensions: ['.jpg', '.svg', '.png'],
       },
     };
 
-    render(<FileFormField field={field} value="supplied-value" onChange={onChange} />);
+    render(<FileFormField id="test" field={field} value="supplied-value" onChange={onChange} />);
     const [, contentInput] = screen.getAllByRole('textbox');
     expect(contentInput).toHaveValue('supplied-value');
     expect(contentInput).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Upload' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Clear' })).not.toBeDisabled();
+
+    const helperText = screen.getByTestId('file-form-field-helper-text');
+    expect(helperText).toHaveTextContent('.jpg, .svg, or .png');
 
     act(() => {
       fireEvent.change(contentInput, { target: { value: 'new-value' } });
@@ -42,7 +46,15 @@ describe('FileFormField', () => {
       },
     };
 
-    render(<FileFormField field={field} value="supplied-value" onChange={onChange} isPreview />);
+    render(
+      <FileFormField
+        id="test"
+        field={field}
+        value="supplied-value"
+        onChange={onChange}
+        mode="preview"
+      />,
+    );
     const [, contentInput] = screen.getAllByRole('textbox');
     expect(contentInput).toHaveValue('default-value');
     expect(contentInput).toBeDisabled();
@@ -67,7 +79,7 @@ describe('FileFormField', () => {
       },
     };
 
-    render(<FileFormField field={field} value="supplied-value" onChange={onChange} />);
+    render(<FileFormField id="test" field={field} value="supplied-value" onChange={onChange} />);
     const [, contentInput] = screen.getAllByRole('textbox');
     expect(contentInput).toHaveValue('default-value');
     expect(contentInput).toBeDisabled();

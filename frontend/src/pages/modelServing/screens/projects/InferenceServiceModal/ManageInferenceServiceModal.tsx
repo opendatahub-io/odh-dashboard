@@ -182,7 +182,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 />
               </StackItem>
               <StackItem>
-                <FormSection title="Model location" id="model-location">
+                <FormSection title="Source model location" id="model-location">
                   <DataConnectionSection
                     data={createData}
                     setData={setCreateData}

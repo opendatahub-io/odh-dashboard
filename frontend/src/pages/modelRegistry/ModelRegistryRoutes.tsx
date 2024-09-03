@@ -26,7 +26,7 @@ const ModelRegistryRoutes: React.FC = () => (
     >
       <Route index element={<ModelRegistry empty={false} />} />
       <Route path="registeredModels/:registeredModelId">
-        <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} />} />
+        <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} replace />} />
         <Route
           path={ModelVersionsTab.VERSIONS}
           element={<ModelVersions tab={ModelVersionsTab.VERSIONS} empty={false} />}
@@ -37,7 +37,7 @@ const ModelRegistryRoutes: React.FC = () => (
         />
         <Route path="registerVersion" element={<RegisterVersion />} />
         <Route path="versions/:modelVersionId">
-          <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} />} />
+          <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />
           <Route
             path={ModelVersionDetailsTab.DETAILS}
             element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
@@ -53,7 +53,7 @@ const ModelRegistryRoutes: React.FC = () => (
         <Route path="versions/archive">
           <Route index element={<ModelVersionsArchive empty={false} />} />
           <Route path=":modelVersionId">
-            <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} />} />
+            <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />
             <Route
               path={ModelVersionDetailsTab.DETAILS}
               element={
@@ -78,7 +78,7 @@ const ModelRegistryRoutes: React.FC = () => (
       <Route path="registeredModels/archive">
         <Route index element={<RegisteredModelsArchive empty={false} />} />
         <Route path=":registeredModelId">
-          <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} />} />
+          <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} replace />} />
           <Route
             path={ModelVersionsTab.DETAILS}
             element={

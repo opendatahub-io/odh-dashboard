@@ -7,10 +7,10 @@ import {
   DrawerCloseButton,
   DrawerContent,
   Title,
-  DrawerPanelBody,
   Card,
   CardBody,
-  Text,
+  Divider,
+  DrawerContentBody,
 } from '@patternfly/react-core';
 import ConnectionTypePreview from '~/concepts/connectionTypes/ConnectionTypePreview';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
@@ -24,44 +24,39 @@ type Props = {
 
 const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, onClose, obj }) => {
   const panelContent = (
-    <DrawerPanelContent
-      isResizable
-      style={{
-        backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)',
-      }}
-    >
-      <DrawerHead>
-        <Title headingLevel="h2" size="xl">
-          Preview connection type
-        </Title>
-        <DrawerActions>
-          <DrawerCloseButton onClick={() => onClose()} />
-        </DrawerActions>
-      </DrawerHead>
-
-      <DrawerPanelBody>
+    <DrawerPanelContent isResizable>
+      <DrawerContentBody>
+        <DrawerHead hasNoPadding>
+          <Title headingLevel="h2" size="xl">
+            Preview connection type
+          </Title>
+          <DrawerActions>
+            <DrawerCloseButton onClick={() => onClose()} />
+          </DrawerActions>
+        </DrawerHead>
         <div
           style={{
-            paddingBottom: 'var(--pf-v5-global--spacer--lg)',
+            fontSize: 'var(--pf-v5-global--FontSize--sm)',
+            paddingTop: 'var(--pf-v5-global--spacer--sm)',
           }}
         >
-          <Text component="small">
-            This preview shows the user view of the connection type form, and is for reference only.
-            Updates in the developer view are automatically in the user view.
-          </Text>
-          <Card
-            isFlat
-            isRounded
-            style={{
-              marginTop: 'var(--pf-v5-global--spacer--md)',
-            }}
-          >
-            <CardBody>
-              <ConnectionTypePreview obj={obj} />
-            </CardBody>
-          </Card>
+          This preview shows the user view of the connection type form, and is for reference only.
+          Updates in the developer view are automatically in the user view.
         </div>
-      </DrawerPanelBody>
+      </DrawerContentBody>
+      <Divider />
+      <DrawerContentBody
+        style={{
+          backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)',
+          overflow: 'auto',
+        }}
+      >
+        <Card isFlat isRounded>
+          <CardBody>
+            <ConnectionTypePreview obj={obj} />
+          </CardBody>
+        </Card>
+      </DrawerContentBody>
     </DrawerPanelContent>
   );
 

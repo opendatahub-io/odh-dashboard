@@ -131,6 +131,22 @@ describe('Model version archive list', () => {
     modelVersionArchive.shouldArchiveVersionsEmpty();
   });
 
+  it('Archived version details browser back button should lead to archived versions table', () => {
+    initIntercepts({});
+    modelVersionArchive.visit();
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/archive');
+    modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
+    const archiveVersionRow = modelVersionArchive.getRow('model version 2');
+    archiveVersionRow.findName().contains('model version 2').click();
+    verifyRelativeURL(
+      '/modelRegistry/modelregistry-sample/registeredModels/1/versions/archive/2/details',
+    );
+    cy.go('back');
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/archive');
+    modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
+    archiveVersionRow.findName().contains('model version 2').should('exist');
+  });
+
   it('Archive version list', () => {
     initIntercepts({});
     modelVersionArchive.visit();
@@ -179,10 +195,6 @@ describe('Restoring archive version', () => {
     initIntercepts({});
     modelVersionArchive.visit();
 
-    // Bypass patternfly ExpandableSection error https://github.com/patternfly/patternfly-react/issues/10410
-    // Cannot destructure property 'offsetWidth' of 'this.expandableContentRef.current' as it is null.
-    Cypress.on('uncaught:exception', () => false);
-
     const archiveVersionRow = modelVersionArchive.getRow('model version 2');
     archiveVersionRow.findKebabAction('Restore version').click();
 
@@ -190,10 +202,7 @@ describe('Restoring archive version', () => {
 
     cy.wait('@versionRestored').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'LIVE',
-        description: 'Description of model version',
       });
     });
   });
@@ -219,10 +228,7 @@ describe('Restoring archive version', () => {
 
     cy.wait('@versionRestored').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'LIVE',
-        description: 'Description of model version',
       });
     });
   });
@@ -252,10 +258,7 @@ describe('Archiving version', () => {
     archiveVersionModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@versionArchived').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'ARCHIVED',
-        description: 'Description of model version',
       });
     });
   });
@@ -285,10 +288,7 @@ describe('Archiving version', () => {
     archiveVersionModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@versionArchived').then((interception) => {
       expect(interception.request.body).to.eql({
-        author: 'Test author',
-        customProperties: {},
         state: 'ARCHIVED',
-        description: 'Description of model version',
       });
     });
   });

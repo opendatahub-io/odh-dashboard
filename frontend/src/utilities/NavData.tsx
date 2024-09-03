@@ -150,6 +150,15 @@ const useConnectionTypesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useStorageClassesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.STORAGE_CLASSES, [
+    {
+      id: 'settings-storage-classes',
+      label: 'Storage classes',
+      href: '/storageClasses',
+    },
+  ]);
+
 const useModelRegisterySettingsNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
     {
@@ -184,6 +193,7 @@ const useSettingsNav = (): NavDataGroup[] => {
     ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
     ...useConnectionTypesNav(),
+    ...useStorageClassesNav(),
     ...useModelRegisterySettingsNav(),
     ...useUserManagementNav(),
   ];

@@ -117,7 +117,7 @@ class InferenceServiceModal extends Modal {
 
   findExistingConnectionSelect() {
     return this.find()
-      .findByRole('group', { name: 'Model location' })
+      .findByRole('group', { name: 'Source model location' })
       .findByRole('button', { name: 'Options menu' });
   }
 
@@ -202,9 +202,7 @@ class ServingRuntimeModal extends Modal {
   }
 
   findModelServerSizeSelect() {
-    return this.find()
-      .findByRole('group', { name: 'Compute resources per replica' })
-      .findByTestId('model-server-size-selection');
+    return this.find().findByTestId('model-server-size-selection');
   }
 
   findModelServerReplicasMinusButton() {

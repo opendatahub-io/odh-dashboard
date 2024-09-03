@@ -24,7 +24,7 @@ const InferenceServiceNameSection: React.FC<InferenceServiceNameSectionProps> = 
   const validated = !isNameValid ? 'warning' : 'default';
 
   return (
-    <FormGroup label="Model name" fieldId="inference-service-name-input" isRequired>
+    <FormGroup label="Model deployment name" fieldId="inference-service-name-input" isRequired>
       <TextInput
         isRequired
         id="inference-service-name-input"
@@ -33,15 +33,18 @@ const InferenceServiceNameSection: React.FC<InferenceServiceNameSectionProps> = 
         onChange={(e, name) => setData('name', name)}
         validated={validated}
       />
-      {validated === 'warning' && (
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem variant={validated} icon={<ExclamationTriangleIcon />}>
-              Cannot exceed 253 characters
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
-      )}
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem
+            variant={validated}
+            icon={isNameValid ? undefined : <ExclamationTriangleIcon />}
+          >
+            {isNameValid
+              ? 'This is the name of the inference service created when the model is deployed'
+              : 'Cannot exceed 253 characters'}
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
     </FormGroup>
   );
 };

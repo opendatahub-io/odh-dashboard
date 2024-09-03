@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Label, Switch, Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
+import {
+  Label,
+  LabelGroup,
+  Switch,
+  Timestamp,
+  TimestampTooltipVariant,
+} from '@patternfly/react-core';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { relativeTime } from '~/utilities/time';
 import { updateConnectionTypeEnabled } from '~/services/connectionTypesService';
@@ -13,6 +19,8 @@ import {
   getDisplayNameFromK8sResource,
   ownedByDSC,
 } from '~/concepts/k8s/utils';
+import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
+import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
 
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;
@@ -71,25 +79,40 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
 
   return (
     <Tr>
-      <Td dataLabel="Name" width={50}>
+      <Td dataLabel={connectionTypeColumns[0].label} width={30}>
         <TableRowTitleDescription
           title={getDisplayNameFromK8sResource(obj)}
           description={getDescriptionFromK8sResource(obj)}
         />
       </Td>
-      <Td dataLabel="Creator" data-testid="connection-type-creator">
+      <Td dataLabel={connectionTypeColumns[1].label}>
+        {obj.data?.category?.length ? (
+          <LabelGroup>
+            {obj.data.category.map((category) => (
+              <CategoryLabel key={category} category={category} />
+            ))}
+          </LabelGroup>
+        ) : (
+          '-'
+        )}
+      </Td>
+      <Td dataLabel={connectionTypeColumns[2].label} data-testid="connection-type-creator">
         {ownedByDSC(obj) ? (
           <Label data-testid="connection-type-user-label">{creator}</Label>
         ) : (
           creator
         )}
       </Td>
-      <Td dataLabel="Created" data-testid="connection-type-created" modifier="nowrap">
+      <Td
+        dataLabel={connectionTypeColumns[3].label}
+        data-testid="connection-type-created"
+        modifier="nowrap"
+      >
         <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
           {createdDate ? relativeTime(Date.now(), createdDate.getTime()) : 'Unknown'}
         </Timestamp>
       </Td>
-      <Td dataLabel="Enabled">
+      <Td dataLabel={connectionTypeColumns[4].label}>
         <Switch
           isChecked={isEnabled}
           aria-label="toggle enabled"

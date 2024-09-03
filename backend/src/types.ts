@@ -40,6 +40,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
       disableConnectionTypes: boolean;
+      disableStorageClasses: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -276,6 +277,7 @@ export type KubeStatus = {
   currentUser: User;
   namespace: string;
   userName: string | string[];
+  userID?: string;
   clusterID: string;
   clusterBranding: string;
   isAdmin: boolean;
@@ -622,6 +624,14 @@ export type ImageTagInfo = {
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
+
+export type StorageClassConfig = {
+  displayName: string;
+  isEnabled: boolean;
+  isDefault: boolean;
+  lastModified: string;
+  description?: string;
+};
 
 export type PersistentVolumeClaimKind = {
   apiVersion?: string;
@@ -1189,4 +1199,9 @@ export type ModelRegistryKind = K8sResourceCommon & {
   status?: {
     conditions?: K8sCondition[];
   };
+};
+
+export type ResponseStatus = {
+  success: boolean;
+  error: string;
 };

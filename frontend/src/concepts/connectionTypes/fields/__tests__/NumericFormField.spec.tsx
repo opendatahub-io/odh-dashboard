@@ -17,7 +17,7 @@ describe('NumericFormField', () => {
       },
     };
 
-    render(<NumericFormField field={field} value={3} onChange={onChange} />);
+    render(<NumericFormField id="test" field={field} value={3} onChange={onChange} />);
     const input = screen.getByRole('spinbutton');
     expect(input).toHaveValue(3);
     expect(input).not.toBeDisabled();
@@ -39,7 +39,9 @@ describe('NumericFormField', () => {
       },
     };
 
-    render(<NumericFormField field={field} value={3} onChange={onChange} isPreview />);
+    render(
+      <NumericFormField id="test" field={field} value={3} onChange={onChange} mode="preview" />,
+    );
     const input = screen.getByRole('spinbutton');
     expect(input).toHaveValue(2);
     expect(input).not.toBeDisabled();
@@ -62,7 +64,7 @@ describe('NumericFormField', () => {
       },
     };
 
-    render(<NumericFormField field={field} value={3} />);
+    render(<NumericFormField id="test" field={field} value={3} />);
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
     expect(screen.queryByText(2)).toBeInTheDocument();
   });

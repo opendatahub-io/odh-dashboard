@@ -46,8 +46,8 @@ export const NumberInputParam: React.FC<NumberInputParamProps> = ({
       data-testid={inputProps.id}
       value={value}
       onChange={(newValue) => {
-        setValue(newValue);
-        onChange(null, newValue);
+        setValue(newValue ?? 0);
+        onChange(null, newValue ?? 0);
       }}
     />
   );

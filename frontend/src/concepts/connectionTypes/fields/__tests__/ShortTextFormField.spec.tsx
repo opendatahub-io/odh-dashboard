@@ -17,7 +17,9 @@ describe('ShortTextFormField', () => {
       },
     };
 
-    render(<ShortTextFormField field={field} value="supplied-value" onChange={onChange} />);
+    render(
+      <ShortTextFormField id="test" field={field} value="supplied-value" onChange={onChange} />,
+    );
     const input = screen.getByRole('textbox');
     expect(input).toHaveValue('supplied-value');
     expect(input).not.toBeDisabled();
@@ -40,7 +42,13 @@ describe('ShortTextFormField', () => {
     };
 
     render(
-      <ShortTextFormField field={field} value="supplied-value" onChange={onChange} isPreview />,
+      <ShortTextFormField
+        id="test"
+        field={field}
+        value="supplied-value"
+        onChange={onChange}
+        mode="preview"
+      />,
     );
     const input = screen.getByRole('textbox');
     expect(input).toHaveValue('default-value');
@@ -64,7 +72,7 @@ describe('ShortTextFormField', () => {
       },
     };
 
-    render(<ShortTextFormField field={field} value="supplied-value" />);
+    render(<ShortTextFormField id="test" field={field} value="supplied-value" />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByText('default-value')).toBeInTheDocument();
   });

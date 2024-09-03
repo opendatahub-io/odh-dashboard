@@ -9,6 +9,8 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  TextContent,
+  Text,
 } from '@patternfly/react-core';
 
 import { Artifact } from '~/third_party/mlmd';
@@ -46,30 +48,37 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
           </DescriptionList>
         </Stack>
       </FlexItem>
-
-      {!!artifactObject?.propertiesMap.length && (
-        <FlexItem>
-          <Stack hasGutter>
-            <Title headingLevel="h3">Properties</Title>
+      <FlexItem data-testid="artifact-properties-section">
+        <Stack hasGutter>
+          <Title headingLevel="h3">Properties</Title>
+          {artifactObject?.propertiesMap && artifactObject.propertiesMap.length !== 0 ? (
             <ArtifactPropertyDescriptionList
               propertiesMap={artifactObject.propertiesMap}
               testId="props-description-list"
             />
-          </Stack>
-        </FlexItem>
-      )}
-
-      {!!artifactObject?.customPropertiesMap.length && (
-        <FlexItem>
-          <Stack hasGutter>
-            <Title headingLevel="h3">Custom properties</Title>
+          ) : (
+            <TextContent>
+              <Text component="small">No properties</Text>
+            </TextContent>
+          )}
+        </Stack>
+      </FlexItem>
+      <FlexItem data-testid="artifact-custom-properties-section">
+        <Stack hasGutter>
+          <Title headingLevel="h3">Custom properties</Title>
+          {artifactObject?.customPropertiesMap &&
+          artifactObject.customPropertiesMap.length !== 0 ? (
             <ArtifactPropertyDescriptionList
               propertiesMap={artifactObject.customPropertiesMap}
               testId="custom-props-description-list"
             />
-          </Stack>
-        </FlexItem>
-      )}
+          ) : (
+            <TextContent>
+              <Text component="small">No custom properties</Text>
+            </TextContent>
+          )}
+        </Stack>
+      </FlexItem>
     </Flex>
   );
 };

@@ -1,41 +1,38 @@
 import * as React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import { FormGroup, GenerateId, Popover } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
-import FormGroupText from '~/components/FormGroupText';
-import UnspecifiedValue from '~/concepts/connectionTypes/fields/UnspecifiedValue';
-import { defaultValueToString } from '~/concepts/connectionTypes/utils';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
-type Props<T extends ConnectionTypeDataField> = {
-  field: T;
-  isPreview: boolean;
+type Props = {
+  field: ConnectionTypeDataField;
   children: (id: string) => React.ReactNode;
-  renderDefaultValue?: boolean;
 };
 
-const DataFormFieldGroup = <T extends ConnectionTypeDataField>({
-  field,
-  isPreview,
-  children,
-  renderDefaultValue = true,
-}: Props<T>): React.ReactNode => {
-  const id = `${field.type}-${field.envVar}`;
-  return (
-    <FormGroup
-      label={field.name}
-      fieldId={id}
-      data-testid={`field ${field.type} ${field.envVar}`}
-      // do not mark read only fields as required
-      isRequired={field.required && !field.properties.defaultReadOnly}
-    >
-      {field.properties.defaultReadOnly && renderDefaultValue ? (
-        <FormGroupText id={id}>
-          {defaultValueToString(field) ?? (isPreview ? <UnspecifiedValue /> : '-')}
-        </FormGroupText>
-      ) : (
-        children(id)
-      )}
-    </FormGroup>
-  );
-};
+const DataFormFieldGroup: React.FC<Props> = ({ field, children }): React.ReactNode => (
+  <GenerateId>
+    {(id) => (
+      <FormGroup
+        label={field.name}
+        fieldId={id}
+        data-testid={`field ${field.type} ${field.envVar}`}
+        // do not mark read only fields as required
+        isRequired={field.required && !field.properties.defaultReadOnly}
+        labelIcon={
+          field.description ? (
+            <Popover bodyContent={field.description}>
+              <DashboardPopupIconButton
+                icon={<OutlinedQuestionCircleIcon />}
+                aria-label="More info"
+              />
+            </Popover>
+          ) : undefined
+        }
+      >
+        {children(id)}
+      </FormGroup>
+    )}
+  </GenerateId>
+);
 
 export default DataFormFieldGroup;

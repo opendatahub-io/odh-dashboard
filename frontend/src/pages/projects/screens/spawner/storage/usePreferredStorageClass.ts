@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AppContext } from '~/app/AppContext';
-import { StorageClassKind } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
 
 const usePreferredStorageClass = (): StorageClassKind | undefined => {
   const {
@@ -9,14 +10,16 @@ const usePreferredStorageClass = (): StorageClassKind | undefined => {
     },
     storageClasses,
   } = React.useContext(AppContext);
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
 
-  const defaultClusterStorageClasses = storageClasses.filter((storageclass) =>
-    storageclass.metadata.annotations?.['storageclass.kubernetes.io/is-default-class']?.includes(
-      'true',
-    ),
+  const defaultClusterStorageClasses = storageClasses.filter(
+    (storageclass) =>
+      storageclass.metadata.annotations?.[MetadataAnnotation.StorageClassIsDefault] === 'true',
   );
 
-  const configStorageClassName = notebookController?.storageClassName ?? '';
+  const configStorageClassName = !isStorageClassesAvailable
+    ? notebookController?.storageClassName ?? ''
+    : '';
 
   if (defaultClusterStorageClasses.length !== 0) {
     return undefined;
