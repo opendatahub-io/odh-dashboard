@@ -54,6 +54,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
         className="odh-notebook-controller__env-var-field__name"
         fieldId={`${fieldIndex}-${variable.name}`}
         label="Variable name"
+        isRequired
       >
         <TextInput
           id={`${fieldIndex}-${variable.name}`}

@@ -87,7 +87,12 @@ const SpawnerPage: React.FC = () => {
     });
 
   const disableSubmit =
-    createInProgress || variableRows.some(({ errors }) => Object.keys(errors).length > 0);
+    createInProgress ||
+    variableRows.some(
+      ({ errors, variables }) =>
+        Object.keys(errors).length > 0 ||
+        variables.find((variable) => !variable.name || variable.name === EMPTY_KEY),
+    );
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
@@ -217,7 +222,7 @@ const SpawnerPage: React.FC = () => {
       }
     }
     updatedRow.variables.forEach((variable) => {
-      if (!ENV_VAR_NAME_REGEX.test(variable.name)) {
+      if (variable.name && variable.name !== EMPTY_KEY && !ENV_VAR_NAME_REGEX.test(variable.name)) {
         updatedRows[index].errors[variable.name] =
           "Invalid variable name. The name must consist of alphabetic characters, digits, '_', '-', or '.', and must not start with a digit.";
       }
