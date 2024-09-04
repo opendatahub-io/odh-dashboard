@@ -153,6 +153,17 @@ describe('Model archive list', () => {
   });
 });
 
+it('Opens the detail page when we select "View Details" from action menu', () => {
+  initIntercepts({});
+  registeredModelArchive.visit();
+  const archiveModelRow = registeredModelArchive.getRow('model 2');
+  archiveModelRow.findKebabAction('View details').click();
+  cy.location('pathname').should(
+    'be.equals',
+    '/modelRegistry/modelregistry-sample/registeredModels/2/details',
+  );
+});
+
 describe('Restoring archive model', () => {
   it('Restore from archive models table', () => {
     cy.interceptOdh(
