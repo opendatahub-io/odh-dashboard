@@ -19,6 +19,7 @@ import type {
   TemplateKind,
   NotebookKind,
   ModelRegistryKind,
+  ConsoleLinkKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
@@ -85,6 +86,10 @@ declare global {
           type: 'PUT /api/accelerator-profiles/:name',
           options: { path: { name: string } },
           response: OdhResponse,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/console-links',
+          response: OdhResponse<ConsoleLinkKind[]>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/groups-config',

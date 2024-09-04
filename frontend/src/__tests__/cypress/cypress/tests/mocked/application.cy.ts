@@ -6,6 +6,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDashboardConfig } from '~/__mocks__';
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
+import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
 
 describe('Application', () => {
   it('should disallow access to the dashboard', () => {
@@ -28,13 +29,24 @@ describe('Application', () => {
   });
 
   it('Validate clicking on App Launcher opens menu', () => {
+    cy.interceptOdh('GET /api/console-links', mockConsoleLinks());
     appChrome.visit();
     const applicationLauncher = appChrome.getApplicationLauncher();
     applicationLauncher.toggleAppLauncherButton();
-    const applicationLauncherMenuGroup = applicationLauncher.getApplicationLauncherMenuGroup(
+
+    // Have a static item
+    const applicationLauncherMenuGroupStatic = applicationLauncher.getApplicationLauncherMenuGroup(
       `${Cypress.env('ODH_PRODUCT_NAME')} Applications`,
     );
-    applicationLauncherMenuGroup.shouldHaveApplicationLauncherItem('OpenShift Cluster Manager');
+    applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem(
+      'OpenShift Cluster Manager',
+    );
+
+    // Do not have the ODH console link
+    applicationLauncher
+      .findApplicationLauncherMenuGroup(`OpenShift Open Data Hub`)
+      .should('not.exist');
+
     applicationLauncher.toggleAppLauncherButton();
   });
 

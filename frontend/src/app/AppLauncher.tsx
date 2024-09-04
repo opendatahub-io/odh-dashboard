@@ -17,7 +17,7 @@ import { ApplicationAction, Section } from '~/types';
 import { useAppContext } from './AppContext';
 import './AppLauncher.scss';
 
-const odhConsoleLinkName = 'rhodslink';
+const appConsoleLinkNames = ['rhodslink', 'odhlink'];
 
 export const getOCMAction = (
   clusterID?: string,
@@ -73,7 +73,8 @@ const AppLauncher: React.FC = () => {
     const applicationLinks = consoleLinks
       .filter(
         (link) =>
-          link.spec.location === 'ApplicationMenu' && link.metadata?.name !== odhConsoleLinkName,
+          link.spec.location === 'ApplicationMenu' &&
+          !appConsoleLinkNames.includes(link.metadata?.name ?? ''),
       )
       .toSorted((a, b) => a.spec.text.localeCompare(b.spec.text));
 
@@ -101,7 +102,7 @@ const AppLauncher: React.FC = () => {
       const action: ApplicationAction = {
         label: link.spec.text,
         href: link.spec.href,
-        image: <img src={link.spec.applicationMenu?.imageUrl} alt="" />,
+        image: <img src={link.spec.applicationMenu?.imageURL} alt={`${link.spec.text} logo`} />,
       };
       const section = acc.find(
         (currentSection) => currentSection.label === link.spec.applicationMenu?.section,
