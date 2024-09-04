@@ -104,6 +104,13 @@ export const filterModelVersions = (
     }
   });
 
+export const sortModelVersionsByCreateTime = (registeredModels: ModelVersion[]): ModelVersion[] =>
+  registeredModels.toSorted((a, b) => {
+    const first = parseInt(a.createTimeSinceEpoch);
+    const second = parseInt(b.createTimeSinceEpoch);
+    return new Date(second).getTime() - new Date(first).getTime();
+  });
+
 export const filterRegisteredModels = (
   unfilteredRegisteredModels: RegisteredModel[],
   search: string,

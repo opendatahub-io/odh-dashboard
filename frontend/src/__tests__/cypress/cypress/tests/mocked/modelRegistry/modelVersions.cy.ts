@@ -91,12 +91,13 @@ const initIntercepts = ({
       path: {
         serviceName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
-        modelVersionId: 2,
+        modelVersionId: 1,
       },
     },
-    mockModelVersion({ id: '2', name: 'model version' }),
+    mockModelVersion({ id: '1', name: 'model version' }),
   );
 };
+
 describe('Model Versions', () => {
   it('No model versions in the selected registered model', () => {
     initIntercepts({
@@ -167,9 +168,16 @@ describe('Model Versions', () => {
     labelModal.findCloseModal().click();
 
     // sort by model version name
+    modelRegistry.findModelVersionsTableHeaderButton('Version name').click();
     modelRegistry.findModelVersionsTableHeaderButton('Version name').should(be.sortAscending);
     modelRegistry.findModelVersionsTableHeaderButton('Version name').click();
     modelRegistry.findModelVersionsTableHeaderButton('Version name').should(be.sortDescending);
+
+    // sort by Last modified
+    modelRegistry.findModelVersionsTableHeaderButton('Last modified').click();
+    modelRegistry.findModelVersionsTableHeaderButton('Last modified').should(be.sortAscending);
+    modelRegistry.findModelVersionsTableHeaderButton('Last modified').click();
+    modelRegistry.findModelVersionsTableHeaderButton('Last modified').should(be.sortDescending);
 
     // sort by model version author
     modelRegistry.findModelVersionsTableHeaderButton('Author').click();
@@ -200,7 +208,7 @@ describe('Model Versions', () => {
     verifyRelativeURL(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
     modelVersionRow.findModelVersionName().contains('model version').click();
-    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/2/details');
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions/1/details');
     cy.findByTestId('app-page-title').should('have.text', 'model version');
     cy.findByTestId('breadcrumb-version-name').should('have.text', 'model version');
     cy.go('back');
