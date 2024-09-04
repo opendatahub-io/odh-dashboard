@@ -38,7 +38,7 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
           stringValue: '211',
         },
         display_name: {
-          stringValue: 'create-dataset',
+          stringValue: 'digit-classification',
         },
         image: {
           stringValue: '',
@@ -66,7 +66,7 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
           stringValue: '',
         },
         task_name: {
-          stringValue: 'create-dataset',
+          stringValue: 'digit-classification',
         },
       },
     },
@@ -134,7 +134,7 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
           stringValue: '222',
         },
         display_name: {
-          stringValue: 'wine-classification',
+          stringValue: 'create-dataset',
         },
         image: {
           stringValue: '',
@@ -162,7 +162,7 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
           stringValue: '',
         },
         task_name: {
-          stringValue: 'wine-classification',
+          stringValue: 'create-dataset',
         },
       },
     },
