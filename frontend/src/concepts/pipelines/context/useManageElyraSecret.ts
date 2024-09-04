@@ -49,7 +49,6 @@ const useManageElyraSecret = (
     }
   }, [cr?.spec.objectStorage.externalStorage, dataConnection, notification, routePath]);
 
-  // const externalStorage = useDeepCompareMemoize(cr?.spec.objectStorage.externalStorage);
   React.useEffect(() => {
     if (fullLoadedState && generatedSecret) {
       if (!elyraSecret) {
