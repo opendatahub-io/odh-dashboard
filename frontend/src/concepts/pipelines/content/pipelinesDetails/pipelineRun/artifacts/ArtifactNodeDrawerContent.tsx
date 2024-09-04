@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { isMetricsArtifactType } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { ArtifactNodeDetails } from './ArtifactNodeDetails';
 import { ArtifactVisualization } from './ArtifactVisualization';
 
@@ -63,13 +64,15 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
             >
               <ArtifactNodeDetails artifact={artifact} upstreamTaskName={upstreamTaskName} />
             </Tab>
-            <Tab
-              eventKey={ArtifactNodeDrawerTab.Visualization}
-              title={<TabTitleText>Visualization</TabTitleText>}
-              aria-label="Visualization"
-            >
-              <ArtifactVisualization artifact={artifact} />
-            </Tab>
+            {isMetricsArtifactType(artifact.getType()) && (
+              <Tab
+                eventKey={ArtifactNodeDrawerTab.Visualization}
+                title={<TabTitleText>Visualization</TabTitleText>}
+                aria-label="Visualization"
+              >
+                <ArtifactVisualization artifact={artifact} />
+              </Tab>
+            )}
           </Tabs>
         ) : (
           <EmptyState variant={EmptyStateVariant.xs}>

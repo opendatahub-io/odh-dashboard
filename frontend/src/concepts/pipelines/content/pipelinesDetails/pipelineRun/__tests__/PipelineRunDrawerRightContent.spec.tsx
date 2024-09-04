@@ -12,7 +12,7 @@ import { Artifact } from '~/third_party/mlmd';
 const artifactTask: PipelineTask = {
   type: 'artifact',
   name: 'metrics',
-  metadata: new Artifact(),
+  metadata: new Artifact().setType('system.Metrics'),
   inputs: { artifacts: [{ label: 'metrics', type: 'system.Metrics (0.0.1)' }] },
 };
 
