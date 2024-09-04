@@ -54,7 +54,7 @@ export type ModelRegistryServicesResult = {
   modelRegistryServices: ServiceKind[];
   isLoaded: boolean;
   error?: Error;
-  refreshRulesReview: () => void; // Add this line
+  refreshRulesReview: () => void;
 };
 
 export const useModelRegistryServices = (namespace: string): ModelRegistryServicesResult => {

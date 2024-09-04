@@ -23,7 +23,7 @@ export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySel
   modelRegistryServices: [],
   preferredModelRegistry: undefined,
   updatePreferredModelRegistry: () => undefined,
-  refreshRulesReview: () => undefined, // Add this line
+  refreshRulesReview: () => undefined,
 });
 
 export const ModelRegistrySelectorContextProvider: React.FC<
@@ -59,7 +59,7 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<
       modelRegistryServices,
       preferredModelRegistry: preferredModelRegistry ?? modelRegistryServices[0],
       updatePreferredModelRegistry: setPreferredModelRegistry,
-      refreshRulesReview, // Remove the wrapper function
+      refreshRulesReview,
     }),
     [isLoaded, error, modelRegistryServices, preferredModelRegistry, refreshRulesReview],
   );
