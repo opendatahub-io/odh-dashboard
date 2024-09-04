@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import startCase from 'lodash-es/startCase';
-import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import {
   mockK8sResourceList,
   mockProjectK8sResource,
@@ -982,6 +982,30 @@ describe('Pipeline runs', () => {
           .findStatusSwitchByRowName()
           .click();
         cy.wait('@disableRecurringRun');
+      });
+
+      it('schedules toggle should be disabled for the schedules with archived experiment', () => {
+        const mockArchivedExperiment = buildMockExperimentKF({
+          display_name: 'Test experiment 1',
+          experiment_id: 'test-experiment-1',
+          last_run_created_at: '1970-01-01T00:00:00Z',
+          storage_state: StorageStateKF.ARCHIVED,
+        });
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+          {
+            path: {
+              namespace: projectName,
+              serviceName: 'dspa',
+              experimentId: 'test-experiment-1',
+            },
+          },
+          mockArchivedExperiment,
+        );
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRecurringRunTable
+          .getRowByName(mockRecurringRuns[0].display_name)
+          .shouldHaveToggleDisabled();
       });
 
       describe('Navigation', () => {
