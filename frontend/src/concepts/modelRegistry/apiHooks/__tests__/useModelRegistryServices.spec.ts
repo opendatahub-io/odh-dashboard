@@ -47,6 +47,59 @@ describe('useModelRegistryServices', () => {
     (useAccessReview as jest.Mock).mockReturnValue([false, true]);
     (useRulesReview as jest.Mock).mockReturnValue([{ resourceRules: [] }, true, jest.fn()]);
   });
+  it('should return loading state initially', () => {
+    const { result } = testHook(() => useModelRegistryServices('namespace'))();
+
+    const [modelRegistryServices, isLoaded, error] = objectToStandardUseFetchState(result.current);
+
+    expect(modelRegistryServices).toEqual([]);
+    expect(isLoaded).toBe(false);
+    expect(error).toBeUndefined();
+  });
+  it('returns services fetched by names when allowList is false', async () => {
+    (useAccessReview as jest.Mock).mockReturnValue([false, true]);
+    (useRulesReview as jest.Mock).mockReturnValue([
+      {
+        resourceRules: [
+          {
+            resources: ['services'],
+            verbs: ['get'],
+            resourceNames: ['service-1', 'service-2'],
+          },
+        ],
+      },
+      true,
+      jest.fn(),
+    ]);
+    mockGetResource.mockResolvedValueOnce(
+      mockModelRegistryService({ name: 'service-1', namespace: 'test-namespace' }),
+    );
+    mockGetResource.mockResolvedValueOnce(
+      mockModelRegistryService({ name: 'service-2', namespace: 'test-namespace' }),
+    );
+
+    const { result } = testHook(() => useModelRegistryServices('test-namespace'))();
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    const [services, isLoaded] = objectToStandardUseFetchState(result.current);
+    expect(services).toEqual([
+      mockModelRegistryService({ name: 'service-1', namespace: 'test-namespace' }),
+      mockModelRegistryService({ name: 'service-2', namespace: 'test-namespace' }),
+    ]);
+    expect(isLoaded).toBe(true);
+    expect(mockGetResource).toHaveBeenCalledTimes(2);
+    expect(mockGetResource).toHaveBeenCalledWith({
+      queryOptions: { name: 'service-1', ns: 'odh-model-registries' },
+    });
+    expect(mockGetResource).toHaveBeenCalledWith({
+      queryOptions: { name: 'service-2', ns: 'odh-model-registries' },
+    });
+  });
 
   it('should initialize with empty array and loading state', () => {
     const { result } = testHook(() => useModelRegistryServices('namespace'))();
