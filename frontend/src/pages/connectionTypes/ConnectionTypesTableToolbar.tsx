@@ -34,6 +34,14 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({
             onChange={(_event, value) => onChange(value)}
           />
         ),
+        [ConnectionTypesOptions.category]: ({ onChange, ...props }) => (
+          <TextInput
+            {...props}
+            aria-label="Filter by category"
+            placeholder="Filter by category"
+            onChange={(_event, value) => onChange(value)}
+          />
+        ),
         [ConnectionTypesOptions.createdBy]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
