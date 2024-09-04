@@ -1,6 +1,13 @@
 import React from 'react';
 
-import { Grid, GridItem, Stack, StackItem } from '@patternfly/react-core';
+import {
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
 import { Value as ProtoValue } from 'google-protobuf/google/protobuf/struct_pb';
 
 import { Link } from 'react-router-dom';
@@ -107,40 +114,40 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
   );
 
   return (
-    <Stack hasGutter>
+    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXl' }}>
       {isExperimentsAvailable && execution?.id && (
-        <StackItem data-testid="execution-name">
-          <Grid hasGutter>
-            <GridItem span={6}>
-              <b>Execution name</b>
-            </GridItem>
-            <GridItem span={6}>
-              <Link to={executionDetailsRoute(namespace, execution.id.toString())}>
-                {executionDisplayName}
-              </Link>
-            </GridItem>
-          </Grid>
-        </StackItem>
+        <FlexItem data-testid="execution-name">
+          <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '16ch' }}>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Execution name</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Link to={executionDetailsRoute(namespace, execution.id.toString())}>
+                  {executionDisplayName}
+                </Link>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        </FlexItem>
       )}
       {task.inputs && (
-        <StackItem>
+        <FlexItem>
           <TaskDetailsInputOutput
             type="Input"
             artifacts={task.inputs.artifacts}
             params={getParams(task.inputs.params, getExecutionFieldsMap('inputs'))}
           />
-        </StackItem>
+        </FlexItem>
       )}
       {task.outputs && (
-        <StackItem>
+        <FlexItem>
           <TaskDetailsInputOutput
             type="Output"
             artifacts={task.outputs.artifacts}
             params={getParams(task.outputs.params, getExecutionFieldsMap('outputs'))}
           />
-        </StackItem>
+        </FlexItem>
       )}
-    </Stack>
+    </Flex>
   );
 };
 export default SelectedNodeInputOutputTab;
