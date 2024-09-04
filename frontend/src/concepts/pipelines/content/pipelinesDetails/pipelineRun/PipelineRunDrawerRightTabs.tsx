@@ -32,9 +32,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
     (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === task.name,
   );
 
-  const isCachedTask =
-    !!taskExecution &&
-    !!taskExecution.getCustomPropertiesMap().get('cached_execution_id')?.getStringValue();
+  const isCachedTask = !!taskExecution?.getCustomPropertiesMap().get('cached_execution_id')?.getStringValue();
 
   const tabs: Record<string, { title: string; isDisabled?: boolean; content: React.ReactNode }> = {
     [PipelineRunNodeTab.INPUT_OUTPUT]: {
