@@ -70,8 +70,8 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
         return {
           label: item.label,
           value: item.value,
-          ...(duplicateLabel && { labelError: 'Duplicate label already exists' }),
-          ...(duplicateValue && { valueError: 'Duplicate value already exists' }),
+          ...(duplicateLabel && { labelError: `${item.label} already exists.` }),
+          ...(duplicateValue && { valueError: `${item.value} already exists.` }),
         };
       });
       onChange({

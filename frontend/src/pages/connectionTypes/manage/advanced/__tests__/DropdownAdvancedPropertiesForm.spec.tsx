@@ -147,7 +147,7 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
         properties={{
           variant: 'single',
           items: [
-            { label: 'a', value: 'a' },
+            { label: 'a', value: 'b' },
             { label: '', value: '' },
           ],
         }}
@@ -162,18 +162,18 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
     expect(onChange).toHaveBeenLastCalledWith({
       variant: 'single',
       items: [
-        { label: 'a', value: 'a' },
-        { label: 'a', value: '', labelError: 'Duplicate label already exists' },
+        { label: 'a', value: 'b' },
+        { label: 'a', value: '', labelError: 'a already exists.' },
       ],
     });
 
     const itemValue = screen.getByTestId('dropdown-item-row-value-1');
-    act(() => fireEvent.change(itemValue, { target: { value: 'a' } }));
+    act(() => fireEvent.change(itemValue, { target: { value: 'b' } }));
     expect(onChange).toHaveBeenLastCalledWith({
       variant: 'single',
       items: [
-        { label: 'a', value: 'a' },
-        { label: '', value: 'a', valueError: 'Duplicate value already exists' },
+        { label: 'a', value: 'b' },
+        { label: '', value: 'b', valueError: 'b already exists.' },
       ],
     });
 
@@ -183,12 +183,12 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
         properties={{
           variant: 'single',
           items: [
-            { label: 'a', value: 'a' },
+            { label: 'a', value: 'b' },
             {
               label: 'a',
-              value: 'a',
-              labelError: 'Duplicate label already exists',
-              valueError: 'Duplicate value already exists',
+              value: 'b',
+              labelError: 'a already exists.',
+              valueError: 'b already exists.',
             },
           ] as { label: string; value: string }[],
         }}
@@ -198,7 +198,7 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
       />,
     );
 
-    expect(screen.getByText('Duplicate label already exists')).toBeVisible();
-    expect(screen.getByText('Duplicate value already exists')).toBeVisible();
+    expect(screen.getByText('a already exists.')).toBeVisible();
+    expect(screen.getByText('b already exists.')).toBeVisible();
   });
 });
