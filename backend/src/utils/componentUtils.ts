@@ -12,6 +12,7 @@ import {
   getInstalledKfdefs,
   getSubscriptions,
 } from './resourceUtils';
+import { isHttpError } from '../utils';
 
 type RoutesResponse = {
   body: {
@@ -203,6 +204,13 @@ const getCSVForApp = (
         return csv;
       }
       return undefined;
+    })
+    .catch((e) => {
+      if (isHttpError(e) && e.statusCode === 404) {
+        fastify.log.error(e);
+        return undefined;
+      }
+      throw e;
     });
 };
 
