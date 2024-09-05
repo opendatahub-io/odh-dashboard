@@ -3,8 +3,8 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sListResourceItems,
-  k8sUpdateResource,
   K8sStatus,
+  k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
@@ -17,6 +17,7 @@ export const assemblePvc = (
   data: CreatingStorageObject,
   namespace: string,
   editName?: string,
+  hideFromUI?: boolean,
 ): PersistentVolumeClaimKind => {
   const {
     nameDesc: { name: pvcName, description },
@@ -32,9 +33,11 @@ export const assemblePvc = (
     metadata: {
       name,
       namespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-      },
+      ...(hideFromUI !== true && {
+        labels: {
+          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        },
+      }),
       annotations: {
         'openshift.io/display-name': pvcName.trim(),
         'openshift.io/description': description,
@@ -69,8 +72,9 @@ export const createPvc = (
   data: CreatingStorageObject,
   namespace: string,
   opts?: K8sAPIOptions,
+  hideFromUI?: boolean,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace);
+  const pvc = assemblePvc(data, namespace, undefined, hideFromUI);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),

@@ -10,6 +10,7 @@ type PVSizeFieldProps = {
   menuAppendTo?: HTMLElement;
   setSize: (size: string) => void;
   currentSize?: string;
+  label?: string;
 };
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({
@@ -18,8 +19,9 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({
   menuAppendTo,
   setSize,
   currentSize,
+  label = 'Persistent storage size',
 }) => (
-  <FormGroup label="Persistent storage size" fieldId={fieldID} data-testid={fieldID}>
+  <FormGroup label={label} fieldId={fieldID} data-testid={fieldID}>
     <ValueUnitField
       min={currentSize ?? 1}
       onBlur={(value) => setSize(value)}

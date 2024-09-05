@@ -36,6 +36,7 @@ The following are a list of features that are supported, along with there defaul
 | disableModelRegistry         | true    | Disables Model Registry from the dashboard.                                                          |
 | disableConnectionTypes       | true    | Disables creating custom data connection types from the dashboard.                                   |
 | disableStorageClasses        | true    | Disables storage classes settings nav item from the dashboard.                                       |
+| disableNIMModelServing       | true    | Disables components of NIM Model UI from the dashboard.   
 
 ## Defaults
 
@@ -67,6 +68,7 @@ spec:
     disableDistributedWorkloads: false
     disableConnectionTypes: false
     disableStorageClasses: true
+    disableNIMModelServing: true
 ```
 
 ## Additional fields
@@ -161,6 +163,7 @@ spec:
     disableBiasMetrics: false
     disablePerformanceMetrics: false
     disablePipelineExperiments: false
+    disableNIMModelServing: true
   notebookController:
     enabled: true
     gpuSetting: autodetect

@@ -29,6 +29,7 @@ type MockDashboardConfigType = {
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
   notebookSizes?: NotebookSize[];
+  disableNIMModelServing?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -58,6 +59,7 @@ export const mockDashboardConfig = ({
   disableConnectionTypes = true,
   disableStorageClasses = false,
   disableNotebookController = false,
+  disableNIMModelServing = true,
   notebookSizes = [
     {
       name: 'XSmall',
@@ -164,6 +166,7 @@ export const mockDashboardConfig = ({
       disableModelRegistry,
       disableConnectionTypes,
       disableStorageClasses,
+      disableNIMModelServing,
     },
     notebookController: {
       enabled: !disableNotebookController,

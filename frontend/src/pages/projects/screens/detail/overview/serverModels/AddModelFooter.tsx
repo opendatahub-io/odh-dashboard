@@ -12,12 +12,14 @@ import {
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import DeployNIMServiceModal from '~/pages/modelServing/screens/projects/NIMServiceModal/DeployNIMServiceModal';
 
 type AddModelFooterProps = {
   selectedPlatform?: ServingRuntimePlatform;
+  isNIM?: boolean;
 };
 
-const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform }) => {
+const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM }) => {
   const [modalShown, setModalShown] = React.useState<boolean>(false);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
@@ -67,7 +69,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform }) => 
         isInline
         testId="model-serving-platform-button"
       />
-      {modalShown && isProjectModelMesh ? (
+      {modalShown && isProjectModelMesh && !isNIM ? (
         <ManageServingRuntimeModal
           isOpen
           currentProject={currentProject}
@@ -77,8 +79,18 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform }) => 
           onClose={onSubmit}
         />
       ) : null}
-      {modalShown && !isProjectModelMesh ? (
+      {modalShown && !isProjectModelMesh && !isNIM ? (
         <ManageKServeModal
+          isOpen
+          projectContext={{ currentProject, dataConnections }}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+          )}
+          onClose={onSubmit}
+        />
+      ) : null}
+      {modalShown && isNIM ? (
+        <DeployNIMServiceModal
           isOpen
           projectContext={{ currentProject, dataConnections }}
           servingRuntimeTemplates={templatesEnabled.filter((template) =>

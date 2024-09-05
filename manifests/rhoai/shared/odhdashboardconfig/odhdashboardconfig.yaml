@@ -30,6 +30,7 @@ spec:
     disableModelRegistry: true
     disableConnectionTypes: true
     disableStorageClasses: true
+    disableNIMModelServing: true
   groupsConfig:
     adminGroups: "$(admin_groups)"
     allowedGroups: "system:authenticated"

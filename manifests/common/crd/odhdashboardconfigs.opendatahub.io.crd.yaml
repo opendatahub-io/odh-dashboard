@@ -77,6 +77,8 @@ spec:
                       type: boolean
                     disableStorageClasses:
                       type: boolean
+                    disableNIMModelServing:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:
