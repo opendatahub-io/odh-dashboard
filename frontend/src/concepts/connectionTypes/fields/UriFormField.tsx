@@ -11,13 +11,12 @@ import { UriField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
-const URI_REGEX = new RegExp(
-  '(?:(?:https?|ftp|file)://|www.|ftp.)(?:([-A-Z0-9+&@#/%=~_|$?!:,.]*)|[-A-Z0-9+&@#/%=~_|$?!:,.])*(?:([-A-Z0-9+&@#/%=~_|$?!:,.]*)|[A-Z0-9+&@#/%=~_|$])',
-);
-
 const validateUrl = (url?: string) => {
+  if (!url) {
+    return true;
+  }
   try {
-    return !url || URI_REGEX.test(url);
+    return !!new URL(url);
   } catch (e) {
     return false;
   }
@@ -68,9 +67,9 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
       />
       {!isValid && (
         <FormHelperText>
-          <HelperText>
+          <HelperText data-testid="uri-form-field-helper-text">
             <HelperTextItem icon={<ExclamationCircleIcon />} variant={ValidatedOptions.error}>
-              Invalid URL
+              Invalid URI
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
