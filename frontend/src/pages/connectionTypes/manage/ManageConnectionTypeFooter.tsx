@@ -27,7 +27,12 @@ const ManageConnectionTypeFooter: React.FC<Props> = ({
     <Stack hasGutter>
       {error && (
         <StackItem>
-          <Alert isInline variant="danger" title="Error saving connection type">
+          <Alert
+            isInline
+            variant="danger"
+            title="Error saving connection type"
+            data-testid="connection-type-footer-error"
+          >
             {error}
           </Alert>
         </StackItem>

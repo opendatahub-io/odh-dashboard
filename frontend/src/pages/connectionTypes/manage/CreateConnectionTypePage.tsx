@@ -13,7 +13,7 @@ const CreateConnectionTypePage: React.FC<Props> = ({ prefill }) => (
     onSave={async (obj) => {
       const response = await createConnectionType(obj);
       if (response.error) {
-        throw response.error;
+        throw new Error(response.error);
       }
     }}
   />
