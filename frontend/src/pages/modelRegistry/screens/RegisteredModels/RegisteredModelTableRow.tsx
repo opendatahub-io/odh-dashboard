@@ -13,6 +13,7 @@ import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
+import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -32,19 +33,21 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name);
 
-  const actions = isArchiveRow
-    ? [
-        {
+  const actions = [
+    {
+      title: 'View details',
+      onClick: () => navigate(`${rmUrl}/${ModelVersionsTab.DETAILS}`),
+    },
+    isArchiveRow
+      ? {
           title: 'Restore model',
           onClick: () => setIsRestoreModalOpen(true),
-        },
-      ]
-    : [
-        {
+        }
+      : {
           title: 'Archive model',
           onClick: () => setIsArchiveModalOpen(true),
         },
-      ];
+  ];
 
   return (
     <Tr>
