@@ -42,6 +42,25 @@ describe('create', () => {
     createConnectionTypePage.findSubmitButton().should('be.enabled');
   });
 
+  it('Shows creation error message when creation fails', () => {
+    cy.interceptOdh('POST /api/connection-types', {
+      success: false,
+      error: 'returned error message',
+    });
+    const categorySection = createConnectionTypePage.getCategorySection();
+    createConnectionTypePage.visitCreatePage();
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', '');
+    createConnectionTypePage.findSubmitButton().should('be.disabled');
+
+    createConnectionTypePage.findConnectionTypeName().type('hello');
+    categorySection.findCategoryTable();
+    categorySection.findMultiGroupSelectButton('Object-storage');
+    createConnectionTypePage.findSubmitButton().should('be.enabled').click();
+
+    createConnectionTypePage.findFooterError().should('contain.text', 'returned error message');
+  });
+
   it('Selects category or creates new category', () => {
     createConnectionTypePage.visitCreatePage();
 

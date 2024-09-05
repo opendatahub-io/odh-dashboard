@@ -608,6 +608,10 @@ declare global {
           response: ConnectionTypeConfigMap[],
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /api/connection-types',
+          response: OdhResponse<SuccessErrorResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'DELETE /api/connection-types/:name',
           options: { path: { name: string } },
           response: OdhResponse<SuccessErrorResponse>,
