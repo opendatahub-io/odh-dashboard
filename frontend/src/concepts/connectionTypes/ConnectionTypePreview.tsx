@@ -46,7 +46,7 @@ const ConnectionTypePreview: React.FC<Props> = ({ obj }) => {
         />
         <HelperText>
           {connectionTypeDescription ? (
-            <HelperTextItem>
+            <HelperTextItem style={{ overflowWrap: 'anywhere' }}>
               <TruncatedText maxLines={2} content={connectionTypeDescription} />
             </HelperTextItem>
           ) : undefined}

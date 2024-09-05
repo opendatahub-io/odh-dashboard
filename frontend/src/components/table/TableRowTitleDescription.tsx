@@ -3,6 +3,7 @@ import { Text } from '@patternfly/react-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import MarkdownView from '~/components/MarkdownView';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import TruncatedText from '~/components/TruncatedText';
 
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;
@@ -10,6 +11,7 @@ type TableRowTitleDescriptionProps = {
   subtitle?: React.ReactNode;
   description?: string;
   descriptionAsMarkdown?: boolean;
+  truncateDescriptionLines?: number;
   label?: React.ReactNode;
 };
 
@@ -19,6 +21,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   resource,
   subtitle,
   descriptionAsMarkdown,
+  truncateDescriptionLines,
   label,
 }) => {
   let descriptionNode: React.ReactNode;
@@ -30,7 +33,11 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
         data-testid="table-row-title-description"
         style={{ color: 'var(--pf-v5-global--Color--200)' }}
       >
-        {description}
+        {truncateDescriptionLines !== undefined ? (
+          <TruncatedText maxLines={truncateDescriptionLines} content={description} />
+        ) : (
+          description
+        )}
       </Text>
     );
   }

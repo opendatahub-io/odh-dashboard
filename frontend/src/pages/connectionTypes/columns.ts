@@ -47,21 +47,25 @@ export const connectionTypeColumns: SortableData<ConnectionTypeConfigMapObj>[] =
     label: 'Name',
     field: 'name',
     sortable: sorter,
+    width: 30,
   },
   {
     label: 'Category',
     field: 'category',
     sortable: false,
+    width: 25,
   },
   {
     label: 'Creator',
     field: 'creator',
     sortable: sorter,
+    width: 15,
   },
   {
     label: 'Created',
     field: 'created',
     sortable: sorter,
+    width: 15,
   },
   {
     label: 'Enable',
@@ -74,5 +78,6 @@ export const connectionTypeColumns: SortableData<ConnectionTypeConfigMapObj>[] =
         headerContent: 'Enable',
       },
     },
+    width: 10,
   },
 ];
