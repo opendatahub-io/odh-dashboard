@@ -15,7 +15,7 @@ describe('ConnectionTypeDataFieldModal', () => {
   });
 
   it('should render the modal', () => {
-    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    render(<ConnectionTypeDataFieldModal isOpen onClose={onClose} onSubmit={onSubmit} />);
 
     const addButton = screen.getByTestId('modal-submit-button');
     expect(addButton).toBeDisabled();
@@ -24,7 +24,7 @@ describe('ConnectionTypeDataFieldModal', () => {
   });
 
   it('should add a short text field', async () => {
-    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    render(<ConnectionTypeDataFieldModal isOpen onClose={onClose} onSubmit={onSubmit} />);
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
@@ -69,7 +69,7 @@ describe('ConnectionTypeDataFieldModal', () => {
   });
 
   it('should auto generate env var if not entered', async () => {
-    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    render(<ConnectionTypeDataFieldModal isOpen onClose={onClose} onSubmit={onSubmit} />);
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
@@ -129,7 +129,7 @@ describe('ConnectionTypeDataFieldModal', () => {
   });
 
   it('should add a numeric field', async () => {
-    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    render(<ConnectionTypeDataFieldModal isOpen onClose={onClose} onSubmit={onSubmit} />);
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
@@ -247,6 +247,7 @@ describe('ConnectionTypeDataFieldModal', () => {
     };
     render(
       <ConnectionTypeDataFieldModal
+        isOpen
         onClose={onClose}
         onSubmit={onSubmit}
         field={field}
