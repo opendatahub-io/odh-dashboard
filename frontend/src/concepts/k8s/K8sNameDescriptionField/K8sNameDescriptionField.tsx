@@ -31,12 +31,9 @@ export const useK8sNameDescriptionFieldData = (
   // Hold the data in a ref to avoid churn in the update method
   const dataRef = React.useRef(data);
   dataRef.current = data;
-  const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>(
-    (key, value) => {
-      setData(handleUpdateLogic(dataRef.current)(key, value));
-    },
-    [setData],
-  );
+  const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>((key, value) => {
+    setData(handleUpdateLogic(dataRef.current)(key, value));
+  }, []);
 
   return { data, onDataChange };
 };

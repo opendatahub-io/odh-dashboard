@@ -1,5 +1,11 @@
 import * as _ from 'lodash-es';
-import { isValidK8sName, translateDisplayNameForK8sAndReport } from '~/concepts/k8s/utils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+  isK8sDSGResource,
+  isValidK8sName,
+  translateDisplayNameForK8sAndReport,
+} from '~/concepts/k8s/utils';
 import { RecursivePartial } from '~/typeHelpers';
 import {
   K8sNameDescriptionFieldData,
@@ -37,11 +43,10 @@ export const setupDefaults = ({
   let initialK8sNameValue = '';
   let configuredMaxLength = MAX_RESOURCE_NAME_LENGTH;
 
-  if (initialData) {
-    const { annotations, name } = initialData.metadata ?? {};
-    initialName = annotations?.['openshift.io/display-name'] ?? name ?? '';
-    initialDescription = annotations?.['openshift.io/description'] ?? '';
-    initialK8sNameValue = name ?? '';
+  if (isK8sDSGResource(initialData)) {
+    initialName = getDisplayNameFromK8sResource(initialData);
+    initialDescription = getDescriptionFromK8sResource(initialData);
+    initialK8sNameValue = initialData.metadata.name;
   }
   if (limitNameResourceType != null) {
     configuredMaxLength = ROUTE_BASED_NAME_LENGTH;
