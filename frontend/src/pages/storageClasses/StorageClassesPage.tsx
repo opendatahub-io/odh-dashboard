@@ -10,16 +10,28 @@ import {
   AlertActionCloseButton,
 } from '@patternfly/react-core';
 
-import { MetadataAnnotation, StorageClassConfig } from '~/k8sTypes';
+import { MetadataAnnotation } from '~/k8sTypes';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
+import { ResponseStatus } from '~/types';
+import { StorageClassesTable } from './StorageClassesTable';
 import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
 
 const StorageClassesPage: React.FC = () => {
-  const [storageClasses, storageClassesLoaded, storageClassesError] = useStorageClasses();
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+  const [isUpdating, setIsUpdating] = React.useState(false);
+  const [storageClasses, storageClassesLoaded, storageClassesError, refreshStorageClasses] =
+    useStorageClasses();
+  const storageClassesWithoutConfigs = React.useMemo(
+    () =>
+      storageClasses.filter(
+        (storageClass) =>
+          !storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig],
+      ),
+    [storageClasses],
+  );
 
   const defaultStorageClass = storageClasses.find(
     (storageClass) =>
@@ -27,33 +39,51 @@ const StorageClassesPage: React.FC = () => {
       getStorageClassConfig(storageClass)?.isDefault,
   );
 
+  const updateStorageClasses = React.useCallback(
+    async (updateRequests: Promise<ResponseStatus>[]) => {
+      setIsUpdating(true);
+
+      try {
+        await Promise.all(updateRequests);
+        await refreshStorageClasses();
+
+        if (!defaultStorageClass) {
+          setIsAlertOpen(true);
+        }
+
+        setIsUpdating(false);
+      } catch {
+        setIsUpdating(false);
+      }
+    },
+    [defaultStorageClass, refreshStorageClasses],
+  );
+
   // Add storage class config annotations automatically for all storage classes without them
   React.useEffect(() => {
-    storageClasses.forEach(async (storageClass, index) => {
-      const { metadata } = storageClass;
-      const { name: storageClassName } = metadata;
+    if (storageClassesWithoutConfigs.length > 0) {
+      const updateRequests = storageClassesWithoutConfigs.map((storageClass, index) => {
+        const { metadata } = storageClass;
+        const { name: storageClassName } = metadata;
 
-      if (!metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
         let isDefault = defaultStorageClass?.metadata.uid === metadata.uid;
-        let isEnabled = false;
+        let isEnabled = isDefault;
 
         if (!defaultStorageClass) {
           isDefault = index === 0;
           isEnabled = true;
         }
 
-        const storageClassConfig: StorageClassConfig = {
+        return updateStorageClassConfig(storageClassName, {
           isDefault,
           isEnabled,
           displayName: storageClassName,
-          lastModified: new Date().toISOString(),
-        };
+        });
+      });
 
-        await updateStorageClassConfig(storageClassName, storageClassConfig);
-        setIsAlertOpen(!defaultStorageClass?.metadata.name);
-      }
-    });
-  }, [defaultStorageClass, storageClasses]);
+      updateStorageClasses(updateRequests);
+    }
+  }, [defaultStorageClass, storageClassesWithoutConfigs, updateStorageClasses]);
 
   const emptyStatePage = (
     <PageSection isFilled>
@@ -81,7 +111,7 @@ const StorageClassesPage: React.FC = () => {
     <ApplicationsPage
       title="Storage classes"
       description="Manage your organization's OpenShift cluster storage class settings for usage within OpenShift AI. These settings do not impact the storage classes within OpenShift."
-      loaded={storageClassesLoaded}
+      loaded={storageClassesLoaded && !isUpdating}
       empty={storageClasses.length === 0}
       loadError={storageClassesError}
       errorMessage="Unable to load storage classes."
@@ -100,8 +130,7 @@ const StorageClassesPage: React.FC = () => {
           storage class, and set a new one if needed.
         </Alert>
       )}
-
-      {/* TODO, https://issues.redhat.com/browse/RHOAIENG-1106 */}
+      <StorageClassesTable storageClasses={storageClasses} refresh={refreshStorageClasses} />
     </ApplicationsPage>
   );
 };

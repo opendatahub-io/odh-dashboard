@@ -34,6 +34,7 @@ import type {
   OdhDocument,
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
+  ResponseStatus,
   SubscriptionStatusData,
 } from '~/types';
 import type {
@@ -195,7 +196,13 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
+          options: { times?: number },
           response: OdhResponse<MockStorageClassList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /api/storage-class/:name/config',
+          options: { path: { name: string }; times?: number },
+          response: OdhResponse<ResponseStatus>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/images/byon',

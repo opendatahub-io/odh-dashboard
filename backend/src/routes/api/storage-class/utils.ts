@@ -23,10 +23,23 @@ export async function updateStorageClassConfig(
       'storageclasses',
       params.storageClassName,
     );
+    const existingAnnotations = (storageClass.body as K8sResourceCommon).metadata.annotations || {};
+    let existingStorageClassConfig = null;
 
-    // Extract and update the annotations
-    const annotations = (storageClass.body as K8sResourceCommon).metadata.annotations || {};
-    annotations['opendatahub.io/sc-config'] = JSON.stringify(body);
+    try {
+      existingStorageClassConfig = JSON.parse(existingAnnotations['opendatahub.io/sc-config']);
+    } catch (e) {
+      fastify.log.error(e, 'Unable to extend existing storage class config.');
+    }
+
+    const storageClassAnnotation = {
+      'opendatahub.io/sc-config': body
+        ? JSON.stringify({
+            ...existingStorageClassConfig,
+            ...body,
+          })
+        : '',
+    };
 
     // Patch the StorageClass with the new annotations
     await fastify.kube.customObjectsApi.patchClusterCustomObject(
@@ -36,7 +49,10 @@ export async function updateStorageClassConfig(
       params.storageClassName,
       {
         metadata: {
-          annotations,
+          annotations: {
+            ...existingAnnotations,
+            ...storageClassAnnotation,
+          },
         },
       },
       undefined,
