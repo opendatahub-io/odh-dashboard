@@ -12,9 +12,13 @@ export class ApplicationLauncher extends Contextual<HTMLElement> {
     this.find().findByRole('button', { name: 'Application launcher' }).click();
   }
 
+  findApplicationLauncherMenuGroup(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findAllByTestId('application-launcher-group').contains(name);
+  }
+
   getApplicationLauncherMenuGroup(name: string): ApplicationLauncherMenuGroup {
     return new ApplicationLauncherMenuGroup(() =>
-      this.find().findAllByTestId('application-launcher-group').contains(name).parents(),
+      this.findApplicationLauncherMenuGroup(name).parents(),
     );
   }
 }

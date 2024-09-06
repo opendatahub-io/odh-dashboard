@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
+import { Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
 import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import TaskDetailsCodeBlock from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
 import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
@@ -19,34 +19,34 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
   }
 
   return (
-    <Stack hasGutter>
+    <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXl' }}>
       {task.inputs && (
-        <StackItem>
+        <FlexItem>
           <TaskDetailsInputOutput
             type="Input"
             artifacts={task.inputs.artifacts}
             params={task.inputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
           />
-        </StackItem>
+        </FlexItem>
       )}
       {task.outputs && (
-        <StackItem>
+        <FlexItem>
           <TaskDetailsInputOutput
             type="Output"
             artifacts={task.outputs.artifacts}
             params={task.outputs.params?.map((p) => ({ label: p.label, value: p.value ?? p.type }))}
           />
-        </StackItem>
+        </FlexItem>
       )}
       {task.steps?.map((step, i) => (
         <React.Fragment key={i}>
-          <StackItem>
+          <FlexItem>
             <TaskDetailsSection testId="task-detail-image" title="Image">
               {step.image}
             </TaskDetailsSection>
-          </StackItem>
+          </FlexItem>
           {step.command && (
-            <StackItem>
+            <FlexItem>
               <TaskDetailsSection title="Command">
                 <TaskDetailsCodeBlock
                   id="command"
@@ -54,10 +54,10 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
                   content={step.command.join('\n')}
                 />
               </TaskDetailsSection>
-            </StackItem>
+            </FlexItem>
           )}
           {step.args && (
-            <StackItem>
+            <FlexItem>
               <TaskDetailsSection title="Arguments">
                 <TaskDetailsCodeBlock
                   id="args"
@@ -65,12 +65,12 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => {
                   content={step.args.join('\n')}
                 />
               </TaskDetailsSection>
-            </StackItem>
+            </FlexItem>
           )}
         </React.Fragment>
       ))}
-      <StackItem>&nbsp;</StackItem>
-    </Stack>
+      <FlexItem>&nbsp;</FlexItem>
+    </Flex>
   );
 };
 

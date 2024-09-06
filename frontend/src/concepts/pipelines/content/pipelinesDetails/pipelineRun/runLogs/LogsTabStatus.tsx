@@ -11,6 +11,7 @@ type LogsTabStatusProps = {
   podName?: string;
   podStatus?: PodStatus | null;
   error?: Error;
+  isCached: boolean;
   isLogsAvailable?: boolean;
   isFailedPod?: boolean;
   loaded: boolean;
@@ -19,6 +20,7 @@ type LogsTabStatusProps = {
 
 const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
   error,
+  isCached,
   isLogsAvailable,
   podError,
   podName,
@@ -27,6 +29,18 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
   isFailedPod,
   onDownload,
 }) => {
+  if (isCached) {
+    return (
+      <Alert
+        data-testid="logs-cached-alert"
+        component="h2"
+        isInline
+        variant="info"
+        title="No logs. This task did not run because it reused cached outputs from a previous run."
+      />
+    );
+  }
+
   if (error) {
     const isNetworkError = error.message.includes('Failed to fetch');
     const podCondition = podStatus === null || (podError && podStatus?.completed);

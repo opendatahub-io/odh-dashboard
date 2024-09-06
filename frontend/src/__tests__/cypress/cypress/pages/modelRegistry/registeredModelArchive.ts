@@ -90,6 +90,10 @@ class ModelArchive {
     return cy.findByTestId('archive-model-page-breadcrumb');
   }
 
+  findRegisteredModelsArchiveTableHeaderButton(name: string) {
+    return this.findArchiveModelTable().find('thead').findByRole('button', { name });
+  }
+
   findArchiveModelTable() {
     return cy.findByTestId('registered-models-archive-table');
   }

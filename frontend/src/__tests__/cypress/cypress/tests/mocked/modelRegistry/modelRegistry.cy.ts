@@ -209,13 +209,20 @@ describe('Model Registry core', () => {
       labelModal.findCloseModal().click();
     });
 
-    it('Sorts by model name', () => {
+    it('Sort by Model name', () => {
+      modelRegistry.findRegisteredModelTableHeaderButton('Model name').click();
       modelRegistry.findRegisteredModelTableHeaderButton('Model name').should(be.sortAscending);
       modelRegistry.findRegisteredModelTableHeaderButton('Model name').click();
       modelRegistry.findRegisteredModelTableHeaderButton('Model name').should(be.sortDescending);
     });
 
-    it('Filters by keyword', () => {
+    it('Sort by Last modified', () => {
+      modelRegistry.findRegisteredModelTableHeaderButton('Last modified').should(be.sortAscending);
+      modelRegistry.findRegisteredModelTableHeaderButton('Last modified').click();
+      modelRegistry.findRegisteredModelTableHeaderButton('Last modified').should(be.sortDescending);
+    });
+
+    it('Filter by keyword', () => {
       modelRegistry.findTableSearch().type('Fraud detection model');
       modelRegistry.findTableRows().should('have.length', 1);
       modelRegistry.findTableRows().contains('Fraud detection model');

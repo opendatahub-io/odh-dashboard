@@ -16,6 +16,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/modelRegistry/registeredModelArchive';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { be } from '~/__tests__/cypress/cypress/utils/should';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -150,7 +151,37 @@ describe('Model archive list', () => {
       'Test label y',
     ]);
     labelModal.findCloseModal().click();
+
+    // sort by Last modified
+    registeredModelArchive
+      .findRegisteredModelsArchiveTableHeaderButton('Last modified')
+      .should(be.sortAscending);
+    registeredModelArchive.findRegisteredModelsArchiveTableHeaderButton('Last modified').click();
+    registeredModelArchive
+      .findRegisteredModelsArchiveTableHeaderButton('Last modified')
+      .should(be.sortDescending);
+
+    // sort by Model name
+    registeredModelArchive.findRegisteredModelsArchiveTableHeaderButton('Model name').click();
+    registeredModelArchive
+      .findRegisteredModelsArchiveTableHeaderButton('Model name')
+      .should(be.sortAscending);
+    registeredModelArchive.findRegisteredModelsArchiveTableHeaderButton('Model name').click();
+    registeredModelArchive
+      .findRegisteredModelsArchiveTableHeaderButton('Model name')
+      .should(be.sortDescending);
   });
+});
+
+it('Opens the detail page when we select "View Details" from action menu', () => {
+  initIntercepts({});
+  registeredModelArchive.visit();
+  const archiveModelRow = registeredModelArchive.getRow('model 2');
+  archiveModelRow.findKebabAction('View details').click();
+  cy.location('pathname').should(
+    'be.equals',
+    '/modelRegistry/modelregistry-sample/registeredModels/2/details',
+  );
 });
 
 describe('Restoring archive model', () => {

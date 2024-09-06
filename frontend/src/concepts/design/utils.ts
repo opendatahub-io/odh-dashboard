@@ -4,6 +4,7 @@ import pipelineImg from '~/images/UI_icon-Red_Hat-Branch-RGB.svg';
 import pipelineRunImg from '~/images/UI_icon-Red_Hat-Double_arrow_right-RGB.svg';
 import clusterStorageImg from '~/images/UI_icon-Red_Hat-Storage-RGB.svg';
 import modelServerImg from '~/images/UI_icon-Red_Hat-Server-RGB.svg';
+import registeredModelsImg from '~/images/Icon-Red_Hat-Layered_A_Black-RGB.svg';
 import deployedModelsImg from '~/images/UI_icon-Red_Hat-Cubes-RGB.svg';
 import deployingModelsImg from '~/images/UI_icon-Red_Hat-Server_upload-RGB.svg';
 import dataConnectionImg from '~/images/UI_icon-Red_Hat-Connected-RGB.svg';
@@ -17,6 +18,8 @@ import modelServerEmptyStateImg from '~/images/empty-state-model-serving.svg';
 import dataConnectionEmptyStateImg from '~/images/empty-state-data-connections.svg';
 import modelRegistryEmptyStateImg from '~/images/empty-state-model-registries.svg';
 import storageClassesEmptyStateImg from '~/images/empty-state-storage-classes.svg';
+import modelRegistryMissingModelImg from '~/images/no-models-model-registry.svg';
+import modelRegistryMissingVersionImg from '~/images/no-versions-model-registry.svg';
 
 import './vars.scss';
 
@@ -89,6 +92,7 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.modelServer:
       return modelServerImg;
     case ProjectObjectType.registeredModels:
+      return registeredModelsImg;
     case ProjectObjectType.deployedModels:
       return deployedModelsImg;
     case ProjectObjectType.deployingModels:
@@ -104,7 +108,7 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
   }
 };
 
-export const typedEmptyImage = (objectType: ProjectObjectType): string => {
+export const typedEmptyImage = (objectType: ProjectObjectType, option?: string): string => {
   switch (objectType) {
     case ProjectObjectType.project:
       return projectEmptyStateImg;
@@ -119,7 +123,16 @@ export const typedEmptyImage = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.modelServer:
       return modelServerEmptyStateImg;
     case ProjectObjectType.registeredModels:
-      return modelRegistryEmptyStateImg;
+      switch (option) {
+        case 'MissingModel':
+          return modelRegistryMissingModelImg;
+        case 'MissingVersion':
+          return modelRegistryMissingVersionImg;
+        case 'MissingDeployment':
+          return modelServerEmptyStateImg;
+        default:
+          return modelRegistryEmptyStateImg;
+      }
     case ProjectObjectType.storageClasses:
       return storageClassesEmptyStateImg;
     case ProjectObjectType.dataConnection:

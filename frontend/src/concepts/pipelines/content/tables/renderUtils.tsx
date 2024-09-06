@@ -18,6 +18,7 @@ import {
   runtimeStateLabels,
   PipelineRecurringRunKFv2,
   RecurringRunStatus as RecurringRunStatusType,
+  ExperimentKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -26,7 +27,7 @@ import {
 } from '~/concepts/pipelines/content/tables/utils';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
@@ -131,10 +132,11 @@ export const RecurringRunScheduled: RecurringRunUtil = ({ recurringRun }) => {
 
 export const RecurringRunStatus: RecurringRunUtil<{
   onToggle: (value: boolean) => Promise<void>;
-}> = ({ recurringRun, onToggle }) => {
+  experiment: ExperimentKFv2 | null;
+}> = ({ recurringRun, onToggle, experiment }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
-  const isExperimentArchived = useContextExperimentArchived();
+  const isExperimentArchived = useIsExperimentArchived(experiment);
 
   const isEnabled = recurringRun.status === RecurringRunStatusType.ENABLED;
   React.useEffect(() => {

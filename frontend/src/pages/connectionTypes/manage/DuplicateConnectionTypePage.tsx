@@ -21,7 +21,7 @@ const DuplicateConnectionTypePage: React.FC = () => {
           name: '',
           annotations: {
             ...existingConnectionType.metadata.annotations,
-            'openshift.io/display-name': `Duplicate of ${getDisplayNameFromK8sResource(
+            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
               existingConnectionType,
             )}`,
             'opendatahub.io/username': '',

@@ -195,11 +195,17 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                   {`Invalid variable name. The name must consist of alphabetic characters, digits, '_', '-', or '.', and must not start with a digit.`}
                 </HelperTextItem>
               </HelperText>
-            ) : undefined}
+            ) : (
+              <HelperText>
+                <HelperTextItem variant="default">
+                  Valid characters include uppercase letters, numbers, and underscores ( _ ).
+                </HelperTextItem>
+              </HelperText>
+            )}
             {isEnvVarConflict ? (
               <HelperText data-testid="envvar-conflict-warning">
                 <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
-                  This environment variable name is already being used for an existing field.
+                  {envVar} already exists within this connection type.
                 </HelperTextItem>
               </HelperText>
             ) : undefined}

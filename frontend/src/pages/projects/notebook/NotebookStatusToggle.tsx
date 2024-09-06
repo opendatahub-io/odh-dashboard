@@ -8,22 +8,21 @@ import { useAppContext } from '~/app/AppContext';
 import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { NotebookState } from './types';
-import useRefreshNotebookUntilStartOrStop from './useRefreshNotebookUntilStartOrStop';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusText from './NotebookStatusText';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
-  doListen: boolean;
   enablePipelines?: boolean;
   isDisabled?: boolean;
 };
 
 const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   notebookState,
-  doListen,
   enablePipelines,
   isDisabled,
 }) => {
@@ -32,15 +31,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
-  const listenToNotebookStart = useRefreshNotebookUntilStartOrStop(notebookState, doListen);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const notebookName = notebook.metadata.name;
   const notebookNamespace = notebook.metadata.namespace;
   const isRunningOrStarting = isStarting || isRunning;
-
-  /** If in progress, it is faking the opposite */
-  const isChecked = inProgress ? !isRunningOrStarting : isRunningOrStarting;
+  useRefreshInterval(FAST_POLL_INTERVAL, refresh);
 
   let label = '';
   if (isStarting) {
@@ -83,9 +79,8 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
     setInProgress(true);
     stopNotebook(notebookName, notebookNamespace).then(() => {
       refresh().then(() => setInProgress(false));
-      listenToNotebookStart(true, true);
     });
-  }, [notebookName, notebookNamespace, refresh, listenToNotebookStart, fireNotebookTrackingEvent]);
+  }, [fireNotebookTrackingEvent, notebookName, notebookNamespace, refresh]);
 
   return (
     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -94,7 +89,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         data-testid="notebook-status-switch"
         isDisabled={inProgress || isStopping || isDisabled}
         id={`${notebookName}-${notebookNamespace}`}
-        isChecked={isChecked}
+        isChecked={isRunningOrStarting}
         onClick={() => {
           if (isRunningOrStarting) {
             if (dontShowModalValue) {
@@ -115,7 +110,6 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
             ).then(() => {
               fireNotebookTrackingEvent('started');
               refresh().then(() => setInProgress(false));
-              listenToNotebookStart(true);
             });
           }
         }}

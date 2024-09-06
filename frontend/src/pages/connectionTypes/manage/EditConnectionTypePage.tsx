@@ -20,7 +20,7 @@ const EditConnectionTypePage: React.FC = () => {
       onSave={async (obj) => {
         const response = await updateConnectionType(obj);
         if (response.error) {
-          throw response.error;
+          throw new Error(response.error);
         }
       }}
     />

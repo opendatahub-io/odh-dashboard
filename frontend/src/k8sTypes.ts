@@ -204,7 +204,7 @@ export type ConsoleLinkKind = {
     href: string;
     applicationMenu?: {
       section: string;
-      imageUrl: string;
+      imageURL: string;
     };
   };
 } & K8sResourceCommon;

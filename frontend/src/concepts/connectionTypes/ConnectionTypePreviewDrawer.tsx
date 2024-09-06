@@ -41,7 +41,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
           }}
         >
           This preview shows the user view of the connection type form, and is for reference only.
-          Updates in the developer view are automatically in the user view.
+          Updates in the developer view are automatically rendered in the user view.
         </div>
       </DrawerContentBody>
       <Divider />

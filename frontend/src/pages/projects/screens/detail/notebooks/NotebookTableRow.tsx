@@ -149,7 +149,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         <Td dataLabel="Status">
           <NotebookStatusToggle
             notebookState={obj}
-            doListen={false}
             enablePipelines={canEnablePipelines}
             isDisabled={
               notebookImage?.imageAvailability === NotebookImageAvailability.DELETED &&

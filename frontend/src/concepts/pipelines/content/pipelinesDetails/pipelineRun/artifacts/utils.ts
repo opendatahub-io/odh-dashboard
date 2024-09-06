@@ -1,4 +1,5 @@
 import { Artifact } from '~/third_party/mlmd';
+import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { ArtifactProperty } from './types';
 
 export const getArtifactProperties = (artifact: Artifact): ArtifactProperty[] =>
@@ -20,3 +21,10 @@ export const getArtifactProperties = (artifact: Artifact): ArtifactProperty[] =>
       },
       [],
     );
+
+export const isMetricsArtifactType = (artifactType?: string): boolean =>
+  artifactType === ArtifactType.METRICS ||
+  artifactType === ArtifactType.CLASSIFICATION_METRICS ||
+  artifactType === ArtifactType.HTML ||
+  artifactType === ArtifactType.MARKDOWN ||
+  artifactType === ArtifactType.SLICED_CLASSIFICATION_METRICS;

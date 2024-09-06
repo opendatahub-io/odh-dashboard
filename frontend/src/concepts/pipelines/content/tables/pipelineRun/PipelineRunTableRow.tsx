@@ -21,6 +21,7 @@ import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
@@ -50,7 +51,9 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentArchived = useContextExperimentArchived();
-
+  const pipelineRunExperimentId = hasExperiments ? run.experiment_id : '';
+  const [pipelineRunExperiment, pipelineRunExperimentLoaded] =
+    useExperimentById(pipelineRunExperimentId);
   const actions: IAction[] = React.useMemo(() => {
     const isExperimentContext = experimentId && isExperimentsAvailable;
     const cloneAction: IAction = {
@@ -148,7 +151,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       >
         <PipelineRunTableRowTitle run={run} />
       </Td>
-      {hasExperiments && <PipelineRunTableRowExperiment experimentId={run.experiment_id} />}
+      {hasExperiments && (
+        <PipelineRunTableRowExperiment
+          experiment={pipelineRunExperiment}
+          loaded={pipelineRunExperimentLoaded}
+        />
+      )}
       {!pipelineVersionId && (
         <Td modifier="truncate" dataLabel="Pipeline">
           <PipelineVersionLink

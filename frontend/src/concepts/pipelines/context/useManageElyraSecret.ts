@@ -22,6 +22,7 @@ const useManageElyraSecret = (
     namespace,
   );
   const notification = useNotification();
+  const isCreatingSecretRef = React.useRef(false);
 
   React.useEffect(() => {
     const error = elyraSecretError || dataConnectionError;
@@ -32,24 +33,30 @@ const useManageElyraSecret = (
   }, [dataConnectionError, elyraSecretError]);
 
   const fullLoadedState = elyraSecretLoaded && dataConnectionLoaded;
-  React.useEffect(() => {
-    const externalStorage = cr?.spec.objectStorage.externalStorage;
-    if (fullLoadedState && dataConnection && routePath && externalStorage) {
-      let generatedSecret;
-      try {
-        generatedSecret = generateElyraSecret(externalStorage, dataConnection, routePath);
-      } catch (e) {
-        if (e instanceof Error) {
-          notification.error(e.message);
-        }
-      }
 
-      if (!generatedSecret) {
-        return;
+  const generatedSecret = React.useMemo(() => {
+    const externalStorage = cr?.spec.objectStorage.externalStorage;
+    try {
+      if (externalStorage && dataConnection && routePath) {
+        return generateElyraSecret(externalStorage, dataConnection, routePath);
       }
+      return null;
+    } catch (e) {
+      if (e instanceof Error) {
+        notification.error(e.message);
+      }
+      return null;
+    }
+  }, [cr?.spec.objectStorage.externalStorage, dataConnection, notification, routePath]);
+
+  React.useEffect(() => {
+    if (fullLoadedState && generatedSecret) {
       if (!elyraSecret) {
-        // Create a new secret
-        createSecret(generatedSecret);
+        if (!isCreatingSecretRef.current) {
+          isCreatingSecretRef.current = true;
+          // Create a new secret
+          createSecret(generatedSecret).then(() => (isCreatingSecretRef.current = false));
+        }
         return;
       }
       try {
@@ -61,13 +68,16 @@ const useManageElyraSecret = (
         const usingOldUrl = !secretValue.metadata[ELYRA_SECRET_DATA_ENDPOINT].endsWith('/view/');
         if (usingOldDataType || usingOldUrl) {
           // Secret is out of date, update it
-          replaceSecret(generateElyraSecret(externalStorage, dataConnection, routePath));
+          if (!isCreatingSecretRef.current) {
+            isCreatingSecretRef.current = true;
+            replaceSecret(generatedSecret).then(() => (isCreatingSecretRef.current = false));
+          }
         }
       } catch (e) {
         // do nothing
       }
     }
-  }, [fullLoadedState, routePath, elyraSecret, dataConnection, cr, notification]);
+  }, [elyraSecret, fullLoadedState, generatedSecret]);
 };
 
 export default useManageElyraSecret;

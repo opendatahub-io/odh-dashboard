@@ -16,6 +16,7 @@ import {
   mergeUpdatedProperty,
   mergeUpdatedLabels,
   filterRegisteredModels,
+  sortModelVersionsByCreateTime,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 
@@ -319,5 +320,29 @@ describe('filterRegisteredModels', () => {
   test('does not filter when search is empty', () => {
     const filtered = filterRegisteredModels(registeredModels, '', SearchType.KEYWORD);
     expect(filtered).toEqual(registeredModels);
+  });
+});
+
+describe('sortModelVersionsByCreateTime', () => {
+  it('should return list of sorted modelVersions by create time', () => {
+    const modelVersions: ModelVersion[] = [
+      mockModelVersion({
+        name: 'model version 1',
+        author: 'Author 1',
+        id: '1',
+        createTimeSinceEpoch: '1725018764650',
+        lastUpdateTimeSinceEpoch: '1725030215299',
+      }),
+      mockModelVersion({
+        name: 'model version 1',
+        author: 'Author 1',
+        id: '1',
+        createTimeSinceEpoch: '1725028468207',
+        lastUpdateTimeSinceEpoch: '1725030142332',
+      }),
+    ];
+
+    const result = sortModelVersionsByCreateTime(modelVersions);
+    expect(result).toEqual([modelVersions[1], modelVersions[0]]);
   });
 });

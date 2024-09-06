@@ -19,7 +19,7 @@ const ModelTimestamp: React.FC<ModelTimestampProps> = ({ timeSinceEpoch }) => {
 
   return (
     <Timestamp
-      date={new Date(timeSinceEpoch)}
+      date={new Date(parseInt(timeSinceEpoch))}
       tooltip={{
         variant: TimestampTooltipVariant.default,
       }}

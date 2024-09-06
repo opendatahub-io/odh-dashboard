@@ -21,6 +21,7 @@ import { ListIcon, MonitoringIcon } from '@patternfly/react-icons';
 import { TaskNodeProps } from '@patternfly/react-topology/dist/esm/pipelines/components/nodes/TaskNode';
 import { css } from '@patternfly/react-styles';
 import { StandardTaskNodeData } from '~/concepts/topology/types';
+import { isMetricsArtifactType } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 
 const ICON_PADDING = 8;
 
@@ -85,7 +86,7 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
             : 'var(--pf-v5-global--icon--Color--light)'
         }
       >
-        {data?.artifactType === 'system.Metrics' ? (
+        {isMetricsArtifactType(data?.artifactType) ? (
           <MonitoringIcon width={iconSize} height={iconSize} />
         ) : (
           <ListIcon width={iconSize} height={iconSize} />
