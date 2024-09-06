@@ -8,11 +8,12 @@ import {
   StackItem,
   TextArea,
   TextInput,
-  Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, HelpIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { NameDescType } from '~/pages/projects/types';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
+import useAutoFocusRef from '~/utilities/useAutoFocusRef';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
@@ -31,6 +32,10 @@ type NameDescriptionFieldProps = {
   onNameChange?: (value: string) => void;
 };
 
+/**
+ * Don't use for K8s name anymore -- that functionality is deprecated.
+ * @see K8sNameDescriptionField
+ */
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   nameFieldId,
   nameFieldLabel = 'Name',
@@ -47,13 +52,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   nameHelperText,
   onNameChange,
 }) => {
-  const autoSelectNameRef = React.useRef<HTMLInputElement | null>(null);
-
-  React.useEffect(() => {
-    if (autoFocusName) {
-      autoSelectNameRef.current?.focus();
-    }
-  }, [autoFocusName]);
+  const autoFocusNameRef = useAutoFocusRef(autoFocusName);
 
   const k8sName = React.useMemo(() => {
     if (showK8sName) {
@@ -70,7 +69,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
           <TextInput
             aria-readonly={!setData}
             isRequired
-            ref={autoSelectNameRef}
+            ref={autoFocusNameRef}
             id={nameFieldId}
             data-testid={nameFieldId}
             name={nameFieldId}
@@ -99,21 +98,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
         <StackItem>
           <FormGroup
             label={K8sLabelName}
-            labelIcon={
-              <Tooltip
-                position="right"
-                content={
-                  <Stack hasGutter>
-                    <StackItem>
-                      Resource names are what your resources are labeled in OpenShift.
-                    </StackItem>
-                    <StackItem>Resource names are not editable after creation.</StackItem>
-                  </Stack>
-                }
-              >
-                <HelpIcon aria-label="More info" />
-              </Tooltip>
-            }
+            labelIcon={<ResourceNameDefinitionTooltip />}
             isRequired
             fieldId={`resource-${nameFieldId}`}
           >

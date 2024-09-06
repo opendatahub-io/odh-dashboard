@@ -21,6 +21,7 @@ import {
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldOptions } from '~/components/FieldList';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   BuildStatus,
   ImageVersionDependencyType,
@@ -396,11 +397,11 @@ export const checkRequiredFieldsForNotebookStart = (
   envVariables: EnvVariable[],
   dataConnection: DataConnectionData,
 ): boolean => {
-  const { projectName, notebookName, image } = startNotebookData;
+  const { projectName, notebookData, image } = startNotebookData;
   const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
-    notebookName.trim() &&
+    isK8sNameDescriptionDataValid(notebookData) &&
     image.imageStream &&
     image.imageVersion
   );

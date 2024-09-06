@@ -19,21 +19,22 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onPr
       >
         Create project
       </Button>
-      <ManageProjectModal
-        open={open}
-        onClose={(newProjectName) => {
-          if (newProjectName) {
-            if (onProjectCreated) {
-              onProjectCreated(newProjectName);
-            } else if (closeOnCreate) {
-              setOpen(false);
+      {open && (
+        <ManageProjectModal
+          onClose={(newProjectName) => {
+            if (newProjectName) {
+              if (onProjectCreated) {
+                onProjectCreated(newProjectName);
+              } else if (closeOnCreate) {
+                setOpen(false);
+              }
+              return;
             }
-            return;
-          }
 
-          setOpen(false);
-        }}
-      />
+            setOpen(false);
+          }}
+        />
+      )}
     </>
   );
 };

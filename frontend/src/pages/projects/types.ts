@@ -13,6 +13,7 @@ import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
@@ -64,7 +65,7 @@ export type StorageData = {
 
 export type StartNotebookData = {
   projectName: string;
-  notebookName: string;
+  notebookData: K8sNameDescriptionFieldData;
   notebookSize: NotebookSize;
   initialAcceleratorProfile: AcceleratorProfileState;
   selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
@@ -75,9 +76,6 @@ export type StartNotebookData = {
   existingTolerations?: Toleration[];
   existingResources?: ContainerResources;
   envFrom?: EnvironmentFromVariable[];
-  description?: string;
-  /** An override for the assembleNotebook so it doesn't regen an id */
-  notebookId?: string;
 };
 
 export type SecretRef = {

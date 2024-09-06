@@ -4,6 +4,7 @@ import {
   getDisplayNameFromK8sResource,
   isValidK8sName,
   translateDisplayNameForK8s,
+  translateDisplayNameForK8sAndReport,
 } from '~/concepts/k8s/utils';
 
 describe('getDisplayNameFromK8sResource', () => {
@@ -41,9 +42,30 @@ describe('translateDisplayNameForK8s', () => {
     expect(translateDisplayNameForK8s('Test Project 1')).toBe('test-project-1');
     expect(translateDisplayNameForK8s("John Doe's Cool Project!")).toBe('john-does-cool-project');
     expect(translateDisplayNameForK8s('$ymbols & Capitals and Spaces! (These are invalid!)')).toBe(
-      'ymbols--capitals-and-spaces-these-are-invalid',
+      'ymbols-capitals-and-spaces-these-are-invalid',
     );
-    expect(translateDisplayNameForK8s('1234', 'wb-')).toBe('wb-1234');
+    expect(translateDisplayNameForK8s('1234', { safeK8sPrefix: 'wb-' })).toBe('wb-1234');
+  });
+});
+
+describe('translateDisplayNameForK8sAndReport', () => {
+  it('should handle cases where it applied additional criteria', () => {
+    expect(translateDisplayNameForK8sAndReport('1234', { safeK8sPrefix: 'wb-' })).toEqual([
+      'wb-1234',
+      { safeK8sPrefix: true, maxLength: false },
+    ] satisfies ReturnType<typeof translateDisplayNameForK8sAndReport>);
+
+    expect(translateDisplayNameForK8sAndReport('foobarbaz', { maxLength: 3 })).toEqual([
+      'foo',
+      { safeK8sPrefix: false, maxLength: true },
+    ] satisfies ReturnType<typeof translateDisplayNameForK8sAndReport>);
+  });
+
+  it('should report nothing happened if no criteria was provided', () => {
+    expect(translateDisplayNameForK8sAndReport('foobarbaz')).toEqual([
+      'foobarbaz',
+      { safeK8sPrefix: false, maxLength: false },
+    ] satisfies ReturnType<typeof translateDisplayNameForK8sAndReport>);
   });
 });
 
