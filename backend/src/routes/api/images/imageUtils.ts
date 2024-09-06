@@ -14,6 +14,9 @@ import {
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
 
+export const IMAGE_URL_REGEXP =
+  /^([\w.\-_]+(?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+)|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+
 /**
  * This function uses a regex to match the image location string
  * The match result will return an array of 4 elements:
@@ -23,10 +26,8 @@ import createError from 'http-errors';
 export const parseImageURL = (
   imageString: string,
 ): { fullURL: string; host: string; image: string; tag: string } => {
-  const imageUrlRegex =
-    /^([\w.\-_]+(?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+)|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
   const trimmedString = imageString.trim();
-  const result = trimmedString.match(imageUrlRegex);
+  const result = trimmedString.match(IMAGE_URL_REGEXP);
   if (!result) {
     return {
       fullURL: trimmedString,
