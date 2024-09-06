@@ -123,7 +123,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
       data-testid="archive-model-version-modal"
     >
       <Form>
-        <FormGroup fieldId="name" label="Field name" isRequired>
+        <FormGroup fieldId="name" label="Name" isRequired>
           <TextInput
             id="name"
             value={name}
@@ -138,12 +138,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         </FormGroup>
         <FormGroup
           fieldId="description"
-          label="Field description"
+          label="Description"
           labelIcon={
             <Popover
-              aria-label="field description help"
-              headerContent="Field description"
-              bodyContent="Use the field description to provide users in your organization with additional information about a field, or instructions for completing the field. Your input will appear in a popover, like this one."
+              aria-label="description help"
+              headerContent="Description"
+              bodyContent="Use the description to provide users in your organization with additional information about a field, or instructions for completing the field. Your input will appear in a popover, like this one."
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
@@ -166,7 +166,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             <Popover
               aria-label="environment variable help"
               headerContent="Environment variable"
-              bodyContent="Environment variables grant you access to the value provided when attaching the connection to your workbench."
+              bodyContent="Environment variables are how the system references the field value in a workbench or model server. Your input will appear in a popover, like this one. "
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
@@ -211,12 +211,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             ) : undefined}
           </FormHelperText>
         </FormGroup>
-        <FormGroup
-          fieldId="fieldType"
-          label="Field type"
-          isRequired
-          data-testid="field-type-select"
-        >
+        <FormGroup fieldId="fieldType" label="Type" isRequired data-testid="field-type-select">
           <Select
             id="fieldType"
             isOpen={isTypeSelectOpen}
