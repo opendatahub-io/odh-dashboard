@@ -107,7 +107,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
 
   return (
     <Modal
-      isOpen
+      isOpen={isOpen}
       variant="medium"
       title={isEdit ? 'Edit field' : 'Add field'}
       onClose={onClose}
@@ -234,7 +234,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                 onClick={() => {
                   setIsTypeSelectOpen((open) => !open);
                 }}
-                isExpanded={isOpen}
+                isExpanded={isTypeSelectOpen}
               >
                 {fieldType ? fieldTypeToString(fieldType) : ''}
               </MenuToggle>
