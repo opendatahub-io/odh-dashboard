@@ -3,11 +3,15 @@ import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sT
 export const getStorageClassConfig = (
   storageClass: StorageClassKind,
 ): StorageClassConfig | undefined => {
-  const storageClassConfig: StorageClassConfig | undefined = JSON.parse(
-    storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] || '',
-  );
+  try {
+    const storageClassConfig: StorageClassConfig | undefined = JSON.parse(
+      storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] || '',
+    );
 
-  return storageClassConfig;
+    return storageClassConfig;
+  } catch {
+    return undefined;
+  }
 };
 
 export const isOpenshiftDefaultStorageClass = (storageClass: StorageClassKind): boolean =>
