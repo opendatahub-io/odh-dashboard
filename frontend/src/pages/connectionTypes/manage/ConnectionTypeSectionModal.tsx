@@ -7,19 +7,12 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 
 type Props = {
   field?: SectionField;
-  isOpen?: boolean;
   onClose: () => void;
   onSubmit: (field: SectionField) => void;
   isEdit?: boolean;
 };
 
-const ConnectionTypeSectionModal: React.FC<Props> = ({
-  field,
-  isOpen,
-  onClose,
-  onSubmit,
-  isEdit,
-}) => {
+const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit, isEdit }) => {
   const [name, setName] = React.useState(field?.name || '');
   const [description, setDescription] = React.useState(field?.description || '');
 
@@ -27,7 +20,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title={isEdit ? 'Edit section heading' : 'Add section heading'}
       onClose={onClose}
       variant="medium"

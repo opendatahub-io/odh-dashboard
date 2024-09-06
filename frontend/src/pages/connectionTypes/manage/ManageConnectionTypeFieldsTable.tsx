@@ -160,7 +160,6 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
           field={modalField.field}
           isEdit={modalField.isEdit}
           onClose={() => setModalField(undefined)}
-          isOpen
           onSubmit={(field) => {
             if (modalField.field && modalField.isEdit && modalField.index !== undefined) {
               // update

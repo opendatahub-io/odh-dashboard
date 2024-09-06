@@ -43,7 +43,6 @@ const isConnectionTypeFieldType = (
 
 type Props = {
   field?: ConnectionTypeDataField;
-  isOpen?: boolean;
   onClose: () => void;
   onSubmit: (field: ConnectionTypeDataField) => void;
   isEdit?: boolean;
@@ -52,7 +51,6 @@ type Props = {
 
 export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   field,
-  isOpen,
   onClose,
   onSubmit,
   isEdit,
@@ -107,7 +105,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       variant="medium"
       title={isEdit ? 'Edit field' : 'Add field'}
       onClose={onClose}
