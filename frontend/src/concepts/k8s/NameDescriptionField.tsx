@@ -13,7 +13,6 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { NameDescType } from '~/pages/projects/types';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
-import useAutoFocusRef from '~/utilities/useAutoFocusRef';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
@@ -52,8 +51,6 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   nameHelperText,
   onNameChange,
 }) => {
-  const autoFocusNameRef = useAutoFocusRef(autoFocusName);
-
   const k8sName = React.useMemo(() => {
     if (showK8sName) {
       return translateDisplayNameForK8s(data.name);
@@ -69,7 +66,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
           <TextInput
             aria-readonly={!setData}
             isRequired
-            ref={autoFocusNameRef}
+            autoFocus={autoFocusName}
             id={nameFieldId}
             data-testid={nameFieldId}
             name={nameFieldId}

@@ -17,7 +17,6 @@ import {
   UseK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
-import useAutoFocusRef from '~/utilities/useAutoFocusRef';
 import { handleUpdateLogic, setupDefaults } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import ResourceNameField from '~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
 
@@ -61,7 +60,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   onDataChange,
   nameLabel = 'Name',
 }) => {
-  const autoFocusNameRef = useAutoFocusRef(autoFocusName);
   const [showK8sField, setShowK8sField] = React.useState(false);
 
   const { name, description, k8sName } = data;
@@ -73,7 +71,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           <TextInput
             data-testid={`${dataTestId}-name`}
             id={`${dataTestId}-name`}
-            ref={autoFocusNameRef}
+            autoFocus={autoFocusName}
             isRequired
             value={name}
             onChange={(event, value) => onDataChange('name', value)}
