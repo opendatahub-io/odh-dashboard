@@ -1,10 +1,6 @@
 import React from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import useFetchState, {
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from '~/utilities/useFetchState';
+import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
 import { AccessReviewResourceAttributes, ServiceKind } from '~/k8sTypes';
 import { ServiceModel, useAccessReview, useRulesReview, listServices } from '~/api';
 import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
@@ -54,21 +50,28 @@ const listServicesOrFetchThemByNames = async (
   return services;
 };
 
-export const useModelRegistryServices = (): FetchState<ServiceKind[]> => {
+export type ModelRegistryServicesResult = {
+  modelRegistryServices: ServiceKind[];
+  isLoaded: boolean;
+  error?: Error;
+  refreshRulesReview: () => void;
+};
+
+export const useModelRegistryServices = (namespace: string): ModelRegistryServicesResult => {
   const [allowList, accessReviewLoaded] = useAccessReview(accessReviewResource);
-  const [statuses, rulesReviewLoaded] = useRulesReview(MODEL_REGISTRY_DEFAULT_NAMESPACE);
+  const [rulesReviewStatus, rulesReviewLoaded, refreshRulesReview] = useRulesReview(namespace);
 
   const serviceNames = React.useMemo(() => {
     if (!rulesReviewLoaded) {
       return [];
     }
-    return statuses?.resourceRules
+    return rulesReviewStatus?.resourceRules
       .filter(
         ({ resources, verbs }) =>
           resources?.includes('services') && verbs.some((verb) => verb === 'get'),
       )
       .flatMap((rule) => rule.resourceNames || []);
-  }, [rulesReviewLoaded, statuses]);
+  }, [rulesReviewLoaded, rulesReviewStatus]);
 
   const callback = React.useCallback<FetchStateCallbackPromise<ServiceKind[]>>(
     () =>
@@ -81,7 +84,14 @@ export const useModelRegistryServices = (): FetchState<ServiceKind[]> => {
     [allowList, accessReviewLoaded, rulesReviewLoaded, serviceNames],
   );
 
-  return useFetchState(callback, [], {
+  const [modelRegistryServices, isLoaded, error] = useFetchState(callback, [], {
     initialPromisePurity: true,
   });
+
+  return {
+    modelRegistryServices,
+    isLoaded,
+    error,
+    refreshRulesReview,
+  };
 };
