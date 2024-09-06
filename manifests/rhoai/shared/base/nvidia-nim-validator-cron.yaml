@@ -202,6 +202,15 @@ spec:
                   oc delete template "${SERVING_RUNTIME_TEMPLATE_NAME}" --ignore-not-found=true
                 }
 
+                function check_kserve() {
+                  dsc=$(oc get -o=json datasciencecluster)
+
+                  if [ ! -z "$dsc" ]; then
+                    enabled=$(jq -n --argjson data "$dsc" 'first($data.items[] | .status | select(.phase == "Ready") | .installedComponents | .kserve == true)')
+                    echo $enabled
+                  fi
+                }
+
                 function success() {
                   echo "Validation succeeded, enabling NIM"
 
@@ -356,6 +365,17 @@ spec:
                 echo "Install jq"
 
                 dnf install -y jq
+
+                echo "Check KServe readiness"
+
+                kserve_enabled=$(check_kserve)
+
+                if [ "${kserve_enabled}" != "true" ]; then
+                  echo "KServe is not enabled"
+
+                  failure
+                  exit 0
+                fi
 
                 echo "Get NIM images"
 
