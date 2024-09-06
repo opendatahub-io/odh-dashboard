@@ -123,7 +123,7 @@ class RunDetails extends PipelinesTopology {
   }
 
   private findStatusLabel(timeout?: number) {
-    return cy.get('[data-testid="status-icon"]', { timeout });
+    return cy.findByTestId('status-icon', { timeout });
   }
 
   expectStatusLabelToBe(statusValue: string, timeout?: number) {

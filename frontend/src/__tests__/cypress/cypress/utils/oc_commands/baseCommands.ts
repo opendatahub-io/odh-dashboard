@@ -7,7 +7,7 @@ import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
  * @returns Cypress Chainable
  */
 export const applyOpenShiftYaml = (yamlContent: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc apply -f - <<EOF\n${yamlContent}EOF`;
+  const ocCommand = `oc apply -f - <<EOF\n${yamlContent}\nEOF`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       // If there is an error, log the error and fail the test
