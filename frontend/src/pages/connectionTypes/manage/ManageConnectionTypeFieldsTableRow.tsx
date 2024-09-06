@@ -66,7 +66,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             id: `draggable-row-${props.id}`,
           }}
         />
-        <Td colSpan={4} dataLabel={columns[0].label} data-testid="field-name">
+        <Td dataLabel={columns[0].label} data-testid="field-name">
           <div>
             {row.name}{' '}
             <Label color="blue" data-testid="section-heading">
@@ -77,7 +77,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             </div>
           </div>
         </Td>
-        <Td />
+        <Td colSpan={4} />
         <Td isActionCell modifier="nowrap">
           <Button variant="secondary" onClick={() => onAddField(row)}>
             Add field

@@ -16,7 +16,7 @@ const EmptyConnectionTypes: React.FC = () => (
   <PageSection isFilled>
     <EmptyState variant={EmptyStateVariant.full} data-testid="connection-types-empty-state">
       <EmptyStateHeader
-        titleText="No connection types found."
+        titleText="No connection types"
         icon={<EmptyStateIcon icon={PlusCircleIcon} />}
         headingLevel="h1"
       />

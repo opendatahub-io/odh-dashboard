@@ -1,4 +1,4 @@
-import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
+import { Button, SearchInput, ToolbarItem } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import FilterToolbar from '~/components/FilterToolbar';
@@ -27,7 +27,7 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({
       filterOptions={options}
       filterOptionRenders={{
         [ConnectionTypesOptions.keyword]: ({ onChange, ...props }) => (
-          <TextInput
+          <SearchInput
             {...props}
             aria-label="Filter by keyword"
             placeholder="Filter by keyword"
@@ -35,7 +35,7 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({
           />
         ),
         [ConnectionTypesOptions.category]: ({ onChange, ...props }) => (
-          <TextInput
+          <SearchInput
             {...props}
             aria-label="Filter by category"
             placeholder="Filter by category"
@@ -43,7 +43,7 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({
           />
         ),
         [ConnectionTypesOptions.createdBy]: ({ onChange, ...props }) => (
-          <TextInput
+          <SearchInput
             {...props}
             aria-label="Created by"
             placeholder="Created by"
