@@ -33,7 +33,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({
       variant="medium"
       footer={
         <DashboardModalFooter
-          submitLabel={isEdit ? 'Edit' : 'Add'}
+          submitLabel={isEdit ? 'Save' : 'Add'}
           onCancel={onClose}
           onSubmit={() => {
             if (isValid) {
