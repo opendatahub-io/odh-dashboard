@@ -82,18 +82,20 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
         },
       },
       spec: {
-        grpc: {
-          port: 9090,
-        },
-        rest: {
-          port: 8080,
-          serviceRoute: 'disabled',
+        grpc: {},
+        rest: {},
+        istio: {
+          gateway: {
+            grpc: { tls: {} },
+            rest: { tls: {} },
+          },
         },
         mysql: {
           host,
           port: Number(port),
           database,
           username,
+          skipDBCreation: false,
         },
       },
     };

@@ -1,10 +1,12 @@
+import { ServiceAddressAnnotation } from '../../../../types';
 import { MODEL_REGISTRY_NAMESPACE } from '../../../../utils/constants';
 import { proxyService } from '../../../../utils/proxy';
 
 export default proxyService(
   null,
   {
-    port: 8080,
+    addressAnnotation: ServiceAddressAnnotation.EXTERNAL_REST,
+    internalPort: 8080,
     namespace: MODEL_REGISTRY_NAMESPACE,
   },
   {
@@ -14,5 +16,4 @@ export default proxyService(
     port: process.env.MODEL_REGISTRY_SERVICE_PORT,
   },
   null,
-  false,
 );
