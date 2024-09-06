@@ -137,9 +137,6 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
   },
 ];
 
-export const imageUrlRegex =
-  /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
-
 export const THANOS_RBAC_PORT = '9092';
 export const THANOS_INSTANCE_NAME = 'thanos-querier';
 export const THANOS_NAMESPACE = 'openshift-monitoring';
