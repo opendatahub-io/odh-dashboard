@@ -1,12 +1,5 @@
-import {
-  createOpenShiftProject,
-  deleteOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
-import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
+import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
 import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
@@ -14,11 +7,6 @@ import {
   pipelineDetails,
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
-import type {
-  DataConnectionReplacements,
-  DspaSecretReplacements,
-  DspaReplacements,
-} from '~/__tests__/cypress/cypress/types';
 import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
 
 const projectName = 'test-pipelines-prj';

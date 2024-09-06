@@ -16,7 +16,7 @@ import type {
  * @param projectName Project Name
  * @param dspaSecretName DSPA Secret Name
  */
-export const provisionProjectForPipelines = (projectName: string, dspaSecretName: string) => {
+export const provisionProjectForPipelines = (projectName: string, dspaSecretName: string): void => {
   // Provision a Project
   createOpenShiftProject(projectName);
 
