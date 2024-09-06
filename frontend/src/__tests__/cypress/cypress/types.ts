@@ -25,8 +25,49 @@ export type UserAuthConfig = {
   PASSWORD: string;
 };
 
+export type AWSS3BucketDetails = {
+  NAME: string;
+  REGION: string;
+  ENDPOINT: string;
+};
+
+export type AWSS3Buckets = {
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  BUCKET_2: AWSS3BucketDetails;
+};
+
+export type DataConnectionReplacements = {
+  NAMESPACE: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_DEFAULT_REGION: string;
+  AWS_S3_BUCKET: string;
+  AWS_S3_ENDPOINT: string;
+  AWS_SECRET_ACCESS_KEY: string;
+};
+
+export type DspaSecretReplacements = {
+  DSPA_SECRET_NAME: string;
+  NAMESPACE: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+};
+
+export type DspaReplacements = {
+  DSPA_SECRET_NAME: string;
+  NAMESPACE: string;
+  AWS_S3_BUCKET: string;
+};
+
+export type CommandLineResult = {
+  code: number;
+  stdout: string;
+  stderr: string;
+};
+
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
   TEST_USER: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
+  S3: AWSS3Buckets;
 };

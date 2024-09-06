@@ -7,3 +7,10 @@ OCP_ADMIN_USER:
   AUTH_TYPE: adm-auth
   USERNAME: adminuser
   PASSWORD: adminuser-passwd
+S3:
+  AWS_ACCESS_KEY_ID: access_key
+  AWS_SECRET_ACCESS_KEY: secret_key
+  BUCKET_2:
+    NAME: pipeline-bucket-name
+    REGION: pipeline-bucket-region
+    ENDPOINT: https://pipeline-bucket-endpoint.com/
