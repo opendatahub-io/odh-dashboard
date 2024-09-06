@@ -80,7 +80,7 @@ export const proxyService =
             // TODO remove this condition, it's temporary for testing
             if (service.suffix === '-rest') {
               upstream =
-                'https://modelregistry-sample-rest.apps.modelregistry-ui.dev.datahub.redhat.com';
+                'https://modelregistry-public-rest.apps.rosa.rareddy-rosa.0ksl.p3.openshiftapps.com';
               const accessToken = request.headers[USER_ACCESS_TOKEN];
               request.headers.authorization = `Bearer ${accessToken}`;
             } else {
