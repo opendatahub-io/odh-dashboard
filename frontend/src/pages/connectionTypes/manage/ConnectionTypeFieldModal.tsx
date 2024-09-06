@@ -5,7 +5,6 @@ import ConnectionTypeSectionModal from './ConnectionTypeSectionModal';
 
 type Props = {
   field?: ConnectionTypeField;
-  isOpen?: boolean;
   onClose: () => void;
   onSubmit: (field: ConnectionTypeField) => void;
   isEdit?: boolean;

@@ -8,9 +8,7 @@ describe('ConnectionTypeSectionModal', () => {
   it('should disable submit until valid', () => {
     const closeFn = jest.fn();
     const submitFn = jest.fn();
-    const result = render(
-      <ConnectionTypeSectionModal isOpen onClose={closeFn} onSubmit={submitFn} />,
-    );
+    const result = render(<ConnectionTypeSectionModal onClose={closeFn} onSubmit={submitFn} />);
 
     const nameInput = result.getByTestId('section-name');
     const descriptionInput = result.getByTestId('section-description');
@@ -36,7 +34,6 @@ describe('ConnectionTypeSectionModal', () => {
     const submitFn = jest.fn();
     const result = render(
       <ConnectionTypeSectionModal
-        isOpen
         onClose={closeFn}
         onSubmit={submitFn}
         field={{

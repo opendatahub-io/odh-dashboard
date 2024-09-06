@@ -43,7 +43,6 @@ const isConnectionTypeFieldType = (
 
 type Props = {
   field?: ConnectionTypeDataField;
-  isOpen?: boolean;
   onClose: () => void;
   onSubmit: (field: ConnectionTypeDataField) => void;
   isEdit?: boolean;
@@ -52,7 +51,6 @@ type Props = {
 
 export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   field,
-  isOpen,
   onClose,
   onSubmit,
   isEdit,
@@ -66,7 +64,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
       ? // Cast from specific type to generic type
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
         (field.type as ConnectionTypeFieldType)
-      : undefined,
+      : ConnectionTypeFieldType.ShortText,
   );
   const [required, setRequired] = React.useState<boolean | undefined>(field?.required);
   const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState<boolean>(false);
@@ -115,15 +113,16 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         <DashboardModalFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitLabel={isEdit ? 'Edit' : 'Add'}
+          submitLabel={isEdit ? 'Save' : 'Add'}
           isSubmitDisabled={!isValid}
           alertTitle="Error"
         />
       }
       data-testid="archive-model-version-modal"
+      elementToFocus="#name"
     >
       <Form>
-        <FormGroup fieldId="name" label="Field name" isRequired>
+        <FormGroup fieldId="name" label="Name" isRequired>
           <TextInput
             id="name"
             value={name}
@@ -138,12 +137,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         </FormGroup>
         <FormGroup
           fieldId="description"
-          label="Field description"
+          label="Description"
           labelIcon={
             <Popover
-              aria-label="field description help"
-              headerContent="Field description"
-              bodyContent="Use the field description to provide users in your organization with additional information about a field, or instructions for completing the field. Your input will appear in a popover, like this one."
+              aria-label="description help"
+              headerContent="Description"
+              bodyContent="Use the description to provide users in your organization with additional information about a field, or instructions for completing the field. Your input will appear in a popover, like this one."
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
@@ -166,7 +165,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             <Popover
               aria-label="environment variable help"
               headerContent="Environment variable"
-              bodyContent="Environment variables grant you access to the value provided when attaching the connection to your workbench."
+              bodyContent="Environment variables are how the system references the field value in a workbench or model server. Your input will appear in a popover, like this one. "
             >
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
@@ -211,12 +210,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             ) : undefined}
           </FormHelperText>
         </FormGroup>
-        <FormGroup
-          fieldId="fieldType"
-          label="Field type"
-          isRequired
-          data-testid="field-type-select"
-        >
+        <FormGroup fieldId="fieldType" label="Type" isRequired data-testid="field-type-select">
           <Select
             id="fieldType"
             isOpen={isTypeSelectOpen}
@@ -239,7 +233,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                 onClick={() => {
                   setIsTypeSelectOpen((open) => !open);
                 }}
-                isExpanded={isOpen}
+                isExpanded={isTypeSelectOpen}
               >
                 {fieldType ? fieldTypeToString(fieldType) : ''}
               </MenuToggle>
