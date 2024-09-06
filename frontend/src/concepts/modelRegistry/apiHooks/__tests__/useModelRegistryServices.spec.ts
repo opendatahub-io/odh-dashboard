@@ -1,5 +1,5 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { act } from 'react-dom/test-utils';
+import { waitFor } from '@testing-library/react';
 import { useAccessReview, useRulesReview, listServices } from '~/api';
 import { ServiceKind } from '~/k8sTypes';
 import {
@@ -8,7 +8,6 @@ import {
 } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { waitFor } from '@testing-library/react';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
