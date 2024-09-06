@@ -66,7 +66,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
       ? // Cast from specific type to generic type
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
         (field.type as ConnectionTypeFieldType)
-      : undefined,
+      : ConnectionTypeFieldType.ShortText,
   );
   const [required, setRequired] = React.useState<boolean | undefined>(field?.required);
   const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState<boolean>(false);
