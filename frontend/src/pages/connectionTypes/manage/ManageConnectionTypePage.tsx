@@ -164,17 +164,17 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                   }}
                 />
               </FormGroup>
-              <FormGroup label="Enable" fieldId="connection-type-enable">
-                <Checkbox
-                  label="Enable users in your organization to use this connection type when adding connections."
-                  id="connection-type-enable"
-                  name="connection-type-enable"
-                  data-testid="connection-type-enable"
-                  isChecked={connectionEnabled}
-                  onChange={(_e, value) => setConnectionEnabled(value)}
-                />
-              </FormGroup>
             </FormSection>
+            <FormGroup label="Enable" fieldId="connection-type-enable">
+              <Checkbox
+                label="Enable users in your organization to use this connection type when adding connections."
+                id="connection-type-enable"
+                name="connection-type-enable"
+                data-testid="connection-type-enable"
+                isChecked={connectionEnabled}
+                onChange={(_e, value) => setConnectionEnabled(value)}
+              />
+            </FormGroup>
             <FormSection title="Fields" className="pf-v5-u-mt-0">
               <FormGroup>
                 {isEnvVarConflict ? (

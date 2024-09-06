@@ -14,6 +14,7 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...res
         overflow: 'hidden',
         WebkitBoxOrient: 'vertical',
         WebkitLineClamp: maxLines,
+        overflowWrap: 'anywhere',
       }}
       {...rest}
     >
