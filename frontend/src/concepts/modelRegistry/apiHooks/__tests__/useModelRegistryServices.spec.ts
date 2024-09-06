@@ -8,6 +8,7 @@ import {
 } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { waitFor } from '@testing-library/react';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -80,12 +81,10 @@ describe('useModelRegistryServices', () => {
 
     const { result } = testHook(() => useModelRegistryServices('test-namespace'))();
 
-    await act(async () => {
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
+    await waitFor(() => {
+      const [, isLoaded] = objectToStandardUseFetchState(result.current);
+      expect(isLoaded).toBe(true);
     });
-
     const [services, isLoaded] = objectToStandardUseFetchState(result.current);
     expect(services).toEqual([
       mockModelRegistryService({ name: 'service-1', namespace: 'test-namespace' }),
