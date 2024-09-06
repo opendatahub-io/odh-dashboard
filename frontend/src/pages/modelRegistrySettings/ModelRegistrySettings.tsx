@@ -68,7 +68,6 @@ const ModelRegistrySettings: React.FC = () => {
           refresh={refreshAll}
           onCreateModelRegistryClick={() => {
             setCreateModalOpen(true);
-            return Promise.resolve();
           }}
         />
       </ApplicationsPage>
