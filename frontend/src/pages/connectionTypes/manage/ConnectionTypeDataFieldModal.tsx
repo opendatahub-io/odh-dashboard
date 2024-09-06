@@ -115,7 +115,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         <DashboardModalFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitLabel={isEdit ? 'Edit' : 'Add'}
+          submitLabel={isEdit ? 'Save' : 'Add'}
           isSubmitDisabled={!isValid}
           alertTitle="Error"
         />
