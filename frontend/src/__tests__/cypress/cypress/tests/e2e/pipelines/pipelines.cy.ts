@@ -19,6 +19,7 @@ import type {
   DspaSecretReplacements,
   DspaReplacements,
 } from '~/__tests__/cypress/cypress/types';
+import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
@@ -27,36 +28,8 @@ const testRunName = 'test-pipelines-run';
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
-    // Provision a Project
-    createOpenShiftProject(projectName);
-
-    // Create a pipeline compatible Data Connection
-    const dataConnectionReplacements: DataConnectionReplacements = {
-      NAMESPACE: projectName,
-      AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
-      AWS_DEFAULT_REGION: Buffer.from(AWS_BUCKETS.BUCKET_2.REGION).toString('base64'),
-      AWS_S3_BUCKET: Buffer.from(AWS_BUCKETS.BUCKET_2.NAME).toString('base64'),
-      AWS_S3_ENDPOINT: Buffer.from(AWS_BUCKETS.BUCKET_2.ENDPOINT).toString('base64'),
-      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
-    };
-    createDataConnection(dataConnectionReplacements);
-
-    // Configure Pipeline server: Create DSPA Secret
-    const dspaSecretReplacements: DspaSecretReplacements = {
-      DSPA_SECRET_NAME: dspaSecretName,
-      NAMESPACE: projectName,
-      AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
-      AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
-    };
-    createDSPASecret(dspaSecretReplacements);
-
-    // Configure Pipeline server: Create DSPA
-    const dspaReplacements: DspaReplacements = {
-      DSPA_SECRET_NAME: dspaSecretName,
-      NAMESPACE: projectName,
-      AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
-    };
-    createDSPA(dspaReplacements);
+    // Create a Project for pipelines
+    provisionProjectForPipelines(projectName, dspaSecretName);
   });
 
   after(() => {
@@ -65,7 +38,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('An admin User can Import and Run a Pipeline', () => {
-    cy.on('uncaught:exception', () => false);
     // Login as an admin
     cy.visitWithLogin('/', ADMIN_USER);
 
