@@ -18,7 +18,6 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   return (
     <NotebookStatusToggle
       notebookState={notebookState}
-      doListen
       enablePipelines={enablePipelines}
       isDisabled={
         notebookImage?.imageAvailability === NotebookImageAvailability.DELETED &&

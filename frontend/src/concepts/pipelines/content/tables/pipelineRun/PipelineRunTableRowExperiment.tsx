@@ -3,25 +3,27 @@ import { Skeleton } from '@patternfly/react-core';
 import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { experimentRunsRoute } from '~/routes';
+import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type PipelineRunTableRowExperimentProps = {
-  experimentId: string;
+  experiment: ExperimentKFv2 | null;
+  loaded: boolean;
 };
 
 const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps> = ({
-  experimentId,
+  experiment,
+  loaded,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const [experiment, isExperimentLoaded] = useExperimentById(experimentId);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   return (
     <Td dataLabel="Experiment">
-      {!isExperimentLoaded ? (
+      {!loaded ? (
         <Skeleton />
-      ) : isExperimentsAvailable && experimentId ? (
+      ) : isExperimentsAvailable ? (
         <Link to={experimentRunsRoute(namespace, experiment?.experiment_id)}>
           {experiment?.display_name}
         </Link>

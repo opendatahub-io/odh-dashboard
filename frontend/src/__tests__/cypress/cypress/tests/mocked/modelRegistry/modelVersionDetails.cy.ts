@@ -162,7 +162,10 @@ describe('Model version details', () => {
         'Label y',
         'Label z',
       ]);
-      modelVersionDetails.findStorageLocation().contains('s3://test-bucket/demo-models/test-path');
+      modelVersionDetails.findStorageEndpoint().contains('test-endpoint');
+      modelVersionDetails.findStorageRegion().contains('test-region');
+      modelVersionDetails.findStorageBucket().contains('test-bucket');
+      modelVersionDetails.findStoragePath().contains('demo-models/test-path');
     });
 
     it('Switching model versions', () => {

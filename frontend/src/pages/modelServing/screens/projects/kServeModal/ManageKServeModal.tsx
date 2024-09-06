@@ -50,6 +50,11 @@ import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/Registe
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -193,6 +198,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   );
 
   const onBeforeClose = (submitted: boolean) => {
+    fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', {
+      outcome: TrackingOutcome.cancel,
+    });
     onClose(submitted);
     setError(undefined);
     setActionInProgress(false);
@@ -207,9 +215,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     setActionInProgress(false);
   };
 
-  const onSuccess = () => {
+  const onSuccess = (tProps: FormTrackingEventProperties) => {
     setActionInProgress(false);
     onBeforeClose(true);
+    fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', tProps);
   };
 
   const submit = () => {
@@ -249,6 +258,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.secrets,
     );
 
+    const props: FormTrackingEventProperties = {
+      outcome: TrackingOutcome.submit,
+      type: 'single',
+      runtime: servingRuntimeName,
+      isCustomRuntime: customServingRuntimesEnabled,
+      servingRuntimeName: createDataServingRuntime.servingRuntimeTemplateName,
+      servingRuntimeFormat: createDataInferenceService.format.name,
+      numReplicas: createDataServingRuntime.servingRuntimeTemplateName,
+    };
     Promise.all([
       submitServingRuntimeResources({ dryRun: true }),
       submitInferenceServiceResource({ dryRun: true }),
@@ -259,9 +277,16 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           submitInferenceServiceResource({ dryRun: false }),
         ]),
       )
-      .then(onSuccess)
+      .then(() => {
+        props.success = true;
+        fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
+        onSuccess(props);
+      })
       .catch((e) => {
+        props.success = false;
+        props.errorMessage = e;
         setErrorModal(e);
+        fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
   };
 

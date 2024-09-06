@@ -28,9 +28,14 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { experimentId, pipelineVersionId } = useParams();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState, ...statusRuntimeStates } =
-    runtimeStateLabels;
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const {
+    [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState,
+    [RuntimeStateKF.PAUSED]: pausedState,
+    [RuntimeStateKF.CANCELED]: cancelledState,
+    ...statusRuntimeStates
+  } = runtimeStateLabels;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const defaultFilterOptions = React.useMemo(

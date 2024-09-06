@@ -134,7 +134,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
             <Alert
               isInline
               variant="warning"
-              title="Editing this connection will not affect existing connections of this type."
+              title="Editing this connection type does not affect existing connections of this type."
             />
           </PageSection>
         ) : undefined}
@@ -176,13 +176,11 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
               </FormGroup>
             </FormSection>
             <FormSection title="Fields" className="pf-v5-u-mt-0">
-              Add fields to prompt users to input information, and optionally assign default values
-              to those fields.
               <FormGroup>
                 {isEnvVarConflict ? (
                   <Alert isInline variant="danger" title="Environment variables conflict">
-                    Environment variables for one or more fields are conflicting. Change them to
-                    resolve and proceed.
+                    Two or more fields are using the same environment variable. Ensure that each
+                    field uses a unique environment variable to proceed.
                   </Alert>
                 ) : null}
                 <ManageConnectionTypeFieldsTable

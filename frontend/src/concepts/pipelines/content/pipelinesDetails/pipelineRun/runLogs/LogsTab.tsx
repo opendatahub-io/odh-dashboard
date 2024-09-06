@@ -43,11 +43,12 @@ import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 
 interface LogsTabProps {
   task: PipelineTask;
+  isCached: boolean;
 }
 
-const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
+const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
   const { namespace } = usePipelinesAPI();
-  const podName = task.status?.podName ?? '';
+  const podName = isCached ? '' : task.status?.podName ?? '';
   const isFailedPod = task.status?.state === ExecutionStateKF.FAILED;
   const {
     pod,
@@ -184,7 +185,7 @@ const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
   const error = podError || logsError || downloadError;
   const loaded = podLoaded && logsLoaded;
   let data: string;
-  if (error || podStatus?.podInitializing) {
+  if (error || podStatus?.podInitializing || isCached) {
     data = '';
   } else if (!logsLoaded || !podLoaded) {
     data = 'Loading...';
@@ -204,6 +205,7 @@ const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
             podStatus={podStatus}
             loaded={loaded}
             error={error}
+            isCached={isCached}
             isFailedPod={isFailedPod}
             isLogsAvailable={podContainers.length !== 1 && !!logs}
             onDownload={onDownloadAll}
@@ -223,7 +225,8 @@ const LogsTab: React.FC<LogsTabProps> = ({ task }) => {
             logViewerRef={logViewerRef}
             isTextWrapped={isTextWrapped}
             toolbar={
-              !error && (
+              !error &&
+              !isCached && (
                 <Toolbar className={isFullScreen ? 'pf-v5-u-p-sm' : ''}>
                   <ToolbarContent>
                     <ToolbarGroup

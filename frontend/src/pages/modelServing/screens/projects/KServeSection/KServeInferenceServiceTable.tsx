@@ -6,6 +6,8 @@ import KServeInferenceServiceTableRow from '~/pages/modelServing/screens/project
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import DeleteInferenceServiceModal from '~/pages/modelServing/screens/global/DeleteInferenceServiceModal';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 const KServeInferenceServiceTable: React.FC = () => {
   const [editKserveResources, setEditKServeResources] = React.useState<
@@ -56,6 +58,10 @@ const KServeInferenceServiceTable: React.FC = () => {
         inferenceService={deleteKserveResources?.inferenceService}
         servingRuntime={deleteKserveResources?.servingRuntime}
         onClose={(deleted) => {
+          fireFormTrackingEvent('Model Deleted', {
+            outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+            type: 'single',
+          });
           if (deleted) {
             refreshServingRuntime();
             refreshInferenceServices();

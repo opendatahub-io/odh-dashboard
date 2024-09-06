@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ClipboardCopy, DescriptionList, Flex, FlexItem } from '@patternfly/react-core';
+import { DescriptionList, Flex, FlexItem, TextVariants, Title } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
@@ -10,6 +10,8 @@ import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useM
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
+import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -22,6 +24,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
 }) => {
   const [modelArtifact] = useModelArtifactsByVersionId(mv.id);
   const { apiState } = React.useContext(ModelRegistryContext);
+  const storageFields = uriToObjectStorageFields(modelArtifact.items[0]?.uri || '');
 
   return (
     <Flex
@@ -80,29 +83,67 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             isEmpty={!mv.id}
             contentWhenEmpty="No model ID"
           >
-            <ClipboardCopy
-              data-testid="model-version-id"
-              hoverTip="Copy"
-              clickTip="Copied"
-              variant="inline-compact"
-            >
-              {mv.id}
-            </ClipboardCopy>
+            <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup
-            title="Storage location"
-            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].uri}
-            contentWhenEmpty="No storage location"
-          >
-            <ClipboardCopy
-              data-testid="storage-location"
-              hoverTip="Copy"
-              clickTip="Copied"
-              variant="inline-compact"
-            >
-              {modelArtifact.items[0]?.uri}
-            </ClipboardCopy>
-          </DashboardDescriptionListGroup>
+          <Title headingLevel={TextVariants.h3}>Model location</Title>
+          {storageFields && (
+            <>
+              <DashboardDescriptionListGroup
+                title="Endpoint"
+                isEmpty={modelArtifact.size === 0 || !storageFields.endpoint}
+                contentWhenEmpty="No endpoint"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-endpoint"
+                  textToCopy={storageFields.endpoint}
+                />
+              </DashboardDescriptionListGroup>
+              <DashboardDescriptionListGroup
+                title="Region"
+                isEmpty={modelArtifact.size === 0 || !storageFields.region}
+                contentWhenEmpty="No region"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-region"
+                  textToCopy={storageFields.region || ''}
+                />
+              </DashboardDescriptionListGroup>
+              <DashboardDescriptionListGroup
+                title="Bucket"
+                isEmpty={modelArtifact.size === 0 || !storageFields.bucket}
+                contentWhenEmpty="No bucket"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-bucket"
+                  textToCopy={storageFields.bucket}
+                />
+              </DashboardDescriptionListGroup>
+              <DashboardDescriptionListGroup
+                title="Path"
+                isEmpty={modelArtifact.size === 0 || !storageFields.path}
+                contentWhenEmpty="No path"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-path"
+                  textToCopy={storageFields.path}
+                />
+              </DashboardDescriptionListGroup>
+            </>
+          )}
+          {!storageFields && (
+            <>
+              <DashboardDescriptionListGroup
+                title="URI"
+                isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].uri}
+                contentWhenEmpty="No URI"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-uri"
+                  textToCopy={modelArtifact.items[0]?.uri || ''}
+                />
+              </DashboardDescriptionListGroup>
+            </>
+          )}
           <DashboardDescriptionListGroup
             title="Source model format"
             isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatName}

@@ -84,6 +84,10 @@ class CreateConnectionTypePage {
     return new CreateConnectionTypeTableRow(() => this.findAllFieldsTableRows().eq(index));
   }
 
+  findFooterError() {
+    return cy.findByTestId('connection-type-footer-error');
+  }
+
   findSubmitButton() {
     return cy.findByTestId('submit-button');
   }

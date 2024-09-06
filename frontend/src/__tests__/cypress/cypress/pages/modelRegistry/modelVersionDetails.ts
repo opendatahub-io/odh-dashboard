@@ -26,8 +26,24 @@ class ModelVersionDetails {
     return cy.findByTestId('label-group').find('button');
   }
 
-  findStorageLocation() {
-    return cy.findByTestId('storage-location');
+  findStorageURI() {
+    return cy.findByTestId('storage-uri');
+  }
+
+  findStorageEndpoint() {
+    return cy.findByTestId('storage-endpoint');
+  }
+
+  findStorageRegion() {
+    return cy.findByTestId('storage-region');
+  }
+
+  findStorageBucket() {
+    return cy.findByTestId('storage-bucket');
+  }
+
+  findStoragePath() {
+    return cy.findByTestId('storage-path');
   }
 
   shouldContainsModalLabels(labels: string[]) {

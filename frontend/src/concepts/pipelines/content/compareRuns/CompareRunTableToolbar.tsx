@@ -22,9 +22,14 @@ const CompareRunTableToolbar: React.FC<FilterProps> = ({ ...toolbarProps }) => {
   const { runs } = useCompareRuns();
   const navigate = useNavigate();
   const { namespace, experimentId } = useParams();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState, ...statusRuntimeStates } =
-    runtimeStateLabels;
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const {
+    [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState,
+    [RuntimeStateKF.PAUSED]: pausedState,
+    [RuntimeStateKF.CANCELED]: cancelledState,
+    ...statusRuntimeStates
+  } = runtimeStateLabels;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   const options = React.useMemo(
     () => ({

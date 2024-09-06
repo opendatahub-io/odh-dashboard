@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import startCase from 'lodash-es/startCase';
-import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import {
   mockK8sResourceList,
   mockProjectK8sResource,
@@ -67,7 +67,7 @@ const mockActiveRuns = [
     },
     experiment_id: 'test-experiment-1',
     created_at: '2024-02-10T00:00:00Z',
-    state: RuntimeStateKF.CANCELED,
+    state: RuntimeStateKF.PENDING,
   }),
 ];
 
@@ -524,22 +524,39 @@ describe('Pipeline runs', () => {
           activeRunsTable.findRows().should('have.length', 1);
           activeRunsTable.getRowByName('Test active run 2').find().should('exist');
 
-          // Mock runs (filtered by a status of 'CANCELED')
+          // Mock runs (filtered by a status of 'PENDING')
           activeRunsTable.mockGetActiveRuns(
-            mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.CANCELED),
+            mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.PENDING),
             projectName,
             1,
           );
-          // Select a filter value of 'CANCELED'
+          // Select a filter value of 'PENDING'
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() =>
-              pipelineRunFilterBar.selectStatusByName(runtimeStateLabels[RuntimeStateKF.CANCELED]),
+              pipelineRunFilterBar.selectStatusByName(runtimeStateLabels[RuntimeStateKF.PENDING]),
             );
 
           // Verify only rows with the selected status exist
           activeRunsTable.findRows().should('have.length', 1);
           activeRunsTable.getRowByName('Test active run 3').find().should('exist');
+
+          // Verify no "Canceled" and "Paused" status filter
+          pipelineRunsGlobal.findActiveRunsToolbar().within(() => {
+            pipelineRunFilterBar.findStatusSelect().click();
+            pipelineRunFilterBar
+              .findStatusSelect()
+              .get(`[data-testid="${runtimeStateLabels[RuntimeStateKF.SKIPPED]}"]`)
+              .should('exist');
+            pipelineRunFilterBar
+              .findStatusSelect()
+              .get(`[data-testid="${runtimeStateLabels[RuntimeStateKF.PAUSED]}"]`)
+              .should('not.exist');
+            pipelineRunFilterBar
+              .findStatusSelect()
+              .get(`[data-testid="${runtimeStateLabels[RuntimeStateKF.CANCELED]}"]`)
+              .should('not.exist');
+          });
         });
 
         it('Sort by Name', () => {
@@ -965,6 +982,30 @@ describe('Pipeline runs', () => {
           .findStatusSwitchByRowName()
           .click();
         cy.wait('@disableRecurringRun');
+      });
+
+      it('schedules toggle should be disabled for the schedules with archived experiment', () => {
+        const mockArchivedExperiment = buildMockExperimentKF({
+          display_name: 'Test experiment 1',
+          experiment_id: 'test-experiment-1',
+          last_run_created_at: '1970-01-01T00:00:00Z',
+          storage_state: StorageStateKF.ARCHIVED,
+        });
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+          {
+            path: {
+              namespace: projectName,
+              serviceName: 'dspa',
+              experimentId: 'test-experiment-1',
+            },
+          },
+          mockArchivedExperiment,
+        );
+        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRecurringRunTable
+          .getRowByName(mockRecurringRuns[0].display_name)
+          .shouldHaveToggleDisabled();
       });
 
       describe('Navigation', () => {

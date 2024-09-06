@@ -140,4 +140,65 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
       items: [{ label: 'b', value: 'b' }],
     });
   });
+
+  it('should show duplicate error message', async () => {
+    let renderResult = render(
+      <DropdownAdvancedPropertiesForm
+        properties={{
+          variant: 'single',
+          items: [
+            { label: 'a', value: 'b' },
+            { label: '', value: '' },
+          ],
+        }}
+        field={field}
+        onChange={onChange}
+        onValidate={onValidate}
+      />,
+    );
+
+    const itemLabel = screen.getByTestId('dropdown-item-row-label-1');
+    act(() => fireEvent.change(itemLabel, { target: { value: 'a' } }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      variant: 'single',
+      items: [
+        { label: 'a', value: 'b' },
+        { label: 'a', value: '', labelError: 'a already exists.' },
+      ],
+    });
+
+    const itemValue = screen.getByTestId('dropdown-item-row-value-1');
+    act(() => fireEvent.change(itemValue, { target: { value: 'b' } }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      variant: 'single',
+      items: [
+        { label: 'a', value: 'b' },
+        { label: '', value: 'b', valueError: 'b already exists.' },
+      ],
+    });
+
+    renderResult.unmount();
+    renderResult = render(
+      <DropdownAdvancedPropertiesForm
+        properties={{
+          variant: 'single',
+          items: [
+            { label: 'a', value: 'b' },
+            {
+              label: 'a',
+              value: 'b',
+              labelError: 'a already exists.',
+              valueError: 'b already exists.',
+            },
+          ] as { label: string; value: string }[],
+        }}
+        field={field}
+        onChange={onChange}
+        onValidate={onValidate}
+      />,
+    );
+
+    expect(screen.getByText('a already exists.')).toBeVisible();
+    expect(screen.getByText('b already exists.')).toBeVisible();
+  });
 });

@@ -312,6 +312,10 @@ class PipelineRunDetails extends RunDetails {
     return cy.findByTestId('logs-success-alert');
   }
 
+  findLogsCachedAlert() {
+    return cy.findByTestId('logs-cached-alert');
+  }
+
   findLogs() {
     return cy.findByTestId('logs');
   }
