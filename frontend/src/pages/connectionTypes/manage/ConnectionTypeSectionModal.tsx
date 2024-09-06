@@ -45,6 +45,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({
           alertTitle=""
         />
       }
+      elementToFocus="#section-name"
     >
       <Form>
         <FormGroup

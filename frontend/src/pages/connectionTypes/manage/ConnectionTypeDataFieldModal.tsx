@@ -121,6 +121,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         />
       }
       data-testid="archive-model-version-modal"
+      elementToFocus="#name"
     >
       <Form>
         <FormGroup fieldId="name" label="Name" isRequired>
