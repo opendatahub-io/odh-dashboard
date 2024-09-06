@@ -64,40 +64,41 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label={nameLabel} isRequired>
+        <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
           <TextInput
             data-testid={`${dataTestId}-name`}
             id={`${dataTestId}-name`}
+            name={`${dataTestId}-name`}
             autoFocus={autoFocusName}
             isRequired
             value={name}
             onChange={(event, value) => onDataChange('name', value)}
           />
-        </FormGroup>
-        {!showK8sField && !k8sName.state.immutable && (
-          <FormHelperText>
-            {k8sName.value && (
+          {!showK8sField && !k8sName.state.immutable && (
+            <FormHelperText>
+              {k8sName.value && (
+                <HelperText>
+                  <HelperTextItem>
+                    The resource name will be <b>{k8sName.value}</b>.
+                  </HelperTextItem>
+                </HelperText>
+              )}
               <HelperText>
                 <HelperTextItem>
-                  The resource name will be <b>{k8sName.value}</b>.
+                  <Button
+                    data-testid={`${dataTestId}-editResourceLink`}
+                    variant="link"
+                    isInline
+                    onClick={() => setShowK8sField(true)}
+                  >
+                    Edit resource name
+                  </Button>{' '}
+                  <ResourceNameDefinitionTooltip />
                 </HelperTextItem>
               </HelperText>
-            )}
-            <HelperText>
-              <HelperTextItem>
-                <Button
-                  data-testid={`${dataTestId}-editResourceLink`}
-                  variant="link"
-                  isInline
-                  onClick={() => setShowK8sField(true)}
-                >
-                  Edit resource name
-                </Button>{' '}
-                <ResourceNameDefinitionTooltip />
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        )}
+            </FormHelperText>
+          )}
+        </FormGroup>
       </StackItem>
       <ResourceNameField
         allowEdit={showK8sField}
@@ -106,10 +107,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         onDataChange={onDataChange}
       />
       <StackItem>
-        <FormGroup label={descriptionLabel}>
+        <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
           <TextArea
             data-testid={`${dataTestId}-description`}
             id={`${dataTestId}-description`}
+            name={`${dataTestId}-description`}
             value={description}
             onChange={(event, value) => onDataChange('description', value)}
             resizeOrientation="vertical"

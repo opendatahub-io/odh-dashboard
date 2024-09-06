@@ -24,12 +24,16 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   k8sName,
   onDataChange,
 }) => {
+  const formGroupProps: React.ComponentProps<typeof FormGroup> = {
+    label: 'Resource name',
+    labelIcon: <ResourceNameDefinitionTooltip />,
+    fieldId: `${dataTestId}-resourceName`,
+  };
+
   if (k8sName.state.immutable) {
     return (
       <StackItem>
-        <FormGroup label="Resource name" labelIcon={<ResourceNameDefinitionTooltip />}>
-          {k8sName.value}
-        </FormGroup>
+        <FormGroup {...formGroupProps}>{k8sName.value}</FormGroup>
       </StackItem>
     );
   }
@@ -40,9 +44,10 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
 
   return (
     <StackItem>
-      <FormGroup label="Resource name" labelIcon={<ResourceNameDefinitionTooltip />}>
+      <FormGroup {...formGroupProps}>
         <TextInput
           data-testid={`${dataTestId}-resourceName`}
+          name={`${dataTestId}-resourceName`}
           value={k8sName.value}
           onChange={(event, value) => onDataChange('k8sName', value)}
         />
