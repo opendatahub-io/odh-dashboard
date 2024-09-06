@@ -33,6 +33,21 @@ const app = fastify({
   pluginTimeout: 10000,
 });
 
+// Allow the fastify server to parse the merge-patch/json content type
+app.addContentTypeParser(
+  'application/merge-patch+json',
+  { parseAs: 'string' },
+  function (req, body, done) {
+    try {
+      const json = JSON.parse(String(body));
+      done(null, json);
+    } catch (err) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  },
+);
+
 app.register(initializeApp);
 
 app.listen({ port: PORT, host: IP }, (err) => {

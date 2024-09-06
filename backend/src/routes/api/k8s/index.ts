@@ -40,6 +40,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         url,
         method: req.method,
         requestData: data,
+        overrideContentType: req.headers['content-type'],
       };
 
       let promise: Promise<unknown>;

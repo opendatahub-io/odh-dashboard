@@ -4,12 +4,18 @@ import { mockK8sNameDescriptionFieldData } from '~/__mocks__/mockK8sNameDescript
 
 type MockResourceConfigType = {
   volumeName?: string;
+  notebookId?: string;
 };
 export const mockStartNotebookData = ({
+  notebookId,
   volumeName = 'test-volume',
 }: MockResourceConfigType): StartNotebookData => ({
   projectName: 'test-project',
-  notebookData: mockK8sNameDescriptionFieldData({ name: 'test-notebook', description: '' }),
+  notebookData: mockK8sNameDescriptionFieldData({
+    name: 'test-notebook',
+    description: '',
+    k8sName: { value: notebookId },
+  }),
   image: {
     imageStream: {
       metadata: {

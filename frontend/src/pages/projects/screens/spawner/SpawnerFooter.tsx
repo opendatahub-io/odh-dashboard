@@ -4,11 +4,19 @@ import {
   ActionList,
   ActionListItem,
   Alert,
+  AlertActionLink,
   Button,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { assembleSecret, createNotebook, createSecret, updateNotebook } from '~/api';
+import {
+  assembleSecret,
+  createNotebook,
+  createSecret,
+  K8sStatusError,
+  mergePatchUpdateNotebook,
+  updateNotebook,
+} from '~/api';
 import {
   DataConnectionData,
   EnvVariable,
@@ -48,7 +56,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   dataConnection,
   canEnablePipelines,
 }) => {
-  const [errorMessage, setErrorMessage] = React.useState('');
+  const [error, setError] = React.useState<K8sStatusError>();
 
   const {
     dashboardConfig: {
@@ -114,18 +122,62 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     refreshAllProjectData();
     navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
   };
-  const handleError = (e: Error) => {
+  const handleError = (e: K8sStatusError) => {
     fireFormTrackingEvent('Workbench Created', {
       outcome: TrackingOutcome.submit,
       success: false,
       error: e.message,
     });
-    setErrorMessage(e.message || 'Error creating workbench');
+    setError(e);
     setCreateInProgress(false);
   };
   const handleStart = () => {
-    setErrorMessage('');
+    setError(undefined);
     setCreateInProgress(true);
+  };
+
+  const updateNotebookPromise = async (dryRun: boolean) => {
+    if (!editNotebook) {
+      return;
+    }
+
+    const pvcDetails = await replaceRootVolumesForNotebook(
+      projectName,
+      editNotebook,
+      storageData,
+      dryRun,
+    ).catch(handleError);
+
+    const envFrom = await updateConfigMapsAndSecretsForNotebook(
+      projectName,
+      editNotebook,
+      envVariables,
+      dataConnection,
+      existingNotebookDataConnection,
+      dryRun,
+    ).catch(handleError);
+
+    if (!pvcDetails || !envFrom) {
+      return;
+    }
+
+    const annotations = { ...editNotebook.metadata.annotations };
+    if (envFrom.length > 0) {
+      annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
+    }
+
+    const { volumes, volumeMounts } = pvcDetails;
+    const newStartNotebookData: StartNotebookData = {
+      ...startNotebookData,
+      volumes,
+      volumeMounts,
+      envFrom,
+      tolerationSettings,
+    };
+    if (dryRun) {
+      return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
+    }
+    return mergePatchUpdateNotebook(newStartNotebookData, username);
   };
 
   const onUpdateNotebook = async () => {
@@ -150,61 +202,17 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     handleStart();
-    if (editNotebook) {
-      const updateNotebookPromise = async (dryRun: boolean) => {
-        const pvcDetails = await replaceRootVolumesForNotebook(
-          projectName,
-          editNotebook,
-          storageData,
-          dryRun,
-        ).catch(handleError);
-
-        const envFrom = await updateConfigMapsAndSecretsForNotebook(
-          projectName,
-          editNotebook,
-          envVariables,
-          dataConnection,
-          existingNotebookDataConnection,
-          dryRun,
-        ).catch(handleError);
-
-        if (!pvcDetails || !envFrom) {
-          return;
-        }
-
-        const annotations = { ...editNotebook.metadata.annotations };
-        if (envFrom.length > 0) {
-          annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
-        }
-
-        const { volumes, volumeMounts } = pvcDetails;
-        const newStartNotebookData: StartNotebookData = {
-          ...startNotebookData,
-          volumes,
-          volumeMounts,
-          envFrom,
-          tolerationSettings,
-        };
-        return updateNotebook(
-          { ...editNotebook, metadata: { ...editNotebook.metadata, annotations } },
-          newStartNotebookData,
-          username,
-          { dryRun },
-        );
-      };
-
-      updateNotebookPromise(true)
-        .then(() =>
-          updateNotebookPromise(false)
-            .then((notebook) => {
-              if (notebook) {
-                afterStart(notebook.metadata.name, 'updated');
-              }
-            })
-            .catch(handleError),
-        )
-        .catch(handleError);
-    }
+    updateNotebookPromise(true)
+      .then(() =>
+        updateNotebookPromise(false)
+          .then((notebook) => {
+            if (notebook) {
+              afterStart(notebook.metadata.name, 'updated');
+            }
+          })
+          .catch(handleError),
+      )
+      .catch(handleError);
   };
 
   const onCreateNotebook = async () => {
@@ -266,10 +274,35 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   return (
     <Stack hasGutter>
-      {errorMessage && (
+      {error && (
         <StackItem>
-          <Alert isInline variant="danger" title="Error creating workbench">
-            {errorMessage}
+          <Alert
+            isInline
+            variant="danger"
+            title="Error creating workbench"
+            actionLinks={
+              // If this is a 409 conflict error
+              error.statusObject.code === 409 ? (
+                <>
+                  <AlertActionLink
+                    onClick={() =>
+                      updateNotebookPromise(false)
+                        .then((notebook) => {
+                          if (notebook) {
+                            afterStart(notebook.metadata.name, 'updated');
+                          }
+                        })
+                        .catch(handleError)
+                    }
+                  >
+                    Force update
+                  </AlertActionLink>
+                  <AlertActionLink onClick={() => location.reload()}>Refresh</AlertActionLink>
+                </>
+              ) : undefined
+            }
+          >
+            {error.message}
           </Alert>
         </StackItem>
       )}

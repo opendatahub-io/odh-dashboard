@@ -3,11 +3,9 @@ import {
   k8sGetResource,
   k8sPatchResource,
   k8sListResource,
-  k8sUpdateResource,
   k8sDeleteResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import * as _ from 'lodash-es';
 import { NotebookKind } from '~/k8sTypes';
 import { Toleration } from '~/types';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
@@ -23,7 +21,6 @@ import {
   getNotebooks,
   stopNotebook,
   startNotebook,
-  updateNotebook,
   deleteNotebook,
   attachNotebookSecret,
   replaceNotebookSecret,
@@ -32,6 +29,7 @@ import {
   removeNotebookSecret,
   getStopPatch,
   startPatch,
+  mergePatchUpdateNotebook,
 } from '~/api/k8s/notebooks';
 
 import {
@@ -43,6 +41,7 @@ import {
 
 import { TolerationChanges, getTolerationPatch } from '~/utilities/tolerations';
 import { NotebookModel } from '~/api/models';
+import { k8sMergePatchResource } from '~/api/k8sUtils';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sCreateResource: jest.fn(),
@@ -50,7 +49,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
   k8sListResource: jest.fn(),
   k8sPatchResource: jest.fn(),
-  k8sUpdateResource: jest.fn(),
+}));
+
+jest.mock('~/api/k8sUtils', () => ({
+  k8sMergePatchResource: jest.fn(),
 }));
 
 jest.mock('~/concepts/pipelines/elyra/utils', () => {
@@ -65,7 +67,7 @@ const k8sCreateResourceMock = jest.mocked(k8sCreateResource<NotebookKind>);
 const k8sGetResourceMock = jest.mocked(k8sGetResource<NotebookKind>);
 const k8sPatchResourceMock = jest.mocked(k8sPatchResource<NotebookKind>);
 const k8sListResourceMock = jest.mocked(k8sListResource<NotebookKind>);
-const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<NotebookKind>);
+const k8sMergePatchResourceMock = jest.mocked(k8sMergePatchResource<NotebookKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<NotebookKind, K8sStatus>);
 const createElyraServiceAccountRoleBindingMock = jest.mocked(createElyraServiceAccountRoleBinding);
 
@@ -468,66 +470,52 @@ describe('stopNotebook', () => {
 });
 describe('updateNotebook', () => {
   it('should update a notebook', async () => {
-    const notebook = assembleNotebook(mockStartNotebookData({}), username);
-
     const existingNotebook = mockNotebookK8sResource({ uid });
-    const oldNotebook = structuredClone(existingNotebook);
-    const container = oldNotebook.spec.template.spec.containers[0];
-
-    // clean the envFrom array in case of merging the old value again
-    container.envFrom = [];
-
-    // clean the resources, affinity and tolerations for accelerator
-    oldNotebook.spec.template.spec.tolerations = [];
-    oldNotebook.spec.template.spec.affinity = {};
-    container.resources = {};
-
-    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
-
-    const renderResult = await updateNotebook(
-      existingNotebook,
-      mockStartNotebookData({}),
+    const notebook = assembleNotebook(
+      mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
 
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+
+    const renderResult = await mergePatchUpdateNotebook(
+      mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
+      username,
+    );
+
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledWith({
       fetchOptions: {
         requestInit: {},
       },
       model: NotebookModel,
       queryOptions: { queryParams: {} },
-      resource: _.merge({}, oldNotebook, notebook),
+      resource: notebook,
     });
-    expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(existingNotebook);
   });
   it('should handle errors and rethrow', async () => {
-    const notebook = assembleNotebook(mockStartNotebookData({}), username);
     const existingNotebook = mockNotebookK8sResource({ uid });
+    const notebook = assembleNotebook(
+      mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
+      username,
+    );
 
-    const oldNotebook = structuredClone(existingNotebook);
-    const container = oldNotebook.spec.template.spec.containers[0];
-
-    // clean the envFrom array in case of merging the old value again
-    container.envFrom = [];
-
-    // clean the resources, affinity and tolerations for accelerator
-    oldNotebook.spec.template.spec.tolerations = [];
-    oldNotebook.spec.template.spec.affinity = {};
-    container.resources = {};
-
-    k8sUpdateResourceMock.mockRejectedValue(new Error('error1'));
+    k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(
-      updateNotebook(existingNotebook, mockStartNotebookData({}), username),
+      mergePatchUpdateNotebook(
+        mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
+        username,
+      ),
     ).rejects.toThrow('error1');
-    expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledWith({
       fetchOptions: {
         requestInit: {},
       },
       model: NotebookModel,
       queryOptions: { queryParams: {} },
-      resource: _.merge({}, oldNotebook, notebook),
+      resource: notebook,
     });
   });
 });

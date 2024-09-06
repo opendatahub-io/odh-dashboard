@@ -556,9 +556,10 @@ describe('Workbench page', () => {
     editSpawnerPage.findSubmitButton().should('be.enabled');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
 
-    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
     editSpawnerPage.findSubmitButton().click();
-    cy.wait('@editWorkbench').then((interception) => {
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
         metadata: {
@@ -580,14 +581,9 @@ describe('Workbench page', () => {
         },
       });
     });
-
     // Actual request
     cy.wait('@editWorkbench').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
-    });
-
-    cy.get('@editWorkbench.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
     });
   });
 

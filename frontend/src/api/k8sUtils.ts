@@ -1,7 +1,11 @@
+import { applyOverrides } from '@openshift/dynamic-plugin-sdk';
 import {
+  commonFetchJSON,
+  getK8sResourceURL,
   K8sGroupVersionKind,
   K8sModelCommon,
   K8sResourceCommon,
+  K8sResourceUpdateOptions,
 } from '@openshift/dynamic-plugin-sdk-utils';
 
 export const addOwnerReference = <R extends K8sResourceCommon>(
@@ -40,3 +44,30 @@ export const groupVersionKind = (model: K8sModelCommon): K8sGroupVersionKind => 
   version: model.apiVersion,
   kind: model.kind,
 });
+
+export const k8sMergePatchResource = <
+  TResource extends K8sResourceCommon,
+  TUpdatedResource extends TResource = TResource,
+>({
+  model,
+  resource,
+  queryOptions = {},
+  fetchOptions = {},
+}: K8sResourceUpdateOptions<TResource>): Promise<TUpdatedResource> => {
+  if (!resource.metadata?.name) {
+    return Promise.reject(new Error('Resource payload name not specified'));
+  }
+
+  return commonFetchJSON<TUpdatedResource>(
+    getK8sResourceURL(model, resource, queryOptions),
+    applyOverrides(fetchOptions.requestInit, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/merge-patch+json',
+      },
+      body: JSON.stringify(resource),
+    }),
+    fetchOptions.timeout,
+    true,
+  );
+};
