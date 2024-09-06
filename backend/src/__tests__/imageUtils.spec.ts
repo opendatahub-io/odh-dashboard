@@ -4,7 +4,7 @@
 // LOCATION-docker.pkg.dev/PROJECT-ID/REPOSITORY/IMAGE:TAG
 // LOCATION-docker.pkg.dev/PROJECT-ID/REPOSITORY/IMAGE@IMAGE-DIGEST
 
-import { IMAGE_URL_REGEXP } from '../imageUtils';
+import { IMAGE_URL_REGEXP } from '../routes/api/images/imageUtils';
 
 describe('IMAGE_URL_REGEXP', () => {
   test('Invalid URL', () => {
