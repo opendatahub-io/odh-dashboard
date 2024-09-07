@@ -46,13 +46,16 @@ describe('Data science projects details', () => {
     createProjectModal.shouldBeOpen();
     createProjectModal.findSubmitButton().should('be.disabled');
 
-    createProjectModal.findNameInput().type('My Test Project');
-    createProjectModal.findDescriptionInput().type('Test project description.');
+    const fields = createProjectModal.getK8sNameDescriptionFields();
+    fields.findDisplayNameInput().type('My Test Project');
+    fields.findDescriptionInput().type('Test project description.');
     createProjectModal.findSubmitButton().should('be.enabled');
-    createProjectModal.findResourceNameInput().should('have.value', 'my-test-project').clear();
-    createProjectModal.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
+    fields.findResourceEditLink().click();
+    fields.findResourceNameInput().should('have.value', 'my-test-project');
+    fields.findResourceNameInput().clear().type('InVaLiD vAlUe!');
+    fields.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
     createProjectModal.findSubmitButton().should('be.disabled');
-    createProjectModal.findResourceNameInput().type('test-project');
+    fields.findResourceNameInput().clear().type('test-project');
 
     createProjectModal.findSubmitButton().click();
 

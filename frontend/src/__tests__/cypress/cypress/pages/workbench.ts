@@ -1,3 +1,4 @@
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
@@ -219,12 +220,8 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
-  findNameInput() {
-    return cy.findByTestId('workbench-name');
-  }
-
-  findDescriptionInput() {
-    return cy.findByTestId('workbench-description');
+  getK8sNameDescriptionFields() {
+    return new K8sNameDescriptionField('workbench');
   }
 
   getEnvironmentVariableTypeField(index: number) {
