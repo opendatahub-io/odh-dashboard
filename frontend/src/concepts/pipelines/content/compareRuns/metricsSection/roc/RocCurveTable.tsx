@@ -27,7 +27,7 @@ const RocCurveTable: React.FC<RocCurveTableBaseProps> = ({
     {...checkboxTableProps.tableProps}
     data={fullArtifactPaths}
     columns={rocCurveColumns}
-    enablePagination
+    enablePagination="compact"
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => setSearch('')} />}
     toolbarContent={
       <ToolbarItem>
