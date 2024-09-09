@@ -51,6 +51,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             selected={selectedProject}
             onOpenChange={(open) => setOpen(open)}
             isOpen={isOpen}
+            isScrollable
             toggle={(toggleRef) => (
               <MenuToggle
                 ref={toggleRef}
