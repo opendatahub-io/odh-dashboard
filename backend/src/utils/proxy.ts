@@ -5,6 +5,7 @@ import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
+import { EitherNotBoth } from '../typeHelpers';
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -25,16 +26,20 @@ const notFoundError = (kind: string, name: string, e?: any, overrideMessage?: st
     404,
   );
 };
-
 export const proxyService =
   <K extends K8sResourceCommon = never>(
     model: { apiGroup: string; apiVersion: string; plural: string; kind: string } | null,
-    service: {
-      port: number | string;
-      prefix?: string;
-      suffix?: string;
-      namespace?: string;
-    },
+    service: EitherNotBoth<
+      {
+        port: number | string;
+        prefix?: string;
+        suffix?: string;
+        namespace?: string;
+      },
+      {
+        constructUrl: (resource: K) => string;
+      }
+    >,
     local: {
       host: string;
       port: number | string;
@@ -70,7 +75,7 @@ export const proxyService =
         const namespace = service.namespace ?? getParam(request, 'namespace');
         const name = getParam(request, 'name');
 
-        const doServiceRequest = () => {
+        const doServiceRequest = (resource?: K) => {
           const scheme = tls ? 'https' : 'http';
 
           const upstream = DEV_MODE
@@ -78,7 +83,9 @@ export const proxyService =
               // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
               `${scheme}://${local.host}:${local.port}`
             : // Construct service URL
-              `${scheme}://${service.prefix || ''}${name}${
+            service.constructUrl
+            ? service.constructUrl(resource)
+            : `${scheme}://${service.prefix || ''}${name}${
                 service.suffix ?? ''
               }.${namespace}.svc.cluster.local:${service.port}`;
 
@@ -108,7 +115,7 @@ export const proxyService =
                     request.headers.authorization = `Bearer ${token}`;
                   }
 
-                  doServiceRequest();
+                  doServiceRequest(resource);
                 } else {
                   done(notFoundError(model.kind, name, undefined, 'service unavailable'));
                 }
