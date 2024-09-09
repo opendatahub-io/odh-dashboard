@@ -88,6 +88,8 @@ export default fp(async (fastify: FastifyInstance) => {
         }`,
       ),
     );
+
+    // TODO call new cleanup fn
   }
 });
 

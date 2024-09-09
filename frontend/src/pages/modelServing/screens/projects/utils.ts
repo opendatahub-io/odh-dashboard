@@ -419,6 +419,7 @@ export const getSubmitInferenceServiceResourceFn = (
         createData.project,
         createTokenAuth,
         inferenceService,
+        isModelMesh,
         secrets || [],
         {
           dryRun,
@@ -504,6 +505,7 @@ export const getSubmitServingRuntimeResourcesFn = (
               namespace,
               createTokenAuth,
               editInfo.servingRuntime,
+              isModelMesh,
               editInfo.secrets,
               {
                 dryRun,
@@ -529,6 +531,7 @@ export const getSubmitServingRuntimeResourcesFn = (
                 namespace,
                 createTokenAuth,
                 servingRuntime,
+                isModelMesh,
                 editInfo?.secrets,
                 {
                   dryRun,

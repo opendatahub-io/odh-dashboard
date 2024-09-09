@@ -11,13 +11,16 @@ import {
   createRoleBinding,
   createSecret,
   deleteSecret,
-  generateRoleBindingServingRuntime,
+  generateRoleInferenceService,
+  generateRoleBindingServiceAccount,
   replaceSecret,
   assembleServiceAccount,
   createServiceAccount,
   getRoleBinding,
   addOwnerReference,
   getServiceAccount,
+  getRole,
+  createRole,
 } from '~/api';
 import {
   SecretKind,
@@ -26,6 +29,7 @@ import {
   ServingRuntimeKind,
   InferenceServiceKind,
   ServiceAccountKind,
+  RoleKind,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
@@ -41,6 +45,7 @@ import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/s
 
 type TokenNames = {
   serviceAccountName: string;
+  roleName: string;
   roleBindingName: string;
 };
 
@@ -49,6 +54,7 @@ export const getModelServingRuntimeName = (namespace: string): string =>
 
 export const getModelServiceAccountName = (name: string): string => `${name}-sa`;
 
+export const getModelRole = (name: string): string => `${name}-view-role`;
 export const getModelRoleBinding = (name: string): string => `${name}-view`;
 
 const isValidCpuOrMemoryValue = (value?: string | number) =>
@@ -70,23 +76,50 @@ export const setUpTokenAuth = async (
   namespace: string,
   createTokenAuth: boolean,
   owner: ServingRuntimeKind | InferenceServiceKind,
+  isModelMesh?: boolean,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const { serviceAccountName, roleBindingName } = getTokenNames(deployedModelName, namespace);
+  const { serviceAccountName, roleName, roleBindingName } = getTokenNames(
+    deployedModelName,
+    namespace,
+  );
 
   const serviceAccount = addOwnerReference(
     assembleServiceAccount(serviceAccountName, namespace),
     owner,
   );
+
+  // We only need the inferenceservice view role for KServe, not ModelMesh
+  const role = !isModelMesh
+    ? addOwnerReference(generateRoleInferenceService(roleName, deployedModelName, namespace), owner)
+    : null;
+
   const roleBinding = addOwnerReference(
-    generateRoleBindingServingRuntime(roleBindingName, serviceAccountName, namespace),
+    generateRoleBindingServiceAccount(
+      roleBindingName,
+      serviceAccountName,
+      role
+        ? {
+            kind: 'Role',
+            name: roleName,
+          }
+        : {
+            // Fallback to insecure ClusterRole for ModelMesh
+            // This is a security issue we will not fix for now, this may change in the future.
+            // See https://issues.redhat.com/browse/RHOAIENG-12314
+            kind: 'ClusterRole',
+            name: 'view',
+          },
+      namespace,
+    ),
     owner,
   );
   return (
     createTokenAuth
       ? Promise.all([
           createServiceAccountIfMissing(serviceAccount, namespace, opts),
+          ...(role ? [createRoleIfMissing(role, namespace, opts)] : []),
           createRoleBindingIfMissing(roleBinding, namespace, opts),
         ])
       : Promise.resolve()
@@ -103,6 +136,18 @@ export const createServiceAccountIfMissing = async (
   getServiceAccount(serviceAccount.metadata.name, namespace).catch((e) => {
     if (e.statusObject?.code === 404) {
       return createServiceAccount(serviceAccount, opts);
+    }
+    return Promise.reject(e);
+  });
+
+export const createRoleIfMissing = async (
+  role: RoleKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<RoleKind> =>
+  getRole(role.metadata.name, namespace).catch((e) => {
+    if (e.statusObject?.code === 404) {
+      return createRole(role, opts);
     }
     return Promise.reject(e);
   });
@@ -158,9 +203,10 @@ export const getTokenNames = (servingRuntimeName: string, namespace: string): To
     servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
 
   const serviceAccountName = getModelServiceAccountName(name);
+  const roleName = getModelRole(name);
   const roleBindingName = getModelRoleBinding(name);
 
-  return { serviceAccountName, roleBindingName };
+  return { serviceAccountName, roleName, roleBindingName };
 };
 
 export const getResourceSize = (

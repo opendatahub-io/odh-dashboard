@@ -682,9 +682,20 @@ export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
 };
 
+// TODO
+// * List all RoleBindings in all namespaces filtered with labelselector for opendatahub.io/dashboard: 'true'
+// * Filter by RoleRef kind = ClusterRole and name = view
+// * Filter that by ones that have ownerReferences with kind InferenceService, Subject kind ServiceAccount
+// * Delete and replace with new RoleBinding to new role with the same subject and ownerReferences
+// Note: bring ownerReference util into backend
+// export const cleanupKserveRoleBindings = ...;
+
+// TODO test with RB llama-gem-view in kserve namespace
+
 /**
  * Converts GPU usage to use accelerator by adding an accelerator profile CRD to the cluster if GPU usage is detected
  */
+// TODO copy this approach for migrating for https://issues.redhat.com/browse/RHOAIENG-11010
 export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> => {
   // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
   // Check for migration-gpu-status configmap in dashboard namespace — if found, exit early

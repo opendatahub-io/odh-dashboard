@@ -44,6 +44,13 @@ export const NamespaceModel: K8sModelCommon = {
   plural: 'namespaces',
 };
 
+export const RoleModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'rbac.authorization.k8s.io',
+  kind: 'Role',
+  plural: 'roles',
+};
+
 export const RoleBindingModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'rbac.authorization.k8s.io',

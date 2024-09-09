@@ -14,7 +14,7 @@ import {
   createRoleBinding,
   deleteRoleBinding,
   generateRoleBindingPermissions,
-  generateRoleBindingServingRuntime,
+  generateRoleBindingServiceAccount,
   getRoleBinding,
   listRoleBindings,
   patchRoleBindingOwnerRef,
@@ -73,7 +73,12 @@ const createRoleBindingObject = (roleRefName: string, subjects: RoleBindingSubje
 
 describe('generateRoleBindingServingRuntime', () => {
   it('should generate serving runtime role binding ', () => {
-    const result = generateRoleBindingServingRuntime('rbName', 'serviceAccountName', namespace);
+    const result = generateRoleBindingServiceAccount(
+      'rbName',
+      'serviceAccountName',
+      { kind: 'ClusterRole', name: 'view' },
+      namespace,
+    );
     const subjects = [
       {
         kind: 'ServiceAccount',
