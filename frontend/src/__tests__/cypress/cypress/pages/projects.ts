@@ -20,6 +20,10 @@ class NotebookRow extends TableRow {
 }
 
 class ProjectRow extends TableRow {
+  findDescription() {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
   findEnableSwitch() {
     return this.find().pfSwitch('notebook-status-switch');
   }
