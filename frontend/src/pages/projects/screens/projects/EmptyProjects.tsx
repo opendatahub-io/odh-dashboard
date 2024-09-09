@@ -8,13 +8,12 @@ import {
   Popover,
   Button,
   Icon,
-  TextContent,
-  TextList,
-  TextListItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import PopoverListContent from '~/components/PopoverListContent';
 import projectsEmptyStateImg from '~/images/empty-state-projects-color.svg';
+import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import NewProjectButton from './NewProjectButton';
 
 type EmptyProjectsProps = {
@@ -54,18 +53,10 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
             minWidth="400px"
             headerContent="Your administrator might be:"
             bodyContent={
-              <TextContent data-testid="projects-empty-admin-help-content">
-                <TextList>
-                  <TextListItem>The person who gave you your username</TextListItem>
-                  <TextListItem>
-                    Someone in your IT department or Help desk (at a company or school)
-                  </TextListItem>
-                  <TextListItem>
-                    The person who manages your email service or web site (in a small business or
-                    club)
-                  </TextListItem>
-                </TextList>
-              </TextContent>
+              <PopoverListContent
+                data-testid="projects-empty-admin-help-content"
+                listItems={FindAdministratorOptions}
+              />
             }
           >
             <Button
