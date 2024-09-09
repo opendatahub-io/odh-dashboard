@@ -218,8 +218,8 @@ export const useBuildNavData = (): NavDataItem[] => [
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),
   ...useDistributedWorkloadsNav(),
-  ...useModelServingNav(),
   ...useModelRegistrySectionNav(),
+  ...useModelServingNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),
 ];
