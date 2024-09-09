@@ -47,18 +47,35 @@ describe('Data science projects details', () => {
     createProjectModal.findSubmitButton().should('be.disabled');
 
     const fields = createProjectModal.getK8sNameDescriptionFields();
+    // Standard items pass
     fields.findDisplayNameInput().type('My Test Project');
     fields.findDescriptionInput().type('Test project description.');
     createProjectModal.findSubmitButton().should('be.enabled');
+    // Really long display names pass
+    fields
+      .findDisplayNameInput()
+      .clear()
+      .type(
+        'This is a really long display name that will cause the Kubernetes name to exceed its max length and auto trim',
+      );
+    createProjectModal.findSubmitButton().should('be.enabled');
     fields.findResourceEditLink().click();
-    fields.findResourceNameInput().should('have.value', 'my-test-project');
+    fields.findResourceNameInput().should('have.attr', 'aria-invalid', 'false');
+    fields.findResourceNameInput().should('have.value', 'this-is-a-really-long-display');
+    // Invalid character k8s names fail
     fields.findResourceNameInput().clear().type('InVaLiD vAlUe!');
     fields.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
     createProjectModal.findSubmitButton().should('be.disabled');
+    // Invalid length k8s names fail
+    fields
+      .findResourceNameInput()
+      .clear()
+      .type('this-is-a-valid-character-string-but-it-is-too-long');
+    fields.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
+    createProjectModal.findSubmitButton().should('be.disabled');
+    // Valid k8s names succeed
     fields.findResourceNameInput().clear().type('test-project');
-
     createProjectModal.findSubmitButton().click();
-
     cy.wsK8s('ADDED', ProjectModel, mockProjectK8sResource({}));
 
     cy.url().should('include', '/projects/test-project');
