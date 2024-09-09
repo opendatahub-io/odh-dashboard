@@ -84,12 +84,12 @@ export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKFv2> => 
 
 const useCreateSelector = <T extends PipelineCoreResourceKFv2>(
   tableData: [FetchState<PipelineListPaged<T>>, TableProps],
-  useLoadMore: (props: LoadMoreProps) => [T[], () => Promise<void>],
-) => {
+  useLoadMoreFunc: (props: LoadMoreProps) => UseLoadMoreFunc<T>,
+): UsePipelineSelectorData<T> => {
   const [[{ totalSize: fetchedSize }, loaded], { initialLoaded, ...tableProps }] = tableData;
   const sortProps = getTableSortProps(tableProps);
   const { sortDirection, sortField, setFilter, filter } = tableProps;
-  const [data, onLoadMore] = useLoadMore({
+  const [data, onLoadMore] = useLoadMoreFunc({
     sortDirection,
     sortField,
     filter,
