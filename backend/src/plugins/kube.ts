@@ -5,7 +5,11 @@ import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
 import { errorHandler, isKubeFastifyInstance } from '../utils';
 import { DEV_MODE } from '../utils/constants';
-import { cleanupGPU, initializeWatchedResources } from '../utils/resourceUtils';
+import {
+  cleanupGPU,
+  cleanupKserveRoleBindings,
+  initializeWatchedResources,
+} from '../utils/resourceUtils';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
@@ -89,7 +93,13 @@ export default fp(async (fastify: FastifyInstance) => {
       ),
     );
 
-    // TODO call new cleanup fn
+    cleanupKserveRoleBindings(fastify).catch((e) =>
+      fastify.log.error(
+        `Unable to fully convert kserve rolebindings to use secure role. ${
+          e.response?.body?.message || e.message || e
+        }`,
+      ),
+    );
   }
 });
 
