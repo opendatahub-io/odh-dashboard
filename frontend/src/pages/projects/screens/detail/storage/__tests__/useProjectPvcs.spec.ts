@@ -1,5 +1,5 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import { PVCModel } from '~/api';

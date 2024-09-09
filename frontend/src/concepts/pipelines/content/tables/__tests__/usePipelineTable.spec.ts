@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import * as React from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';

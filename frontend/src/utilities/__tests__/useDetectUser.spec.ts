@@ -1,4 +1,5 @@
-import { act, waitFor, renderHook } from '@testing-library/react';
+import { act } from 'react';
+import { waitFor, renderHook } from '@testing-library/react';
 import axios from '~/utilities/axios';
 import { StatusResponse } from '~/redux/types';
 import { useAppDispatch } from '~/redux/hooks';

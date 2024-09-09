@@ -1,5 +1,5 @@
-import React from 'react';
-import { act } from '@testing-library/react';
+import * as React from 'react';
+import { act } from 'react';
 import useDraggableTable from '~/utilities/useDraggableTable';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 

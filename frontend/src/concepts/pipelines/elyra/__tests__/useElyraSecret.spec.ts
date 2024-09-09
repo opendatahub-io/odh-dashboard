@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import useElyraSecret from '~/concepts/pipelines/elyra/useElyraSecret';

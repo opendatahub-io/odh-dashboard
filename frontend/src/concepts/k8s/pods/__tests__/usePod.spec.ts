@@ -1,5 +1,5 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { PodKind } from '~/k8sTypes';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import usePod from '~/concepts/k8s/pods/usePod';

@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act } from 'react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DevFeatureFlagsBanner from '~/app/DevFeatureFlagsBanner';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { DropdownField } from '~/concepts/connectionTypes/types';
 import DropdownFormField from '~/concepts/connectionTypes/fields/DropdownFormField';
 
