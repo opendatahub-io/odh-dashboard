@@ -1,5 +1,7 @@
-import * as React from 'react';
-import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
+import {
+  useSelectorSearch,
+  UseSelectorSearchValue,
+} from '~/concepts/pipelines/content/pipelineSelector/utils';
 import useExperimentTable, {
   useActiveExperimentTable,
 } from '~/concepts/pipelines/content/tables/experiment/useExperimentTable';
@@ -24,20 +26,17 @@ import {
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
+type UseLoadMoreFunc<T> = [T[], () => Promise<void>];
 type UsePipelineSelectorData<DataType> = {
   loaded: boolean;
   initialLoaded: boolean;
   data: DataType[];
   sortProps: TableSortProps;
-  onLoadMore: () => Promise<void>;
-  onSearchClear: (event: React.SyntheticEvent<HTMLButtonElement, Event>) => void;
-  totalSize: number;
+  onLoadMore: UseLoadMoreFunc<DataType>[1];
+  onSearchClear: UseSelectorSearchValue['onClear'];
   fetchedSize: number;
-  searchProps: {
-    onChange: (event: React.FormEvent<HTMLInputElement>, value: string) => void;
-    value?: string | undefined;
-  };
-};
+  searchProps: Omit<UseSelectorSearchValue, 'onClear' | 'totalSize'>;
+} & Pick<UseSelectorSearchValue, 'totalSize'>;
 
 export const getExperimentSelector =
   (useTable: typeof useExperimentTable, storageState?: StorageStateKF) =>

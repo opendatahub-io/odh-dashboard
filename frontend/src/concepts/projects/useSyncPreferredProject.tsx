@@ -6,10 +6,7 @@ const useSyncPreferredProject = (newPreferredProject: ProjectKind | null): void 
   const { preferredProject, updatePreferredProject } = React.useContext(ProjectsContext);
 
   React.useEffect(() => {
-    if (
-      newPreferredProject &&
-      newPreferredProject.metadata.name !== preferredProject?.metadata.name
-    ) {
+    if (newPreferredProject?.metadata.name !== preferredProject?.metadata.name) {
       updatePreferredProject(newPreferredProject);
     }
   }, [newPreferredProject, preferredProject, updatePreferredProject]);

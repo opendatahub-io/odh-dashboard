@@ -1,19 +1,5 @@
 import * as React from 'react';
-import {
-  EmptyStateVariant,
-  HelperText,
-  HelperTextItem,
-  Icon,
-  Menu,
-  MenuContainer,
-  MenuContent,
-  MenuList,
-  MenuSearch,
-  MenuSearchInput,
-  MenuToggle,
-  SearchInput,
-  Spinner,
-} from '@patternfly/react-core';
+import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
@@ -25,6 +11,7 @@ import {
   useAllExperimentSelector,
 } from '~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
 import { experimentSelectorColumns } from '~/concepts/pipelines/content/experiment/columns';
+import SearchSelector from '~/components/searchSelector/SearchSelector';
 
 type ExperimentSelectorProps = {
   selection?: string;
@@ -45,105 +32,66 @@ const InnerExperimentSelector: React.FC<
   data: experiments,
   selection,
   onSelect,
-}) => {
-  const [isOpen, setOpen] = React.useState(false);
-
-  const toggleRef = React.useRef(null);
-  const menuRef = React.useRef(null);
-
-  const menu = (
-    <Menu ref={menuRef} isScrollable>
-      <MenuContent>
-        <MenuSearch>
-          <MenuSearchInput>
-            <SearchInput {...searchProps} aria-label="Filter experiments" />
-          </MenuSearchInput>
-          <HelperText>
-            <HelperTextItem variant="indeterminate">{`Type a name to search your ${totalSize} experiments.`}</HelperTextItem>
-          </HelperText>
-        </MenuSearch>
-        <MenuList>
-          <div role="menuitem">
-            <TableBase
-              itemCount={fetchedSize}
-              loading={!loaded}
-              emptyTableView={
-                <DashboardEmptyTableView
-                  hasIcon={false}
-                  onClearFilters={onSearchClear}
-                  variant={EmptyStateVariant.xs}
-                />
-              }
-              data-testid="experiment-selector-table-list"
-              borders={false}
-              variant={TableVariant.compact}
-              columns={experimentSelectorColumns}
-              data={experiments}
-              rowRenderer={(row) => (
-                <PipelineSelectorTableRow
-                  key={row.experiment_id}
-                  obj={row}
-                  onClick={() => {
-                    onSelect(row);
-                    setOpen(false);
-                  }}
-                />
-              )}
-              getColumnSort={getTableColumnSort({
-                columns: experimentSelectorColumns,
-                ...sortProps,
-              })}
-              footerRow={() =>
-                loaded ? (
-                  <PipelineViewMoreFooterRow
-                    visibleLength={experiments.length}
-                    totalSize={fetchedSize}
-                    errorTitle="Error loading more experiments"
-                    onClick={onLoadMore}
-                    colSpan={2}
-                  />
-                ) : null
-              }
+}) => (
+  <SearchSelector
+    dataTestId="experiment-selector"
+    onSearchChange={(newValue) => searchProps.onChange(newValue)}
+    onSearchClear={() => onSearchClear()}
+    searchValue={searchProps.value ?? ''}
+    isLoading={!initialLoaded}
+    isFullWidth
+    toggleText={
+      initialLoaded
+        ? selection || (totalSize === 0 ? 'No experiments available' : 'Select an experiment')
+        : 'Loading experiments'
+    }
+    searchHelpText={`Type a name to search your ${totalSize} experiments.`}
+  >
+    {({ menuClose }) => (
+      <TableBase
+        itemCount={fetchedSize}
+        loading={!loaded}
+        emptyTableView={
+          <DashboardEmptyTableView
+            hasIcon={false}
+            onClearFilters={onSearchClear}
+            variant={EmptyStateVariant.xs}
+          />
+        }
+        data-testid="experiment-selector-table-list"
+        borders={false}
+        variant={TableVariant.compact}
+        columns={experimentSelectorColumns}
+        data={experiments}
+        rowRenderer={(row) => (
+          <PipelineSelectorTableRow
+            key={row.experiment_id}
+            obj={row}
+            onClick={() => {
+              onSelect(row);
+              menuClose();
+            }}
+          />
+        )}
+        getColumnSort={getTableColumnSort({
+          columns: experimentSelectorColumns,
+          ...sortProps,
+        })}
+        footerRow={() =>
+          loaded ? (
+            <PipelineViewMoreFooterRow
+              visibleLength={experiments.length}
+              totalSize={fetchedSize}
+              errorTitle="Error loading more experiments"
+              onClick={onLoadMore}
+              colSpan={2}
             />
-          </div>
-        </MenuList>
-      </MenuContent>
-    </Menu>
-  );
-
-  return (
-    <MenuContainer
-      isOpen={isOpen}
-      toggleRef={toggleRef}
-      toggle={
-        <MenuToggle
-          id="experiment-selector"
-          icon={
-            !initialLoaded && (
-              <Icon>
-                <Spinner size="sm" aria-label="Loading experiments" />
-              </Icon>
-            )
-          }
-          ref={toggleRef}
-          onClick={() => setOpen(!isOpen)}
-          isExpanded={isOpen}
-          isDisabled={totalSize === 0}
-          isFullWidth
-          data-testid="experiment-toggle-button"
-        >
-          {initialLoaded
-            ? selection || (totalSize === 0 ? 'No experiments available' : 'Select an experiment')
-            : 'Loading experiments'}
-        </MenuToggle>
-      }
-      menu={menu}
-      menuRef={menuRef}
-      popperProps={{ maxWidth: 'trigger' }}
-      onOpenChange={(open) => setOpen(open)}
-    />
-  );
-};
+          ) : null
+        }
+      />
+    )}
+  </SearchSelector>
+);
 
 export const AllExperimentSelector: React.FC<ExperimentSelectorProps> = (props) => {
   const selectorProps = useAllExperimentSelector();

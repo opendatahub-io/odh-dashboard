@@ -1,17 +1,12 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  Flex,
-  FlexItem,
-  Dropdown,
-  MenuToggle,
-  DropdownItem,
-  DropdownList,
-} from '@patternfly/react-core';
+import { Bullseye, Divider, Flex, FlexItem, MenuItem } from '@patternfly/react-core';
 
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import SearchSelector from '~/components/searchSelector/SearchSelector';
+import TruncateNoMinWidth from '~/components/pf-overrides/TruncateNoMinWidth';
+import { ProjectKind } from '~/k8sTypes';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -36,9 +31,15 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   selectorLabel = 'Project',
   isFullWidth = false,
 }) => {
-  const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const selection = projects.find(byName(namespace));
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [searchText, setSearchText] = React.useState('');
+  const bySearchText = React.useCallback(
+    (project: ProjectKind) =>
+      !searchText ||
+      getDisplayNameFromK8sResource(project).toLowerCase().includes(searchText.toLowerCase()),
+    [searchText],
+  );
 
   const selectionDisplayName = selection
     ? getDisplayNameFromK8sResource(selection)
@@ -47,60 +48,56 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   const filteredProjects = filterLabel
     ? projects.filter((project) => project.metadata.labels?.[filterLabel] !== undefined)
     : projects;
+  const visibleProjects = filteredProjects.filter(bySearchText);
 
   const toggleLabel = projects.length === 0 ? 'No projects' : selectionDisplayName;
-
   const selector = (
-    <Dropdown
-      onOpenChange={(isOpenChange) => setDropdownOpen(isOpenChange)}
-      shouldFocusToggleOnSelect
-      toggle={(toggleRef) => (
-        <MenuToggle
-          isDisabled={projects.length === 0}
-          ref={toggleRef}
-          aria-label={`Project: ${toggleLabel}`}
-          variant={primary ? 'primary' : undefined}
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          isExpanded={dropdownOpen}
-          isFullWidth={isFullWidth}
-          data-testid="project-selector-dropdown"
-        >
-          {toggleLabel}
-        </MenuToggle>
-      )}
-      isOpen={dropdownOpen}
+    <SearchSelector
+      dataTestId="project-selector"
+      isFullWidth={isFullWidth}
+      minWidth={!isFullWidth ? '250px' : undefined}
+      onSearchChange={(value) => setSearchText(value)}
+      onSearchClear={() => setSearchText('')}
+      searchFocusOnOpen
+      searchPlaceholder="Project name"
+      searchValue={searchText}
+      toggleText={toggleLabel}
+      toggleVariant={primary ? 'primary' : undefined}
     >
-      <DropdownList>
-        {[
-          ...(selectAllProjects
-            ? [
-                <DropdownItem
-                  key="all-projects"
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    onSelection('');
-                    updatePreferredProject(null);
-                  }}
-                >
-                  All projects
-                </DropdownItem>,
-              ]
-            : []),
-          ...filteredProjects.map((project) => (
-            <DropdownItem
-              key={project.metadata.name}
+      <>
+        {selectAllProjects && (
+          <>
+            <MenuItem
+              key="all-projects"
+              isSelected={namespace === ''}
               onClick={() => {
-                setDropdownOpen(false);
-                onSelection(project.metadata.name);
+                onSelection('');
               }}
             >
+              All projects
+            </MenuItem>
+            <Divider component="li" />
+          </>
+        )}
+        {visibleProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
+        {visibleProjects.map((project) => (
+          <MenuItem
+            key={project.metadata.name}
+            isSelected={project.metadata.name === selection?.metadata.name}
+            onClick={() => {
+              setSearchText('');
+              onSelection(project.metadata.name);
+            }}
+          >
+            <TruncateNoMinWidth content={getDisplayNameFromK8sResource(project)}>
               {getDisplayNameFromK8sResource(project)}
-            </DropdownItem>
-          )),
-        ]}
-      </DropdownList>
-    </Dropdown>
+            </TruncateNoMinWidth>
+          </MenuItem>
+        ))}
+      </>
+    </SearchSelector>
   );
+
   if (showTitle) {
     return (
       <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
