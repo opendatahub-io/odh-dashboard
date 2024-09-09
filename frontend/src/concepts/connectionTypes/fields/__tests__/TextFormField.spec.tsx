@@ -11,7 +11,7 @@ describe('TextFormField', () => {
     const field: TextField = {
       type: 'text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -33,7 +33,7 @@ describe('TextFormField', () => {
     const field: TextField = {
       type: 'text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -63,7 +63,7 @@ describe('TextFormField', () => {
     const field: TextField = {
       type: 'text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
         defaultReadOnly: true,

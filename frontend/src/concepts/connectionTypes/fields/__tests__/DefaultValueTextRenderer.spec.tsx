@@ -9,7 +9,7 @@ describe('DefaultValueTextRenderer', () => {
     const field: TextField = {
       type: 'text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'Test value',
         defaultReadOnly: true,

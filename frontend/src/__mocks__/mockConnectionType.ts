@@ -76,7 +76,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'short-text',
     name: 'Short text 1',
     description: 'Test short text',
-    envVar: 'short-text-1',
+    envVar: 'short_text_1',
     required: false,
     properties: {},
   },
@@ -84,7 +84,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'short-text',
     name: 'Short text 2',
     description: 'Test short text with default value',
-    envVar: 'short-text-2',
+    envVar: 'short_text_2',
     required: true,
     properties: {
       defaultValue: 'This is the default value',
@@ -95,7 +95,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'short-text',
     name: 'Short text 3',
     description: 'Test short text with default value and read only',
-    envVar: 'short-text-3',
+    envVar: 'short_text_3',
     required: false,
     properties: {
       defaultValue: 'This is the default value and is read only',
@@ -106,7 +106,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'short-text',
     name: 'Short text 4',
     description: 'Test short text with no default value and read only',
-    envVar: 'short-text-4',
+    envVar: 'short_text_4',
     required: false,
     properties: {
       defaultReadOnly: true,
@@ -122,7 +122,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'text',
     name: 'Text 1',
     description: 'Test text',
-    envVar: 'text-1',
+    envVar: 'text_1',
     required: false,
     properties: {},
   },
@@ -130,7 +130,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'text',
     name: 'Text 2',
     description: 'Test text with default value',
-    envVar: 'text-2',
+    envVar: 'text_2',
     required: true,
     properties: {
       defaultValue: 'This is the default value\nOne\nTwo\nThree\nFour',
@@ -141,7 +141,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'text',
     name: 'Text 3',
     description: 'Test text with default value and read only',
-    envVar: 'text-3',
+    envVar: 'text_3',
     required: false,
     properties: {
       defaultValue: 'This is the default value\nOne\nTwo\nThree\nFour',
@@ -152,7 +152,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'text',
     name: 'Text 4',
     description: 'Test text with no default value and read only',
-    envVar: 'text-4',
+    envVar: 'text_4',
     required: false,
     properties: {
       defaultReadOnly: true,
@@ -168,7 +168,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'hidden',
     name: 'Hidden 1',
     description: 'Test hidden',
-    envVar: 'hidden-1',
+    envVar: 'hidden_1',
     required: false,
     properties: {},
   },
@@ -176,7 +176,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'hidden',
     name: 'Hidden 2',
     description: 'Test hidden with default value',
-    envVar: 'hidden-2',
+    envVar: 'hidden_2',
     required: true,
     properties: {
       defaultValue: 'This is the default value',
@@ -187,7 +187,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'hidden',
     name: 'Hidden 3',
     description: 'Test hidden with default value and read only',
-    envVar: 'hidden-3',
+    envVar: 'hidden_3',
     required: false,
     properties: {
       defaultValue: 'This is the default value',
@@ -198,7 +198,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'hidden',
     name: 'Hidden 4',
     description: 'Test hidden with no default value and read only',
-    envVar: 'hidden-4',
+    envVar: 'hidden_4',
     required: false,
     properties: {
       defaultReadOnly: true,
@@ -214,7 +214,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'uri',
     name: 'URI 1',
     description: 'Test URI',
-    envVar: 'uri-1',
+    envVar: 'uri_1',
     required: false,
     properties: {},
   },
@@ -222,7 +222,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'uri',
     name: 'URI 2',
     description: 'Test URI with default value',
-    envVar: 'uri-2',
+    envVar: 'uri_2',
     required: true,
     properties: {
       defaultValue: 'https://www.redhat.com',
@@ -233,7 +233,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'uri',
     name: 'URI 3',
     description: 'Test URI with default value and read only',
-    envVar: 'uri-3',
+    envVar: 'uri_3',
     required: false,
     properties: {
       defaultValue: 'https://www.redhat.com',
@@ -244,7 +244,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'uri',
     name: 'URI 4',
     description: 'Test URI with no default value and read only',
-    envVar: 'uri-4',
+    envVar: 'uri_4',
     required: false,
     properties: {
       defaultReadOnly: true,
@@ -260,7 +260,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'file',
     name: 'File 1',
     description: 'Test file',
-    envVar: 'file-1',
+    envVar: 'file_1',
     required: false,
     properties: {},
   },
@@ -268,7 +268,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'file',
     name: 'File 2',
     description: 'Test file with default value',
-    envVar: 'file-2',
+    envVar: 'file_2',
     required: true,
     properties: {
       defaultValue: 'This is the default value',
@@ -279,7 +279,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'file',
     name: 'File 3',
     description: 'Test file with default value and read only',
-    envVar: 'file-3',
+    envVar: 'file_3',
     required: false,
     properties: {
       defaultValue: 'This is the default value',
@@ -290,7 +290,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'file',
     name: 'File 4',
     description: 'Test file with no default value and read only',
-    envVar: 'file-4',
+    envVar: 'file_4',
     required: false,
     properties: {
       defaultReadOnly: true,
@@ -306,7 +306,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'boolean',
     name: 'Boolean 1',
     description: 'Test boolean',
-    envVar: 'boolean-1',
+    envVar: 'boolean_1',
     required: false,
     properties: {},
   },
@@ -314,7 +314,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'boolean',
     name: 'Boolean 2',
     description: 'Test boolean with default value',
-    envVar: 'boolean-2',
+    envVar: 'boolean_2',
     required: true,
     properties: {
       label: 'Input label',
@@ -326,7 +326,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'boolean',
     name: 'Boolean 3',
     description: 'Test boolean with default value and read only',
-    envVar: 'boolean-3',
+    envVar: 'boolean_3',
     required: false,
     properties: {
       label: 'Input label',
@@ -338,7 +338,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'boolean',
     name: 'Boolean 4',
     description: 'Test boolean with no default value and read only',
-    envVar: 'boolean-4',
+    envVar: 'boolean_4',
     required: false,
     properties: {
       label: 'Input label',
@@ -355,7 +355,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'numeric',
     name: 'Numeric 1',
     description: 'Test numeric',
-    envVar: 'numeric-1',
+    envVar: 'numeric_1',
     required: false,
     properties: {},
   },
@@ -363,7 +363,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'numeric',
     name: 'Numeric 2',
     description: 'Test numeric with default value',
-    envVar: 'numeric-2',
+    envVar: 'numeric_2',
     required: true,
     properties: {
       defaultValue: 2,
@@ -374,7 +374,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'numeric',
     name: 'Numeric 3',
     description: 'Test numeric with default value and read only',
-    envVar: 'numeric-3',
+    envVar: 'numeric_3',
     required: false,
     properties: {
       defaultValue: 2,
@@ -385,7 +385,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'numeric',
     name: 'Numeric 4',
     description: 'Test numeric with no default value and read only',
-    envVar: 'numeric-4',
+    envVar: 'numeric_4',
     required: false,
     properties: {
       defaultReadOnly: true,
@@ -401,7 +401,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown single 1',
     description: 'Test dropdown single variant',
-    envVar: 'dropdown-single-1',
+    envVar: 'dropdown_single_1',
     required: false,
     properties: {
       variant: 'single',
@@ -417,7 +417,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown single 2',
     description: 'Test dropdown single variant with default value',
-    envVar: 'dropdown-2',
+    envVar: 'dropdown_2',
     required: true,
     properties: {
       variant: 'single',
@@ -435,7 +435,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown single 3',
     description: 'Test dropdown single variant with default value and read only',
-    envVar: 'dropdown-3',
+    envVar: 'dropdown_3',
     required: true,
     properties: {
       variant: 'single',
@@ -453,7 +453,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown single 4',
     description: 'Test dropdown single variant with no default value and read only',
-    envVar: 'dropdown-4',
+    envVar: 'dropdown_4',
     required: true,
     properties: {
       variant: 'single',
@@ -476,7 +476,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown multi 1',
     description: 'Test dropdown multi variant',
-    envVar: 'dropdown-multi-1',
+    envVar: 'dropdown_multi_1',
     required: false,
     properties: {
       variant: 'multi',
@@ -492,7 +492,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown multi 2',
     description: 'Test dropdown multi variant with default values',
-    envVar: 'dropdown-multi-2',
+    envVar: 'dropdown_multi_2',
     required: false,
     properties: {
       variant: 'multi',
@@ -510,7 +510,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown multi 3',
     description: 'Test dropdown multi variant with default values and read only',
-    envVar: 'dropdown-multi-3',
+    envVar: 'dropdown_multi_3',
     required: false,
     properties: {
       variant: 'multi',
@@ -528,7 +528,7 @@ const mockFields: ConnectionTypeField[] = [
     type: 'dropdown',
     name: 'Dropdown multi 4',
     description: 'Test dropdown multi variant with no default values and read only',
-    envVar: 'dropdown-multi-4',
+    envVar: 'dropdown_multi_4',
     required: false,
     properties: {
       variant: 'multi',

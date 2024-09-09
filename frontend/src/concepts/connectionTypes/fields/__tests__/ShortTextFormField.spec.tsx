@@ -11,7 +11,7 @@ describe('ShortTextFormField', () => {
     const field: ShortTextField = {
       type: 'short-text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -35,7 +35,7 @@ describe('ShortTextFormField', () => {
     const field: ShortTextField = {
       type: 'short-text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -65,7 +65,7 @@ describe('ShortTextFormField', () => {
     const field: ShortTextField = {
       type: 'short-text',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
         defaultReadOnly: true,

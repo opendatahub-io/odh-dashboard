@@ -14,7 +14,7 @@ describe('ConnectionTypeDataFormField', () => {
       const field = {
         type,
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {},
       } as ConnectionTypeDataField;
       expect(
