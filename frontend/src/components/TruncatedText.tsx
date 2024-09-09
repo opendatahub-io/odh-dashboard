@@ -6,21 +6,47 @@ type TruncatedTextProps = {
   content: string;
 } & React.HTMLProps<HTMLSpanElement>;
 
-const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...rest }) => (
-  <Tooltip content={content}>
+const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...props }) => {
+  const outerElementRef = React.useRef<HTMLElement>(null);
+  const textElementRef = React.useRef<HTMLElement>(null);
+  const [isTruncated, setIsTruncated] = React.useState<boolean>(false);
+
+  const updateTruncation = React.useCallback(() => {
+    if (textElementRef.current && outerElementRef.current) {
+      setIsTruncated(textElementRef.current.offsetHeight > outerElementRef.current.offsetHeight);
+    }
+  }, []);
+
+  const truncateBody = (
     <span
+      {...props}
       style={{
         display: '-webkit-box',
-        overflow: 'hidden',
         WebkitBoxOrient: 'vertical',
-        WebkitLineClamp: maxLines,
         overflowWrap: 'anywhere',
+        overflow: 'hidden',
+        WebkitLineClamp: maxLines,
+        ...(props.style || {}),
       }}
-      {...rest}
+      ref={outerElementRef}
+      onMouseEnter={(e) => {
+        props.onMouseEnter?.(e);
+        updateTruncation();
+      }}
+      onFocus={(e) => {
+        props.onFocus?.(e);
+        updateTruncation();
+      }}
     >
-      {content}
+      <span ref={textElementRef}>{content}</span>
     </span>
-  </Tooltip>
-);
+  );
+
+  return (
+    <Tooltip hidden={!isTruncated ? true : undefined} content={content}>
+      {truncateBody}
+    </Tooltip>
+  );
+};
 
 export default TruncatedText;

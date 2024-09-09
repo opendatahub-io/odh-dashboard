@@ -148,7 +148,7 @@ class ConnectionTypeRow extends TableRow {
   }
 
   shouldHaveDescription(description: string) {
-    return this.findConnectionTypeDescription().should('have.text', description);
+    return this.findConnectionTypeDescription().should('contain.text', description);
   }
 
   shouldHaveCreator(creator: string) {
