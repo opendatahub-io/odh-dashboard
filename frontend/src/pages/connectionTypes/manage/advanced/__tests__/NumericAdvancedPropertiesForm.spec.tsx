@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import NumericAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/NumericAdvancedPropertiesForm';
 import { ConnectionTypeFieldType, NumericField } from '~/concepts/connectionTypes/types';
 

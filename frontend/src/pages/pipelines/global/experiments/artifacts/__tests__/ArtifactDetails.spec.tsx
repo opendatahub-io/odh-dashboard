@@ -1,9 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { Artifact } from '~/third_party/mlmd';
 import { artifactsBaseRoute } from '~/routes';
 import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails';

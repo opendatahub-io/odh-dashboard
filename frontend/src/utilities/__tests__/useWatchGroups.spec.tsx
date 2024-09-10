@@ -1,4 +1,4 @@
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import { fetchGroupsSettings, updateGroupsSettings } from '~/services/groupSettingsService';

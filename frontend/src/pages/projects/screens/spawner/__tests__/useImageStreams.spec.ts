@@ -1,5 +1,5 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import { ImageStreamKind } from '~/k8sTypes';

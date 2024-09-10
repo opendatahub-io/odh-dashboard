@@ -1,12 +1,11 @@
-import React from 'react';
+import * as React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-
 import { Drawer } from '@patternfly/react-core';
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { Artifact, Value } from '~/third_party/mlmd';
 import { ArtifactNodeDrawerContent } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/ArtifactNodeDrawerContent';

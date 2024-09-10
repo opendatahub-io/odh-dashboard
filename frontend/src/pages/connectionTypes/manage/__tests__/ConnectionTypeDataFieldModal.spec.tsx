@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { ConnectionTypeDataFieldModal } from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldModal';
 import { ShortTextField, TextField } from '~/concepts/connectionTypes/types';
 

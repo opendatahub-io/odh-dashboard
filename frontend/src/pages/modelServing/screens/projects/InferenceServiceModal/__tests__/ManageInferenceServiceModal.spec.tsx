@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { render, act, fireEvent } from '@testing-library/react';
+import { act } from 'react';
+import { render, fireEvent } from '@testing-library/react';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';

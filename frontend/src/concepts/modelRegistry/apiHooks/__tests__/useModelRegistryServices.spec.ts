@@ -1,5 +1,6 @@
+import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { act, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { useAccessReview, useRulesReview, listServices } from '~/api';
 import { ServiceKind } from '~/k8sTypes';
 import {

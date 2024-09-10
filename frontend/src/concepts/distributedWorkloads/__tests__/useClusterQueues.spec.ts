@@ -1,5 +1,5 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import useDistributedWorkloadsEnabled from '~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';

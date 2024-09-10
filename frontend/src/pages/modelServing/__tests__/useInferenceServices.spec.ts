@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';

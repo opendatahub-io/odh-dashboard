@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import axios from '~/utilities/axios';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { BooleanField } from '~/concepts/connectionTypes/types';
 import BooleanFormField from '~/concepts/connectionTypes/fields/BooleanFormField';
 

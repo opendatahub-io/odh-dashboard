@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { HiddenField } from '~/concepts/connectionTypes/types';
 import HiddenFormField from '~/concepts/connectionTypes/fields/HiddenFormField';
 

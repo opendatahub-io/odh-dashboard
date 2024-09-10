@@ -1,4 +1,5 @@
-import { act, waitFor } from '@testing-library/react';
+import { act } from 'react';
+import { waitFor } from '@testing-library/react';
 import useFetchState, { FetchState } from '~/utilities/useFetchState';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 

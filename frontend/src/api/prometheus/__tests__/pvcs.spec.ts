@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import axios from '~/utilities/axios';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';

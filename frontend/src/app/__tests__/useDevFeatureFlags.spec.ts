@@ -1,5 +1,5 @@
 import { merge } from 'lodash-es';
-import { act } from '@testing-library/react';
+import { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import useDevFeatureFlags from '~/app/useDevFeatureFlags';
