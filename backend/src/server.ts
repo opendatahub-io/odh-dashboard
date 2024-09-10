@@ -15,6 +15,8 @@ const transport =
     : undefined;
 
 const app = fastify({
+  // set to kubernetes max name length
+  maxParamLength: 253,
   logger: pino(
     {
       level: LOG_LEVEL,
