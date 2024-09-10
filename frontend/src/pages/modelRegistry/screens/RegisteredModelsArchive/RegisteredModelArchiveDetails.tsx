@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Text, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
@@ -33,6 +33,12 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
   const [modelVersions, mvLoaded, mvLoadError, refresh] = useModelVersionsByRegisteredModel(rmId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+
+  useEffect(() => {
+    if (rm?.state === ModelState.LIVE) {
+      navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name));
+    }
+  }, [rm?.state, preferredModelRegistry?.metadata.name, rm?.id, navigate]);
 
   return (
     <>
@@ -69,6 +75,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
         {rm !== null && mvLoaded && !mvLoadError && (
           <ModelVersionsTabs
             tab={tab}
+            isArchiveModel
             registeredModel={rm}
             modelVersions={modelVersions.items}
             refresh={rmRefresh}
@@ -76,6 +83,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
           />
         )}
       </ApplicationsPage>
+
       {rm !== null && (
         <RestoreRegisteredModelModal
           onCancel={() => setIsRestoreModalOpen(false)}

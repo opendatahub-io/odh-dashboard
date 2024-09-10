@@ -14,6 +14,7 @@ type ModelVersionDetailTabsProps = {
   modelVersion: ModelVersion;
   inferenceServices: FetchStateObject<InferenceServiceKind[]>;
   servingRuntimes: FetchStateObject<ServingRuntimeKind[]>;
+  isArchiveVersion?: boolean;
   refresh: () => void;
 };
 
@@ -22,6 +23,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   modelVersion: mv,
   inferenceServices,
   servingRuntimes,
+  isArchiveVersion,
   refresh,
 }) => {
   const navigate = useNavigate();
@@ -40,7 +42,11 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
         data-testid="model-versions-details-tab"
       >
         <PageSection isFilled variant="light" data-testid="model-versions-details-tab-content">
-          <ModelVersionDetailsView modelVersion={mv} refresh={refresh} />
+          <ModelVersionDetailsView
+            modelVersion={mv}
+            refresh={refresh}
+            isArchiveVersion={isArchiveVersion}
+          />
         </PageSection>
       </Tab>
       <Tab

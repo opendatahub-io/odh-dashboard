@@ -95,6 +95,10 @@ class ModelRegistry {
     cy.findByTestId('empty-model-versions').should('exist');
   }
 
+  shouldArchveModelVersionsEmpty() {
+    cy.findByTestId('empty-archive-model-versions').should('exist');
+  }
+
   shouldModelRegistrySelectorExist() {
     cy.findByTestId('model-registry-selector-dropdown').should('exist');
   }

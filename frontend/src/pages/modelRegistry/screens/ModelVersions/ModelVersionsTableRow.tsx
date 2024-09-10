@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Text, TextVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
@@ -7,6 +7,7 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
+  archiveModelVersionDetailsUrl,
   modelVersionArchiveDetailsUrl,
   modelVersionDeploymentsUrl,
   modelVersionUrl,
@@ -19,12 +20,14 @@ import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
   isArchiveRow?: boolean;
+  isArchiveModel?: boolean;
   refresh: () => void;
 };
 
 const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   modelVersion: mv,
   isArchiveRow,
+  isArchiveModel,
   refresh,
 }) => {
   const navigate = useNavigate();
@@ -34,7 +37,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const { apiState } = React.useContext(ModelRegistryContext);
 
-  const actions = isArchiveRow
+  const actions: IAction[] = isArchiveRow
     ? [
         {
           title: 'Restore version',
@@ -59,7 +62,13 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           <FlexItem>
             <Link
               to={
-                isArchiveRow
+                isArchiveModel
+                  ? archiveModelVersionDetailsUrl(
+                      mv.id,
+                      mv.registeredModelId,
+                      preferredModelRegistry?.metadata.name,
+                    )
+                  : isArchiveRow
                   ? modelVersionArchiveDetailsUrl(
                       mv.id,
                       mv.registeredModelId,
@@ -89,63 +98,65 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       <Td dataLabel="Labels">
         <ModelLabels customProperties={mv.customProperties} name={mv.name} />
       </Td>
-      <Td isActionCell>
-        <ActionsColumn items={actions} />
-        <ArchiveModelVersionModal
-          onCancel={() => setIsArchiveModalOpen(false)}
-          onSubmit={() =>
-            apiState.api
-              .patchModelVersion(
-                {},
-                {
-                  state: ModelState.ARCHIVED,
-                },
-                mv.id,
-              )
-              .then(refresh)
-          }
-          isOpen={isArchiveModalOpen}
-          modelVersionName={mv.name}
-        />
-        <DeployRegisteredModelModal
-          onSubmit={() =>
-            navigate(
-              modelVersionDeploymentsUrl(
-                mv.id,
-                mv.registeredModelId,
-                preferredModelRegistry?.metadata.name,
-              ),
-            )
-          }
-          onCancel={() => setIsDeployModalOpen(false)}
-          isOpen={isDeployModalOpen}
-          modelVersion={mv}
-        />
-        <RestoreModelVersionModal
-          onCancel={() => setIsRestoreModalOpen(false)}
-          onSubmit={() =>
-            apiState.api
-              .patchModelVersion(
-                {},
-                {
-                  state: ModelState.LIVE,
-                },
-                mv.id,
-              )
-              .then(() =>
-                navigate(
-                  modelVersionUrl(
-                    mv.id,
-                    mv.registeredModelId,
-                    preferredModelRegistry?.metadata.name,
-                  ),
+      {!isArchiveModel && (
+        <Td isActionCell>
+          <ActionsColumn items={actions} />
+          <ArchiveModelVersionModal
+            onCancel={() => setIsArchiveModalOpen(false)}
+            onSubmit={() =>
+              apiState.api
+                .patchModelVersion(
+                  {},
+                  {
+                    state: ModelState.ARCHIVED,
+                  },
+                  mv.id,
+                )
+                .then(refresh)
+            }
+            isOpen={isArchiveModalOpen}
+            modelVersionName={mv.name}
+          />
+          <DeployRegisteredModelModal
+            onSubmit={() =>
+              navigate(
+                modelVersionDeploymentsUrl(
+                  mv.id,
+                  mv.registeredModelId,
+                  preferredModelRegistry?.metadata.name,
                 ),
               )
-          }
-          isOpen={isRestoreModalOpen}
-          modelVersionName={mv.name}
-        />
-      </Td>
+            }
+            onCancel={() => setIsDeployModalOpen(false)}
+            isOpen={isDeployModalOpen}
+            modelVersion={mv}
+          />
+          <RestoreModelVersionModal
+            onCancel={() => setIsRestoreModalOpen(false)}
+            onSubmit={() =>
+              apiState.api
+                .patchModelVersion(
+                  {},
+                  {
+                    state: ModelState.LIVE,
+                  },
+                  mv.id,
+                )
+                .then(() =>
+                  navigate(
+                    modelVersionUrl(
+                      mv.id,
+                      mv.registeredModelId,
+                      preferredModelRegistry?.metadata.name,
+                    ),
+                  ),
+                )
+            }
+            isOpen={isRestoreModalOpen}
+            modelVersionName={mv.name}
+          />
+        </Td>
+      )}
     </Tr>
   );
 };
