@@ -15,11 +15,13 @@ import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
 import StorageList from './storage/StorageList';
 import DataConnectionsList from './data-connections/DataConnectionsList';
+import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 
 import './ProjectDetails.scss';
@@ -38,6 +40,7 @@ const ProjectDetails: React.FC = () => {
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const modelServingEnabled = useModelServingEnabled();
+  const connectionTypesEnabled = useConnectionTypesEnabled();
   const queryParams = useQueryParams();
   const state = queryParams.get('section');
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -76,11 +79,21 @@ const ProjectDetails: React.FC = () => {
           title: 'Cluster storage',
           component: <StorageList />,
         },
-        {
-          id: ProjectSectionID.DATA_CONNECTIONS,
-          title: 'Data connections',
-          component: <DataConnectionsList />,
-        },
+        ...(connectionTypesEnabled
+          ? [
+              {
+                id: ProjectSectionID.CONNECTIONS,
+                title: 'Connections',
+                component: <ConnectionsList />,
+              },
+            ]
+          : [
+              {
+                id: ProjectSectionID.DATA_CONNECTIONS,
+                title: 'Data connections',
+                component: <DataConnectionsList />,
+              },
+            ]),
         ...(projectSharingEnabled && allowCreate
           ? [
               {

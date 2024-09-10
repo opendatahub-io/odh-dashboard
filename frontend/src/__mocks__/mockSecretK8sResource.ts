@@ -5,6 +5,7 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
+  connectionType?: string;
   s3Bucket?: string;
   endPoint?: string;
   region?: string;
@@ -15,6 +16,7 @@ export const mockSecretK8sResource = ({
   name = 'test-secret',
   namespace = 'test-project',
   displayName = 'Test Secret',
+  connectionType = 's3',
   s3Bucket = 'dGVzdC1idWNrZXQ=',
   endPoint = 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
   region = 'dXMtZWFzdC0x',
@@ -33,7 +35,7 @@ export const mockSecretK8sResource = ({
       [KnownLabels.DATA_CONNECTION_AWS]: 'true',
     },
     annotations: {
-      'opendatahub.io/connection-type': 's3',
+      'opendatahub.io/connection-type': connectionType,
       'openshift.io/display-name': displayName,
     },
   },
