@@ -85,7 +85,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          <Title headingLevel={TextVariants.h3}>Model location</Title>
+        </DescriptionList>
+        <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+          Model location
+        </Title>
+        <DescriptionList isFillColumns>
           {storageFields && (
             <>
               <DashboardDescriptionListGroup
