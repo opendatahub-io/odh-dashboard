@@ -33,6 +33,7 @@ import { FAILED_PHASES, PENDING_PHASES, IMAGE_ANNOTATIONS } from './const';
 export const useMergeDefaultPVCName = (
   storageData: StorageData,
   defaultPVCName: string,
+  defaultStorageClassName?: string,
 ): StorageData => {
   const modifiedRef = React.useRef(false);
 
@@ -49,6 +50,7 @@ export const useMergeDefaultPVCName = (
         ...storageData.creating.nameDesc,
         name: storageData.creating.nameDesc.name || defaultPVCName,
       },
+      storageClassName: defaultStorageClassName ?? '',
     },
   };
 };
