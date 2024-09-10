@@ -157,14 +157,14 @@ describe('edit', () => {
       {
         type: 'short-text',
         name: 'field1',
-        envVar: 'short-text-1',
+        envVar: 'short_text_1',
         required: false,
         properties: {},
       },
       {
         type: 'short-text',
         name: 'field2',
-        envVar: 'short-text-2',
+        envVar: 'short_text_2',
         required: true,
         properties: {},
       },
@@ -216,7 +216,7 @@ describe('edit', () => {
           {
             type: 'short-text',
             name: 'field1',
-            envVar: 'short-text-1',
+            envVar: 'short_text_1',
             properties: {},
           },
           {
@@ -226,7 +226,7 @@ describe('edit', () => {
           {
             type: 'short-text',
             name: 'field2',
-            envVar: 'short-text-2',
+            envVar: 'short_text_2',
             properties: {},
           },
           {
@@ -236,7 +236,7 @@ describe('edit', () => {
           {
             type: 'short-text',
             name: 'field3',
-            envVar: 'short-text-3',
+            envVar: 'short_text_3',
             properties: {},
           },
         ],

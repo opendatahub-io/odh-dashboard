@@ -11,7 +11,7 @@ describe('FileFormField', () => {
     const field: FileField = {
       type: 'file',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
         extensions: ['.jpg', '.svg', '.png'],
@@ -40,7 +40,7 @@ describe('FileFormField', () => {
     const field: FileField = {
       type: 'file',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -72,7 +72,7 @@ describe('FileFormField', () => {
     const field: FileField = {
       type: 'file',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
         defaultReadOnly: true,

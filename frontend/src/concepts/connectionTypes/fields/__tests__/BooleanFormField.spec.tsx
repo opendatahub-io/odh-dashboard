@@ -11,7 +11,7 @@ describe('BooleanFormField', () => {
     const field: BooleanField = {
       type: 'boolean',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         label: 'test-label',
         defaultValue: false,
@@ -35,7 +35,7 @@ describe('BooleanFormField', () => {
     const field: BooleanField = {
       type: 'boolean',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         label: 'test-label',
         defaultValue: true,
@@ -61,7 +61,7 @@ describe('BooleanFormField', () => {
     const field: BooleanField = {
       type: 'boolean',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         label: 'test-label',
         defaultValue: true,

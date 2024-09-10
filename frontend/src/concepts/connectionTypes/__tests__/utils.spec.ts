@@ -9,6 +9,7 @@ import {
   defaultValueToString,
   fieldNameToEnvVar,
   fieldTypeToString,
+  isValidEnvVar,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
 } from '~/concepts/connectionTypes/utils';
@@ -238,11 +239,26 @@ describe('fieldNameToEnvVar', () => {
     expect(fieldNameToEnvVar('THREE_')).toBe('THREE_');
   });
   it('should remove invalid characters', () => {
-    expect(fieldNameToEnvVar('a!@#$%^&*()-=_+[]\\{}|;\':"`,./<>?1')).toBe('A-_.1');
+    expect(fieldNameToEnvVar('a!@#$%^&*()-=_+[]\\{}|;\':"`,./<>?1')).toBe('A__1');
     expect(fieldNameToEnvVar('=== tWo')).toBe('_TWO');
   });
   it('should remove numbers at the start', () => {
     expect(fieldNameToEnvVar('1one')).toBe('ONE');
     expect(fieldNameToEnvVar('++123 TWO 456')).toBe('_TWO_456');
+  });
+});
+
+describe('isValidEnvVar', () => {
+  it('should be valid env var', () => {
+    expect(isValidEnvVar('NAME')).toBe(true);
+    expect(isValidEnvVar('UNDERSCORE_NAME')).toBe(true);
+    expect(isValidEnvVar('has_digits_1234')).toBe(true);
+  });
+
+  it('should be invalid env var', () => {
+    expect(isValidEnvVar('.dot')).toBe(false);
+    expect(isValidEnvVar('has-dash')).toBe(false);
+    expect(isValidEnvVar('1_digit_as_first_char')).toBe(false);
+    expect(isValidEnvVar('has space')).toBe(false);
   });
 });

@@ -11,7 +11,7 @@ describe('NumericFormField', () => {
     const field: NumericField = {
       type: 'numeric',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 2,
       },
@@ -33,7 +33,7 @@ describe('NumericFormField', () => {
     const field: NumericField = {
       type: 'numeric',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 2,
       },
@@ -57,7 +57,7 @@ describe('NumericFormField', () => {
     const field: NumericField = {
       type: 'numeric',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 2,
         defaultReadOnly: true,

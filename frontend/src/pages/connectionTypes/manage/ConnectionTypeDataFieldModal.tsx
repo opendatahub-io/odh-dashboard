@@ -28,13 +28,15 @@ import {
   ConnectionTypeFieldType,
   isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
-import { fieldNameToEnvVar, fieldTypeToString } from '~/concepts/connectionTypes/utils';
+import {
+  fieldNameToEnvVar,
+  fieldTypeToString,
+  isValidEnvVar,
+} from '~/concepts/connectionTypes/utils';
 import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
-
-const ENV_VAR_NAME_REGEX = new RegExp('^[-._a-zA-Z][-._a-zA-Z0-9]*$');
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,
@@ -77,7 +79,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
     [fields, field, envVar],
   );
 
-  const isEnvVarValid = !envVar || ENV_VAR_NAME_REGEX.test(envVar);
+  const isEnvVarValid = !envVar || isValidEnvVar(envVar);
 
   const isValid = !!fieldType && isPropertiesValid && !!name && !!envVar && isEnvVarValid;
 
@@ -188,19 +190,15 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             validated={!isEnvVarValid ? 'error' : isEnvVarConflict ? 'warning' : 'default'}
           />
           <FormHelperText>
-            {!isEnvVarValid ? (
-              <HelperText>
-                <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                  {`Invalid variable name. The name must consist of alphabetic characters, digits, '_', '-', or '.', and must not start with a digit.`}
-                </HelperTextItem>
-              </HelperText>
-            ) : (
-              <HelperText>
-                <HelperTextItem variant="default">
-                  Valid characters include uppercase letters, numbers, and underscores ( _ ).
-                </HelperTextItem>
-              </HelperText>
-            )}
+            <HelperText>
+              <HelperTextItem
+                variant={isEnvVarValid ? 'default' : 'error'}
+                icon={isEnvVarValid ? undefined : <ExclamationCircleIcon />}
+              >
+                Valid characters include letters, numbers, and underscores ( _ ), and must not start
+                with a number.
+              </HelperTextItem>
+            </HelperText>
             {isEnvVarConflict ? (
               <HelperText data-testid="envvar-conflict-warning">
                 <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">

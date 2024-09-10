@@ -12,7 +12,7 @@ describe('DropdownFormField', () => {
       const field: DropdownField = {
         type: 'dropdown',
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {
           variant: 'single',
           items: [
@@ -45,7 +45,7 @@ describe('DropdownFormField', () => {
       const field: DropdownField = {
         type: 'dropdown',
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {
           variant: 'single',
           items: [
@@ -91,7 +91,7 @@ describe('DropdownFormField', () => {
       const field: DropdownField = {
         type: 'dropdown',
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {
           variant: 'single',
           items: [
@@ -124,7 +124,7 @@ describe('DropdownFormField', () => {
       const field: DropdownField = {
         type: 'dropdown',
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {
           variant: 'multi',
           items: [
@@ -169,7 +169,7 @@ describe('DropdownFormField', () => {
       const field: DropdownField = {
         type: 'dropdown',
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {
           variant: 'multi',
           items: [
@@ -214,7 +214,7 @@ describe('DropdownFormField', () => {
       const field: DropdownField = {
         type: 'dropdown',
         name: 'test-name',
-        envVar: 'test-envVar',
+        envVar: 'test_envVar',
         properties: {
           variant: 'multi',
           items: [

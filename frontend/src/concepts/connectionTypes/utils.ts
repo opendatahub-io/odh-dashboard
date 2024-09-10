@@ -76,9 +76,12 @@ export const fieldTypeToString = (type: ConnectionTypeFieldTypeUnion): string =>
 };
 
 export const fieldNameToEnvVar = (name: string): string => {
-  const spacesAsUnderscores = name.replace(/ /g, '_');
-  const removeInvalid = spacesAsUnderscores.replace(/[^\w\-.]/g, '');
+  const spacesAsUnderscores = name.replace(/(\s|-)/g, '_');
+  const removeInvalid = spacesAsUnderscores.replace(/[^\w]/g, '');
   const removeNumbersAtStart = removeInvalid.replace(/^[0-9]+/g, '');
   const allUppercase = removeNumbersAtStart.toUpperCase();
   return allUppercase;
 };
+
+const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
+export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);

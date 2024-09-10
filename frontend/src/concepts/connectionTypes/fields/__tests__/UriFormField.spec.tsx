@@ -10,7 +10,7 @@ describe('UriFormField', () => {
     const field: UriField = {
       type: 'uri',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'http://foo.com',
       },
@@ -32,7 +32,7 @@ describe('UriFormField', () => {
     const field: UriField = {
       type: 'uri',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'http://foo.com',
       },
@@ -62,7 +62,7 @@ describe('UriFormField', () => {
     const field: UriField = {
       type: 'uri',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'http://foo.com',
         defaultReadOnly: true,
@@ -78,7 +78,7 @@ describe('UriFormField', () => {
     const field: UriField = {
       type: 'uri',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'http://foo.com',
         defaultReadOnly: false,

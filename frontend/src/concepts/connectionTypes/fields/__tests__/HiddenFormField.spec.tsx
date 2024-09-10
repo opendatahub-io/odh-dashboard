@@ -11,7 +11,7 @@ describe('HiddenFormField', () => {
     const field: HiddenField = {
       type: 'hidden',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -36,7 +36,7 @@ describe('HiddenFormField', () => {
     const field: HiddenField = {
       type: 'hidden',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
       },
@@ -67,7 +67,7 @@ describe('HiddenFormField', () => {
     const field: HiddenField = {
       type: 'hidden',
       name: 'test-name',
-      envVar: 'test-envVar',
+      envVar: 'test_envVar',
       properties: {
         defaultValue: 'default-value',
         defaultReadOnly: true,

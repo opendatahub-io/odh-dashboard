@@ -37,13 +37,13 @@ describe('ManageConnectionTypeFieldsTableRow', () => {
     const field: ShortTextField = {
       type: 'short-text',
       name: 'test',
-      envVar: 'test-envvar',
+      envVar: 'test_envvar',
       properties: {},
     };
     const field2: TextField = {
       type: 'text',
       name: 'test-2',
-      envVar: 'test-envvar',
+      envVar: 'test_envvar',
       properties: {},
     };
 
