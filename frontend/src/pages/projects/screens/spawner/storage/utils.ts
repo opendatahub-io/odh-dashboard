@@ -14,6 +14,7 @@ import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
+import useDefaultStorageClass from './useDefaultStorageClass';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,
@@ -23,6 +24,8 @@ export const useCreateStorageObjectForNotebook = (
   resetDefaults: () => void,
 ] => {
   const size = useDefaultPvcSize();
+  const defaultStorageClass = useDefaultStorageClass();
+
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
     nameDesc: {
       name: '',
@@ -30,6 +33,7 @@ export const useCreateStorageObjectForNotebook = (
       description: '',
     },
     size,
+    storageClassName: defaultStorageClass?.metadata.name ?? '',
     forNotebook: {
       name: '',
       mountPath: {
@@ -42,9 +46,16 @@ export const useCreateStorageObjectForNotebook = (
 
   const [, setCreateData] = createDataState;
 
+  React.useEffect(() => {
+    if (defaultStorageClass) {
+      setCreateData('storageClassName', defaultStorageClass.metadata.name);
+    }
+  }, [defaultStorageClass, setCreateData]);
+
   const existingName = existingData ? getDisplayNameFromK8sResource(existingData) : '';
   const existingDescription = existingData ? getDescriptionFromK8sResource(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : size;
+  const existingStorageClass = existingData ? existingData.spec.storageClassName : '';
   const { notebooks: relatedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.REMOVABLE_PVC,
     existingData ? existingData.metadata.name : undefined,
@@ -61,6 +72,8 @@ export const useCreateStorageObjectForNotebook = (
       setCreateData('hasExistingNotebookConnections', hasExistingNotebookConnections);
 
       setCreateData('size', existingSize);
+
+      setCreateData('storageClassName', existingStorageClass);
     }
   }, [
     existingName,
@@ -68,6 +81,7 @@ export const useCreateStorageObjectForNotebook = (
     setCreateData,
     hasExistingNotebookConnections,
     existingSize,
+    existingStorageClass,
   ]);
 
   return createDataState;
@@ -102,6 +116,7 @@ export const useStorageDataObject = (
         description: '',
       },
       size,
+      storageClassName: '',
     },
     existing: {
       storage: getRootVolumeName(notebook),

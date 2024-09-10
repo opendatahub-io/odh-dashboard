@@ -12,7 +12,6 @@ import useRelatedNotebooks, {
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
@@ -40,8 +39,6 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     createData.forNotebook.name,
   ]);
 
-  const storageClass = usePreferredStorageClass();
-
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
     setActionInProgress(false);
@@ -66,7 +63,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       if (
         getDisplayNameFromK8sResource(existingData) !== createData.nameDesc.name ||
         getDescriptionFromK8sResource(existingData) !== createData.nameDesc.description ||
-        existingData.spec.resources.requests.storage !== createData.size
+        existingData.spec.resources.requests.storage !== createData.size ||
+        existingData.spec.storageClassName !== createData.storageClassName
       ) {
         pvcPromises.push(updatePvc(createData, existingData, namespace, { dryRun }));
       }
@@ -87,9 +85,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       }
       return;
     }
-    const createdPvc = await createPvc(createData, namespace, storageClass?.metadata.name, {
-      dryRun,
-    });
+    const createdPvc = await createPvc(createData, namespace, { dryRun });
     if (notebookName) {
       await attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value, {
         dryRun,
@@ -145,6 +141,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
               setData={(key, value) => setCreateData(key, value)}
               currentSize={existingData?.status?.capacity?.storage}
               autoFocusName
+              isEdit={!!existingData}
             />
           </StackItem>
           {createData.hasExistingNotebookConnections && (

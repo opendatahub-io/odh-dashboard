@@ -45,6 +45,7 @@ import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVa
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { useNotebookSizeState } from './useNotebookSizeState';
+import useDefaultStorageClass from './storage/useDefaultStorageClass';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -68,7 +69,14 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     string[] | undefined
   >();
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
-  const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
+
+  const defaultStorageClass = useDefaultStorageClass();
+  const storageData = useMergeDefaultPVCName(
+    storageDataWithoutDefault,
+    nameDesc.name,
+    defaultStorageClass?.metadata.name,
+  );
+
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,

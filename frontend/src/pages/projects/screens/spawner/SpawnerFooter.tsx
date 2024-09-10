@@ -242,11 +242,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         ? [dataConnection.existing]
         : [];
 
-    const pvcDetails = await createPvcDataForNotebook(
-      projectName,
-      storageData,
-      storageClass?.metadata.name,
-    ).catch(handleError);
+    const pvcDetails = await createPvcDataForNotebook(projectName, storageData).catch(handleError);
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
       ...envVariables,
       ...newDataConnection,
