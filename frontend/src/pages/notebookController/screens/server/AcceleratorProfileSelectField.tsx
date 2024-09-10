@@ -187,7 +187,6 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
               </Popover>
             ) : undefined
           }
-          isRequired
         >
           <SimpleSelect
             isFullWidth
@@ -235,7 +234,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       )}
       {selectedAcceleratorProfile.profile && (
         <StackItem>
-          <FormGroup label="Number of accelerators" fieldId="number-of-accelerators" isRequired>
+          <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
             <InputGroup>
               <NumberInput
                 inputAriaLabel="Number of accelerators"
