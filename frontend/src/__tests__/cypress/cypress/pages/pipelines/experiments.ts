@@ -91,6 +91,10 @@ class ExperimentsRow extends TableRow {
     return this.find().find(`[data-label=Checkbox]`).find('input');
   }
 
+  findDescription() {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
   findExperimentCreatedTime() {
     return this.find().find(`[data-label="Created"]`);
   }
