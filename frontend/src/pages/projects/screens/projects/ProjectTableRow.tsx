@@ -4,14 +4,15 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
-import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { getProjectOwner } from '~/concepts/projects/utils';
 import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import NotebookStateStatus from '~/pages/projects/screens/projects/NotebookStateStatus';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import ProjectLink from './ProjectLink';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { TableRowTitleDescription } from '~/components/table';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import ProjectLink from '~/pages/projects/screens/projects/ProjectLink';
 
 type ProjectTableRowProps = {
   obj: ProjectKind;
@@ -47,10 +48,28 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             >
               {index === 0 ? (
                 <Td dataLabel="Name" rowSpan={notebookStates.length || 1}>
-                  <ResourceNameTooltip resource={project}>
-                    <ProjectLink project={project} />
-                  </ResourceNameTooltip>
-                  {owner && <Text component={TextVariants.small}>{owner}</Text>}
+                  <TableRowTitleDescription
+                    title={
+                      <ResourceNameTooltip resource={project}>
+                        <ProjectLink
+                          project={project}
+                          style={{
+                            fontSize: 'var(--pf-v5-global--FontSize--md)',
+                            fontWeight: 'var(--pf-v5-global--FontWeight--normal)',
+                          }}
+                        />
+                      </ResourceNameTooltip>
+                    }
+                    description={getDescriptionFromK8sResource(project)}
+                    truncateDescriptionLines={2}
+                    subtitle={
+                      owner ? (
+                        <div>
+                          <Text component={TextVariants.small}>{owner}</Text>
+                        </div>
+                      ) : undefined
+                    }
+                  />
                 </Td>
               ) : null}
               {index === 0 ? (

@@ -20,7 +20,7 @@ import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers'
 import { notebookConfirmModal } from '~/__tests__/cypress/cypress/pages/workbench';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 
-const mockProject = mockProjectK8sResource({});
+const mockProject = mockProjectK8sResource({ description: 'Mock description' });
 const initIntercepts = () => {
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
 };
@@ -73,7 +73,9 @@ describe('Data science projects details', () => {
     initIntercepts();
     projectListPage.visit();
     projectListPage.shouldHaveProjects();
-    projectListPage.getProjectRow('Test Project').find().should('exist');
+    const projectRow = projectListPage.getProjectRow('Test Project');
+    projectRow.find().should('exist');
+    projectRow.findDescription().should('contain.text', 'Mock description');
   });
 
   it('should delete project', () => {
