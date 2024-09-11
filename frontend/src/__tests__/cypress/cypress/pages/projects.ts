@@ -113,7 +113,7 @@ class ProjectListPage {
 
 class CreateEditProjectModal extends Modal {
   constructor(private edit = false) {
-    super(`${edit ? 'Edit' : 'Create'} data science project`);
+    super(`${edit ? 'Edit' : 'Create'} project`);
   }
 
   findNameInput() {

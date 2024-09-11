@@ -92,7 +92,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
 
   return (
     <Modal
-      title={editProjectData ? 'Edit data science project' : 'Create data science project'}
+      title={editProjectData ? 'Edit project' : 'Create project'}
       variant="medium"
       isOpen={open}
       onClose={() => onBeforeClose()}

@@ -10,7 +10,7 @@ import deployingModelsImg from '~/images/UI_icon-Red_Hat-Server_upload-RGB.svg';
 import dataConnectionImg from '~/images/UI_icon-Red_Hat-Connected-RGB.svg';
 import userImg from '~/images/UI_icon-Red_Hat-User-RGB.svg';
 import groupImg from '~/images/UI_icon-Red_Hat-Shared_workspace-RGB.svg';
-import projectEmptyStateImg from '~/images/empty-state-projects-overview.svg';
+import projectEmptyStateImg from '~/images/empty-state-project-overview.svg';
 import notebookEmptyStateImg from '~/images/empty-state-notebooks.svg';
 import pipelineEmptyStateImg from '~/images/empty-state-pipelines.svg';
 import clusterStorageEmptyStateImg from '~/images/empty-state-cluster-storage.svg';

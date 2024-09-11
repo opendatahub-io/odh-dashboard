@@ -17,7 +17,7 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onPr
         variant="primary"
         onClick={() => setOpen(true)}
       >
-        Create data science project
+        Create project
       </Button>
       <ManageProjectModal
         open={open}
