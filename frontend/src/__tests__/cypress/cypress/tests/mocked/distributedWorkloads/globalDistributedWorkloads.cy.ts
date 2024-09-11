@@ -230,7 +230,7 @@ describe('Distributed Workload Metrics root page', () => {
     globalDistributedWorkloads.visit();
     cy.url().should('include', '/projectMetrics/test-project');
 
-    globalDistributedWorkloads.selectProjectByName('Test Project 2');
+    globalDistributedWorkloads.projectDropdown.selectItem('Test Project 2');
     cy.url().should('include', '/projectMetrics/test-project-2');
 
     cy.findByLabelText('Distributed workload status tab').click();

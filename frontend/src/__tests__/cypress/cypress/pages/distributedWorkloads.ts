@@ -1,7 +1,10 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import type { RefreshIntervalTitle } from '~/concepts/metrics/types';
+import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class GlobalDistributedWorkloads {
+  projectDropdown = new SearchSelector('project-selector');
+
   visit(wait = true) {
     cy.visitWithLogin(`/distributedWorkloads`);
     if (wait) {
@@ -26,10 +29,6 @@ class GlobalDistributedWorkloads {
     return cy.findByTestId('app-page-title').should('have.text', 'Distributed Workload Metrics');
   }
 
-  findProjectSelect() {
-    return cy.findByTestId('project-selector-dropdown');
-  }
-
   findRefreshIntervalSelectToggle() {
     return cy.get('#metrics-toolbar-refresh-interval-select-toggle');
   }
@@ -40,10 +39,6 @@ class GlobalDistributedWorkloads {
 
   shouldHaveRefreshInterval(interval: RefreshIntervalTitle) {
     this.findRefreshIntervalSelectToggle().should('contain.text', interval);
-  }
-
-  selectProjectByName(name: string) {
-    this.findProjectSelect().findDropdownItem(name).click();
   }
 
   findStatusOverviewCard() {

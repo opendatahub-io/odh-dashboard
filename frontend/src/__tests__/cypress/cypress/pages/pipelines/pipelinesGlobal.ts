@@ -1,8 +1,11 @@
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class PipelinesGlobal {
+  projectDropdown = new SearchSelector('project-selector');
+
   visit(projectName: string) {
     cy.visitWithLogin(`/pipelines/${projectName}`);
     this.wait();
@@ -48,10 +51,6 @@ class PipelinesGlobal {
     return cy.findByRole('menuitem').get('span').contains('Upload new version');
   }
 
-  findProjectSelect() {
-    return cy.findByTestId('project-selector-dropdown');
-  }
-
   isApiAvailable() {
     return cy.findByTestId('pipelines-api-not-available').should('not.exist');
   }
@@ -62,10 +61,6 @@ class PipelinesGlobal {
 
   findDeletePipelineServerButton() {
     return this.findIsServerIncompatible().findByTestId('delete-pipeline-server-button');
-  }
-
-  selectProjectByName(name: string) {
-    this.findProjectSelect().findDropdownItem(name).click();
   }
 
   findDeleteButton() {

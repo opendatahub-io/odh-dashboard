@@ -89,7 +89,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           isExpanded={isOpen}
           isDisabled={isDisabled}
           isFullWidth={isFullWidth}
-          data-testid={`${dataTestId}-button`}
+          data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
         >
           <TruncateNoMinWidth content={toggleText} />
@@ -107,6 +107,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
             <MenuSearchInput>
               <SearchInput
                 ref={searchRef}
+                data-testid={`${dataTestId}-search`}
                 autoFocus={searchFocusOnOpen}
                 aria-label="Filter content"
                 onChange={(e, value) => onSearchChange(value)}
@@ -120,13 +121,18 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
             </MenuSearchInput>
             {searchHelpText && (
               <HelperText>
-                <HelperTextItem variant="indeterminate">{searchHelpText}</HelperTextItem>
+                <HelperTextItem
+                  variant="indeterminate"
+                  data-testid={`${dataTestId}-searchHelpText`}
+                >
+                  {searchHelpText}
+                </HelperTextItem>
               </HelperText>
             )}
           </MenuSearch>
           <Divider />
           <MenuContent>
-            <MenuList>
+            <MenuList data-testid={`${dataTestId}-menuList`}>
               {typeof children === 'function'
                 ? children({ menuClose: () => setIsOpen(false) })
                 : children}

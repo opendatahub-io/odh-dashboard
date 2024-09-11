@@ -5,6 +5,7 @@ import type {
   PipelineRecurringRunKFv2,
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
+import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class TaskDrawer extends Contextual<HTMLElement> {
   findInputArtifacts() {
@@ -150,17 +151,16 @@ class DetailsItem extends Contextual<HTMLElement> {
 }
 
 class PipelineDetails extends PipelinesTopology {
+  pipelineVersionSelector = new SearchSelector('pipeline-version-selector');
+
   visit(namespace: string, pipelineId: string, pipelineVersionId: string) {
     cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/view`);
     this.wait();
   }
 
-  private findPipelineVersionSelect() {
-    return cy.findByTestId('pipeline-version-toggle-button');
-  }
-
   selectPipelineVersionByName(name: string): void {
-    this.findPipelineVersionSelect()
+    this.pipelineVersionSelector
+      .findToggleButton()
       .click()
       .parents()
       .findByTestId('pipeline-version-selector-table-list')

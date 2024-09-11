@@ -30,7 +30,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
 
   return (
     <SearchSelector
-      dataTestId="experiment-selector"
+      dataTestId="pipeline-selector"
       onSearchChange={(newValue) => searchProps.onChange(newValue)}
       onSearchClear={() => onSearchClear()}
       searchValue={searchProps.value ?? ''}

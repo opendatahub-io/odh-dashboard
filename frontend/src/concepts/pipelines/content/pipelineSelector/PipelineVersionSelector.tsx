@@ -45,7 +45,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
 
   return (
     <SearchSelector
-      dataTestId="experiment-selector"
+      dataTestId="pipeline-version-selector"
       onSearchChange={(newValue) => searchProps.onChange(newValue)}
       onSearchClear={() => onSearchClear()}
       searchValue={searchProps.value ?? ''}

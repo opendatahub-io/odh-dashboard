@@ -64,7 +64,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     pipelineDetails.selectActionDropdownItem('Create run');
 
     //Fill the Create run fields
-    createRunPage.findExperimentSelect().click();
+    createRunPage.experimentSelect.findToggleButton().click();
     createRunPage.selectExperimentByName('Default');
     createRunPage.fillName(testRunName);
     createRunPage.fillDescription('Run Description');
