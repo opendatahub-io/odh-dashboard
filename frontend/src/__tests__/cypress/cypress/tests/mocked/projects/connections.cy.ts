@@ -4,6 +4,7 @@ import {
   mockProjectK8sResource,
   mockSecretK8sResource,
 } from '~/__mocks__';
+import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { ProjectModel, SecretModel } from '~/__tests__/cypress/cypress/utils/models';
 
@@ -36,6 +37,7 @@ const initIntercepts = (isEmpty = false) => {
       disableConnectionTypes: false,
     }),
   );
+  cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
 };
 
 describe('Connections', () => {

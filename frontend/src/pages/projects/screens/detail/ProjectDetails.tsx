@@ -87,13 +87,12 @@ const ProjectDetails: React.FC = () => {
                 component: <ConnectionsList />,
               },
             ]
-          : [
-              {
-                id: ProjectSectionID.DATA_CONNECTIONS,
-                title: 'Data connections',
-                component: <DataConnectionsList />,
-              },
-            ]),
+          : []),
+        {
+          id: ProjectSectionID.DATA_CONNECTIONS,
+          title: 'Data connections',
+          component: <DataConnectionsList />,
+        },
         ...(projectSharingEnabled && allowCreate
           ? [
               {

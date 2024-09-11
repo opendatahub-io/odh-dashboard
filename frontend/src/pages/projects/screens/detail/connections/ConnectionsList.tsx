@@ -8,6 +8,7 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import ConnectionsTable from './ConnectionsTable';
 
 const ConnectionsDescription =
@@ -17,6 +18,7 @@ const ConnectionsList: React.FC = () => {
   const {
     connections: { data: connections, loaded, error },
   } = React.useContext(ProjectDetailsContext);
+  const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useWatchConnectionTypes();
 
   return (
     <DetailsSection
@@ -37,9 +39,9 @@ const ConnectionsList: React.FC = () => {
           Add connection
         </Button>,
       ]}
-      isLoading={!loaded}
+      isLoading={!loaded || !connectionTypesLoaded}
       isEmpty={connections.length === 0}
-      loadError={error}
+      loadError={error || connectionTypesError}
       emptyState={
         <EmptyDetailsView
           title="No connections"
@@ -58,7 +60,7 @@ const ConnectionsList: React.FC = () => {
         />
       }
     >
-      <ConnectionsTable connections={connections} />
+      <ConnectionsTable connections={connections} connectionTypes={connectionTypes} />
     </DetailsSection>
   );
 };

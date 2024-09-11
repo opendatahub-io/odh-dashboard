@@ -25,6 +25,7 @@ import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/u
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getTokenNames } from '~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '~/api';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
@@ -32,7 +33,6 @@ import useDataConnections from './screens/detail/data-connections/useDataConnect
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
-import { Connection } from './screens/detail/connections/types';
 import useConnections from './screens/detail/connections/useConnections';
 
 type ProjectDetailsContextType = {
