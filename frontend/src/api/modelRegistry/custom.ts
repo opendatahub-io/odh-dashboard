@@ -122,37 +122,40 @@ export const getModelArtifact =
       ),
     );
 
+// TODO: the pageSize value here is temporary until we implement filter/sort on serverside, https://issues.redhat.com/browse/RHOAIENG-12800
 export const getListModelArtifacts =
   (hostpath: string) =>
   (opts: K8sAPIOptions): Promise<ModelArtifactList> =>
     handleModelRegistryFailures(
       proxyGET(
         hostpath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts?pageSize=99999`,
         {},
         opts,
       ),
     );
 
+// TODO: the pageSize value here is temporary until we implement filter/sort on serverside, https://issues.redhat.com/browse/RHOAIENG-12800
 export const getListModelVersions =
   (hostpath: string) =>
   (opts: K8sAPIOptions): Promise<ModelVersionList> =>
     handleModelRegistryFailures(
       proxyGET(
         hostpath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions?pageSize=99999`,
         {},
         opts,
       ),
     );
 
+// TODO: the pageSize value here is temporary until we implement filter/sort on serverside, https://issues.redhat.com/browse/RHOAIENG-12800
 export const getListRegisteredModels =
   (hostpath: string) =>
   (opts: K8sAPIOptions): Promise<RegisteredModelList> =>
     handleModelRegistryFailures(
       proxyGET(
         hostpath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models?pageSize=99999`,
         {},
         opts,
       ),
