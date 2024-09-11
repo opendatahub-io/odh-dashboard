@@ -20,7 +20,7 @@ type ResourceNameFieldProps = {
   allowEdit: boolean;
   dataTestId: string;
   k8sName: K8sNameDescriptionFieldData['k8sName'];
-  onDataChange: K8sNameDescriptionFieldUpdateFunction;
+  onDataChange?: K8sNameDescriptionFieldUpdateFunction;
 };
 
 /** Sub-resource; not for public consumption */
@@ -44,7 +44,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
     );
   }
 
-  if (!allowEdit) {
+  if (!allowEdit || !onDataChange) {
     return null;
   }
 

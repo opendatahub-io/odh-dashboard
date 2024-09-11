@@ -28,11 +28,8 @@ export const useK8sNameDescriptionFieldData = (
     setupDefaults(configuration),
   );
 
-  // Hold the data in a ref to avoid churn in the update method
-  const dataRef = React.useRef(data);
-  dataRef.current = data;
   const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>((key, value) => {
-    setData(handleUpdateLogic(dataRef.current)(key, value));
+    setData((currentData) => handleUpdateLogic(currentData)(key, value));
   }, []);
 
   return { data, onDataChange };
@@ -40,10 +37,12 @@ export const useK8sNameDescriptionFieldData = (
 
 type K8sNameDescriptionFieldProps = {
   autoFocusName?: boolean;
+  data: UseK8sNameDescriptionFieldData['data'];
   dataTestId: string;
   descriptionLabel?: string;
   nameLabel?: string;
-} & UseK8sNameDescriptionFieldData;
+  onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
+};
 
 /**
  * Use in place of any K8s Resource creation / edit.
@@ -66,15 +65,16 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       <StackItem>
         <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
           <TextInput
+            aria-readonly={!onDataChange}
             data-testid={`${dataTestId}-name`}
             id={`${dataTestId}-name`}
             name={`${dataTestId}-name`}
             autoFocus={autoFocusName}
             isRequired
             value={name}
-            onChange={(event, value) => onDataChange('name', value)}
+            onChange={(event, value) => onDataChange?.('name', value)}
           />
-          {!showK8sField && !k8sName.state.immutable && (
+          {!showK8sField && !!onDataChange && !k8sName.state.immutable && (
             <FormHelperText>
               {k8sName.value && (
                 <HelperText>
@@ -109,11 +109,12 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       <StackItem>
         <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
           <TextArea
+            aria-readonly={!onDataChange}
             data-testid={`${dataTestId}-description`}
             id={`${dataTestId}-description`}
             name={`${dataTestId}-description`}
             value={description}
-            onChange={(event, value) => onDataChange('description', value)}
+            onChange={(event, value) => onDataChange?.('description', value)}
             resizeOrientation="vertical"
           />
         </FormGroup>
