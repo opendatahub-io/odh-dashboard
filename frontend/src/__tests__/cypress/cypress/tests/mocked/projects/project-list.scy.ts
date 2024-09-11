@@ -39,15 +39,19 @@ describe('Data Science Projects', { testIsolation: false }, () => {
   });
 
   it('should create project', () => {
-    const fields = createProjectModal.getK8sNameDescriptionFields();
-    fields.findDisplayNameInput().type('My Test Project');
-    fields.findDescriptionInput().type('Test project description.');
+    createProjectModal.k8sNameDescription.findDisplayNameInput().type('My Test Project');
+    createProjectModal.k8sNameDescription.findDescriptionInput().type('Test project description.');
     createProjectModal.findSubmitButton().should('be.enabled');
-    fields.findResourceEditLink().click();
-    fields.findResourceNameInput().should('have.value', 'my-test-project').clear();
-    fields.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
+    createProjectModal.k8sNameDescription.findResourceEditLink().click();
+    createProjectModal.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.value', 'my-test-project')
+      .clear();
+    createProjectModal.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'true');
     createProjectModal.findSubmitButton().should('be.disabled');
-    fields.findResourceNameInput().type('test-project');
+    createProjectModal.k8sNameDescription.findResourceNameInput().type('test-project');
 
     cy.interceptSnapshot('/api/k8s/apis/project.openshift.io/v1/projects', 'projects-1');
     cy.interceptSnapshot('/api/namespaces/test-project/0', 'update-project');

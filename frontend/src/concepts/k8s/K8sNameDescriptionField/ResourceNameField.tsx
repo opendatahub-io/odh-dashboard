@@ -51,8 +51,6 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   let validated: ValidatedOptions = ValidatedOptions.default;
   if (k8sName.state.invalidLength || k8sName.state.invalidCharacters) {
     validated = ValidatedOptions.error;
-  } else if (k8sName.state.autoTrimmed) {
-    validated = ValidatedOptions.warning;
   } else if (k8sName.value.length > 0) {
     validated = ValidatedOptions.success;
   }

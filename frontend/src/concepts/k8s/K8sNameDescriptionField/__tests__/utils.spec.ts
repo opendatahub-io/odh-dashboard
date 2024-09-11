@@ -88,7 +88,7 @@ describe('handleUpdateLogic', () => {
         name: overMaxLength,
         k8sName: {
           value: 'this-is-a-long-string-of-text',
-          state: { autoTrimmed: true, maxLength },
+          state: { maxLength },
         },
       }),
     );
@@ -132,28 +132,6 @@ describe('handleUpdateLogic', () => {
         k8sName: { value: 'you-are-okay-with-this' },
       }),
     );
-  });
-
-  it('should not have auto trimmed and touched for k8s name', () => {
-    const configuredDefaults = setupDefaults({
-      limitNameResourceType: LimitNameResourceType.PROJECT,
-    });
-    const { maxLength } = configuredDefaults.k8sName.state;
-
-    const overMaxLength = 'this-really-is-a-long-string-of-text-for-k8s';
-    expect(overMaxLength.length).toBeGreaterThan(maxLength);
-
-    const causeAutoTrimState = handleUpdateLogic(configuredDefaults)('name', overMaxLength);
-    expect(causeAutoTrimState.k8sName.state.autoTrimmed).toBe(true);
-    expect(causeAutoTrimState.k8sName.state.invalidLength).toBe(false);
-    const currentValue = causeAutoTrimState.k8sName.value;
-
-    const causeOverLengthState = handleUpdateLogic(causeAutoTrimState)(
-      'k8sName',
-      `${currentValue}a`,
-    );
-    expect(causeOverLengthState.k8sName.state.autoTrimmed).toBe(false);
-    expect(causeOverLengthState.k8sName.state.invalidLength).toBe(true);
   });
 
   it('should not allow update k8s name when immutable', () => {
@@ -248,8 +226,7 @@ describe('isK8sNameDescriptionDataValid', () => {
           k8sName: {
             value: 'k8s-test',
             state: {
-              autoTrimmed: true,
-              immutable: true, // not possible with autoTrimmed, but brute force testing
+              immutable: true,
               invalidLength: false,
               invalidCharacters: false,
               maxLength: 123,

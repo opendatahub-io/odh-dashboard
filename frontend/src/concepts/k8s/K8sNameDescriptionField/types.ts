@@ -7,8 +7,6 @@ export type K8sNameDescriptionFieldData = {
   k8sName: {
     value: string;
     state: {
-      /** Name is too long, auto trimmed for k8s */
-      autoTrimmed: boolean;
       /** The value cannot be changeable */
       immutable: boolean;
       /** If an invalid character was used */

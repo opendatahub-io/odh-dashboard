@@ -4,7 +4,7 @@ import {
   getDisplayNameFromK8sResource,
   isK8sDSGResource,
   isValidK8sName,
-  translateDisplayNameForK8sAndReport,
+  translateDisplayNameForK8s,
 } from '~/concepts/k8s/utils';
 import { RecursivePartial } from '~/typeHelpers';
 import {
@@ -58,7 +58,6 @@ export const setupDefaults = ({
     k8sName: {
       value: initialK8sNameValue,
       state: {
-        autoTrimmed: false,
         immutable: initialK8sNameValue !== '',
         invalidCharacters: false,
         invalidLength: false,
@@ -84,14 +83,11 @@ export const handleUpdateLogic =
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
           // Update the generated name
-          const [k8sValue, whatHappened] = translateDisplayNameForK8sAndReport(value, {
+          const k8sValue = translateDisplayNameForK8s(value, {
             maxLength,
             safeK8sPrefix: safePrefix,
           });
           changedData.k8sName = {
-            state: {
-              autoTrimmed: whatHappened.maxLength,
-            },
             value: k8sValue,
           };
         }
@@ -100,7 +96,6 @@ export const handleUpdateLogic =
       case 'k8sName':
         changedData.k8sName = {
           state: {
-            autoTrimmed: false,
             invalidCharacters: value.length > 0 ? !isValidK8sName(value) : false,
             invalidLength: value.length > existingData.k8sName.state.maxLength,
             touched: true,

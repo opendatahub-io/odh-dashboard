@@ -16,7 +16,6 @@ export const mockK8sNameDescriptionFieldData = (
           immutable: false,
           invalidLength: false,
           invalidCharacters: false,
-          autoTrimmed: false,
           maxLength: 253,
           touched: false,
         },

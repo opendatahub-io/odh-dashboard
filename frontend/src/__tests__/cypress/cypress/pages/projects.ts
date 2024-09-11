@@ -130,12 +130,10 @@ class ProjectListPage {
 }
 
 class CreateEditProjectModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('manage-project-modal');
+
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Create'} project`);
-  }
-
-  getK8sNameDescriptionFields() {
-    return new K8sNameDescriptionField('manage-project-modal');
   }
 
   findSubmitButton() {

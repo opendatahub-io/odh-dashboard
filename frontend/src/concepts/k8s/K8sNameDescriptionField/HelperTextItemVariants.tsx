@@ -12,8 +12,6 @@ export const HelperTextItemMaxLength: HelperTextItemType = ({ k8sName }) => {
   let variant: Variants = 'indeterminate';
   if (k8sName.state.invalidLength) {
     variant = 'error';
-  } else if (k8sName.state.autoTrimmed) {
-    variant = 'warning';
   } else if (k8sName.value.trim().length > 0) {
     variant = 'success';
   }

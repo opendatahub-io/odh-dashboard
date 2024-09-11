@@ -1,4 +1,4 @@
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/K8sNameDescriptionField';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
@@ -163,6 +163,8 @@ class NotebookRow extends TableRow {
 }
 
 class CreateSpawnerPage {
+  k8sNameDescription = new K8sNameDescriptionField('workbench');
+
   shouldHaveAppTitle() {
     cy.findByTestId('app-page-title').should('have.text', 'Create workbench');
     return this;
@@ -218,10 +220,6 @@ class CreateSpawnerPage {
 
   findSubmitButton() {
     return cy.findByTestId('submit-button');
-  }
-
-  getK8sNameDescriptionFields() {
-    return new K8sNameDescriptionField('workbench');
   }
 
   getEnvironmentVariableTypeField(index: number) {
