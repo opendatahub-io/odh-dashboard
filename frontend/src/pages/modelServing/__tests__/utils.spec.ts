@@ -9,14 +9,17 @@ import { ContainerResources } from '~/types';
 import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import {
+  createRole,
   createRoleBinding,
   createSecret,
   createServiceAccount,
+  getRole,
   getRoleBinding,
   getServiceAccount,
 } from '~/api';
 import { mock404Error } from '~/__mocks__/mockK8sStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
+import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
 
 jest.mock('~/api', () => ({
   ...jest.requireActual('~/api'),
@@ -24,6 +27,8 @@ jest.mock('~/api', () => ({
   createServiceAccount: jest.fn(),
   getRoleBinding: jest.fn(),
   createRoleBinding: jest.fn(),
+  getRole: jest.fn(),
+  createRole: jest.fn(),
   createSecret: jest.fn(),
 }));
 
@@ -86,6 +91,11 @@ describe('setUpTokenAuth', () => {
           Promise.resolve(mockServiceAccountK8sResource({ name, namespace })),
         );
       jest
+        .mocked(getRole)
+        .mockImplementation((name: string, namespace: string) =>
+          Promise.resolve(mockRoleK8sResource({ name, namespace })),
+        );
+      jest
         .mocked(getRoleBinding)
         .mockImplementation((name: string, namespace: string) =>
           Promise.resolve(mockRoleBindingK8sResource({ name, namespace })),
@@ -93,6 +103,9 @@ describe('setUpTokenAuth', () => {
     } else {
       jest
         .mocked(getServiceAccount)
+        .mockImplementation(() => Promise.reject({ statusObject: mock404Error({}) }));
+      jest
+        .mocked(getRole)
         .mockImplementation(() => Promise.reject({ statusObject: mock404Error({}) }));
       jest
         .mocked(getRoleBinding)
@@ -116,46 +129,101 @@ describe('setUpTokenAuth', () => {
     tokens: [{ uuid: '', name: 'default-name', error: '' }],
   };
 
-  it('should create service account, role binding and secrets if createTokenAuth is true', async () => {
-    setMockImplementations(false);
-    await setUpTokenAuth(
-      { ...fillData, tokenAuth: true },
-      'test-name',
-      'test-project',
-      true,
-      mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
-    );
-    expect(createServiceAccount).toHaveBeenCalled();
-    expect(createRoleBinding).toHaveBeenCalled();
-    expect(createSecret).toHaveBeenCalled();
+  describe('for kserve', () => {
+    it('should create service account, role, role binding and secrets if createTokenAuth is true', async () => {
+      setMockImplementations(false);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: true },
+        'test-name',
+        'test-project',
+        true,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        false,
+      );
+      expect(createServiceAccount).toHaveBeenCalled();
+      expect(createRole).toHaveBeenCalled();
+      expect(createRoleBinding).toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
+
+    it('should not create service account and role binding if they already exist', async () => {
+      setMockImplementations(true);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: true },
+        'test-name',
+        'test-project',
+        true,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        false,
+      );
+      expect(createServiceAccount).not.toHaveBeenCalled();
+      expect(createRole).not.toHaveBeenCalled();
+      expect(createRoleBinding).not.toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
+
+    it('should not create service account and role binding if createTokenAuth is false', async () => {
+      setMockImplementations(false);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: false },
+        'test-name',
+        'test-project',
+        false,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        false,
+      );
+      expect(createServiceAccount).not.toHaveBeenCalled();
+      expect(createRole).not.toHaveBeenCalled();
+      expect(createRoleBinding).not.toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
   });
 
-  it('should not create service account and role binding if they already exist', async () => {
-    setMockImplementations(true);
-    await setUpTokenAuth(
-      { ...fillData, tokenAuth: true },
-      'test-name',
-      'test-project',
-      true,
-      mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
-    );
-    expect(createServiceAccount).not.toHaveBeenCalled();
-    expect(createRoleBinding).not.toHaveBeenCalled();
-    expect(createSecret).toHaveBeenCalled();
-  });
+  describe('for modelmesh', () => {
+    it('should create service account, role binding and secrets if createTokenAuth is true', async () => {
+      setMockImplementations(false);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: true },
+        'test-name',
+        'test-project',
+        true,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        true,
+      );
+      expect(createServiceAccount).toHaveBeenCalled();
+      expect(createRoleBinding).toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
 
-  it('should not create service account and role binding if createTokenAuth is false', async () => {
-    setMockImplementations(false);
-    await setUpTokenAuth(
-      { ...fillData, tokenAuth: false },
-      'test-name',
-      'test-project',
-      false,
-      mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
-    );
-    expect(createServiceAccount).not.toHaveBeenCalled();
-    expect(createRoleBinding).not.toHaveBeenCalled();
-    expect(createSecret).toHaveBeenCalled();
+    it('should not create service account and role binding if they already exist', async () => {
+      setMockImplementations(true);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: true },
+        'test-name',
+        'test-project',
+        true,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        true,
+      );
+      expect(createServiceAccount).not.toHaveBeenCalled();
+      expect(createRoleBinding).not.toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
+
+    it('should not create service account and role binding if createTokenAuth is false', async () => {
+      setMockImplementations(false);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: false },
+        'test-name',
+        'test-project',
+        false,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        true,
+      );
+      expect(createServiceAccount).not.toHaveBeenCalled();
+      expect(createRoleBinding).not.toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
   });
 });
 
