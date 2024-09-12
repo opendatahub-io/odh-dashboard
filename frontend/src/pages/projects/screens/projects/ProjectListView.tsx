@@ -1,14 +1,17 @@
 import * as React from 'react';
-import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
-import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectOwner } from '~/concepts/projects/utils';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import ProjectTableRow from '~/pages/projects/screens/projects/ProjectTableRow';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import NewProjectButton from './NewProjectButton';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import ProjectsToolbar from '~/pages/projects/screens/projects/ProjectsToolbar';
+import {
+  initialProjectsFilterData,
+  ProjectsFilterDataType,
+} from '~/pages/projects/screens/projects/const';
 import { columns, subColumns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
@@ -20,26 +23,40 @@ type ProjectListViewProps = {
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
-  const [search, setSearch] = React.useState('');
-  const filteredProjects = projects.filter((project) => {
-    if (!search) {
-      return true;
-    }
+  const [filterData, setFilterData] =
+    React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialProjectsFilterData),
+    [setFilterData],
+  );
 
-    switch (searchType) {
-      case SearchType.NAME:
-        return getDisplayNameFromK8sResource(project).toLowerCase().includes(search.toLowerCase());
-      case SearchType.USER:
-        return getProjectOwner(project).toLowerCase().includes(search.toLowerCase());
-      default:
-        return true;
-    }
-  });
+  const filteredProjects = React.useMemo(
+    () =>
+      projects.filter((project) => {
+        const nameFilter = filterData.Name?.toLowerCase();
+        const userFilter = filterData.User?.toLowerCase();
+
+        if (
+          nameFilter &&
+          !getDisplayNameFromK8sResource(project).toLowerCase().includes(nameFilter)
+        ) {
+          return false;
+        }
+
+        return !userFilter || getProjectOwner(project).toLowerCase().includes(userFilter);
+      }),
+    [projects, filterData],
+  );
 
   const resetFilters = () => {
-    setSearch('');
+    setFilterData(initialProjectsFilterData);
   };
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
 
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
@@ -55,14 +72,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         hasNestedHeader
         columns={columns}
         subColumns={subColumns}
-        emptyTableView={
-          <>
-            No projects match your filters.{' '}
-            <Button variant="link" isInline onClick={resetFilters}>
-              Clear filters
-            </Button>
-          </>
-        }
+        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         data-testid="project-view-table"
         rowRenderer={(project) => (
           <ProjectTableRow
@@ -74,32 +84,12 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
           />
         )}
         toolbarContent={
-          <>
-            <ToolbarGroup>
-              <ToolbarItem>
-                <DashboardSearchField
-                  types={[SearchType.NAME, SearchType.USER]}
-                  searchType={searchType}
-                  searchValue={search}
-                  onSearchTypeChange={(newSearchType: SearchType) => {
-                    setSearchType(newSearchType);
-                  }}
-                  onSearchValueChange={(searchValue: string) => {
-                    setSearch(searchValue);
-                  }}
-                />
-              </ToolbarItem>
-            </ToolbarGroup>
-            <ToolbarGroup align={{ default: 'alignRight' }}>
-              {allowCreate && (
-                <ToolbarItem>
-                  <NewProjectButton
-                    onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
-                  />
-                </ToolbarItem>
-              )}
-            </ToolbarGroup>
-          </>
+          <ProjectsToolbar
+            allowCreate={allowCreate}
+            filterData={filterData}
+            onFilterUpdate={onFilterUpdate}
+            onClearFilters={onClearFilters}
+          />
         }
       />
       <ManageProjectModal

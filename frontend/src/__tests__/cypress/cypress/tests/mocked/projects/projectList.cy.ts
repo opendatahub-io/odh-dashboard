@@ -198,8 +198,8 @@ describe('Data science projects details', () => {
 
       // Select the "Name" filter
       const projectListToolbar = projectListPage.getTableToolbar();
-      projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
-      projectListToolbar.findSearchInput().type('Test Project');
+      projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
+      projectListToolbar.findFilterInput('name').type('Test Project');
       // Verify only rows with the typed run name exist
       projectListPage.getProjectRow('Test Project').find().should('exist');
     });
@@ -210,8 +210,8 @@ describe('Data science projects details', () => {
 
       // Select the "User" filter
       const projectListToolbar = projectListPage.getTableToolbar();
-      projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'User').click();
-      projectListToolbar.findSearchInput().type('test-user');
+      projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
+      projectListToolbar.findFilterInput('user').type('test-user');
       // Verify only rows with the typed run user exist
       projectListPage.getProjectRow('Test Project').find().should('exist');
     });

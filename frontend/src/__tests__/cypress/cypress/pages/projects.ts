@@ -1,10 +1,27 @@
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { TableRow } from './components/table';
-import { TableToolbar } from './components/TableToolbar';
 
-class ProjectListToolbar extends TableToolbar {}
+class ProjectListToolbar extends Contextual<HTMLElement> {
+  findToggleButton(id: string) {
+    return this.find().pfSwitch(id).click();
+  }
+
+  findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+  }
+
+  findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText(`Filter by ${name}`);
+  }
+
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Search input');
+  }
+}
+
 class NotebookRow extends TableRow {
   findNotebookImageAvailability() {
     return cy.findByTestId('notebook-image-availability');
@@ -93,7 +110,7 @@ class ProjectListPage {
   }
 
   getTableToolbar() {
-    return new ProjectListToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+    return new ProjectListToolbar(() => cy.findByTestId('projects-table-toolbar'));
   }
 
   findCreateWorkbenchButton() {
