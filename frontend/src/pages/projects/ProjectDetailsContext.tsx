@@ -25,6 +25,7 @@ import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/u
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getTokenNames } from '~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '~/api';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
@@ -32,6 +33,7 @@ import useDataConnections from './screens/detail/data-connections/useDataConnect
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
+import useConnections from './screens/detail/connections/useConnections';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -40,6 +42,7 @@ type ProjectDetailsContextType = {
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
+  connections: ContextResourceData<Connection>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
@@ -59,6 +62,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
   dataConnections: DEFAULT_CONTEXT_DATA,
+  connections: DEFAULT_CONTEXT_DATA,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
@@ -78,6 +82,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
+  const connections = useContextResourceData<Connection>(useConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
@@ -153,6 +158,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
             notebooks,
             pvcs,
             dataConnections,
+            connections,
             servingRuntimes,
             servingRuntimeTemplates,
             servingRuntimeTemplateOrder,
@@ -170,6 +176,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
       notebooks,
       pvcs,
       dataConnections,
+      connections,
       servingRuntimes,
       servingRuntimeTemplates,
       servingRuntimeTemplateOrder,

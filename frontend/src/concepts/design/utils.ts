@@ -42,6 +42,7 @@ export enum ProjectObjectType {
   deployedModels = 'deployed-models',
   deployingModels = 'deploying-models',
   dataConnection = 'data-connection',
+  connections = 'connections',
   user = 'user',
   group = 'group',
   storageClasses = 'storageClasses',
@@ -66,6 +67,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--BackgroundColor)';
     case ProjectObjectType.dataConnection:
+    case ProjectObjectType.connections:
       return 'var(--ai-data-connection--BackgroundColor)';
     case ProjectObjectType.user:
       return 'var(--ai-user--BackgroundColor)';
@@ -98,6 +100,7 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployingModels:
       return deployingModelsImg;
     case ProjectObjectType.dataConnection:
+    case ProjectObjectType.connections:
       return dataConnectionImg;
     case ProjectObjectType.user:
       return userImg;
@@ -136,6 +139,7 @@ export const typedEmptyImage = (objectType: ProjectObjectType, option?: string):
     case ProjectObjectType.storageClasses:
       return storageClassesEmptyStateImg;
     case ProjectObjectType.dataConnection:
+    case ProjectObjectType.connections:
       return dataConnectionEmptyStateImg;
     default:
       return '';
