@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Button, Icon, Label, Switch } from '@patternfly/react-core';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
+import { Button, Flex, FlexItem, Icon, Label, Switch, Truncate } from '@patternfly/react-core';
 import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
@@ -90,7 +90,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               },
               {
                 title: 'Duplicate',
-                onClick: () => onDuplicate({ ...row, name: `Duplicate of ${row.name}` }),
+                onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
               },
               {
                 title: 'Remove',
@@ -133,19 +133,26 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
       <Td dataLabel={columns[1].label} data-testid="field-type">
         {fieldTypeToString(row.type)}
       </Td>
-      <Td dataLabel={columns[2].label} data-testid="field-default" modifier="truncate">
-        {defaultValueToString(row) || '-'}
+      <Td dataLabel={columns[2].label} data-testid="field-default">
+        <TableText wrapModifier="truncate">{defaultValueToString(row) || '-'}</TableText>
       </Td>
       <Td dataLabel={columns[3].label} data-testid="field-env">
-        {row.envVar || '-'}
-        {isEnvVarConflict ? (
-          <>
-            <Icon status="danger" size="sm" className="pf-v5-u-ml-xs">
-              <ExclamationCircleIcon />
-            </Icon>
-            <span className="pf-v5-u-screen-reader">This environment variable is in conflict.</span>
-          </>
-        ) : undefined}
+        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+          <FlexItem>
+            <Truncate content={row.envVar || '-'} />
+          </FlexItem>
+          {isEnvVarConflict ? (
+            <FlexItem>
+              <Icon
+                status="danger"
+                size="sm"
+                aria-label="This environment variable is in conflict."
+              >
+                <ExclamationCircleIcon />
+              </Icon>
+            </FlexItem>
+          ) : undefined}
+        </Flex>
       </Td>
       <Td dataLabel={columns[4].label}>
         <Switch
@@ -164,7 +171,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             },
             {
               title: 'Duplicate',
-              onClick: () => onDuplicate(row),
+              onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
             },
             ...(showMoveToSection
               ? [

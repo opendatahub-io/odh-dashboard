@@ -42,11 +42,11 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [ConnectionTypesOptions.createdBy]: ({ onChange, ...props }) => (
+        [ConnectionTypesOptions.creator]: ({ onChange, ...props }) => (
           <SearchInput
             {...props}
-            aria-label="Created by"
-            placeholder="Created by"
+            aria-label="Creator"
+            placeholder="Creator"
             onChange={(_event, value) => onChange(value)}
           />
         ),
