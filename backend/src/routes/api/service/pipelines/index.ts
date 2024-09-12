@@ -9,7 +9,7 @@ export default proxyService<DSPipelineKind>(
     plural: 'datasciencepipelinesapplications',
   },
   {
-    constructUrl: (resource) => resource.status.components.apiServer.url,
+    constructUrl: (resource) => resource.status?.components.apiServer.url,
   },
   {
     // Use port forwarding for local development:
