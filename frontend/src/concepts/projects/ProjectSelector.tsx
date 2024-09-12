@@ -1,11 +1,9 @@
 import * as React from 'react';
-import { Bullseye, Divider, Flex, FlexItem, MenuItem } from '@patternfly/react-core';
-
+import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
-import TruncateNoMinWidth from '~/components/pf-overrides/TruncateNoMinWidth';
 import { ProjectKind } from '~/k8sTypes';
 
 type ProjectSelectorProps = {
@@ -89,9 +87,9 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               onSelection(project.metadata.name);
             }}
           >
-            <TruncateNoMinWidth content={getDisplayNameFromK8sResource(project)}>
+            <Truncate content={getDisplayNameFromK8sResource(project)}>
               {getDisplayNameFromK8sResource(project)}
-            </TruncateNoMinWidth>
+            </Truncate>
           </MenuItem>
         ))}
       </>

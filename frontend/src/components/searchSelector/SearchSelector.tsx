@@ -13,8 +13,8 @@ import {
   MenuToggle,
   SearchInput,
   Spinner,
+  Truncate,
 } from '@patternfly/react-core';
-import TruncateNoMinWidth from '~/components/pf-overrides/TruncateNoMinWidth';
 
 type ManualSearchSelectorOpts = {
   menuClose: () => void;
@@ -92,7 +92,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
         >
-          <TruncateNoMinWidth content={toggleText} />
+          <Truncate content={toggleText} />
         </MenuToggle>
       }
       menu={
