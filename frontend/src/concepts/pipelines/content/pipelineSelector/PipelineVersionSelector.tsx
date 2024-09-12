@@ -64,6 +64,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
           : 'Loading pipeline versions'
       }
       searchHelpText={`Type a name to search your ${supportedVersionsSize} versions.`}
+      isDisabled={totalSize === 0}
     >
       {({ menuClose }) => (
         <TableBase

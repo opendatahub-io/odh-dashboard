@@ -46,6 +46,7 @@ const InnerExperimentSelector: React.FC<
         : 'Loading experiments'
     }
     searchHelpText={`Type a name to search your ${totalSize} experiments.`}
+    isDisabled={totalSize === 0}
   >
     {({ menuClose }) => (
       <TableBase

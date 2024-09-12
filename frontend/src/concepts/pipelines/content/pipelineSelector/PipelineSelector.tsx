@@ -42,6 +42,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
           : 'Loading pipelines'
       }
       searchHelpText={`Type a name to search your ${totalSize} pipelines.`}
+      isDisabled={totalSize === 0}
     >
       {({ menuClose }) => (
         <TableBase
