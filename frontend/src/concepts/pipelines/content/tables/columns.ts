@@ -65,26 +65,25 @@ export const experimentColumns: SortableData<ExperimentKFv2>[] = [
     label: 'Experiment',
     field: 'display_name',
     sortable: true,
-  },
-  {
-    label: 'Description',
-    field: 'description',
-    sortable: true,
+    width: 40,
   },
   {
     label: 'Created',
     field: 'created_at',
     sortable: true,
+    width: 20,
   },
   {
     label: 'Last run started',
     field: 'last_run_created_at',
     sortable: true,
+    width: 20,
   },
   {
     label: 'Last 5 runs',
     field: 'last_5_runs',
     sortable: false,
+    width: 20,
   },
   kebabTableColumn(),
 ];

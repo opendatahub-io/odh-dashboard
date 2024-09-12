@@ -39,6 +39,7 @@ const mockExperiments = [
   buildMockExperimentKF({
     display_name: 'Test experiment 1',
     experiment_id: '1',
+    description: 'Test experiment 1',
     last_run_created_at: currentTime.toISOString(),
   }),
   buildMockExperimentKF({
@@ -86,6 +87,10 @@ describe('Experiments', () => {
     it('experiments table time', () => {
       experimentsTabs.findActiveTab().click();
       const activeExperimentsTable = experimentsTabs.getActiveExperimentsTable();
+      activeExperimentsTable
+        .getRowByName('Test experiment 1')
+        .findDescription()
+        .should('have.text', 'Test experiment 1');
       activeExperimentsTable
         .getRowByName('Test experiment 1')
         .findExperimentLastRunTime()
