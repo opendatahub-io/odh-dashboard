@@ -7,14 +7,9 @@ import { ConnectionTypesOptions, FilterDataType, options } from '~/pages/connect
 type Props = {
   filterData: Record<ConnectionTypesOptions, string | undefined>;
   setFilterData: React.Dispatch<React.SetStateAction<FilterDataType>>;
-  onClearFilters: () => void;
 };
 
-const ConnectionTypesTableToolbar: React.FC<Props> = ({
-  setFilterData,
-  filterData,
-  onClearFilters,
-}) => {
+const ConnectionTypesTableToolbar: React.FC<Props> = ({ setFilterData, filterData }) => {
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
@@ -52,7 +47,6 @@ const ConnectionTypesTableToolbar: React.FC<Props> = ({
         ),
       }}
       filterData={filterData}
-      onClearFilters={onClearFilters}
       onFilterUpdate={onFilterUpdate}
     >
       <ToolbarItem>

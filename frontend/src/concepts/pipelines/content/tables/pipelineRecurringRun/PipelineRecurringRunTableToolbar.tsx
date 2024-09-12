@@ -10,7 +10,7 @@ import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
-  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+  'filterData' | 'onFilterUpdate'
 >;
 
 interface PipelineRecurringRunTableToolbarProps extends FilterProps {

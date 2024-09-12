@@ -36,6 +36,7 @@ type Props<DataType> = {
   enablePagination?: boolean | 'compact';
   truncateRenderingAt?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
+  onClearFilters?: () => void;
   bottomToolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
   emptyTableView?: React.ReactNode;
   caption?: string;
@@ -92,6 +93,7 @@ const TableBase = <T,>({
   rowRenderer,
   enablePagination,
   toolbarContent,
+  onClearFilters,
   bottomToolbarContent,
   emptyTableView,
   caption,
@@ -274,7 +276,8 @@ const TableBase = <T,>({
         <Toolbar
           inset={{ default: 'insetNone' }}
           className="pf-v5-u-w-100"
-          customChipGroupContent={<></>}
+          customChipGroupContent={onClearFilters ? undefined : <></>}
+          clearAllFilters={onClearFilters}
         >
           <ToolbarContent>
             {toolbarContent}

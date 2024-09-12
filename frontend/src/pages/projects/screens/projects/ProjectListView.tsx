@@ -83,12 +83,12 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             setDeleteData={(data) => setDeleteData(data)}
           />
         )}
+        onClearFilters={onClearFilters}
         toolbarContent={
           <ProjectsToolbar
             allowCreate={allowCreate}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
-            onClearFilters={onClearFilters}
           />
         }
       />

@@ -3,8 +3,6 @@ import {
   ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
-  ToolbarChip,
-  Tooltip,
   Dropdown,
   DropdownItem,
   MenuToggle,
@@ -24,7 +22,6 @@ export type ToolbarFilterProps<T extends string> = React.ComponentProps<typeof T
   filterOptionRenders: Record<T, (props: FilterOptionRenders) => React.ReactNode>;
   filterData: Record<T, string | { label: string; value: string } | undefined>;
   onFilterUpdate: (filterType: T, value?: string | { label: string; value: string }) => void;
-  onClearFilters: () => void;
   testId?: string;
 };
 
@@ -33,7 +30,6 @@ function FilterToolbar<T extends string>({
   filterOptionRenders,
   filterData,
   onFilterUpdate,
-  onClearFilters,
   children,
   testId = 'filter-toolbar',
   ...toolbarGroupProps
@@ -42,8 +38,6 @@ function FilterToolbar<T extends string>({
   const keys = Object.keys(filterOptions) as Array<T>;
   const [open, setOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<T>(keys[0]);
-  const isToolbarChip = (v: unknown): v is ToolbarChip & { key: T } =>
-    !!v && Object.keys(v).every((k) => ['key', 'node'].includes(k));
   const filterItem = filterData[currentFilterType];
 
   return (
@@ -85,45 +79,42 @@ function FilterToolbar<T extends string>({
             </DropdownList>
           </Dropdown>
         </ToolbarItem>
-        <ToolbarFilter
-          categoryName="Filters"
-          data-testid={`${testId}-text-field`}
-          variant="search-filter"
-          chips={keys
-            .map<ToolbarChip | null>((filterKey) => {
-              const optionValue = filterOptions[filterKey];
-              const data = filterData[filterKey];
-              if (data) {
-                const dataValue: { label: string; value: string } | undefined =
-                  typeof data === 'string' ? { label: data, value: data } : data;
-                return {
-                  key: filterKey,
-                  node: (
-                    <span data-testid={`${optionValue?.toLowerCase()}-filter-chip`}>
-                      <b>{optionValue}:</b>{' '}
-                      <Tooltip content={dataValue.value} position="top-start">
-                        <span>{dataValue.label}</span>
-                      </Tooltip>
-                    </span>
-                  ),
-                };
+        {keys.map((filterKey) => {
+          const optionValue = filterOptions[filterKey];
+          const data = filterData[filterKey];
+          const dataValue: { label: string; value: string } | undefined =
+            typeof data === 'string' ? { label: data, value: data } : data;
+          return optionValue ? (
+            <ToolbarFilter
+              key={filterKey}
+              categoryName={optionValue}
+              data-testid={`${testId}-text-field`}
+              variant="search-filter"
+              chips={
+                data && dataValue
+                  ? [
+                      {
+                        key: filterKey,
+                        node: (
+                          <span data-testid={`${filterKey}-filter-chip`}>{dataValue.label}</span>
+                        ),
+                      },
+                    ]
+                  : []
               }
-              return null;
-            })
-            .filter(isToolbarChip)}
-          deleteChip={(_, chip) => {
-            if (isToolbarChip(chip)) {
-              onFilterUpdate(chip.key, '');
-            }
-          }}
-          deleteChipGroup={() => onClearFilters()}
-        >
-          {filterOptionRenders[currentFilterType]({
-            onChange: (value, label) =>
-              onFilterUpdate(currentFilterType, label && value ? { label, value } : value),
-            ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
-          })}
-        </ToolbarFilter>
+              deleteChip={() => {
+                onFilterUpdate(filterKey, '');
+              }}
+              showToolbarItem={currentFilterType === filterKey}
+            >
+              {filterOptionRenders[filterKey]({
+                onChange: (value, label) =>
+                  onFilterUpdate(filterKey, label && value ? { label, value } : value),
+                ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
+              })}
+            </ToolbarFilter>
+          ) : null;
+        })}
       </ToolbarGroup>
       {children}
     </>

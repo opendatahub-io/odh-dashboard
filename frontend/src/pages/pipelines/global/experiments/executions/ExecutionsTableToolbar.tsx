@@ -13,13 +13,11 @@ import { useMlmdListContext } from '~/concepts/pipelines/context';
 type ExecutionsTableToolbarProps = {
   filterData: Record<FilterOptions, string | undefined>;
   setFilterData: React.Dispatch<React.SetStateAction<Record<FilterOptions, string | undefined>>>;
-  onClearFilters: () => void;
 };
 
 const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
   filterData,
   setFilterData,
-  onClearFilters,
 }) => {
   const { setFilterQuery } = useMlmdListContext();
   const onFilterUpdate = React.useCallback(
@@ -109,7 +107,6 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
         ),
       }}
       filterData={filterData}
-      onClearFilters={onClearFilters}
       onFilterUpdate={onFilterUpdate}
     />
   );

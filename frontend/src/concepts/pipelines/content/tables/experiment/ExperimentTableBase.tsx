@@ -41,7 +41,7 @@ const ExperimentTable: React.FC<ExperimentTableProps> = ({
   getActionColumnItems,
   ...tableProps
 }) => {
-  const filterToolbarProps = usePipelineFilter(setFilter);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -65,9 +65,8 @@ const ExperimentTable: React.FC<ExperimentTableProps> = ({
       data={experiments}
       columns={experimentColumns}
       enablePagination="compact"
-      emptyTableView={
-        <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
-      }
+      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+      onClearFilters={onClearFilters}
       toolbarContent={
         <ExperimentTableToolbar data-testid="experiment-table-toolbar" {...filterToolbarProps}>
           {toolbarContentRenderer(selections)}
