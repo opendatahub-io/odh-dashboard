@@ -75,12 +75,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     ? !!createData.forNotebook.mountPath.value && !createData.forNotebook.mountPath.error
     : true;
 
-  const storageClassSelected = isStorageClassesAvailable ? createData.storageClassName : true;
   const canCreate =
-    !actionInProgress &&
-    createData.nameDesc.name.trim() &&
-    hasValidNotebookRelationship &&
-    storageClassSelected;
+    !actionInProgress && createData.nameDesc.name.trim() && hasValidNotebookRelationship;
 
   const runPromiseActions = async (dryRun: boolean) => {
     const {
@@ -191,7 +187,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
                 setCreateData('forNotebook', forNotebookData);
               }}
               forNotebookData={createData.forNotebook}
-              isDisabled={connectedNotebooks.length !== 0 && removedNotebooks.length === 0}
+              connectedNotebooks={connectedNotebooks}
             />
           </StackItem>
           {restartNotebooks.length !== 0 && (

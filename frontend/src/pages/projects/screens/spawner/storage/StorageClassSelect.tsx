@@ -77,7 +77,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   });
 
   return (
-    <FormGroup label="Storage class" fieldId="storage-class" isRequired>
+    <FormGroup label="Storage class" fieldId="storage-class">
       <SimpleSelect
         dataTestId="storage-classes-selector"
         id="storage-classes-selector"
