@@ -556,7 +556,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     cy.url().should('include', '/pipelines/test-project-name');
 
-    pipelinesGlobal.selectProjectByName('Test Project 2');
+    pipelinesGlobal.projectDropdown.selectItem('Test Project 2');
     cy.url().should('include', '/pipelines/test-project-name-2');
   });
 

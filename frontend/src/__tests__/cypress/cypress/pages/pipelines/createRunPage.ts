@@ -12,6 +12,7 @@ import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
+import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class ParamsSection extends Contextual<HTMLElement> {
   findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -27,6 +28,12 @@ export class CreateRunPage {
   protected testId = 'create-run-page';
 
   private type;
+
+  experimentSelect = new SearchSelector('experiment-selector');
+
+  pipelineSelect = new SearchSelector('pipeline-selector');
+
+  pipelineVersionSelect = new SearchSelector('pipeline-version-selector');
 
   constructor(type: 'run' | 'schedule') {
     this.type = type;
@@ -46,18 +53,6 @@ export class CreateRunPage {
 
   findRunTypeSwitchLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('run-type-section-alert-link');
-  }
-
-  findExperimentSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('experiment-toggle-button');
-  }
-
-  findPipelineSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('pipeline-toggle-button');
-  }
-
-  findPipelineVersionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('pipeline-version-toggle-button');
   }
 
   findPipelineVersionByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {

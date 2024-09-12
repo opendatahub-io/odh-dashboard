@@ -4,8 +4,11 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelineVersionV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class PipelineImportModal extends Modal {
+  pipelineSelector = new SearchSelector('pipeline-selector');
+
   constructor() {
     super('Upload new version');
   }
@@ -16,10 +19,6 @@ class PipelineImportModal extends Modal {
 
   findSubmitButton() {
     return this.findFooter().findByRole('button', { name: 'Upload', hidden: true });
-  }
-
-  findPipelineSelect() {
-    return this.find().findByTestId('pipeline-toggle-button');
   }
 
   findVersionNameInput() {
@@ -59,7 +58,8 @@ class PipelineImportModal extends Modal {
   }
 
   selectPipelineByName(name: string) {
-    this.findPipelineSelect()
+    this.pipelineSelector
+      .findToggleButton()
       .click()
       .parents()
       .findByTestId('pipeline-selector-table-list')

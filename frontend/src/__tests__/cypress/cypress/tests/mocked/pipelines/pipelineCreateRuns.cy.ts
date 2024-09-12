@@ -126,9 +126,9 @@ describe('Pipeline create runs', () => {
       );
       createRunPage.find();
 
-      createRunPage.findPipelineSelect().should('not.be.disabled').click();
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
-      createRunPage.findPipelineVersionSelect().should('not.be.disabled').click();
+      createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.findPipelineVersionByName('argo unsupported').should('not.exist');
     });
 
@@ -170,12 +170,14 @@ describe('Pipeline create runs', () => {
       cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
       createRunPage.fillDescription(veryLongDesc);
-      createRunPage.findExperimentSelect().should('contain.text', 'Select an experiment');
-      createRunPage.findExperimentSelect().should('not.be.disabled').click();
+      createRunPage.experimentSelect
+        .findToggleButton()
+        .should('contain.text', 'Select an experiment');
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectExperimentByName('Test experiment 1');
-      createRunPage.findPipelineSelect().should('not.be.disabled').click();
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
-      createRunPage.findPipelineVersionSelect().should('not.be.disabled');
+      createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
 
       const parameters = createRunParams.runtime_config?.parameters || {};
       const paramsSection = createRunPage.getParamsSection();
@@ -241,10 +243,12 @@ describe('Pipeline create runs', () => {
       verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/clone/${mockRun.run_id}`);
 
       // Verify pre-populated values & submit
-      cloneRunPage.findExperimentSelect().should('have.text', mockExperiment.display_name);
-      cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.display_name);
-      cloneRunPage
-        .findPipelineVersionSelect()
+      cloneRunPage.experimentSelect
+        .findToggleButton()
+        .should('have.text', mockExperiment.display_name);
+      cloneRunPage.pipelineSelect.findToggleButton().should('have.text', mockPipeline.display_name);
+      cloneRunPage.pipelineVersionSelect
+        .findToggleButton()
         .should('have.text', mockPipelineVersion.display_name);
       const paramsSection = cloneRunPage.getParamsSection();
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
@@ -358,9 +362,9 @@ describe('Pipeline create runs', () => {
 
       // Fill required fields
       createRunPage.fillName('New run');
-      createRunPage.findExperimentSelect().click();
+      createRunPage.experimentSelect.findToggleButton().click();
       createRunPage.selectExperimentByName('Test experiment 1');
-      createRunPage.findPipelineSelect().click();
+      createRunPage.pipelineSelect.findToggleButton().click();
       createRunPage.selectPipelineByName('Test pipeline');
 
       // Verify default parameter values & helper text
@@ -479,11 +483,11 @@ describe('Pipeline create runs', () => {
 
       // Fill out the form with all input parameters
       createRunPage.fillName('New run');
-      createRunPage.findExperimentSelect().should('not.be.disabled').click();
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectExperimentByName('Test experiment 1');
-      createRunPage.findPipelineSelect().should('not.be.disabled').click();
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
-      createRunPage.findPipelineVersionSelect().should('not.be.disabled');
+      createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
 
       const parameters = createRunParams.runtime_config?.parameters || {};
       const paramsSection = createRunPage.getParamsSection();
@@ -552,8 +556,10 @@ describe('Pipeline create runs', () => {
     it('creates a schedule', () => {
       createScheduleRunCommonTest();
       // Default is archived, so it should not pre-select the default
-      createSchedulePage.findExperimentSelect().should('contain.text', 'Select an experiment');
-      createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
+      createSchedulePage.experimentSelect
+        .findToggleButton()
+        .should('contain.text', 'Select an experiment');
+      createSchedulePage.experimentSelect.findToggleButton().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
@@ -590,7 +596,7 @@ describe('Pipeline create runs', () => {
     it('creates a schedule with trigger type cron without whitespace', () => {
       // Fill out the form with a schedule and submit
       createScheduleRunCommonTest();
-      createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
+      createSchedulePage.experimentSelect.findToggleButton().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m');
@@ -627,7 +633,7 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule with trigger type cron with whitespace', () => {
       createScheduleRunCommonTest();
-      createSchedulePage.findExperimentSelect().should('not.be.disabled').click();
+      createSchedulePage.experimentSelect.findToggleButton().should('not.be.disabled').click();
       createSchedulePage.selectExperimentByName('Test experiment 1');
       createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m ');
@@ -691,10 +697,14 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values & submit
-      cloneSchedulePage.findExperimentSelect().should('have.text', mockExperiment.display_name);
-      cloneSchedulePage.findPipelineSelect().should('have.text', mockPipeline.display_name);
-      cloneSchedulePage
-        .findPipelineVersionSelect()
+      cloneSchedulePage.experimentSelect
+        .findToggleButton()
+        .should('have.text', mockExperiment.display_name);
+      cloneSchedulePage.pipelineSelect
+        .findToggleButton()
+        .should('have.text', mockPipeline.display_name);
+      cloneSchedulePage.pipelineVersionSelect
+        .findToggleButton()
         .should('have.text', mockPipelineVersion.display_name);
       const paramsSection = cloneSchedulePage.getParamsSection();
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
@@ -765,7 +775,9 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values & submit
-      cloneSchedulePage.findExperimentSelect().should('have.text', 'Select an experiment');
+      cloneSchedulePage.experimentSelect
+        .findToggleButton()
+        .should('have.text', 'Select an experiment');
     });
 
     it('shows cron & periodic fields', () => {
@@ -952,9 +964,9 @@ const createScheduleRunCommonTest = () => {
   cy.findByTestId('duplicate-name-help-text').should('be.visible');
   createSchedulePage.fillName('New recurring run');
   createSchedulePage.fillDescription('New recurring run description');
-  createSchedulePage.findPipelineSelect().should('not.be.disabled').click();
+  createSchedulePage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
   createSchedulePage.selectPipelineByName('Test pipeline');
-  createSchedulePage.findPipelineVersionSelect().should('not.be.disabled');
+  createSchedulePage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
   const parameters = createRecurringRunParams.runtime_config?.parameters || {};
   const paramsSection = createRunPage.getParamsSection();
   paramsSection.findParamById('radio-min_max_scaler-false').click();

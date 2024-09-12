@@ -1,5 +1,7 @@
-import * as React from 'react';
-import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
+import {
+  useSelectorSearch,
+  UseSelectorSearchValue,
+} from '~/concepts/pipelines/content/pipelineSelector/utils';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import {
   LoadMoreProps,
@@ -14,20 +16,17 @@ import { PipelineCoreResourceKFv2, PipelineVersionKFv2 } from '~/concepts/pipeli
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
+type UseLoadMoreFunc<T> = [T[], () => Promise<void>];
 type UsePipelineSelectorData<DataType> = {
   loaded: boolean;
   initialLoaded: boolean;
   data: DataType[];
   sortProps: TableSortProps;
-  onLoadMore: () => Promise<void>;
-  onSearchClear: (event: React.SyntheticEvent<HTMLButtonElement, Event>) => void;
-  totalSize: number;
+  onLoadMore: UseLoadMoreFunc<DataType>[1];
+  onSearchClear: UseSelectorSearchValue['onClear'];
   fetchedSize: number;
-  searchProps: {
-    onChange: (event: React.FormEvent<HTMLInputElement>, value: string) => void;
-    value?: string | undefined;
-  };
-};
+  searchProps: Omit<UseSelectorSearchValue, 'onClear' | 'totalSize'>;
+} & Pick<UseSelectorSearchValue, 'totalSize'>;
 
 const usePipelineVersionSelector = (
   pipelineId: string | undefined,
@@ -42,8 +41,8 @@ const usePipelineVersionSelector = (
 
 const useCreateUsePipelineSelector = <T extends PipelineCoreResourceKFv2>(
   tableData: [FetchState<PipelineListPaged<T>>, TableProps],
-  useLoadMoreFunc: (props: LoadMoreProps) => [T[], () => Promise<void>],
-) => {
+  useLoadMoreFunc: (props: LoadMoreProps) => UseLoadMoreFunc<T>,
+): UsePipelineSelectorData<T> => {
   const [[{ totalSize: fetchedSize }, loaded], { initialLoaded, ...tableProps }] = tableData;
   const sortProps = getTableSortProps(tableProps);
   const { sortDirection, sortField, setFilter, filter } = tableProps;

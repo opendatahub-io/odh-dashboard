@@ -1,19 +1,5 @@
 import * as React from 'react';
-import {
-  EmptyStateVariant,
-  HelperText,
-  HelperTextItem,
-  Icon,
-  Menu,
-  MenuContainer,
-  MenuContent,
-  MenuList,
-  MenuSearch,
-  MenuSearchInput,
-  MenuToggle,
-  SearchInput,
-  Spinner,
-} from '@patternfly/react-core';
+import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
@@ -23,6 +9,7 @@ import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/Pipel
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/usePipelineVersionSelector';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import SearchSelector from '~/components/searchSelector/SearchSelector';
 
 type PipelineVersionSelectorProps = {
   pipelineId?: string;
@@ -37,11 +24,6 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
   isCreatePage,
   onSelect,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
-
-  const toggleRef = React.useRef(null);
-  const menuRef = React.useRef(null);
-
   const {
     fetchedSize,
     totalSize,
@@ -61,109 +43,73 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
   );
   const supportedVersionsSize = supportedVersions.length;
 
-  const menu = (
-    <Menu data-id="pipeline-version-selector-menu" ref={menuRef} isScrollable>
-      <MenuContent>
-        <MenuSearch>
-          <MenuSearchInput>
-            <SearchInput
-              {...searchProps}
-              onClear={onSearchClear}
-              aria-label="Filter pipeline versions"
-            />
-          </MenuSearchInput>
-          <HelperText>
-            <HelperTextItem variant="indeterminate">{`Type a name to search your ${supportedVersionsSize} versions.`}</HelperTextItem>
-          </HelperText>
-        </MenuSearch>
-        <MenuList>
-          <div role="menuitem">
-            <TableBase
-              itemCount={fetchedSize}
-              loading={!loaded}
-              data-testid="pipeline-version-selector-table-list"
-              emptyTableView={
-                <DashboardEmptyTableView
-                  hasIcon={false}
-                  onClearFilters={onSearchClear}
-                  variant={EmptyStateVariant.xs}
-                />
-              }
-              borders={false}
-              variant={TableVariant.compact}
-              columns={pipelineVersionSelectorColumns}
-              data={supportedVersions}
-              rowRenderer={(row) => (
-                <PipelineSelectorTableRow
-                  key={row.pipeline_version_id}
-                  obj={row}
-                  onClick={() => {
-                    onSelect(row);
-                    setOpen(false);
-                  }}
-                />
-              )}
-              getColumnSort={getTableColumnSort({
-                columns: pipelineVersionSelectorColumns,
-                ...sortProps,
-              })}
-              footerRow={() =>
-                loaded ? (
-                  <PipelineViewMoreFooterRow
-                    visibleLength={versions.length}
-                    totalSize={fetchedSize}
-                    errorTitle="Error loading more pipeline versions"
-                    onClick={onLoadMore}
-                    colSpan={2}
-                  />
-                ) : null
-              }
-            />
-          </div>
-        </MenuList>
-      </MenuContent>
-    </Menu>
-  );
-
   return (
-    <MenuContainer
-      isOpen={isOpen}
-      toggleRef={toggleRef}
-      toggle={
-        <MenuToggle
-          id="pipeline-version-selector"
-          icon={
-            pipelineId &&
-            !initialLoaded && (
-              <Icon>
-                <Spinner size="sm" aria-label="Loading pipeline versions" />
-              </Icon>
-            )
-          }
-          ref={toggleRef}
-          onClick={() => setOpen(!isOpen)}
-          isExpanded={isOpen}
-          isDisabled={!pipelineId || totalSize === 0 || supportedVersionsSize === 0}
-          isFullWidth
-          data-testid="pipeline-version-toggle-button"
-        >
-          {!pipelineId
-            ? 'Select a pipeline version'
-            : initialLoaded
-            ? selection ||
-              (totalSize === 0
-                ? 'No versions available'
-                : supportedVersionsSize === 0
-                ? 'No supported versions available'
-                : 'Select a pipeline version')
-            : 'Loading pipeline versions'}
-        </MenuToggle>
+    <SearchSelector
+      dataTestId="pipeline-version-selector"
+      onSearchChange={(newValue) => searchProps.onChange(newValue)}
+      onSearchClear={() => onSearchClear()}
+      searchValue={searchProps.value ?? ''}
+      isLoading={!!pipelineId && !initialLoaded}
+      isFullWidth
+      toggleText={
+        !pipelineId
+          ? 'Select a pipeline version'
+          : initialLoaded
+          ? selection ||
+            (totalSize === 0
+              ? 'No versions available'
+              : supportedVersionsSize === 0
+              ? 'No supported versions available'
+              : 'Select a pipeline version')
+          : 'Loading pipeline versions'
       }
-      menu={menu}
-      menuRef={menuRef}
-      popperProps={{ maxWidth: 'trigger' }}
-      onOpenChange={(open) => setOpen(open)}
-    />
+      searchHelpText={`Type a name to search your ${supportedVersionsSize} versions.`}
+      isDisabled={totalSize === 0}
+    >
+      {({ menuClose }) => (
+        <TableBase
+          itemCount={fetchedSize}
+          loading={!loaded}
+          data-testid="pipeline-version-selector-table-list"
+          emptyTableView={
+            <DashboardEmptyTableView
+              hasIcon={false}
+              onClearFilters={onSearchClear}
+              variant={EmptyStateVariant.xs}
+            />
+          }
+          borders={false}
+          variant={TableVariant.compact}
+          columns={pipelineVersionSelectorColumns}
+          data={supportedVersions}
+          rowRenderer={(row) => (
+            <PipelineSelectorTableRow
+              key={row.pipeline_version_id}
+              obj={row}
+              onClick={() => {
+                onSelect(row);
+                menuClose();
+              }}
+            />
+          )}
+          getColumnSort={getTableColumnSort({
+            columns: pipelineVersionSelectorColumns,
+            ...sortProps,
+          })}
+          footerRow={() =>
+            loaded ? (
+              <PipelineViewMoreFooterRow
+                visibleLength={versions.length}
+                totalSize={fetchedSize}
+                errorTitle="Error loading more pipeline versions"
+                onClick={onLoadMore}
+                colSpan={2}
+              />
+            ) : null
+          }
+        />
+      )}
+    </SearchSelector>
   );
 };
 

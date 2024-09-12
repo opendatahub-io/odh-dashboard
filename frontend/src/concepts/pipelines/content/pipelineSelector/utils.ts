@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { SearchInputProps } from '@patternfly/react-core';
 import usePipelineFilter, {
   FilterOptions,
   getDataValue,
@@ -11,15 +10,18 @@ type SelectorSearchProps = {
   fetchedSize: number;
   loaded: boolean;
 };
+export type UseSelectorSearchValue = {
+  onChange: (newValue: string) => void;
+  onClear: () => void;
+  value?: string;
+  totalSize: number;
+};
 
 export const useSelectorSearch = ({
   setFilter,
   fetchedSize,
   loaded,
-}: SelectorSearchProps): Required<Pick<SearchInputProps, 'onChange' | 'onClear'>> & {
-  value?: string;
-  totalSize: number;
-} => {
+}: SelectorSearchProps): UseSelectorSearchValue => {
   const totalSizeRef = React.useRef(0);
   const { onFilterUpdate, filterData, onClearFilters } = usePipelineFilter(setFilter);
 
@@ -45,9 +47,8 @@ export const useSelectorSearch = ({
 
   return {
     value: search,
-    onChange: (_event, value) => setSearch(value),
-    onClear: (e) => {
-      e.stopPropagation();
+    onChange: (value) => setSearch(value),
+    onClear: () => {
       onClearFilters();
     },
     totalSize,
