@@ -2,6 +2,7 @@ import type { MockStorageClass } from '~/__mocks__';
 import { mockStorageClassList } from '~/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { Modal } from './components/Modal';
 
 class StorageClassesPage {
   visit() {
@@ -73,5 +74,60 @@ class StorageClassesTable {
   }
 }
 
+class StorageClassEditModal extends Modal {
+  constructor() {
+    super('Edit storage class details');
+  }
+
+  find() {
+    return cy.findByTestId('edit-sc-modal').parents('div[role="dialog"]');
+  }
+
+  findOpenshiftScName() {
+    return this.find().findByTestId('edit-sc-openshift-class-name');
+  }
+
+  findOpenshiftDefaultLabel() {
+    return this.findOpenshiftScName().findByTestId('openshift-sc-default-label');
+  }
+
+  findProvisioner() {
+    return this.find().findByTestId('edit-sc-provisioner');
+  }
+
+  findDisplayNameInput() {
+    return this.find().findByTestId('edit-sc-display-name');
+  }
+
+  fillDisplayNameInput(value: string) {
+    this.findDisplayNameInput().clear().fill(value);
+  }
+
+  findDescriptionInput() {
+    return this.find().findByTestId('edit-sc-description');
+  }
+
+  fillDescriptionInput(value: string) {
+    this.findDescriptionInput().clear().fill(value);
+  }
+
+  findCloseButton() {
+    return this.findFooter().findByTestId('modal-cancel-button');
+  }
+
+  findSaveButton() {
+    return this.findFooter().findByTestId('modal-submit-button');
+  }
+
+  mockUpdateStorageClass(storageClassName: string, times?: number) {
+    return cy.interceptOdh(
+      `PUT /api/storage-class/:name/config`,
+      { path: { name: storageClassName }, times },
+      { success: true, error: '' },
+    );
+  }
+}
+
 export const storageClassesPage = new StorageClassesPage();
 export const storageClassesTable = new StorageClassesTable();
+export const storageClassEditModal = new StorageClassEditModal();

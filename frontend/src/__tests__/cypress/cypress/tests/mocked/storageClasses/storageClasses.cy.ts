@@ -3,6 +3,7 @@ import { mockStorageClassList, mockStorageClasses } from '~/__mocks__';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
+  storageClassEditModal,
   storageClassesPage,
   storageClassesTable,
 } from '~/__tests__/cypress/cypress/pages/storageClasses';
@@ -16,6 +17,8 @@ describe('Storage classes', () => {
   });
 
   describe('as an admin user', () => {
+    const [openshiftDefaultStorageClass, otherStorageClass] = mockStorageClasses;
+
     beforeEach(() => {
       asProductAdminUser();
     });
@@ -44,8 +47,6 @@ describe('Storage classes', () => {
     });
 
     it('table rows allow for toggling of Enable and Default values', () => {
-      const [openshiftDefaultStorageClass, otherStorageClass] = mockStorageClasses;
-
       cy.interceptOdh(
         'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
         {},
@@ -112,6 +113,43 @@ describe('Storage classes', () => {
 
       openshiftDefaultTableRow.findEnableSwitch().should('not.have.attr', 'disabled');
       openshiftDefaultTableRow.findDefaultRadio().should('have.attr', 'checked');
+    });
+
+    it('can edit storage class display name and description', () => {
+      cy.interceptOdh(
+        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
+        {},
+        mockStorageClassList(),
+      );
+      storageClassesPage.visit();
+
+      storageClassesTable.getRowByName('openshift-default-sc').findKebabAction('Edit').click();
+      storageClassEditModal.findOpenshiftDefaultLabel().should('be.visible');
+      storageClassEditModal.findCloseButton().click();
+
+      storageClassesTable.getRowByName('Test SC 1').findKebabAction('Edit').click();
+      storageClassEditModal.findOpenshiftScName().should('have.text', 'test-storage-class-1');
+      storageClassEditModal.findProvisioner().should('have.text', 'manila.csi.openstack.org');
+      storageClassEditModal.findOpenshiftDefaultLabel().should('not.exist');
+      storageClassEditModal.fillDisplayNameInput('Updated name');
+      storageClassEditModal.fillDescriptionInput('Updated description');
+
+      storageClassEditModal.mockUpdateStorageClass('test-storage-class-1', 1);
+      storageClassesTable
+        .mockGetStorageClasses([
+          openshiftDefaultStorageClass,
+          buildMockStorageClass(otherStorageClass, {
+            displayName: 'Updated name',
+            description: 'Updated description',
+          }),
+        ])
+        .as('updateStorageClass');
+      storageClassEditModal.findSaveButton().click();
+
+      cy.wait('@updateStorageClass');
+      const updatedRow = storageClassesTable.getRowByName('Updated name');
+      updatedRow.find().should('contain.text', 'Updated name');
+      updatedRow.find().should('contain.text', 'Updated description');
     });
   });
 });
