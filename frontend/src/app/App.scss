@@ -70,3 +70,7 @@ body,
   min-height: 0;
 }
 
+.pf-v5-c-truncate {
+  --pf-v5-c-truncate--MinWidth: 0;
+  --pf-v5-c-truncate__start--MinWidth: 0;
+}

@@ -1,13 +1,13 @@
 export enum ConnectionTypesOptions {
   keyword = 'Keyword',
   category = 'Category',
-  createdBy = 'Created by',
+  creator = 'Creator',
 }
 
 export const options = {
   [ConnectionTypesOptions.keyword]: 'Keyword',
   [ConnectionTypesOptions.category]: 'Category',
-  [ConnectionTypesOptions.createdBy]: 'Created By',
+  [ConnectionTypesOptions.creator]: 'Creator',
 };
 
 export type FilterDataType = Record<ConnectionTypesOptions, string | undefined>;
@@ -15,7 +15,7 @@ export type FilterDataType = Record<ConnectionTypesOptions, string | undefined>;
 export const initialFilterData: Record<ConnectionTypesOptions, string | undefined> = {
   [ConnectionTypesOptions.keyword]: '',
   [ConnectionTypesOptions.category]: '',
-  [ConnectionTypesOptions.createdBy]: '',
+  [ConnectionTypesOptions.creator]: '',
 };
 
 export const categoryOptions = ['Object storage', 'Database', 'Model registry', 'URI'];

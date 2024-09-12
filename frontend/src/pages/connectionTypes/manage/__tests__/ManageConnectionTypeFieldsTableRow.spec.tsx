@@ -48,9 +48,9 @@ describe('ManageConnectionTypeFieldsTableRow', () => {
     };
 
     const result = render(renderRow({ row: field, fields: [field] }));
-    expect(screen.getByTestId('field-env')).not.toHaveTextContent('conflict');
+    expect(screen.queryByLabelText(/conflict/)).not.toBeInTheDocument();
 
     result.rerender(renderRow({ row: field, fields: [field, field2] }));
-    expect(screen.getByTestId('field-env')).toHaveTextContent('conflict');
+    expect(screen.queryByLabelText(/conflict/)).toBeInTheDocument();
   });
 });

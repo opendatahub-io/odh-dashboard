@@ -57,8 +57,10 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
         />
       }
     >
-      Select the section heading that <b>{row.field.name}</b> will be moved to.
       <Form>
+        <div>
+          Select the section heading that <b>{row.field.name}</b> will be moved to.
+        </div>
         <FormGroup fieldId="sectionHeading" label="Section heading" isRequired>
           <SimpleSelect
             id="sectionHeading"

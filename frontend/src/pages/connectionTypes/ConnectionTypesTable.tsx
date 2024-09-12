@@ -20,7 +20,7 @@ type Props = {
 
 const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) => {
   const [filterData, setFilterData] = React.useState<FilterDataType>(initialFilterData);
-  const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), [setFilterData]);
+  const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), []);
 
   const [deleteConnectionType, setDeleteConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
@@ -30,7 +30,7 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
     () =>
       connectionTypes.filter((connectionType) => {
         const keywordFilter = filterData.Keyword?.toLowerCase();
-        const createFilter = filterData['Created by']?.toLowerCase();
+        const createFilter = filterData.Creator?.toLowerCase();
         const categoryFilter = filterData.Category?.toLowerCase();
 
         if (
@@ -58,10 +58,6 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
     [connectionTypes, filterData],
   );
 
-  const resetFilters = () => {
-    setFilterData(initialFilterData);
-  };
-
   return (
     <>
       <Table
@@ -88,7 +84,7 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
           />
         }
         disableItemCount
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         id="connectionTypes-list-table"
       />
       {deleteConnectionType ? (
