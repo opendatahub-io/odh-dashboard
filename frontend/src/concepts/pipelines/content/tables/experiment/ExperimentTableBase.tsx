@@ -64,7 +64,7 @@ const ExperimentTable: React.FC<ExperimentTableProps> = ({
       itemCount={totalSize}
       data={experiments}
       columns={experimentColumns}
-      enablePagination
+      enablePagination="compact"
       emptyTableView={
         <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
       }

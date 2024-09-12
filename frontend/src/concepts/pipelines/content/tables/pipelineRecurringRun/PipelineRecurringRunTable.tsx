@@ -87,7 +87,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
         itemCount={totalSize}
         data={recurringRuns}
         columns={getColumns()}
-        enablePagination
+        enablePagination="compact"
         emptyTableView={
           <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
         }

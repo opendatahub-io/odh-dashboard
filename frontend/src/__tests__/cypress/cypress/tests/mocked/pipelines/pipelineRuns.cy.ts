@@ -840,7 +840,6 @@ describe('Pipeline runs', () => {
         const pagination = tablePagination.top;
 
         // test Next button
-        pagination.findFirstButton().should('be.disabled');
         pagination.findPreviousButton().should('be.disabled');
         cy.interceptOdh(
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -864,12 +863,10 @@ describe('Pipeline runs', () => {
           });
         });
 
-        pagination.findInput().should('have.value', '2');
         pipelineRecurringRunTable.getRowByName('another-pipeline-14').find().should('exist');
         pipelineRecurringRunTable.findRows().should('have.length', 5);
 
         //test first button
-        pagination.findLastButton().should('be.disabled');
         pagination.findNextButton().should('be.disabled');
         cy.interceptOdh(
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -882,13 +879,11 @@ describe('Pipeline runs', () => {
             next_page_token: 'new-page-token',
           },
         );
-        pagination.findFirstButton().click();
-        pagination.findInput().should('have.value', '1');
+        pagination.findPreviousButton().click();
         pipelineRecurringRunTable.getRowByName('another-pipeline-0').find().should('exist');
         pipelineRecurringRunTable.findRows().should('have.length', 10);
 
         //test last button
-        pagination.findFirstButton().should('be.disabled');
         pagination.findPreviousButton().should('be.disabled');
         cy.interceptOdh(
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -901,8 +896,7 @@ describe('Pipeline runs', () => {
           },
         ).as('refreshPipelineRecurringRuns');
 
-        pagination.findLastButton().click();
-        pagination.findInput().should('have.value', Math.ceil(15 / 10));
+        pagination.findNextButton().click();
         pipelineRecurringRunTable.getRowByName('another-pipeline-14').find().should('exist');
         pipelineRecurringRunTable.findRows().should('have.length', 5);
 
@@ -917,7 +911,6 @@ describe('Pipeline runs', () => {
         });
 
         // test Previous button
-        pagination.findLastButton().should('be.disabled');
         pagination.findNextButton().should('be.disabled');
         cy.interceptOdh(
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
@@ -930,7 +923,6 @@ describe('Pipeline runs', () => {
           },
         );
         pagination.findPreviousButton().click();
-        pagination.findInput().should('have.value', '1');
         pipelineRecurringRunTable.getRowByName('another-pipeline-0').find().should('exist');
         pipelineRecurringRunTable.findRows().should('have.length', 10);
 
@@ -951,11 +943,8 @@ describe('Pipeline runs', () => {
         pipelineRecurringRunTable.getRowByName('another-pipeline-0').find().should('exist');
         pipelineRecurringRunTable.getRowByName('another-pipeline-14').find().should('exist');
         pipelineRecurringRunTable.findRows().should('have.length', 15);
-        pagination.findLastButton().should('be.disabled');
         pagination.findNextButton().should('be.disabled');
         pagination.findPreviousButton().should('be.disabled');
-        pagination.findFirstButton().should('be.disabled');
-        pagination.findInput().should('have.value', Math.ceil(15 / 20));
       });
     });
 
