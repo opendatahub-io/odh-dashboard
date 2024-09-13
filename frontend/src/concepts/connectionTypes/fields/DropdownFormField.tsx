@@ -19,18 +19,24 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const hasValidOption = field.properties.items?.find((f) => f.value || f.label);
 
   const menuToggleText = () => {
-    let text = field.name ? `Select ${field.name} ` : 'No values defined yet ';
-    if (!isMulti && isPreview) {
-      const defaultOption = field.properties.items?.find(
-        (i) => i.value === field.properties.defaultValue?.[0],
-      );
-      if (defaultOption) {
-        text = defaultOption.label || defaultOption.value;
-      }
-    } else if (!isMulti && !isPreview) {
-      const currentSelection = field.properties.items?.find((i) => value?.includes(i.value));
-      if (currentSelection) {
-        text = currentSelection.label || currentSelection.value;
+    let text = field.properties.items?.some((i) => i.label || i.value)
+      ? field.name
+        ? `Select ${field.name} `
+        : 'Select'
+      : 'No values defined';
+    if (!isMulti) {
+      if (isPreview) {
+        const defaultOption = field.properties.items?.find(
+          (i) => i.value === field.properties.defaultValue?.[0],
+        );
+        if (defaultOption) {
+          text = defaultOption.label || defaultOption.value;
+        }
+      } else {
+        const currentSelection = field.properties.items?.find((i) => value?.includes(i.value));
+        if (currentSelection) {
+          text = currentSelection.label || currentSelection.value;
+        }
       }
     }
     return text;
@@ -74,7 +80,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
             <>
               {menuToggleText()}
               {isMulti && (
-                <Badge>
+                <Badge className="pf-v5-u-ml-xs">
                   {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
                   selected
                 </Badge>
