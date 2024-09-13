@@ -145,7 +145,7 @@ export const createRoleIfMissing = async (
   namespace: string,
   opts?: K8sAPIOptions,
 ): Promise<RoleKind> =>
-  getRole(role.metadata.name, namespace).catch((e) => {
+  getRole(namespace, role.metadata.name).catch((e) => {
     if (e.statusObject?.code === 404) {
       return createRole(role, opts);
     }

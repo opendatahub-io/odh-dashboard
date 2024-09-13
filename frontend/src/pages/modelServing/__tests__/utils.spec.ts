@@ -92,12 +92,12 @@ describe('setUpTokenAuth', () => {
         );
       jest
         .mocked(getRole)
-        .mockImplementation((name: string, namespace: string) =>
+        .mockImplementation((namespace: string, name: string) =>
           Promise.resolve(mockRoleK8sResource({ name, namespace })),
         );
       jest
         .mocked(getRoleBinding)
-        .mockImplementation((name: string, namespace: string) =>
+        .mockImplementation((namespace: string, name: string) =>
           Promise.resolve(mockRoleBindingK8sResource({ name, namespace })),
         );
     } else {
