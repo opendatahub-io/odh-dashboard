@@ -9,6 +9,7 @@ describe('ConnectionsTable', () => {
     render(
       <ConnectionsTable
         connections={[mockConnection({ displayName: 'connection1', description: 'desc1' })]}
+        refreshConnections={() => undefined}
       />,
     );
 
@@ -25,6 +26,7 @@ describe('ConnectionsTable', () => {
         connectionTypes={[
           mockConnectionTypeConfigMapObj({ name: 's3', displayName: 'S3 Buckets' }),
         ]}
+        refreshConnections={() => undefined}
       />,
     );
 
