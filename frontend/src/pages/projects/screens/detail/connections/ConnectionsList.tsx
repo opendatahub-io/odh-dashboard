@@ -16,7 +16,7 @@ const ConnectionsDescription =
 
 const ConnectionsList: React.FC = () => {
   const {
-    connections: { data: connections, loaded, error },
+    connections: { data: connections, loaded, error, refresh: refreshConnections },
   } = React.useContext(ProjectDetailsContext);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useWatchConnectionTypes();
 
@@ -60,7 +60,11 @@ const ConnectionsList: React.FC = () => {
         />
       }
     >
-      <ConnectionsTable connections={connections} connectionTypes={connectionTypes} />
+      <ConnectionsTable
+        connections={connections}
+        connectionTypes={connectionTypes}
+        refreshConnections={refreshConnections}
+      />
     </DetailsSection>
   );
 };

@@ -102,6 +102,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
+  const connectionRefresh = connections.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateDisablement.refresh;
@@ -112,6 +113,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     setTimeout(notebookRefresh, 2000);
     pvcRefresh();
     dataConnectionRefresh();
+    connectionRefresh();
     servingRuntimeRefresh();
     inferenceServiceRefresh();
     projectSharingRefresh();
@@ -122,6 +124,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     notebookRefresh,
     pvcRefresh,
     dataConnectionRefresh,
+    connectionRefresh,
     servingRuntimeRefresh,
     servingRuntimeTemplateOrderRefresh,
     servingRuntimeTemplateDisablementRefresh,
