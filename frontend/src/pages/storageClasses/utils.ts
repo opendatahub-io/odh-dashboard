@@ -16,12 +16,3 @@ export const getStorageClassConfig = (
 
 export const isOpenshiftDefaultStorageClass = (storageClass: StorageClassKind): boolean =>
   storageClass.metadata.annotations?.[MetadataAnnotation.StorageClassIsDefault] === 'true';
-
-export const getDefaultStorageClass = (
-  storageClasses: StorageClassKind[],
-): StorageClassKind | undefined =>
-  storageClasses.find(
-    (storageClass) =>
-      isOpenshiftDefaultStorageClass(storageClass) ||
-      getStorageClassConfig(storageClass)?.isDefault,
-  );

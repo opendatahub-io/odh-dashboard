@@ -6,6 +6,7 @@ import {
   mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
+  mockStorageClassList,
 } from '~/__mocks__';
 import { mockConfigMap } from '~/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
@@ -60,6 +61,7 @@ const initIntercepts = ({
     },
   ],
 }: HandlersProps) => {
+  cy.interceptOdh('GET /api/k8s/apis/storage.k8s.io/v1/storageclasses', {}, mockStorageClassList());
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({

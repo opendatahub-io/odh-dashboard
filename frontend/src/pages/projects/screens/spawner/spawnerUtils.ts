@@ -50,7 +50,7 @@ export const useMergeDefaultPVCName = (
         ...storageData.creating.nameDesc,
         name: storageData.creating.nameDesc.name || defaultPVCName,
       },
-      storageClassName: defaultStorageClassName ?? '',
+      storageClassName: storageData.creating.storageClassName || defaultStorageClassName,
     },
   };
 };
@@ -408,7 +408,8 @@ export const checkRequiredFieldsForNotebookStart = (
     image.imageVersion
   );
 
-  const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
+  const newStorageFieldInvalid =
+    storageType === StorageType.NEW_PVC && (!creating.nameDesc.name || !creating.storageClassName);
   const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
   const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 

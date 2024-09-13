@@ -70,7 +70,7 @@ export const createPvc = (
   namespace: string,
   opts?: K8sAPIOptions,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, undefined);
+  const pvc = assemblePvc(data, namespace);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),

@@ -1,4 +1,4 @@
-import { K8sResourceListResult, StorageClassKind } from '~/k8sTypes';
+import { K8sResourceListResult, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
 
 export type MockStorageClass = Omit<StorageClassKind, 'apiVersion' | 'kind'>;
 
@@ -17,6 +17,23 @@ export const mockStorageClassList = (
     resourceVersion: '55571379',
   },
   items: storageClasses,
+});
+
+export const buildMockStorageClass = (
+  mockStorageClass: MockStorageClass,
+  config: Partial<StorageClassConfig>,
+): MockStorageClass => ({
+  ...mockStorageClass,
+  metadata: {
+    ...mockStorageClass.metadata,
+    annotations: {
+      ...mockStorageClass.metadata.annotations,
+      'opendatahub.io/sc-config': JSON.stringify({
+        ...JSON.parse(String(mockStorageClass.metadata.annotations?.['opendatahub.io/sc-config'])),
+        ...config,
+      }),
+    },
+  },
 });
 
 export const mockStorageClasses: MockStorageClass[] = [

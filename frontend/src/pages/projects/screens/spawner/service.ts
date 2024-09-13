@@ -48,7 +48,6 @@ export const replaceRootVolumesForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   storageData: StorageData,
-  storageClassName?: string,
   dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {

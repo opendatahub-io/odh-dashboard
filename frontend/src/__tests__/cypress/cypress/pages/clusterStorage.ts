@@ -85,6 +85,14 @@ class ClusterStorageModal extends Modal {
   findPVSizePlusButton() {
     return this.findPVSizeField().findByRole('button', { name: 'Plus' });
   }
+
+  findStorageClassSelect() {
+    return this.find().findByTestId('storage-classes-selector');
+  }
+
+  findStorageClassDeprecatedWarning() {
+    return this.find().findByTestId('deprecated-storage-warning');
+  }
 }
 
 class ClusterStorage {

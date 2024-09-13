@@ -26,6 +26,7 @@ import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/noteb
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -48,6 +49,7 @@ import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { useNotebookSizeState } from './useNotebookSizeState';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
+import usePreferredStorageClass from './storage/usePreferredStorageClass';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -73,10 +75,15 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
 
   const defaultStorageClass = useDefaultStorageClass();
+  const preferredStorageClass = usePreferredStorageClass();
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const defaultStorageClassName = isStorageClassesAvailable
+    ? defaultStorageClass?.metadata.name
+    : preferredStorageClass?.metadata.name;
   const storageData = useMergeDefaultPVCName(
     storageDataWithoutDefault,
     k8sNameDescriptionData.data.name,
-    defaultStorageClass?.metadata.name,
+    defaultStorageClassName,
   );
 
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);

@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { CreatingStorageObject, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import PVSizeField from '~/pages/projects/components/PVSizeField';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import SimpleSelect from '~/components/SimpleSelect';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import StorageClassSelect from './StorageClassSelect';
 
 type CreateNewStorageSectionProps = {
   data: CreatingStorageObject;
@@ -13,7 +12,7 @@ type CreateNewStorageSectionProps = {
   currentSize?: string;
   autoFocusName?: boolean;
   menuAppendTo?: HTMLElement;
-  isEdit?: boolean;
+  disableStorageClassSelect?: boolean;
 };
 
 const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
@@ -22,9 +21,9 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   currentSize,
   menuAppendTo,
   autoFocusName,
-  isEdit,
+  disableStorageClassSelect,
 }) => {
-  const [storageClasses, storageClassesLoaded] = useStorageClasses();
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
 
   return (
     <Stack hasGutter>
@@ -38,24 +37,14 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
         />
       </StackItem>
       <StackItem>
-        <FormGroup label="Storage class" fieldId="storage-class" isRequired>
-          <SimpleSelect
-            id="storage-classes-selector"
-            isFullWidth
-            value={data.storageClassName}
-            options={storageClasses.map((sc) => {
-              const { name } = sc.metadata;
-              const desc = getStorageClassConfig(sc)?.description;
-              return { key: name, label: name, description: desc };
-            })}
-            onChange={(selection) => {
-              setData('storageClassName', selection);
-            }}
-            isDisabled={isEdit || !storageClassesLoaded}
-            placeholder={isEdit && !storageClassesLoaded ? data.storageClassName : 'Select one'}
-            popperProps={{ appendTo: menuAppendTo }}
+        {isStorageClassesAvailable && (
+          <StorageClassSelect
+            storageClassName={data.storageClassName}
+            setStorageClassName={(name) => setData('storageClassName', name)}
+            disableStorageClassSelect={disableStorageClassSelect}
+            menuAppendTo={menuAppendTo}
           />
-        </FormGroup>
+        )}
       </StackItem>
       <StackItem>
         <PVSizeField

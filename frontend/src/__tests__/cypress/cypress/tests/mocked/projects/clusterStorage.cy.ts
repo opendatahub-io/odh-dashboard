@@ -1,4 +1,10 @@
-import { mockK8sResourceList, mockNotebookK8sResource, mockProjectK8sResource } from '~/__mocks__';
+import {
+  buildMockStorageClass,
+  mockK8sResourceList,
+  mockNotebookK8sResource,
+  mockProjectK8sResource,
+  mockStorageClasses,
+} from '~/__mocks__';
 import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -17,6 +23,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';
+import { storageClassesTable } from '~/__tests__/cypress/cypress/pages/storageClasses';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -45,6 +52,8 @@ const initInterceptors = ({ isEmpty = false }: HandlersProps) => {
   cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
 };
 
+const [openshiftDefaultStorageClass, otherStorageClass] = mockStorageClasses;
+
 describe('ClusterStorage', () => {
   it('Empty state', () => {
     initInterceptors({ isEmpty: true });
@@ -56,9 +65,20 @@ describe('ClusterStorage', () => {
 
   it('Add cluster storage', () => {
     initInterceptors({ isEmpty: true });
+    storageClassesTable.mockGetStorageClasses([
+      openshiftDefaultStorageClass,
+      buildMockStorageClass(otherStorageClass, { isEnabled: true }),
+    ]);
+
     clusterStorage.visit('test-project');
     clusterStorage.findCreateButton().click();
     addClusterStorageModal.findNameInput().fill('test-storage');
+
+    // default selected
+    addClusterStorageModal.find().findByText('openshift-default-sc').should('exist');
+
+    // select storage class
+    addClusterStorageModal.findStorageClassSelect().findSelectOption('Test SC 1').click();
     addClusterStorageModal.findSubmitButton().should('be.enabled');
     addClusterStorageModal.findDescriptionInput().fill('description');
     addClusterStorageModal.findPVSizeMinusButton().click();
