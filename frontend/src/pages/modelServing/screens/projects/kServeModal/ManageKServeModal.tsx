@@ -165,7 +165,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   // Inference Service Validation
   const storageCanCreate = (): boolean => {
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createDataInferenceService.storage.dataConnection !== '';
+      return (
+        createDataInferenceService.storage.dataConnection !== '' ||
+        (dataConnections.length > 0 && createDataInferenceService.storage.path !== '')
+      );
     }
     return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
