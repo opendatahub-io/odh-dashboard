@@ -8,11 +8,9 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
-  Tooltip,
-  Label,
   Timestamp,
 } from '@patternfly/react-core';
-import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
+import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 import { StorageClassConfig, StorageClassKind } from '~/k8sTypes';
@@ -25,6 +23,8 @@ import { ColumnLabel } from './constants';
 import { isOpenshiftDefaultStorageClass } from './utils';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { StorageClassDefaultRadio } from './StorageClassDefaultRadio';
+import { StorageClassEditModal } from './StorageClassEditModal';
+import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
@@ -37,6 +37,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
   storageClassConfigMap,
   refresh,
 }) => {
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const storageClassConfig = storageClassConfigMap[storageClass.metadata.name];
   const isOpenshiftDefault = isOpenshiftDefaultStorageClass(storageClass);
   const { metadata, provisioner, reclaimPolicy, volumeBindingMode, allowVolumeExpansion } =
@@ -108,7 +109,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
     <Tr>
       <Td dataLabel={ColumnLabel.DisplayName}>
         <TableRowTitleDescription
-          title={storageClassConfig?.displayName}
+          title={<TableText wrapModifier="truncate">{storageClassConfig?.displayName}</TableText>}
           description={storageClassConfig?.description}
         />
       </Td>
@@ -143,11 +144,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
 
           {isOpenshiftDefault && (
             <FlexItem>
-              <Tooltip content="This is the default storage class in OpenShift.">
-                <Label color="green" isCompact data-testid="openshift-sc-default-label">
-                  Default
-                </Label>
-              </Tooltip>
+              <OpenshiftDefaultLabel />
             </FlexItem>
           )}
         </Flex>
@@ -183,12 +180,20 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              // TODO, https://issues.redhat.com/browse/RHOAIENG-1108
               title: 'Edit',
+              onClick: () => setIsEditModalOpen(true),
             },
           ]}
         />
       </Td>
+
+      {isEditModalOpen && (
+        <StorageClassEditModal
+          storageClass={storageClass}
+          onSuccess={refresh}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
     </Tr>
   );
 };
