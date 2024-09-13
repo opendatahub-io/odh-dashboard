@@ -327,7 +327,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                 fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
-                navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
+                navigate(-1);
               }}
             >
               Cancel

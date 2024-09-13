@@ -6,6 +6,7 @@ import useFetchState, {
   FetchStateCallbackPromiseAdHoc,
   NotReadyError,
 } from '~/utilities/useFetchState';
+import { NotebookKind } from '~/k8sTypes';
 import { NotebookDataState, NotebookState } from './types';
 import { getNotebooksStatus, getNotebookStatus } from './service';
 
@@ -26,6 +27,43 @@ const refreshNotebookState = (
       .catch(reject);
   });
 
+export const getNotebooksStates = (
+  notebooks: NotebookKind[],
+  namespace: string,
+): Promise<AdHocUpdate<NotebookState[]>> =>
+  getNotebooksStatus(notebooks).then((state) => {
+    const adhocUpdate: AdHocUpdate<NotebookState[]> = (lazySetState) => {
+      // Save and overwrite everything immediately
+      lazySetState(() =>
+        state.map((currentState) => {
+          // Setup each one to be able to refresh later
+          const refresh = () => {
+            const notebookName = currentState.notebook.metadata.name;
+            return refreshNotebookState(notebookName, namespace).then((newState) => {
+              lazySetState((notebookStates) => {
+                if (newState) {
+                  // Replace just the object that got refreshed
+                  return notebookStates.map((s) =>
+                    s.notebook.metadata.name === notebookName ? { ...newState, refresh } : s,
+                  );
+                }
+
+                // For some reason, we didn't get one back -- remove it from the list
+                return notebookStates.filter((s) => s.notebook.metadata.name === notebookName);
+              });
+            });
+          };
+
+          return {
+            ...currentState,
+            refresh,
+          };
+        }),
+      );
+    };
+    return adhocUpdate;
+  });
+
 const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[]> => {
   const fetchAllNotebooks = React.useCallback<
     FetchStateCallbackPromiseAdHoc<NotebookState[]>
@@ -37,44 +75,7 @@ const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[
     return new Promise((resolve, reject) => {
       getNotebooks(namespace)
         .then((notebooks) => {
-          getNotebooksStatus(notebooks)
-            .then((state) => {
-              const adhocUpdate: AdHocUpdate<NotebookState[]> = (lazySetState) => {
-                // Save and overwrite everything immediately
-                lazySetState(() =>
-                  state.map((currentState) => {
-                    // Setup each one to be able to refresh later
-                    const refresh = () => {
-                      const notebookName = currentState.notebook.metadata.name;
-                      return refreshNotebookState(notebookName, namespace).then((newState) => {
-                        lazySetState((notebookStates) => {
-                          if (newState) {
-                            // Replace just the object that got refreshed
-                            return notebookStates.map((s) =>
-                              s.notebook.metadata.name === notebookName
-                                ? { ...newState, refresh }
-                                : s,
-                            );
-                          }
-
-                          // For some reason, we didn't get one back -- remove it from the list
-                          return notebookStates.filter(
-                            (s) => s.notebook.metadata.name === notebookName,
-                          );
-                        });
-                      });
-                    };
-
-                    return {
-                      ...currentState,
-                      refresh,
-                    };
-                  }),
-                );
-              };
-              resolve(adhocUpdate);
-            })
-            .catch(reject);
+          getNotebooksStates(notebooks, namespace).then((updater) => resolve(updater));
         })
         .catch(reject);
     });

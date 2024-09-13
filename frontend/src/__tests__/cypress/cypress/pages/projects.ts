@@ -37,21 +37,35 @@ class NotebookRow extends TableRow {
   }
 }
 
-class ProjectRow extends TableRow {
-  findDescription() {
-    return this.find().findByTestId('table-row-title-description');
-  }
-
-  findEnableSwitch() {
-    return this.find().pfSwitch('notebook-status-switch');
-  }
-
+class ProjectNotebookRow extends TableRow {
   findNotebookRouteLink() {
     return this.find().findByTestId('notebook-route-link');
   }
 
   findNotebookStatusText() {
     return this.find().findByTestId('notebook-status-text');
+  }
+}
+
+class ProjectRow extends TableRow {
+  findDescription() {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findNotebookColumn() {
+    return this.find().findByTestId('notebook-column-expand');
+  }
+
+  findNotebookTable() {
+    return this.find().parents('tbody').findByTestId('project-notebooks-table');
+  }
+
+  getNotebookRow(notebookName: string) {
+    return new ProjectNotebookRow(() => this.findNotebookLink(notebookName).parents('tr'));
+  }
+
+  findNotebookLink(notebookName: string) {
+    return this.findNotebookTable().findByRole('link', { name: notebookName });
   }
 }
 
