@@ -7,6 +7,7 @@ import {
   Switch,
   Timestamp,
   TimestampTooltipVariant,
+  Truncate,
 } from '@patternfly/react-core';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { relativeTime } from '~/utilities/time';
@@ -81,7 +82,8 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
     <Tr>
       <Td dataLabel={connectionTypeColumns[0].label}>
         <TableRowTitleDescription
-          title={getDisplayNameFromK8sResource(obj)}
+          boldTitle={false}
+          title={<Truncate content={getDisplayNameFromK8sResource(obj)} />}
           description={getDescriptionFromK8sResource(obj)}
           truncateDescriptionLines={2}
         />

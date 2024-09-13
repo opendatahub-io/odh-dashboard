@@ -17,13 +17,18 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
   children: React.ReactNode;
+  wrap?: boolean;
 };
 
-const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, resource }) => (
-  <div>
-    {children}{' '}
+const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
+  children,
+  resource,
+  wrap = true,
+}) => (
+  <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
+    <span>{children}</span>
     {resource.metadata?.name && (
-      <div style={{ display: 'inline-block' }}>
+      <div style={{ display: 'inline-block', marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
         <Popover
           position="right"
           bodyContent={

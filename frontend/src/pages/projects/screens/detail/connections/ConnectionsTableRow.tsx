@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Truncate } from '@patternfly/react-core';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { TableRowTitleDescription } from '~/components/table';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type ConnectionsTableRowProps = {
   obj: Connection;
@@ -30,10 +32,12 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
     <Tr>
       <Td dataLabel="Name">
         <TableRowTitleDescription
-          title={obj.metadata.annotations['openshift.io/display-name'] || obj.metadata.name}
+          title={<Truncate content={getDisplayNameFromK8sResource(obj)} />}
           boldTitle={false}
           resource={obj}
-          description={obj.metadata.annotations['openshift.io/description']}
+          description={getDescriptionFromK8sResource(obj)}
+          truncateDescriptionLines={2}
+          wrapResourceTitle={false}
         />
       </Td>
       <Td dataLabel="Type">{connectionTypeDisplayName}</Td>
