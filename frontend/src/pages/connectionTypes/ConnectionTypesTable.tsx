@@ -62,7 +62,6 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
     <>
       <Table
         isStriped
-        variant="compact"
         style={{ tableLayout: 'fixed' }}
         data={filteredConnectionTypes}
         columns={connectionTypeColumns}

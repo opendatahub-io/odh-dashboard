@@ -10,9 +10,9 @@ import {
 } from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 import type { RowProps } from '~/utilities/useDraggableTableControlled';
-import TruncatedText from '~/components/TruncatedText';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
 import { ConnectionTypeFieldRemoveModal } from '~/pages/connectionTypes/manage/ConnectionTypeFieldRemoveModal';
+import { TableRowTitleDescription } from '~/components/table';
 
 type Props = {
   row: ConnectionTypeField;
@@ -67,15 +67,23 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           }}
         />
         <Td dataLabel={columns[0].label} data-testid="field-name">
-          <div>
-            {row.name}{' '}
-            <Label color="blue" data-testid="section-heading">
-              Section heading
-            </Label>
-            <div className="pf-v5-u-color-200">
-              <TruncatedText content={row.description ?? ''} maxLines={2} />
-            </div>
-          </div>
+          <TableRowTitleDescription
+            boldTitle={false}
+            title={
+              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
+                <FlexItem>
+                  <Truncate content={row.name} />
+                </FlexItem>
+                <FlexItem>
+                  <Label color="blue" data-testid="section-heading">
+                    Section heading
+                  </Label>
+                </FlexItem>
+              </Flex>
+            }
+            description={row.description}
+            truncateDescriptionLines={2}
+          />
         </Td>
         <Td colSpan={4} />
         <Td isActionCell modifier="nowrap">
@@ -123,12 +131,12 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
         }}
       />
       <Td dataLabel={columns[0].label} data-testid="field-name">
-        <div>
-          {row.name}
-          <div className="pf-v5-u-color-200">
-            <TruncatedText content={row.description ?? ''} maxLines={2} />
-          </div>
-        </div>
+        <TableRowTitleDescription
+          boldTitle={false}
+          title={<Truncate content={row.name} />}
+          description={row.description}
+          truncateDescriptionLines={2}
+        />
       </Td>
       <Td dataLabel={columns[1].label} data-testid="field-type">
         {fieldTypeToString(row.type)}
