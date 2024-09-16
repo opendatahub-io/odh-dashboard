@@ -2,7 +2,7 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/K8sNameDescriptionField';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { TableRow } from './components/table';
 
 class ProjectListToolbar extends Contextual<HTMLElement> {
