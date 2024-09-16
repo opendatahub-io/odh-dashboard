@@ -107,37 +107,37 @@ const App: React.FC = () => {
         </Bullseye>
       ) : (
         <AppContext.Provider value={contextValue}>
-          <Page
-            className="odh-dashboard"
-            isManagedSidebar
-            isContentFilled
-            masthead={
-              <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
-            }
-            sidebar={isAllowed ? <NavSidebar /> : undefined}
-            notificationDrawer={
-              <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-            }
-            isNotificationDrawerExpanded={notificationsOpen}
-            mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-            data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-          >
-            <ErrorBoundary>
-              <DevFeatureFlagsBanner
-                dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                {...devFeatureFlagsProps}
-              />
-              <ProjectsContextProvider>
+          <ProjectsContextProvider>
+            <Page
+              className="odh-dashboard"
+              isManagedSidebar
+              isContentFilled
+              masthead={
+                <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+              }
+              sidebar={isAllowed ? <NavSidebar /> : undefined}
+              notificationDrawer={
+                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+              }
+              isNotificationDrawerExpanded={notificationsOpen}
+              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+            >
+              <ErrorBoundary>
+                <DevFeatureFlagsBanner
+                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                  {...devFeatureFlagsProps}
+                />
                 <ModelRegistrySelectorContextProvider>
                   <QuickStarts>
                     <AppRoutes />
                   </QuickStarts>
                 </ModelRegistrySelectorContextProvider>
-              </ProjectsContextProvider>
-              <ToastNotifications />
-              <TelemetrySetup />
-            </ErrorBoundary>
-          </Page>
+                <ToastNotifications />
+                <TelemetrySetup />
+              </ErrorBoundary>
+            </Page>
+          </ProjectsContextProvider>
         </AppContext.Provider>
       )}
     </AreaContextProvider>

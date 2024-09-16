@@ -7,7 +7,7 @@ const useSyncPreferredProject = (newPreferredProject: ProjectKind | null): void 
 
   React.useEffect(() => {
     if (newPreferredProject?.metadata.name !== preferredProject?.metadata.name) {
-      updatePreferredProject(newPreferredProject);
+      updatePreferredProject(newPreferredProject?.metadata.name || null);
     }
   }, [newPreferredProject, preferredProject, updatePreferredProject]);
 };

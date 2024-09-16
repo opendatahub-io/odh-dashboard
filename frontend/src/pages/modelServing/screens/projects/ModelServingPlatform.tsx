@@ -173,7 +173,8 @@ const ModelServingPlatform: React.FC = () => {
       <DetailsSection
         objectType={!emptyModelServer ? ProjectObjectType.deployedModels : undefined}
         id={ProjectSectionID.MODEL_SERVER}
-        title={!emptyModelServer ? ProjectSectionTitles[ProjectSectionID.MODEL_SERVER] : undefined}
+        getRedirectPath={(ns) => `/projects/${ns}/deployedModels`}
+        title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
         actions={
           shouldShowPlatformSelection || platformError || emptyModelServer
             ? undefined
@@ -215,12 +216,17 @@ const ModelServingPlatform: React.FC = () => {
             </Popover>
           ) : null
         }
-        isLoading={!servingRuntimesLoaded && !templatesLoaded}
+        isLoading={!servingRuntimesLoaded || !templatesLoaded}
         isEmpty={shouldShowPlatformSelection}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
           kServeEnabled && modelMeshEnabled ? (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
+            <Flex
+              className="pf-v5-u-mt-md pf-v5-u-pt-md"
+              style={{ borderTop: '1px solid var(--pf-v5-global--BorderColor--100)' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapLg' }}
+            >
               <FlexItem
                 flex={{ default: 'flex_1' }}
                 style={{ borderRight: '1px solid var(--pf-t--global--border--color--default)' }}

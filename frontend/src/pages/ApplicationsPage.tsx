@@ -55,6 +55,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   const renderHeader = () => (
     <PageSection hasBodyWrapper={false}>
       <Stack hasGutter>
+        {headerContent && <StackItem>{headerContent}</StackItem>}
         <StackItem>
           <Flex
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
@@ -72,7 +73,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             {headerAction}
           </Flex>
         </StackItem>
-        {headerContent && <StackItem>{headerContent}</StackItem>}
       </Stack>
     </PageSection>
   );

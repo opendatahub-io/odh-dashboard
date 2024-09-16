@@ -34,6 +34,7 @@ const ConnectionsList: React.FC = () => {
       objectType={ProjectObjectType.connections}
       id={ProjectSectionID.CONNECTIONS}
       title={ProjectSectionTitles[ProjectSectionID.CONNECTIONS]}
+      getRedirectPath={(ns) => `/projects/${ns}/connections`}
       popover={
         <Popover headerContent="About connections" bodyContent={ConnectionsDescription}>
           <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
