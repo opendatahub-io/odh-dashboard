@@ -55,6 +55,7 @@ export const translateDisplayNameForK8sAndReport = (
     .trim()
     .toLowerCase()
     .replace(/^-*/, '') // remove any leading dashes
+    .replace(/-*$/, '') // remove any trailing dashes
     .replace(/\s/g, '-') // spaces to dashes
     .replace(/[^a-z0-9-]/g, '') // remove inverse of good k8s characters
     .replace(/[-]+/g, '-'); // simplify double dashes ('A - B' turns into 'a---b' where 'a-b' is enough)
@@ -66,6 +67,9 @@ export const translateDisplayNameForK8sAndReport = (
       translatedName = translatedName.slice(0, maxLength); // shorten to length
       appliedCriteria.maxLength = true;
     }
+
+    // Trim out extra dashes that come with truncation
+    translatedName = translatedName.replace(/-*$/, '');
   };
 
   keepLength();
@@ -77,9 +81,6 @@ export const translateDisplayNameForK8sAndReport = (
   }
 
   keepLength();
-
-  // Trim out extra dashes
-  translatedName = translatedName.replace(/-*$/, '');
 
   if (name.trim().length > 0 && translatedName.trim().length === 0) {
     // We trimmed it down to nothing, generate a new value
