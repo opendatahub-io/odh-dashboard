@@ -1,8 +1,9 @@
 import { SortableData } from '~/components/table';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import { StorageTableData } from './types';
 
-export const columns: SortableData<PersistentVolumeClaimKind>[] = [
+export const columns: SortableData<StorageTableData>[] = [
   {
     field: 'expand',
     label: '',
@@ -13,18 +14,32 @@ export const columns: SortableData<PersistentVolumeClaimKind>[] = [
     label: 'Name',
     width: 30,
     sortable: (a, b) =>
-      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
+      getDisplayNameFromK8sResource(a.pvc).localeCompare(getDisplayNameFromK8sResource(b.pvc)),
+  },
+  {
+    field: 'storage',
+    label: 'Storage class',
+    width: 30,
+    sortable: (a, b) =>
+      (a.storageClass
+        ? getStorageClassConfig(a.storageClass)?.displayName ?? a.storageClass.metadata.name
+        : a.pvc.spec.storageClassName ?? ''
+      ).localeCompare(
+        b.storageClass
+          ? getStorageClassConfig(b.storageClass)?.displayName ?? b.storageClass.metadata.name
+          : b.pvc.spec.storageClassName ?? '',
+      ),
   },
   {
     field: 'type',
     label: 'Type',
-    width: 25,
+    width: 20,
     sortable: false,
   },
   {
     field: 'connected',
     label: 'Connected workbenches',
-    width: 25,
+    width: 20,
     sortable: false,
   },
   {

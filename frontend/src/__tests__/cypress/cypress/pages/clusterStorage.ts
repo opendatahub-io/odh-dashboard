@@ -15,6 +15,19 @@ class ClusterStorageRow extends TableRow {
     this.find().findByRole('button', { name: 'Details' }).click();
   }
 
+  findDeprecatedLabel() {
+    return this.find().findByTestId('storage-class-deprecated');
+  }
+
+  shouldHaveDeprecatedTooltip() {
+    cy.findByTestId('storage-class-deprecated-tooltip').should('be.visible');
+    return this;
+  }
+
+  findStorageClassColumn() {
+    return this.find().find('[data-label="Storage class"]');
+  }
+
   shouldHaveStorageSize(name: string) {
     this.find().siblings().find('[data-label=Size]').contains(name).should('exist');
     return this;
@@ -116,6 +129,19 @@ class ClusterStorage {
 
   findClusterStorageTableHeaderButton(name: string) {
     return this.findClusterStorageTable().find('thead').findByRole('button', { name });
+  }
+
+  shouldHaveDeprecatedAlertMessage() {
+    return cy
+      .findByTestId('storage-class-deprecated-alert')
+      .should(
+        'contain.text',
+        'Warning alert:Deprecated storage classA storage class has been deprecated by your administrator, but the cluster storage using it is still active. If you want to migrate your data to cluster storage instance using a different storage class, contact your administrator.',
+      );
+  }
+
+  closeDeprecatedAlert() {
+    cy.findByTestId('storage-class-deprecated-alert-close-button').click();
   }
 
   getClusterStorageRow(name: string) {
