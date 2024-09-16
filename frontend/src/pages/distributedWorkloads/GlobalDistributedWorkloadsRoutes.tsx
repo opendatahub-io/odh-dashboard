@@ -18,18 +18,7 @@ const GlobalDistributedWorkloadsRoutes: React.FC = () => {
       {tabs
         .filter((tab) => tab.isAvailable)
         .map((tab) => (
-          <Route
-            key={tab.id}
-            path={`${tab.path}/:namespace?`}
-            element={
-              <GlobalDistributedWorkloads
-                activeTab={tab}
-                getInvalidRedirectPath={(namespace) =>
-                  `/distributedWorkloads/${tab.path}/${namespace}`
-                }
-              />
-            }
-          />
+          <Route key={tab.id} path={`?tab=${tab.path}`} element={<GlobalDistributedWorkloads />} />
         ))}
       <Route path="*" element={<NotFound />} />
     </ProjectsRoutes>

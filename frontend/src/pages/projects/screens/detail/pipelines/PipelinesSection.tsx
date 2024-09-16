@@ -48,6 +48,7 @@ const PipelinesSection: React.FC = () => {
         id={ProjectSectionID.PIPELINES}
         objectType={ProjectObjectType.pipeline}
         title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
+        getRedirectPath={(ns) => `/projects/${ns}/pipelines`}
         data-testid={ProjectSectionID.PIPELINES}
         popover={
           installed ? (

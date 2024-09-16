@@ -1,30 +1,26 @@
 import * as React from 'react';
-import { Navigate, useParams } from 'react-router-dom';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import InvalidProject from '~/concepts/projects/InvalidProject';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { DistributedWorkloadsContextProvider } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { DistributedWorkloadsTabConfig } from '~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
+import { useDistributedWorkloadsTabs } from '~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
 import DistributedWorkloadsNoProjects from '~/pages/distributedWorkloads/global/DistributedWorkloadsNoProjects';
 import GlobalDistributedWorkloadsTabs from '~/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs';
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
+import { useQueryParams } from '~/utilities/useQueryParams';
 
 const title = 'Distributed Workload Metrics';
 const description = 'Monitor the metrics of your active resources.';
 
-type GlobalDistributedWorkloadsProps = {
-  activeTab: DistributedWorkloadsTabConfig;
-  getInvalidRedirectPath: (namespace: string) => string;
-};
-
-const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
-  activeTab,
-  getInvalidRedirectPath,
-}) => {
-  const { namespace } = useParams<{ namespace: string }>();
+const GlobalDistributedWorkloads: React.FC = () => {
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const queryParams = useQueryParams();
+  const tabs = useDistributedWorkloadsTabs();
+  const firstAvailableTab = tabs.find((tab) => tab.isAvailable);
+  const activeTabParam = queryParams.get('tab');
+  const activeTab =
+    (activeTabParam ? tabs.find((t) => t.path === activeTabParam) : undefined) || firstAvailableTab;
 
   if (projects.length === 0) {
     return (
@@ -36,22 +32,10 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
       />
     );
   }
-  if (!namespace) {
-    const redirectProject = preferredProject ?? projects[0];
-    return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
-  }
-  if (namespace && !projects.find(byName(namespace))) {
+
+  if (!preferredProject || !activeTab) {
     // The namespace in the URL is invalid
-    return (
-      <ApplicationsPage
-        {...{ title, description }}
-        loaded
-        empty
-        emptyStatePage={
-          <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
-        }
-      />
-    );
+    return <ApplicationsPage {...{ title, description }} loaded empty />;
   }
 
   // We're all good, we have a namespace matching a known project
@@ -62,13 +46,15 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
       empty={false}
       headerContent={
         <ProjectSelectorNavigator
-          getRedirectPath={(ns: string) => `/distributedWorkloads/${activeTab.path}/${ns}`}
+          getRedirectPath={(ns: string) =>
+            `/projects/${ns}/distributedWorkloads?tab=${activeTab.path}`
+          }
           showTitle
         />
       }
     >
       <MetricsCommonContextProvider initialRefreshInterval={RefreshIntervalTitle.THIRTY_MINUTES}>
-        <DistributedWorkloadsContextProvider namespace={namespace}>
+        <DistributedWorkloadsContextProvider namespace={preferredProject.metadata.name}>
           <GlobalDistributedWorkloadsTabs activeTabId={activeTab.id} />
         </DistributedWorkloadsContextProvider>
       </MetricsCommonContextProvider>

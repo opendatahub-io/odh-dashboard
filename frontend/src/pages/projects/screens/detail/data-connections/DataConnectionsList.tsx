@@ -25,6 +25,7 @@ const DataConnectionsList: React.FC = () => {
       <DetailsSection
         objectType={ProjectObjectType.dataConnection}
         id={ProjectSectionID.DATA_CONNECTIONS}
+        getRedirectPath={(ns) => `/projects/${ns}/dataConnections`}
         title={
           (!isDataConnectionsEmpty && ProjectSectionTitles[ProjectSectionID.DATA_CONNECTIONS]) || ''
         }

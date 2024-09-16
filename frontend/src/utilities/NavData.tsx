@@ -1,12 +1,9 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useUser } from '~/redux/selectors';
-import {
-  artifactsRootPath,
-  executionsRootPath,
-  experimentsRootPath,
-  pipelinesRootPath,
-} from '~/routes';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 
 type NavDataCommon = {
   id: string;
@@ -25,94 +22,150 @@ export type NavDataGroup = NavDataCommon & {
   children: NavDataHref[];
 };
 
-export type NavDataItem = NavDataHref | NavDataGroup;
+export type NavDataSection = NavDataCommon & {
+  section: {
+    id: string;
+    title: string;
+  };
+  children: (NavDataHref | NavDataGroup)[];
+};
+
+export type NavDataItem = NavDataHref | NavDataGroup | NavDataSection;
 
 export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref => 'href' in navData;
-export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
-  'children' in navData;
+export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup => 'group' in navData;
+export const isNavDataSection = (navData: NavDataItem): navData is NavDataSection =>
+  'section' in navData;
 
 const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];
 
-const useApplicationsNav = (): NavDataItem[] => {
-  const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
-
-  return [
-    {
-      id: 'applications',
-      group: { id: 'apps', title: 'Applications' },
-      children: [
-        { id: 'apps-installed', label: 'Enabled', href: isHomeAvailable ? '/enabled' : '/' },
-        { id: 'apps-explore', label: 'Explore', href: '/explore' },
-      ],
-    },
-  ];
-};
+// const useApplicationsNav = (): NavDataItem[] => {
+//   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
+//
+//   return [
+//     {
+//       id: 'applications',
+//       group: { id: 'apps', title: 'Applications' },
+//       children: [
+//         { id: 'apps-installed', label: 'Enabled', href: isHomeAvailable ? '/enabled' : '/' },
+//         { id: 'apps-explore', label: 'Explore', href: '/explore' },
+//       ],
+//     },
+//   ];
+// };
 
 const useHomeNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.HOME, [{ id: 'home', label: 'Home', href: '/' }]);
 
 const useDSProjectsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
-    { id: 'dsg', label: 'Data Science Projects', href: '/projects' },
+    { id: 'dsg', label: 'Projects', href: '/projects' },
   ]);
 
-const useDSPipelinesNav = (): NavDataItem[] => {
+const useAllModelsNav = (): NavDataHref[] => [
+  { id: 'all-models', label: 'All models', href: '/models' },
+];
+
+const useMonitorModelsNav = (): NavDataHref[] => [
+  { id: 'monitor-models', label: 'Monitor', href: '/monitorModels' },
+];
+
+const useModelsNav = (): NavDataGroup[] => [
+  {
+    id: 'models',
+    group: {
+      id: 'models',
+      title: 'Models',
+    },
+    children: [...useAllModelsNav(), ...useMonitorModelsNav()],
+  },
+];
+
+const namespacedRoute = (route: string, namespace?: string) =>
+  namespace ? `/projects/${namespace}/${route}` : `/${route}`;
+
+const useNotebooksNav = (ns?: string): NavDataHref[] => [
+  {
+    id: 'notebooks',
+    label: 'Workbenches',
+    href: namespacedRoute('workbenches', ns),
+  },
+];
+
+const usePipelinesNav = (ns?: string): NavDataHref[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
-  if (!isAvailable) {
+  if (!isAvailable || !isExperimentsAvailable) {
     return [];
   }
 
   return [
-    { id: 'pipelines', label: 'Data Science Pipelines', href: pipelinesRootPath },
-    ...(isExperimentsAvailable
-      ? [
-          {
-            id: 'experiments',
-            group: { id: 'experiments', title: 'Experiments' },
-            children: [
-              {
-                id: 'experiments-and-runs',
-                label: 'Experiments and runs',
-                href: experimentsRootPath,
-              },
-              {
-                id: 'executions',
-                label: 'Executions',
-                href: executionsRootPath,
-              },
-              {
-                id: 'artifacts',
-                label: 'Artifacts',
-                href: artifactsRootPath,
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: 'experiments-and-runs',
+      label: 'Experiments',
+      href: namespacedRoute('experiments', ns),
+    },
+    {
+      id: 'executions',
+      label: 'Executions',
+      href: namespacedRoute('executions', ns),
+    },
+    {
+      id: 'artifacts',
+      label: 'Artifacts',
+      href: namespacedRoute('artifacts', ns),
+    },
+    {
+      id: 'training',
+      label: 'Training',
+      href: namespacedRoute('training', ns),
+    },
+    {
+      id: 'tuning',
+      label: 'Tuning',
+      href: namespacedRoute('tuning', ns),
+    },
   ];
 };
 
-const useDistributedWorkloadsNav = (): NavDataItem[] =>
+const useDistributedWorkloadsNav = (ns?: string): NavDataHref[] =>
   useAreaCheck(SupportedArea.DISTRIBUTED_WORKLOADS, [
-    { id: 'workloadMetrics', label: 'Distributed Workload Metrics', href: '/distributedWorkloads' },
+    {
+      id: 'workloadMetrics',
+      label: 'Distributed workload metrics',
+      href: namespacedRoute('distributedWorkloads', ns),
+    },
   ]);
 
-const useModelServingNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_SERVING, [
-    { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
-  ]);
+// const useModelServingNav = (): NavDataHref[] =>
+//   useAreaCheck(SupportedArea.MODEL_SERVING, [
+//     { id: 'modelServing', label: 'Deployed models', href: '/modelServing' },
+//   ]);
 
-const useModelRegistrySectionNav = (): NavDataItem[] =>
+const useModelRegistryNav = (ns?: string): NavDataHref[] =>
   useAreaCheck(SupportedArea.MODEL_REGISTRY, [
-    { id: 'modelRegistry', label: 'Model Registry', href: '/modelRegistry' },
+    { id: 'modelRegistry', label: 'Model Registry', href: namespacedRoute('modelRegistry', ns) },
   ]);
 
-const useResourcesNav = (): NavDataHref[] => [
-  { id: 'resources', label: 'Resources', href: '/resources' },
-];
+const useDeployedModelsNav = (ns?: string): NavDataHref[] => {
+  const modelServingEnabled = useModelServingEnabled();
+  if (!modelServingEnabled) {
+    return [];
+  }
+  return [
+    {
+      id: 'deployed-models',
+      label: 'Deployed models',
+      href: namespacedRoute('deployedModels', ns),
+    },
+  ];
+};
+
+// const useResourcesNav = (): NavDataHref[] => [
+//   { id: 'resources', label: 'Resources', href: '/resources' },
+// ];
 
 const useCustomNotebooksNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.BYON, [
@@ -159,15 +212,6 @@ const useStorageClassesNav = (): NavDataHref[] =>
     },
   ]);
 
-const useModelRegisterySettingsNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
-    {
-      id: 'settings-model-registry',
-      label: 'Model registry settings',
-      href: '/modelRegistrySettings',
-    },
-  ]);
-
 const useUserManagementNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
     {
@@ -186,15 +230,142 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useMonitorResourcesNav = (ns?: string): NavDataHref[] => [
+  {
+    id: 'monitor-resources',
+    label: 'Resource monitoring',
+    href: namespacedRoute('monitorResources', ns),
+  },
+];
+
+const useConnectionsNav = (ns?: string): NavDataHref[] => {
+  const connectionTypesEnabled = useConnectionTypesEnabled();
+  if (!connectionTypesEnabled) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'connections',
+      label: 'Connections',
+      href: namespacedRoute('connections', ns),
+    },
+  ];
+};
+
+const useClusterStorageNav = (ns?: string): NavDataHref[] => [
+  {
+    id: 'cluster-storage',
+    label: 'Cluster storage',
+    href: namespacedRoute('clusterStorage', ns),
+  },
+];
+
+const useProjectPermissionsNav = (ns?: string): NavDataHref[] => [
+  {
+    id: 'project-permissions',
+    label: 'Permissions',
+    href: namespacedRoute('projectPermissions', ns),
+  },
+];
+
+const useDevelopAndTrainNav = (namespace?: string): NavDataGroup[] => [
+  {
+    id: 'develop-and-train',
+    group: {
+      id: 'develop-and-train',
+      title: 'Develop & Train',
+    },
+    children: [...useNotebooksNav(namespace), ...usePipelinesNav(namespace)],
+  },
+];
+
+const useAutomateNav = (ns?: string): NavDataGroup[] => {
+  const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+
+  if (!isAvailable) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'automate',
+      group: {
+        id: 'automate',
+        title: 'Automate',
+      },
+      children: [{ id: 'pipelines', label: 'Pipelines', href: namespacedRoute('pipelines', ns) }],
+    },
+  ];
+};
+
+const useDeployModelsGroupNav = (ns?: string): NavDataGroup[] => {
+  const children = [...useModelRegistryNav(ns), ...useDeployedModelsNav(ns)];
+  if (!children.length) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'deploy-models-group',
+      group: {
+        id: 'deploy-models-group',
+        title: 'Deploy models',
+      },
+      children,
+    },
+  ];
+};
+
+const useConfigureResourcesNav = (ns?: string): NavDataGroup[] => {
+  const children = [
+    ...useConnectionsNav(ns),
+    ...useClusterStorageNav(ns),
+    ...useDistributedWorkloadsNav(ns),
+    ...useMonitorResourcesNav(ns),
+    ...useProjectPermissionsNav(ns),
+  ];
+
+  return [
+    {
+      id: 'configure-resources',
+      group: {
+        id: 'configure-resources',
+        title: 'Configure resources',
+      },
+      children,
+    },
+  ];
+};
+
+const useProjectScopedNav = (): NavDataSection[] => {
+  const { preferredProject } = React.useContext(ProjectsContext);
+  const namespace = preferredProject?.metadata.name;
+  const children = [
+    ...useDevelopAndTrainNav(namespace),
+    ...useAutomateNav(namespace),
+    ...useDeployModelsGroupNav(namespace),
+    ...useConfigureResourcesNav(namespace),
+  ];
+  return [
+    {
+      id: 'project-scoped',
+      section: {
+        id: 'project-scoped',
+        title: 'Project scoped',
+      },
+      children,
+    },
+  ];
+};
+
 const useSettingsNav = (): NavDataGroup[] => {
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
-    ...useConnectionTypesNav(),
     ...useStorageClassesNav(),
-    ...useModelRegisterySettingsNav(),
     ...useUserManagementNav(),
   ];
 
@@ -212,14 +383,42 @@ const useSettingsNav = (): NavDataGroup[] => {
   ];
 };
 
+const useFeaturesNav = (): NavDataHref[] => [
+  {
+    id: 'features',
+    label: 'Features',
+    href: '/features',
+  },
+];
+
+const useLearnNav = (): NavDataHref[] => [
+  {
+    id: 'learn',
+    label: 'Learn',
+    href: '/resources',
+  },
+];
+
+const useUniversalNav = (): NavDataSection[] => [
+  {
+    id: 'universal',
+    section: {
+      id: 'universal',
+      title: 'Universal',
+    },
+    children: [
+      ...useConnectionTypesNav(),
+      ...useFeaturesNav(),
+      ...useLearnNav(),
+      ...useSettingsNav(),
+    ],
+  },
+];
+
 export const useBuildNavData = (): NavDataItem[] => [
   ...useHomeNav(),
-  ...useApplicationsNav(),
   ...useDSProjectsNav(),
-  ...useDSPipelinesNav(),
-  ...useDistributedWorkloadsNav(),
-  ...useModelRegistrySectionNav(),
-  ...useModelServingNav(),
-  ...useResourcesNav(),
-  ...useSettingsNav(),
+  ...useModelsNav(),
+  ...useProjectScopedNav(),
+  ...useUniversalNav(),
 ];

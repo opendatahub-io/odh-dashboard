@@ -35,6 +35,7 @@ const NotebookList: React.FC = () => {
       objectType={ProjectObjectType.notebook}
       id={ProjectSectionID.WORKBENCHES}
       title={(!isNotebooksEmpty && ProjectSectionTitles[ProjectSectionID.WORKBENCHES]) || ''}
+      getRedirectPath={(ns) => `/projects/${ns}/workbenches`}
       popover={
         !isNotebooksEmpty && (
           <Popover
