@@ -181,7 +181,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         }
 
         const { volumes, volumeMounts } = pvcDetails;
-        const newStartNotebookData = {
+        const newStartNotebookData: StartNotebookData = {
           ...startNotebookData,
           volumes,
           volumeMounts,
@@ -258,7 +258,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcDetails;
-    const newStartData = {
+    const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,

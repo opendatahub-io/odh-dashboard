@@ -2,6 +2,7 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { TableRow } from './components/table';
 
 class ProjectListToolbar extends Contextual<HTMLElement> {
@@ -129,20 +130,10 @@ class ProjectListPage {
 }
 
 class CreateEditProjectModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('manage-project-modal');
+
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Create'} project`);
-  }
-
-  findNameInput() {
-    return this.find().findByTestId('manage-project-modal-name');
-  }
-
-  findResourceNameInput() {
-    return this.find().findByTestId('resource-manage-project-modal-name');
-  }
-
-  findDescriptionInput() {
-    return this.find().findByTestId('manage-project-modal-description');
   }
 
   findSubmitButton() {

@@ -3,54 +3,34 @@ import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-
 import { createProject, updateProject } from '~/api';
 import { useUser } from '~/redux/selectors';
 import { ProjectKind } from '~/k8sTypes';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-  isValidK8sName,
-} from '~/concepts/k8s/utils';
-import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  isK8sNameDescriptionDataValid,
+  LimitNameResourceType,
+} from '~/concepts/k8s/K8sNameDescriptionField/utils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
-  open: boolean;
   onClose: (newProjectName?: string) => void;
 };
 
-const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
-  editProjectData,
-  onClose,
-  open,
-}) => {
+const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData, onClose }) => {
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
-    name: '',
-    k8sName: undefined,
-    description: '',
+  const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
+    initialData: editProjectData,
+    limitNameResourceType: LimitNameResourceType.PROJECT,
   });
   const { username } = useUser();
 
-  const canSubmit =
-    !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
-
-  const editNameValue = editProjectData ? getDisplayNameFromK8sResource(editProjectData) : '';
-  const editDescriptionValue = editProjectData
-    ? getDescriptionFromK8sResource(editProjectData)
-    : '';
-  const editResourceNameValue = editProjectData ? editProjectData.metadata.name : undefined;
-  React.useEffect(() => {
-    setNameDesc({
-      name: editNameValue,
-      k8sName: editResourceNameValue,
-      description: editDescriptionValue,
-    });
-  }, [editDescriptionValue, editNameValue, editResourceNameValue]);
+  const canSubmit = !fetching && isK8sNameDescriptionDataValid(k8sNameDescriptionData.data);
 
   const onBeforeClose = (newProjectName?: string) => {
     onClose(newProjectName);
@@ -61,9 +41,6 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         projectName: newProjectName,
       });
     }
-    setFetching(false);
-    setError(undefined);
-    setNameDesc({ name: '', k8sName: undefined, description: '' });
   };
   const handleError = (e: Error) => {
     fireFormTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
@@ -78,7 +55,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
 
   const submit = () => {
     setFetching(true);
-    const { name, description, k8sName } = nameDesc;
+    const {
+      name,
+      description,
+      k8sName: { value: k8sName },
+    } = k8sNameDescriptionData.data;
     if (editProjectData) {
       updateProject(editProjectData, name, description)
         .then(() => onBeforeClose())
@@ -94,7 +75,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     <Modal
       title={editProjectData ? 'Edit project' : 'Create project'}
       variant="medium"
-      isOpen={open}
+      isOpen
       onClose={() => onBeforeClose()}
       actions={[
         <Button
@@ -128,14 +109,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
               submit();
             }}
           >
-            <NameDescriptionField
-              nameFieldId="manage-project-modal-name"
-              descriptionFieldId="manage-project-modal-description"
-              data={nameDesc}
-              setData={setNameDesc}
+            <K8sNameDescriptionField
               autoFocusName
-              showK8sName
-              disableK8sName={!!editProjectData}
+              dataTestId="manage-project-modal"
+              {...k8sNameDescriptionData}
             />
           </Form>
         </StackItem>

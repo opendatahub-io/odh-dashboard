@@ -13,9 +13,7 @@ import {
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
 import GenericSidebar from '~/components/GenericSidebar';
-import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { NameDescType } from '~/pages/projects/types';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
@@ -26,8 +24,12 @@ import AcceleratorProfileSelectField, {
 } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -54,10 +56,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const { currentProject, dataConnections } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
 
-  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
-    name: '',
-    k8sName: undefined,
-    description: '',
+  const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
+    initialData: existingNotebook,
+    limitNameResourceType: LimitNameResourceType.WORKBENCH,
+    safePrefix: 'wb-',
   });
   const [selectedImage, setSelectedImage] = React.useState<ImageStreamAndVersion>({
     imageStream: undefined,
@@ -68,7 +70,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     string[] | undefined
   >();
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
-  const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
+  const storageData = useMergeDefaultPVCName(
+    storageDataWithoutDefault,
+    k8sNameDescriptionData.data.name,
+  );
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
@@ -83,16 +88,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     });
 
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
-
-  React.useEffect(() => {
-    if (existingNotebook) {
-      setNameDesc({
-        name: getDisplayNameFromK8sResource(existingNotebook),
-        k8sName: existingNotebook.metadata.name,
-        description: getDescriptionFromK8sResource(existingNotebook),
-      });
-    }
-  }, [existingNotebook, setStorageData]);
 
   const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
   React.useEffect(() => {
@@ -157,11 +152,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.NAME_DESCRIPTION}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NAME_DESCRIPTION]}
             >
-              <NameDescriptionField
-                nameFieldId="workbench-name"
-                descriptionFieldId="workbench-description"
-                data={nameDesc}
-                setData={setNameDesc}
+              <K8sNameDescriptionField
+                dataTestId="workbench"
+                {...k8sNameDescriptionData}
                 autoFocusName
               />
             </FormSection>
@@ -246,8 +239,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               {(canEnablePipelines) => (
                 <SpawnerFooter
                   startNotebookData={{
-                    notebookName: nameDesc.name,
-                    description: nameDesc.description,
+                    notebookData: k8sNameDescriptionData.data,
                     projectName: currentProject.metadata.name,
                     image: selectedImage,
                     notebookSize: selectedSize,

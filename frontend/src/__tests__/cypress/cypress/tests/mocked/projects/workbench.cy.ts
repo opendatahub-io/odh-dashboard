@@ -210,8 +210,8 @@ describe('Workbench page', () => {
     workbenchPage.findCreateButton().click();
     createSpawnerPage.findSubmitButton().should('be.disabled');
     verifyRelativeURL('/projects/test-project/spawner');
-    createSpawnerPage.findNameInput().fill('test-project');
-    createSpawnerPage.findDescriptionInput().fill('test-description');
+    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-project');
+    createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
@@ -353,8 +353,8 @@ describe('Workbench page', () => {
     workbenchPage.findCreateButton().click();
     createSpawnerPage.findSubmitButton().should('be.disabled');
     verifyRelativeURL('/projects/test-project/spawner');
-    createSpawnerPage.findNameInput().fill('1234');
-    createSpawnerPage.findDescriptionInput().fill('test-description');
+    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('1234');
+    createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
@@ -547,12 +547,12 @@ describe('Workbench page', () => {
       mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
     );
     editSpawnerPage.visit('test-notebook');
-    editSpawnerPage.findNameInput().should('have.value', 'Test Notebook');
+    editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
     editSpawnerPage.shouldHaveContainerSizeInput('Small');
     editSpawnerPage.shouldHavePersistentStorage('Test Storage');
     editSpawnerPage.findSubmitButton().should('be.enabled');
-    editSpawnerPage.findNameInput().fill('Updated Notebook');
+    editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
     editSpawnerPage.findSubmitButton().click();

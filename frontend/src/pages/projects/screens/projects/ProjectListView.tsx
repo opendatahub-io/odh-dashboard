@@ -92,25 +92,26 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
           />
         }
       />
-      <ManageProjectModal
-        open={!!editData}
-        onClose={(newProjectName) => {
-          if (newProjectName) {
-            navigate(`/projects/${newProjectName}`);
-            return;
-          }
+      {!!editData && (
+        <ManageProjectModal
+          onClose={(newProjectName) => {
+            if (newProjectName) {
+              navigate(`/projects/${newProjectName}`);
+              return;
+            }
 
-          const refreshId = editData?.metadata.uid;
-          if (refreshId) {
-            setRefreshIds((otherIds) => [...otherIds, refreshId]);
-          }
+            const refreshId = editData.metadata.uid;
+            if (refreshId) {
+              setRefreshIds((otherIds) => [...otherIds, refreshId]);
+            }
 
-          setEditData(undefined);
+            setEditData(undefined);
 
-          setRefreshIds((ids) => ids.filter((id) => id !== refreshId));
-        }}
-        editProjectData={editData}
-      />
+            setRefreshIds((ids) => ids.filter((id) => id !== refreshId));
+          }}
+          editProjectData={editData}
+        />
+      )}
       <DeleteProjectModal
         deleteData={deleteData}
         onClose={() => {

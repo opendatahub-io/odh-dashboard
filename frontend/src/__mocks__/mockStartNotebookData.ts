@@ -1,5 +1,6 @@
 import { ImageStreamKind } from '~/k8sTypes';
 import { StartNotebookData } from '~/pages/projects/types';
+import { mockK8sNameDescriptionFieldData } from '~/__mocks__/mockK8sNameDescriptionFieldData';
 
 type MockResourceConfigType = {
   volumeName?: string;
@@ -8,8 +9,7 @@ export const mockStartNotebookData = ({
   volumeName = 'test-volume',
 }: MockResourceConfigType): StartNotebookData => ({
   projectName: 'test-project',
-  notebookName: 'test-notebook',
-  description: '',
+  notebookData: mockK8sNameDescriptionFieldData({ name: 'test-notebook', description: '' }),
   image: {
     imageStream: {
       metadata: {

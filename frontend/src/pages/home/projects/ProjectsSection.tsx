@@ -132,9 +132,8 @@ const ProjectsSection: React.FC = () => {
           </Flex>
         </StackItem>
       </Stack>
-      {createProjectOpen ? (
+      {createProjectOpen && (
         <ManageProjectModal
-          open
           onClose={(newProjectName) => {
             if (newProjectName) {
               navigate(`/projects/${newProjectName}`);
@@ -143,7 +142,7 @@ const ProjectsSection: React.FC = () => {
             setCreateProjectOpen(false);
           }}
         />
-      ) : null}
+      )}
     </PageSection>
   );
 };
