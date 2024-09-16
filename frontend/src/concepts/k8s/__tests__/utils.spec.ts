@@ -46,6 +46,7 @@ describe('translateDisplayNameForK8s', () => {
       'ymbols-capitals-and-spaces-these-are-invalid',
     );
     expect(translateDisplayNameForK8s('1234', { safeK8sPrefix: 'wb-' })).toBe('wb-1234');
+    expect(translateDisplayNameForK8s('-1234', { safeK8sPrefix: 'wb-' })).toBe('wb-1234');
     expect(translateDisplayNameForK8s('-validcharacters')).toBe(`validcharacters`);
   });
 });
