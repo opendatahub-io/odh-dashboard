@@ -20,9 +20,16 @@ export const getCreatorFromK8sResource = (resource: K8sDSGResource): string =>
     : resource.metadata.annotations?.['opendatahub.io/username'] || 'unknown';
 
 type AdditionalCriteriaForTranslation = {
-  /** If pure digits, prevent it with this safe string */
+  /**
+   * If pure digits, prevent it with this safe string.
+   * Also used when we translate to nothing, uses prefix & generated value.
+   * Note: Do not exceed maxLength otherwise it will replace content with it
+   */
   safeK8sPrefix?: string;
-  /** Cap the characters allowed */
+  /**
+   * Cap the characters allowed.
+   * Note: This value can be problematic at very short sizes (< 3)
+   */
   maxLength?: number;
 };
 type AdditionalCriteriaApplied = Record<
@@ -52,17 +59,24 @@ export const translateDisplayNameForK8sAndReport = (
     .replace(/[^a-z0-9-]/g, '') // remove inverse of good k8s characters
     .replace(/[-]+/g, '-'); // simplify double dashes ('A - B' turns into 'a---b' where 'a-b' is enough)
 
+  /** Allows constant length checks -- modifies translatedName & appliedCriteria */
+  const keepLength = () => {
+    if (maxLength && translatedName.length > maxLength) {
+      // Avoid too long
+      translatedName = translatedName.slice(0, maxLength); // shorten to length
+      appliedCriteria.maxLength = true;
+    }
+  };
+
+  keepLength();
+
   if (safeK8sPrefix && /^\d+$/.test(translatedName)) {
     // Avoid pure digit names
     translatedName = `${safeK8sPrefix}${translatedName}`;
     appliedCriteria.safeK8sPrefix = true;
   }
 
-  if (maxLength && translatedName.length > maxLength) {
-    // Avoid too long
-    translatedName = translatedName.slice(0, maxLength); // shorten to length
-    appliedCriteria.maxLength = true;
-  }
+  keepLength();
 
   // Trim out extra dashes
   translatedName = translatedName.replace(/-*$/, '');
@@ -75,6 +89,8 @@ export const translateDisplayNameForK8sAndReport = (
       appliedCriteria.safeK8sPrefix = true;
     }
   }
+
+  keepLength();
 
   return [translatedName, appliedCriteria];
 };
