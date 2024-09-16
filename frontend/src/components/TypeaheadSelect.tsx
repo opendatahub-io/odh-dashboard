@@ -69,7 +69,7 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
-const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
+const defaultSelectOptionMessage = (newValue: string) => `Select "${newValue}"`;
 
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
@@ -88,7 +88,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   noOptionsFoundMessage = defaultNoOptionsFoundMessage,
   isCreatable = false,
   isCreateOptionOnTop = false,
-  createOptionMessage = defaultCreateOptionMessage,
+  createOptionMessage = defaultSelectOptionMessage,
   isDisabled,
   toggleWidth,
   toggleProps,
@@ -212,12 +212,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const onInputClick = () => {
     if (!isOpen) {
       openMenu();
-      setTimeout(() => {
-        textInputRef.current?.focus();
-      }, 100);
-    } else if (isFiltering) {
-      closeMenu();
     }
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
   };
 
   const selectOption = (
@@ -248,12 +246,17 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, value: string) => {
-    setFilterValue(value || '');
+    setFilterValue(value);
     setIsFiltering(true);
     if (onInputChange) {
       onInputChange(value);
     }
-
+    if (selected && value !== selected.content) {
+      // Clear the selection when the input value changes
+      if (onSelect) {
+        onSelect(undefined, '');
+      }
+    }
     resetActiveAndFocusedItem();
   };
 
@@ -371,7 +374,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     >
       <TextInputGroup isPlain>
         <TextInputGroupMain
-          value={isFiltering ? filterValue : selected?.content ?? ''}
+          value={isFiltering ? filterValue : (selected?.content ?? '')}
           onClick={onInputClick}
           onChange={onTextInputChange}
           onKeyDown={onInputKeyDown}
