@@ -94,7 +94,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         popperProps={{ appendTo: menuAppendTo }}
       />
       <FormHelperText>
-        {selectedStorageClassConfig?.isEnabled === false ? (
+        {selectedStorageClassConfig && !selectedStorageClassConfig.isEnabled ? (
           <HelperText>
             <HelperTextItem
               data-testid="deprecated-storage-warning"
