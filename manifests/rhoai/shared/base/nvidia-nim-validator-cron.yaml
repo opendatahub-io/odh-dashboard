@@ -33,6 +33,105 @@ spec:
                 RESULT_CONFIGMAP_NAME='nvidia-nim-validation-result'
                 DATA_CONFIGMAP_NAME='nvidia-nim-images-data'
                 IMAGE_PULL_SECRET_NAME='nvidia-nim-image-pull'
+                SERVING_RUNTIME_TEMPLATE_NAME='nvidia-nim-serving-template'
+                SERVING_RUNTIME_TEMPLATE_YAML='
+                  {
+                    "apiVersion": "template.openshift.io/v1",
+                    "kind": "Template",
+                    "metadata": {
+                      "annotations": {
+                        "opendatahub.io/apiProtocol": "REST",
+                        "opendatahub.io/modelServingSupport": "[\"single\"]"
+                      },
+                      "name": "nvidia-nim-serving-template"
+                    },
+                    "objects": [
+                      {
+                        "apiVersion": "serving.kserve.io/v1alpha1",
+                        "kind": "ServingRuntime",
+                        "labels": {
+                          "opendatahub.io/dashboard": "true"
+                        },
+                        "metadata": {
+                          "annotations": {
+                            "opendatahub.io/recommended-accelerators": "[\"nvidia.com/gpu\"]",
+                            "openshift.io/display-name": "NVIDIA NIM"
+                          },
+                          "name": "nvidia-nim-runtime"
+                        },
+                        "spec": {
+                          "containers": [
+                            {
+                              "env": [
+                                {
+                                  "name": "NIM_CACHE_PATH",
+                                  "value": "/mnt/models/cache"
+                                },
+                                {
+                                  "name": "NGC_API_KEY",
+                                  "valueFrom": {
+                                    "secretKeyRef": {
+                                      "key": "NGC_API_KEY",
+                                      "name": "nvidia-nim-secrets"
+                                    }
+                                  }
+                                }
+                              ],
+                              "image": null,
+                              "name": "kserve-container",
+                              "ports": [
+                                {
+                                  "containerPort": 8000,
+                                  "protocol": "TCP"
+                                }
+                              ],
+                              "resources": {
+                                "limits": {
+                                  "cpu": "2",
+                                  "memory": "8Gi",
+                                  "nvidia.com/gpu": 2
+                                },
+                                "requests": {
+                                  "cpu": "1",
+                                  "memory": "4Gi",
+                                  "nvidia.com/gpu": 2
+                                }
+                              },
+                              "volumeMounts": [
+                                {
+                                  "mountPath": "/dev/shm",
+                                  "name": "shm"
+                                },
+                                {
+                                  "mountPath": "/mnt/models/cache",
+                                  "name": "nim-pvc"
+                                }
+                              ]
+                            }
+                          ],
+                          "imagePullSecrets": [
+                            {
+                              "name": "ngc-secret"
+                            }
+                          ],
+                          "multiModel": false,
+                          "protocolVersions": [
+                            "grpc-v2",
+                            "v2"
+                          ],
+                          "supportedModelFormats": [],
+                          "volumes": [
+                            {
+                              "name": "nim-pvc",
+                              "persistentVolumeClaim": {
+                                "claimName": "nim-pvc"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }'
 
                 function verify_result_configmap_exists() {
                   if ! oc get configmap "${RESULT_CONFIGMAP_NAME}" &>/dev/null; then
@@ -89,12 +188,36 @@ spec:
                   oc delete configmap "${DATA_CONFIGMAP_NAME}" --ignore-not-found=true
                 }
 
+                function create_serving_runtime_template() {
+                  if ! oc get template "${SERVING_RUNTIME_TEMPLATE_NAME}" &>/dev/null; then
+                    echo "Template for NIM ServingRuntime doesn't exist, creating"
+
+                    echo ${SERVING_RUNTIME_TEMPLATE_YAML} | oc create -f -
+                  fi
+                }
+
+                function delete_serving_runtime_template() {
+                  echo "Deleting Template for ServingRuntime"
+
+                  oc delete template "${SERVING_RUNTIME_TEMPLATE_NAME}" --ignore-not-found=true
+                }
+
+                function check_kserve() {
+                  dsc=$(oc get -o=json datasciencecluster)
+
+                  if [ ! -z "$dsc" ]; then
+                    enabled=$(jq -n --argjson data "$dsc" 'first($data.items[] | .status | select(.phase == "Ready") | .installedComponents | .kserve == true)')
+                    echo $enabled
+                  fi
+                }
+
                 function success() {
                   echo "Validation succeeded, enabling NIM"
 
                   create_image_pull_secret
                   verify_image_data_configmap
                   write_image_data_configmap "$1"
+                  create_serving_runtime_template
                   verify_result_configmap_exists
                   write_result_configmap_value true
                   write_last_valid_time
@@ -105,6 +228,7 @@ spec:
 
                   delete_image_pull_secret
                   delete_image_data_configmap
+                  delete_serving_runtime_template
                   verify_result_configmap_exists
                   write_result_configmap_value false
                 }
@@ -241,6 +365,17 @@ spec:
                 echo "Install jq"
 
                 dnf install -y jq
+
+                echo "Check KServe readiness"
+
+                kserve_enabled=$(check_kserve)
+
+                if [ "${kserve_enabled}" != "true" ]; then
+                  echo "KServe is not enabled"
+
+                  failure
+                  exit 0
+                fi
 
                 echo "Get NIM images"
 
