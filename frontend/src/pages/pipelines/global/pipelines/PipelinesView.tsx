@@ -17,7 +17,7 @@ const PipelinesView: React.FC = () => {
     [{ items: pipelines, totalSize }, loaded, loadError, refresh],
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable();
-  const filterToolbarProps = usePipelineFilter(tableProps.setFilter);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(tableProps.setFilter);
   const pagingProps = getTablePagingProps(tableProps);
   const sortProps = getTableSortProps(tableProps);
 
@@ -48,10 +48,9 @@ const PipelinesView: React.FC = () => {
       pipelines={pipelines}
       enablePagination="compact"
       refreshPipelines={refresh}
+      onClearFilters={onClearFilters}
       toolbarContent={<GlobalPipelinesTableToolbar {...filterToolbarProps} />}
-      emptyTableView={
-        <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
-      }
+      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
     />
   );
 };

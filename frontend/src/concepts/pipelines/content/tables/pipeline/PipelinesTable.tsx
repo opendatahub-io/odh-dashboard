@@ -22,7 +22,7 @@ type PipelinesTableProps = {
   setSortDirection: (dir: 'asc' | 'desc') => void;
 } & Pick<
   React.ComponentProps<typeof Table>,
-  'toolbarContent' | 'emptyTableView' | 'enablePagination' | 'variant'
+  'toolbarContent' | 'emptyTableView' | 'enablePagination' | 'variant' | 'onClearFilters'
 >;
 
 const PipelinesTable: React.FC<PipelinesTableProps> = ({
@@ -38,6 +38,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   emptyTableView,
   toolbarContent,
   variant,
+  onClearFilters,
   ...sortProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
@@ -56,6 +57,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         {...checkboxTableProps}
         enablePagination={enablePagination}
         emptyTableView={emptyTableView}
+        onClearFilters={onClearFilters}
         toolbarContent={toolbarContent}
         variant={variant}
         loading={loading}

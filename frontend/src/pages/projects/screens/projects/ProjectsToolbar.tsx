@@ -23,14 +23,12 @@ type ProjectsToolbarProps = {
   allowCreate: boolean;
   filterData: ProjectsFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
-  onClearFilters: () => void;
 };
 
 const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   allowCreate,
   filterData,
   onFilterUpdate,
-  onClearFilters,
 }) => {
   const navigate = useNavigate();
 
@@ -57,7 +55,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
         ),
       }}
       filterData={filterData}
-      onClearFilters={onClearFilters}
       onFilterUpdate={onFilterUpdate}
     >
       <ToolbarGroup>

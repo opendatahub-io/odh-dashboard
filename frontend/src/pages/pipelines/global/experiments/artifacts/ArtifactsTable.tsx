@@ -136,12 +136,11 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
           ),
         }}
         filterData={filterData}
-        onClearFilters={onClearFilters}
         onFilterUpdate={onFilterUpdate}
         data-testid="artifacts-table-toolbar"
       />
     ),
-    [filterData, onClearFilters, onFilterUpdate],
+    [filterData, onFilterUpdate],
   );
 
   const rowRenderer = React.useCallback(
@@ -183,6 +182,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
       }}
       onPerPageSelect={(_, newSize) => setMaxResultSize(newSize)}
       toggleTemplate={() => <>{maxResultSize} per page </>}
+      onClearFilters={onClearFilters}
       toolbarContent={toolbarContent}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
       rowRenderer={rowRenderer}

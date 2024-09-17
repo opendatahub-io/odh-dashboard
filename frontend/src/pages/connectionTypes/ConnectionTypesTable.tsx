@@ -75,12 +75,9 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
             handleDelete={(connection) => setDeleteConnectionType(connection)}
           />
         )}
+        onClearFilters={onClearFilters}
         toolbarContent={
-          <ConnectionTypesTableToolbar
-            filterData={filterData}
-            setFilterData={setFilterData}
-            onClearFilters={onClearFilters}
-          />
+          <ConnectionTypesTableToolbar filterData={filterData} setFilterData={setFilterData} />
         }
         disableItemCount
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

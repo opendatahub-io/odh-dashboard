@@ -44,7 +44,7 @@ describe('Manage runs', () => {
   });
 
   it('has param experiment filter by default', () => {
-    cy.findByTestId('experiment-filter-chip').should('have.text', 'Experiment: Default');
+    cy.findByTestId('experiment-filter-chip').should('have.text', 'Default');
   });
 
   it('has param run IDs checked by default', () => {

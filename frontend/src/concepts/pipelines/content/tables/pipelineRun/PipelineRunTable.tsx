@@ -75,7 +75,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   const navigate = useNavigate();
   const { experimentId, pipelineVersionId, pipelineId } = useParams();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
-  const filterToolbarProps = usePipelineFilter(setFilter);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -234,9 +234,8 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         data={runs}
         columns={getColumns()}
         enablePagination="compact"
-        emptyTableView={
-          <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
-        }
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+        onClearFilters={onClearFilters}
         toolbarContent={
           <PipelineRunTableToolbar
             data-testid={`${runType}-runs-table-toolbar`}

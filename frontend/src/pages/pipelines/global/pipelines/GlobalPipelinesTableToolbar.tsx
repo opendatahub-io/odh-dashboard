@@ -16,13 +16,12 @@ const options = {
 
 type GlobalPipelinesTableToolbarProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
-  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+  'filterData' | 'onFilterUpdate'
 >;
 
 const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = ({
   filterData,
   onFilterUpdate,
-  onClearFilters,
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const { getResourcesForDeletion, clearAfterDeletion } =
@@ -58,7 +57,6 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
         }}
         filterData={filterData}
         onFilterUpdate={onFilterUpdate}
-        onClearFilters={onClearFilters}
       >
         <ToolbarItem>
           <ImportPipelineSplitButton />

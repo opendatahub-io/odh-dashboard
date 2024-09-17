@@ -23,8 +23,8 @@ export const getDataValue = (data: string | { value: string } | undefined): stri
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof FilterToolbar>,
-  'filterData' | 'onFilterUpdate' | 'onClearFilters'
->;
+  'filterData' | 'onFilterUpdate'
+> & { onClearFilters: () => void };
 
 const defaultFilterData: FilterProps['filterData'] = {
   [FilterOptions.NAME]: '',

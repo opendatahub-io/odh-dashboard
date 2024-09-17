@@ -13,7 +13,7 @@ const options = {
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
-  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+  'filterData' | 'onFilterUpdate'
 >;
 
 type ExperimentTableToolbarProps = FilterProps & {

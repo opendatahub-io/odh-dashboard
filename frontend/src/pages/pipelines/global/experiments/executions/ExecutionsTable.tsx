@@ -65,12 +65,9 @@ const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
       rowRenderer={(execution) => <ExecutionsTableRow key={execution.getId()} obj={execution} />}
       toggleTemplate={() => <>{maxResultSize} per page </>}
       toolbarContent={
-        <ExecutionsTableToolbar
-          filterData={filterData}
-          setFilterData={setFilterData}
-          onClearFilters={onClearFilters}
-        />
+        <ExecutionsTableToolbar filterData={filterData} setFilterData={setFilterData} />
       }
+      onClearFilters={onClearFilters}
       page={page}
       perPage={maxResultSize}
       disableItemCount

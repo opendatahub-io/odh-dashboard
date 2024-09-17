@@ -13,7 +13,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
-  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+  'filterData' | 'onFilterUpdate'
 >;
 
 interface PipelineRunTableToolbarProps extends FilterProps {

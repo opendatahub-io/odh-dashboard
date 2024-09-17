@@ -14,7 +14,7 @@ import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/Compare
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
-  'filterData' | 'onFilterUpdate' | 'onClearFilters'
+  'filterData' | 'onFilterUpdate'
 >;
 
 const CompareRunTableToolbar: React.FC<FilterProps> = ({ ...toolbarProps }) => {

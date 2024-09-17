@@ -21,6 +21,7 @@ type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 
   filterProps: FilterProps;
   selectedRunIds: string[];
   experiment: ExperimentKFv2 | null;
+  onClearFilters: () => void;
 };
 
 export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
@@ -34,6 +35,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   setPage,
   setPageSize,
   filterProps,
+  onClearFilters,
   ...tableProps
 }) => {
   const navigate = useNavigate();
@@ -86,7 +88,8 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
         data={runs}
         columns={pipelineRunColumns}
         enablePagination="compact"
-        emptyTableView={<DashboardEmptyTableView onClearFilters={filterProps.onClearFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+        onClearFilters={onClearFilters}
         toolbarContent={
           <PipelineRunTableToolbar
             data-testid="manage-runs-table-toolbar"

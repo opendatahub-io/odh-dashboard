@@ -44,7 +44,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const { experimentId, pipelineVersionId } = useParams();
-  const filterToolbarProps = usePipelineFilter(setFilter);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const {
     selections,
@@ -88,9 +88,8 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
         data={recurringRuns}
         columns={getColumns()}
         enablePagination="compact"
-        emptyTableView={
-          <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
-        }
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+        onClearFilters={onClearFilters}
         toolbarContent={
           <PipelineRecurringRunTableToolbar
             {...filterToolbarProps}
