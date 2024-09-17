@@ -30,8 +30,7 @@ export const StorageClassDefaultRadio: React.FC<StorageClassDefaultRadioProps> =
     try {
       await updateStorageClassConfig(storageClassName, { isDefault: true });
       await onChange();
-      setIsUpdating(false);
-    } catch {
+    } finally {
       setIsUpdating(false);
     }
 

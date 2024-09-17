@@ -29,16 +29,32 @@ class StorageClassesTableRow extends TableRow {
     return this.find().findByTestId('openshift-sc-default-label');
   }
 
-  findEnableSwitch() {
+  findEnableSwitchInput() {
     return this.find().findByTestId('enable-switch');
   }
 
-  findDefaultRadio() {
+  findDefaultRadioInput() {
     return this.find().findByTestId('set-default-radio');
   }
 
-  findOpenshiftScName() {
-    return this.find().find(`[data-label="Openshift storage class"]`);
+  findDisplayNameValue() {
+    return this.find().find(`[data-label="Display name"]`);
+  }
+
+  findEnableValue() {
+    return this.find().find(`[data-label="Enable"]`);
+  }
+
+  findDefaultValue() {
+    return this.find().find(`[data-label="Default"]`);
+  }
+
+  findLastModifiedValue() {
+    return this.find().find(`[data-label="Last modified"]`);
+  }
+
+  findCorruptedMetadataAlert() {
+    return cy.findByTestId('corrupted-metadata-alert');
   }
 }
 
@@ -49,12 +65,18 @@ class StorageClassesTable {
 
   getRowByName(name: string) {
     return new StorageClassesTableRow(() =>
+      this.find().find(`[data-label="Openshift storage class"]`).contains(name).parents('tr'),
+    );
+  }
+
+  getRowByConfigName(name: string) {
+    return new StorageClassesTableRow(() =>
       this.find().find(`[data-label="Display name"]`).contains(name).parents('tr'),
     );
   }
 
   findRowByName(name: string) {
-    return this.getRowByName(name).find();
+    return this.getRowByConfigName(name).find();
   }
 
   mockUpdateStorageClass(storageClassName: string, times?: number) {
@@ -117,6 +139,10 @@ class StorageClassEditModal extends Modal {
 
   findSaveButton() {
     return this.findFooter().findByTestId('modal-submit-button');
+  }
+
+  findInfoAlert() {
+    return this.find().findByTestId('edit-sc-modal-info-alert');
   }
 
   mockUpdateStorageClass(storageClassName: string, times?: number) {

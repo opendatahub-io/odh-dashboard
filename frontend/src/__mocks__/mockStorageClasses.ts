@@ -19,19 +19,28 @@ export const mockStorageClassList = (
   items: storageClasses,
 });
 
-export const buildMockStorageClass = (
+export const buildMockStorageClassConfig = (
   mockStorageClass: MockStorageClass,
   config: Partial<StorageClassConfig>,
+): string =>
+  JSON.stringify({
+    ...JSON.parse(
+      String(mockStorageClass.metadata.annotations?.['opendatahub.io/sc-config'] ?? null),
+    ),
+    ...config,
+  });
+
+export const buildMockStorageClass = (
+  mockStorageClass: MockStorageClass,
+  config: Partial<StorageClassConfig> | string,
 ): MockStorageClass => ({
   ...mockStorageClass,
   metadata: {
     ...mockStorageClass.metadata,
     annotations: {
       ...mockStorageClass.metadata.annotations,
-      'opendatahub.io/sc-config': JSON.stringify({
-        ...JSON.parse(String(mockStorageClass.metadata.annotations?.['opendatahub.io/sc-config'])),
-        ...config,
-      }),
+      'opendatahub.io/sc-config':
+        typeof config !== 'string' ? buildMockStorageClassConfig(mockStorageClass, config) : config,
     },
   },
 });

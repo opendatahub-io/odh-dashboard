@@ -31,8 +31,7 @@ export const StorageClassEnableSwitch: React.FC<StorageClassEnableSwitchProps> =
       try {
         await updateStorageClassConfig(storageClassName, { isEnabled: checked });
         await onChange();
-        setIsUpdating(false);
-      } catch {
+      } finally {
         setIsUpdating(false);
       }
 
