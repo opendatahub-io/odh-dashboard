@@ -1145,6 +1145,16 @@ export type DSPipelineKind = K8sResourceCommon & {
   };
   status?: {
     conditions?: K8sCondition[];
+    components: {
+      apiServer: {
+        externalUrl: string;
+        url: string;
+      };
+      mlmdProxy: {
+        externalUrl: string;
+        url: string;
+      };
+    };
   };
 };
 

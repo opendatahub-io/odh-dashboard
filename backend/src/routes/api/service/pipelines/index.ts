@@ -9,8 +9,7 @@ export default proxyService<DSPipelineKind>(
     plural: 'datasciencepipelinesapplications',
   },
   {
-    port: 8443,
-    prefix: 'ds-pipeline-',
+    constructUrl: (resource) => resource.status?.components.apiServer.url,
   },
   {
     // Use port forwarding for local development:
