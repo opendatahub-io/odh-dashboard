@@ -41,12 +41,18 @@ const usePrefillDeployModalFromModelRegistry = (
           type: InferenceServiceStorageType.EXISTING_STORAGE,
         });
       } else {
+        const prefilledKeys: (typeof EMPTY_AWS_SECRET_DATA)[number]['key'][] = [
+          AwsKeys.NAME,
+          AwsKeys.AWS_S3_BUCKET,
+          AwsKeys.S3_ENDPOINT,
+          AwsKeys.DEFAULT_REGION,
+        ];
         const prefilledAWSData = [
           { key: AwsKeys.NAME, value: registeredModelDeployInfo.modelArtifactStorageKey || '' },
           { key: AwsKeys.AWS_S3_BUCKET, value: storageFields.bucket },
           { key: AwsKeys.S3_ENDPOINT, value: storageFields.endpoint },
           { key: AwsKeys.DEFAULT_REGION, value: storageFields.region || '' },
-          ...EMPTY_AWS_SECRET_DATA,
+          ...EMPTY_AWS_SECRET_DATA.filter((item) => !prefilledKeys.includes(item.key)),
         ];
         if (recommendedDataConnections.length === 0) {
           setCreateData('storage', {
