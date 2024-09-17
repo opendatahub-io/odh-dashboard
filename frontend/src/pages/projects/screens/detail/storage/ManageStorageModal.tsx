@@ -12,8 +12,10 @@ import useRelatedNotebooks, {
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 type AddStorageModalProps = {
@@ -23,6 +25,10 @@ type AddStorageModalProps = {
 };
 
 const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOpen, onClose }) => {
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const preferredStorageClass = usePreferredStorageClass();
+  const defaultStorageClass = useDefaultStorageClass();
+
   const [createData, setCreateData, resetData] = useCreateStorageObjectForNotebook(existingData);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -40,7 +46,22 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     createData.forNotebook.name,
   ]);
 
-  const storageClass = usePreferredStorageClass();
+  React.useEffect(() => {
+    if (!existingData && isOpen) {
+      if (isStorageClassesAvailable) {
+        setCreateData('storageClassName', defaultStorageClass?.metadata.name);
+      } else {
+        setCreateData('storageClassName', preferredStorageClass?.metadata.name);
+      }
+    }
+  }, [
+    isStorageClassesAvailable,
+    defaultStorageClass,
+    preferredStorageClass,
+    existingData,
+    isOpen,
+    setCreateData,
+  ]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -53,8 +74,13 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const hasValidNotebookRelationship = createData.forNotebook.name
     ? !!createData.forNotebook.mountPath.value && !createData.forNotebook.mountPath.error
     : true;
+
+  const storageClassSelected = isStorageClassesAvailable ? createData.storageClassName : true;
   const canCreate =
-    !actionInProgress && createData.nameDesc.name.trim() && hasValidNotebookRelationship;
+    !actionInProgress &&
+    createData.nameDesc.name.trim() &&
+    hasValidNotebookRelationship &&
+    storageClassSelected;
 
   const runPromiseActions = async (dryRun: boolean) => {
     const {
@@ -66,7 +92,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       if (
         getDisplayNameFromK8sResource(existingData) !== createData.nameDesc.name ||
         getDescriptionFromK8sResource(existingData) !== createData.nameDesc.description ||
-        existingData.spec.resources.requests.storage !== createData.size
+        existingData.spec.resources.requests.storage !== createData.size ||
+        existingData.spec.storageClassName !== createData.storageClassName
       ) {
         pvcPromises.push(updatePvc(createData, existingData, namespace, { dryRun }));
       }
@@ -87,9 +114,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       }
       return;
     }
-    const createdPvc = await createPvc(createData, namespace, storageClass?.metadata.name, {
-      dryRun,
-    });
+    const createdPvc = await createPvc(createData, namespace, { dryRun });
     if (notebookName) {
       await attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value, {
         dryRun,
@@ -145,6 +170,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
               setData={(key, value) => setCreateData(key, value)}
               currentSize={existingData?.status?.capacity?.storage}
               autoFocusName
+              disableStorageClassSelect={!!existingData}
             />
           </StackItem>
           {createData.hasExistingNotebookConnections && (

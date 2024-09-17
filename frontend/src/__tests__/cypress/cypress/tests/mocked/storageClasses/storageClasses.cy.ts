@@ -1,5 +1,4 @@
-import type { MockStorageClass } from '~/__mocks__';
-import { mockStorageClassList, mockStorageClasses } from '~/__mocks__';
+import { buildMockStorageClass, mockStorageClassList, mockStorageClasses } from '~/__mocks__';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
@@ -7,7 +6,6 @@ import {
   storageClassesPage,
   storageClassesTable,
 } from '~/__tests__/cypress/cypress/pages/storageClasses';
-import type { StorageClassConfig } from '~/k8sTypes';
 
 describe('Storage classes', () => {
   it('shows "page not found" and does not show nav item as a non-admin user', () => {
@@ -152,21 +150,4 @@ describe('Storage classes', () => {
       updatedRow.find().should('contain.text', 'Updated description');
     });
   });
-});
-
-const buildMockStorageClass = (
-  mockStorageClass: MockStorageClass,
-  config: Partial<StorageClassConfig>,
-) => ({
-  ...mockStorageClass,
-  metadata: {
-    ...mockStorageClass.metadata,
-    annotations: {
-      ...mockStorageClass.metadata.annotations,
-      'opendatahub.io/sc-config': JSON.stringify({
-        ...JSON.parse(String(mockStorageClass.metadata.annotations?.['opendatahub.io/sc-config'])),
-        ...config,
-      }),
-    },
-  },
 });

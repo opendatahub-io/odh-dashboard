@@ -23,6 +23,7 @@ export const useCreateStorageObjectForNotebook = (
   resetDefaults: () => void,
 ] => {
   const size = useDefaultPvcSize();
+
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
     nameDesc: {
       name: '',
@@ -45,6 +46,7 @@ export const useCreateStorageObjectForNotebook = (
   const existingName = existingData ? getDisplayNameFromK8sResource(existingData) : '';
   const existingDescription = existingData ? getDescriptionFromK8sResource(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : size;
+  const existingStorageClassName = existingData?.spec.storageClassName;
   const { notebooks: relatedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.REMOVABLE_PVC,
     existingData ? existingData.metadata.name : undefined,
@@ -57,10 +59,9 @@ export const useCreateStorageObjectForNotebook = (
         name: existingName,
         description: existingDescription,
       });
-
       setCreateData('hasExistingNotebookConnections', hasExistingNotebookConnections);
-
       setCreateData('size', existingSize);
+      setCreateData('storageClassName', existingStorageClassName);
     }
   }, [
     existingName,
@@ -68,6 +69,7 @@ export const useCreateStorageObjectForNotebook = (
     setCreateData,
     hasExistingNotebookConnections,
     existingSize,
+    existingStorageClassName,
   ]);
 
   return createDataState;
@@ -102,6 +104,7 @@ export const useStorageDataObject = (
         description: '',
       },
       size,
+      storageClassName: '',
     },
     existing: {
       storage: getRootVolumeName(notebook),
