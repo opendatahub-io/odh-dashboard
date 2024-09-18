@@ -11,7 +11,7 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ContextResourceData } from '~/types';
@@ -27,6 +27,8 @@ type RoleBindingPermissionsProps = {
     type: RoleBindingPermissionsRoleType;
     description: string;
   }[];
+  createRoleBinding: (roleBinding: RoleBindingKind) => Promise<RoleBindingKind>;
+  deleteRoleBinding: (name: string, namespace: string) => Promise<K8sStatus>;
   projectName: string;
   roleRefKind: RoleBindingRoleRef['kind'];
   roleRefName?: RoleBindingRoleRef['name'];
@@ -42,6 +44,8 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
   defaultRoleBindingName,
   permissionOptions,
   projectName,
+  createRoleBinding,
+  deleteRoleBinding,
   roleRefKind,
   roleRefName,
   labels,
@@ -98,6 +102,8 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
       subjectKind={RoleBindingPermissionsRBType.USER}
       refresh={refreshRB}
       typeModifier="user"
+      createRoleBinding={createRoleBinding}
+      deleteRoleBinding={deleteRoleBinding}
     />
   );
 
@@ -117,6 +123,8 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
         groups.length > 0 ? groups.map((group: GroupKind) => group.metadata.name) : undefined
       }
       typeModifier="group"
+      createRoleBinding={createRoleBinding}
+      deleteRoleBinding={deleteRoleBinding}
     />
   );
 

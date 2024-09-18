@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import RoleBindingPermissions from '~/concepts/roleBinding/RoleBindingPermissions';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
+import { createRoleBinding, deleteRoleBinding } from '~/api';
 
 const ProjectSharing: React.FC = () => {
   const {
@@ -27,6 +28,8 @@ const ProjectSharing: React.FC = () => {
       description="Add users and groups that can access the project."
       roleBindingPermissionsRB={projectSharingRB}
       groups={groups}
+      createRoleBinding={createRoleBinding}
+      deleteRoleBinding={deleteRoleBinding}
     />
   );
 };

@@ -6,7 +6,6 @@ import {
   GroupModel,
   ModelRegistryModel,
   ProjectModel,
-  RoleBindingModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import type { RoleBindingSubject } from '~/k8sTypes';
 import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -69,8 +68,8 @@ const initIntercepts = ({ isEmpty = false, hasPermission = true }: HandlersProps
       mockProjectK8sResource({ k8sName: 'project-name', displayName: 'Project' }),
     ]),
   );
-  cy.interceptK8sList(
-    { model: RoleBindingModel, ns: MODEL_REGISTRY_DEFAULT_NAMESPACE },
+  cy.interceptOdh(
+    'GET /api/modelRegistryRoleBindings',
     mockK8sResourceList(
       isEmpty
         ? []
@@ -155,9 +154,8 @@ describe('MR Permissions', () => {
 
     it('Add user', () => {
       initIntercepts({ isEmpty: false });
-      cy.interceptK8s(
-        'POST',
-        RoleBindingModel,
+      cy.interceptOdh(
+        'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
           namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           name: 'new-example-mr-user',
@@ -199,9 +197,8 @@ describe('MR Permissions', () => {
 
     it('Edit user', () => {
       initIntercepts({ isEmpty: false });
-      cy.interceptK8s(
-        'POST',
-        RoleBindingModel,
+      cy.interceptOdh(
+        'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
           namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           name: 'edited-user',
@@ -210,9 +207,9 @@ describe('MR Permissions', () => {
           modelRegistryName: 'example-mr',
         }),
       ).as('editUser');
-      cy.interceptK8s(
-        'DELETE',
-        { model: RoleBindingModel, ns: MODEL_REGISTRY_DEFAULT_NAMESPACE, name: 'example-mr-user' },
+      cy.interceptOdh(
+        'DELETE /api/modelRegistryRoleBindings/:name',
+        { path: { name: 'example-mr-user' } },
         mock200Status({}),
       ).as('deleteUser');
 
@@ -248,11 +245,12 @@ describe('MR Permissions', () => {
     it('Delete user', () => {
       initIntercepts({ isEmpty: false });
 
-      cy.interceptK8s(
-        'DELETE',
-        { model: RoleBindingModel, ns: MODEL_REGISTRY_DEFAULT_NAMESPACE, name: 'example-mr-user' },
+      cy.interceptOdh(
+        'DELETE /api/modelRegistryRoleBindings/:name',
+        { path: { name: 'example-mr-user' } },
         mock200Status({}),
       ).as('deleteUser');
+
       modelRegistryPermissions.visit('example-mr');
 
       userTable.getTableRow('example-mr-user').findKebabAction('Delete').click();
@@ -280,9 +278,8 @@ describe('MR Permissions', () => {
 
     it('Add group', () => {
       initIntercepts({ isEmpty: false });
-      cy.interceptK8s(
-        'POST',
-        RoleBindingModel,
+      cy.interceptOdh(
+        'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
           namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           name: 'new-example-mr-group',
@@ -329,9 +326,8 @@ describe('MR Permissions', () => {
 
     it('Edit group', () => {
       initIntercepts({ isEmpty: false });
-      cy.interceptK8s(
-        'POST',
-        RoleBindingModel,
+      cy.interceptOdh(
+        'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
           namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           name: 'example-mr-group-option',
@@ -340,13 +336,9 @@ describe('MR Permissions', () => {
           modelRegistryName: 'example-mr',
         }),
       ).as('editGroup');
-      cy.interceptK8s(
-        'DELETE',
-        {
-          model: RoleBindingModel,
-          ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
-          name: 'example-mr-users-2',
-        },
+      cy.interceptOdh(
+        'DELETE /api/modelRegistryRoleBindings/:name',
+        { path: { name: 'example-mr-users-2' } },
         mock200Status({}),
       ).as('deleteGroup');
 
@@ -389,13 +381,9 @@ describe('MR Permissions', () => {
     it('Delete group', () => {
       initIntercepts({ isEmpty: false });
 
-      cy.interceptK8s(
-        'DELETE',
-        {
-          model: RoleBindingModel,
-          ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
-          name: 'example-mr-users-2',
-        },
+      cy.interceptOdh(
+        'DELETE /api/modelRegistryRoleBindings/:name',
+        { path: { name: 'example-mr-users-2' } },
         mock200Status({}),
       ).as('deleteGroup');
 
@@ -439,9 +427,8 @@ describe('MR Permissions', () => {
     });
 
     it('Add project', () => {
-      cy.interceptK8s(
-        'POST',
-        RoleBindingModel,
+      cy.interceptOdh(
+        'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
           namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           subjects: projectSubjects,
@@ -476,9 +463,8 @@ describe('MR Permissions', () => {
     });
 
     it('Edit project', () => {
-      cy.interceptK8s(
-        'POST',
-        RoleBindingModel,
+      cy.interceptOdh(
+        'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
           namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           subjects: projectSubjects,
@@ -486,13 +472,9 @@ describe('MR Permissions', () => {
           modelRegistryName: 'example-mr',
         }),
       ).as('editProject');
-      cy.interceptK8s(
-        'DELETE',
-        {
-          model: RoleBindingModel,
-          ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
-          name: 'test-name-view',
-        },
+      cy.interceptOdh(
+        'DELETE /api/modelRegistryRoleBindings/:name',
+        { path: { name: 'test-name-view' } },
         mock200Status({}),
       ).as('deleteProject');
 
@@ -523,18 +505,12 @@ describe('MR Permissions', () => {
     });
 
     it('Delete project', () => {
-      cy.interceptK8s(
-        'DELETE',
-        {
-          model: RoleBindingModel,
-          ns: MODEL_REGISTRY_DEFAULT_NAMESPACE,
-          name: 'test-name-view',
-        },
+      cy.interceptOdh(
+        'DELETE /api/modelRegistryRoleBindings/:name',
+        { path: { name: 'test-name-view' } },
         mock200Status({}),
       ).as('deleteProject');
-
       projectTable.getTableRow('Test Project').findKebabAction('Delete').click();
-
       cy.wait('@deleteProject');
     });
   });

@@ -10,7 +10,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -29,6 +29,8 @@ export type RoleBindingPermissionsTableSectionAltProps = {
     description: string;
   }[];
   typeAhead?: string[];
+  createRoleBinding: (roleBinding: RoleBindingKind) => Promise<RoleBindingKind>;
+  deleteRoleBinding: (name: string, namespace: string) => Promise<K8sStatus>;
   refresh: () => void;
   typeModifier: string;
   defaultRoleBindingName?: string;
@@ -45,6 +47,8 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
   subjectKind,
   permissionOptions,
   typeAhead,
+  createRoleBinding,
+  deleteRoleBinding,
   refresh,
   typeModifier,
   defaultRoleBindingName,
@@ -106,6 +110,8 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
           refresh={() => {
             refresh();
           }}
+          createRoleBinding={createRoleBinding}
+          deleteRoleBinding={deleteRoleBinding}
         />
       </StackItem>
       {error && (

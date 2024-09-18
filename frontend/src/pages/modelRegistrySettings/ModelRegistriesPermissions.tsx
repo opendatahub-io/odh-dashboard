@@ -19,6 +19,10 @@ import { SupportedArea } from '~/concepts/areas';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
 import { useModelRegistryNamespaceCR } from '~/concepts/modelRegistry/context/useModelRegistryNamespaceCR';
 import { AreaContext } from '~/concepts/areas/AreaContext';
+import {
+  createModelRegistryRoleBinding,
+  deleteModelRegistryRoleBinding,
+} from '~/services/modelRegistrySettingsService';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
@@ -121,6 +125,8 @@ const ModelRegistriesManagePermissions: React.FC = () => {
               }
               roleBindingPermissionsRB={{ ...roleBindings, data: filteredRoleBindings }}
               groups={groups}
+              createRoleBinding={createModelRegistryRoleBinding}
+              deleteRoleBinding={deleteModelRegistryRoleBinding}
             />
           </TabContentBody>
         </TabContent>

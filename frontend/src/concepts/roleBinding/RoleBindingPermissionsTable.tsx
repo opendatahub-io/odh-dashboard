@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '~/components/table';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
-import { deleteRoleBinding, generateRoleBindingPermissions, createRoleBinding } from '~/api';
+import { generateRoleBindingPermissions } from '~/api';
 import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
 import { columnsRoleBindingPermissions } from './data';
 import { RoleBindingPermissionsRoleType } from './types';
@@ -25,6 +25,8 @@ type RoleBindingPermissionsTableProps = {
   }[];
   isAdding: boolean;
   typeAhead?: string[];
+  createRoleBinding: (roleBinding: RoleBindingKind) => Promise<RoleBindingKind>;
+  deleteRoleBinding: (name: string, namespace: string) => Promise<K8sStatus>;
   onDismissNewRow: () => void;
   onError: (error: Error) => void;
   refresh: () => void;
@@ -43,6 +45,8 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   typeAhead,
   isProjectSubject,
   isAdding,
+  createRoleBinding,
+  deleteRoleBinding,
   onDismissNewRow,
   onError,
   refresh,

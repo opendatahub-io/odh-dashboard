@@ -629,6 +629,19 @@ declare global {
             path: { name: string };
           },
           response: SuccessErrorResponse,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/modelRegistryRoleBindings',
+          response: OdhResponse<K8sResourceListResult<RoleBindingKind>>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /api/modelRegistryRoleBindings/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<SuccessErrorResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/modelRegistryRoleBindings',
+          response: OdhResponse<RoleBindingKind>,
         ) => Cypress.Chainable<null>);
     }
   }
