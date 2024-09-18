@@ -53,7 +53,7 @@ class CreateConnectionTypePage {
 
   visitEditPage(name = 'existing') {
     cy.visitWithLogin(`/connectionTypes/edit/${name}`);
-    cy.findAllByText('Create connection type').should('exist');
+    cy.findAllByText('Edit connection type').should('exist');
   }
 
   findConnectionTypeName() {

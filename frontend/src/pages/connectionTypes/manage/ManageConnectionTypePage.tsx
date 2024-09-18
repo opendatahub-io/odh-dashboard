@@ -103,6 +103,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     navigate('/connectionTypes');
   };
 
+  const pageName = isEdit ? 'Edit connection type' : 'Create connection type';
   return (
     <ConnectionTypePreviewDrawer
       isExpanded={isDrawerExpanded}
@@ -110,11 +111,11 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
       obj={connectionTypeObj}
     >
       <ApplicationsPage
-        title={isEdit ? 'Edit connection type' : 'Create connection type'}
+        title={pageName}
         loaded
         empty={false}
         errorMessage="Unable to load connection types"
-        breadcrumb={<ManageConnectionTypeBreadcrumbs />}
+        breadcrumb={<ManageConnectionTypeBreadcrumbs name={pageName} />}
         headerAction={
           isDrawerExpanded ? undefined : (
             <Button
