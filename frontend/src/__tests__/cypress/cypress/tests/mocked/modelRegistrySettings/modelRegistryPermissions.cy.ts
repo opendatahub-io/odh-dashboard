@@ -295,7 +295,7 @@ describe('MR Permissions', () => {
       usersTab.findAddGroupButton().click();
 
       groupTable.findNameSelect().fill('new-example-mr-group');
-      cy.findByText('Create "new-example-mr-group"').click();
+      cy.findByText('Select "new-example-mr-group"').click();
       groupTable.findSaveNewButton().click();
 
       cy.wait('@addGroup').then((interception) => {

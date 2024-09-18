@@ -374,7 +374,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     >
       <TextInputGroup isPlain>
         <TextInputGroupMain
-          value={isFiltering ? filterValue : (selected?.content ?? '')}
+          value={isFiltering ? filterValue : selected?.content ?? ''}
           onClick={onInputClick}
           onChange={onTextInputChange}
           onKeyDown={onInputKeyDown}
