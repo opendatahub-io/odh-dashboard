@@ -64,6 +64,7 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       }
       empty={false}
       provideChildrenPadding
+      getRedirectPath={(ns) => `artifacts/${ns}`}
     >
       <Tabs aria-label="Artifact details tabs" activeKey={ArtifactDetailsTabKey.Overview}>
         <Tab

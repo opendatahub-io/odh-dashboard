@@ -63,6 +63,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
             />
           </PageSection>
         }
+        getRedirectPath={(ns) => `/modelServing/${ns}`}
       >
         <BiasConfigurationTable
           inferenceService={inferenceService}

@@ -96,6 +96,7 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       }
       empty={false}
       provideChildrenPadding
+      getRedirectPath={(ns) => `${ns}/pipelines`}
     >
       <Stack hasGutter>
         <StackItem>

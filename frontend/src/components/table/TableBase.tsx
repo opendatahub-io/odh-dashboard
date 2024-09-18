@@ -237,9 +237,9 @@ const TableBase = <T,>({
                     // assign classes to reserve space
                     className={
                       col.field === CHECKBOX_FIELD_ID || col.field === EXPAND_FIELD_ID
-                        ? 'pf-c-table__toggle'
+                        ? 'pf-v5-c-table__toggle'
                         : col.field === KEBAB_FIELD_ID
-                        ? 'pf-c-table__action'
+                        ? 'pf-v5-c-table__action'
                         : undefined
                     }
                   >
@@ -306,7 +306,7 @@ const TableBase = <T,>({
       {hasStickyColumns ? <InnerScrollContainer>{table}</InnerScrollContainer> : table}
 
       {!loading && emptyTableView && data.length === 0 && (
-        <div style={{ padding: 'var(--pf-global--spacer--2xl) 0', textAlign: 'center' }}>
+        <div style={{ padding: 'var(--pf-v5-global--spacer--2xl) 0', textAlign: 'center' }}>
           {emptyTableView}
         </div>
       )}

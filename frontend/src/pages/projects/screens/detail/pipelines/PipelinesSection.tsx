@@ -67,7 +67,6 @@ const PipelinesSection: React.FC = () => {
         isLoading={(compatible && !apiAvailable && installed) || initializing}
         isEmpty={!installed}
         emptyState={<NoPipelineServer variant={ButtonVariant.primary} />}
-        showDivider={isPipelinesEmpty}
       >
         <EnsureCompatiblePipelineServer>
           {timedOut ? (

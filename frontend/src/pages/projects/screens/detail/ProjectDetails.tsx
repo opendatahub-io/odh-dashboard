@@ -43,6 +43,7 @@ const ProjectDetails: React.FC = () => {
       }
       loaded
       empty={false}
+      getRedirectPath={(ns) => `projects/${ns}`}
       headerAction={<ProjectActions project={currentProject} />}
     >
       <ProjectOverview />
