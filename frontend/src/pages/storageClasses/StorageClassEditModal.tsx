@@ -14,29 +14,40 @@ import {
   TextArea,
   Flex,
   FlexItem,
+  AlertProps,
 } from '@patternfly/react-core';
 
 import { StorageClassKind } from '~/k8sTypes';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
+import { getStorageClassConfig, isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
 
 interface StorageClassEditModalProps {
   storageClass: StorageClassKind;
+  alert?: Partial<Pick<AlertProps, 'title' | 'children'>>;
   onSuccess: () => Promise<StorageClassKind[] | void>;
   onClose: () => void;
 }
 
 export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
   storageClass,
+  alert,
   onSuccess,
   onClose,
 }) => {
   const { name: storageClassName } = storageClass.metadata;
   const storageClassConfig = getStorageClassConfig(storageClass);
-  const [displayName, setDisplayName] = React.useState(storageClassConfig?.displayName ?? '');
-  const [description, setDescription] = React.useState(storageClassConfig?.description ?? '');
+  const [displayName, setDisplayName] = React.useState(
+    isValidConfigValue('displayName', storageClassConfig?.displayName)
+      ? storageClassConfig?.displayName
+      : '',
+  );
+  const [description, setDescription] = React.useState(
+    isValidConfigValue('description', storageClassConfig?.description)
+      ? storageClassConfig?.description
+      : '',
+  );
   const [updateError, setUpdateError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -44,7 +55,12 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      await updateStorageClassConfig(storageClassName, { displayName, description });
+      await updateStorageClassConfig(storageClassName, {
+        displayName,
+        description,
+        ...(storageClassConfig?.isDefault === undefined && { isDefault: false }),
+        ...(storageClassConfig?.isEnabled === undefined && { isEnabled: false }),
+      });
       await onSuccess();
       onClose();
     } catch (error) {
@@ -79,31 +95,35 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
         isInline
         variant="info"
         title="Editing these details will not affect the storage class in OpenShift."
+        {...alert}
         className="pf-v5-u-mb-lg"
+        data-testid="edit-sc-modal-info-alert"
       />
 
       <Form id="edit-sc-form">
-        <DescriptionList>
-          <DescriptionListGroup>
-            <DescriptionListTerm>OpenShift storage class</DescriptionListTerm>
-            <DescriptionListDescription data-testid="edit-sc-openshift-class-name">
-              <Flex
-                spaceItems={{ default: 'spaceItemsSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>{storageClassName}</FlexItem>
-                {isOpenshiftDefaultStorageClass(storageClass) && <OpenshiftDefaultLabel />}
-              </Flex>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
+        {(!alert || alert.children) && (
+          <DescriptionList>
+            <DescriptionListGroup>
+              <DescriptionListTerm>OpenShift storage class</DescriptionListTerm>
+              <DescriptionListDescription data-testid="edit-sc-openshift-class-name">
+                <Flex
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>{storageClassName}</FlexItem>
+                  {isOpenshiftDefaultStorageClass(storageClass) && <OpenshiftDefaultLabel />}
+                </Flex>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
 
-          <DescriptionListGroup>
-            <DescriptionListTerm>Provisioner</DescriptionListTerm>
-            <DescriptionListDescription data-testid="edit-sc-provisioner">
-              {storageClass.provisioner}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Provisioner</DescriptionListTerm>
+              <DescriptionListDescription data-testid="edit-sc-provisioner">
+                {storageClass.provisioner}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        )}
 
         <FormGroup label="Display name" isRequired fieldId="edit-sc-display-name">
           <TextInput
