@@ -1,7 +1,7 @@
 import YAML from 'yaml';
 import React from 'react';
 import { WatchK8sResource, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
+import { KnownLabels, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { TemplateModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { CustomWatchK8sResult, ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
@@ -54,6 +54,7 @@ export const useTemplates = (namespace?: string): CustomWatchK8sResult<TemplateK
           isList: true,
           groupVersionKind: groupVersionKind(TemplateModel),
           namespace,
+          selector: { matchLabels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' } },
         }
       : null;
 
