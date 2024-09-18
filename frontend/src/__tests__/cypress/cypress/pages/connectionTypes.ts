@@ -96,6 +96,7 @@ class CreateConnectionTypePage {
     rowNames.map((name, index) =>
       this.getFieldsTableRow(index).findName().should('contain.text', name),
     );
+    return this;
   }
 
   getCategorySection() {
@@ -136,7 +137,8 @@ class ConnectionTypeRow extends TableRow {
   }
 
   shouldHaveName(name: string) {
-    return this.findConnectionTypeName().should('have.text', name);
+    this.findConnectionTypeName().should('have.text', name);
+    return this;
   }
 
   findConnectionTypeDescription() {
@@ -147,16 +149,28 @@ class ConnectionTypeRow extends TableRow {
     return this.find().findByTestId('connection-type-creator');
   }
 
+  findConnectionTypeCompatibility() {
+    return this.find().findByTestId('connection-type-compatibility');
+  }
+
   shouldHaveDescription(description: string) {
-    return this.findConnectionTypeDescription().should('contain.text', description);
+    this.findConnectionTypeDescription().should('contain.text', description);
+    return this;
+  }
+
+  shouldHaveModelServingCompatibility() {
+    this.findConnectionTypeCompatibility().should('have.text', 'Model serving');
+    return this;
   }
 
   shouldHaveCreator(creator: string) {
-    return this.findConnectionTypeCreator().should('have.text', creator);
+    this.findConnectionTypeCreator().should('have.text', creator);
+    return this;
   }
 
   shouldShowPreInstalledLabel() {
-    return this.find().findByTestId('connection-type-user-label').should('exist');
+    this.find().findByTestId('connection-type-user-label').should('exist');
+    return this;
   }
 
   findEnabled() {
@@ -173,10 +187,12 @@ class ConnectionTypeRow extends TableRow {
 
   shouldBeEnabled() {
     this.findEnabled().should('be.checked');
+    return this;
   }
 
   shouldBeDisabled() {
     this.findEnabled().should('not.be.checked');
+    return this;
   }
 
   findEnableStatus() {

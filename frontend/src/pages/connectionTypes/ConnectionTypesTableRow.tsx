@@ -9,7 +9,10 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import {
+  ConnectionTypeConfigMapObj,
+  isConnectionTypeDataField,
+} from '~/concepts/connectionTypes/types';
 import { relativeTime } from '~/utilities/time';
 import { updateConnectionTypeEnabled } from '~/services/connectionTypesService';
 import useNotification from '~/utilities/useNotification';
@@ -22,6 +25,8 @@ import {
 } from '~/concepts/k8s/utils';
 import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
+import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;
@@ -78,6 +83,12 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
     setIsEnabled(obj.metadata.annotations?.['opendatahub.io/enabled'] === 'true');
   }, [obj.metadata.annotations]);
 
+  const compatibleTypes = getCompatibleTypes(
+    obj.data?.fields
+      ?.filter(isConnectionTypeDataField)
+      .filter((field) => field.required)
+      .map((field) => field.envVar) ?? [],
+  );
   return (
     <Tr>
       <Td dataLabel={connectionTypeColumns[0].label}>
@@ -99,7 +110,18 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
           '-'
         )}
       </Td>
-      <Td dataLabel={connectionTypeColumns[2].label} data-testid="connection-type-creator">
+      <Td dataLabel={connectionTypeColumns[2].label} data-testid="connection-type-compatibility">
+        {compatibleTypes.length ? (
+          <LabelGroup>
+            {compatibleTypes.map((compatibleType) => (
+              <CompatibilityLabel key={compatibleType} type={compatibleType} />
+            ))}
+          </LabelGroup>
+        ) : (
+          '-'
+        )}
+      </Td>
+      <Td dataLabel={connectionTypeColumns[3].label} data-testid="connection-type-creator">
         {ownedByDSC(obj) ? (
           <Label data-testid="connection-type-user-label">{creator}</Label>
         ) : (
@@ -107,7 +129,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         )}
       </Td>
       <Td
-        dataLabel={connectionTypeColumns[3].label}
+        dataLabel={connectionTypeColumns[4].label}
         data-testid="connection-type-created"
         modifier="nowrap"
       >
@@ -115,7 +137,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
           {createdDate ? relativeTime(Date.now(), createdDate.getTime()) : 'Unknown'}
         </Timestamp>
       </Td>
-      <Td dataLabel={connectionTypeColumns[4].label}>
+      <Td dataLabel={connectionTypeColumns[5].label}>
         <Switch
           isChecked={isEnabled}
           aria-label="toggle enabled"

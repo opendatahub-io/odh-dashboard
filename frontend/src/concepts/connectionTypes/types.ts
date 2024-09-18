@@ -145,7 +145,7 @@ export type Connection = SecretKind & {
       'opendatahub.io/connection-type': string;
     };
   };
-  data: {
+  data?: {
     [key: string]: string;
   };
 };

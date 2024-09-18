@@ -54,10 +54,14 @@ describe('Connections', () => {
     initIntercepts();
     projectDetails.visitSection('test-project', 'connections');
     projectDetails.shouldBeEmptyState('Connections', 'connections', false);
-    connectionsPage.findTable().findByText('test1').should('exist');
-    connectionsPage.findTable().findByText('s3').should('exist');
-    connectionsPage.findTable().findByText('test2').should('exist');
-    connectionsPage.findTable().findByText('postgres').should('exist');
+    const row1 = connectionsPage.getConnectionRow('test1');
+    row1.find().findByText('test1').should('exist');
+    row1.find().findByText('s3').should('exist');
+    row1.find().findByText('Model serving').should('exist');
+    const row2 = connectionsPage.getConnectionRow('test2');
+    row2.find().findByText('test2').should('exist');
+    row2.find().findByText('postgres').should('exist');
+    row1.find().findByText('Model serving').should('exist');
   });
 
   it('Delete a connection', () => {

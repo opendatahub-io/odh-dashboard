@@ -5,7 +5,7 @@ export const columns: SortableData<Connection>[] = [
   {
     field: 'name',
     label: 'Name',
-    width: 35,
+    width: 30,
     sortable: (a, b) =>
       (a.metadata.annotations['openshift.io/display-name'] ?? '').localeCompare(
         b.metadata.annotations['openshift.io/display-name'] ?? '',
@@ -14,16 +14,22 @@ export const columns: SortableData<Connection>[] = [
   {
     field: 'type',
     label: 'Type',
-    width: 25,
+    width: 20,
     sortable: (a, b) =>
       a.metadata.annotations['opendatahub.io/connection-type'].localeCompare(
         b.metadata.annotations['opendatahub.io/connection-type'],
       ),
   },
   {
+    field: 'compatibility',
+    label: 'Compatibility',
+    width: 20,
+    sortable: false,
+  },
+  {
     field: 'connections',
     label: 'Connected resources',
-    width: 35,
+    width: 25,
     sortable: false,
   },
   {

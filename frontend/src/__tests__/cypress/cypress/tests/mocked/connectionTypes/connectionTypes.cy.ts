@@ -5,7 +5,10 @@ import {
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { connectionTypesPage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
 import { mockDashboardConfig } from '~/__mocks__';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '~/__mocks__/mockConnectionType';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 it('Connection types should not be available for non product admins', () => {
@@ -49,6 +52,7 @@ describe('Connection types', () => {
         description: 'description 2',
         enabled: false,
         preInstalled: true,
+        fields: mockModelServingFields,
       }),
       mockConnectionTypeConfigMap({
         name: 'test-2',
@@ -76,6 +80,7 @@ describe('Connection types', () => {
     row2.shouldHaveDescription('description 2');
     row2.shouldShowPreInstalledLabel();
     row2.shouldBeDisabled();
+    row2.shouldHaveModelServingCompatibility();
   });
 
   it('should delete connection type', () => {
