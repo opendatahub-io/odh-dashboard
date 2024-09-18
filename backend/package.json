@@ -45,7 +45,7 @@
     "@fastify/websocket": "^8.2.0",
     "@kubernetes/client-node": "^0.12.2",
     "dotenv": "^8.2.0",
-    "fastify": "^4.16.0",
+    "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "http-errors": "^1.8.0",
     "js-yaml": "^4.0.0",
