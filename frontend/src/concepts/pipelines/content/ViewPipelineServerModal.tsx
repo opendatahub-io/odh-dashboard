@@ -45,13 +45,23 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
               <DescriptionListGroup>
                 <DescriptionListTerm>Access key</DescriptionListTerm>
                 <DescriptionListDescription data-testid="access-key-field">
-                  {pipelineSecret.AWS_ACCESS_KEY_ID || ''}
+                  {pipelineSecret[
+                    pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
+                      .accessKey
+                  ] || ''}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Secret key</DescriptionListTerm>
                 <DescriptionListDescription data-testid="secret-key-field">
-                  <PasswordHiddenText password={pipelineSecret.AWS_SECRET_ACCESS_KEY ?? ''} />
+                  <PasswordHiddenText
+                    password={
+                      pipelineSecret[
+                        pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
+                          .secretKey
+                      ] ?? ''
+                    }
+                  />
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
