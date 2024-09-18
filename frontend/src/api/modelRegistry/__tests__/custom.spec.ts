@@ -324,7 +324,7 @@ describe('getModelVersionsByRegisteredModel', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions`,
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/1/versions?pageSize=99999`,
       {},
       K8sAPIOptionsMock,
     );
@@ -339,7 +339,7 @@ describe('getModelArtifactsByModelVersion', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       'hostPath',
-      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/1/artifacts`,
+      `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/1/artifacts?pageSize=99999`,
       {},
       K8sAPIOptionsMock,
     );

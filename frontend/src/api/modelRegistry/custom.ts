@@ -161,25 +161,27 @@ export const getListRegisteredModels =
       ),
     );
 
+// TODO: the pageSize value here is temporary until we implement filter/sort on serverside, https://issues.redhat.com/browse/RHOAIENG-12800
 export const getModelVersionsByRegisteredModel =
   (hostpath: string) =>
   (opts: K8sAPIOptions, registeredmodelId: string): Promise<ModelVersionList> =>
     handleModelRegistryFailures(
       proxyGET(
         hostpath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredmodelId}/versions`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredmodelId}/versions?pageSize=99999`,
         {},
         opts,
       ),
     );
 
+// TODO: the pageSize value here is temporary until we implement filter/sort on serverside, https://issues.redhat.com/browse/RHOAIENG-12800
 export const getModelArtifactsByModelVersion =
   (hostpath: string) =>
   (opts: K8sAPIOptions, modelVersionId: string): Promise<ModelArtifactList> =>
     handleModelRegistryFailures(
       proxyGET(
         hostpath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}/artifacts`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}/artifacts?pageSize=99999`,
         {},
         opts,
       ),
