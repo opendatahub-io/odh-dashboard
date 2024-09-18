@@ -2,12 +2,16 @@ import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 
-const ManageConnectionTypeBreadcrumbs: React.FunctionComponent = () => (
+type Props = {
+  name: string;
+};
+
+const ManageConnectionTypeBreadcrumbs: React.FC<Props> = ({ name }) => (
   <Breadcrumb ouiaId="BasicBreadcrumb">
     <BreadcrumbItem>
       <Link to="/connectionTypes">Connection types</Link>
     </BreadcrumbItem>
-    <BreadcrumbItem isActive>Create connection type</BreadcrumbItem>
+    <BreadcrumbItem isActive>{name}</BreadcrumbItem>
   </Breadcrumb>
 );
 
