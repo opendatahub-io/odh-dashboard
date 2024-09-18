@@ -143,6 +143,9 @@ export const proxyService =
           done();
         };
 
+        // If `model` is passed, we first check if the user is able to get a resource with that model and the given namespace/name.
+        // We can use this to only proxy for users that can access some resource that manages the service.
+        // If `statusCheck` is also passed, we can also make sure that resource passes some check before we proxy to the service.
         const doServiceRequestWithGatingResource = async () => {
           try {
             // Retreive the gating resource by name and namespace
