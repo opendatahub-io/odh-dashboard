@@ -7,7 +7,6 @@ import DistributedWorkloadsNoProjects from '~/pages/distributedWorkloads/global/
 import GlobalDistributedWorkloadsTabs from '~/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs';
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
-import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 import { useQueryParams } from '~/utilities/useQueryParams';
 
 const title = 'Distributed Workload Metrics';
@@ -44,14 +43,7 @@ const GlobalDistributedWorkloads: React.FC = () => {
       {...{ title, description }}
       loaded
       empty={false}
-      headerContent={
-        <ProjectSelectorNavigator
-          getRedirectPath={(ns: string) =>
-            `/projects/${ns}/distributedWorkloads?tab=${activeTab.path}`
-          }
-          showTitle
-        />
-      }
+      getRedirectPath={(ns: string) => `/projects/${ns}/distributedWorkloads?tab=${activeTab.path}`}
     >
       <MetricsCommonContextProvider initialRefreshInterval={RefreshIntervalTitle.THIRTY_MINUTES}>
         <DistributedWorkloadsContextProvider namespace={preferredProject.metadata.name}>

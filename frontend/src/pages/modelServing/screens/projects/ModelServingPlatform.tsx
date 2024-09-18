@@ -8,6 +8,7 @@ import {
   Gallery,
   GalleryItem,
   Label,
+  PageSection,
   Popover,
   Stack,
   StackItem,
@@ -192,56 +193,58 @@ const ModelServingPlatform: React.FC = () => {
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
           kServeEnabled && modelMeshEnabled ? (
-            <Flex
-              className="pf-v5-u-mt-md pf-v5-u-pt-md"
-              style={{ borderTop: '1px solid var(--pf-v5-global--BorderColor--100)' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapLg' }}
-            >
-              <FlexItem
-                flex={{ default: 'flex_1' }}
-                style={{ borderRight: '1px solid var(--pf-v5-global--BorderColor--100)' }}
+            <PageSection isFilled variant="light">
+              <Flex
+                className="pf-v5-u-pt-md"
+                style={{ borderTop: '1px solid var(--pf-v5-global--BorderColor--100)' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapLg' }}
               >
-                <EmptyDetailsView
-                  iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
-                  imageAlt="add a model server"
-                />
-              </FlexItem>
-              <FlexItem flex={{ default: 'flex_1' }}>
-                <Stack hasGutter>
-                  <StackItem>
-                    <TextContent>
-                      <Text>
-                        Select the model serving type to be used when deploying from this project.
-                      </Text>
-                    </TextContent>
-                  </StackItem>
-                  <StackItem>
-                    <Gallery hasGutter>
-                      <GalleryItem>
-                        <EmptySingleModelServingCard />
-                      </GalleryItem>
-                      <GalleryItem>
-                        <EmptyMultiModelServingCard />
-                      </GalleryItem>
-                      {isNIMModelServingAvailable && isNIMAPIKeyValid && (
+                <FlexItem
+                  flex={{ default: 'flex_1' }}
+                  style={{ borderRight: '1px solid var(--pf-v5-global--BorderColor--100)' }}
+                >
+                  <EmptyDetailsView
+                    iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
+                    imageAlt="add a model server"
+                  />
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <TextContent>
+                        <Text>
+                          Select the model serving type to be used when deploying from this project.
+                        </Text>
+                      </TextContent>
+                    </StackItem>
+                    <StackItem>
+                      <Gallery hasGutter>
                         <GalleryItem>
-                          <EmptyNIMModelServingCard />
+                          <EmptySingleModelServingCard />
                         </GalleryItem>
-                      )}
-                    </Gallery>
-                  </StackItem>
-                  <StackItem>
-                    <Alert
-                      variant="info"
-                      isInline
-                      isPlain
-                      title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
-                    />
-                  </StackItem>
-                </Stack>
-              </FlexItem>
-            </Flex>
+                        <GalleryItem>
+                          <EmptyMultiModelServingCard />
+                        </GalleryItem>
+                        {isNIMModelServingAvailable && isNIMAPIKeyValid && (
+                          <GalleryItem>
+                            <EmptyNIMModelServingCard />
+                          </GalleryItem>
+                        )}
+                      </Gallery>
+                    </StackItem>
+                    <StackItem>
+                      <Alert
+                        variant="info"
+                        isInline
+                        isPlain
+                        title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
+                      />
+                    </StackItem>
+                  </Stack>
+                </FlexItem>
+              </Flex>
+            </PageSection>
           ) : (
             <EmptyModelServingPlatform />
           )

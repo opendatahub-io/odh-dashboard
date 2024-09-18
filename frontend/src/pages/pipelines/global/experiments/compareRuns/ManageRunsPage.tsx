@@ -147,6 +147,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
       }
       provideChildrenPadding
       removeChildrenTopPadding
+      getRedirectPath={(ns) => `${ns}/pipelines`}
     >
       <PipelineRunVersionsContextProvider>
         <ManageRunsTable

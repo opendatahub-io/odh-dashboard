@@ -3,7 +3,6 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import PipelineCoreNoProjects from '~/pages/pipelines/global/PipelineCoreNoProjects';
-import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import InvalidProject from '~/concepts/projects/InvalidProject';
 
@@ -61,7 +60,7 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       {...applicationPageProps}
       {...renderStateProps}
       loaded
-      headerContent={<PipelineCoreProjectSelector getRedirectPath={getInvalidRedirectPath} />}
+      getRedirectPath={getInvalidRedirectPath}
       provideChildrenPadding
     />
   );

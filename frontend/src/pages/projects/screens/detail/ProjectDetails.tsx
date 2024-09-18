@@ -37,6 +37,7 @@ const ProjectDetails: React.FC = () => {
       }
       loaded
       empty={false}
+      getRedirectPath={(ns) => `projects/${ns}`}
     >
       <ProjectOverview />
     </ApplicationsPage>

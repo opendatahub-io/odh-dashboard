@@ -8,7 +8,6 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import EmptyModelServing from './EmptyModelServing';
 import InferenceServiceListView from './InferenceServiceListView';
-import ModelServingProjectSelection from './ModelServingProjectSelection';
 import ModelServingLoading from './ModelServingLoading';
 
 const ModelServingGlobal: React.FC = () => {
@@ -48,11 +47,7 @@ const ModelServingGlobal: React.FC = () => {
       description="Manage and view the health and performance of your deployed models."
       loadError={notInstalledError}
       loaded={servingRuntimesLoaded && inferenceServicesLoaded}
-      headerContent={
-        <ModelServingProjectSelection
-          getRedirectPath={(namespace: string) => `/modelServing/${namespace}`}
-        />
-      }
+      getRedirectPath={(namespace: string) => `/modelServing/${namespace}`}
       provideChildrenPadding
       loadingContent={
         currentProject ? undefined : (

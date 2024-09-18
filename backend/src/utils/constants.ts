@@ -64,7 +64,7 @@ export const blankDashboardCR: DashboardConfig = {
       disablePipelineExperiments: false,
       disableDistributedWorkloads: false,
       disableModelRegistry: true,
-      disableConnectionTypes: true,
+      disableConnectionTypes: false,
       disableStorageClasses: true,
       disableNIMModelServing: true,
     },

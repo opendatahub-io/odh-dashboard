@@ -1,7 +1,6 @@
 import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
 import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
 
 export type PipelineCoreApplicationPageProps = {
@@ -27,7 +26,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       loaded={!pipelinesAPi.pipelinesServer.initializing}
       empty={!pipelinesAPi.pipelinesServer.installed}
       emptyStatePage={<NoPipelineServer />}
-      headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
+      getRedirectPath={getRedirectPath}
       provideChildrenPadding={!overrideChildPadding}
     >
       {pipelinesAPi.pipelinesServer.timedOut ? <PipelineServerTimedOut /> : children}

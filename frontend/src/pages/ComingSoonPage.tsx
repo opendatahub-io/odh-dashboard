@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { PageSection, Stack, StackItem, Title } from '@patternfly/react-core';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
-import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 
 type ComingSoonPageProps = {
   title: string;
@@ -10,31 +9,19 @@ type ComingSoonPageProps = {
 };
 
 const ComingSoonPage: React.FC<ComingSoonPageProps> = ({ title, namespaced, path }) => (
-  <PageSection aria-label="details-section" variant="light">
-    <Stack hasGutter>
-      {namespaced ? (
-        <StackItem>
-          <ProjectSelectorNavigator
-            getRedirectPath={(ns) => `/projects/${ns}/${path}`}
-            showTitle
-            invalidDropdownPlaceholder="Select project"
-          />
-        </StackItem>
-      ) : null}
-      <StackItem>
-        <Title headingLevel="h2" size="xl">
-          {title}
-        </Title>
-      </StackItem>
-      <StackItem isFilled>
-        <EmptyDetailsView
-          title="This page is coming soon."
-          description="Not yet implemented"
-          imageAlt="coming soon"
-        />
-      </StackItem>
-    </Stack>
-  </PageSection>
+  <ApplicationsPage
+    loaded
+    empty
+    getRedirectPath={namespaced ? (ns) => `/projects/${ns}/${path}` : undefined}
+    title={title}
+    emptyStatePage={
+      <EmptyDetailsView
+        title="This page is coming soon."
+        description="Not yet implemented"
+        imageAlt="coming soon"
+      />
+    }
+  />
 );
 
 export default ComingSoonPage;

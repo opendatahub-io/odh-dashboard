@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
+import { Divider, MenuItem, MenuToggle, Truncate } from '@patternfly/react-core';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectKind } from '~/k8sTypes';
@@ -12,6 +11,7 @@ type ProjectSelectorProps = {
   invalidDropdownPlaceholder?: string;
   selectAllProjects?: boolean;
   primary?: boolean;
+  variant?: React.ComponentProps<typeof MenuToggle>['variant'];
   filterLabel?: string;
   showTitle?: boolean;
   selectorLabel?: string;
@@ -24,6 +24,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   invalidDropdownPlaceholder,
   selectAllProjects,
   primary,
+  variant = 'plainText',
   filterLabel,
   showTitle = false,
   selectorLabel = 'Project',
@@ -48,7 +49,10 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     : projects;
   const visibleProjects = filteredProjects.filter(bySearchText);
 
-  const toggleLabel = projects.length === 0 ? 'No projects' : selectionDisplayName;
+  const toggleLabel =
+    projects.length === 0
+      ? 'No projects'
+      : `${showTitle ? `${selectorLabel}: ` : ''}${selectionDisplayName}`;
   const selector = (
     <SearchSelector
       dataTestId="project-selector"
@@ -60,7 +64,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchPlaceholder="Project name"
       searchValue={searchText}
       toggleText={toggleLabel}
-      toggleVariant={primary ? 'primary' : undefined}
+      toggleVariant={primary ? 'primary' : variant}
     >
       <>
         {selectAllProjects && (
@@ -96,23 +100,6 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     </SearchSelector>
   );
 
-  if (showTitle) {
-    return (
-      <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-        <img
-          src={typedObjectImage(ProjectObjectType.project)}
-          alt=""
-          style={{ height: 'var(--pf-v5-global--icon--FontSize--lg)' }}
-        />
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <Bullseye>{selectorLabel}</Bullseye>
-          </FlexItem>
-          <FlexItem>{selector}</FlexItem>
-        </Flex>
-      </Flex>
-    );
-  }
   return selector;
 };
 

@@ -34,7 +34,7 @@ const NotebookList: React.FC = () => {
     <DetailsSection
       objectType={ProjectObjectType.notebook}
       id={ProjectSectionID.WORKBENCHES}
-      title={(!isNotebooksEmpty && ProjectSectionTitles[ProjectSectionID.WORKBENCHES]) || ''}
+      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES]}
       getRedirectPath={(ns) => `/projects/${ns}/workbenches`}
       popover={
         !isNotebooksEmpty && (

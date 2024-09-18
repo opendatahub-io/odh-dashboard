@@ -27,6 +27,7 @@ const PipelineVersionCloneRunPage: React.FC<PathProps> = ({ breadcrumbPath }) =>
           runId,
         )
       }
+      getProjectRedirectPath={(ns) => `${ns}/pipelines`}
     />
   );
 };
