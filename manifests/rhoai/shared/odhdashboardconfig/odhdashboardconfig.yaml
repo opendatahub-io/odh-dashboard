@@ -28,7 +28,7 @@ spec:
     disableModelMesh: false
     disableDistributedWorkloads: false
     disableModelRegistry: false
-    disableConnectionTypes: true
+    disableConnectionTypes: false
     disableStorageClasses: false
     disableNIMModelServing: true
   groupsConfig:

@@ -36,6 +36,7 @@ const PipelineVersionDuplicateRecurringRunPage: React.FC<PathProps> = ({ breadcr
           recurringRunId,
         )
       }
+      getProjectRedirectPath={(ns) => `${ns}/schedules`}
     />
   );
 };
