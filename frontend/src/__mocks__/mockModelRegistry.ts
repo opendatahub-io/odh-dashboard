@@ -18,8 +18,13 @@ export const mockModelRegistry = ({
     namespace,
   },
   spec: {
-    grpc: {
-      port: 9090,
+    grpc: {},
+    rest: {},
+    istio: {
+      gateway: {
+        grpc: { tls: {} },
+        rest: { tls: {} },
+      },
     },
     postgres: {
       database: 'model-registry',
@@ -32,10 +37,6 @@ export const mockModelRegistry = ({
       skipDBCreation: false,
       sslMode: 'disable',
       username: 'mlmduser',
-    },
-    rest: {
-      port: 8080,
-      serviceRoute: 'disabled',
     },
   },
   status: {

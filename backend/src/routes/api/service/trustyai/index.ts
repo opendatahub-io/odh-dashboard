@@ -9,7 +9,7 @@ export default proxyService<TrustyAIKind>(
     plural: 'trustyaiservices',
   },
   {
-    port: 443,
+    internalPort: 443,
     suffix: '-tls',
   },
   {

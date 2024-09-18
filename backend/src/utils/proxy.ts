@@ -1,11 +1,12 @@
 import { FastifyRequest } from 'fastify';
 import httpProxy from '@fastify/http-proxy';
-import { K8sResourceCommon, KubeFastifyInstance } from '../types';
+import { K8sResourceCommon, KubeFastifyInstance, ServiceAddressAnnotation } from '../types';
 import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 import { EitherNotBoth } from '../typeHelpers';
+import { V1Service } from '@kubernetes/client-node';
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -26,12 +27,14 @@ const notFoundError = (kind: string, name: string, e?: any, overrideMessage?: st
     404,
   );
 };
+
 export const proxyService =
   <K extends K8sResourceCommon = never>(
     model: { apiGroup: string; apiVersion: string; plural: string; kind: string } | null,
     service: EitherNotBoth<
       {
-        port: number | string;
+        addressAnnotation?: ServiceAddressAnnotation;
+        internalPort: number | string;
         prefix?: string;
         suffix?: string;
         namespace?: string;
@@ -74,56 +77,96 @@ export const proxyService =
         // see `prefix` for named params
         const namespace = service.namespace ?? getParam(request, 'namespace');
         const name = getParam(request, 'name');
+        const serviceName = `${service.prefix ?? ''}${name}${service.suffix ?? ''}`;
+        const scheme = tls ? 'https' : 'http';
+        const kc = fastify.kube.config;
+        const cluster = kc.getCurrentCluster();
 
-        const doServiceRequest = (resource?: K) => {
-          const scheme = tls ? 'https' : 'http';
+        const getServiceAddress = async (
+          serviceName: string,
+          resource?: K,
+        ): Promise<string | null> => {
+          if (DEV_MODE) {
+            // Use port forwarding for local development:
+            // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
+            return `${scheme}://${local.host}:${local.port}`;
+          }
+          if (service.constructUrl) {
+            return service.constructUrl(resource);
+          }
+          if (service.addressAnnotation) {
+            try {
+              const k8sService = await passThroughResource<V1Service>(fastify, request, {
+                url: `${cluster.server}/api/v1/namespaces/${namespace}/services/${serviceName}`,
+                method: 'GET',
+              });
+              if (isK8sStatus(k8sService)) {
+                fastify.log.error(
+                  `Proxy failed to read k8s service ${serviceName} in namespace ${namespace}.`,
+                );
+                return null;
+              }
+              const address = k8sService.metadata?.annotations?.[service.addressAnnotation];
+              if (address) {
+                return `${scheme}://${address}`;
+              }
+              fastify.log.error(
+                `Proxy could not find address annotation on k8s service ${serviceName} in namespace ${namespace}, falling back to internal address. Annotation expected: ${service.addressAnnotation}`,
+              );
+            } catch (e) {
+              fastify.log.error(
+                e,
+                `Proxy failed to read k8s service ${serviceName} in namespace ${namespace}.`,
+              );
+              return null;
+            }
+          }
+          // For services configured for internal addresses (no annotation), construct the URL
+          // or if annotation is expected but missing, fall back to internal address for compatibility
+          return `${scheme}://${serviceName}.${namespace}.svc.cluster.local:${service.internalPort}`;
+        };
 
-          const upstream = DEV_MODE
-            ? // Use port forwarding for local development:
-              // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
-              `${scheme}://${local.host}:${local.port}`
-            : // Construct service URL
-            service.constructUrl
-            ? service.constructUrl(resource)
-            : `${scheme}://${service.prefix || ''}${name}${
-                service.suffix ?? ''
-              }.${namespace}.svc.cluster.local:${service.port}`;
-
-          // assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
+        const doServiceRequest = async (resource?: K) => {
+          const upstream = await getServiceAddress(serviceName, resource);
+          if (!upstream) {
+            done(notFoundError('Service', serviceName, undefined, 'service unavailable'));
+            return;
+          }
+          // Assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
           setParam(request, 'upstream', upstream);
-
+          if (tls) {
+            const requestOptions = await getDirectCallOptions(fastify, request, '');
+            const token = getAccessToken(requestOptions);
+            request.headers.authorization = `Bearer ${token}`;
+          }
           fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
           done();
         };
 
-        if (model) {
-          const kc = fastify.kube.config;
-          const cluster = kc.getCurrentCluster();
-
-          // retreive the gating resource by name and namespace
-          passThroughResource<K>(fastify, request, {
-            url: `${cluster.server}/apis/${model.apiGroup}/${model.apiVersion}/namespaces/${namespace}/${model.plural}/${name}`,
-            method: 'GET',
-          })
-            .then((resource) => {
-              return getDirectCallOptions(fastify, request, request.url).then((requestOptions) => {
-                if (isK8sStatus(resource)) {
-                  done(notFoundError(model.kind, name));
-                } else if (!statusCheck || statusCheck(resource)) {
-                  if (tls) {
-                    const token = getAccessToken(requestOptions);
-                    request.headers.authorization = `Bearer ${token}`;
-                  }
-
-                  doServiceRequest(resource);
-                } else {
-                  done(notFoundError(model.kind, name, undefined, 'service unavailable'));
-                }
-              });
-            })
-            .catch((e) => {
-              done(notFoundError(model.kind, name, e));
+        // If `model` is passed, we first check if the user is able to get a resource with that model and the given namespace/name.
+        // We can use this to only proxy for users that can access some resource that manages the service.
+        // If `statusCheck` is also passed, we can also make sure that resource passes some check before we proxy to the service.
+        const doServiceRequestWithGatingResource = async () => {
+          try {
+            // Retreive the gating resource by name and namespace
+            const resource = await passThroughResource<K>(fastify, request, {
+              url: `${cluster.server}/apis/${model.apiGroup}/${model.apiVersion}/namespaces/${namespace}/${model.plural}/${name}`,
+              method: 'GET',
             });
+            if (isK8sStatus(resource)) {
+              done(notFoundError(model.kind, name));
+            } else if (!statusCheck || statusCheck(resource)) {
+              doServiceRequest(resource);
+            } else {
+              done(notFoundError(model.kind, name, undefined, 'service unavailable'));
+            }
+          } catch (e) {
+            done(notFoundError(model.kind, name, e));
+          }
+        };
+
+        if (model) {
+          doServiceRequestWithGatingResource();
         } else {
           doServiceRequest();
         }

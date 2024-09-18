@@ -1215,3 +1215,8 @@ export type ResponseStatus = {
   success: boolean;
   error: string;
 };
+
+export enum ServiceAddressAnnotation {
+  EXTERNAL_REST = 'routing.opendatahub.io/external-address-rest',
+  EXTERNAL_GRPC = 'routing.opendatahub.io/external-address-grpc',
+}
