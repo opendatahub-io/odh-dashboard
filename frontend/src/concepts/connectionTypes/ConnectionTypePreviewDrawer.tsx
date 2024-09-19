@@ -12,7 +12,7 @@ import {
   Divider,
   DrawerContentBody,
 } from '@patternfly/react-core';
-import ConnectionTypePreview from '~/concepts/connectionTypes/ConnectionTypePreview';
+import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 
 type Props = {
@@ -53,7 +53,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
       >
         <Card isFlat isRounded>
           <CardBody>
-            <ConnectionTypePreview isPreview obj={obj} />
+            <ConnectionTypeForm isPreview connectionType={obj} />
           </CardBody>
         </Card>
       </DrawerContentBody>

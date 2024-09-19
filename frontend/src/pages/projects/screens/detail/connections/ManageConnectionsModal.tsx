@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import ConnectionTypePreview from '~/concepts/connectionTypes/ConnectionTypePreview';
+import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -9,17 +9,15 @@ import {
   ConnectionTypeValueType,
   isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
-import { getDefaultValues } from '~/concepts/connectionTypes/utils';
+import { assembleConnectionSecret, getDefaultValues } from '~/concepts/connectionTypes/utils';
 
 type Props = {
   connection?: Connection;
-  connectionTypes?: ConnectionTypeConfigMapObj[];
-  project?: ProjectKind;
-  onClose: (refresh?: boolean) => void;
+  connectionTypes: ConnectionTypeConfigMapObj[];
+  project: ProjectKind;
+  onClose: (submitted?: boolean) => void;
   onSubmit: (connection: Connection) => Promise<SecretKind>;
 };
 
@@ -35,13 +33,13 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
   const enabledConnectionTypes = React.useMemo(
     () =>
-      connectionTypes?.filter((t) => t.metadata.annotations?.['opendatahub.io/enabled'] === 'true'),
+      connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/enabled'] === 'true'),
     [connectionTypes],
   );
 
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
-  >(enabledConnectionTypes?.length === 1 ? enabledConnectionTypes[0] : undefined);
+  >(enabledConnectionTypes.length === 1 ? enabledConnectionTypes[0] : undefined);
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
@@ -49,50 +47,37 @@ export const ManageConnectionModal: React.FC<Props> = ({
     if (connection?.data) {
       return connection.data;
     }
-    if (enabledConnectionTypes?.length === 1) {
+    if (enabledConnectionTypes.length === 1) {
       return getDefaultValues(enabledConnectionTypes[0]);
     }
     return {};
   });
 
   // if user changes connection types, don't discard previous entries in case of accident
-  const [previousEntries, setPreviousEntries] = React.useState<{
+  const previousValues = React.useRef<{
     [connectionTypeName: string]: {
-      nameDesc: K8sNameDescriptionFieldData;
-      values: {
-        [key: string]: ConnectionTypeValueType;
-      };
+      [key: string]: ConnectionTypeValueType;
     };
   }>({});
   const changeSelectionType = React.useCallback(
     (type?: ConnectionTypeConfigMapObj) => {
       // save previous connection values
       if (selectedConnectionType) {
-        setPreviousEntries({
-          ...previousEntries,
-          [selectedConnectionType.metadata.name]: {
-            nameDesc: nameDescData,
-            values: connectionValues,
-          },
-        });
+        previousValues.current[selectedConnectionType.metadata.name] = connectionValues;
         // clear previous values
-        setNameDescData('name', '');
-        setNameDescData('description', '');
         setConnectionValues({});
       }
       // load saved values?
-      if (type?.metadata.name && type.metadata.name in previousEntries) {
-        setNameDescData('name', previousEntries[type.metadata.name].nameDesc.name);
-        setNameDescData('description', previousEntries[type.metadata.name].nameDesc.description);
-        setConnectionValues(previousEntries[type.metadata.name].values);
-      } else {
+      if (type?.metadata.name && type.metadata.name in previousValues.current) {
+        setConnectionValues(previousValues.current[type.metadata.name]);
+      } else if (type) {
         // first time load, so add default values
         setConnectionValues(getDefaultValues(type));
       }
 
       setSelectedConnectionType(type);
     },
-    [selectedConnectionType, previousEntries, nameDescData, connectionValues, setNameDescData],
+    [selectedConnectionType, connectionValues],
   );
 
   const isValid = React.useMemo(
@@ -122,32 +107,24 @@ export const ManageConnectionModal: React.FC<Props> = ({
           submitLabel="Create"
           onCancel={onClose}
           onSubmit={() => {
-            const connectionValuesAsStrings = Object.fromEntries(
-              Object.entries(connectionValues).map(([key, value]) => [key, String(value)]),
-            );
-            const update: Connection = {
-              apiVersion: 'v1',
-              kind: 'Secret',
-              metadata: {
-                name: nameDescData.k8sName.value || translateDisplayNameForK8s(nameDescData.name),
-                namespace: project?.metadata.name ?? '',
-                labels: {
-                  'opendatahub.io/dashboard': 'true',
-                  'opendatahub.io/managed': 'true',
-                },
-                annotations: {
-                  'opendatahub.io/connection-type': selectedConnectionType?.metadata.name ?? '',
-                  'openshift.io/display-name': nameDescData.name,
-                  'openshift.io/description': nameDescData.description,
-                },
-              },
-              stringData: connectionValuesAsStrings,
-            };
-
             setIsSaving(true);
             setError(undefined);
 
-            onSubmit(update)
+            // this shouldn't ever happen, but type safety
+            if (!selectedConnectionType) {
+              setError(new Error('No connection type selected'));
+              setIsSaving(false);
+              return;
+            }
+
+            onSubmit(
+              assembleConnectionSecret(
+                project,
+                selectedConnectionType,
+                nameDescData,
+                connectionValues,
+              ),
+            )
               .then(() => {
                 onClose(true);
               })
@@ -163,10 +140,10 @@ export const ManageConnectionModal: React.FC<Props> = ({
         />
       }
     >
-      <ConnectionTypePreview
+      <ConnectionTypeForm
         connectionTypes={enabledConnectionTypes}
-        obj={selectedConnectionType}
-        setObj={changeSelectionType}
+        connectionType={selectedConnectionType}
+        setConnectionType={changeSelectionType}
         connectionNameDesc={nameDescData}
         setConnectionNameDesc={setNameDescData}
         connectionValues={connectionValues}

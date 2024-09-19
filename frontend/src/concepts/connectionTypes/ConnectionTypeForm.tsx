@@ -18,8 +18,8 @@ import {
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
 
 type Props = {
-  obj?: ConnectionTypeConfigMapObj;
-  setObj?: (obj?: ConnectionTypeConfigMapObj) => void;
+  connectionType?: ConnectionTypeConfigMapObj;
+  setConnectionType?: (obj?: ConnectionTypeConfigMapObj) => void;
   connectionTypes?: ConnectionTypeConfigMapObj[];
   isPreview?: boolean;
   connectionNameDesc?: K8sNameDescriptionFieldData;
@@ -30,24 +30,22 @@ type Props = {
   setConnectionValues?: (values: { [key: string]: ConnectionTypeValueType }) => void;
 };
 
-const ConnectionTypePreview: React.FC<Props> = ({
-  obj,
-  setObj,
+const ConnectionTypeForm: React.FC<Props> = ({
+  connectionType,
+  setConnectionType,
   connectionTypes,
-  isPreview,
+  isPreview = false,
   connectionNameDesc,
   setConnectionNameDesc,
   connectionValues,
   setConnectionValues,
 }) => {
-  const connectionTypeName = obj && obj.metadata.annotations?.['openshift.io/display-name'];
-
   const options: TypeaheadSelectOption[] = React.useMemo(() => {
-    if (isPreview && connectionTypeName) {
+    if (isPreview && connectionType?.metadata.annotations?.['openshift.io/display-name']) {
       return [
         {
-          value: connectionTypeName,
-          content: connectionTypeName,
+          value: '',
+          content: connectionType.metadata.annotations['openshift.io/display-name'],
           isSelected: true,
         },
       ];
@@ -56,11 +54,11 @@ const ConnectionTypePreview: React.FC<Props> = ({
       return connectionTypes.map((t) => ({
         value: getResourceNameFromK8sResource(t),
         content: getDisplayNameFromK8sResource(t),
-        isSelected: t.metadata.name === obj?.metadata.name,
+        isSelected: t.metadata.name === connectionType?.metadata.name,
       }));
     }
     return [];
-  }, [isPreview, obj?.metadata.name, connectionTypes, connectionTypeName]);
+  }, [isPreview, connectionType?.metadata, connectionTypes]);
 
   return (
     <Form>
@@ -70,23 +68,25 @@ const ConnectionTypePreview: React.FC<Props> = ({
           id="connection-type"
           selectOptions={options}
           onSelect={(_, selection) =>
-            setObj?.(connectionTypes?.find((c) => c.metadata.name === selection))
+            setConnectionType?.(connectionTypes?.find((c) => c.metadata.name === selection))
           }
           isDisabled={isPreview || connectionTypes?.length === 1}
           placeholder={
-            isPreview && !connectionTypeName
+            isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
               ? 'Unspecified'
               : 'Select a type, or search by keyword or category'
           }
           toggleProps={
-            isPreview && !connectionTypeName ? { status: MenuToggleStatus.danger } : undefined
+            isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
+              ? { status: MenuToggleStatus.danger }
+              : undefined
           }
         />
-        {(isPreview || obj?.metadata.name) && (
-          <ConnectionTypeDetailsHelperText connectionType={obj} />
+        {connectionType && (
+          <ConnectionTypeDetailsHelperText connectionType={connectionType} isPreview={isPreview} />
         )}
       </FormGroup>
-      {(isPreview || obj?.metadata.name) && (
+      {(isPreview || connectionType?.metadata.name) && (
         <FormSection title="Connection details" style={{ marginTop: 0 }}>
           <K8sNameDescriptionField
             dataTestId="connection-name-desc"
@@ -111,7 +111,7 @@ const ConnectionTypePreview: React.FC<Props> = ({
             onDataChange={setConnectionNameDesc}
           />
           <ConnectionTypeFormFields
-            fields={obj?.data?.fields}
+            fields={connectionType?.data?.fields}
             isPreview={isPreview}
             connectionValues={connectionValues}
             onChange={(field, value) => {
@@ -127,4 +127,4 @@ const ConnectionTypePreview: React.FC<Props> = ({
   );
 };
 
-export default ConnectionTypePreview;
+export default ConnectionTypeForm;

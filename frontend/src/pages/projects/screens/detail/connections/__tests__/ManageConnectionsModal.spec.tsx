@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ManageConnectionModal } from '~/pages/projects/screens/detail/connections/ManageConnectionsModal';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
+import { mockProjectK8sResource } from '~/__mocks__';
 
 describe('Add connection modal', () => {
   const onCloseMock = jest.fn();
@@ -11,6 +12,7 @@ describe('Add connection modal', () => {
   it('should preselect connection type if only one', async () => {
     render(
       <ManageConnectionModal
+        project={mockProjectK8sResource({})}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
         connectionTypes={[
@@ -39,6 +41,7 @@ describe('Add connection modal', () => {
   it('should list connection types and select one', async () => {
     render(
       <ManageConnectionModal
+        project={mockProjectK8sResource({})}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
         connectionTypes={[
@@ -86,6 +89,7 @@ describe('Add connection modal', () => {
   it('should enable create button when required fields filled', async () => {
     render(
       <ManageConnectionModal
+        project={mockProjectK8sResource({})}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
         connectionTypes={[
@@ -154,9 +158,10 @@ describe('Add connection modal', () => {
     expect(onSubmitMock).toBeCalled();
   });
 
-  it('should clear or restore entries when switching types', async () => {
+  it('should clear or restore values when switching types', async () => {
     render(
       <ManageConnectionModal
+        project={mockProjectK8sResource({})}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
         connectionTypes={[
@@ -217,8 +222,12 @@ describe('Add connection modal', () => {
     await act(async () => {
       screen.getByRole('option', { name: 'type two' }).click();
     });
-    expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue('');
-    expect(screen.getByRole('textbox', { name: 'Connection description' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
+      'connection one name',
+    );
+    expect(screen.getByRole('textbox', { name: 'Connection description' })).toHaveValue(
+      'connection one desc',
+    );
     expect(screen.getByRole('textbox', { name: 'Short text 2' })).toHaveValue('');
 
     await act(async () => {
