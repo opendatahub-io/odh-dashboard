@@ -296,10 +296,10 @@ describe('MR Permissions', () => {
 
       // Type the group name into the input
       groupTable.findNameSelect().type('new-example-mr-group');
-      
+
       // Wait for the dropdown to appear and select the option
       cy.contains('new-example-mr-group', { timeout: 10000 }).should('be.visible').click();
-      
+
       groupTable.findSaveNewButton().click();
 
       cy.wait('@addGroup').then((interception) => {
