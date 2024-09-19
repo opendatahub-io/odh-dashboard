@@ -213,7 +213,13 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                 {graphLines.map((line, i) => {
                   switch (type) {
                     case MetricsChartTypes.AREA:
-                      return <ChartArea key={i} data={line.points} name={line.name} />;
+                      return (
+                        <ChartArea
+                          key={i}
+                          data={line.points.length === 0 ? [null] : line.points}
+                          name={line.name}
+                        />
+                      );
                     case MetricsChartTypes.LINE:
                       return <ChartLine key={i} data={line.points} name={line.name} />;
                     default:
