@@ -20,7 +20,3 @@
 - op: replace
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
-- op: replace
-  path: /spec/template/spec/imagePullSecrets
-  value:
-    - name: addon-managed-odh-pullsecret
