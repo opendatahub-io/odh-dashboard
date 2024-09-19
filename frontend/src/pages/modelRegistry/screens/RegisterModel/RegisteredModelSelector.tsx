@@ -21,8 +21,9 @@ const RegisteredModelSelector: React.FC<RegisteredModelSelectorProps> = ({
       registeredModels.map(({ name, id }) => ({
         content: name,
         value: id,
+        isSelected: id === registeredModelId,
       })),
-    [registeredModels],
+    [registeredModels, registeredModelId],
   );
 
   if (isDisabled && registeredModelId) {
