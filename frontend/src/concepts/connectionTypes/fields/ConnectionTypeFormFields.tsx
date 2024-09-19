@@ -6,18 +6,30 @@ import {
   ConnectionTypeDataField,
   ConnectionTypeField,
   ConnectionTypeFieldType,
+  ConnectionTypeValueType,
   SectionField,
 } from '~/concepts/connectionTypes/types';
 
 type Props = {
   fields?: ConnectionTypeField[];
   isPreview?: boolean;
-  onChange?: (field: ConnectionTypeDataField, value: unknown) => void;
+  onChange?: (field: ConnectionTypeDataField, value: ConnectionTypeValueType) => void;
+  connectionValues?: {
+    [key: string]: ConnectionTypeValueType;
+  };
 };
 
-type FieldGroup = { section: SectionField | undefined; fields: ConnectionTypeDataField[] };
+type FieldGroup = {
+  section: SectionField | undefined;
+  fields: ConnectionTypeDataField[];
+};
 
-const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange }) => {
+const ConnectionTypeFormFields: React.FC<Props> = ({
+  fields,
+  isPreview,
+  onChange,
+  connectionValues,
+}) => {
   const fieldGroups = React.useMemo(
     () =>
       fields?.reduce<FieldGroup[]>((acc, field) => {
@@ -42,6 +54,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({ fields, isPreview, onChange
             field={field}
             mode={isPreview ? 'preview' : 'instance'}
             onChange={onChange ? (v) => onChange(field, v) : undefined}
+            value={connectionValues?.[field.envVar]}
           />
         )}
       </DataFormFieldGroup>

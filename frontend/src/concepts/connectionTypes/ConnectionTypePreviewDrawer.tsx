@@ -53,7 +53,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
       >
         <Card isFlat isRounded>
           <CardBody>
-            <ConnectionTypePreview obj={obj} />
+            <ConnectionTypePreview isPreview obj={obj} />
           </CardBody>
         </Card>
       </DrawerContentBody>
