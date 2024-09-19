@@ -6,9 +6,12 @@ import {
   TextField,
 } from '~/concepts/connectionTypes/types';
 import {
+  CompatibleTypes,
   defaultValueToString,
   fieldNameToEnvVar,
   fieldTypeToString,
+  getCompatibleTypes,
+  isModelServingCompatible,
   isValidEnvVar,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
@@ -260,5 +263,52 @@ describe('isValidEnvVar', () => {
     expect(isValidEnvVar('has-dash')).toBe(false);
     expect(isValidEnvVar('1_digit_as_first_char')).toBe(false);
     expect(isValidEnvVar('has space')).toBe(false);
+  });
+});
+
+describe('isModelServingCompatible', () => {
+  it('should identify model serving compatible env vars', () => {
+    expect(isModelServingCompatible([])).toBe(false);
+    expect(
+      isModelServingCompatible([
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_S3_ENDPOINT',
+        'AWS_S3_BUCKET',
+      ]),
+    ).toBe(true);
+    expect(isModelServingCompatible(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'])).toBe(false);
+    expect(
+      isModelServingCompatible([
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_S3_ENDPOINT',
+        'AWS_S3_BUCKET',
+        'URI',
+      ]),
+    ).toBe(true);
+  });
+});
+
+describe('getCompatibleTypes', () => {
+  it('should return compatible types', () => {
+    expect(getCompatibleTypes(['AWS_ACCESS_KEY_ID'])).toEqual([]);
+    expect(
+      getCompatibleTypes([
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_S3_ENDPOINT',
+        'AWS_S3_BUCKET',
+      ]),
+    ).toEqual([CompatibleTypes.ModelServing]);
+    expect(
+      getCompatibleTypes([
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_S3_ENDPOINT',
+        'AWS_S3_BUCKET',
+        'URI',
+      ]),
+    ).toEqual([CompatibleTypes.ModelServing]);
   });
 });

@@ -5,6 +5,7 @@ import {
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
 } from '~/concepts/connectionTypes/types';
+import { enumIterator } from '~/utilities/utils';
 
 export const toConnectionTypeConfigMapObj = (
   configMap: ConnectionTypeConfigMap,
@@ -85,3 +86,24 @@ export const fieldNameToEnvVar = (name: string): string => {
 
 const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
+
+export const isModelServingCompatible = (envVars: string[]): boolean =>
+  ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'].every(
+    (envVar) => envVars.includes(envVar),
+  );
+
+export enum CompatibleTypes {
+  ModelServing = 'Model serving',
+}
+
+const compatibilities: Record<CompatibleTypes, (envVars: string[]) => boolean> = {
+  [CompatibleTypes.ModelServing]: isModelServingCompatible,
+};
+
+export const getCompatibleTypes = (envVars: string[]): CompatibleTypes[] =>
+  enumIterator(CompatibleTypes).reduce<CompatibleTypes[]>((acc, [, value]) => {
+    if (compatibilities[value](envVars)) {
+      acc.push(value);
+    }
+    return acc;
+  }, []);

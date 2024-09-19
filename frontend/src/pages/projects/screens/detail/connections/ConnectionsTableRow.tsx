@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Truncate } from '@patternfly/react-core';
+import { LabelGroup, Truncate } from '@patternfly/react-core';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 
 type ConnectionsTableRowProps = {
   obj: Connection;
@@ -28,6 +30,14 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
     );
   }, [obj, connectionTypes]);
 
+  const compatibleTypes = obj.data
+    ? getCompatibleTypes(
+        Object.entries(obj.data)
+          .filter(([, value]) => !!value)
+          .map(([key]) => key),
+      )
+    : [];
+
   return (
     <Tr>
       <Td dataLabel="Name">
@@ -41,6 +51,17 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Type">{connectionTypeDisplayName}</Td>
+      <Td dataLabel="Compatibility">
+        {compatibleTypes.length ? (
+          <LabelGroup>
+            {compatibleTypes.map((compatibleType) => (
+              <CompatibilityLabel key={compatibleType} type={compatibleType} />
+            ))}
+          </LabelGroup>
+        ) : (
+          '-'
+        )}
+      </Td>
       <Td dataLabel="Connected resources">-</Td>
       <Td isActionCell>
         <ActionsColumn

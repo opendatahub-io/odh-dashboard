@@ -542,3 +542,38 @@ const mockFields: ConnectionTypeField[] = [
     },
   },
 ];
+
+export const mockModelServingFields: ConnectionTypeField[] = [
+  {
+    type: 'short-text',
+    name: 'Access key',
+    description: '',
+    envVar: 'AWS_ACCESS_KEY_ID',
+    required: true,
+    properties: {},
+  },
+  {
+    type: 'hidden',
+    name: 'Secret key',
+    description: '',
+    envVar: 'AWS_SECRET_ACCESS_KEY',
+    required: true,
+    properties: {},
+  },
+  {
+    type: 'short-text',
+    name: 'Endpoint',
+    description: '',
+    envVar: 'AWS_S3_ENDPOINT',
+    required: true,
+    properties: {},
+  },
+  {
+    type: 'short-text',
+    name: 'Bucket',
+    description: '',
+    envVar: 'AWS_S3_BUCKET',
+    required: true,
+    properties: {},
+  },
+];
