@@ -40,16 +40,16 @@ const LearningCenterListHeaders: React.FC = () => {
     }
     if (sortOrder === SORT_ASC) {
       return (
-        <LongArrowAltDownIcon
+        <LongArrowAltUpIcon
           onClick={() => onSortSelect(field, false)}
-          data-testid={`sort-down-icon ${field}`}
+          data-testid={`sort-up-icon ${field}`}
         />
       );
     }
     return (
-      <LongArrowAltUpIcon
+      <LongArrowAltDownIcon
         onClick={() => onSortSelect(field, true)}
-        data-testid={`sort-up-icon ${field}`}
+        data-testid={`sort-down-icon ${field}`}
       />
     );
   };
