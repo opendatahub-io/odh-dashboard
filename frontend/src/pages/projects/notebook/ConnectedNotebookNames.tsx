@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Badge, Label, LabelGroup, List, ListItem, Spinner } from '@patternfly/react-core';
+import { Label, LabelGroup, Spinner } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useRelatedNotebooks, { ConnectedNotebookContext } from './useRelatedNotebooks';
 
@@ -34,7 +34,9 @@ const ConnectedNotebookNames: React.FC<ConnectedNotebookNamesProps> = ({
   return (
     <LabelGroup isCompact>
       {connectedNotebooks.map((notebook) => (
-          <Label isCompact key={notebook.metadata.uid}>{getDisplayNameFromK8sResource(notebook)}</Label>
+        <Label isCompact key={notebook.metadata.uid}>
+          {getDisplayNameFromK8sResource(notebook)}
+        </Label>
       ))}
     </LabelGroup>
   );
