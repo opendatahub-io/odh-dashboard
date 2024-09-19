@@ -13,6 +13,7 @@ import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { getDefaultValues } from '~/concepts/connectionTypes/utils';
 
 type Props = {
   connection?: Connection;
@@ -44,7 +45,15 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
-  }>(connection?.data ?? {});
+  }>(() => {
+    if (connection?.data) {
+      return connection.data;
+    }
+    if (enabledConnectionTypes?.length === 1) {
+      return getDefaultValues(enabledConnectionTypes[0]);
+    }
+    return {};
+  });
 
   // if user changes connection types, don't discard previous entries in case of accident
   const [previousEntries, setPreviousEntries] = React.useState<{
@@ -78,15 +87,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
         setConnectionValues(previousEntries[type.metadata.name].values);
       } else {
         // first time load, so add default values
-        const defaults: {
-          [key: string]: ConnectionTypeValueType;
-        } = {};
-        for (const field of type?.data?.fields ?? []) {
-          if (isConnectionTypeDataField(field) && field.properties.defaultValue) {
-            defaults[field.envVar] = field.properties.defaultValue;
-          }
-        }
-        setConnectionValues(defaults);
+        setConnectionValues(getDefaultValues(type));
       }
 
       setSelectedConnectionType(type);

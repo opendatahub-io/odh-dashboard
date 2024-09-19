@@ -4,6 +4,8 @@ import {
   ConnectionTypeDataField,
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
+  ConnectionTypeValueType,
+  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
 
@@ -107,3 +109,17 @@ export const getCompatibleTypes = (envVars: string[]): CompatibleTypes[] =>
     }
     return acc;
   }, []);
+
+export const getDefaultValues = (
+  connectionType?: ConnectionTypeConfigMapObj,
+): { [key: string]: ConnectionTypeValueType } => {
+  const defaults: {
+    [key: string]: ConnectionTypeValueType;
+  } = {};
+  for (const field of connectionType?.data?.fields ?? []) {
+    if (isConnectionTypeDataField(field) && field.properties.defaultValue) {
+      defaults[field.envVar] = field.properties.defaultValue;
+    }
+  }
+  return defaults;
+};
