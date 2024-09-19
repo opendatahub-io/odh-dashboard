@@ -69,8 +69,7 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
-const defaultSelectOptionMessage = (newValue: string) => `Select "${newValue}"`;
-
+const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
 
@@ -88,7 +87,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   noOptionsFoundMessage = defaultNoOptionsFoundMessage,
   isCreatable = false,
   isCreateOptionOnTop = false,
-  createOptionMessage = defaultSelectOptionMessage,
+  createOptionMessage = defaultCreateOptionMessage,
   isDisabled,
   toggleWidth,
   toggleProps,
@@ -246,7 +245,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, value: string) => {
-    setFilterValue(value);
+    setFilterValue(value || '');
     setIsFiltering(true);
     if (onInputChange) {
       onInputChange(value);
@@ -404,6 +403,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       onSelect={handleSelect}
       onOpenChange={(open) => !open && closeMenu()}
       toggle={toggle}
+      shouldFocusFirstItemOnOpen={false}
       ref={innerRef}
       {...props}
     >
