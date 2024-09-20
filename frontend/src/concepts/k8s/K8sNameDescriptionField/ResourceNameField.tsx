@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  HelperText,
-  StackItem,
-  TextInput,
-  ValidatedOptions,
-} from '@patternfly/react-core';
+import { FormGroup, HelperText, TextInput, ValidatedOptions } from '@patternfly/react-core';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
 import {
   HelperTextItemMaxLength,
@@ -37,11 +31,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   };
 
   if (k8sName.state.immutable) {
-    return (
-      <StackItem>
-        <FormGroup {...formGroupProps}>{k8sName.value}</FormGroup>
-      </StackItem>
-    );
+    return <FormGroup {...formGroupProps}>{k8sName.value}</FormGroup>;
   }
 
   if (!allowEdit || !onDataChange) {
@@ -56,22 +46,20 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   }
 
   return (
-    <StackItem>
-      <FormGroup {...formGroupProps} isRequired>
-        <TextInput
-          data-testid={`${dataTestId}-resourceName`}
-          name={`${dataTestId}-resourceName`}
-          isRequired
-          value={k8sName.value}
-          onChange={(event, value) => onDataChange('k8sName', value)}
-          validated={validated}
-        />
-        <HelperText>
-          <HelperTextItemMaxLength k8sName={k8sName} />
-          <HelperTextItemValidCharacters k8sName={k8sName} />
-        </HelperText>
-      </FormGroup>
-    </StackItem>
+    <FormGroup {...formGroupProps} isRequired>
+      <TextInput
+        data-testid={`${dataTestId}-resourceName`}
+        name={`${dataTestId}-resourceName`}
+        isRequired
+        value={k8sName.value}
+        onChange={(event, value) => onDataChange('k8sName', value)}
+        validated={validated}
+      />
+      <HelperText>
+        <HelperTextItemMaxLength k8sName={k8sName} />
+        <HelperTextItemValidCharacters k8sName={k8sName} />
+      </HelperText>
+    </FormGroup>
   );
 };
 
