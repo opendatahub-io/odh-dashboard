@@ -113,6 +113,11 @@ describe('useTemplates', () => {
         isList: true,
         groupVersionKind: groupVersionKind(TemplateModel),
         namespace,
+        selector: {
+          matchLabels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        },
       },
       TemplateModel,
     );
@@ -165,6 +170,11 @@ describe('useTemplates', () => {
         isList: true,
         groupVersionKind: groupVersionKind(TemplateModel),
         namespace,
+        selector: {
+          matchLabels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+        },
       },
       TemplateModel,
     );
