@@ -1,10 +1,9 @@
 {
   "extends": "../../../tsconfig.json",
-  "include": ["../../**/*.ts"],
-  "exclude": ["node_modules", "public"],
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules", "public", "coverage", ".nyc_output"],
   "compilerOptions": {
-    // TODO https://github.com/cypress-io/cypress/issues/26203
-    "sourceMap": false,
+    "sourceMap": true,
     "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe"]
   }
 }
