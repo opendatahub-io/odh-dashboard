@@ -65,17 +65,6 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
       }}
       placeholder={placeholderText}
       createOptionMessage={(newValue) => `Select "${newValue}"`}
-      filterFunction={(filterValue, options) => {
-        const filteredOptions = options.filter((option) =>
-          String(option.content).toLowerCase().includes(filterValue.toLowerCase()),
-        );
-
-        if (filteredOptions.length === 0 && filterValue.trim() !== '') {
-          return [{ value: filterValue, content: filterValue }];
-        }
-
-        return filteredOptions;
-      }}
     />
   );
 };

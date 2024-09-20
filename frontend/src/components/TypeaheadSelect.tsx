@@ -250,12 +250,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     if (onInputChange) {
       onInputChange(value);
     }
-    if (selected && value !== selected.content) {
-      // Clear the selection when the input value changes
-      if (onSelect) {
-        onSelect(undefined, '');
-      }
-    }
+
     resetActiveAndFocusedItem();
   };
 
