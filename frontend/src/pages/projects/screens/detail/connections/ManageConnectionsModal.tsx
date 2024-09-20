@@ -56,7 +56,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const [validations, setValidations] = React.useState<{
     [key: string]: boolean;
   }>({});
-  const isValid = React.useMemo(
+  const isFormValid = React.useMemo(
     () =>
       !!selectedConnectionType &&
       !!nameDescData.name &&
@@ -77,17 +77,11 @@ export const ManageConnectionModal: React.FC<Props> = ({
       [key: string]: ConnectionTypeValueType;
     };
   }>({});
-  const previousValidations = React.useRef<{
-    [connectionTypeName: string]: {
-      [key: string]: boolean;
-    };
-  }>({});
   const changeSelectionType = React.useCallback(
     (type?: ConnectionTypeConfigMapObj) => {
       // save previous connection values
       if (selectedConnectionType) {
         previousValues.current[selectedConnectionType.metadata.name] = connectionValues;
-        previousValidations.current[selectedConnectionType.metadata.name] = validations;
         // clear previous values
         setConnectionValues({});
         setValidations({});
@@ -95,7 +89,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
       // load saved values?
       if (type?.metadata.name && type.metadata.name in previousValues.current) {
         setConnectionValues(previousValues.current[type.metadata.name]);
-        setValidations(previousValidations.current[type.metadata.name]);
       } else if (type) {
         // first time load, so add default values
         setConnectionValues(getDefaultValues(type));
@@ -103,7 +96,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
       setSelectedConnectionType(type);
     },
-    [selectedConnectionType, connectionValues, validations],
+    [selectedConnectionType, connectionValues],
   );
 
   return (
@@ -146,7 +139,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
               });
           }}
           error={error}
-          isSubmitDisabled={!isValid}
+          isSubmitDisabled={!isFormValid}
           isSubmitLoading={isSaving}
           alertTitle=""
         />
@@ -159,9 +152,12 @@ export const ManageConnectionModal: React.FC<Props> = ({
         connectionNameDesc={nameDescData}
         setConnectionNameDesc={setNameDescData}
         connectionValues={connectionValues}
-        setConnectionValues={setConnectionValues}
-        validations={validations}
-        setValidations={setValidations}
+        onChange={(field, value) =>
+          setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }))
+        }
+        onValidate={(field, isValid) =>
+          setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
+        }
       />
     </Modal>
   );

@@ -17,7 +17,10 @@ import {
 } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof ConnectionTypeFormFields>,
+  'onChange' | 'onValidate'
+> & {
   connectionType?: ConnectionTypeConfigMapObj;
   setConnectionType?: (obj?: ConnectionTypeConfigMapObj) => void;
   connectionTypes?: ConnectionTypeConfigMapObj[];
@@ -27,9 +30,6 @@ type Props = {
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
   };
-  setConnectionValues?: (values: { [key: string]: ConnectionTypeValueType }) => void;
-  validations?: { [key: string]: boolean };
-  setValidations?: (validations: { [key: string]: boolean }) => void;
 };
 
 const ConnectionTypeForm: React.FC<Props> = ({
@@ -40,9 +40,8 @@ const ConnectionTypeForm: React.FC<Props> = ({
   connectionNameDesc,
   setConnectionNameDesc,
   connectionValues,
-  setConnectionValues,
-  validations,
-  setValidations,
+  onChange,
+  onValidate,
 }) => {
   const options: TypeaheadSelectOption[] = React.useMemo(() => {
     if (isPreview && connectionType?.metadata.annotations?.['openshift.io/display-name']) {
@@ -118,18 +117,8 @@ const ConnectionTypeForm: React.FC<Props> = ({
             fields={connectionType?.data?.fields}
             isPreview={isPreview}
             connectionValues={connectionValues}
-            onChange={(field, value) => {
-              setConnectionValues?.({
-                ...connectionValues,
-                [field.envVar]: value,
-              });
-            }}
-            onValidate={(field, isValid) => {
-              setValidations?.({
-                ...validations,
-                [field.envVar]: isValid,
-              });
-            }}
+            onChange={onChange}
+            onValidate={onValidate}
           />
         </FormSection>
       )}
