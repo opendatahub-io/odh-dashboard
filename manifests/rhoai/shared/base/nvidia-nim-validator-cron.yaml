@@ -19,8 +19,6 @@ spec:
             parent: "nvidia-nim-periodic-validator"
         spec:
           serviceAccount: "rhods-dashboard"
-          imagePullSecrets:
-            - name: addon-managed-odh-pullsecret
           containers:
           - name: nvidia-nim-validator
             image: registry.redhat.io/openshift4/ose-cli@sha256:75bf9b911b6481dcf29f7942240d1555adaa607eec7fc61bedb7f624f87c36d4
