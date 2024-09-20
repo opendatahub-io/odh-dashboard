@@ -70,7 +70,6 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
-
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
 
@@ -212,12 +211,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const onInputClick = () => {
     if (!isOpen) {
       openMenu();
-      setTimeout(() => {
-        textInputRef.current?.focus();
-      }, 100);
-    } else if (isFiltering) {
-      closeMenu();
     }
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
   };
 
   const selectOption = (
@@ -401,6 +398,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       onSelect={handleSelect}
       onOpenChange={(open) => !open && closeMenu()}
       toggle={toggle}
+      shouldFocusFirstItemOnOpen={false}
       ref={innerRef}
       {...props}
     >

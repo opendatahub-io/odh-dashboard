@@ -92,7 +92,8 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                 <Tooltip
                   content={
                     <div>
-                      This group is created by default. You can add users to this group via the API.
+                      This group is created by default. You can add users to this group in OpenShift
+                      user management, or ask the cluster admin to do so.
                     </div>
                   }
                 >

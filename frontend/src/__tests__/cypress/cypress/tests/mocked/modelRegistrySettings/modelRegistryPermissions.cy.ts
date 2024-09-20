@@ -294,8 +294,12 @@ describe('MR Permissions', () => {
 
       usersTab.findAddGroupButton().click();
 
-      groupTable.findNameSelect().fill('new-example-mr-group');
-      cy.findByText('Create "new-example-mr-group"').click();
+      // Type the group name into the input
+      groupTable.findNameSelect().type('new-example-mr-group');
+
+      // Wait for the dropdown to appear and select the option
+      cy.contains('new-example-mr-group', { timeout: 10000 }).should('be.visible').click();
+
       groupTable.findSaveNewButton().click();
 
       cy.wait('@addGroup').then((interception) => {
