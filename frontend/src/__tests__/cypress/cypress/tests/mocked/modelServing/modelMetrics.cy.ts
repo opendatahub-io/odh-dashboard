@@ -105,10 +105,21 @@ const initIntercepts = ({
     ServingRuntimeModel,
     mockServingRuntimeK8sResource({ name: 'test-model', namespace: 'test-project' }),
   );
-  cy.interceptOdh(
-    'POST /api/prometheus/serving',
-    mockPrometheusServing({ result: hasServingData ? undefined : [] }), // will mock for both ok and not ok
-  );
+  cy.interceptOdh('POST /api/prometheus/serving', (req) => {
+    // failed http request count has no data
+    // all the other serving endpoints get data
+    const { query } = req.body;
+    if (
+      !(
+        query.includes(`modelmesh_api_request_milliseconds_count`) &&
+        query.includes(`code%21%3D%27OK`)
+      )
+    ) {
+      req.reply(mockPrometheusServing({ result: hasServingData ? undefined : [] }));
+    } else {
+      req.reply(mockPrometheusServing({ result: [] }));
+    }
+  });
   cy.interceptOdh('POST /api/prometheus/bias', (req) => {
     if ((req.body as { query: string }).query.includes(`query=trustyai_dir`)) {
       req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'DIR' }));
@@ -253,7 +264,7 @@ describe('Model Metrics', () => {
       .shouldHaveData();
   });
 
-  it('Server metrics show no data available ', () => {
+  it('Server metrics show no data available', () => {
     initIntercepts({
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
