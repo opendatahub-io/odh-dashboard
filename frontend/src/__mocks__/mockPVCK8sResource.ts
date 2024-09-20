@@ -5,6 +5,7 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   storage?: string;
+  storageClassName?: string;
   displayName?: string;
   uid?: string;
 };
@@ -13,6 +14,7 @@ export const mockPVCK8sResource = ({
   name = 'test-storage',
   namespace = 'test-project',
   storage = '5Gi',
+  storageClassName = 'gp3',
   displayName = 'Test Storage',
   uid = genUID('pvc'),
 }: MockResourceConfigType): PersistentVolumeClaimKind => ({
@@ -38,7 +40,7 @@ export const mockPVCK8sResource = ({
       },
     },
     volumeName: 'pvc-8644e33b-a710-45a3-9d54-7f987494643a',
-    storageClassName: 'gp3',
+    storageClassName,
     volumeMode: 'Filesystem',
   },
   status: {

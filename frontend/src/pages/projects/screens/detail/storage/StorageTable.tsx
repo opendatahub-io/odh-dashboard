@@ -1,10 +1,15 @@
 import * as React from 'react';
+import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import { Table } from '~/components/table';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import DeletePVCModal from '~/pages/projects/pvc/DeletePVCModal';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import ManageStorageModal from './ManageStorageModal';
+import { StorageTableData } from './types';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
@@ -15,20 +20,64 @@ type StorageTableProps = {
 const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) => {
   const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const [storageClasses, storageClassesLoaded] = useStorageClasses();
+  const [alertDismissed, setAlertDismissed] = React.useState<boolean>(false);
+  const storageTableData: StorageTableData[] = pvcs.map((pvc) => ({
+    pvc,
+    storageClass: storageClasses.find((sc) => sc.metadata.name === pvc.spec.storageClassName),
+  }));
+  const isDeprecatedAlert = React.useMemo(
+    () =>
+      storageClassesLoaded &&
+      storageTableData.some(
+        (data) => !data.storageClass || !getStorageClassConfig(data.storageClass)?.isEnabled,
+      ),
+    [storageClassesLoaded, storageTableData],
+  );
+  const shouldShowAlert = isDeprecatedAlert && !alertDismissed && isStorageClassesAvailable;
+
+  const getStorageColumns = () => {
+    let storageColumns = columns;
+
+    if (!isStorageClassesAvailable) {
+      storageColumns = columns.filter((column) => column.field !== 'storage');
+    }
+    return storageColumns;
+  };
 
   return (
     <>
+      {shouldShowAlert && (
+        <Alert
+          data-testid="storage-class-deprecated-alert"
+          variant="warning"
+          isInline
+          title="Deprecated storage class"
+          actionClose={
+            <AlertActionCloseButton
+              data-testid="storage-class-deprecated-alert-close-button"
+              onClose={() => setAlertDismissed(true)}
+            />
+          }
+        >
+          A storage class has been deprecated by your administrator, but the cluster storage using
+          it is still active. If you want to migrate your data to cluster storage instance using a
+          different storage class, contact your administrator.
+        </Alert>
+      )}
       <Table
-        data={pvcs}
-        columns={columns}
+        data={storageTableData}
+        columns={getStorageColumns()}
         disableRowRenderSupport
         data-testid="storage-table"
         variant="compact"
-        rowRenderer={(pvc, i) => (
+        rowRenderer={(data, i) => (
           <StorageTableRow
-            key={pvc.metadata.uid}
+            key={data.pvc.metadata.uid}
             rowIndex={i}
-            obj={pvc}
+            obj={data}
+            storageClassesLoaded={storageClassesLoaded}
             onEditPVC={setEditPVC}
             onDeletePVC={setDeleteStorage}
             onAddPVC={onAddPVC}

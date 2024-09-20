@@ -7,40 +7,56 @@ import {
   Td,
   Tr,
 } from '@patternfly/react-table';
-import { Flex, FlexItem, Text } from '@patternfly/react-core';
-import { HddIcon } from '@patternfly/react-icons';
+import {
+  Flex,
+  FlexItem,
+  Label,
+  Skeleton,
+  Text,
+  TextVariants,
+  Tooltip,
+} from '@patternfly/react-core';
+import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { getStorageClassConfig } from '~/pages/storageClasses/utils';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
+import { StorageTableData } from './types';
 
 type StorageTableRowProps = {
-  obj: PersistentVolumeClaimKind;
   rowIndex: number;
+  obj: StorageTableData;
+  storageClassesLoaded: boolean;
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
   onAddPVC: () => void;
 };
 
 const StorageTableRow: React.FC<StorageTableRowProps> = ({
-  obj,
   rowIndex,
+  obj,
+  storageClassesLoaded,
   onDeletePVC,
   onEditPVC,
   onAddPVC,
 }) => {
   const [isExpanded, setExpanded] = React.useState(false);
-  const isRootVolume = useIsRootVolume(obj);
+  const isRootVolume = useIsRootVolume(obj.pvc);
+
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
 
   const actions: IAction[] = [
     {
       title: 'Edit storage',
       onClick: () => {
-        onEditPVC(obj);
+        onEditPVC(obj.pvc);
       },
     },
   ];
@@ -49,7 +65,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
     actions.push({
       title: 'Delete storage',
       onClick: () => {
-        onDeletePVC(obj);
+        onDeletePVC(obj.pvc);
       },
     });
   }
@@ -71,14 +87,69 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-              <TableRowTitleDescription title={getDisplayNameFromK8sResource(obj)} resource={obj} />
+              <TableRowTitleDescription
+                title={getDisplayNameFromK8sResource(obj.pvc)}
+                resource={obj.pvc}
+              />
             </FlexItem>
             <FlexItem>
-              <StorageWarningStatus obj={obj} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
+              <StorageWarningStatus obj={obj.pvc} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
             </FlexItem>
           </Flex>
-          <Text>{getDescriptionFromK8sResource(obj)}</Text>
+          <Text>{getDescriptionFromK8sResource(obj.pvc)}</Text>
         </Td>
+
+        {isStorageClassesAvailable && (
+          <Td dataLabel="Storage class">
+            <Flex
+              spaceItems={{ default: 'spaceItemsSm' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+            >
+              <FlexItem>
+                <Text>
+                  {storageClassConfig?.displayName ??
+                    obj.storageClass?.metadata.name ??
+                    obj.pvc.spec.storageClassName}
+                </Text>
+              </FlexItem>
+              {storageClassesLoaded && (
+                <FlexItem>
+                  {!obj.storageClass ? (
+                    <Tooltip content="This storage class is deleted.">
+                      <Label
+                        data-testid="storage-class-deleted"
+                        isCompact
+                        icon={<ExclamationTriangleIcon />}
+                        color="gold"
+                      >
+                        Deleted
+                      </Label>
+                    </Tooltip>
+                  ) : (
+                    !storageClassConfig?.isEnabled && (
+                      <Tooltip
+                        data-testid="storage-class-deprecated-tooltip"
+                        content="This storage class is deprecated, but the cluster storage is still active."
+                      >
+                        <Label
+                          data-testid="storage-class-deprecated"
+                          isCompact
+                          icon={<ExclamationTriangleIcon />}
+                          color="gold"
+                        >
+                          Deprecated
+                        </Label>
+                      </Tooltip>
+                    )
+                  )}
+                </FlexItem>
+              )}
+            </Flex>
+            <Text component={TextVariants.small}>
+              {storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
+            </Text>
+          </Td>
+        )}
         <Td dataLabel="Type">
           <Text>
             <Flex>
@@ -92,7 +163,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         <Td dataLabel="Connected workbenches">
           <ConnectedNotebookNames
             context={ConnectedNotebookContext.EXISTING_PVC}
-            relatedResourceName={obj.metadata.name}
+            relatedResourceName={obj.pvc.metadata.name}
           />
         </Td>
         <Td isActionCell>
@@ -104,7 +175,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         <Td dataLabel="Size">
           <ExpandableRowContent>
             <strong>Size</strong>
-            <StorageSizeBar pvc={obj} />
+            <StorageSizeBar pvc={obj.pvc} />
           </ExpandableRowContent>
         </Td>
         <Td />

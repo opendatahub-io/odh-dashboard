@@ -1,10 +1,13 @@
 import {
   buildMockStorageClass,
+  mockDashboardConfig,
   mockK8sResourceList,
   mockNotebookK8sResource,
   mockProjectK8sResource,
   mockStorageClasses,
+  mockStorageClassList,
 } from '~/__mocks__';
+
 import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -27,9 +30,10 @@ import { storageClassesTable } from '~/__tests__/cypress/cypress/pages/storageCl
 
 type HandlersProps = {
   isEmpty?: boolean;
+  storageClassName?: string;
 };
 
-const initInterceptors = ({ isEmpty = false }: HandlersProps) => {
+const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) => {
   cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -44,7 +48,7 @@ const initInterceptors = ({ isEmpty = false }: HandlersProps) => {
       isEmpty
         ? []
         : [
-            mockPVCK8sResource({ uid: 'test-id' }),
+            mockPVCK8sResource({ uid: 'test-id', storageClassName }),
             mockPVCK8sResource({ displayName: 'Another Cluster Storage' }),
           ],
     ),
@@ -55,6 +59,43 @@ const initInterceptors = ({ isEmpty = false }: HandlersProps) => {
 const [openshiftDefaultStorageClass, otherStorageClass] = mockStorageClasses;
 
 describe('ClusterStorage', () => {
+  describe('when StorageClasses feature flag is enabled', () => {
+    beforeEach(() => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableStorageClasses: false,
+        }),
+      );
+
+      cy.interceptOdh(
+        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
+        {},
+        mockStorageClassList(),
+      );
+    });
+
+    it('Check whether the Storage class column is present', () => {
+      initInterceptors({ storageClassName: 'openshift-default-sc' });
+      clusterStorage.visit('test-project');
+      const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
+      clusterStorageRow.findStorageClassColumn().should('exist');
+    });
+
+    it('Check whether the Storage class is deprecated', () => {
+      initInterceptors({ storageClassName: 'test-storage-class-1' });
+      clusterStorage.visit('test-project');
+
+      const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
+      clusterStorageRow.findDeprecatedLabel().should('exist');
+
+      clusterStorageRow.findDeprecatedLabel().trigger('mouseenter');
+      clusterStorageRow.shouldHaveDeprecatedTooltip();
+      clusterStorage.shouldHaveDeprecatedAlertMessage();
+      clusterStorage.closeDeprecatedAlert();
+    });
+  });
+
   it('Empty state', () => {
     initInterceptors({ isEmpty: true });
     clusterStorage.visit('test-project');
@@ -121,10 +162,17 @@ describe('ClusterStorage', () => {
     });
   });
 
-  it('list accelerator profiles and Table sorting', () => {
+  it('list cluster storage and Table sorting', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableStorageClasses: true,
+      }),
+    );
     initInterceptors({});
     clusterStorage.visit('test-project');
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
+    clusterStorageRow.findStorageClassColumn().should('not.exist');
     clusterStorageRow.shouldHaveStorageTypeValue('Persistent storage');
     clusterStorageRow.findConnectedWorkbenches().should('have.text', 'No connections');
     clusterStorageRow.toggleExpandableContent();
