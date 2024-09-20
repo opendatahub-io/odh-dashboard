@@ -28,6 +28,8 @@ type Props = {
     [key: string]: ConnectionTypeValueType;
   };
   setConnectionValues?: (values: { [key: string]: ConnectionTypeValueType }) => void;
+  validations?: { [key: string]: boolean };
+  setValidations?: (validations: { [key: string]: boolean }) => void;
 };
 
 const ConnectionTypeForm: React.FC<Props> = ({
@@ -39,6 +41,8 @@ const ConnectionTypeForm: React.FC<Props> = ({
   setConnectionNameDesc,
   connectionValues,
   setConnectionValues,
+  validations,
+  setValidations,
 }) => {
   const options: TypeaheadSelectOption[] = React.useMemo(() => {
     if (isPreview && connectionType?.metadata.annotations?.['openshift.io/display-name']) {
@@ -118,6 +122,12 @@ const ConnectionTypeForm: React.FC<Props> = ({
               setConnectionValues?.({
                 ...connectionValues,
                 [field.envVar]: value,
+              });
+            }}
+            onValidate={(field, isValid) => {
+              setValidations?.({
+                ...validations,
+                [field.envVar]: isValid,
               });
             }}
           />

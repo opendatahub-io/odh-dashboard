@@ -17,6 +17,7 @@ type Props = {
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
   };
+  onValidate?: (field: ConnectionTypeDataField, error: boolean) => void;
 };
 
 type FieldGroup = {
@@ -29,6 +30,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
   isPreview,
   onChange,
   connectionValues,
+  onValidate,
 }) => {
   const fieldGroups = React.useMemo(
     () =>
@@ -55,6 +57,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
             mode={isPreview ? 'preview' : 'instance'}
             onChange={onChange ? (v) => onChange(field, v) : undefined}
             value={connectionValues?.[field.envVar]}
+            onValidate={onValidate ? (e) => onValidate(field, e) : undefined}
           />
         )}
       </DataFormFieldGroup>

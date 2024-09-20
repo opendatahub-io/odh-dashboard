@@ -62,8 +62,10 @@ export const ConnectionTypeDetailsHelperText: React.FC<Props> = ({ connectionTyp
                         <CategoryLabel key={category} category={category} />
                       ))}
                     </LabelGroup>
-                  ) : (
+                  ) : isPreview ? (
                     <UnspecifiedValue />
+                  ) : (
+                    '-'
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>

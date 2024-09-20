@@ -86,7 +86,7 @@ describe('Add connection modal', () => {
     expect(screen.getByRole('textbox', { name: 'Short text 1' })).toBeVisible();
   });
 
-  it('should enable create button when required fields filled', async () => {
+  it('should enable create button when required fields filled and all valid', async () => {
     render(
       <ManageConnectionModal
         project={mockProjectK8sResource({})}
@@ -152,6 +152,91 @@ describe('Add connection modal', () => {
     });
 
     expect(createButton).toBeEnabled();
+    await act(async () => {
+      createButton.click();
+    });
+    expect(onSubmitMock).toBeCalled();
+  });
+
+  it('should enable create once field validations are valid', async () => {
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+              {
+                type: 'uri',
+                name: 'uri 2',
+                envVar: 'env2',
+                properties: {},
+              },
+              {
+                type: 'numeric',
+                name: 'numeric 3',
+                envVar: 'env3',
+                properties: { min: 0 },
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    const connectionName = screen.getByRole('textbox', { name: 'Connection name' });
+    const uri = screen.getByRole('textbox', { name: 'uri 2' });
+    const numeric = screen.getByRole('spinbutton', { name: 'Input' });
+    const createButton = screen.getByRole('button', { name: 'Create' });
+
+    // should be enabled / valid when validations fields are blank
+    await act(async () => {
+      fireEvent.change(connectionName, {
+        target: { value: 'name entry' },
+      });
+    });
+    expect(createButton).toBeEnabled();
+
+    // uri
+    await act(async () => {
+      fireEvent.change(uri, {
+        target: { value: 'invalid uri' },
+      });
+      fireEvent.blur(uri);
+    });
+    expect(createButton).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.change(uri, {
+        target: { value: 'http://localhost' },
+      });
+      fireEvent.blur(uri);
+    });
+    expect(createButton).toBeEnabled();
+
+    // numeric
+    await act(async () => {
+      fireEvent.change(numeric, {
+        target: { value: '-10' },
+      });
+    });
+    expect(createButton).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.change(numeric, {
+        target: { value: '2' },
+      });
+    });
+    expect(createButton).toBeEnabled();
+
     await act(async () => {
       createButton.click();
     });

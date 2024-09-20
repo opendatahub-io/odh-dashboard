@@ -53,33 +53,9 @@ export const ManageConnectionModal: React.FC<Props> = ({
     return {};
   });
 
-  // if user changes connection types, don't discard previous entries in case of accident
-  const previousValues = React.useRef<{
-    [connectionTypeName: string]: {
-      [key: string]: ConnectionTypeValueType;
-    };
+  const [validations, setValidations] = React.useState<{
+    [key: string]: boolean;
   }>({});
-  const changeSelectionType = React.useCallback(
-    (type?: ConnectionTypeConfigMapObj) => {
-      // save previous connection values
-      if (selectedConnectionType) {
-        previousValues.current[selectedConnectionType.metadata.name] = connectionValues;
-        // clear previous values
-        setConnectionValues({});
-      }
-      // load saved values?
-      if (type?.metadata.name && type.metadata.name in previousValues.current) {
-        setConnectionValues(previousValues.current[type.metadata.name]);
-      } else if (type) {
-        // first time load, so add default values
-        setConnectionValues(getDefaultValues(type));
-      }
-
-      setSelectedConnectionType(type);
-    },
-    [selectedConnectionType, connectionValues],
-  );
-
   const isValid = React.useMemo(
     () =>
       !!selectedConnectionType &&
@@ -90,8 +66,44 @@ export const ManageConnectionModal: React.FC<Props> = ({
           field.required &&
           !connectionValues[field.envVar] &&
           field.type !== ConnectionTypeFieldType.Boolean,
-      ),
-    [selectedConnectionType, nameDescData, connectionValues],
+      ) &&
+      !Object.values(validations).includes(false),
+    [selectedConnectionType, nameDescData, connectionValues, validations],
+  );
+
+  // if user changes connection types, don't discard previous entries in case of accident
+  const previousValues = React.useRef<{
+    [connectionTypeName: string]: {
+      [key: string]: ConnectionTypeValueType;
+    };
+  }>({});
+  const previousValidations = React.useRef<{
+    [connectionTypeName: string]: {
+      [key: string]: boolean;
+    };
+  }>({});
+  const changeSelectionType = React.useCallback(
+    (type?: ConnectionTypeConfigMapObj) => {
+      // save previous connection values
+      if (selectedConnectionType) {
+        previousValues.current[selectedConnectionType.metadata.name] = connectionValues;
+        previousValidations.current[selectedConnectionType.metadata.name] = validations;
+        // clear previous values
+        setConnectionValues({});
+        setValidations({});
+      }
+      // load saved values?
+      if (type?.metadata.name && type.metadata.name in previousValues.current) {
+        setConnectionValues(previousValues.current[type.metadata.name]);
+        setValidations(previousValidations.current[type.metadata.name]);
+      } else if (type) {
+        // first time load, so add default values
+        setConnectionValues(getDefaultValues(type));
+      }
+
+      setSelectedConnectionType(type);
+    },
+    [selectedConnectionType, connectionValues, validations],
   );
 
   return (
@@ -148,6 +160,8 @@ export const ManageConnectionModal: React.FC<Props> = ({
         setConnectionNameDesc={setNameDescData}
         connectionValues={connectionValues}
         setConnectionValues={setConnectionValues}
+        validations={validations}
+        setValidations={setValidations}
       />
     </Modal>
   );
