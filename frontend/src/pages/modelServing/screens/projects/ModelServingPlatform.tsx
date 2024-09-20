@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
@@ -32,6 +33,10 @@ import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/E
 import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
+import EmptyNIMModelServingCard from '~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isNIMAPIKeyEnabled } from '~/pages/modelServing/screens/projects/nimUtils';
+import { useDashboardNamespace } from '~/redux/selectors';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -43,6 +48,22 @@ const ModelServingPlatform: React.FC = () => {
   >(undefined);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
+
+  const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
+  const [isNIMAPIKeyValid, setIsNIMAPIKeyValid] = useState<boolean>(false);
+  const { dashboardNamespace } = useDashboardNamespace();
+
+  useEffect(() => {
+    const checkAPIKey = async () => {
+      try {
+        const valid = await isNIMAPIKeyEnabled(dashboardNamespace);
+        setIsNIMAPIKeyValid(valid);
+      } catch (error) {
+        setIsNIMAPIKeyValid(false);
+      }
+    };
+    checkAPIKey();
+  }, [dashboardNamespace]);
 
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
   const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
@@ -197,6 +218,11 @@ const ModelServingPlatform: React.FC = () => {
                       <GalleryItem>
                         <EmptyMultiModelServingCard />
                       </GalleryItem>
+                      {isNIMModelServingAvailable && isNIMAPIKeyValid && (
+                        <GalleryItem>
+                          <EmptyNIMModelServingCard />
+                        </GalleryItem>
+                      )}
                     </Gallery>
                   </StackItem>
                   <StackItem>

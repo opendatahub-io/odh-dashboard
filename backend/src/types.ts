@@ -41,6 +41,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelRegistry: boolean;
       disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
+      disableNIMModelServing: boolean;
     };
     groupsConfig?: {
       adminGroups: string;

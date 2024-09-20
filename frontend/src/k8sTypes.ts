@@ -3,17 +3,17 @@ import { EitherNotBoth, EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
+  ContainerResourceAttributes,
+  ContainerResources,
+  ImageStreamStatusTagCondition,
+  ImageStreamStatusTagItem,
+  NotebookSize,
   PodAffinity,
   PodContainer,
   Toleration,
-  Volume,
-  ContainerResources,
-  NotebookSize,
   TolerationSettings,
-  ImageStreamStatusTagItem,
-  ImageStreamStatusTagCondition,
+  Volume,
   VolumeMount,
-  ContainerResourceAttributes,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
@@ -1302,6 +1302,7 @@ export type DashboardCommonConfig = {
   disableModelRegistry: boolean;
   disableConnectionTypes: boolean;
   disableStorageClasses: boolean;
+  disableNIMModelServing: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

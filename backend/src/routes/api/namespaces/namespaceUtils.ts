@@ -71,6 +71,7 @@ export const applyNamespaceChange = async (
     );
   }
 
+  let annotations = {};
   let labels = {};
   let checkPermissionsFn = null;
   switch (context) {
@@ -88,6 +89,13 @@ export const applyNamespaceChange = async (
       break;
     case NamespaceApplicationCase.KSERVE_PROMOTION:
       {
+        labels = { 'modelmesh-enabled': 'false' };
+        checkPermissionsFn = checkEditNamespacePermission;
+      }
+      break;
+    case NamespaceApplicationCase.KSERVE_NIM_PROMOTION:
+      {
+        annotations = { 'opendatahub.io/nim-support': 'true' };
         labels = { 'modelmesh-enabled': 'false' };
         checkPermissionsFn = checkEditNamespacePermission;
       }
@@ -121,9 +129,17 @@ export const applyNamespaceChange = async (
   }
 
   return fastify.kube.coreV1Api
-    .patchNamespace(name, { metadata: { labels } }, undefined, dryRun, undefined, undefined, {
-      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-    })
+    .patchNamespace(
+      name,
+      { metadata: { annotations, labels } },
+      undefined,
+      dryRun,
+      undefined,
+      undefined,
+      {
+        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      },
+    )
     .then(() => ({ applied: true }))
     .catch((e) => {
       fastify.log.error(

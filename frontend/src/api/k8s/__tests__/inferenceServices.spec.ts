@@ -1,9 +1,9 @@
 import {
-  K8sStatus,
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
+  K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
@@ -186,6 +186,7 @@ describe('assembleInferenceService', () => {
       undefined,
       false,
       undefined,
+      undefined,
       acceleratorProfileState,
       selectedAcceleratorProfile,
     );
@@ -217,6 +218,7 @@ describe('assembleInferenceService', () => {
       undefined,
       undefined,
       true,
+      undefined,
       undefined,
       acceleratorProfileState,
       selectedAcceleratorProfile,
@@ -251,6 +253,7 @@ describe('assembleInferenceService', () => {
       undefined,
       false,
       undefined,
+      undefined,
       acceleratorProfileState,
       selectedAcceleratorProfile,
     );
@@ -278,6 +281,7 @@ describe('assembleInferenceService', () => {
       undefined,
       undefined,
       true,
+      undefined,
       undefined,
       acceleratorProfileState,
       selectedAcceleratorProfile,
@@ -320,6 +324,7 @@ describe('assembleInferenceService', () => {
       undefined,
       undefined,
       false,
+      undefined,
       undefined,
       acceleratorProfileState,
       selectedAcceleratorProfile,
@@ -372,6 +377,7 @@ describe('assembleInferenceService', () => {
       undefined,
       undefined,
       true,
+      undefined,
       undefined,
       acceleratorProfileState,
       selectedAcceleratorProfile,

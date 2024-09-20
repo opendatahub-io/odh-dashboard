@@ -39,7 +39,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const modelMesh = isModelMesh(inferenceService);
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
-
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
   return (

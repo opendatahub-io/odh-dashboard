@@ -11,4 +11,8 @@ export enum NamespaceApplicationCase {
    * Upgrade an existing DSG project to work with model kserve.
    */
   KSERVE_PROMOTION,
+  /**
+   * Nvidia NIMs run on KServe but have different requirements than regular models.
+   */
+  KSERVE_NIM_PROMOTION,
 }

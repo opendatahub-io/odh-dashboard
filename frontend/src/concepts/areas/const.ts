@@ -29,6 +29,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableModelRegistry: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
+  disableNIMModelServing: true,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -118,5 +119,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+  },
+  [SupportedArea.NIM_MODEL]: {
+    featureFlags: ['disableNIMModelServing'],
   },
 };
