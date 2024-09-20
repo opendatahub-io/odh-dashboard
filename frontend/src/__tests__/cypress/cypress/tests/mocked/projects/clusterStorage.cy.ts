@@ -53,7 +53,19 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
           ],
     ),
   );
-  cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
+  cy.interceptK8sList(
+    NotebookModel,
+    mockK8sResourceList([
+      mockNotebookK8sResource({
+        additionalVolumeMounts: [
+          {
+            mountPath: '/opt/app-root/src/test-dupe',
+            name: 'test-dupe-pvc-path',
+          },
+        ],
+      }),
+    ]),
+  );
 };
 
 const [openshiftDefaultStorageClass, otherStorageClass] = mockStorageClasses;
@@ -133,6 +145,35 @@ describe('ClusterStorage', () => {
       .findWorkbenchConnectionSelect()
       .findSelectOption('Test Notebook')
       .click();
+
+    // don't allow duplicate path
+    addClusterStorageModal.findMountField().clear();
+    addClusterStorageModal.findMountField().fill('test-dupe');
+    addClusterStorageModal
+      .findMountFieldHelperText()
+      .should('have.text', 'Mount folder is already in use for this workbench.');
+
+    // don't allow number in the path
+    addClusterStorageModal.findMountField().clear();
+    addClusterStorageModal.findMountField().fill('test2');
+    addClusterStorageModal
+      .findMountFieldHelperText()
+      .should('have.text', 'Must only consist of lower case letters and dashes.');
+
+    // Allow trailing slash
+    addClusterStorageModal.findMountField().clear();
+    addClusterStorageModal.findMountField().fill('test/');
+    addClusterStorageModal
+      .findMountFieldHelperText()
+      .should('have.text', 'Must consist of lower case letters and dashes.');
+
+    addClusterStorageModal.findMountField().clear();
+    addClusterStorageModal
+      .findMountFieldHelperText()
+      .should(
+        'have.text',
+        'Enter a path to a model or folder. This path cannot point to a root folder.',
+      );
     addClusterStorageModal.findMountField().fill('data');
     addClusterStorageModal.findWorkbenchRestartAlert().should('exist');
 

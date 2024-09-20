@@ -1,7 +1,7 @@
 import _ from 'lodash-es';
 import { KnownLabels, NotebookKind } from '~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
-import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
+import { ContainerResources, TolerationEffect, TolerationOperator, VolumeMount } from '~/types';
 import { genUID } from '~/__mocks__/mockUtils';
 import { RecursivePartial } from '~/typeHelpers';
 
@@ -17,6 +17,7 @@ type MockResourceConfigType = {
   lastImageSelection?: string;
   opts?: RecursivePartial<NotebookKind>;
   uid?: string;
+  additionalVolumeMounts?: VolumeMount[];
 };
 
 export const mockNotebookK8sResource = ({
@@ -31,6 +32,7 @@ export const mockNotebookK8sResource = ({
   lastImageSelection = 's2i-minimal-notebook:py3.8-v1',
   opts = {},
   uid = genUID('notebook'),
+  additionalVolumeMounts = [],
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -144,6 +146,7 @@ export const mockNotebookK8sResource = ({
                     mountPath: '/opt/app-root/src',
                     name,
                   },
+                  ...additionalVolumeMounts,
                 ],
                 workingDir: '/opt/app-root/src',
               },

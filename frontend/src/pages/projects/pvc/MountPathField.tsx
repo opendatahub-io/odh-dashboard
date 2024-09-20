@@ -37,11 +37,11 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
           onChange={(e, value) => {
             let error = '';
             if (value.length === 0) {
-              error = 'Required';
-            } else if (!/^[a-z-]+$/.test(value)) {
-              error = 'Must only consist of lower case letters and dashes';
+              error = 'Enter a path to a model or folder. This path cannot point to a root folder.';
+            } else if (!/^[a-z-]+\/?$/.test(value)) {
+              error = 'Must only consist of lower case letters and dashes.';
             } else if (inUseMountPaths.includes(`/${value}`)) {
-              error = 'Mount folder is already in use for this workbench';
+              error = 'Mount folder is already in use for this workbench.';
             }
             setMountPath({ value, error });
           }}
@@ -50,10 +50,11 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
     </InputGroup>
     <FormHelperText>
       <HelperText>
-        <HelperTextItem variant={mountPath.error ? 'error' : 'default'}>
-          {mountPath.error
-            ? 'Enter a path to a model or folder. This path cannot point to a root folder.'
-            : 'Must consist of lower case letters and dashes.'}
+        <HelperTextItem
+          variant={mountPath.error ? 'error' : 'default'}
+          data-testid="mount-path-folder-helper-text"
+        >
+          {mountPath.error || 'Must consist of lower case letters and dashes.'}
         </HelperTextItem>
       </HelperText>
     </FormHelperText>
