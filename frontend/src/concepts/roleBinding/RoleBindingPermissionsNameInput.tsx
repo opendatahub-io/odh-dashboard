@@ -51,7 +51,10 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
     const displayName = isProjectSubject ? namespaceToProjectDisplayName(option, projects) : option;
     return { value: displayName, content: displayName };
   });
-
+  // If we've selected an option that doesn't exist via isCreatable, include it in the options so it remains selected
+  if (value && !selectOptions.some((option) => option.value === value)) {
+    selectOptions.push({ value, content: value });
+  }
   return (
     <TypeaheadSelect
       selectOptions={selectOptions}
