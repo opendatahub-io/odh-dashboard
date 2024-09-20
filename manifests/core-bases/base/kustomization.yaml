@@ -20,4 +20,4 @@ resources:
 images:
   - name: oauth-proxy
     newName: registry.redhat.io/openshift4/ose-oauth-proxy
-    digest: sha256:ab112105ac37352a2a4916a39d6736f5db6ab4c29bad4467de8d613e80e9bb33
+    digest: sha256:4f8d66597feeb32bb18699326029f9a71a5aca4a57679d636b876377c2e95695
