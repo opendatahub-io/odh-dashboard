@@ -3,19 +3,20 @@ import { Alert } from '@patternfly/react-core';
 import { ForNotebookSelection } from '~/pages/projects/types';
 import MountPathField from '~/pages/projects/pvc/MountPathField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { NotebookKind } from '~/k8sTypes';
 import { getNotebookMountPaths } from './utils';
 import ConnectedNotebookField from './ConnectedNotebookField';
 
 type StorageNotebookConnectionsProps = {
   forNotebookData: ForNotebookSelection;
   setForNotebookData: (value: ForNotebookSelection) => void;
-  isDisabled: boolean;
+  connectedNotebooks: NotebookKind[];
 };
 
 const StorageNotebookConnections: React.FC<StorageNotebookConnectionsProps> = ({
   forNotebookData,
   setForNotebookData,
-  isDisabled,
+  connectedNotebooks,
 }) => {
   const {
     notebooks: { data, loaded, error },
@@ -34,12 +35,17 @@ const StorageNotebookConnections: React.FC<StorageNotebookConnectionsProps> = ({
     notebooks.find((notebook) => notebook.metadata.name === forNotebookData.name),
   );
 
+  const connectedNotebookNames = connectedNotebooks.map((notebook) => notebook.metadata.name);
+  const availableNotebooks = notebooks.filter(
+    (notebook) => !connectedNotebookNames.includes(notebook.metadata.name),
+  );
+
   return (
     <>
       <ConnectedNotebookField
-        isDisabled={isDisabled}
+        isDisabled={availableNotebooks.length === 0}
         loaded={loaded}
-        notebooks={notebooks}
+        notebooks={availableNotebooks}
         selections={[forNotebookData.name]}
         onSelect={(selectionItems) => {
           const selection = selectionItems[0];
