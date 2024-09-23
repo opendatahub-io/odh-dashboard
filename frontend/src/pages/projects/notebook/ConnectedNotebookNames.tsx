@@ -32,7 +32,7 @@ const ConnectedNotebookNames: React.FC<ConnectedNotebookNamesProps> = ({
   }
 
   return (
-    <LabelGroup isCompact>
+    <LabelGroup>
       {connectedNotebooks.map((notebook) => (
         <Label isCompact key={notebook.metadata.uid}>
           {getDisplayNameFromK8sResource(notebook)}
