@@ -3,10 +3,9 @@ import {
   Button,
   FormGroup,
   FormHelperText,
+  FormSection,
   HelperText,
   HelperTextItem,
-  Stack,
-  StackItem,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
@@ -61,65 +60,61 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const { name, description, k8sName } = data;
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
-          <TextInput
-            aria-readonly={!onDataChange}
-            data-testid={`${dataTestId}-name`}
-            id={`${dataTestId}-name`}
-            name={`${dataTestId}-name`}
-            autoFocus={autoFocusName}
-            isRequired
-            value={name}
-            onChange={(event, value) => onDataChange?.('name', value)}
-          />
-          {!showK8sField && !!onDataChange && !k8sName.state.immutable && (
-            <FormHelperText>
-              {k8sName.value && (
-                <HelperText>
-                  <HelperTextItem>
-                    The resource name will be <b>{k8sName.value}</b>.
-                  </HelperTextItem>
-                </HelperText>
-              )}
+    <FormSection style={{ margin: 0 }}>
+      <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
+        <TextInput
+          aria-readonly={!onDataChange}
+          data-testid={`${dataTestId}-name`}
+          id={`${dataTestId}-name`}
+          name={`${dataTestId}-name`}
+          autoFocus={autoFocusName}
+          isRequired
+          value={name}
+          onChange={(event, value) => onDataChange?.('name', value)}
+        />
+        {!showK8sField && !!onDataChange && !k8sName.state.immutable && (
+          <FormHelperText>
+            {k8sName.value && (
               <HelperText>
                 <HelperTextItem>
-                  <Button
-                    data-testid={`${dataTestId}-editResourceLink`}
-                    variant="link"
-                    isInline
-                    onClick={() => setShowK8sField(true)}
-                  >
-                    Edit resource name
-                  </Button>{' '}
-                  <ResourceNameDefinitionTooltip />
+                  The resource name will be <b>{k8sName.value}</b>.
                 </HelperTextItem>
               </HelperText>
-            </FormHelperText>
-          )}
-        </FormGroup>
-      </StackItem>
+            )}
+            <HelperText>
+              <HelperTextItem>
+                <Button
+                  data-testid={`${dataTestId}-editResourceLink`}
+                  variant="link"
+                  isInline
+                  onClick={() => setShowK8sField(true)}
+                >
+                  Edit resource name
+                </Button>{' '}
+                <ResourceNameDefinitionTooltip />
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
+      </FormGroup>
       <ResourceNameField
         allowEdit={showK8sField}
         dataTestId={dataTestId}
         k8sName={k8sName}
         onDataChange={onDataChange}
       />
-      <StackItem>
-        <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
-          <TextArea
-            aria-readonly={!onDataChange}
-            data-testid={`${dataTestId}-description`}
-            id={`${dataTestId}-description`}
-            name={`${dataTestId}-description`}
-            value={description}
-            onChange={(event, value) => onDataChange?.('description', value)}
-            resizeOrientation="vertical"
-          />
-        </FormGroup>
-      </StackItem>
-    </Stack>
+      <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
+        <TextArea
+          aria-readonly={!onDataChange}
+          data-testid={`${dataTestId}-description`}
+          id={`${dataTestId}-description`}
+          name={`${dataTestId}-description`}
+          value={description}
+          onChange={(event, value) => onDataChange?.('description', value)}
+          resizeOrientation="vertical"
+        />
+      </FormGroup>
+    </FormSection>
   );
 };
 
