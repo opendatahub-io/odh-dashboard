@@ -11,13 +11,13 @@ import {
 import PasswordInput from '~/components/PasswordInput';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ModelRegistryKind } from '~/k8sTypes';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import { ModelRegistryModel } from '~/api';
 import { createModelRegistryBackend } from '~/services/modelRegistrySettingsService';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
+import { AreaContext } from '~/concepts/areas/AreaContext';
 
 type CreateModalProps = {
   isOpen: boolean;
@@ -44,6 +44,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
   const [isPasswordTouched, setIsPasswordTouched] = React.useState(false);
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const { dscStatus } = React.useContext(AreaContext);
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
@@ -75,7 +76,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
       kind: 'ModelRegistry',
       metadata: {
         name: nameDesc.k8sName || translateDisplayNameForK8s(nameDesc.name),
-        namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
+        namespace: dscStatus?.components.modelregistry.registriesNamespace || '',
         annotations: {
           'openshift.io/description': nameDesc.description,
           'openshift.io/display-name': nameDesc.name.trim(),

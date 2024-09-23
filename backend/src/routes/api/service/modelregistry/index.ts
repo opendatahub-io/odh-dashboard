@@ -1,5 +1,5 @@
+import { getModelRegistryNamespace } from '../../../api/modelRegistries/modelRegistryUtils';
 import { ServiceAddressAnnotation } from '../../../../types';
-import { MODEL_REGISTRY_NAMESPACE } from '../../../../utils/constants';
 import { proxyService } from '../../../../utils/proxy';
 
 export default proxyService(
@@ -7,7 +7,7 @@ export default proxyService(
   {
     addressAnnotation: ServiceAddressAnnotation.EXTERNAL_REST,
     internalPort: 8080,
-    namespace: MODEL_REGISTRY_NAMESPACE,
+    namespace: getModelRegistryNamespace,
   },
   {
     // Use port forwarding for local development:

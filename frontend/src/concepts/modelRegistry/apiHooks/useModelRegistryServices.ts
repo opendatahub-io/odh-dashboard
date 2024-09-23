@@ -3,13 +3,11 @@ import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
 import { AccessReviewResourceAttributes, ServiceKind } from '~/k8sTypes';
 import { ServiceModel, useAccessReview, useRulesReview, listServices } from '~/api';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'user.openshift.io',
   resource: 'services',
   verb: 'list',
-  namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
 };
 
 const getServiceByName = (name: string, namespace: string): Promise<ServiceKind> =>
@@ -37,6 +35,7 @@ const listServicesOrFetchThemByNames = async (
   allowList: boolean,
   accessReviewLoaded: boolean,
   rulesReviewLoaded: boolean,
+  namespace: string,
   serviceNames?: string[],
 ): Promise<ServiceKind[]> => {
   if (!accessReviewLoaded || !rulesReviewLoaded) {
@@ -44,8 +43,8 @@ const listServicesOrFetchThemByNames = async (
   }
 
   const services = allowList
-    ? await listServices(MODEL_REGISTRY_DEFAULT_NAMESPACE)
-    : await fetchServices(serviceNames || [], MODEL_REGISTRY_DEFAULT_NAMESPACE);
+    ? await listServices(namespace)
+    : await fetchServices(serviceNames || [], namespace);
 
   return services;
 };
@@ -58,7 +57,7 @@ export type ModelRegistryServicesResult = {
 };
 
 export const useModelRegistryServices = (namespace: string): ModelRegistryServicesResult => {
-  const [allowList, accessReviewLoaded] = useAccessReview(accessReviewResource);
+  const [allowList, accessReviewLoaded] = useAccessReview({ ...accessReviewResource, namespace });
   const [rulesReviewStatus, rulesReviewLoaded, refreshRulesReview] = useRulesReview(namespace);
 
   const serviceNames = React.useMemo(() => {
@@ -79,9 +78,10 @@ export const useModelRegistryServices = (namespace: string): ModelRegistryServic
         allowList,
         accessReviewLoaded,
         rulesReviewLoaded,
+        namespace,
         serviceNames,
       ),
-    [allowList, accessReviewLoaded, rulesReviewLoaded, serviceNames],
+    [allowList, accessReviewLoaded, rulesReviewLoaded, serviceNames, namespace],
   );
 
   const [modelRegistryServices, isLoaded, error] = useFetchState(callback, [], {

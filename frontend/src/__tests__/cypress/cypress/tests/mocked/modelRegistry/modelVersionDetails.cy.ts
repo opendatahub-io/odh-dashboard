@@ -11,6 +11,7 @@ import {
   mockServingRuntimeK8sResource,
   mockInferenceServiceK8sResource,
   mockProjectK8sResource,
+  mockDscStatus,
 } from '~/__mocks__';
 
 import {
@@ -33,6 +34,16 @@ const initIntercepts = () => {
       disableModelRegistry: false,
     }),
   );
+
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      installedComponents: {
+        'model-registry-operator': true,
+      },
+    }),
+  );
+
   cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
   cy.interceptK8sList(

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ServiceKind } from '~/k8sTypes';
 import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEnabled';
 import { useModelRegistryServices } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
+import { AreaContext } from '~/concepts/areas/AreaContext';
 
 export type ModelRegistrySelectorContextType = {
   modelRegistryServicesLoaded: boolean;
@@ -42,12 +42,13 @@ export const ModelRegistrySelectorContextProvider: React.FC<
 const EnabledModelRegistrySelectorContextProvider: React.FC<
   ModelRegistrySelectorContextProviderProps
 > = ({ children }) => {
+  const { dscStatus } = React.useContext(AreaContext);
   const {
     modelRegistryServices = [],
     isLoaded,
     error,
     refreshRulesReview,
-  } = useModelRegistryServices(MODEL_REGISTRY_DEFAULT_NAMESPACE);
+  } = useModelRegistryServices(dscStatus?.components.modelregistry.registriesNamespace || '');
   const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<
     ServiceKind | undefined
   >(undefined);

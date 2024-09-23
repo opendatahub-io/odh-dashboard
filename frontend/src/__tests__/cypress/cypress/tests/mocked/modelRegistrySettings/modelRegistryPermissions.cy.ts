@@ -1,4 +1,4 @@
-import { mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
+import { mockDscStatus, mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
@@ -51,6 +51,7 @@ const initIntercepts = ({ isEmpty = false, hasPermission = true }: HandlersProps
   } else {
     asProductAdminUser();
   }
+  cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
   cy.interceptK8sList(
     ModelRegistryModel,
     mockK8sResourceList([

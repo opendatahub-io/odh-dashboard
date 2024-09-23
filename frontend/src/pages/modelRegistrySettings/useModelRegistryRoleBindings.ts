@@ -1,14 +1,16 @@
 import * as React from 'react';
 import { listRoleBindings } from '~/api';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
+import { AreaContext } from '~/concepts/areas/AreaContext';
 import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
 import useFetchState, { FetchState } from '~/utilities/useFetchState';
 
 const useModelRegistryRoleBindings = (): FetchState<RoleBindingKind[]> => {
+  const { dscStatus } = React.useContext(AreaContext);
+
   const getRoleBindings = React.useCallback(
     () =>
       listRoleBindings(
-        MODEL_REGISTRY_DEFAULT_NAMESPACE,
+        dscStatus?.components.modelregistry.registriesNamespace,
         KnownLabels.LABEL_SELECTOR_MODEL_REGISTRY,
       ).catch((e) => {
         if (e.statusObject?.code === 404) {
@@ -16,7 +18,7 @@ const useModelRegistryRoleBindings = (): FetchState<RoleBindingKind[]> => {
         }
         throw e;
       }),
-    [],
+    [dscStatus?.components.modelregistry.registriesNamespace],
   );
 
   return useFetchState<RoleBindingKind[]>(getRoleBindings, []);
