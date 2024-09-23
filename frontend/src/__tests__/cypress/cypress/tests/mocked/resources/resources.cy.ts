@@ -269,33 +269,33 @@ describe('Resources page', () => {
 
     // sort by name
     listView.shouldListBeInFirstPosition('create-jupyter-notebook');
-    listView.findSortDownButton('name').click();
-    listView.shouldListBeInFirstPosition('jupyter-doc');
     listView.findSortUpButton('name').click();
+    listView.shouldListBeInFirstPosition('jupyter-doc');
+    listView.findSortDownButton('name').click();
     listView.shouldListBeInFirstPosition('create-jupyter-notebook');
 
     // sort by Application
     listView.findSortButton('application').click();
     listView.shouldListBeInFirstPosition('create-jupyter-notebook');
-    listView.findSortDownButton('application').click();
-    listView.shouldListBeInFirstPosition('jupyter-doc');
     listView.findSortUpButton('application').click();
+    listView.shouldListBeInFirstPosition('jupyter-doc');
+    listView.findSortDownButton('application').click();
     listView.shouldListBeInFirstPosition('create-jupyter-notebook');
 
     // sort by Type
     listView.findSortButton('type').click();
     listView.shouldListBeInFirstPosition('jupyter-doc');
-    listView.findSortDownButton('type').click();
-    listView.shouldListBeInFirstPosition('deploy-python-model');
     listView.findSortUpButton('type').click();
+    listView.shouldListBeInFirstPosition('deploy-python-model');
+    listView.findSortDownButton('type').click();
     listView.shouldListBeInFirstPosition('jupyter-doc');
 
     // sort by duration
     listView.findSortButton('duration').click();
     listView.shouldListBeInFirstPosition('jupyter-doc');
-    listView.findSortDownButton('duration').click();
-    listView.shouldListBeInFirstPosition('jupyterhub-view-installed-packages');
     listView.findSortUpButton('duration').click();
+    listView.shouldListBeInFirstPosition('jupyterhub-view-installed-packages');
+    listView.findSortDownButton('duration').click();
     listView.shouldListBeInFirstPosition('jupyter-doc');
   });
 
