@@ -59,6 +59,7 @@ export enum MetadataAnnotation {
   StorageClassIsDefault = 'storageclass.kubernetes.io/is-default-class',
   K8sDescription = 'kubernetes.io/description',
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
+  Description = 'description',
 }
 
 type StorageClassAnnotations = Partial<{

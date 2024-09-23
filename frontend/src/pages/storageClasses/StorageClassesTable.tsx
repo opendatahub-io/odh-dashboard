@@ -1,13 +1,13 @@
 import React from 'react';
 
-import { ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-
 import { StorageClassConfig, StorageClassKind } from '~/k8sTypes';
 import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { Table } from '~/components/table';
-import { columns } from './constants';
-import { getStorageClassConfig } from './utils';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { columns, initialScFilterData, StorageClassFilterData } from './constants';
+import { getStorageClassConfig, isValidConfigValue } from './utils';
 import { StorageClassesTableRow } from './StorageClassesTableRow';
+import { StorageClassFilterToolbar } from './StorageClassFilterToolbar';
 
 interface StorageClassesTableProps {
   storageClasses: StorageClassKind[];
@@ -18,6 +18,8 @@ export const StorageClassesTable: React.FC<StorageClassesTableProps> = ({
   storageClasses,
   refresh,
 }) => {
+  const [filterData, setFilterData] = React.useState<StorageClassFilterData>(initialScFilterData);
+
   const storageClassConfigMap = React.useMemo(
     () =>
       storageClasses.reduce((acc: Record<string, StorageClassConfig | undefined>, sc) => {
@@ -28,13 +30,40 @@ export const StorageClassesTable: React.FC<StorageClassesTableProps> = ({
     [storageClasses],
   );
 
+  const filteredStorageClasses = React.useMemo(
+    () =>
+      storageClasses.filter((sc) => {
+        const displayNameFilter = filterData.displayName.toLowerCase();
+        const openshiftScNameFilter = filterData.openshiftScName.toLowerCase();
+        const configDisplayName = storageClassConfigMap[sc.metadata.name]?.displayName;
+
+        if (
+          displayNameFilter &&
+          !(
+            isValidConfigValue('displayName', configDisplayName) &&
+            configDisplayName?.toLowerCase().includes(displayNameFilter)
+          )
+        ) {
+          return false;
+        }
+
+        return (
+          !openshiftScNameFilter || sc.metadata.name.toLowerCase().includes(openshiftScNameFilter)
+        );
+      }),
+    [filterData.displayName, filterData.openshiftScName, storageClasses, storageClassConfigMap],
+  );
+
   return (
     <Table
+      enablePagination
       variant="compact"
-      data={storageClasses}
+      data={filteredStorageClasses}
       hasNestedHeader
       columns={columns}
-      emptyTableView={<>{/* TODO, https://issues.redhat.com/browse/RHOAIENG-1107 */}</>}
+      emptyTableView={
+        <DashboardEmptyTableView onClearFilters={() => setFilterData(initialScFilterData)} />
+      }
       data-testid="storage-classes-table"
       rowRenderer={(storageClass) => (
         <StorageClassesTableRow
@@ -45,9 +74,7 @@ export const StorageClassesTable: React.FC<StorageClassesTableProps> = ({
         />
       )}
       toolbarContent={
-        <ToolbarGroup>
-          <ToolbarItem>{/* TODO, https://issues.redhat.com/browse/RHOAIENG-1107 */}</ToolbarItem>
-        </ToolbarGroup>
+        <StorageClassFilterToolbar filterData={filterData} setFilterData={setFilterData} />
       }
     />
   );

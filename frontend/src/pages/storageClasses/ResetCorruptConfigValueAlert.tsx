@@ -11,12 +11,14 @@ interface ResetCorruptConfigValueAlertProps extends Pick<AlertProps, 'variant'> 
   storageClassName: string;
   storageClassConfig: StorageClassConfig;
   refresh: () => Promise<void | StorageClassKind[]>;
+  popoverText?: string;
 }
 
 export const ResetCorruptConfigValueAlert: React.FC<ResetCorruptConfigValueAlertProps> = ({
   storageClassName,
   storageClassConfig,
   variant,
+  popoverText = 'Refresh the field to correct the corrupted metadata.',
   refresh,
 }) => {
   const [error, setError] = React.useState<string>();
@@ -38,7 +40,7 @@ export const ResetCorruptConfigValueAlert: React.FC<ResetCorruptConfigValueAlert
   return (
     <CorruptedMetadataAlert
       variant={variant}
-      popoverText="Refresh the field to correct the corrupted metadata."
+      popoverText={popoverText}
       errorText={error}
       action={
         <Button

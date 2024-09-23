@@ -14,7 +14,7 @@ import {
 import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
 import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
-import { StorageClassConfig, StorageClassKind } from '~/k8sTypes';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
 import { TableRowTitleDescription } from '~/components/table';
 import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
@@ -52,7 +52,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
   const storageClassInfoItems = [
     {
       label: 'OpenShift storage class',
-      value: storageClassConfig?.displayName,
+      value: metadata.name,
     },
     {
       label: 'Provisioner',
@@ -60,7 +60,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
     },
     {
       label: 'Description',
-      value: storageClassConfig?.description ?? <NoValue />,
+      value: metadata.annotations?.[MetadataAnnotation.Description] ?? <NoValue />,
     },
     {
       label: 'Reclaim policy',
@@ -199,6 +199,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
                   isEnabled: false,
                 }}
                 variant="danger"
+                popoverText="This storage class is temporarily unavailable for use in new cluster storage. Refresh the field to correct the corrupted metadata."
                 refresh={refresh}
               />
             }

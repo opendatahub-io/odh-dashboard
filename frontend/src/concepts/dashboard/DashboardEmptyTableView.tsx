@@ -23,7 +23,7 @@ const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
   variant,
 }) => (
   <Bullseye>
-    <EmptyState variant={variant}>
+    <EmptyState variant={variant} data-testid="dashboard-empty-table-state">
       <EmptyStateHeader
         data-testid="no-result-found-title"
         titleText="No results found"
@@ -32,7 +32,7 @@ const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
       />
       <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
       <EmptyStateFooter>
-        <Button variant="link" onClick={onClearFilters}>
+        <Button variant="link" onClick={onClearFilters} data-testid="clear-filters-button">
           Clear all filters
         </Button>
       </EmptyStateFooter>

@@ -44,15 +44,15 @@ const StorageClassesPage: React.FC = () => {
       setIsUpdating(true);
 
       try {
-        await Promise.all(updateRequests);
-        await refreshStorageClasses();
+        const updateResponses = await Promise.all(updateRequests);
+        if (updateResponses.some((response) => response.success)) {
+          await refreshStorageClasses();
+        }
 
         if (!defaultStorageClass) {
           setIsAlertOpen(true);
         }
-
-        setIsUpdating(false);
-      } catch {
+      } finally {
         setIsUpdating(false);
       }
     },
