@@ -11,6 +11,7 @@ type ModelVersionsTabProps = {
   tab: ModelVersionsTab;
   registeredModel: RegisteredModel;
   modelVersions: ModelVersion[];
+  isArchiveModel?: boolean;
   refresh: () => void;
   mvRefresh: () => void;
 };
@@ -20,6 +21,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
   registeredModel: rm,
   modelVersions,
   refresh,
+  isArchiveModel,
   mvRefresh,
 }) => {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
       >
         <PageSection isFilled variant="light" data-testid="model-versions-tab-content">
           <ModelVersionListView
+            isArchiveModel={isArchiveModel}
             modelVersions={modelVersions}
             registeredModel={rm}
             refresh={mvRefresh}
@@ -52,7 +55,11 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
         data-testid="model-details-tab"
       >
         <PageSection isFilled variant="light" data-testid="model-details-tab-content">
-          <ModelDetailsView registeredModel={rm} refresh={refresh} />
+          <ModelDetailsView
+            registeredModel={rm}
+            refresh={refresh}
+            isArchiveModel={isArchiveModel}
+          />
         </PageSection>
       </Tab>
     </Tabs>

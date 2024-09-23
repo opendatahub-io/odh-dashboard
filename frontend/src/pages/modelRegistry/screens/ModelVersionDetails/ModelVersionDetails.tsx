@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  archiveModelVersionDetailsUrl,
+  modelVersionArchiveDetailsUrl,
+  modelVersionUrl,
+  registeredModelUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { ModelState } from '~/concepts/modelRegistry/types';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -40,6 +46,33 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
     inferenceServices.refresh();
     servingRuntimes.refresh();
   }, [inferenceServices, servingRuntimes, refreshModelVersion]);
+
+  useEffect(() => {
+    if (rm?.state === ModelState.ARCHIVED && mv?.id) {
+      navigate(
+        archiveModelVersionDetailsUrl(
+          mv.id,
+          mv.registeredModelId,
+          preferredModelRegistry?.metadata.name,
+        ),
+      );
+    } else if (mv?.state === ModelState.ARCHIVED) {
+      navigate(
+        modelVersionArchiveDetailsUrl(
+          mv.id,
+          mv.registeredModelId,
+          preferredModelRegistry?.metadata.name,
+        ),
+      );
+    }
+  }, [
+    rm?.state,
+    mv?.id,
+    mv?.state,
+    mv?.registeredModelId,
+    preferredModelRegistry?.metadata.name,
+    navigate,
+  ]);
 
   return (
     <ApplicationsPage

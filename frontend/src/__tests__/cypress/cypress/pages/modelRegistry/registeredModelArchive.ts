@@ -66,6 +66,12 @@ class ModelArchive {
     cy.visit(`/modelRegistry/${preferredModelRegistry}/registeredModels/archive/${rmId}`);
   }
 
+  visitArchiveModelVersionList() {
+    const rmId = '2';
+    const preferredModelRegistry = 'modelregistry-sample';
+    cy.visit(`/modelRegistry/${preferredModelRegistry}/registeredModels/archive/${rmId}/versions`);
+  }
+
   visitModelList() {
     cy.visit('/modelRegistry/modelregistry-sample');
     this.wait();

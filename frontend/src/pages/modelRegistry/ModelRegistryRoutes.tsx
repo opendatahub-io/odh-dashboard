@@ -13,6 +13,7 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import { modelRegistryUrl } from './screens/routeUtils';
+import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
 
 const ModelRegistryRoutes: React.FC = () => (
   <Routes>
@@ -91,6 +92,25 @@ const ModelRegistryRoutes: React.FC = () => (
               <RegisteredModelsArchiveDetails tab={ModelVersionsTab.VERSIONS} empty={false} />
             }
           />
+          <Route path="versions/:modelVersionId">
+            <Route index element={<Navigate to={ModelVersionDetailsTab.DETAILS} replace />} />
+            <Route
+              path={ModelVersionDetailsTab.DETAILS}
+              element={
+                <ArchiveModelVersionDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />
+              }
+            />
+            <Route
+              path={ModelVersionDetailsTab.DEPLOYMENTS}
+              element={
+                <ArchiveModelVersionDetails
+                  tab={ModelVersionDetailsTab.DEPLOYMENTS}
+                  empty={false}
+                />
+              }
+            />
+            <Route path="*" element={<Navigate to="." />} />
+          </Route>
           <Route path="*" element={<Navigate to="." />} />
         </Route>
         <Route path="*" element={<Navigate to="." />} />

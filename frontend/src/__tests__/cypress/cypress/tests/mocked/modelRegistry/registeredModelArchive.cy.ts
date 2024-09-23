@@ -47,7 +47,7 @@ const initIntercepts = ({
     mockRegisteredModel({ id: '4', name: 'model 4' }),
   ],
   modelVersions = [
-    mockModelVersion({ author: 'Author 1' }),
+    mockModelVersion({ author: 'Author 1', registeredModelId: '2' }),
     mockModelVersion({ name: 'model version' }),
   ],
 }: HandlersProps) => {
@@ -75,12 +75,24 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    mockModelVersion({ id: '1', name: 'Version 2' }),
+  );
+
+  cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions`,
     {
       path: {
         serviceName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
-        registeredModelId: 1,
+        registeredModelId: 2,
       },
     },
     mockModelVersionList({ items: modelVersions }),
@@ -96,6 +108,18 @@ const initIntercepts = ({
       },
     },
     mockRegisteredModel({ id: '2', name: 'model 2', state: ModelState.ARCHIVED }),
+  );
+
+  cy.interceptOdh(
+    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: 3,
+      },
+    },
+    mockRegisteredModel({ id: '3', name: 'model 3' }),
   );
 };
 
@@ -121,6 +145,32 @@ describe('Model archive list', () => {
     cy.go('back');
     verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/archive');
     registeredModelArchive.findArchiveModelTable().should('be.visible');
+  });
+
+  it('Archived model with no versions', () => {
+    initIntercepts({ modelVersions: [] });
+    registeredModelArchive.visit();
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/archive');
+    registeredModelArchive.findArchiveModelBreadcrumbItem().contains('Archived models');
+    const archiveModelRow = registeredModelArchive.getRow('model 2');
+    archiveModelRow.findName().contains('model 2').click();
+    modelRegistry.shouldArchveModelVersionsEmpty();
+  });
+
+  it('Archived model flow', () => {
+    initIntercepts({});
+    registeredModelArchive.visitArchiveModelVersionList();
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/archive/2/versions');
+
+    modelRegistry.findModelVersionsTable().should('be.visible');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 2);
+    const version = modelRegistry.getModelVersionRow('model version');
+    version.findModelVersionName().contains('model version').click();
+    verifyRelativeURL(
+      '/modelRegistry/modelregistry-sample/registeredModels/archive/2/versions/1/details',
+    );
+    cy.go('back');
+    verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/archive/2/versions');
   });
 
   it('Archive models list', () => {
@@ -180,7 +230,7 @@ it('Opens the detail page when we select "View Details" from action menu', () =>
   archiveModelRow.findKebabAction('View details').click();
   cy.location('pathname').should(
     'be.equals',
-    '/modelRegistry/modelregistry-sample/registeredModels/2/details',
+    '/modelRegistry/modelregistry-sample/registeredModels/archive/2/details',
   );
 });
 
@@ -276,21 +326,24 @@ describe('Archiving model', () => {
         path: {
           serviceName: 'modelregistry-sample',
           apiVersion: MODEL_REGISTRY_API_VERSION,
-          registeredModelId: 2,
+          registeredModelId: 3,
         },
       },
-      mockRegisteredModel({ id: '2', name: 'model 2', state: ModelState.ARCHIVED }),
+      mockRegisteredModel({ id: '3', name: 'model 3', state: ModelState.ARCHIVED }),
     ).as('modelArchived');
 
     initIntercepts({});
-    registeredModelArchive.visitModelDetails();
+    registeredModelArchive.visitModelList();
+
+    const modelRow = modelRegistry.getRow('model 3');
+    modelRow.findName().contains('model 3').click();
     registeredModelArchive
       .findModelVersionsDetailsHeaderAction()
       .findDropdownItem('Archive model')
       .click();
 
     archiveModelModal.findArchiveButton().should('be.disabled');
-    archiveModelModal.findModalTextInput().fill('model 2');
+    archiveModelModal.findModalTextInput().fill('model 3');
     archiveModelModal.findArchiveButton().should('be.enabled').click();
     cy.wait('@modelArchived').then((interception) => {
       expect(interception.request.body).to.eql({

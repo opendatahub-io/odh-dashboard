@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { FlexItem, Text, TextVariants, Truncate } from '@patternfly/react-core';
 import { ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
   registeredModelArchiveDetailsUrl,
+  registeredModelArchiveUrl,
   registeredModelUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
@@ -33,10 +34,20 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name);
 
-  const actions = [
+  const actions: IAction[] = [
     {
       title: 'View details',
-      onClick: () => navigate(`${rmUrl}/${ModelVersionsTab.DETAILS}`),
+      onClick: () => {
+        if (isArchiveRow) {
+          navigate(
+            `${registeredModelArchiveUrl(preferredModelRegistry?.metadata.name)}/${rm.id}/${
+              ModelVersionsTab.DETAILS
+            }`,
+          );
+        } else {
+          navigate(`${rmUrl}/${ModelVersionsTab.DETAILS}`);
+        }
+      },
     },
     isArchiveRow
       ? {

@@ -15,11 +15,13 @@ import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardC
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
+  isArchiveVersion?: boolean;
   refresh: () => void;
 };
 
 const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   modelVersion: mv,
+  isArchiveVersion,
   refresh,
 }) => {
   const [modelArtifact] = useModelArtifactsByVersionId(mv.id);
@@ -36,6 +38,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         <DescriptionList isFillColumns>
           <EditableTextDescriptionListGroup
             testid="model-version-description"
+            isArchive={isArchiveVersion}
             title="Description"
             contentWhenEmpty="No description"
             value={mv.description || ''}
@@ -53,6 +56,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           />
           <EditableLabelsDescriptionListGroup
             labels={getLabels(mv.customProperties)}
+            isArchive={isArchiveVersion}
             allExistingKeys={Object.keys(mv.customProperties)}
             saveEditedLabels={(editedLabels) =>
               apiState.api
@@ -67,6 +71,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             }
           />
           <ModelPropertiesDescriptionListGroup
+            isArchive={isArchiveVersion}
             customProperties={mv.customProperties}
             saveEditedCustomProperties={(editedProperties) =>
               apiState.api

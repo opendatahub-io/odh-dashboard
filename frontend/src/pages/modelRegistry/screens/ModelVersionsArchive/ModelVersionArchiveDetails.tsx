@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Text, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import {
+  archiveModelVersionDetailsUrl,
+  modelVersionUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
@@ -41,6 +44,27 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   );
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
 
+  useEffect(() => {
+    if (rm?.state === ModelState.ARCHIVED && mv?.id) {
+      navigate(
+        archiveModelVersionDetailsUrl(
+          mv.id,
+          mv.registeredModelId,
+          preferredModelRegistry?.metadata.name,
+        ),
+      );
+    } else if (mv?.state === ModelState.LIVE) {
+      navigate(modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name));
+    }
+  }, [
+    rm?.state,
+    mv?.state,
+    mv?.id,
+    mv?.registeredModelId,
+    preferredModelRegistry?.metadata.name,
+    navigate,
+  ]);
+
   return (
     <>
       <ApplicationsPage
@@ -76,6 +100,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
       >
         {mv !== null && (
           <ModelVersionDetailsTabs
+            isArchiveVersion
             tab={tab}
             modelVersion={mv}
             inferenceServices={inferenceServices}

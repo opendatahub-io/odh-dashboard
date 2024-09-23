@@ -1,5 +1,5 @@
-import React from 'react';
-import { useParams } from 'react-router';
+import React, { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
@@ -7,6 +7,8 @@ import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { filterLiveVersions } from '~/concepts/modelRegistry/utils';
+import { ModelState } from '~/concepts/modelRegistry/types';
+import { registeredModelArchiveDetailsUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
 import { ModelVersionsTab } from './const';
@@ -25,6 +27,13 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (rm?.state === ModelState.ARCHIVED) {
+      navigate(registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.metadata.name));
+    }
+  }, [rm?.state, rm?.id, preferredModelRegistry?.metadata.name, navigate]);
 
   return (
     <ApplicationsPage
