@@ -136,6 +136,8 @@ export type ConnectionTypeConfigMapObj = Omit<ConnectionTypeConfigMap, 'data'> &
   };
 };
 
+export type ConnectionTypeValueType = ConnectionTypeDataField['properties']['defaultValue'];
+
 export type Connection = SecretKind & {
   metadata: {
     labels: DashboardLabels & {

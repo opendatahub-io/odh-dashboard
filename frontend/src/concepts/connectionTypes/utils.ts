@@ -1,9 +1,15 @@
+import { ProjectKind } from '~/k8sTypes';
+import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
+  Connection,
   ConnectionTypeConfigMap,
   ConnectionTypeConfigMapObj,
   ConnectionTypeDataField,
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
+  ConnectionTypeValueType,
+  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
 
@@ -107,3 +113,48 @@ export const getCompatibleTypes = (envVars: string[]): CompatibleTypes[] =>
     }
     return acc;
   }, []);
+
+export const getDefaultValues = (
+  connectionType: ConnectionTypeConfigMapObj,
+): { [key: string]: ConnectionTypeValueType } => {
+  const defaults: {
+    [key: string]: ConnectionTypeValueType;
+  } = {};
+  for (const field of connectionType.data?.fields ?? []) {
+    if (isConnectionTypeDataField(field) && field.properties.defaultValue != null) {
+      defaults[field.envVar] = field.properties.defaultValue;
+    }
+  }
+  return defaults;
+};
+
+export const assembleConnectionSecret = (
+  project: ProjectKind,
+  type: ConnectionTypeConfigMapObj,
+  nameDesc: K8sNameDescriptionFieldData,
+  values: {
+    [key: string]: ConnectionTypeValueType;
+  },
+): Connection => {
+  const connectionValuesAsStrings = Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, String(value)]),
+  );
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
+      namespace: project.metadata.name,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+        'opendatahub.io/managed': 'true',
+      },
+      annotations: {
+        'opendatahub.io/connection-type': type.metadata.name,
+        'openshift.io/display-name': nameDesc.name,
+        'openshift.io/description': nameDesc.description,
+      },
+    },
+    stringData: connectionValuesAsStrings,
+  };
+};

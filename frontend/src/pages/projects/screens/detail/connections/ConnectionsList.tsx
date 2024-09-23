@@ -8,8 +8,11 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
+import { createSecret } from '~/api';
 import ConnectionsTable from './ConnectionsTable';
+import { ManageConnectionModal } from './ManageConnectionsModal';
 
 const ConnectionsDescription =
   'Connections enable you to store and retrieve information that typically should not be stored in code. For example, you can store details (including credentials) for object storage, databases, and more. You can then attach the connections to artifacts in your project, such as workbenches and model servers.';
@@ -17,8 +20,13 @@ const ConnectionsDescription =
 const ConnectionsList: React.FC = () => {
   const {
     connections: { data: connections, loaded, error, refresh: refreshConnections },
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useWatchConnectionTypes();
+
+  const [manageConnectionModal, setManageConnectionModal] = React.useState<{
+    connection?: Connection;
+  }>();
 
   return (
     <DetailsSection
@@ -35,6 +43,9 @@ const ConnectionsList: React.FC = () => {
           key={`action-${ProjectSectionID.CONNECTIONS}`}
           data-testid="add-connection-button"
           variant="primary"
+          onClick={() => {
+            setManageConnectionModal({});
+          }}
         >
           Add connection
         </Button>,
@@ -65,6 +76,20 @@ const ConnectionsList: React.FC = () => {
         connectionTypes={connectionTypes}
         refreshConnections={refreshConnections}
       />
+      {manageConnectionModal && (
+        <ManageConnectionModal
+          connection={manageConnectionModal.connection}
+          connectionTypes={connectionTypes}
+          project={currentProject}
+          onClose={(refresh) => {
+            setManageConnectionModal(undefined);
+            if (refresh) {
+              refreshConnections();
+            }
+          }}
+          onSubmit={(connection: Connection) => createSecret(connection)}
+        />
+      )}
     </DetailsSection>
   );
 };

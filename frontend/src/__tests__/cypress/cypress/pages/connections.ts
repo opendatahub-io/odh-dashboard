@@ -10,6 +10,10 @@ class ConnectionsPage {
       this.findTable().findAllByTestId(`table-row-title`).contains(name).parents('tr'),
     );
   }
+
+  findAddConnectionButton() {
+    return cy.findByTestId('add-connection-button');
+  }
 }
 
 export const connectionsPage = new ConnectionsPage();

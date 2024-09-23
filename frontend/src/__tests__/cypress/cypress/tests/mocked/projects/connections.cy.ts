@@ -10,6 +10,7 @@ import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { ProjectModel, SecretModel } from '~/__tests__/cypress/cypress/utils/models';
 import { connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 
 const initIntercepts = (isEmpty = false) => {
   cy.interceptK8sList(
@@ -84,5 +85,38 @@ describe('Connections', () => {
     deleteModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@deleteConnection');
+  });
+
+  it('Add a connection', () => {
+    initIntercepts();
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 'test',
+        fields: [
+          {
+            name: 'field A',
+            type: ConnectionTypeFieldType.ShortText,
+            envVar: 'field_env',
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: 'test-project',
+      },
+      mockSecretK8sResource({}),
+    ).as('createConnection');
+
+    projectDetails.visitSection('test-project', 'connections');
+
+    connectionsPage.findAddConnectionButton().click();
+    cy.findByTestId('connection-name-desc-name').fill('new connection');
+    cy.findByTestId('modal-submit-button').click();
+
+    cy.wait('@createConnection');
   });
 });
