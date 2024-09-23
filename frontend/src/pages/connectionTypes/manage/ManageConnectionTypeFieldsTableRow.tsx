@@ -85,7 +85,10 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td colSpan={4} />
+        <Td visibility={columns[1].visibility} />
+        <Td visibility={columns[2].visibility} />
+        <Td visibility={columns[3].visibility} />
+        <Td visibility={columns[4].visibility} />
         <Td isActionCell modifier="nowrap">
           <Button variant="secondary" onClick={() => onAddField(row)}>
             Add field
@@ -130,7 +133,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           id: `draggable-row-${props.id}`,
         }}
       />
-      <Td dataLabel={columns[0].label} data-testid="field-name">
+      <Td dataLabel={columns[0].label} data-testid="field-name" visibility={columns[0].visibility}>
         <TableRowTitleDescription
           boldTitle={false}
           title={<Truncate content={row.name} />}
@@ -138,13 +141,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           truncateDescriptionLines={2}
         />
       </Td>
-      <Td dataLabel={columns[1].label} data-testid="field-type">
-        {fieldTypeToString(row.type)}
-      </Td>
-      <Td dataLabel={columns[2].label} data-testid="field-default">
-        <TableText wrapModifier="truncate">{defaultValueToString(row) || '-'}</TableText>
-      </Td>
-      <Td dataLabel={columns[3].label} data-testid="field-env">
+      <Td dataLabel={columns[1].label} data-testid="field-env" visibility={columns[1].visibility}>
         <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
           <FlexItem>
             <Truncate content={row.envVar || '-'} />
@@ -162,7 +159,17 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           ) : undefined}
         </Flex>
       </Td>
-      <Td dataLabel={columns[4].label}>
+      <Td dataLabel={columns[2].label} data-testid="field-type" visibility={columns[2].visibility}>
+        {fieldTypeToString(row.type)}
+      </Td>
+      <Td
+        dataLabel={columns[3].label}
+        data-testid="field-default"
+        visibility={columns[3].visibility}
+      >
+        <TableText wrapModifier="truncate">{defaultValueToString(row) || '-'}</TableText>
+      </Td>
+      <Td dataLabel={columns[4].label} visibility={columns[4].visibility}>
         <Switch
           aria-label="toggle field required"
           isChecked={row.required || false}

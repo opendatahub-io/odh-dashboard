@@ -46,7 +46,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   }
 
   return (
-    <>
+    <div>
       <div data-testid="table-row-title" className={boldTitle ? 'pf-v5-u-font-weight-bold' : ''}>
         {resource ? (
           <ResourceNameTooltip resource={resource} wrap={wrapResourceTitle}>
@@ -59,7 +59,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
       {subtitle}
       {descriptionNode}
       {label}
-    </>
+    </div>
   );
 };
 
