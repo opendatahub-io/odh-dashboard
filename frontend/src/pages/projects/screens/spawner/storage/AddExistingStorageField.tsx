@@ -4,12 +4,11 @@ import { ExistingStorageObject } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import TypeaheadSelect from '~/components/TypeaheadSelect';
-import useAvailablePvcs from './useAvailablePvcs';
+import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
 
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;
   setData: (data: ExistingStorageObject) => void;
-  editStorage?: string;
   selectDirection?: 'up' | 'down';
   menuAppendTo?: HTMLElement;
 };
@@ -17,19 +16,11 @@ type AddExistingStorageFieldProps = {
 const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   data,
   setData,
-  editStorage,
   selectDirection,
   menuAppendTo,
 }) => {
-  const {
-    currentProject,
-    notebooks: { data: allNotebooks },
-  } = React.useContext(ProjectDetailsContext);
-  const [storages, loaded, loadError] = useAvailablePvcs(
-    currentProject.metadata.name,
-    allNotebooks,
-    editStorage,
-  );
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const [storages, loaded, loadError] = useProjectPvcs(currentProject.metadata.name);
 
   const selectOptions = React.useMemo(
     () =>

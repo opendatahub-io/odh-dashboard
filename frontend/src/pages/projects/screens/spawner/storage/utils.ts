@@ -51,6 +51,7 @@ export const useCreateStorageObjectForNotebook = (
     ConnectedNotebookContext.REMOVABLE_PVC,
     existingData ? existingData.metadata.name : undefined,
   );
+
   const hasExistingNotebookConnections = relatedNotebooks.length > 0;
 
   React.useEffect(() => {

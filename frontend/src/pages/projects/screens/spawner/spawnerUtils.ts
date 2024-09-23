@@ -408,8 +408,7 @@ export const checkRequiredFieldsForNotebookStart = (
     image.imageVersion
   );
 
-  const newStorageFieldInvalid =
-    storageType === StorageType.NEW_PVC && (!creating.nameDesc.name || !creating.storageClassName);
+  const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
   const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
   const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 

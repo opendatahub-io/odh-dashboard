@@ -8,10 +8,9 @@ import AddExistingStorageField from './AddExistingStorageField';
 type StorageFieldType = {
   storageData: StorageData;
   setStorageData: UpdateObjectAtPropAndValue<StorageData>;
-  editStorage: string;
 };
 
-const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData, editStorage }) => {
+const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData }) => {
   const { storageType, creating, existing } = storageData;
 
   return (
@@ -53,7 +52,6 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
                 <AddExistingStorageField
                   data={existing}
                   setData={(data) => setStorageData('existing', data)}
-                  editStorage={editStorage}
                   selectDirection="up"
                   menuAppendTo={getDashboardMainContainer()}
                 />

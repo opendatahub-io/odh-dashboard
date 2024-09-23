@@ -162,6 +162,162 @@ describe('ClusterStorage', () => {
     });
   });
 
+  it('Add cluster storage with multiple workbench connections', () => {
+    // one notebook already connected to a PVC
+    const testNotebook = mockNotebookK8sResource({
+      displayName: 'Test Notebook',
+      name: 'test-notebook',
+      opts: {
+        spec: {
+          template: {
+            spec: {
+              volumes: [
+                { name: 'existing-pvc', persistentVolumeClaim: { claimName: 'existing-pvc' } },
+              ],
+              containers: [
+                {
+                  volumeMounts: [{ name: 'existing-pvc', mountPath: '/' }],
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+
+    // another notebook not connected to PVC
+    const anotherNotebook = mockNotebookK8sResource({
+      displayName: 'Another Notebook',
+      name: 'another-notebook',
+    });
+
+    initInterceptors({});
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([testNotebook, anotherNotebook]));
+
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'existing-pvc', displayName: 'Existing PVC' }),
+      ]),
+    );
+
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
+    clusterStorageRow.findKebabAction('Edit storage').click();
+
+    // Connect to 'Another Notebook'
+    updateClusterStorageModal
+      .findWorkbenchConnectionSelect()
+      .findSelectOption('Another Notebook')
+      .click();
+    updateClusterStorageModal.findMountField().fill('new-data');
+
+    cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
+
+    updateClusterStorageModal.findSubmitButton().click();
+    cy.wait('@updateClusterStorage').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.eql([
+        {
+          op: 'add',
+          path: '/spec/template/spec/volumes/-',
+          value: { name: 'existing-pvc', persistentVolumeClaim: { claimName: 'existing-pvc' } },
+        },
+        {
+          op: 'add',
+          path: '/spec/template/spec/containers/0/volumeMounts/-',
+          value: { name: 'existing-pvc', mountPath: '/opt/app-root/src/new-data' },
+        },
+      ]);
+    });
+
+    cy.wait('@updateClusterStorage').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@updateClusterStorage.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2);
+    });
+  });
+
+  it('Add cluster storage with multiple workbench connections', () => {
+    // one notebook already connected to a PVC
+    const testNotebook = mockNotebookK8sResource({
+      displayName: 'Test Notebook',
+      name: 'test-notebook',
+      opts: {
+        spec: {
+          template: {
+            spec: {
+              volumes: [
+                { name: 'existing-pvc', persistentVolumeClaim: { claimName: 'existing-pvc' } },
+              ],
+              containers: [
+                {
+                  volumeMounts: [{ name: 'existing-pvc', mountPath: '/' }],
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+
+    // another notebook not connected to PVC
+    const anotherNotebook = mockNotebookK8sResource({
+      displayName: 'Another Notebook',
+      name: 'another-notebook',
+    });
+
+    initInterceptors({});
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([testNotebook, anotherNotebook]));
+
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'existing-pvc', displayName: 'Existing PVC' }),
+      ]),
+    );
+
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
+    clusterStorageRow.findKebabAction('Edit storage').click();
+
+    // Connect to 'Another Notebook'
+    updateClusterStorageModal
+      .findWorkbenchConnectionSelect()
+      .findSelectOption('Another Notebook')
+      .click();
+    updateClusterStorageModal.findMountField().fill('new-data');
+
+    cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
+
+    updateClusterStorageModal.findSubmitButton().click();
+    cy.wait('@updateClusterStorage').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.eql([
+        {
+          op: 'add',
+          path: '/spec/template/spec/volumes/-',
+          value: { name: 'existing-pvc', persistentVolumeClaim: { claimName: 'existing-pvc' } },
+        },
+        {
+          op: 'add',
+          path: '/spec/template/spec/containers/0/volumeMounts/-',
+          value: { name: 'existing-pvc', mountPath: '/opt/app-root/src/new-data' },
+        },
+      ]);
+    });
+
+    cy.wait('@updateClusterStorage').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@updateClusterStorage.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2);
+    });
+  });
+
   it('list cluster storage and Table sorting', () => {
     cy.interceptOdh(
       'GET /api/config',

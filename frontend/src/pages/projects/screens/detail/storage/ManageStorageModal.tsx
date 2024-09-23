@@ -34,12 +34,17 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const [error, setError] = React.useState<Error | undefined>();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
-  const {
-    notebooks: connectedNotebooks,
-    loaded: notebookLoaded,
-    error: notebookError,
-  } = useRelatedNotebooks(ConnectedNotebookContext.EXISTING_PVC, existingData?.metadata.name);
+  const { notebooks: connectedNotebooks } = useRelatedNotebooks(
+    ConnectedNotebookContext.EXISTING_PVC,
+    existingData?.metadata.name,
+  );
   const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
+
+  const {
+    notebooks: removableNotebooks,
+    loaded: removableNotebookLoaded,
+    error: removableNotebookError,
+  } = useRelatedNotebooks(ConnectedNotebookContext.REMOVABLE_PVC, existingData?.metadata.name);
 
   const restartNotebooks = useWillNotebooksRestart([
     ...removedNotebooks,
@@ -75,12 +80,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     ? !!createData.forNotebook.mountPath.value && !createData.forNotebook.mountPath.error
     : true;
 
-  const storageClassSelected = isStorageClassesAvailable ? createData.storageClassName : true;
   const canCreate =
-    !actionInProgress &&
-    createData.nameDesc.name.trim() &&
-    hasValidNotebookRelationship &&
-    storageClassSelected;
+    !actionInProgress && createData.nameDesc.name.trim() && hasValidNotebookRelationship;
 
   const runPromiseActions = async (dryRun: boolean) => {
     const {
@@ -176,12 +177,12 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
           {createData.hasExistingNotebookConnections && (
             <StackItem>
               <ExistingConnectedNotebooks
-                connectedNotebooks={connectedNotebooks}
+                connectedNotebooks={removableNotebooks}
                 onNotebookRemove={(notebook: NotebookKind) =>
                   setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
                 }
-                loaded={notebookLoaded}
-                error={notebookError}
+                loaded={removableNotebookLoaded}
+                error={removableNotebookError}
               />
             </StackItem>
           )}
@@ -191,7 +192,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
                 setCreateData('forNotebook', forNotebookData);
               }}
               forNotebookData={createData.forNotebook}
-              isDisabled={connectedNotebooks.length !== 0 && removedNotebooks.length === 0}
+              connectedNotebooks={connectedNotebooks}
             />
           </StackItem>
           {restartNotebooks.length !== 0 && (
