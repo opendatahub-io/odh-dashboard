@@ -199,6 +199,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
                   isEnabled: false,
                 }}
                 variant="danger"
+                popoverText="This storage class is temporarily unavailable for use in new cluster storage. Refresh the field to correct the corrupted metadata."
                 refresh={refresh}
               />
             }

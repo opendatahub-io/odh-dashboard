@@ -4,7 +4,7 @@ import { getStorageClassConfig } from './utils';
 
 export enum ColumnLabel {
   DisplayName = 'Display name',
-  OpenshiftStorageClass = 'Openshift storage class',
+  OpenshiftStorageClass = 'OpenShift storage class',
   Enable = 'Enable',
   Default = 'Default',
   LastModified = 'Last modified',
@@ -60,3 +60,20 @@ export const columns: SortableData<StorageClassKind>[] = [
   },
   kebabTableColumn(),
 ];
+
+export enum StorageClassFilterOption {
+  DisplayName = 'displayName',
+  OpenshiftScName = 'openshiftScName',
+}
+
+export const storageClassFilterOptions = {
+  [StorageClassFilterOption.DisplayName]: 'Display name',
+  [StorageClassFilterOption.OpenshiftScName]: 'OpenShift storage class',
+};
+
+export type StorageClassFilterData = Record<StorageClassFilterOption, string>;
+
+export const initialScFilterData: StorageClassFilterData = {
+  [StorageClassFilterOption.DisplayName]: '',
+  [StorageClassFilterOption.OpenshiftScName]: '',
+};

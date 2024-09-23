@@ -26,7 +26,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';
-import { storageClassesTable } from '~/__tests__/cypress/cypress/pages/storageClasses';
+import { storageClassesPage } from '~/__tests__/cypress/cypress/pages/storageClasses';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -106,7 +106,7 @@ describe('ClusterStorage', () => {
 
   it('Add cluster storage', () => {
     initInterceptors({ isEmpty: true });
-    storageClassesTable.mockGetStorageClasses([
+    storageClassesPage.mockGetStorageClasses([
       openshiftDefaultStorageClass,
       buildMockStorageClass(otherStorageClass, { isEnabled: true }),
     ]);

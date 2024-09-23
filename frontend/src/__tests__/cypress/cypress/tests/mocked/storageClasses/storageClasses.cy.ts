@@ -1,7 +1,6 @@
 import {
   buildMockStorageClass,
   buildMockStorageClassConfig,
-  mockStorageClassList,
   mockStorageClasses,
 } from '~/__mocks__';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -27,22 +26,14 @@ describe('Storage classes', () => {
     });
 
     it('shows empty state when the returned storage class list is empty', () => {
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList([]),
-      );
+      storageClassesPage.mockGetStorageClasses([]);
       storageClassesPage.visit();
       storageClassesPage.findNavItem().should('be.visible');
       storageClassesPage.findEmptyState().should('be.visible');
     });
 
     it('renders table with data', () => {
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList(),
-      );
+      storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
 
       storageClassesTable.findRowByName('Test SC 1').should('be.visible');
@@ -50,11 +41,7 @@ describe('Storage classes', () => {
     });
 
     it('table rows allow for toggling of Enable and Default values', () => {
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList(),
-      );
+      storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
 
       const openshiftDefaultTableRow =
@@ -77,7 +64,7 @@ describe('Storage classes', () => {
       storageClassesTable
         .mockUpdateStorageClass(otherStorageClass.metadata.name, 1)
         .as('updateStorageClass-1');
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses(
           [
             openshiftDefaultStorageClass,
@@ -101,7 +88,7 @@ describe('Storage classes', () => {
       storageClassesTable
         .mockUpdateStorageClass(openshiftDefaultStorageClass.metadata.name, 1)
         .as('updateStorageClass-3');
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses(
           [
             buildMockStorageClass(openshiftDefaultStorageClass, { isDefault: false }),
@@ -122,11 +109,7 @@ describe('Storage classes', () => {
     });
 
     it('can edit storage class display name and description', () => {
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList(),
-      );
+      storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
 
       storageClassesTable
@@ -144,7 +127,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDescriptionInput('Updated description');
 
       storageClassEditModal.mockUpdateStorageClass('test-storage-class-1', 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           openshiftDefaultStorageClass,
           buildMockStorageClass(otherStorageClass, {
@@ -169,12 +152,7 @@ describe('Storage classes', () => {
       };
       const unreadableConfigStorageClass = buildMockStorageClass(storageClass, '{“FAIL:}');
 
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList([unreadableConfigStorageClass]),
-      );
-
+      storageClassesPage.mockGetStorageClasses([unreadableConfigStorageClass]);
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName(storageClassName);
@@ -189,7 +167,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDisplayNameInput('Readable config');
 
       storageClassEditModal.mockUpdateStorageClass(storageClassName, 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
             displayName: 'Readable config',
@@ -218,12 +196,7 @@ describe('Storage classes', () => {
       );
       const existingConfig = JSON.parse(storageClassConfig);
 
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList([storageClass]),
-      );
-
+      storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName(storageClassName);
@@ -242,7 +215,7 @@ describe('Storage classes', () => {
 
       // Reset enable
       storageClassesTable.mockUpdateStorageClass(storageClassName, 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
             ...existingConfig,
@@ -261,7 +234,7 @@ describe('Storage classes', () => {
 
       // Reset default
       storageClassesTable.mockUpdateStorageClass(storageClassName, 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
             ...existingConfig,
@@ -281,7 +254,7 @@ describe('Storage classes', () => {
 
       // Reset last modified
       storageClassesTable.mockUpdateStorageClass(storageClassName, 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
             ...existingConfig,
@@ -307,12 +280,7 @@ describe('Storage classes', () => {
         '{"isDefault":false,"isEnabled":false,"displayName":{},"lastModified":"2024-09-09T17:45:05.299Z","description":"Test malformed displayName"}',
       );
 
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList([storageClass]),
-      );
-
+      storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName('invalid-name');
@@ -328,7 +296,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDisplayNameInput('New name');
 
       storageClassEditModal.mockUpdateStorageClass('invalid-name', 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(
             storageClass,
@@ -351,12 +319,7 @@ describe('Storage classes', () => {
         '{"isDefault":false,"isEnabled":false,"displayName":"Test malformed description","lastModified":"2024-09-09T17:45:05.299Z","description":{}}',
       );
 
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList([storageClass]),
-      );
-
+      storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName('invalid-description');
@@ -371,7 +334,7 @@ describe('Storage classes', () => {
       storageClassEditModal.findInfoAlert().should('contain.text', 'Edit the invalid field');
 
       storageClassEditModal.mockUpdateStorageClass('invalid-description', 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(
             storageClass,
@@ -394,12 +357,7 @@ describe('Storage classes', () => {
         '{"isDefault":false,"isEnabled":false,"displayName":{},"description":{},"lastModified":"2024-09-09T17:45:05.299Z"}',
       );
 
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList([storageClass]),
-      );
-
+      storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName('invalid-name-and-desc');
@@ -414,7 +372,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDescriptionInput('New description');
 
       storageClassEditModal.mockUpdateStorageClass('invalid-name-and-desc', 1);
-      storageClassesTable
+      storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(
             storageClass,
@@ -431,6 +389,47 @@ describe('Storage classes', () => {
       cy.wait('@refreshStorageClasses');
       storageClassTableRow.findDisplayNameValue().should('contain.text', 'New name');
       storageClassTableRow.findDisplayNameValue().should('contain.text', 'New description');
+    });
+
+    it('can filter table by displayName and/or OpenShift storage class name', () => {
+      const storageClasses = [
+        ...mockStorageClasses,
+        buildMockStorageClass(
+          { ...mockStorageClasses[0], metadata: { ...mockStorageClasses[0], name: 'sc-2' } },
+          { displayName: 'Test SC 2' },
+        ),
+      ];
+
+      storageClassesPage.mockGetStorageClasses(storageClasses);
+      storageClassesPage.visit();
+      storageClassesTable.findRows().should('have.length', 3);
+
+      // Filter only by display name
+      const toolbar = storageClassesTable.getTableToolbar();
+      toolbar.fillSearchInput('Test');
+      storageClassesTable.findRows().should('have.length', 2);
+      toolbar.findSearchInput().clear();
+      storageClassesTable.findRows().should('have.length', 3);
+
+      // Filter only by OpenShift class
+      toolbar.findFilterMenuItem('OpenShift storage class').click();
+      toolbar.fillSearchInput('sc-2');
+      storageClassesTable.findRows().should('have.length', 1);
+      toolbar.findSearchInput().clear();
+      storageClassesTable.findRows().should('have.length', 3);
+
+      // Filter by a value that doesn't exist in any row
+      toolbar.fillSearchInput('not found');
+      storageClassesTable.findEmptyState().should('be.visible');
+      storageClassesTable.findClearFiltersButton().click();
+      storageClassesTable.findRows().should('have.length', 3);
+      toolbar.findSearchInput().clear();
+
+      // Filter by both display name and OpenShift class
+      toolbar.fillSearchInput('test');
+      toolbar.findFilterMenuItem('Display name').click();
+      toolbar.fillSearchInput('test');
+      storageClassesTable.findRows().should('have.length', 1);
     });
   });
 });

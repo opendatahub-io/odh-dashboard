@@ -39,7 +39,7 @@ const AcceleratorProfiles: React.FC = () => {
         <EmptyStateBody>
           You don&apos;t have any accelerator profiles yet. To get started, please ask your cluster
           administrator about the accelerator availability in your cluster and create corresponding
-          profiles in Openshift Data Science.
+          profiles in OpenShift Data Science.
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>

@@ -1,7 +1,7 @@
 import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 
 /**
- * Create an Openshift Project
+ * Create an OpenShift Project
  *
  * @param projectName Project Name
  * @param displayName Project Display Name
@@ -27,7 +27,7 @@ export const createOpenShiftProject = (
 };
 
 /**
- * Delete an Openshift Project given its name
+ * Delete an OpenShift Project given its name
  *
  * @param projectName OpenShift Project name
  * @returns Result Object of the operation

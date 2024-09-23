@@ -3,6 +3,7 @@ import { mockStorageClassList } from '~/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from './components/Modal';
+import { TableToolbar } from './components/TableToolbar';
 
 class StorageClassesPage {
   visit() {
@@ -22,9 +23,36 @@ class StorageClassesPage {
   findEmptyState() {
     return cy.findByTestId('storage-classes-empty-state');
   }
+
+  mockGetStorageClasses(storageClasses?: MockStorageClass[], times?: number) {
+    return cy.interceptOdh(
+      'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
+      { times },
+      mockStorageClassList(storageClasses),
+    );
+  }
+}
+
+class StorageClassesToolbar extends TableToolbar {
+  findFilterMenu() {
+    return this.find().findByTestId('filter-toolbar-dropdown');
+  }
+
+  findFilterMenuItem(name: string) {
+    this.findFilterMenu().click();
+    return this.findFilterMenu().get('button').contains(name);
+  }
+
+  fillSearchInput(value: string) {
+    this.findSearchInput().clear().fill(value);
+  }
 }
 
 class StorageClassesTableRow extends TableRow {
+  private findByDataLabel(label: string) {
+    return this.find().find(`[data-label="${label}"]`);
+  }
+
   findOpenshiftDefaultLabel() {
     return this.find().findByTestId('openshift-sc-default-label');
   }
@@ -38,19 +66,19 @@ class StorageClassesTableRow extends TableRow {
   }
 
   findDisplayNameValue() {
-    return this.find().find(`[data-label="Display name"]`);
+    return this.findByDataLabel('Display name');
   }
 
   findEnableValue() {
-    return this.find().find(`[data-label="Enable"]`);
+    return this.findByDataLabel('Enable');
   }
 
   findDefaultValue() {
-    return this.find().find(`[data-label="Default"]`);
+    return this.findByDataLabel('Default');
   }
 
   findLastModifiedValue() {
-    return this.find().find(`[data-label="Last modified"]`);
+    return this.findByDataLabel('Last modified');
   }
 
   findCorruptedMetadataAlert() {
@@ -59,24 +87,42 @@ class StorageClassesTableRow extends TableRow {
 }
 
 class StorageClassesTable {
+  private findByDataLabel(label: string) {
+    return this.find().find(`[data-label="${label}"]`);
+  }
+
   find() {
     return cy.findByTestId('storage-classes-table');
   }
 
-  getRowByName(name: string) {
+  getRowByName(name: string, label = 'OpenShift storage class') {
     return new StorageClassesTableRow(() =>
-      this.find().find(`[data-label="Openshift storage class"]`).contains(name).parents('tr'),
+      this.findByDataLabel(label).contains(name).parents('tr'),
     );
   }
 
   getRowByConfigName(name: string) {
-    return new StorageClassesTableRow(() =>
-      this.find().find(`[data-label="Display name"]`).contains(name).parents('tr'),
-    );
+    return this.getRowByName(name, 'Display name');
+  }
+
+  getTableToolbar() {
+    return new StorageClassesToolbar(() => cy.findByTestId('sc-table-toolbar'));
   }
 
   findRowByName(name: string) {
     return this.getRowByConfigName(name).find();
+  }
+
+  findRows() {
+    return this.findByDataLabel('Display name').parents('tr');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findClearFiltersButton() {
+    return this.findEmptyState().findByTestId('clear-filters-button');
   }
 
   mockUpdateStorageClass(storageClassName: string, times?: number) {
@@ -84,14 +130,6 @@ class StorageClassesTable {
       `PUT /api/storage-class/:name/config`,
       { path: { name: storageClassName }, times },
       { success: true, error: '' },
-    );
-  }
-
-  mockGetStorageClasses(storageClasses: MockStorageClass[], times?: number) {
-    return cy.interceptOdh(
-      'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-      { times },
-      mockStorageClassList(storageClasses),
     );
   }
 }
