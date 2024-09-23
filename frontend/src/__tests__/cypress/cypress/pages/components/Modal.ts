@@ -12,7 +12,10 @@ export class Modal {
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: this.title });
+    // FIXME Remove `hidden: true` once issue with PF modals is fixed.
+    // https://issues.redhat.com/browse/RHOAIENG-11946
+    // https://github.com/patternfly/patternfly-react/issues/11041
+    return cy.findByRole('dialog', { name: this.title, hidden: true });
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
