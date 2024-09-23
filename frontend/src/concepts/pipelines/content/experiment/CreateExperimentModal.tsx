@@ -13,6 +13,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import {
+  NAME_CHARACTER_LIMIT,
+  DESCRIPTION_CHARACTER_LIMIT,
+} from '~/concepts/pipelines/content/const';
+import { CharLimitHelperText } from '~/components/CharLimitHelperText';
 
 type CreateExperimentModalProps = {
   isOpen: boolean;
@@ -80,8 +85,11 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ isOpen, o
                 id="experiment-name"
                 name="experiment-name"
                 value={name}
-                onChange={(e, value) => setData('name', value)}
+                onChange={(_, value) => setData('name', value)}
+                maxLength={NAME_CHARACTER_LIMIT}
               />
+
+              <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
             </FormGroup>
           </StackItem>
           <StackItem>
@@ -92,8 +100,11 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ isOpen, o
                 id="experiment-description"
                 name="experiment-description"
                 value={description}
-                onChange={(e, value) => setData('description', value)}
+                onChange={(_, value) => setData('description', value)}
+                maxLength={DESCRIPTION_CHARACTER_LIMIT}
               />
+
+              <CharLimitHelperText limit={DESCRIPTION_CHARACTER_LIMIT} />
             </FormGroup>
           </StackItem>
           {error && (

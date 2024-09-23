@@ -8,3 +8,6 @@ export const PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR =
 
 export const PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR =
   'Cannot create run for Kubeflow v1 SDK pipelines';
+
+export const NAME_CHARACTER_LIMIT = 255;
+export const DESCRIPTION_CHARACTER_LIMIT = 255;

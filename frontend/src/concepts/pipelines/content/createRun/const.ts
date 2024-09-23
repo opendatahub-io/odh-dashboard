@@ -34,6 +34,3 @@ export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
   [CreateRunPageSections.PARAMS]: 'Parameters',
 };
-
-export const RUN_NAME_CHARACTER_LIMIT = 255;
-export const RUN_DESCRIPTION_CHARACTER_LIMIT = 255;
