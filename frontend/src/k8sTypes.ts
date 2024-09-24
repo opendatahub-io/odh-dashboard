@@ -1356,9 +1356,9 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
-  components: {
-    modelregistry: {
-      registriesNamespace: string;
+  components?: {
+    modelregistry?: {
+      registriesNamespace?: string;
     };
   };
   conditions: K8sCondition[];

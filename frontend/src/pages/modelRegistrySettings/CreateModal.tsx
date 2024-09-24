@@ -76,7 +76,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
       kind: 'ModelRegistry',
       metadata: {
         name: nameDesc.k8sName || translateDisplayNameForK8s(nameDesc.name),
-        namespace: dscStatus?.components.modelregistry.registriesNamespace || '',
+        namespace: dscStatus?.components?.modelregistry?.registriesNamespace || '',
         annotations: {
           'openshift.io/description': nameDesc.description,
           'openshift.io/display-name': nameDesc.name.trim(),

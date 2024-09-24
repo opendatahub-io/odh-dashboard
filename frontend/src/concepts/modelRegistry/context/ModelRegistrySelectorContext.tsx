@@ -48,7 +48,7 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<
     isLoaded,
     error,
     refreshRulesReview,
-  } = useModelRegistryServices(dscStatus?.components.modelregistry.registriesNamespace || '');
+  } = useModelRegistryServices(dscStatus?.components?.modelregistry?.registriesNamespace || '');
   const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<
     ServiceKind | undefined
   >(undefined);
