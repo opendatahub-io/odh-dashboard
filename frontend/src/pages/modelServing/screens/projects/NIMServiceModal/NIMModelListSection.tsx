@@ -27,16 +27,19 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
   const [modelList, setModelList] = useState<ModelInfo[]>([]);
   const { dashboardNamespace } = useDashboardNamespace();
   const [error, setError] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState('');
 
   useEffect(() => {
     const getModelNames = async () => {
       try {
         const modelInfos = await fetchNIMModelNames(dashboardNamespace);
         if (modelInfos && modelInfos.length > 0) {
-          const fetchedOptions = modelInfos.map((modelInfo) => ({
-            key: modelInfo.name,
-            label: `${modelInfo.displayName} - ${modelInfo.latestTag}`,
-          }));
+          const fetchedOptions = modelInfos.flatMap((modelInfo) =>
+            modelInfo.tags.map((tag) => ({
+              key: `${modelInfo.name}-${tag}`,
+              label: `${modelInfo.displayName} - ${tag}`,
+            })),
+          );
           setModelList(modelInfos);
           setOptions(fetchedOptions);
           setError('');
@@ -52,21 +55,29 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
     getModelNames();
   }, [dashboardNamespace]);
 
-  const getSupportedModelFormatsInfo = (name: string) => {
+  const getSupportedModelFormatsInfo = (key: string) => {
+    const lastHyphenIndex = key.lastIndexOf('-');
+    const name = key.slice(0, lastHyphenIndex);
+    const version = key.slice(lastHyphenIndex + 1);
+
     const modelInfo = modelList.find((model) => model.name === name);
     if (modelInfo) {
       return {
         name: modelInfo.name,
-        version: modelInfo.latestTag,
+        version,
       };
     }
     return null;
   };
 
-  const getNIMImageName = (name: string) => {
+  const getNIMImageName = (key: string) => {
+    const lastHyphenIndex = key.lastIndexOf('-');
+    const name = key.slice(0, lastHyphenIndex);
+    const version = key.slice(lastHyphenIndex + 1);
+
     const imageInfo = modelList.find((model) => model.name === name);
     if (imageInfo) {
-      return `nvcr.io/${imageInfo.namespace}/${name}:${imageInfo.latestTag}`;
+      return `nvcr.io/${imageInfo.namespace}/${name}:${version}`;
     }
     return '';
   };
@@ -87,17 +98,17 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
             ? inferenceServiceData.name
             : 'Select NVIDIA NIM to deploy'
         }
-        value={inferenceServiceData.format.name}
-        onChange={(name) => {
-          const supportedModelInfo = getSupportedModelFormatsInfo(name);
-
+        value={selectedModel}
+        onChange={(key) => {
+          setSelectedModel(key);
+          const supportedModelInfo = getSupportedModelFormatsInfo(key);
           if (supportedModelInfo) {
             setServingRuntimeData('supportedModelFormatsInfo', supportedModelInfo);
-            setServingRuntimeData('imageName', getNIMImageName(name));
-            setInferenceServiceData('format', { name });
+            setServingRuntimeData('imageName', getNIMImageName(key));
+            setInferenceServiceData('format', { name: supportedModelInfo.name });
             setError('');
           } else {
-            setError('Error: Model not found.'); // Set error when model is not found
+            setError('Error: Model not found.');
           }
         }}
       />

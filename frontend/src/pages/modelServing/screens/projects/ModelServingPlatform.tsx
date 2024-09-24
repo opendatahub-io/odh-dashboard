@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useEffect, useState } from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
@@ -34,8 +33,8 @@ import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/Em
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import EmptyNIMModelServingCard from '~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { isNIMAPIKeyEnabled } from '~/pages/modelServing/screens/projects/nimUtils';
+import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
@@ -49,21 +48,8 @@ const ModelServingPlatform: React.FC = () => {
 
   const servingPlatformStatuses = useServingPlatformStatuses();
 
-  const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
-  const [isNIMAPIKeyValid, setIsNIMAPIKeyValid] = useState<boolean>(false);
   const { dashboardNamespace } = useDashboardNamespace();
-
-  useEffect(() => {
-    const checkAPIKey = async () => {
-      try {
-        const valid = await isNIMAPIKeyEnabled(dashboardNamespace);
-        setIsNIMAPIKeyValid(valid);
-      } catch (error) {
-        setIsNIMAPIKeyValid(false);
-      }
-    };
-    checkAPIKey();
-  }, [dashboardNamespace]);
+  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
 
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
   const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
@@ -83,6 +69,8 @@ const ModelServingPlatform: React.FC = () => {
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
+
+  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
 
   const templatesSorted = getSortedTemplates(templates, templateOrder);
   const templatesEnabled = templatesSorted.filter((template) =>
@@ -150,7 +138,7 @@ const ModelServingPlatform: React.FC = () => {
         id={ProjectSectionID.MODEL_SERVER}
         title={!emptyModelServer ? ProjectSectionTitles[ProjectSectionID.MODEL_SERVER] : undefined}
         actions={
-          shouldShowPlatformSelection || platformError || emptyModelServer
+          shouldShowPlatformSelection || platformError || emptyModelServer || !isKServeNIMEnabled
             ? undefined
             : [
                 <ModelServingPlatformButtonAction
@@ -218,7 +206,7 @@ const ModelServingPlatform: React.FC = () => {
                       <GalleryItem>
                         <EmptyMultiModelServingCard />
                       </GalleryItem>
-                      {isNIMModelServingAvailable && isNIMAPIKeyValid && (
+                      {isNIMAvailable && (
                         <GalleryItem>
                           <EmptyNIMModelServingCard />
                         </GalleryItem>

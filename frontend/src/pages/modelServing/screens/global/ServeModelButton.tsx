@@ -13,6 +13,7 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -36,6 +37,10 @@ const ServeModelButton: React.FC = () => {
   const templatesEnabled = templatesSorted.filter((template) =>
     getTemplateEnabled(template, templateDisablement),
   );
+  const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
+  if (isKServeNIMEnabled) {
+    return null;
+  }
 
   const onSubmit = (submit: boolean) => {
     if (submit) {

@@ -1,11 +1,10 @@
 // NGC stands for NVIDIA GPU Cloud.
 
-import { ProjectKind, SecretKind } from '~/k8sTypes';
-import { getConfigMap } from '~/api';
+import { ProjectKind, SecretKind, TemplateKind } from '~/k8sTypes';
+import { getTemplate } from '~/api';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
 const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
-const NIM_API_KEY_VALIDATION = 'nvidia-nim-validation-result';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
@@ -46,7 +45,7 @@ export const getNIMData = async (isNGC: boolean): Promise<Record<string, string>
   return data;
 };
 
-export const isNIMSupported = (currentProject: ProjectKind): boolean => {
+export const isProjectNIMSupported = (currentProject: ProjectKind): boolean => {
   const isModelMeshDisabled = currentProject.metadata.labels?.['modelmesh-enabled'] === 'false';
   const hasNIMSupportAnnotation =
     currentProject.metadata.annotations?.['opendatahub.io/nim-support'] === 'true';
@@ -54,16 +53,28 @@ export const isNIMSupported = (currentProject: ProjectKind): boolean => {
   return isModelMeshDisabled && hasNIMSupportAnnotation;
 };
 
-export const isNIMAPIKeyEnabled = async (dashboardNamespace: string): Promise<boolean> => {
-  try {
-    const configMap = await getConfigMap(dashboardNamespace, NIM_API_KEY_VALIDATION);
+export const isNIMServingRuntimeTemplateAvailable = async (
+  dashboardNamespace: string,
+): Promise<boolean> => {
+  const TEMPLATE_NAME = 'nvidia-nim-serving-template';
 
-    if (configMap.data && Object.keys(configMap.data).length > 0) {
-      const validationResult = configMap.data.validation_result;
-      return validationResult === 'true';
-    }
+  try {
+    await getTemplate(TEMPLATE_NAME, dashboardNamespace);
+    return true;
   } catch (error) {
-    throw new Error(`Error fetching API key validation.`);
+    return false;
   }
-  return false;
+};
+
+export const getNIMServingRuntimeTemplate = async (
+  dashboardNamespace: string,
+): Promise<TemplateKind[] | null> => {
+  const TEMPLATE_NAME = 'nvidia-nim-serving-template';
+
+  try {
+    const template = await getTemplate(TEMPLATE_NAME, dashboardNamespace);
+    return template;
+  } catch (error) {
+    return null;
+  }
 };

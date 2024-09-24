@@ -25,7 +25,6 @@ import {
 } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
@@ -45,6 +44,8 @@ import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/project
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
+import { getNIMServingRuntimeTemplate } from '~/pages/modelServing/screens/projects/nimUtils';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -59,7 +60,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 type DeployNIMServiceModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
-  servingRuntimeTemplates?: TemplateKind[];
 } & EitherOrNone<
   {
     projectContext?: {
@@ -79,7 +79,6 @@ type DeployNIMServiceModalProps = {
 const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   isOpen,
   onClose,
-  servingRuntimeTemplates,
   projectContext,
   editInfo,
 }) => {
@@ -99,6 +98,10 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
   });
+
+  const [servingRuntimeSelected, setServingRuntimeSelected] = React.useState<TemplateKind[] | null>(
+    null,
+  );
 
   const acceleratorProfileState = useServingAcceleratorProfile(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
@@ -146,12 +149,16 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
     !translatedName ||
     !baseInputValueValid;
 
-  const servingRuntimeSelected = React.useMemo(
-    () =>
-      editInfo?.servingRuntimeEditInfo?.servingRuntime ||
-      getServingRuntimeFromName('nvidia-nim-runtime', servingRuntimeTemplates),
-    [editInfo, servingRuntimeTemplates],
-  );
+  const { dashboardNamespace } = useDashboardNamespace();
+
+  React.useEffect(() => {
+    const fetchNIMServingRuntimeTemplate = async () => {
+      const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
+      setServingRuntimeSelected(nimTemplate);
+    };
+
+    fetchNIMServingRuntimeTemplate();
+  }, [dashboardNamespace, editInfo]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);

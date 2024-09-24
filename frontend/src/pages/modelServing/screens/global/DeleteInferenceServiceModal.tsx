@@ -1,8 +1,10 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { deleteInferenceService, deleteServingRuntime } from '~/api';
+import { deleteInferenceService, deletePvc, deleteServingRuntime } from '~/api';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
@@ -19,6 +21,10 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(inferenceService?.metadata.namespace)) ?? null;
+  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -39,6 +45,9 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
       onDelete={() => {
         if (inferenceService) {
           setIsDeleting(true);
+          const pvcName = servingRuntime?.spec.volumes?.find(
+            (vol) => vol.persistentVolumeClaim?.claimName,
+          );
           Promise.all([
             deleteInferenceService(
               inferenceService.metadata.name,
@@ -51,6 +60,9 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
                     servingRuntime.metadata.namespace,
                   ),
                 ]
+              : []),
+            ...(isKServeNIMEnabled
+              ? [deletePvc(pvcName, inferenceService.metadata.namespace)]
               : []),
           ])
 
