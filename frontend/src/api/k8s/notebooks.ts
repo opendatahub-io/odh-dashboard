@@ -4,9 +4,9 @@ import {
   k8sGetResource,
   k8sListResource,
   k8sPatchResource,
-  k8sUpdateResource,
   Patch,
   K8sStatus,
+  k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
 import { NotebookModel } from '~/api/models';
@@ -26,6 +26,7 @@ import {
 } from '~/concepts/pipelines/elyra/utils';
 import { Volume, VolumeMount } from '~/types';
 import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { k8sMergePatchResource } from '~/api/k8sUtils';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 export const assembleNotebook = (
@@ -300,6 +301,21 @@ export const updateNotebook = (
     ),
   );
 };
+
+export const mergePatchUpdateNotebook = (
+  assignableData: StartNotebookData,
+  username: string,
+  opts?: K8sAPIOptions,
+): Promise<NotebookKind> =>
+  k8sMergePatchResource<NotebookKind>(
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        resource: assembleNotebook(assignableData, username),
+      },
+      opts,
+    ),
+  );
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
