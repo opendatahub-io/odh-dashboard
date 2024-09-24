@@ -7,8 +7,12 @@ import fastifySensible from '@fastify/sensible';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyAccepts from '@fastify/accepts';
 import { FastifyInstance } from 'fastify/types/instance';
+import { FastifyRegisterOptions } from 'fastify';
 
-export const initializeApp = async (fastify: FastifyInstance, opts: any): Promise<void> => {
+export const initializeApp = async (
+  fastify: FastifyInstance,
+  opts: FastifyRegisterOptions<unknown>,
+): Promise<void> => {
   if (!fs.existsSync(LOG_DIR)) {
     fastify.log.info(`${LOG_DIR} does not exist. Creating`);
     fs.mkdirSync(LOG_DIR);
