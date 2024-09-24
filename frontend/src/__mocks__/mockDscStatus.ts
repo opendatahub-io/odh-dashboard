@@ -12,6 +12,11 @@ export const mockDscStatus = ({
   conditions = [],
   phase = 'Ready',
 }: MockDscStatus): DataScienceClusterKindStatus => ({
+  components: {
+    modelregistry: {
+      registriesNamespace: 'odh-model-registries',
+    },
+  },
   conditions: [
     ...[
       {

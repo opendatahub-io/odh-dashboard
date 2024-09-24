@@ -37,7 +37,7 @@ export const proxyService =
         internalPort: number | string;
         prefix?: string;
         suffix?: string;
-        namespace?: string;
+        namespace?: string | ((fastify: KubeFastifyInstance) => Promise<string>);
       },
       {
         constructUrl: (resource: K) => string;
@@ -51,9 +51,13 @@ export const proxyService =
     tls = true,
   ) =>
   async (fastify: KubeFastifyInstance): Promise<void> => {
+    const serviceNamespace =
+      typeof service.namespace === 'function'
+        ? await service.namespace(fastify)
+        : service.namespace;
     fastify.register(httpProxy, {
       upstream: '',
-      prefix: service.namespace ? ':name' : '/:namespace/:name',
+      prefix: serviceNamespace ? ':name' : '/:namespace/:name',
       rewritePrefix: '',
       replyOptions: {
         // preHandler must set the `upstream` param
@@ -75,7 +79,7 @@ export const proxyService =
           return;
         }
         // see `prefix` for named params
-        const namespace = service.namespace ?? getParam(request, 'namespace');
+        const namespace = serviceNamespace ?? getParam(request, 'namespace');
         const name = getParam(request, 'name');
         const serviceName = `${service.prefix ?? ''}${name}${service.suffix ?? ''}`;
         const scheme = tls ? 'https' : 'http';

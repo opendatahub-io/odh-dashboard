@@ -15,20 +15,22 @@ import { useGroups } from '~/api';
 import RoleBindingPermissions from '~/concepts/roleBinding/RoleBindingPermissions';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { MODEL_REGISTRY_DEFAULT_NAMESPACE } from '~/concepts/modelRegistry/const';
 import { SupportedArea } from '~/concepts/areas';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
 import { useModelRegistryNamespaceCR } from '~/concepts/modelRegistry/context/useModelRegistryNamespaceCR';
+import { AreaContext } from '~/concepts/areas/AreaContext';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
 const ModelRegistriesManagePermissions: React.FC = () => {
+  const { dscStatus } = React.useContext(AreaContext);
+  const modelRegistryNamespace = dscStatus?.components.modelregistry.registriesNamespace;
   const [activeTabKey, setActiveTabKey] = React.useState('users');
   const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();
   const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
   const { mrName } = useParams();
-  const state = useModelRegistryNamespaceCR(MODEL_REGISTRY_DEFAULT_NAMESPACE, mrName || '');
+  const state = useModelRegistryNamespaceCR(modelRegistryNamespace || '', mrName || '');
   const [modelRegistryCR, crLoaded] = state;
   const filteredRoleBindings = roleBindings.data.filter(
     (rb) => rb.metadata.labels?.['app.kubernetes.io/name'] === mrName,
@@ -109,7 +111,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                 'app.kubernetes.io/name': mrName || '',
                 component: SupportedArea.MODEL_REGISTRY,
               }}
-              projectName={MODEL_REGISTRY_DEFAULT_NAMESPACE}
+              projectName={modelRegistryNamespace || ''}
               description={
                 <>
                   To enable access for all cluster users, add{' '}
@@ -148,7 +150,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                 'app.kubernetes.io/name': mrName || '',
                 component: SupportedArea.MODEL_REGISTRY,
               }}
-              projectName={MODEL_REGISTRY_DEFAULT_NAMESPACE}
+              projectName={modelRegistryNamespace || ''}
               isProjectSubject={activeTabKey === 'projects'}
               roleBindingPermissionsRB={{ ...roleBindings, data: filteredRoleBindings }}
             />

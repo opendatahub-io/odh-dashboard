@@ -93,10 +93,10 @@ describe('useModelRegistryServices', () => {
     expect(isLoaded).toBe(true);
     expect(mockGetResource).toHaveBeenCalledTimes(2);
     expect(mockGetResource).toHaveBeenCalledWith({
-      queryOptions: { name: 'service-1', ns: 'odh-model-registries' },
+      queryOptions: { name: 'service-1', ns: 'test-namespace' },
     });
     expect(mockGetResource).toHaveBeenCalledWith({
-      queryOptions: { name: 'service-2', ns: 'odh-model-registries' },
+      queryOptions: { name: 'service-2', ns: 'test-namespace' },
     });
   });
 

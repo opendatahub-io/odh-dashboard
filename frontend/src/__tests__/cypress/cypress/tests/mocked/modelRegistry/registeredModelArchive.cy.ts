@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { mockK8sResourceList } from '~/__mocks__';
+import { mockDscStatus, mockK8sResourceList } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
@@ -55,6 +55,15 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
+    }),
+  );
+
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      installedComponents: {
+        'model-registry-operator': true,
+      },
     }),
   );
 

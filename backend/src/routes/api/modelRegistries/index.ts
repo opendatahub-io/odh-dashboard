@@ -6,6 +6,7 @@ import {
   deleteModelRegistryAndSecret,
   getDatabasePassword,
   getModelRegistry,
+  getModelRegistryNamespace,
   listModelRegistries,
   patchModelRegistryAndUpdatePassword,
 } from './modelRegistryUtils';
@@ -17,6 +18,8 @@ type ModelRegistryAndDBPassword = {
 
 // Lists ModelRegistries directly (does not look up passwords from associated Secrets, you must make a direct request to '/:modelRegistryName' for that)
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
+  const modelRegistryNamespace = await getModelRegistryNamespace(fastify);
+
   fastify.get(
     '/',
     secureAdminRoute(fastify)(
@@ -26,7 +29,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { labelSelector } = request.query;
         try {
-          return listModelRegistries(fastify, labelSelector);
+          return listModelRegistries(fastify, modelRegistryNamespace, labelSelector);
         } catch (e) {
           fastify.log.error(
             `ModelRegistries could not be listed, ${e.response?.body?.message || e.message}`,
@@ -52,7 +55,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const { modelRegistry, databasePassword } = request.body;
         try {
-          return createModelRegistryAndSecret(fastify, modelRegistry, databasePassword, !!dryRun);
+          return createModelRegistryAndSecret(
+            fastify,
+            modelRegistry,
+            modelRegistryNamespace,
+            databasePassword,
+            !!dryRun,
+          );
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistry.metadata.name} could not be created, ${
@@ -75,8 +84,16 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { modelRegistryName } = request.params;
         try {
-          const modelRegistry = await getModelRegistry(fastify, modelRegistryName);
-          const databasePassword = await getDatabasePassword(fastify, modelRegistry);
+          const modelRegistry = await getModelRegistry(
+            fastify,
+            modelRegistryName,
+            modelRegistryNamespace,
+          );
+          const databasePassword = await getDatabasePassword(
+            fastify,
+            modelRegistry,
+            modelRegistryNamespace,
+          );
           return { modelRegistry, databasePassword } satisfies ModelRegistryAndDBPassword;
         } catch (e) {
           fastify.log.error(
@@ -110,6 +127,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           const modelRegistry = await patchModelRegistryAndUpdatePassword(
             fastify,
             modelRegistryName,
+            modelRegistryNamespace,
             patchBody,
             databasePassword,
             !!dryRun,
@@ -141,7 +159,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const { modelRegistryName } = request.params;
         try {
-          deleteModelRegistryAndSecret(fastify, modelRegistryName, !!dryRun);
+          deleteModelRegistryAndSecret(
+            fastify,
+            modelRegistryName,
+            modelRegistryNamespace,
+            !!dryRun,
+          );
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistryName} could not be deleted, ${
