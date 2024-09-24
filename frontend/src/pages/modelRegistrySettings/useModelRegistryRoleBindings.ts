@@ -10,7 +10,7 @@ const useModelRegistryRoleBindings = (): FetchState<RoleBindingKind[]> => {
   const getRoleBindings = React.useCallback(
     () =>
       listRoleBindings(
-        dscStatus?.components.modelregistry.registriesNamespace,
+        dscStatus?.components?.modelregistry?.registriesNamespace,
         KnownLabels.LABEL_SELECTOR_MODEL_REGISTRY,
       ).catch((e) => {
         if (e.statusObject?.code === 404) {
@@ -18,7 +18,7 @@ const useModelRegistryRoleBindings = (): FetchState<RoleBindingKind[]> => {
         }
         throw e;
       }),
-    [dscStatus?.components.modelregistry.registriesNamespace],
+    [dscStatus?.components?.modelregistry?.registriesNamespace],
   );
 
   return useFetchState<RoleBindingKind[]>(getRoleBindings, []);

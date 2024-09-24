@@ -24,7 +24,7 @@ import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
 const ModelRegistriesManagePermissions: React.FC = () => {
   const { dscStatus } = React.useContext(AreaContext);
-  const modelRegistryNamespace = dscStatus?.components.modelregistry.registriesNamespace;
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
   const [activeTabKey, setActiveTabKey] = React.useState('users');
   const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();
