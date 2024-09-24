@@ -1004,11 +1004,11 @@ type ComponentNames =
   | 'workbenches';
 
 export type DataScienceClusterKindStatus = {
-  components: {
-    modelregistry: {
-      registriesNamespace: string
-    }
-  }
+  components?: {
+    modelregistry?: {
+      registriesNamespace?: string;
+    };
+  };
   conditions: K8sCondition[];
   installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;

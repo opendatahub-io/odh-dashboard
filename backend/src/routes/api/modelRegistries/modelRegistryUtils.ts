@@ -6,9 +6,20 @@ const MODEL_REGISTRY_API_GROUP = 'modelregistry.opendatahub.io';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha1';
 const MODEL_REGISTRY_PLURAL = 'modelregistries';
 
-export const getModelRegistryNamespace = async (fastify: KubeFastifyInstance): Promise<string> => {
-  const modelRegistryNamespace = await getClusterStatus(fastify);
-  return modelRegistryNamespace.components.modelregistry.registriesNamespace;
+export const getModelRegistryNamespace = async (
+  fastify: KubeFastifyInstance,
+): Promise<string | undefined> => {
+  let registriesNamespace: string | undefined;
+  try {
+    const clusterStatus = await getClusterStatus(fastify);
+    registriesNamespace = clusterStatus.components?.modelregistry?.registriesNamespace;
+  } catch (e) {
+    fastify.log.error(e, 'Failed to fetch DSC status');
+  }
+  if (!registriesNamespace) {
+    fastify.log.warn('Model registry namespace not found in DSC status');
+  }
+  return registriesNamespace;
 };
 
 const base64encode = (value?: string): string => {
