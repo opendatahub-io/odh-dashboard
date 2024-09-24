@@ -10,7 +10,7 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
-import { createSecret } from '~/api';
+import { createSecret, replaceSecret } from '~/api';
 import ConnectionsTable from './ConnectionsTable';
 import { ManageConnectionModal } from './ManageConnectionsModal';
 
@@ -26,6 +26,7 @@ const ConnectionsList: React.FC = () => {
 
   const [manageConnectionModal, setManageConnectionModal] = React.useState<{
     connection?: Connection;
+    isEdit?: boolean;
   }>();
 
   return (
@@ -75,6 +76,9 @@ const ConnectionsList: React.FC = () => {
         connections={connections}
         connectionTypes={connectionTypes}
         refreshConnections={refreshConnections}
+        setManageConnectionModal={(modalConnection?: Connection) =>
+          setManageConnectionModal({ connection: modalConnection, isEdit: true })
+        }
       />
       {manageConnectionModal && (
         <ManageConnectionModal
@@ -87,7 +91,10 @@ const ConnectionsList: React.FC = () => {
               refreshConnections();
             }
           }}
-          onSubmit={(connection: Connection) => createSecret(connection)}
+          onSubmit={(connection: Connection) =>
+            manageConnectionModal.isEdit ? replaceSecret(connection) : createSecret(connection)
+          }
+          isEdit={manageConnectionModal.isEdit}
         />
       )}
     </DetailsSection>

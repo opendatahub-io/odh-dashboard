@@ -30,6 +30,7 @@ type Props = Pick<
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
   };
+  disableTypeSelection?: boolean;
 };
 
 const ConnectionTypeForm: React.FC<Props> = ({
@@ -42,6 +43,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
   connectionValues,
   onChange,
   onValidate,
+  disableTypeSelection,
 }) => {
   const options: TypeaheadSelectOption[] = React.useMemo(() => {
     if (isPreview && connectionType?.metadata.annotations?.['openshift.io/display-name']) {
@@ -73,7 +75,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
           onSelect={(_, selection) =>
             setConnectionType?.(connectionTypes?.find((c) => c.metadata.name === selection))
           }
-          isDisabled={isPreview || connectionTypes?.length === 1}
+          isDisabled={isPreview || disableTypeSelection}
           placeholder={
             isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
               ? 'Unspecified'
@@ -90,7 +92,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
         )}
       </FormGroup>
       {(isPreview || connectionType?.metadata.name) && (
-        <FormSection title="Connection details" style={{ marginTop: 0 }}>
+        <FormSection title="Connection details">
           <K8sNameDescriptionField
             dataTestId="connection-name-desc"
             nameLabel="Connection name"
@@ -102,7 +104,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
                 k8sName: {
                   value: '',
                   state: {
-                    immutable: true,
+                    immutable: false,
                     invalidCharacters: false,
                     invalidLength: false,
                     maxLength: 0,
@@ -111,7 +113,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
                 },
               }
             }
-            onDataChange={setConnectionNameDesc}
+            onDataChange={setConnectionNameDesc ?? (() => undefined)} // onDataChange needs to be truthy to show resource name
           />
           <ConnectionTypeFormFields
             fields={connectionType?.data?.fields}

@@ -119,4 +119,36 @@ describe('Connections', () => {
 
     cy.wait('@createConnection');
   });
+
+  it('Edit a connection', () => {
+    initIntercepts();
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 'postgres',
+        fields: [
+          {
+            name: 'field A',
+            type: ConnectionTypeFieldType.ShortText,
+            envVar: 'field_env',
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+    cy.interceptK8s(
+      'PUT',
+      SecretModel,
+      mockSecretK8sResource({
+        name: 'test2',
+      }),
+    ).as('editConnection');
+
+    projectDetails.visitSection('test-project', 'connections');
+
+    connectionsPage.getConnectionRow('test2').findKebabAction('Edit').click();
+    cy.findByTestId(['field_env']).fill('new data');
+    cy.findByTestId('modal-submit-button').click();
+
+    cy.wait('@editConnection');
+  });
 });
