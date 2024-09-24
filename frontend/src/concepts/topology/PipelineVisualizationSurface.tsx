@@ -13,6 +13,7 @@ import {
   DEFAULT_SPACER_NODE_TYPE,
   DEFAULT_EDGE_TYPE,
   TopologySideBar,
+  isEdge,
 } from '@patternfly/react-topology';
 import {
   EmptyState,
@@ -39,15 +40,32 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   const controller = useVisualizationController();
   const [error, setError] = React.useState<Error | null>();
 
-  const selectedNode = React.useMemo(() => {
+  const selectedNode = React.useMemo(
+    () => (selectedIds?.[0] ? controller.getNodeById(selectedIds[0]) || null : null),
+    [selectedIds, controller],
+  );
+
+  const selections = React.useMemo(() => {
     if (selectedIds?.[0]) {
-      const node = controller.getNodeById(selectedIds[0]);
-      if (node) {
-        return node;
+      const element = controller.getElementById(selectedIds[0]);
+      if (element && isEdge(element)) {
+        const edge = element;
+        const selectedEdges = [edge.getId()];
+        const source = edge.getSource();
+        const target = edge.getTarget();
+        if (source.getType() === DEFAULT_SPACER_NODE_TYPE) {
+          const sourceEdges = source.getTargetEdges();
+          selectedEdges.push(...sourceEdges.map((e) => e.getId()));
+        }
+        if (target.getType() === DEFAULT_SPACER_NODE_TYPE) {
+          const targetEdges = target.getSourceEdges();
+          selectedEdges.push(...targetEdges.map((e) => e.getId()));
+        }
+        return selectedEdges;
       }
     }
-    return null;
-  }, [selectedIds, controller]);
+    return selectedIds;
+  }, [controller, selectedIds]);
 
   React.useEffect(() => {
     let resizeTimeout: NodeJS.Timeout | null;
@@ -195,7 +213,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       sideBarResizable
       sideBar={<TopologySideBar resizable>{sidePanel}</TopologySideBar>}
     >
-      <VisualizationSurface state={{ selectedIds }} />
+      <VisualizationSurface state={{ selectedIds: selections }} />
     </TopologyView>
   );
 };

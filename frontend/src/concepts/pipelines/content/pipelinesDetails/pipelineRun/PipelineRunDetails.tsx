@@ -49,7 +49,7 @@ const PipelineRunDetails: React.FC<
   const pipelineSpec = version?.pipeline_spec ?? run?.pipeline_spec;
   const [deleting, setDeleting] = React.useState(false);
   const [archiving, setArchiving] = React.useState(false);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
   const [artifacts] = usePipelineRunArtifacts(run);
@@ -69,8 +69,8 @@ const PipelineRunDetails: React.FC<
     if (isInvalidPipelineVersion) {
       return null;
     }
-    return nodes.find((n) => n.id === selectedId);
-  }, [isInvalidPipelineVersion, selectedId, nodes]);
+    return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
+  }, [isInvalidPipelineVersion, selectedIds, nodes]);
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
@@ -100,7 +100,7 @@ const PipelineRunDetails: React.FC<
     <PipelineRunDrawerRightContent
       task={selectedNode.data.pipelineTask}
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
-      onClose={() => setSelectedId(null)}
+      onClose={() => setSelectedIds(undefined)}
       executions={executions}
     />
   ) : null;
@@ -157,15 +157,8 @@ const PipelineRunDetails: React.FC<
               <PipelineTopology
                 nodes={nodes}
                 versionError={versionError}
-                selectedIds={selectedId ? [selectedId] : []}
-                onSelectionChange={(ids) => {
-                  const firstId = ids[0];
-                  if (ids.length === 0) {
-                    setSelectedId(null);
-                  } else if (nodes.find((node) => node.id === firstId)) {
-                    setSelectedId(firstId);
-                  }
-                }}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
                 sidePanel={panelContent}
               />
             }
