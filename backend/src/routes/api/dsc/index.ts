@@ -1,6 +1,6 @@
 import { KubeFastifyInstance } from '../../../types';
 import { secureRoute } from '../../../utils/route-security';
-import { getClusterStatus } from '../../../utils/dsc';
+import { getClusterStatus } from '../../../utils/resourceUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(

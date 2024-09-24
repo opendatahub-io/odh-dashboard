@@ -18,8 +18,6 @@ type ModelRegistryAndDBPassword = {
 
 // Lists ModelRegistries directly (does not look up passwords from associated Secrets, you must make a direct request to '/:modelRegistryName' for that)
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
-  const modelRegistryNamespace = await getModelRegistryNamespace(fastify);
-
   fastify.get(
     '/',
     secureAdminRoute(fastify)(
@@ -29,6 +27,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { labelSelector } = request.query;
         try {
+          const modelRegistryNamespace = getModelRegistryNamespace(fastify);
           return listModelRegistries(fastify, modelRegistryNamespace, labelSelector);
         } catch (e) {
           fastify.log.error(
@@ -55,6 +54,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const { modelRegistry, databasePassword } = request.body;
         try {
+          const modelRegistryNamespace = getModelRegistryNamespace(fastify);
           return createModelRegistryAndSecret(
             fastify,
             modelRegistry,
@@ -84,6 +84,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { modelRegistryName } = request.params;
         try {
+          const modelRegistryNamespace = getModelRegistryNamespace(fastify);
           const modelRegistry = await getModelRegistry(
             fastify,
             modelRegistryName,
@@ -124,6 +125,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { modelRegistryName } = request.params;
         const { modelRegistry: patchBody, databasePassword } = request.body;
         try {
+          const modelRegistryNamespace = getModelRegistryNamespace(fastify);
           const modelRegistry = await patchModelRegistryAndUpdatePassword(
             fastify,
             modelRegistryName,
@@ -159,6 +161,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const { modelRegistryName } = request.params;
         try {
+          const modelRegistryNamespace = getModelRegistryNamespace(fastify);
           deleteModelRegistryAndSecret(
             fastify,
             modelRegistryName,
