@@ -30,6 +30,7 @@ import {
   getStopPatch,
   startPatch,
   mergePatchUpdateNotebook,
+  restartNotebook,
 } from '~/api/k8s/notebooks';
 
 import {
@@ -941,5 +942,32 @@ describe('removeNotebookSecret', () => {
       ],
       queryOptions: { name, ns: namespace },
     });
+  });
+});
+
+describe('restartNotebook', () => {
+  it('should add restart notebook annotation', async () => {
+    const name = 'test-notebook';
+    const namespace = 'test-project';
+    const notebookMock = mockNotebookK8sResource({ uid });
+
+    k8sGetResourceMock.mockResolvedValue(notebookMock);
+    k8sPatchResourceMock.mockResolvedValue(notebookMock);
+
+    const renderResult = await restartNotebook(name, namespace);
+    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: NotebookModel,
+      patches: [
+        {
+          op: 'add',
+          path: '/metadata/annotations/notebooks.opendatahub.io~1notebook-restart',
+          value: 'true',
+        },
+      ],
+      queryOptions: { name, ns: namespace, queryParams: {} },
+    });
+    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).toStrictEqual(notebookMock);
   });
 });
