@@ -19,14 +19,13 @@ import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateN
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import {
+  NAME_CHARACTER_LIMIT,
+  DESCRIPTION_CHARACTER_LIMIT,
+} from '~/concepts/pipelines/content/const';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
-import {
-  CreateRunPageSections,
-  RUN_DESCRIPTION_CHARACTER_LIMIT,
-  RUN_NAME_CHARACTER_LIMIT,
-  runPageSectionTitles,
-} from './const';
+import { CreateRunPageSections, runPageSectionTitles } from './const';
 import { getInputDefinitionParams } from './utils';
 
 type RunFormProps = {
@@ -126,8 +125,8 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
           descriptionFieldId="run-description"
           data={data.nameDesc}
           setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
-          maxLengthName={RUN_NAME_CHARACTER_LIMIT}
-          maxLengthDesc={RUN_DESCRIPTION_CHARACTER_LIMIT}
+          maxLengthName={NAME_CHARACTER_LIMIT}
+          maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}
           onNameChange={(value) => {
             setHasDuplicateName(false);
             checkForDuplicateName(value);

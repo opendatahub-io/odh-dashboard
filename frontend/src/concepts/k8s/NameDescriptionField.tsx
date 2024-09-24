@@ -13,6 +13,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { NameDescType } from '~/pages/projects/types';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
+import { CharLimitHelperText } from '~/components/CharLimitHelperText';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
@@ -82,12 +83,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             maxLength={maxLengthName}
           />
 
-          {maxLengthName && (
-            <HelperText>
-              <HelperTextItem>{`Cannot exceed ${maxLengthName} characters`}</HelperTextItem>
-            </HelperText>
-          )}
-
+          {maxLengthName && <CharLimitHelperText limit={maxLengthName} />}
           {nameHelperText}
         </FormGroup>
       </StackItem>
@@ -146,11 +142,8 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             onChange={setData ? (e, description) => setData({ ...data, description }) : undefined}
             maxLength={maxLengthDesc}
           />
-          {maxLengthDesc && (
-            <HelperText>
-              <HelperTextItem>{`Cannot exceed ${maxLengthDesc} characters`}</HelperTextItem>
-            </HelperText>
-          )}
+
+          {maxLengthDesc && <CharLimitHelperText limit={maxLengthDesc} />}
         </FormGroup>
       </StackItem>
     </Stack>
