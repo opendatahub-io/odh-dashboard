@@ -506,3 +506,28 @@ export const removeNotebookSecret = (
       })
       .catch(reject);
   });
+
+export const restartNotebook = (
+  notebookName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<NotebookKind> => {
+  const patches: Patch[] = [
+    {
+      op: 'add',
+      path: '/metadata/annotations/notebooks.opendatahub.io~1notebook-restart',
+      value: 'true',
+    },
+  ];
+
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: { name: notebookName, ns: namespace },
+        patches,
+      },
+      opts,
+    ),
+  );
+};

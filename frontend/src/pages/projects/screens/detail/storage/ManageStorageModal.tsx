@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { attachNotebookPVC, createPvc, removeNotebookPVC, updatePvc } from '~/api';
+import { attachNotebookPVC, createPvc, removeNotebookPVC, restartNotebook, updatePvc } from '~/api';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useCreateStorageObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
@@ -97,6 +97,11 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
         existingData.spec.storageClassName !== createData.storageClassName
       ) {
         pvcPromises.push(updatePvc(createData, existingData, namespace, { dryRun }));
+      }
+      if (existingData.spec.resources.requests.storage !== createData.size) {
+        connectedNotebooks.map((connectedNotebook) =>
+          pvcPromises.push(restartNotebook(connectedNotebook.metadata.name, namespace, { dryRun })),
+        );
       }
       if (removedNotebooks.length > 0) {
         // Remove connected pvcs
