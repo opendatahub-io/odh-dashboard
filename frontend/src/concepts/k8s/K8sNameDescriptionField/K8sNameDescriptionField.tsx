@@ -72,7 +72,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
         />
-        {!showK8sField && !!onDataChange && !k8sName.state.immutable && (
+        {!showK8sField && !k8sName.state.immutable && (
           <FormHelperText>
             {k8sName.value && (
               <HelperText>

@@ -113,7 +113,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
                 },
               }
             }
-            onDataChange={setConnectionNameDesc ?? (() => undefined)} // onDataChange needs to be truthy to show resource name
+            onDataChange={setConnectionNameDesc}
           />
           <ConnectionTypeFormFields
             fields={connectionType?.data?.fields}

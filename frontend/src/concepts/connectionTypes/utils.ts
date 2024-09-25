@@ -185,9 +185,14 @@ export const parseConnectionSecretValues = (
       matchingField.properties.variant === 'multi'
     ) {
       try {
-        response[key] = JSON.parse(decodedString);
+        const parsed = JSON.parse(decodedString);
+        if (Array.isArray(parsed)) {
+          response[key] = parsed.map((v) => String(v));
+        } else {
+          response[key] = [decodedString];
+        }
       } catch {
-        response[key] = decodedString;
+        response[key] = [decodedString];
       }
     } else {
       response[key] = decodedString;

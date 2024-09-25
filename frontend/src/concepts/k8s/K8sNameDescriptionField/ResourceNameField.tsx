@@ -34,7 +34,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
     return <FormGroup {...formGroupProps}>{k8sName.value}</FormGroup>;
   }
 
-  if (!allowEdit || !onDataChange) {
+  if (!allowEdit) {
     return null;
   }
 
@@ -52,7 +52,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
         name={`${dataTestId}-resourceName`}
         isRequired
         value={k8sName.value}
-        onChange={(event, value) => onDataChange('k8sName', value)}
+        onChange={(event, value) => onDataChange?.('k8sName', value)}
         validated={validated}
       />
       <HelperText>
