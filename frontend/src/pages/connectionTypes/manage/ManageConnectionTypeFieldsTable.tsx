@@ -76,7 +76,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               <Tr>
                 <Th screenReaderText="Drag and drop" />
                 {columns.map((column, columnIndex) => (
-                  <Th key={columnIndex} width={column.width}>
+                  <Th key={columnIndex} width={column.width} visibility={column.visibility}>
                     {column.label}
                   </Th>
                 ))}
