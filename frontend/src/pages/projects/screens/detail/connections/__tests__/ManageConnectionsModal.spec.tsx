@@ -87,12 +87,12 @@ describe('Add connection modal', () => {
     await act(async () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
-    expect(screen.getByRole('option', { name: 'type one' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'type two' })).toBeTruthy();
-    expect(screen.queryByRole('option', { name: 'type three disabled' })).toBeFalsy();
+    expect(screen.getByRole('option', { name: /type one/ })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /type two/ })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: /type three disabled/ })).toBeFalsy();
 
     await act(async () => {
-      screen.getByRole('option', { name: 'type one' }).click();
+      screen.getByRole('option', { name: /type one/ }).click();
     });
     expect(screen.getByRole('combobox')).toHaveValue('type one');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeVisible();
@@ -294,7 +294,7 @@ describe('Add connection modal', () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
     await act(async () => {
-      screen.getByRole('option', { name: 'type one' }).click();
+      screen.getByRole('option', { name: /type one/ }).click();
     });
     await act(async () => {
       fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
@@ -319,7 +319,7 @@ describe('Add connection modal', () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
     await act(async () => {
-      screen.getByRole('option', { name: 'type two' }).click();
+      screen.getByRole('option', { name: /type two/ }).click();
     });
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
       'connection one name',
@@ -333,7 +333,7 @@ describe('Add connection modal', () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
     await act(async () => {
-      screen.getByRole('option', { name: 'type one' }).click();
+      screen.getByRole('option', { name: /type one/ }).click();
     });
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
       'connection one name',

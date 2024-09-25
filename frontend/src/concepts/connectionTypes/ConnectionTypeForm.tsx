@@ -1,11 +1,21 @@
 import * as React from 'react';
-import { Form, FormGroup, FormSection, MenuToggleStatus, Title } from '@patternfly/react-core';
+import {
+  Flex,
+  FlexItem,
+  Form,
+  FormGroup,
+  FormSection,
+  MenuToggleStatus,
+  Title,
+  Truncate,
+} from '@patternfly/react-core';
 import ConnectionTypeFormFields from '~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import {
+  getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
 } from '~/concepts/k8s/utils';
@@ -16,6 +26,48 @@ import {
   K8sNameDescriptionFieldUpdateFunction,
 } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
+
+const getConnectionTypeSelectOptions = (
+  isPreview: boolean,
+  selectedConnectionType?: ConnectionTypeConfigMapObj,
+  connectionTypes?: ConnectionTypeConfigMapObj[],
+): TypeaheadSelectOption[] => {
+  if (isPreview && selectedConnectionType?.metadata.annotations?.['openshift.io/display-name']) {
+    return [
+      {
+        value: '',
+        content: selectedConnectionType.metadata.annotations['openshift.io/display-name'],
+        isSelected: true,
+      },
+    ];
+  }
+  if (!isPreview && connectionTypes) {
+    return connectionTypes.map((t) => ({
+      value: getResourceNameFromK8sResource(t),
+      content: getDisplayNameFromK8sResource(t),
+      description: (
+        <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
+          {getDescriptionFromK8sResource(t) && (
+            <FlexItem>
+              <Truncate content={getDescriptionFromK8sResource(t)} />
+            </FlexItem>
+          )}
+          {t.data?.category?.length && (
+            <FlexItem>
+              <Truncate content={`Category: ${t.data.category.join(', ')}`} />
+            </FlexItem>
+          )}
+        </Flex>
+      ),
+      data: `${getDescriptionFromK8sResource(t)} ${t.data?.category?.join(' ')}`,
+      isSelected:
+        !!selectedConnectionType &&
+        getResourceNameFromK8sResource(t) ===
+          getResourceNameFromK8sResource(selectedConnectionType),
+    }));
+  }
+  return [];
+};
 
 type Props = Pick<
   React.ComponentProps<typeof ConnectionTypeFormFields>,
@@ -45,25 +97,10 @@ const ConnectionTypeForm: React.FC<Props> = ({
   onValidate,
   disableTypeSelection,
 }) => {
-  const options: TypeaheadSelectOption[] = React.useMemo(() => {
-    if (isPreview && connectionType?.metadata.annotations?.['openshift.io/display-name']) {
-      return [
-        {
-          value: '',
-          content: connectionType.metadata.annotations['openshift.io/display-name'],
-          isSelected: true,
-        },
-      ];
-    }
-    if (!isPreview && connectionTypes) {
-      return connectionTypes.map((t) => ({
-        value: getResourceNameFromK8sResource(t),
-        content: getDisplayNameFromK8sResource(t),
-        isSelected: t.metadata.name === connectionType?.metadata.name,
-      }));
-    }
-    return [];
-  }, [isPreview, connectionType?.metadata, connectionTypes]);
+  const options: TypeaheadSelectOption[] = React.useMemo(
+    () => getConnectionTypeSelectOptions(isPreview, connectionType, connectionTypes),
+    [isPreview, connectionType, connectionTypes],
+  );
 
   return (
     <Form>
@@ -85,6 +122,15 @@ const ConnectionTypeForm: React.FC<Props> = ({
             isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
               ? { status: MenuToggleStatus.danger }
               : undefined
+          }
+          isScrollable
+          popperProps={{ maxWidth: 'trigger' }}
+          filterFunction={(filterValue: string, filterOptions: TypeaheadSelectOption[]) =>
+            filterOptions.filter(
+              (o) =>
+                String(o.content).toLowerCase().includes(filterValue.toLowerCase()) ||
+                String(o.data).toLowerCase().includes(filterValue.toLowerCase()),
+            )
           }
         />
         {connectionType && (
