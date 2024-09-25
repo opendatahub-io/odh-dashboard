@@ -68,6 +68,18 @@ describe('Add connection modal', () => {
               },
             ],
           }),
+          mockConnectionTypeConfigMapObj({
+            name: 'type three disabled',
+            enabled: false,
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Short text 2',
+                envVar: 'env2',
+                properties: {},
+              },
+            ],
+          }),
         ]}
       />,
     );
@@ -77,6 +89,7 @@ describe('Add connection modal', () => {
     });
     expect(screen.getByRole('option', { name: 'type one' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'type two' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'type three disabled' })).toBeFalsy();
 
     await act(async () => {
       screen.getByRole('option', { name: 'type one' }).click();
@@ -429,6 +442,45 @@ describe('Edit connection modal', () => {
       'Select dropdown 5 multi 2 selected',
     );
     expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  });
+
+  it('should list disabled connection type for existing instance', () => {
+    render(
+      <ManageConnectionModal
+        isEdit
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connection={mockConnection({
+          name: 's3-connection',
+          description: 's3 desc',
+          connectionType: 's3',
+          data: { env1: window.btoa('saved data') },
+        })}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            enabled: false,
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env1',
+                properties: {},
+              },
+            ],
+          }),
+          mockConnectionTypeConfigMapObj({
+            name: 'postgres',
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveValue('s3');
+    expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue('s3-connection');
+    expect(screen.getByRole('textbox', { name: 'Connection description' })).toHaveValue('s3 desc');
+    expect(screen.getByRole('textbox', { name: 'short text 1' })).toHaveValue('saved data');
   });
 
   it('should list non matching values as short text', async () => {

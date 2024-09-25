@@ -178,7 +178,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
         </Alert>
       )}
       <ConnectionTypeForm
-        connectionTypes={enabledConnectionTypes}
+        connectionTypes={isEdit ? connectionTypes : enabledConnectionTypes}
         connectionType={selectedConnectionType}
         setConnectionType={(obj?: ConnectionTypeConfigMapObj) => {
           if (!isModified) {
