@@ -20,6 +20,7 @@ import {
   Template,
   TolerationEffect,
   TolerationOperator,
+  DataScienceClusterKindStatus,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -33,6 +34,7 @@ import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from '.
 import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 import { FastifyRequest } from 'fastify';
+import { fetchClusterStatus } from './dsc';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -48,6 +50,7 @@ const quickStartsVersion = 'v1';
 const quickStartsPlural = 'odhquickstarts';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
+let clusterStatusWatcher: ResourceWatcher<DataScienceClusterKindStatus>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
@@ -67,6 +70,12 @@ const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<Dashboard
   return fetchOrCreateDashboardCR(fastify)
     .then(softDisableBiasMetrics(fastify))
     .then((dashboardCR) => [dashboardCR]);
+};
+
+const fetchWatchedClusterStatus = async (
+  fastify: KubeFastifyInstance,
+): Promise<DataScienceClusterKindStatus[]> => {
+  return fetchClusterStatus(fastify).then((clusterStatus) => [clusterStatus]);
 };
 
 /**
@@ -581,6 +590,10 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
+  clusterStatusWatcher = new ResourceWatcher<DataScienceClusterKindStatus>(
+    fastify,
+    fetchWatchedClusterStatus,
+  );
   subscriptionWatcher = new ResourceWatcher<SubscriptionStatusData>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplications);
@@ -616,6 +629,16 @@ export const getDashboardConfig = (request?: FastifyRequest): DashboardConfig =>
     }
   }
   return dashboardConfig;
+};
+
+export const getClusterStatus = (
+  fastify: KubeFastifyInstance,
+): DataScienceClusterKindStatus | undefined => {
+  const clusterStatus = clusterStatusWatcher.getResources()?.[0];
+  if (!clusterStatus) {
+    fastify.log.error('Tried to use DSC before ResourceWatcher could successfully fetch it');
+  }
+  return clusterStatus;
 };
 
 export const updateDashboardConfig = (): Promise<void> => {

@@ -37,7 +37,7 @@ export const proxyService =
         internalPort: number | string;
         prefix?: string;
         suffix?: string;
-        namespace?: string | ((fastify: KubeFastifyInstance) => Promise<string>);
+        namespace?: string | ((fastify: KubeFastifyInstance) => string);
       },
       {
         constructUrl: (resource: K) => string;
@@ -50,14 +50,10 @@ export const proxyService =
     statusCheck?: (resource: K) => boolean,
     tls = true,
   ) =>
-  async (fastify: KubeFastifyInstance): Promise<void> => {
-    const serviceNamespace =
-      typeof service.namespace === 'function'
-        ? await service.namespace(fastify)
-        : service.namespace;
+  async (fastify: KubeFastifyInstance): Promise<void> =>
     fastify.register(httpProxy, {
       upstream: '',
-      prefix: serviceNamespace ? ':name' : '/:namespace/:name',
+      prefix: service.namespace ? ':name' : '/:namespace/:name',
       rewritePrefix: '',
       replyOptions: {
         // preHandler must set the `upstream` param
@@ -79,6 +75,8 @@ export const proxyService =
           return;
         }
         // see `prefix` for named params
+        const serviceNamespace =
+          typeof service.namespace === 'function' ? service.namespace(fastify) : service.namespace;
         const namespace = serviceNamespace ?? getParam(request, 'namespace');
         const name = getParam(request, 'name');
         const serviceName = `${service.prefix ?? ''}${name}${service.suffix ?? ''}`;
@@ -176,4 +174,3 @@ export const proxyService =
         }
       },
     });
-  };

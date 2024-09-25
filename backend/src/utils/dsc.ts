@@ -6,7 +6,7 @@ import {
 } from '../types';
 import { createCustomError } from './requestUtils';
 
-export const getClusterStatus = async (
+export const fetchClusterStatus = async (
   fastify: KubeFastifyInstance,
 ): Promise<DataScienceClusterKindStatus> => {
   const result: DataScienceClusterKind | null = await fastify.kube.customObjectsApi
