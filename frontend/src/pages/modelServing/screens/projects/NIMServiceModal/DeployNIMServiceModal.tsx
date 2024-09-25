@@ -46,6 +46,7 @@ import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/s
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import { getNIMServingRuntimeTemplate } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
+import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -154,7 +155,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   React.useEffect(() => {
     const fetchNIMServingRuntimeTemplate = async () => {
       const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
-      setServingRuntimeSelected(nimTemplate);
+      setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
     };
 
     fetchNIMServingRuntimeTemplate();
