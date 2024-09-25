@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Table } from '~/components/table';
 import { NotebookKind, ProjectKind } from '~/k8sTypes';
-import useNotebooksStates from '~/pages/projects/notebook/useNotebooksStates';
+import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import ProjectTableRowNotebookTableRow from '~/pages/projects/screens/projects/ProjectTableRowNotebookTableRow';
 import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';

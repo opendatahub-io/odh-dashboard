@@ -5,7 +5,7 @@ import { POLL_INTERVAL } from '~/utilities/const';
 import { getNotebooksStates } from '~/pages/projects/notebook/useProjectNotebookStates';
 import { NotebookState } from './types';
 
-const useNotebooksStates = (
+export const useNotebooksStates = (
   notebooks: NotebookKind[],
   namespace: string,
 ): FetchState<NotebookState[]> => {
@@ -18,5 +18,3 @@ const useNotebooksStates = (
     refreshRate: POLL_INTERVAL,
   });
 };
-
-export default useNotebooksStates;

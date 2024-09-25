@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { DataConnection, DataConnectionType } from '~/pages/projects/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import useRelatedNotebooks, {
+import {
+  useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { removeNotebookSecret } from '~/api';

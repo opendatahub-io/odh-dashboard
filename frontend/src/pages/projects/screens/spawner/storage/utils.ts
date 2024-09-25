@@ -7,7 +7,8 @@ import {
   UpdateObjectAtPropAndValue,
 } from '~/pages/projects/types';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import useRelatedNotebooks, {
+import {
+  useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import useGenericObjectState from '~/utilities/useGenericObjectState';

@@ -6,6 +6,7 @@ import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
+import ConnectedResources from '~/pages/projects/screens/detail/connections/ConnectedResources';
 
 type ConnectionsTableRowProps = {
   obj: Connection;
@@ -62,7 +63,9 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
           '-'
         )}
       </Td>
-      <Td dataLabel="Connected resources">-</Td>
+      <Td dataLabel="Connected resources">
+        <ConnectedResources connection={obj} />
+      </Td>
       <Td isActionCell>
         <ActionsColumn
           items={[

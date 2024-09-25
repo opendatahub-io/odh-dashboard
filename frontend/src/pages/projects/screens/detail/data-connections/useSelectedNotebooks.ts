@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { NotebookKind } from '~/k8sTypes';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import useRelatedNotebooks, {
+import {
+  useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { DataConnection } from '~/pages/projects/types';
