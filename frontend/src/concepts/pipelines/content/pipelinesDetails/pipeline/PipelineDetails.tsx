@@ -44,7 +44,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
 
   const [isDeletionOpen, setDeletionOpen] = React.useState(false);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(PipelineDetailsTab.GRAPH);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   const { namespace } = usePipelinesAPI();
 
@@ -61,8 +61,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
     if (isInvalidPipelineVersion) {
       return null;
     }
-    return nodes.find((n) => n.id === selectedId);
-  }, [isInvalidPipelineVersion, nodes, selectedId]);
+    return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
+  }, [isInvalidPipelineVersion, nodes, selectedIds]);
 
   const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && !!pipelineVersion?.pipeline_spec;
 
@@ -89,7 +89,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const panelContent = selectedNode ? (
     <SelectedTaskDrawerContent
       task={selectedNode.data.pipelineTask}
-      onClose={() => setSelectedId(null)}
+      onClose={() => setSelectedIds(undefined)}
     />
   ) : null;
 
@@ -183,7 +183,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   activeKey={activeTabKey}
                   onSelect={(e, tabIndex) => {
                     setActiveTabKey(tabIndex);
-                    setSelectedId(null);
+                    setSelectedIds(undefined);
                   }}
                   aria-label="Pipeline Details tabs"
                   role="region"
@@ -229,15 +229,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   ) : (
                     <PipelineTopology
                       nodes={nodes}
-                      selectedIds={selectedId ? [selectedId] : []}
-                      onSelectionChange={(ids) => {
-                        const firstId = ids[0];
-                        if (ids.length === 0) {
-                          setSelectedId(null);
-                        } else {
-                          setSelectedId(firstId);
-                        }
-                      }}
+                      selectedIds={selectedIds}
+                      onSelectionChange={setSelectedIds}
                       sidePanel={panelContent}
                     />
                   )}

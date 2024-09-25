@@ -40,7 +40,7 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
     recurringRun?.pipeline_version_reference.pipeline_version_id,
   );
   const [deleting, setDeleting] = React.useState(false);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>();
 
   const nodes = usePipelineTaskTopology(version?.pipeline_spec);
   const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
@@ -49,15 +49,8 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
     if (isInvalidPipelineVersion) {
       return null;
     }
-    return nodes.find((n) => n.id === selectedId);
-  }, [isInvalidPipelineVersion, selectedId, nodes]);
-
-  const getFirstNode = (firstId: string) => {
-    if (isInvalidPipelineVersion) {
-      return null;
-    }
-    return nodes.find((n) => n.id === firstId)?.data?.pipelineTask;
-  };
+    return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
+  }, [isInvalidPipelineVersion, selectedIds, nodes]);
 
   const loaded = versionLoaded && recurringRunLoaded;
   const error = versionError || recurringRunError;
@@ -85,7 +78,7 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
   const panelContent = selectedNode ? (
     <SelectedTaskDrawerContent
       task={selectedNode.data.pipelineTask}
-      onClose={() => setSelectedId(null)}
+      onClose={() => setSelectedIds(undefined)}
     />
   ) : null;
 
@@ -124,15 +117,8 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
             graphContent={
               <PipelineTopology
                 nodes={nodes}
-                selectedIds={selectedId ? [selectedId] : []}
-                onSelectionChange={(ids) => {
-                  const firstId = ids[0];
-                  if (ids.length === 0) {
-                    setSelectedId(null);
-                  } else if (getFirstNode(firstId)) {
-                    setSelectedId(firstId);
-                  }
-                }}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
                 sidePanel={panelContent}
               />
             }
