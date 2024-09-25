@@ -27,7 +27,7 @@ spec:
     disableKServeMetrics: false
     disableModelMesh: false
     disableDistributedWorkloads: false
-    disableModelRegistry: true
+    disableModelRegistry: false
     disableConnectionTypes: true
     disableStorageClasses: true
     disableNIMModelServing: true
