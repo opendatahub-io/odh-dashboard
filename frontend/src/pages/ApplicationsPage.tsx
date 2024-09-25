@@ -16,6 +16,7 @@ import {
   EmptyStateHeader,
   Flex,
 } from '@patternfly/react-core';
+import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 
 type ApplicationsPageProps = {
   title?: React.ReactNode;
@@ -30,6 +31,7 @@ type ApplicationsPageProps = {
   emptyStatePage?: React.ReactNode;
   headerAction?: React.ReactNode;
   headerContent?: React.ReactNode;
+  getRedirectPath?: (namespace: string) => string;
   provideChildrenPadding?: boolean;
   removeChildrenTopPadding?: boolean;
   subtext?: React.ReactNode;
@@ -50,6 +52,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   emptyStatePage,
   headerAction,
   headerContent,
+  getRedirectPath,
   provideChildrenPadding,
   removeChildrenTopPadding,
   subtext,
@@ -59,6 +62,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
       <Stack hasGutter>
+        {headerContent && <StackItem>{headerContent}</StackItem>}
         <StackItem>
           <Flex
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
@@ -76,7 +80,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             {headerAction}
           </Flex>
         </StackItem>
-        {headerContent && <StackItem>{headerContent}</StackItem>}
       </Stack>
     </PageSection>
   );
@@ -143,6 +146,23 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   return (
     <>
+      {getRedirectPath ? (
+        <PageSection
+          variant="light"
+          stickyOnBreakpoint={{ default: 'top' }}
+          className="pf-v5-u-py-0"
+          style={{
+            borderBottom:
+              'var(--pf-v5-global--BorderWidth--sm) solid var(--pf-v5-global--BorderColor--100)',
+          }}
+        >
+          <ProjectSelectorNavigator
+            getRedirectPath={getRedirectPath}
+            showTitle
+            invalidDropdownPlaceholder="Select project"
+          />
+        </PageSection>
+      ) : null}
       {breadcrumb && <PageBreadcrumb>{breadcrumb}</PageBreadcrumb>}
       {!noHeader && renderHeader()}
       {renderContents()}

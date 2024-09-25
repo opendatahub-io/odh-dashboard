@@ -66,6 +66,7 @@ const PipelineVersionCloneRecurringRunPage: React.FC<PathProps> = ({ breadcrumbP
           recurringRunId,
         )
       }
+      getProjectRedirectPath={(ns) => `${ns}/pipelines`}
     />
   );
 };

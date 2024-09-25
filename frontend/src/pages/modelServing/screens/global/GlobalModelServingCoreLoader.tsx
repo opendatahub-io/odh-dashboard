@@ -5,7 +5,6 @@ import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InvalidProject from '~/concepts/projects/InvalidProject';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import ModelServingNoProjects from '~/pages/modelServing/screens/global/ModelServingNoProjects';
-import ModelServingProjectSelection from '~/pages/modelServing/screens/global/ModelServingProjectSelection';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
@@ -65,7 +64,7 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
       title="Deployed models"
       description="Manage and view the health and performance of your deployed models."
       loaded
-      headerContent={<ModelServingProjectSelection getRedirectPath={getInvalidRedirectPath} />}
+      getRedirectPath={getInvalidRedirectPath}
       provideChildrenPadding
     />
   );

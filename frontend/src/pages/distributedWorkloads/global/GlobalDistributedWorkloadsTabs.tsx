@@ -77,8 +77,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
           onSelect={(_, tabId) => {
             const tab = tabs.find(({ id }) => id === tabId);
             if (tab) {
-              const namespaceSuffix = namespace ? `/${namespace}` : '';
-              navigate(`/distributedWorkloads/${tab.path}${namespaceSuffix}`);
+              navigate(`/projects/${namespace}/distributedWorkloads?tab=${tab.path}`);
             }
           }}
           aria-label="Distributed workload metrics page tabs"

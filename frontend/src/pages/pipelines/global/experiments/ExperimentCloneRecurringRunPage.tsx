@@ -31,6 +31,7 @@ const ExperimentCloneRecurringRunPage: React.FC<PathProps> = ({ breadcrumbPath }
       detailsRedirect={(recurringRunId) =>
         experimentRecurringRunDetailsRoute(namespace, experiment?.experiment_id, recurringRunId)
       }
+      getProjectRedirectPath={(ns) => `${ns}/experiments`}
     />
   );
 };

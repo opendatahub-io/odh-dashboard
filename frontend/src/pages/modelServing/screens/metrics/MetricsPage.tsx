@@ -35,6 +35,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type,
       loaded
       description={null}
       empty={false}
+      getRedirectPath={(ns) => `/modelServing/${ns}`}
       headerAction={
         tab === MetricsTabKeys.BIAS && (
           <Button

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocalStorage } from '@patternfly/quickstarts';
 import { useProjects } from '~/api';
 import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
@@ -22,7 +23,7 @@ type ProjectsContextType = {
    * Allows for navigation to be unimpeded by project selection
    * @see useSyncPreferredProject
    */
-  updatePreferredProject: (project: ProjectKind | null) => void;
+  updatePreferredProject: (projectName: string | null) => void;
   waitForProject: (projectName: string) => Promise<void>;
 
   // ...the rest of the state variables
@@ -54,6 +55,15 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     React.useState<ProjectsContextType['preferredProject']>(null);
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
+  const [lastProject, setLastProject] = useLocalStorage('rhodsLastProject', '');
+
+  React.useEffect(() => {
+    setPreferredProject(
+      (prev) =>
+        (lastProject ? projectData.find((p) => p.metadata.name === lastProject) : prev) ??
+        projectData[0],
+    );
+  }, [lastProject, projectData]);
 
   const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
@@ -116,13 +126,18 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     [],
   );
 
+  const updatePreferredProject = React.useCallback(
+    (projectName: string | null) => projectName && setLastProject(projectName),
+    [setLastProject],
+  );
+
   const contextValue = React.useMemo(
     () => ({
       projects: projects.toSorted(projectSorter),
       modelServingProjects: modelServingProjects.toSorted(projectSorter),
       nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
       preferredProject,
-      updatePreferredProject: setPreferredProject,
+      updatePreferredProject,
       loaded,
       loadError,
       waitForProject,
@@ -132,7 +147,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       modelServingProjects,
       nonActiveProjects,
       preferredProject,
-      setPreferredProject,
+      updatePreferredProject,
       loaded,
       loadError,
       waitForProject,

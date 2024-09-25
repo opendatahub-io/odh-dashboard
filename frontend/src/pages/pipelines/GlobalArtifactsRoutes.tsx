@@ -12,7 +12,12 @@ const GlobalArtifactsRoutes: React.FC = () => (
   <ProjectsRoutes>
     <Route
       path="/:namespace?/*"
-      element={<GlobalPipelineCoreLoader getInvalidRedirectPath={artifactsBaseRoute} />}
+      element={
+        <GlobalPipelineCoreLoader
+          getInvalidRedirectPath={artifactsBaseRoute}
+          getRedirectPath={(ns) => `/${ns}`}
+        />
+      }
     >
       <Route index element={<GlobalArtifactsPage />} />
       <Route

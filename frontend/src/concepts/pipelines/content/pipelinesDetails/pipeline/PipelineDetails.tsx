@@ -129,6 +129,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
         })}
         empty={false}
         loaded={isLoaded}
+        getRedirectPath={(ns) => `${ns}/pipelines`}
         headerAction={
           isPipelineVersionLoaded && (
             <Flex
