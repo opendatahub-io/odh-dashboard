@@ -51,7 +51,7 @@ import type {
   PipelineVersionKFv2,
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
-import type { BuildMockPipelinveVersionsType, MockStorageClassList } from '~/__mocks__';
+import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
 import type { ArtifactStorage } from '~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
 
@@ -193,11 +193,6 @@ declare global {
           type: 'POST /api/servingRuntimes/',
           options: { query: { dryRun: 'All' } } | null,
           response: OdhResponse<ServingRuntimeKind>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-          options: { times?: number },
-          response: OdhResponse<MockStorageClassList>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /api/storage-class/:name/config',

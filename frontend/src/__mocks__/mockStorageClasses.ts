@@ -1,26 +1,19 @@
 import { K8sResourceListResult, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
 
-export type MockStorageClass = Omit<StorageClassKind, 'apiVersion' | 'kind'>;
-
-export type MockStorageClassList = Omit<K8sResourceListResult<MockStorageClass>, 'metadata'> & {
-  metadata: {
-    resourceVersion: string;
-  };
-};
-
 export const mockStorageClassList = (
-  storageClasses: MockStorageClass[] = mockStorageClasses,
-): MockStorageClassList => ({
+  storageClasses: StorageClassKind[] = mockStorageClasses,
+): K8sResourceListResult<StorageClassKind> => ({
   kind: 'StorageClassList',
   apiVersion: 'storage.k8s.io/v1',
   metadata: {
     resourceVersion: '55571379',
+    continue: '',
   },
   items: storageClasses,
 });
 
 export const buildMockStorageClassConfig = (
-  mockStorageClass: MockStorageClass,
+  mockStorageClass: StorageClassKind,
   config: Partial<StorageClassConfig>,
 ): string =>
   JSON.stringify({
@@ -31,9 +24,9 @@ export const buildMockStorageClassConfig = (
   });
 
 export const buildMockStorageClass = (
-  mockStorageClass: MockStorageClass,
+  mockStorageClass: StorageClassKind,
   config: Partial<StorageClassConfig> | string,
-): MockStorageClass => ({
+): StorageClassKind => ({
   ...mockStorageClass,
   metadata: {
     ...mockStorageClass.metadata,
@@ -45,8 +38,10 @@ export const buildMockStorageClass = (
   },
 });
 
-export const mockStorageClasses: MockStorageClass[] = [
+export const mockStorageClasses: StorageClassKind[] = [
   {
+    apiVersion: 'storage.k8s.io/v1',
+    kind: 'StorageClass',
     metadata: {
       name: 'openshift-default-sc',
       uid: '5de188ae-aa8e-43d1-a714-4d60ecc5c6da',
@@ -99,6 +94,8 @@ export const mockStorageClasses: MockStorageClass[] = [
     volumeBindingMode: 'WaitForFirstConsumer',
   },
   {
+    apiVersion: 'storage.k8s.io/v1',
+    kind: 'StorageClass',
     metadata: {
       name: 'test-storage-class-1',
       uid: 'c3c05a4a-c1b7-4358-a246-da6b6dfd12cd',

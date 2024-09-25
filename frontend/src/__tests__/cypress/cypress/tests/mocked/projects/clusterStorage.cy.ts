@@ -23,6 +23,7 @@ import {
   PVCModel,
   PodModel,
   ProjectModel,
+  StorageClassModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';
@@ -80,11 +81,7 @@ describe('ClusterStorage', () => {
         }),
       );
 
-      cy.interceptOdh(
-        'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-        {},
-        mockStorageClassList(),
-      );
+      cy.interceptK8sList(StorageClassModel, mockStorageClassList());
     });
 
     it('Check whether the Storage class column is present', () => {
