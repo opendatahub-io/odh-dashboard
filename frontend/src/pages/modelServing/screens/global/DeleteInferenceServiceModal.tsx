@@ -47,7 +47,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
           setIsDeleting(true);
           const pvcName = servingRuntime?.spec.volumes?.find(
             (vol) => vol.persistentVolumeClaim?.claimName,
-          );
+          )?.persistentVolumeClaim?.claimName;
           Promise.all([
             deleteInferenceService(
               inferenceService.metadata.name,
@@ -61,7 +61,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
                   ),
                 ]
               : []),
-            ...(isKServeNIMEnabled
+            ...(isKServeNIMEnabled && pvcName
               ? [deletePvc(pvcName, inferenceService.metadata.namespace)]
               : []),
           ])

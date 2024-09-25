@@ -21,7 +21,7 @@ import {
   InferenceServiceKind,
   ProjectKind,
   SecretKind,
-  TemplateKind,
+  ServingRuntimeKind,
 } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
@@ -99,9 +99,9 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
     maxLength: 253,
   });
 
-  const [servingRuntimeSelected, setServingRuntimeSelected] = React.useState<TemplateKind[] | null>(
-    null,
-  );
+  const [servingRuntimeSelected, setServingRuntimeSelected] = React.useState<
+    ServingRuntimeKind | undefined
+  >(undefined);
 
   const acceleratorProfileState = useServingAcceleratorProfile(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,

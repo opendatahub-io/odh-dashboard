@@ -1,6 +1,6 @@
 // NGC stands for NVIDIA GPU Cloud.
 
-import { ProjectKind, SecretKind, TemplateKind } from '~/k8sTypes';
+import { ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getTemplate } from '~/api';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
@@ -68,9 +68,8 @@ export const isNIMServingRuntimeTemplateAvailable = async (
 
 export const getNIMServingRuntimeTemplate = async (
   dashboardNamespace: string,
-): Promise<TemplateKind[] | null> => {
+): Promise<ServingRuntimeKind | undefined> => {
   const TEMPLATE_NAME = 'nvidia-nim-serving-template';
-
   try {
     const template = await getTemplate(TEMPLATE_NAME, dashboardNamespace);
     return template;
