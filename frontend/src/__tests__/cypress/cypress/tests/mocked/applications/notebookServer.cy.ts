@@ -10,7 +10,7 @@ import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { asClusterAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import {
   notebookController,
   stopNotebookModal,
@@ -60,8 +60,8 @@ it('Administration tab should not be accessible for non-project admins', () => {
 
 describe('NotebookServer', () => {
   beforeEach(() => {
+    asClusterAdminUser();
     initIntercepts();
-    asProductAdminUser();
   });
 
   it('should start notebook server', () => {
