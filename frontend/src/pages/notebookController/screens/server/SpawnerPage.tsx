@@ -47,6 +47,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
+import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -82,6 +83,8 @@ const SpawnerPage: React.FC = () => {
   const acceleratorProfile = useNotebookAcceleratorProfile(currentUserNotebook);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
+
+  const defaultStorageClass = useDefaultStorageClass();
 
   const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
     useGenericObjectState<AcceleratorProfileSelectFieldState>({
@@ -278,6 +281,7 @@ const SpawnerPage: React.FC = () => {
       envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
+      storageClassName: defaultStorageClass?.metadata.name,
     })
       .then(() => {
         fireStartServerEvent();

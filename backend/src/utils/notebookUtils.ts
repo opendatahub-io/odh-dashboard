@@ -611,7 +611,7 @@ const generateNotebookResources = async (
     await fastify.kube.coreV1Api.readNamespacedPersistentVolumeClaim(pvcName, namespace);
   } catch (e) {
     if (e.statusCode === 404) {
-      await createPvc(fastify, namespace, pvcName);
+      await createPvc(fastify, namespace, pvcName, notebookData.storageClassName);
     } else {
       throw e;
     }
@@ -636,10 +636,12 @@ const createPvc = async (
   fastify: KubeFastifyInstance,
   namespace: string,
   pvcName: string,
+  storageClassName?: string,
 ): Promise<V1PersistentVolumeClaim> => {
   const pvcSize = getDashboardConfig().spec?.notebookController?.pvcSize ?? DEFAULT_PVC_SIZE;
-  const storageClassName = getDashboardConfig().spec.notebookController?.storageClassName;
-  const pvc = assemblePvc(pvcName, namespace, pvcSize, storageClassName);
+  const preferredStorageClassName =
+    getDashboardConfig().spec.notebookController?.storageClassName ?? storageClassName;
+  const pvc = assemblePvc(pvcName, namespace, pvcSize, preferredStorageClassName);
 
   try {
     const pvcResponse = await fastify.kube.coreV1Api.createNamespacedPersistentVolumeClaim(
