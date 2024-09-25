@@ -422,7 +422,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveContainerSize('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running ');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
 
     //Name sorting
@@ -451,7 +451,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
 
     //stop Workbench
-    notebookRow.findEnableSwitch().click();
+    notebookRow.findKebabAction('Stop').click();
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
     cy.interceptK8s(
       NotebookModel,
@@ -480,7 +480,7 @@ describe('Workbench page', () => {
         },
       ]);
     });
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped ');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
 
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('startWorkbench');
@@ -501,8 +501,8 @@ describe('Workbench page', () => {
       }),
     );
 
-    notebookRow.findEnableSwitch().click();
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting... ');
+    notebookRow.findKebabAction('Start').click();
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting');
     notebookRow.findHaveNotebookStatusText().click();
 
     cy.wait('@startWorkbench').then((interception) => {

@@ -20,6 +20,7 @@ import {
   Td,
   TbodyProps,
   InnerScrollContainer,
+  TrProps,
 } from '@patternfly/react-table';
 import { EitherNotBoth } from '~/typeHelpers';
 import { GetColumnSort, SortableData } from './types';
@@ -27,6 +28,8 @@ import { CHECKBOX_FIELD_ID, EXPAND_FIELD_ID, KEBAB_FIELD_ID } from './const';
 
 type Props<DataType> = {
   loading?: boolean;
+  skeletonRowCount?: number;
+  skeletonRowProps?: TrProps;
   data: DataType[];
   columns: SortableData<DataType>[];
   subColumns?: SortableData<DataType>[];
@@ -111,6 +114,8 @@ const TableBase = <T,>({
   getColumnSort,
   itemCount = 0,
   loading,
+  skeletonRowCount,
+  skeletonRowProps = {},
   toggleTemplate,
   disableItemCount = false,
   hasStickyColumns,
@@ -209,7 +214,7 @@ const TableBase = <T,>({
       ? // compute the number of items in the upcoming page
         new Array(
           itemCount === 0
-            ? rowHeightsRef.current?.length || MIN_PAGE_SIZE
+            ? skeletonRowCount || rowHeightsRef.current?.length || MIN_PAGE_SIZE
             : Math.max(0, Math.min(perPage, itemCount - perPage * (page - 1))),
         )
           .fill(undefined)
@@ -220,7 +225,11 @@ const TableBase = <T,>({
             const getRow = () => (
               <Tr
                 key={`skeleton-${i}`}
-                style={{ height: rowHeightsRef.current?.[i] || rowHeightsRef.current?.[0] }}
+                {...skeletonRowProps}
+                style={{
+                  ...(skeletonRowProps.style || {}),
+                  height: rowHeightsRef.current?.[i] || rowHeightsRef.current?.[0],
+                }}
               >
                 {columns.map((col) => (
                   <Td

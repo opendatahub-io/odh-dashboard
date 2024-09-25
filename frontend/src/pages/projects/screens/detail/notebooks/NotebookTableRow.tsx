@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
-import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle';
 import { NotebookKind } from '~/k8sTypes';
 import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -14,6 +13,8 @@ import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { NotebookSize } from '~/types';
+import NotebookStateStatus from '~/pages/projects/notebook/NotebookStateStatus';
+import { useNotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -52,6 +53,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     },
   };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
+  const [ActionColumn, stopNotebook] = useNotebookActionsColumn(
+    currentProject,
+    obj,
+    canEnablePipelines,
+    onNotebookDelete,
+  );
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -147,41 +154,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           </Td>
         ) : null}
         <Td dataLabel="Status">
-          <NotebookStatusToggle
-            notebookState={obj}
-            enablePipelines={canEnablePipelines}
-            isDisabled={
-              notebookImage?.imageAvailability === NotebookImageAvailability.DELETED &&
-              !obj.isRunning
-            }
-          />
+          <NotebookStateStatus notebookState={obj} stopNotebook={stopNotebook} />
         </Td>
         <Td isActionCell={compact} style={{ verticalAlign: 'top' }}>
           <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />
         </Td>
-        {!compact ? (
-          <Td isActionCell>
-            <ActionsColumn
-              items={[
-                {
-                  isDisabled: obj.isStarting || obj.isStopping,
-                  title: 'Edit workbench',
-                  onClick: () => {
-                    navigate(
-                      `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
-                    );
-                  },
-                },
-                {
-                  title: 'Delete workbench',
-                  onClick: () => {
-                    onNotebookDelete(obj.notebook);
-                  },
-                },
-              ]}
-            />
-          </Td>
-        ) : null}
+        {!compact ? <Td isActionCell>{ActionColumn}</Td> : null}
       </Tr>
       {!compact ? (
         <Tr isExpanded={isExpanded}>

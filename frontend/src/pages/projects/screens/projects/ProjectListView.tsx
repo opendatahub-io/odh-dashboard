@@ -12,7 +12,8 @@ import {
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '~/pages/projects/screens/projects/const';
-import { columns, subColumns } from './tableData';
+import { useWatchProjectNotebooks } from '~/utilities/useWatchProjectNotebooks';
+import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
 
@@ -29,6 +30,11 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     () => setFilterData(initialProjectsFilterData),
     [setFilterData],
   );
+  const namespaces = React.useMemo(
+    () => projects.map((project) => project.metadata.name),
+    [projects],
+  );
+  const [projectNotebooks, loaded] = useWatchProjectNotebooks(namespaces);
 
   const filteredProjects = React.useMemo(
     () =>
@@ -66,18 +72,19 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     <>
       <Table
         enablePagination
+        loading={!loaded}
         variant="compact"
-        defaultSortColumn={3}
+        defaultSortColumn={0}
         data={filteredProjects}
-        hasNestedHeader
         columns={columns}
-        subColumns={subColumns}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         data-testid="project-view-table"
+        disableRowRenderSupport
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}
             obj={project}
+            notebooks={projectNotebooks[project.metadata.name] || []}
             isRefreshing={refreshIds.includes(project.metadata.uid || '')}
             setEditData={(data) => setEditData(data)}
             setDeleteData={(data) => setDeleteData(data)}

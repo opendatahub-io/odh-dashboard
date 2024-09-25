@@ -88,14 +88,6 @@ describe('Data science projects details', () => {
     cy.url().should('include', '/projects/test-project');
   });
 
-  it('should test url for workbench creation', () => {
-    initIntercepts();
-    projectListPage.visit();
-    projectListPage.findCreateWorkbenchButton().click();
-
-    cy.url().should('include', '/projects/test-project/spawner');
-  });
-
   it('should list the new project', () => {
     initIntercepts();
     projectListPage.visit();
@@ -218,41 +210,37 @@ describe('Data science projects details', () => {
     deleteProject.should('have.attr', 'aria-disabled', 'true');
   });
 
-  describe('Table filter', () => {
-    it('filter by name', () => {
-      initIntercepts();
-      projectListPage.visit();
+  it('should filter by name', () => {
+    initIntercepts();
+    projectListPage.visit();
 
-      // Select the "Name" filter
-      const projectListToolbar = projectListPage.getTableToolbar();
-      projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
-      projectListToolbar.findFilterInput('name').type('Test Project');
-      // Verify only rows with the typed run name exist
-      projectListPage.getProjectRow('Test Project').find().should('exist');
-    });
-
-    it('filter by user', () => {
-      initIntercepts();
-      projectListPage.visit();
-
-      // Select the "User" filter
-      const projectListToolbar = projectListPage.getTableToolbar();
-      projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
-      projectListToolbar.findFilterInput('user').type('test-user');
-      // Verify only rows with the typed run user exist
-      projectListPage.getProjectRow('Test Project').find().should('exist');
-    });
+    // Select the "Name" filter
+    const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
+    projectListToolbar.findFilterInput('name').type('Test Project');
+    // Verify only rows with the typed run name exist
+    projectListPage.getProjectRow('Test Project').find().should('exist');
   });
 
-  it('Validate that clicking on switch toggle will open modal to stop workbench', () => {
+  it('should filter by user', () => {
+    initIntercepts();
+    projectListPage.visit();
+
+    // Select the "User" filter
+    const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
+    projectListToolbar.findFilterInput('user').type('test-user');
+    // Verify only rows with the typed run user exist
+    projectListPage.getProjectRow('Test Project').find().should('exist');
+  });
+
+  it('should show list of workbenches when the column is expanded', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
-    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
     cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
       'getWorkbench',
     );
     cy.interceptK8sList(
-      { model: NotebookModel, ns: 'test-project' },
+      { model: NotebookModel },
       mockK8sResourceList([
         mockNotebookK8sResource({
           opts: {
@@ -270,6 +258,7 @@ describe('Data science projects details', () => {
             },
             metadata: {
               name: 'test-notebook',
+              namespace: 'test-project',
               labels: {
                 'opendatahub.io/notebook-image': 'true',
               },
@@ -282,9 +271,58 @@ describe('Data science projects details', () => {
       ]),
     );
     projectListPage.visit();
-    cy.wait('@getWorkbench');
     const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findEnableSwitch().click();
+    projectTableRow.findNotebookColumn().click();
+    cy.wait('@getWorkbench');
+  });
+
+  it('should open the modal to stop workbench when user stops the workbench', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
+      'getWorkbench',
+    );
+    cy.interceptK8sList(
+      NotebookModel,
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          opts: {
+            spec: {
+              template: {
+                spec: {
+                  containers: [
+                    {
+                      name: 'test-notebook',
+                      image: 'test-image:latest',
+                    },
+                  ],
+                },
+              },
+            },
+            metadata: {
+              name: 'test-notebook',
+              namespace: 'test-project',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ]),
+    );
+    projectListPage.visit();
+    const projectTableRow = projectListPage.getProjectRow('Test Project');
+    projectTableRow.findNotebookColumn().click();
+
+    const notebookRow = projectTableRow.getNotebookRow('Test Notebook');
+    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
+
+    notebookRow.findKebabAction('Start').should('be.disabled');
+    notebookRow.findKebabAction('Stop').click();
 
     //stop workbench
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
@@ -315,8 +353,8 @@ describe('Data science projects details', () => {
         },
       ]);
     });
-    projectTableRow.findNotebookStatusText().should('have.text', 'Stopped ');
-    projectTableRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
+    notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
+    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
   });
 });
 

@@ -44,6 +44,10 @@ body,
   }
 }
 
+.odh-u-spin {
+  animation: pf-v5-c-spinner-animation-rotate 3s linear infinite;
+}
+
 // specificity targeting form elements to override --pf-v5-global--FontSize--md
 .pf-v5-c-page,
 .pf-v5-c-modal-box {

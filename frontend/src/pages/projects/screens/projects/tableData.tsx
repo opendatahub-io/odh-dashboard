@@ -5,31 +5,6 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 export const columns: SortableData<ProjectKind>[] = [
   {
-    field: 'project',
-    label: 'Project',
-    sortable: false,
-    colSpan: 2,
-    hasRightBorder: true,
-    width: 50,
-  },
-  {
-    field: 'Workbenches',
-    label: 'Workbenches',
-    sortable: false,
-    colSpan: 2,
-    hasRightBorder: true,
-    width: 40,
-  },
-  {
-    field: 'kebab',
-    label: '',
-    sortable: false,
-    rowSpan: 2,
-    width: 10,
-  },
-];
-export const subColumns: SortableData<ProjectKind>[] = [
-  {
     field: 'name',
     label: 'Name',
     sortable: (a, b) =>
@@ -40,20 +15,18 @@ export const subColumns: SortableData<ProjectKind>[] = [
     field: 'created',
     label: 'Created',
     sortable: (a, b) => getProjectCreationTime(a) - getProjectCreationTime(b),
-    hasRightBorder: true,
-    width: 20,
+    width: 30,
   },
   {
-    field: 'workbench-name',
-    label: 'Name',
+    field: 'Workbenches',
+    label: 'Workbenches',
     sortable: false,
-    width: 10,
+    width: 30,
   },
   {
-    field: 'workbench-status',
-    label: 'Status',
+    field: 'kebab',
+    label: '',
     sortable: false,
-    hasRightBorder: true,
     width: 10,
   },
 ];

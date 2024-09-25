@@ -140,10 +140,6 @@ class NotebookRow extends TableRow {
       .findByTestId('add-storage-button');
   }
 
-  findEnableSwitch() {
-    return this.find().pfSwitch('notebook-status-switch');
-  }
-
   shouldHaveContainerSize(name: string) {
     this.find().find(`[data-label="Container size"]`).contains(name).should('exist');
     return this;
