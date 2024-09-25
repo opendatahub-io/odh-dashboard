@@ -220,7 +220,10 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       <List isPlain isBordered tabIndex={0}>
         {events
           .slice()
-          .reverse()
+          .toSorted(
+            (a, b) =>
+              new Date(getEventTimestamp(b)).getTime() - new Date(getEventTimestamp(a)).getTime(),
+          )
           .map((event, index) => (
             <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
               {`${getEventTimestamp(event)} [${event.type}] ${event.message}`}
