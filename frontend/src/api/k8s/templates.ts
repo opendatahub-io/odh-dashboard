@@ -1,6 +1,10 @@
 import YAML from 'yaml';
 import React from 'react';
-import { WatchK8sResource, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sDeleteResource,
+  k8sGetResource,
+  WatchK8sResource,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { TemplateModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
@@ -82,6 +86,12 @@ export const useTemplates = (namespace?: string): CustomWatchK8sResult<TemplateK
 
 export const deleteTemplate = (name: string, namespace: string): Promise<TemplateKind> =>
   k8sDeleteResource<TemplateKind>({
+    model: TemplateModel,
+    queryOptions: { name, ns: namespace },
+  });
+
+export const getTemplate = (name: string, namespace: string): Promise<TemplateKind> =>
+  k8sGetResource<TemplateKind>({
     model: TemplateModel,
     queryOptions: { name, ns: namespace },
   });

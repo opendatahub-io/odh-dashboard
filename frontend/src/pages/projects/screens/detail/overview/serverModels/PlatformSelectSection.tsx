@@ -1,41 +1,25 @@
 import * as React from 'react';
-import { useEffect, useState } from 'react';
 import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { isNIMAPIKeyEnabled } from '~/pages/modelServing/screens/projects/nimUtils';
+import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
 import { useDashboardNamespace } from '~/redux/selectors';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => {
-  const [isNIMAPIKeyValid, setIsNIMAPIKeyValid] = useState<boolean>(false);
-  const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
   const { dashboardNamespace } = useDashboardNamespace();
+  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
 
-  useEffect(() => {
-    const checkAPIKey = async () => {
-      try {
-        const valid = await isNIMAPIKeyEnabled(dashboardNamespace);
-        setIsNIMAPIKeyValid(valid);
-      } catch (error) {
-        setIsNIMAPIKeyValid(false);
+  const galleryWidths = isNIMAvailable
+    ? {
+        minWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
+        maxWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
       }
-    };
-    checkAPIKey();
-  }, [dashboardNamespace]);
-
-  const galleryWidths =
-    isNIMModelServingAvailable && isNIMAPIKeyValid
-      ? {
-          minWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
-          maxWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
-        }
-      : {
-          minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
-          maxWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
-        };
+    : {
+        minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
+        maxWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
+      };
 
   return (
     <CollapsibleSection title="Serve models" data-testid="section-model-server">
@@ -52,7 +36,7 @@ const PlatformSelectSection: React.FC = () => {
         <Gallery hasGutter {...galleryWidths}>
           <SelectSingleModelCard />
           <SelectMultiModelCard />
-          {isNIMModelServingAvailable && <SelectNIMCard />}
+          {isNIMAvailable && <SelectNIMCard />}
         </Gallery>
         <Alert
           isInline

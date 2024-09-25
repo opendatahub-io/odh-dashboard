@@ -93,9 +93,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
         <DeployNIMServiceModal
           isOpen
           projectContext={{ currentProject, dataConnections }}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-          )}
           onClose={onSubmit}
         />
       ) : null}

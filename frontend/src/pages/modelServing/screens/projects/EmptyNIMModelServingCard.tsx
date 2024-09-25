@@ -10,11 +10,9 @@ import {
   TextVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimePlatform } from '~/types';
 import {
   getSortedTemplates,
   getTemplateEnabled,
-  getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import DeployNIMServiceModal from './NIMServiceModal/DeployNIMServiceModal';
@@ -88,9 +86,6 @@ const EmptyNIMModelServingCard: React.FC = () => {
             currentProject,
             dataConnections,
           }}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-          )}
           onClose={(submit) => {
             onSubmit(submit);
             setOpen(false);
