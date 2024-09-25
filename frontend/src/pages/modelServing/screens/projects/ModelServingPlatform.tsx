@@ -138,22 +138,26 @@ const ModelServingPlatform: React.FC = () => {
         id={ProjectSectionID.MODEL_SERVER}
         title={!emptyModelServer ? ProjectSectionTitles[ProjectSectionID.MODEL_SERVER] : undefined}
         actions={
-          shouldShowPlatformSelection || platformError || emptyModelServer || !isKServeNIMEnabled
+          shouldShowPlatformSelection || platformError || emptyModelServer
             ? undefined
             : [
-                <ModelServingPlatformButtonAction
-                  isProjectModelMesh={isProjectModelMesh}
-                  testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
-                  emptyTemplates={emptyTemplates}
-                  onClick={() => {
-                    setPlatformSelected(
-                      isProjectModelMesh
-                        ? ServingRuntimePlatform.MULTI
-                        : ServingRuntimePlatform.SINGLE,
-                    );
-                  }}
-                  key="serving-runtime-actions"
-                />,
+                ...(!isKServeNIMEnabled
+                  ? [
+                      <ModelServingPlatformButtonAction
+                        isProjectModelMesh={isProjectModelMesh}
+                        testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
+                        emptyTemplates={emptyTemplates}
+                        onClick={() => {
+                          setPlatformSelected(
+                            isProjectModelMesh
+                              ? ServingRuntimePlatform.MULTI
+                              : ServingRuntimePlatform.SINGLE,
+                          );
+                        }}
+                        key="serving-runtime-actions"
+                      />,
+                    ]
+                  : []),
               ]
         }
         description={
