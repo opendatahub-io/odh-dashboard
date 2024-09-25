@@ -12,7 +12,6 @@ import {
   NotebookState,
   OauthFastifyRequest,
 } from '../types';
-import { getModelRegistryNamespace } from '../routes/api/modelRegistries/modelRegistryUtils';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -73,21 +72,8 @@ const requestSecurityGuard = async (
   const translatedUsername = usernameTranslate(userInfo.userName);
   const isReadRequest = request.method.toLowerCase() === 'get';
 
-  let modelRegistryNamespace: string | undefined;
-  try {
-    modelRegistryNamespace = getModelRegistryNamespace(fastify);
-  } catch (e) {
-    fastify.log.warn(
-      'Model registry secure routes will be unavailable, cannot read model registry namespace from DSC',
-    );
-  }
-
-  const namespacesToCheck = [notebookNamespace, dashboardNamespace, modelRegistryNamespace].filter(
-    Boolean,
-  );
-
   // Check to see if a request was made against one of our namespaces
-  if (!namespacesToCheck.includes(namespace)) {
+  if (![notebookNamespace, dashboardNamespace].includes(namespace)) {
     // Not a valid namespace -- cannot make direct calls to just any namespace no matter who you are
     fastify.log.error(
       `User requested a resource that was not in our namespaces. Namespace: ${namespace}`,
