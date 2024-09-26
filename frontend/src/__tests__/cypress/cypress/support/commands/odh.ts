@@ -1,4 +1,4 @@
-import type { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import type {
@@ -637,7 +637,7 @@ declare global {
         ((
           type: 'DELETE /api/modelRegistryRoleBindings/:name',
           options: { path: { name: string } },
-          response: OdhResponse<SuccessErrorResponse>,
+          response: OdhResponse<K8sStatus>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/modelRegistryRoleBindings',
