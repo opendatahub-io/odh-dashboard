@@ -991,6 +991,7 @@ export enum KnownLabels {
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
+  LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
 }
 
 type ComponentNames =

@@ -22,6 +22,10 @@ import { ContextResourceData } from '~/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import RoleBindingPermissionsTableSection from '~/concepts/roleBinding/RoleBindingPermissionsTableSection';
+import {
+  createModelRegistryRoleBinding,
+  deleteModelRegistryRoleBinding,
+} from '~/services/modelRegistrySettingsService';
 
 type RoleBindingProjectPermissionsProps = {
   ownerReference?: K8sResourceCommon;
@@ -115,6 +119,8 @@ const ProjectsSettingsTab: React.FC<RoleBindingProjectPermissionsProps> = ({
             refresh={refreshRB}
             typeModifier="project"
             isProjectSubject={isProjectSubject}
+            createRoleBinding={createModelRegistryRoleBinding}
+            deleteRoleBinding={deleteModelRegistryRoleBinding}
           />
         </StackItem>
       </Stack>
