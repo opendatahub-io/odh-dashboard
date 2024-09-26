@@ -21,9 +21,10 @@ import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
 import { addOwnerReference } from '~/api/k8sUtils';
 
-export const generateRoleBindingServingRuntime = (
+export const generateRoleBindingServiceAccount = (
   name: string,
   serviceAccountName: string,
+  roleRef: Omit<RoleBindingRoleRef, 'apiGroup'>,
   namespace: string,
 ): RoleBindingKind => {
   const roleBindingObject: RoleBindingKind = {
@@ -38,8 +39,7 @@ export const generateRoleBindingServingRuntime = (
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'ClusterRole',
-      name: 'view',
+      ...roleRef,
     },
     subjects: [
       {

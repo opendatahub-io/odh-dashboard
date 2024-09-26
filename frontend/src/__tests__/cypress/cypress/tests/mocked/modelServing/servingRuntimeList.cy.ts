@@ -47,12 +47,14 @@ import {
   PodModel,
   ProjectModel,
   RoleBindingModel,
+  RoleModel,
   RouteModel,
   SecretModel,
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -65,6 +67,7 @@ type HandlersProps = {
   rejectAddSupportServingPlatformProject?: boolean;
   serviceAccountAlreadyExists?: boolean;
   roleBindingAlreadyExists?: boolean;
+  roleAlreadyExists?: boolean;
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
   rejectDataConnection?: boolean;
@@ -103,6 +106,7 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   serviceAccountAlreadyExists = false,
   roleBindingAlreadyExists = false,
+  roleAlreadyExists = false,
   rejectInferenceService = false,
   rejectServingRuntime = false,
   rejectDataConnection = false,
@@ -230,6 +234,38 @@ const initIntercepts = ({
           }),
         },
   ).as('createRoleBinding');
+  cy.interceptK8s(
+    {
+      model: RoleModel,
+      ns: 'test-project',
+      name: 'test-name-view-role',
+    },
+    roleAlreadyExists
+      ? {
+          statusCode: 200,
+          body: mockRoleK8sResource({
+            name: 'test-name-view-role',
+            namespace: 'test-project',
+          }),
+        }
+      : { statusCode: 404, body: mock404Error({}) },
+  );
+  cy.interceptK8s(
+    'POST',
+    {
+      model: RoleModel,
+      ns: 'test-project',
+    },
+    roleAlreadyExists
+      ? { statusCode: 409, body: mock409Error({}) }
+      : {
+          statusCode: 200,
+          body: mockRoleK8sResource({
+            name: 'test-name-view',
+            namespace: 'test-project',
+          }),
+        },
+  ).as('createRole');
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
   cy.interceptK8s(
     'POST',
@@ -592,6 +628,35 @@ describe('Serving Runtime List', () => {
       // the serving runtime should have been created
       cy.get('@createServingRuntime.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+
+      //dry run request
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name-view-role',
+            namespace: 'test-project',
+            ownerReferences: [],
+          },
+          rules: [
+            {
+              verbs: ['get'],
+              apiGroups: ['serving.kserve.io'],
+              resources: ['inferenceservices'],
+              resourceNames: ['test-name'],
+            },
+          ],
+        });
+      });
+
+      //Actual request
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createRole.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
       });
     });
 
@@ -1309,6 +1374,9 @@ describe('Serving Runtime List', () => {
       cy.get('@createRoleBinding.all').then((interceptions) => {
         expect(interceptions).to.have.length(0);
       });
+      cy.get('@createRole.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
     });
 
     it('Add model server - create ServiceAccount and RoleBinding if token auth is selected', () => {
@@ -1392,6 +1460,7 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: false,
         serviceAccountAlreadyExists: true,
         roleBindingAlreadyExists: true,
+        roleAlreadyExists: true,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
@@ -1451,6 +1520,9 @@ describe('Serving Runtime List', () => {
       });
 
       cy.get('@createRoleBinding.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createRole.all').then((interceptions) => {
         expect(interceptions).to.have.length(0);
       });
     });

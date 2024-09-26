@@ -1,6 +1,14 @@
 import * as _ from 'lodash';
 import createError from 'http-errors';
-import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
+import {
+  PatchUtils,
+  V1ConfigMap,
+  V1Namespace,
+  V1NamespaceList,
+  V1Role,
+  V1RoleBinding,
+  V1RoleBindingList,
+} from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
   BuildPhase,
@@ -21,6 +29,7 @@ import {
   TolerationEffect,
   TolerationOperator,
   DataScienceClusterKindStatus,
+  KnownLabels,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -682,31 +691,182 @@ export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
 };
 
-/**
- * Converts GPU usage to use accelerator by adding an accelerator profile CRD to the cluster if GPU usage is detected
- */
-export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> => {
-  // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
-  // Check for migration-gpu-status configmap in dashboard namespace — if found, exit early
-  const CONFIG_MAP_NAME = 'migration-gpu-status';
-
-  const continueProcessing = await fastify.kube.coreV1Api
-    .readNamespacedConfigMap(CONFIG_MAP_NAME, fastify.kube.namespace)
+const shouldMigrationContinue = async (
+  fastify: KubeFastifyInstance,
+  configMapName: string,
+  description: string,
+): Promise<boolean> =>
+  fastify.kube.coreV1Api
+    .readNamespacedConfigMap(configMapName, fastify.kube.namespace)
     .then(() => {
       // Found configmap, not continuing
-      fastify.log.info(`GPU migration already completed, skipping`);
+      fastify.log.info(`${description} migration already completed, skipping`);
       return false;
     })
     .catch((e) => {
       if (e.statusCode === 404) {
-        // No config saying we have already migrated gpus, continue
+        // No config saying we have already migrated, continue
         return true;
-      } else {
-        throw `fetching gpu migration configmap had a ${e.statusCode} error: ${
-          e.response?.body?.message || e?.response?.statusMessage
-        }`;
       }
+      throw `fetching ${description} migration configmap had a ${e.statusCode} error: ${
+        e.response?.body?.message || e?.response?.statusMessage
+      }`;
     });
+
+const createSuccessfulMigrationConfigMap = async (
+  fastify: KubeFastifyInstance,
+  configMapName: string,
+  description: string,
+): Promise<void> => {
+  // Create configmap to flag operation as successful
+  const configMap: V1ConfigMap = {
+    metadata: {
+      name: configMapName,
+      namespace: fastify.kube.namespace,
+    },
+    data: {
+      migratedCompleted: 'true',
+    },
+  };
+  return await fastify.kube.coreV1Api
+    .createNamespacedConfigMap(fastify.kube.namespace, configMap)
+    .then(() => fastify.log.info(`Successfully migrated ${description}`))
+    .catch((e) => {
+      throw `A ${
+        e.statusCode
+      } error occurred when trying to create configmap for ${description} migration: ${
+        e.response?.body?.message || e?.response?.statusMessage
+      }`;
+    });
+};
+
+export const cleanupKserveRoleBindings = async (fastify: KubeFastifyInstance): Promise<void> => {
+  // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
+  // Check for migration-kserve-inferenceservices-role configmap in dashboard namespace — if found, exit early
+  const CONFIG_MAP_NAME = 'migration-kserve-inferenceservices-role';
+  const DESCRIPTION = 'KServe secure rolebindings';
+
+  const continueProcessing = await shouldMigrationContinue(fastify, CONFIG_MAP_NAME, DESCRIPTION);
+
+  if (continueProcessing) {
+    const roleBindings = await fastify.kube.customObjectsApi.listClusterCustomObject(
+      'rbac.authorization.k8s.io',
+      'v1',
+      'rolebindings',
+      undefined,
+      undefined,
+      undefined,
+      `${KnownLabels.DASHBOARD_RESOURCE} = true`,
+    );
+    const kserveSARoleBindings =
+      (roleBindings?.body as V1RoleBindingList).items?.filter(
+        ({ roleRef, subjects, metadata }) =>
+          roleRef.kind === 'ClusterRole' &&
+          roleRef.name === 'view' &&
+          subjects.length === 1 &&
+          subjects[0].kind === 'ServiceAccount' &&
+          metadata?.ownerReferences.length === 1 &&
+          metadata?.ownerReferences[0].kind === 'InferenceService',
+      ) || [];
+
+    const replaceRoleBinding = async (existingRoleBinding: V1RoleBinding) => {
+      const inferenceServiceName = existingRoleBinding.metadata?.ownerReferences[0].name;
+      const namespace = existingRoleBinding.metadata?.namespace;
+      const newRoleBindingName = `${inferenceServiceName}-view`;
+      const newRoleName = `${inferenceServiceName}-view-role`;
+
+      const newRole: V1Role = {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'Role',
+        metadata: {
+          name: newRoleName,
+          namespace,
+          labels: {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          },
+        },
+        rules: [
+          {
+            verbs: ['get'],
+            apiGroups: ['serving.kserve.io'],
+            resources: ['inferenceservices'],
+            resourceNames: [inferenceServiceName],
+          },
+        ],
+      };
+
+      const newRoleBinding: V1RoleBinding = {
+        kind: 'RoleBinding',
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        metadata: {
+          name: newRoleBindingName,
+          namespace,
+          labels: existingRoleBinding.metadata?.labels,
+          ownerReferences: existingRoleBinding.metadata?.ownerReferences,
+        },
+        subjects: existingRoleBinding.subjects,
+        roleRef: {
+          apiGroup: 'rbac.authorization.k8s.io',
+          kind: 'Role',
+          name: newRoleName,
+        },
+      };
+
+      // Create new role if it doesn't already exist
+      await fastify.kube.customObjectsApi
+        .getNamespacedCustomObject(
+          'rbac.authorization.k8s.io',
+          'v1',
+          namespace,
+          'roles',
+          newRoleName,
+        )
+        .catch((e) => {
+          if (e.statusCode === 404) {
+            return fastify.kube.customObjectsApi.createNamespacedCustomObject(
+              'rbac.authorization.k8s.io',
+              'v1',
+              namespace,
+              'roles',
+              newRole,
+            );
+          }
+        });
+
+      // Delete and replace old RB because we can't patch rolebindings
+      await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
+        'rbac.authorization.k8s.io',
+        'v1',
+        namespace,
+        'rolebindings',
+        existingRoleBinding?.metadata.name,
+      );
+      await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+        'rbac.authorization.k8s.io',
+        'v1',
+        namespace,
+        'rolebindings',
+        newRoleBinding,
+      );
+    };
+
+    await Promise.all(kserveSARoleBindings.map(replaceRoleBinding));
+
+    await createSuccessfulMigrationConfigMap(fastify, CONFIG_MAP_NAME, DESCRIPTION);
+  }
+};
+
+/**
+ * Converts GPU usage to use accelerator by adding an accelerator profile CRD to the cluster if GPU usage is detected
+ */
+// TODO copy this approach for migrating for https://issues.redhat.com/browse/RHOAIENG-11010
+export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> => {
+  // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
+  // Check for migration-gpu-status configmap in dashboard namespace — if found, exit early
+  const CONFIG_MAP_NAME = 'migration-gpu-status';
+  const DESCRIPTION = 'GPU';
+
+  const continueProcessing = await shouldMigrationContinue(fastify, CONFIG_MAP_NAME, DESCRIPTION);
 
   if (continueProcessing) {
     // Read existing AcceleratorProfiles
@@ -784,25 +944,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       }
     }
 
-    // Create configmap to flag operation as successful
-    const configMap = {
-      metadata: {
-        name: CONFIG_MAP_NAME,
-        namespace: fastify.kube.namespace,
-      },
-      data: {
-        migratedCompleted: 'true',
-      },
-    };
-
-    await fastify.kube.coreV1Api
-      .createNamespacedConfigMap(fastify.kube.namespace, configMap)
-      .then(() => fastify.log.info('Successfully migrated GPUs to accelerator profiles'))
-      .catch((e) => {
-        throw `A ${e.statusCode} error occurred when trying to create gpu migration configmap: ${
-          e.response?.body?.message || e?.response?.statusMessage
-        }`;
-      });
+    await createSuccessfulMigrationConfigMap(fastify, CONFIG_MAP_NAME, DESCRIPTION);
   }
 };
 /**

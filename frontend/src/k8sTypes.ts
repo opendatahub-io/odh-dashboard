@@ -539,6 +539,14 @@ export type RoleBindingRoleRef = {
   name: string;
 };
 
+export type RoleKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  rules: ResourceRule[];
+};
+
 export type RoleBindingKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -1047,6 +1055,13 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   };
 };
 
+export type ResourceRule = {
+  verbs: string[];
+  apiGroups?: string[];
+  resourceNames?: string[];
+  resources?: string[];
+};
+
 export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
   spec: {
     namespace: string;
@@ -1057,12 +1072,7 @@ export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
       verbs: string[];
       nonResourceURLs?: string[];
     }[];
-    resourceRules: {
-      verbs: string[];
-      apiGroups?: string[];
-      resourceNames?: string[];
-      resources?: string[];
-    }[];
+    resourceRules: ResourceRule[];
     evaluationError?: string;
   };
 };

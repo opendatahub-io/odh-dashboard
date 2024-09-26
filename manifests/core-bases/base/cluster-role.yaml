@@ -188,6 +188,14 @@ rules:
     resources:
       - dscinitializations
   - apiGroups:
+      - serving.kserve.io
+    resources:
+      - inferenceservices
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - modelregistry.opendatahub.io
     verbs:
       - get
