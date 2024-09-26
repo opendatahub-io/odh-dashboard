@@ -6,11 +6,13 @@ import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type ImportPipelineButtonProps = {
   onCreate?: (pipeline: PipelineKFv2) => void;
+  redirectAfterImport?: boolean;
 } & Omit<React.ComponentProps<typeof Button>, 'onClick'>;
 
 const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
   onCreate,
   children,
+  redirectAfterImport,
   ...buttonProps
 }) => {
   const { apiAvailable, refreshAllAPI, pipelinesServer } = usePipelinesAPI();
@@ -28,6 +30,7 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
       </Button>
       <PipelineImportModal
         isOpen={open}
+        redirectAfterImport={redirectAfterImport}
         onClose={(pipeline) => {
           setOpen(false);
           if (pipeline) {

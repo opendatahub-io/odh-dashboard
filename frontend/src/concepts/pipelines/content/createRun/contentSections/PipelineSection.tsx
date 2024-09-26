@@ -60,6 +60,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
               variant="link"
               icon={<PlusCircleIcon />}
               onCreate={onPipelineChange}
+              redirectAfterImport={false}
             >
               Create new pipeline
             </ImportPipelineButton>

@@ -31,9 +31,14 @@ import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
 type PipelineImportModalProps = {
   isOpen: boolean;
   onClose: (pipeline?: PipelineKFv2) => void;
+  redirectAfterImport?: boolean;
 };
 
-const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClose }) => {
+const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
+  isOpen,
+  redirectAfterImport = true,
+  onClose,
+}) => {
   const navigate = useNavigate();
   const { project, api, apiAvailable, namespace } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
@@ -73,11 +78,11 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
       );
       const versionId = versions?.[0].pipeline_version_id;
 
-      if (versionId) {
+      if (redirectAfterImport && versionId) {
         navigate(pipelineVersionDetailsRoute(namespace, pipeline.pipeline_id, versionId));
       }
     },
-    [api, namespace, navigate, onBeforeClose],
+    [api, namespace, redirectAfterImport, navigate, onBeforeClose],
   );
 
   const checkForDuplicateName = useDebounceCallback(
