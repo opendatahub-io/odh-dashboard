@@ -10,12 +10,14 @@ type ConnectionsTableProps = {
   connections: Connection[];
   connectionTypes?: ConnectionTypeConfigMapObj[];
   refreshConnections: () => void;
+  setManageConnectionModal: (connection: Connection) => void;
 };
 
 const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
   connections,
   connectionTypes,
   refreshConnections,
+  setManageConnectionModal,
 }) => {
   const [deleteConnection, setDeleteConnection] = React.useState<Connection>();
 
@@ -30,7 +32,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
             key={connection.metadata.name}
             obj={connection}
             connectionTypes={connectionTypes}
-            onEditConnection={() => undefined}
+            onEditConnection={() => setManageConnectionModal(connection)}
             onDeleteConnection={() => setDeleteConnection(connection)}
           />
         )}

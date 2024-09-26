@@ -7,6 +7,7 @@ import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
+  isConnectionTypeDataField,
   SectionField,
 } from '~/concepts/connectionTypes/types';
 
@@ -47,6 +48,22 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
     [fields],
   );
 
+  const unmatchedValues: ConnectionTypeDataField[] = React.useMemo(() => {
+    const unmatched: ConnectionTypeDataField[] = [];
+    for (const key in connectionValues) {
+      const matching = fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === key);
+      if (!matching) {
+        unmatched.push({
+          type: ConnectionTypeFieldType.ShortText,
+          envVar: key,
+          name: key,
+          properties: {},
+        });
+      }
+    }
+    return unmatched;
+  }, [connectionValues, fields]);
+
   const renderDataFields = (dataFields: ConnectionTypeDataField[]) =>
     dataFields.map((field, i) => (
       <DataFormFieldGroup key={i} field={field}>
@@ -74,6 +91,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
           <React.Fragment key={i}>{renderDataFields(fieldGroup.fields)}</React.Fragment>
         ),
       )}
+      {unmatchedValues.length > 0 && renderDataFields(unmatchedValues)}
     </>
   );
 };

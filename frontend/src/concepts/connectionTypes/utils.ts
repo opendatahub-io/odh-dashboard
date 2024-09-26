@@ -137,7 +137,12 @@ export const assembleConnectionSecret = (
   },
 ): Connection => {
   const connectionValuesAsStrings = Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, String(value)]),
+    Object.entries(values).map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return [key, JSON.stringify(value)]; // multi select
+      }
+      return [key, String(value)];
+    }),
   );
   return {
     apiVersion: 'v1',
@@ -157,4 +162,42 @@ export const assembleConnectionSecret = (
     },
     stringData: connectionValuesAsStrings,
   };
+};
+
+export const parseConnectionSecretValues = (
+  connection: Connection,
+  connectionType?: ConnectionTypeConfigMapObj,
+): { [key: string]: ConnectionTypeValueType } => {
+  const response: { [key: string]: ConnectionTypeValueType } = {};
+
+  for (const [key, value] of Object.entries(connection.data ?? {})) {
+    const decodedString = window.atob(value);
+    const matchingField = connectionType?.data?.fields?.find(
+      (f) => isConnectionTypeDataField(f) && f.envVar === key,
+    );
+
+    if (matchingField?.type === ConnectionTypeFieldType.Boolean) {
+      response[key] = decodedString === 'true';
+    } else if (matchingField?.type === ConnectionTypeFieldType.Numeric) {
+      response[key] = Number(decodedString);
+    } else if (
+      matchingField?.type === ConnectionTypeFieldType.Dropdown &&
+      matchingField.properties.variant === 'multi'
+    ) {
+      try {
+        const parsed = JSON.parse(decodedString);
+        if (Array.isArray(parsed)) {
+          response[key] = parsed.map((v) => String(v));
+        } else {
+          response[key] = [decodedString];
+        }
+      } catch {
+        response[key] = [decodedString];
+      }
+    } else {
+      response[key] = decodedString;
+    }
+  }
+
+  return response;
 };

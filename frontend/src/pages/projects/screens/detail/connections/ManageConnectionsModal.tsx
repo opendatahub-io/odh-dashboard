@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal } from '@patternfly/react-core';
+import { Alert, Modal } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import {
@@ -11,7 +11,12 @@ import {
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { assembleConnectionSecret, getDefaultValues } from '~/concepts/connectionTypes/utils';
+import {
+  assembleConnectionSecret,
+  getDefaultValues,
+  parseConnectionSecretValues,
+} from '~/concepts/connectionTypes/utils';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 
 type Props = {
   connection?: Connection;
@@ -19,6 +24,7 @@ type Props = {
   project: ProjectKind;
   onClose: (submitted?: boolean) => void;
   onSubmit: (connection: Connection) => Promise<SecretKind>;
+  isEdit?: boolean;
 };
 
 export const ManageConnectionModal: React.FC<Props> = ({
@@ -27,9 +33,11 @@ export const ManageConnectionModal: React.FC<Props> = ({
   project,
   onClose,
   onSubmit,
+  isEdit = false,
 }) => {
   const [error, setError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isModified, setIsModified] = React.useState(false);
 
   const enabledConnectionTypes = React.useMemo(
     () =>
@@ -39,13 +47,26 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
-  >(enabledConnectionTypes.length === 1 ? enabledConnectionTypes[0] : undefined);
-  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
+  >(() => {
+    if (isEdit && connection) {
+      return connectionTypes.find(
+        (t) =>
+          t.metadata.name === connection.metadata.annotations['opendatahub.io/connection-type'],
+      );
+    }
+    if (enabledConnectionTypes.length === 1) {
+      return enabledConnectionTypes[0];
+    }
+    return undefined;
+  });
+  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData({
+    initialData: connection,
+  });
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
   }>(() => {
     if (connection?.data) {
-      return connection.data;
+      return parseConnectionSecretValues(connection, selectedConnectionType);
     }
     if (enabledConnectionTypes.length === 1) {
       return getDefaultValues(enabledConnectionTypes[0]);
@@ -101,7 +122,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title="Add Connection"
+      title={isEdit ? 'Edit connection' : 'Add connection'}
       isOpen
       onClose={() => {
         onClose();
@@ -109,7 +130,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
       variant="medium"
       footer={
         <DashboardModalFooter
-          submitLabel="Create"
+          submitLabel={isEdit ? 'Save' : 'Create'}
           onCancel={onClose}
           onSubmit={() => {
             setIsSaving(true);
@@ -139,25 +160,50 @@ export const ManageConnectionModal: React.FC<Props> = ({
               });
           }}
           error={error}
-          isSubmitDisabled={!isFormValid}
+          isSubmitDisabled={!isFormValid || !isModified}
           isSubmitLoading={isSaving}
           alertTitle=""
         />
       }
     >
+      {isEdit && (
+        <Alert
+          style={{ marginBottom: 32 }}
+          variant="warning"
+          isInline
+          title="Dependent resources require further action"
+        >
+          Connection changes are not applied to dependent resources until those resources are
+          restarted, redeployed, or otherwise regenerated.
+        </Alert>
+      )}
       <ConnectionTypeForm
-        connectionTypes={enabledConnectionTypes}
+        connectionTypes={isEdit ? connectionTypes : enabledConnectionTypes}
         connectionType={selectedConnectionType}
-        setConnectionType={changeSelectionType}
+        setConnectionType={(obj?: ConnectionTypeConfigMapObj) => {
+          if (!isModified) {
+            setIsModified(true);
+          }
+          changeSelectionType(obj);
+        }}
         connectionNameDesc={nameDescData}
-        setConnectionNameDesc={setNameDescData}
+        setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
+          if (!isModified) {
+            setIsModified(true);
+          }
+          setNameDescData(key, value);
+        }}
         connectionValues={connectionValues}
-        onChange={(field, value) =>
-          setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }))
-        }
+        onChange={(field, value) => {
+          if (!isModified) {
+            setIsModified(true);
+          }
+          setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+        }}
         onValidate={(field, isValid) =>
           setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
         }
+        disableTypeSelection={isEdit || enabledConnectionTypes.length === 1}
       />
     </Modal>
   );

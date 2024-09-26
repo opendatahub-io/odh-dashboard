@@ -13,7 +13,8 @@ import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
 
 export const isSecretAWSSecretKind = (secret: SecretKind): secret is AWSSecretKind =>
-  !!secret.metadata.labels?.[KnownLabels.DATA_CONNECTION_AWS];
+  !!secret.metadata.labels?.[KnownLabels.DATA_CONNECTION_AWS] &&
+  secret.metadata.annotations?.['opendatahub.io/connection-type'] === 's3';
 
 export const isDataConnectionAWS = (
   dataConnection: DataConnection,

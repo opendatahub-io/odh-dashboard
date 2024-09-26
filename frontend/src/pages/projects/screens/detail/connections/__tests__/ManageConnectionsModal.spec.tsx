@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { ManageConnectionModal } from '~/pages/projects/screens/detail/connections/ManageConnectionsModal';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '~/__mocks__';
+import { mockConnection } from '~/__mocks__/mockConnection';
 
 describe('Add connection modal', () => {
   const onCloseMock = jest.fn();
@@ -31,7 +32,7 @@ describe('Add connection modal', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Add Connection' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Add connection' })).toBeTruthy();
     expect(screen.getByRole('combobox')).toHaveValue('the only type');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Connection description' })).toBeVisible();
@@ -67,6 +68,18 @@ describe('Add connection modal', () => {
               },
             ],
           }),
+          mockConnectionTypeConfigMapObj({
+            name: 'type three disabled',
+            enabled: false,
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Short text 2',
+                envVar: 'env2',
+                properties: {},
+              },
+            ],
+          }),
         ]}
       />,
     );
@@ -74,11 +87,12 @@ describe('Add connection modal', () => {
     await act(async () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
-    expect(screen.getByRole('option', { name: 'type one' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'type two' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /type one/ })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /type two/ })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: /type three disabled/ })).toBeFalsy();
 
     await act(async () => {
-      screen.getByRole('option', { name: 'type one' }).click();
+      screen.getByRole('option', { name: /type one/ }).click();
     });
     expect(screen.getByRole('combobox')).toHaveValue('type one');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeVisible();
@@ -280,7 +294,7 @@ describe('Add connection modal', () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
     await act(async () => {
-      screen.getByRole('option', { name: 'type one' }).click();
+      screen.getByRole('option', { name: /type one/ }).click();
     });
     await act(async () => {
       fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
@@ -305,7 +319,7 @@ describe('Add connection modal', () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
     await act(async () => {
-      screen.getByRole('option', { name: 'type two' }).click();
+      screen.getByRole('option', { name: /type two/ }).click();
     });
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
       'connection one name',
@@ -319,7 +333,7 @@ describe('Add connection modal', () => {
       screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
     });
     await act(async () => {
-      screen.getByRole('option', { name: 'type one' }).click();
+      screen.getByRole('option', { name: /type one/ }).click();
     });
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
       'connection one name',
@@ -328,5 +342,183 @@ describe('Add connection modal', () => {
       'connection one desc',
     );
     expect(screen.getByRole('textbox', { name: 'Short text 1' })).toHaveValue('one field');
+  });
+});
+
+describe('Edit connection modal', () => {
+  const onCloseMock = jest.fn();
+  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
+
+  it('should load existing connection', async () => {
+    render(
+      <ManageConnectionModal
+        isEdit
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connection={mockConnection({
+          name: 's3-connection',
+          description: 's3 desc',
+          connectionType: 's3',
+          data: {
+            env1: window.btoa('saved data'),
+            env2: window.btoa('3'),
+            env3: window.btoa('true'),
+            env4: window.btoa('a'),
+            env5: window.btoa('["a","b"]'),
+          },
+        })}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env1',
+                properties: {},
+              },
+              {
+                type: 'numeric',
+                name: 'numeric 2',
+                envVar: 'env2',
+                properties: {},
+              },
+              {
+                type: 'boolean',
+                name: 'boolean 3',
+                envVar: 'env3',
+                properties: {},
+              },
+              {
+                type: 'dropdown',
+                name: 'dropdown 4',
+                envVar: 'env4',
+                properties: {
+                  items: [
+                    { label: 'a', value: 'a' },
+                    { label: 'b', value: 'b' },
+                  ],
+                },
+              },
+              {
+                type: 'dropdown',
+                name: 'dropdown 5 multi',
+                envVar: 'env5',
+                properties: {
+                  variant: 'multi',
+                  items: [
+                    { label: 'a', value: 'a' },
+                    { label: 'b', value: 'b' },
+                  ],
+                },
+              },
+            ],
+          }),
+          mockConnectionTypeConfigMapObj({
+            name: 'postgres',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Short text',
+                envVar: 'env1',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Edit connection' })).toBeTruthy();
+    expect(screen.getByRole('combobox')).toHaveValue('s3');
+    expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue('s3-connection');
+    expect(screen.getByRole('textbox', { name: 'Connection description' })).toHaveValue('s3 desc');
+    expect(screen.getByRole('textbox', { name: 'short text 1' })).toHaveValue('saved data');
+    expect(screen.getByRole('spinbutton', { name: 'Input' })).toHaveValue(3);
+    expect(screen.getByRole('checkbox', { name: 'boolean 3' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'dropdown 4' })).toHaveTextContent('a');
+    expect(screen.getByRole('button', { name: 'dropdown 5 multi' })).toHaveTextContent(
+      'Select dropdown 5 multi 2 selected',
+    );
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  });
+
+  it('should list disabled connection type for existing instance', () => {
+    render(
+      <ManageConnectionModal
+        isEdit
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connection={mockConnection({
+          name: 's3-connection',
+          description: 's3 desc',
+          connectionType: 's3',
+          data: { env1: window.btoa('saved data') },
+        })}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            enabled: false,
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env1',
+                properties: {},
+              },
+            ],
+          }),
+          mockConnectionTypeConfigMapObj({
+            name: 'postgres',
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveValue('s3');
+    expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue('s3-connection');
+    expect(screen.getByRole('textbox', { name: 'Connection description' })).toHaveValue('s3 desc');
+    expect(screen.getByRole('textbox', { name: 'short text 1' })).toHaveValue('saved data');
+  });
+
+  it('should list non matching values as short text', async () => {
+    render(
+      <ManageConnectionModal
+        isEdit
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connection={mockConnection({
+          name: 's3-connection',
+          description: 's3 desc',
+          connectionType: 's3',
+          data: {
+            UNMATCHED_1: window.btoa('unmatched1!'),
+            env1: window.btoa('saved data'),
+            UNMATCHED_2: window.btoa('unmatched2!'),
+          },
+        })}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Short text',
+                envVar: 'env1',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveValue('s3');
+    expect(screen.getByRole('textbox', { name: 'Short text' })).toHaveValue('saved data');
+    expect(screen.getByRole('textbox', { name: 'UNMATCHED_1' })).toHaveValue('unmatched1!');
+    expect(screen.getByRole('textbox', { name: 'UNMATCHED_2' })).toHaveValue('unmatched2!');
   });
 });
