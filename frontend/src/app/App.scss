@@ -78,3 +78,14 @@ body,
   --pf-v5-c-truncate--MinWidth: 0;
   --pf-v5-c-truncate__start--MinWidth: 0;
 }
+
+// FIXME https://github.com/patternfly/patternfly/issues/7104
+.pf-v5-c-label-group {
+  max-width: 100%;
+
+  &__main,
+  &__list,
+  &__list-item {
+    max-width: 100%;
+  }
+}
