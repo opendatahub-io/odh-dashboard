@@ -410,6 +410,16 @@ export type ServingContainer = {
   affinity?: PodAffinity;
   resources?: ContainerResources;
   volumeMounts?: VolumeMount[];
+  env?: {
+    name: string;
+    value?: string;
+    valueFrom?: {
+      secretKeyRef?: {
+        name: string;
+        key: string;
+      };
+    };
+  }[];
 };
 
 export type ServingRuntimeKind = K8sResourceCommon & {
@@ -430,6 +440,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     replicas?: number;
     tolerations?: Toleration[];
     volumes?: Volume[];
+    imagePullSecrets?: { name: string }[];
   };
 };
 
