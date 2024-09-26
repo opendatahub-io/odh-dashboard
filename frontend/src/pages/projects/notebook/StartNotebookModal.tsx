@@ -19,7 +19,7 @@ import { EventStatus, NotebookStatus } from '~/types';
 import { EventKind } from '~/k8sTypes';
 import NotebookRouteLink from './NotebookRouteLink';
 import { NotebookState } from './types';
-import { getEventFullMessage } from './utils';
+import { getEventFullMessage, getEventTimestamp } from './utils';
 
 type StartNotebookModalProps = {
   isOpen: boolean;
@@ -164,7 +164,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             <List isPlain isBordered data-id="event-logs">
               {events
                 .slice()
-                .reverse()
+                .toSorted(
+                  (a, b) =>
+                    new Date(getEventTimestamp(b)).getTime() -
+                    new Date(getEventTimestamp(a)).getTime(),
+                )
                 .map((event, index) => (
                   <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
                     {getEventFullMessage(event)}
