@@ -1,6 +1,8 @@
 import React from 'react';
-import { Flex, Radio, Spinner, Tooltip } from '@patternfly/react-core';
+
+import { Flex, FlexItem, Radio, Spinner, Tooltip } from '@patternfly/react-core';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
+import { useStorageClassContext } from './StorageClassesContext';
 
 interface StorageClassDefaultRadioProps {
   storageClassName: string;
@@ -15,6 +17,7 @@ export const StorageClassDefaultRadio: React.FC<StorageClassDefaultRadioProps> =
   isDisabled,
   onChange,
 }) => {
+  const { setIsLoadingDefault } = useStorageClassContext();
   const [isChecked, setIsChecked] = React.useState(isInitialChecked);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const id = `${storageClassName}-default-radio`;
@@ -26,16 +29,18 @@ export const StorageClassDefaultRadio: React.FC<StorageClassDefaultRadioProps> =
 
   const update = React.useCallback(async () => {
     setIsUpdating(true);
+    setIsLoadingDefault(true);
 
     try {
       await updateStorageClassConfig(storageClassName, { isDefault: true });
       await onChange();
     } finally {
       setIsUpdating(false);
+      setIsChecked(true);
+      // Delay table loading state for smoother transition between default selections
+      setTimeout(() => setIsLoadingDefault(false), 250);
     }
-
-    setIsChecked(true);
-  }, [storageClassName, onChange]);
+  }, [storageClassName, setIsLoadingDefault, onChange]);
 
   const radioInput = React.useMemo(
     () => (
@@ -54,17 +59,21 @@ export const StorageClassDefaultRadio: React.FC<StorageClassDefaultRadioProps> =
 
   return (
     <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-      {isDisabled ? (
-        <Tooltip content="Enable this class to set it as the default.">{radioInput}</Tooltip>
-      ) : (
-        radioInput
-      )}
+      <FlexItem>
+        {isDisabled ? (
+          <Tooltip content="Enable this class to set it as the default.">{radioInput}</Tooltip>
+        ) : (
+          radioInput
+        )}
+      </FlexItem>
 
-      <Spinner
-        size="md"
-        aria-label="Loading default radio selection"
-        style={{ visibility: isUpdating ? 'visible' : 'hidden' }}
-      />
+      <FlexItem>
+        <Spinner
+          size="md"
+          aria-label="Loading default radio selection"
+          style={{ visibility: isUpdating ? 'visible' : 'hidden' }}
+        />
+      </FlexItem>
     </Flex>
   );
 };

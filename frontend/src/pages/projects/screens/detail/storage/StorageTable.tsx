@@ -62,7 +62,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
           }
         >
           A storage class has been deprecated by your administrator, but the cluster storage using
-          it is still active. If you want to migrate your data to cluster storage instance using a
+          it is still active. If you want to migrate your data to a cluster storage instance using a
           different storage class, contact your administrator.
         </Alert>
       )}
