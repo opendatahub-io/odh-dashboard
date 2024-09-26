@@ -49,6 +49,10 @@ class ClusterStorageModal extends Modal {
     return this.find().findByTestId('mount-path-folder-value');
   }
 
+  findMountFieldHelperText() {
+    return this.find().findByTestId('mount-path-folder-helper-text');
+  }
+
   findWorkbenchRestartAlert() {
     return this.find().findByTestId('notebook-restart-alert');
   }
