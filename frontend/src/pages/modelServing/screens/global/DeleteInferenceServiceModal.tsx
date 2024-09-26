@@ -55,7 +55,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
           const nimSecretName = containerWithEnv?.env?.find(
             (env) => env.valueFrom?.secretKeyRef?.name,
           )?.valueFrom?.secretKeyRef?.name;
-          const imagePullSecretName = servingRuntime?.spec.imagePullSecrets[0]?.name;
+          const imagePullSecretName = servingRuntime?.spec.imagePullSecrets?.[0]?.name ?? '';
           Promise.all([
             deleteInferenceService(
               inferenceService.metadata.name,
@@ -72,7 +72,11 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
             ...(isKServeNIMEnabled && pvcName
               ? [deletePvc(pvcName, inferenceService.metadata.namespace)]
               : []),
-            ...(isKServeNIMEnabled && project
+            ...(isKServeNIMEnabled &&
+            project &&
+            nimSecretName &&
+            nimSecretName.length > 0 &&
+            imagePullSecretName.length > 0
               ? [
                   deleteSecret(project.metadata.name, nimSecretName),
                   deleteSecret(project.metadata.name, imagePullSecretName),
