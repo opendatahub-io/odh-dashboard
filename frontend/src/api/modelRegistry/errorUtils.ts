@@ -18,7 +18,6 @@ export const handleModelRegistryFailures = <T>(promise: Promise<T>): Promise<T> 
       }
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it
-        // TODO: check whether we need this or not
         throw e;
       }
       // eslint-disable-next-line no-console
