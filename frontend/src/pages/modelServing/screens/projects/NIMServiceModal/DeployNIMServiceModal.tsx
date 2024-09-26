@@ -126,7 +126,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [alertVisible, setAlertVisible] = React.useState(true);
-  const [pvcSize, setPvcSize] = React.useState<string>('');
+  const [pvcSize, setPvcSize] = React.useState<string>('30Gi');
 
   React.useEffect(() => {
     if (currentProjectName && isOpen) {
