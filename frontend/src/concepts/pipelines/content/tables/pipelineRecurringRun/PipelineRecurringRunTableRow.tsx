@@ -19,6 +19,7 @@ import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
+  refresh: () => void;
   onToggleCheck: () => void;
   onDelete: () => void;
   recurringRun: PipelineRecurringRunKFv2;
@@ -26,13 +27,14 @@ type PipelineRecurringRunTableRowProps = {
 
 const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> = ({
   isChecked,
+  refresh,
   onToggleCheck,
   onDelete,
   recurringRun,
 }) => {
   const navigate = useNavigate();
   const { experimentId, pipelineId, pipelineVersionId } = useParams();
-  const { namespace, api, refreshAllAPI } = usePipelinesAPI();
+  const { namespace, api } = usePipelinesAPI();
   const { version, loaded, error } = usePipelineRunVersionInfo(recurringRun);
   const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentsContext = isExperimentsAvailable && experimentId;
@@ -98,7 +100,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
           onToggle={(checked) =>
             api
               .updatePipelineRecurringRun({}, recurringRun.recurring_run_id, checked)
-              .then(refreshAllAPI)
+              .then(() => refresh())
           }
         />
       </Td>

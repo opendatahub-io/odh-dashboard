@@ -18,6 +18,7 @@ import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar
 
 type PipelineRecurringRunTableProps = {
   recurringRuns: PipelineRecurringRunKFv2[];
+  refresh: () => void;
   loading?: boolean;
   totalSize: number;
   page: number;
@@ -33,6 +34,7 @@ type PipelineRecurringRunTableProps = {
 
 const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   recurringRuns,
+  refresh,
   loading,
   totalSize,
   page,
@@ -122,6 +124,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
         rowRenderer={(recurringRun) => (
           <PipelineRecurringRunTableRow
             key={recurringRun.recurring_run_id}
+            refresh={refresh}
             isChecked={isSelected(recurringRun.recurring_run_id)}
             onToggleCheck={() => toggleSelection(recurringRun.recurring_run_id)}
             onDelete={() => setDeleteResources([recurringRun])}

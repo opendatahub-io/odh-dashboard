@@ -19,8 +19,10 @@ import PipelineRecurringRunTable from '~/concepts/pipelines/content/tables/pipel
 
 const ScheduledRuns: React.FC = () => {
   const { experimentId, pipelineVersionId } = useParams();
-  const [[{ items: recurringRuns, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineRecurringRunsTable({ experimentId, pipelineVersionId });
+  const [
+    [{ items: recurringRuns, totalSize }, loaded, error, refresh],
+    { initialLoaded, ...tableProps },
+  ] = usePipelineRecurringRunsTable({ experimentId, pipelineVersionId });
   const isExperimentArchived = useIsExperimentArchived();
 
   if (error) {
@@ -73,6 +75,7 @@ const ScheduledRuns: React.FC = () => {
 
   return (
     <PipelineRecurringRunTable
+      refresh={refresh}
       recurringRuns={recurringRuns}
       loading={!loaded}
       totalSize={totalSize}
