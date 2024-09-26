@@ -3,11 +3,15 @@ import {
   ActionGroup,
   Alert,
   Button,
+  EmptyState,
+  EmptyStateHeader,
+  EmptyStateVariant,
   Form,
   FormGroup,
   FormSection,
   Grid,
   GridItem,
+  Spinner,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -305,6 +309,12 @@ const SpawnerPage: React.FC = () => {
         description="Select options for your notebook server."
         provideChildrenPadding
         loaded={loaded}
+        loadingContent={
+          <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+            <Spinner size="xl" />
+            <EmptyStateHeader titleText="Loading" headingLevel="h1" />
+          </EmptyState>
+        }
         loadError={loadError}
         empty={images.length === 0}
       >
