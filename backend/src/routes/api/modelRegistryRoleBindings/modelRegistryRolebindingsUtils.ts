@@ -27,12 +27,19 @@ export const createModelRegistryRoleBinding = async (
   rbRequest: V1RoleBinding,
   mrNamespace: string,
 ): Promise<V1RoleBinding> => {
+  // Re-inject the namespace value that was omitted by the client
+  //   (see createModelRegistryRoleBinding in frontend/src/services/modelRegistrySettingsService.ts)
+  // This will be unnecessary when we remove the backend service as part of https://issues.redhat.com/browse/RHOAIENG-12077
+  const roleBindingWithNamespace = {
+    ...rbRequest,
+    metadata: { ...rbRequest.metadata, namespace: mrNamespace },
+  };
   const response = await (fastify.kube.customObjectsApi.createNamespacedCustomObject(
     MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
     MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
     mrNamespace,
     MODEL_REGISTRY_ROLE_BINDING_PLURAL,
-    rbRequest,
+    roleBindingWithNamespace,
   ) as Promise<{ body: V1RoleBinding }>);
   return response.body;
 };

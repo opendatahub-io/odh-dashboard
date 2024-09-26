@@ -1,3 +1,4 @@
+import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import axios from '~/utilities/axios';
 import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
@@ -66,13 +67,21 @@ export const listModelRegistryRoleBindings = (): Promise<RoleBindingKind[]> =>
       throw new Error(e.response.data.message);
     });
 
-export const createModelRegistryRoleBinding = (data: RoleBindingKind): Promise<RoleBindingKind> =>
-  axios
-    .post(mrRoleBindingsUrl, data)
+export const createModelRegistryRoleBinding = (data: RoleBindingKind): Promise<RoleBindingKind> => {
+  // Don't include the namespace in the object we pass because it would get rejected by requestSecurityGuard.
+  //   (see backend/src/utils/route-security.ts)
+  // Instead the namespace will be reinjected by the backend
+  //   (see backend/src/routes/api/modelRegistries/modelRegistryUtils.ts)
+  // This will be unnecessary when we remove this service as part of https://issues.redhat.com/browse/RHOAIENG-12077
+  const roleBindingWithoutNamespace: RoleBindingKind & { metadata: { namespace?: string } } =
+    _.omit(data, 'metadata.namespace');
+  return axios
+    .post(mrRoleBindingsUrl, roleBindingWithoutNamespace)
     .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });
+};
 
 export const deleteModelRegistryRoleBinding = (roleBindingName: string): Promise<K8sStatus> =>
   axios
