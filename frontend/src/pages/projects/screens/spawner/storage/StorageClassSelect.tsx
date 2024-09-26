@@ -28,6 +28,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   menuAppendTo,
 }) => {
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
+  const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
 
   const enabledStorageClasses = storageClasses
     .filter((sc) => getStorageClassConfig(sc)?.isEnabled)
@@ -76,7 +77,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     };
   });
 
-  return (
+  return hasStorageClassConfigs ? (
     <FormGroup label="Storage class" fieldId="storage-class">
       <SimpleSelect
         dataTestId="storage-classes-selector"
@@ -88,7 +89,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           setStorageClassName(selection);
         }}
         isDisabled={
-          disableStorageClassSelect || !storageClassesLoaded || storageClasses.length <= 1
+          disableStorageClassSelect || !storageClassesLoaded || enabledStorageClasses.length <= 1
         }
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
@@ -114,7 +115,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         )}
       </FormHelperText>
     </FormGroup>
-  );
+  ) : null;
 };
 
 export default StorageClassSelect;

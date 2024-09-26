@@ -9,7 +9,7 @@ type TableRowTitleDescriptionProps = {
   boldTitle?: boolean;
   resource?: K8sResourceCommon;
   subtitle?: React.ReactNode;
-  description?: string;
+  description?: React.ReactNode;
   descriptionAsMarkdown?: boolean;
   truncateDescriptionLines?: number;
   label?: React.ReactNode;
@@ -29,20 +29,21 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
-    descriptionNode = descriptionAsMarkdown ? (
-      <MarkdownView conciseDisplay markdown={description} />
-    ) : (
-      <span
-        data-testid="table-row-title-description"
-        style={{ color: 'var(--pf-v5-global--Color--200)' }}
-      >
-        {truncateDescriptionLines !== undefined ? (
-          <TruncatedText maxLines={truncateDescriptionLines} content={description} />
-        ) : (
-          description
-        )}
-      </span>
-    );
+    descriptionNode =
+      descriptionAsMarkdown && typeof description === 'string' ? (
+        <MarkdownView conciseDisplay markdown={description} />
+      ) : (
+        <span
+          data-testid="table-row-title-description"
+          style={{ color: 'var(--pf-v5-global--Color--200)' }}
+        >
+          {truncateDescriptionLines !== undefined && typeof description === 'string' ? (
+            <TruncatedText maxLines={truncateDescriptionLines} content={description} />
+          ) : (
+            description
+          )}
+        </span>
+      );
   }
 
   return (

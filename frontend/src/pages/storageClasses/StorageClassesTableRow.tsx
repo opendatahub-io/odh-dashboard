@@ -14,12 +14,12 @@ import {
 import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
 import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
+import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
 import { TableRowTitleDescription } from '~/components/table';
-import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { NoValue } from '~/components/NoValue';
+import { ResponseStatus } from '~/types';
 import { ColumnLabel } from './constants';
 import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
@@ -28,26 +28,29 @@ import { StorageClassEditModal } from './StorageClassEditModal';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
 import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
 import { ResetCorruptConfigValueAlert } from './ResetCorruptConfigValueAlert';
+import { useStorageClassContext } from './StorageClassesContext';
+import { StrorageClassConfigValue } from './StorageClassConfigValue';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
-  storageClassConfigMap: Record<string, StorageClassConfig | undefined>;
-  refresh: FetchStateRefreshPromise<StorageClassKind[]>;
 }
 
-export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
-  storageClass,
-  storageClassConfigMap,
-  refresh,
-}) => {
+export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ storageClass }) => {
+  const { storageClassConfigs, isLoadingDefault, refresh } = useStorageClassContext();
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [isTogglingEnabled, setIsTogglingEnabled] = React.useState(false);
   const isOpenshiftDefault = isOpenshiftDefaultStorageClass(storageClass);
-  const { metadata, provisioner, reclaimPolicy, volumeBindingMode, allowVolumeExpansion } =
-    storageClass;
-  const storageClassConfig = storageClassConfigMap[metadata.name];
-  const hasReadableConfig = storageClassConfig !== undefined;
   const editModalAlertRef =
     React.useRef<React.ComponentProps<typeof StorageClassEditModal>['alert']>();
+
+  const { metadata, provisioner, reclaimPolicy, volumeBindingMode, allowVolumeExpansion } =
+    storageClass;
+  const storageClassConfig = storageClassConfigs[metadata.name];
+  const hasReadableConfig = storageClassConfig !== undefined;
+  const isDefaultRadioDisabled =
+    (!storageClassConfig?.isDefault && !storageClassConfig?.isEnabled) ||
+    isLoadingDefault ||
+    isTogglingEnabled;
 
   const storageClassInfoItems = [
     {
@@ -77,7 +80,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
   ];
 
   const isEnableSwitchDisabled = React.useMemo(() => {
-    const hasOtherStorageClassesEnabled = Object.entries(storageClassConfigMap).some(
+    const hasOtherStorageClassesEnabled = Object.entries(storageClassConfigs).some(
       ([storageClassName, config]) => storageClassName !== metadata.name && config?.isEnabled,
     );
 
@@ -95,24 +98,35 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
     metadata.name,
     storageClassConfig?.isDefault,
     storageClassConfig?.isEnabled,
-    storageClassConfigMap,
+    storageClassConfigs,
   ]);
 
   const onDefaultRadioChange = React.useCallback(async () => {
-    const existingDefaultConfigMap = Object.entries(storageClassConfigMap).find(
+    const existingDefaultConfigs = Object.entries(storageClassConfigs).find(
       ([name, config]) => metadata.name !== name && config?.isDefault,
     );
 
-    if (existingDefaultConfigMap) {
-      const [name, config] = existingDefaultConfigMap;
+    if (existingDefaultConfigs) {
+      const [name, config] = existingDefaultConfigs;
       await updateStorageClassConfig(name, { ...config, isDefault: false });
       refresh();
     }
-  }, [metadata.name, storageClassConfigMap, refresh]);
+  }, [metadata.name, storageClassConfigs, refresh]);
+
+  const onEnableSwitchChange = React.useCallback(
+    async (update: () => Promise<ResponseStatus>) => {
+      setIsTogglingEnabled(true);
+
+      await update();
+      await refresh();
+      setIsTogglingEnabled(false);
+    },
+    [refresh],
+  );
 
   return (
     <Tr>
-      <Td dataLabel={ColumnLabel.DisplayName}>
+      <Td modifier="truncate" dataLabel={ColumnLabel.DisplayName}>
         {hasReadableConfig ? (
           <StrorageClassConfigValue
             alert={
@@ -143,7 +157,13 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
                   title={
                     <TableText wrapModifier="truncate">{storageClassConfig.displayName}</TableText>
                   }
-                  description={storageClassConfig.description}
+                  description={
+                    storageClassConfig.description && (
+                      <TableText wrapModifier="truncate">
+                        {storageClassConfig.description}
+                      </TableText>
+                    )
+                  }
                 />
               )}
           </StrorageClassConfigValue>
@@ -200,7 +220,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
                 }}
                 variant="danger"
                 popoverText="This storage class is temporarily unavailable for use in new cluster storage. Refresh the field to correct the corrupted metadata."
-                refresh={refresh}
+                onSuccess={refresh}
               />
             }
           >
@@ -209,7 +229,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
                 storageClassName={metadata.name}
                 isChecked={storageClassConfig.isEnabled}
                 isDisabled={isEnableSwitchDisabled}
-                onChange={refresh}
+                onChange={onEnableSwitchChange}
               />
             )}
           </StrorageClassConfigValue>
@@ -228,7 +248,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
                   ...storageClassConfig,
                   isDefault: false,
                 }}
-                refresh={refresh}
+                onSuccess={refresh}
               />
             }
           >
@@ -236,7 +256,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
               <StorageClassDefaultRadio
                 storageClassName={metadata.name}
                 isChecked={storageClassConfig.isDefault}
-                isDisabled={!storageClassConfig.isDefault && !storageClassConfig.isEnabled}
+                isDisabled={isDefaultRadioDisabled}
                 onChange={onDefaultRadioChange}
               />
             )}
@@ -253,7 +273,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
                 storageClassConfig={storageClassConfig}
-                refresh={refresh}
+                onSuccess={refresh}
               />
             }
           >
@@ -310,15 +330,4 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({
       )}
     </Tr>
   );
-};
-
-const StrorageClassConfigValue: React.FC<React.PropsWithChildren & { alert: React.ReactNode }> = ({
-  alert,
-  children,
-}) => {
-  if (!children) {
-    return alert;
-  }
-
-  return children;
 };

@@ -140,7 +140,7 @@ class ClusterStorage {
       .findByTestId('storage-class-deprecated-alert')
       .should(
         'contain.text',
-        'Warning alert:Deprecated storage classA storage class has been deprecated by your administrator, but the cluster storage using it is still active. If you want to migrate your data to cluster storage instance using a different storage class, contact your administrator.',
+        'Warning alert:Deprecated storage classA storage class has been deprecated by your administrator, but the cluster storage using it is still active. If you want to migrate your data to a cluster storage instance using a different storage class, contact your administrator.',
       );
   }
 

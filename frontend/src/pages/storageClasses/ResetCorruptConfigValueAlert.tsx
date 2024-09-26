@@ -10,7 +10,7 @@ import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
 interface ResetCorruptConfigValueAlertProps extends Pick<AlertProps, 'variant'> {
   storageClassName: string;
   storageClassConfig: StorageClassConfig;
-  refresh: () => Promise<void | StorageClassKind[]>;
+  onSuccess: () => Promise<void | StorageClassKind[]>;
   popoverText?: string;
 }
 
@@ -19,7 +19,7 @@ export const ResetCorruptConfigValueAlert: React.FC<ResetCorruptConfigValueAlert
   storageClassConfig,
   variant,
   popoverText = 'Refresh the field to correct the corrupted metadata.',
-  refresh,
+  onSuccess,
 }) => {
   const [error, setError] = React.useState<string>();
   const [isUpdating, setIsUpdating] = React.useState(false);
@@ -29,13 +29,13 @@ export const ResetCorruptConfigValueAlert: React.FC<ResetCorruptConfigValueAlert
 
     try {
       await updateStorageClassConfig(storageClassName, storageClassConfig);
-      await refresh();
+      await onSuccess();
     } catch {
       setError('Failed to refresh the field. Try again later.');
     } finally {
       setIsUpdating(false);
     }
-  }, [storageClassName, storageClassConfig, refresh]);
+  }, [storageClassName, storageClassConfig, onSuccess]);
 
   return (
     <CorruptedMetadataAlert

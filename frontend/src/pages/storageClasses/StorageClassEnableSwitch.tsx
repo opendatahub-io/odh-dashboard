@@ -1,13 +1,13 @@
 import React from 'react';
 import { Flex, FlexItem, Switch, Tooltip } from '@patternfly/react-core';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
-import { StorageClassKind } from '~/k8sTypes';
+import { ResponseStatus } from '~/types';
 
 interface StorageClassEnableSwitchProps {
   storageClassName: string;
   isChecked: boolean;
   isDisabled: boolean;
-  onChange: () => Promise<void | StorageClassKind[]>;
+  onChange: (update: () => Promise<ResponseStatus>) => Promise<void>;
 }
 
 export const StorageClassEnableSwitch: React.FC<StorageClassEnableSwitchProps> = ({
@@ -29,8 +29,7 @@ export const StorageClassEnableSwitch: React.FC<StorageClassEnableSwitchProps> =
       setIsUpdating(true);
 
       try {
-        await updateStorageClassConfig(storageClassName, { isEnabled: checked });
-        await onChange();
+        await onChange(() => updateStorageClassConfig(storageClassName, { isEnabled: checked }));
       } finally {
         setIsUpdating(false);
       }
