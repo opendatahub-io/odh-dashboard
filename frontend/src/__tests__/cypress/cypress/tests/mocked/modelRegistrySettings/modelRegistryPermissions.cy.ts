@@ -430,7 +430,6 @@ describe('MR Permissions', () => {
       cy.interceptOdh(
         'POST /api/modelRegistryRoleBindings',
         mockRoleBindingK8sResource({
-          namespace: MODEL_REGISTRY_DEFAULT_NAMESPACE,
           subjects: projectSubjects,
           roleRefName: 'registry-user-example-mr',
           modelRegistryName: 'example-mr',
@@ -443,9 +442,6 @@ describe('MR Permissions', () => {
 
       cy.wait('@addProject').then((interception) => {
         expect(interception.request.body).to.containSubset({
-          metadata: {
-            namespace: 'odh-model-registries',
-          },
           roleRef: {
             apiGroup: 'rbac.authorization.k8s.io',
             kind: 'Role',
@@ -484,9 +480,6 @@ describe('MR Permissions', () => {
 
       cy.wait('@editProject').then((interception) => {
         expect(interception.request.body).to.containSubset({
-          metadata: {
-            namespace: 'odh-model-registries',
-          },
           roleRef: {
             apiGroup: 'rbac.authorization.k8s.io',
             kind: 'Role',
