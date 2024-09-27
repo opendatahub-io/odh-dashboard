@@ -7,7 +7,8 @@ export const PreInstalledName = 'Pre-installed';
 export const ownedByDSC = (resource: K8sResourceCommon): boolean =>
   !!resource.metadata?.ownerReferences?.find((owner) => owner.kind === 'DataScienceCluster');
 
-export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource => !!x?.metadata?.name;
+export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
+  x?.metadata?.name != null;
 export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
 export const getResourceNameFromK8sResource = (resource: K8sDSGResource): string =>
