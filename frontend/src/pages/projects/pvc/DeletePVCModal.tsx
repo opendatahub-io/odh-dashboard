@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { deletePvc, removeNotebookPVC } from '~/api';
-import useRelatedNotebooks, {
+import {
+  useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import DeleteModal from '~/pages/projects/components/DeleteModal';

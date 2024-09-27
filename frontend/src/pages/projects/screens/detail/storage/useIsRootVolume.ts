@@ -1,5 +1,6 @@
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import useRelatedNotebooks, {
+import {
+  useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';

@@ -6,7 +6,8 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useCreateStorageObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
 import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
 import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
-import useRelatedNotebooks, {
+import {
+  useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';

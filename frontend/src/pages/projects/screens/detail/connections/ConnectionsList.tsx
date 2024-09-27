@@ -73,6 +73,7 @@ const ConnectionsList: React.FC = () => {
       }
     >
       <ConnectionsTable
+        namespace={currentProject.metadata.name}
         connections={connections}
         connectionTypes={connectionTypes}
         refreshConnections={refreshConnections}

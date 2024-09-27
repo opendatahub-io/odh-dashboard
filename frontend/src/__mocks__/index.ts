@@ -11,6 +11,7 @@ export * from './mockPipelineVersionsProxy';
 export * from './mockPipelinesProxy';
 export * from './mockDscStatus';
 export * from './mockNotebookK8sResource';
+export * from './mockNotebookState';
 export * from './mockPipelineKF';
 export * from './mockSecretK8sResource';
 export * from './mockGoogleRpcStatusKF';

@@ -16,7 +16,7 @@ export enum ConnectedNotebookContext {
   POSSIBLE_DATA_CONNECTION = 'data-connection-possible',
 }
 
-const useRelatedNotebooks = (
+export const useRelatedNotebooks = (
   context: ConnectedNotebookContext,
   resourceName?: string,
 ): { notebooks: NotebookKind[]; loaded: boolean; error: Error | undefined } => {
@@ -88,5 +88,3 @@ const useRelatedNotebooks = (
     error,
   };
 };
-
-export default useRelatedNotebooks;

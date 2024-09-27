@@ -78,6 +78,36 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
   }
 };
 
+export const typedColor = (objectType: ProjectObjectType): string => {
+  switch (objectType) {
+    case ProjectObjectType.project:
+      return 'var(--ai-project--Color)';
+    case ProjectObjectType.notebook:
+      return 'var(--ai-notebook--Color)';
+    case ProjectObjectType.pipeline:
+    case ProjectObjectType.pipelineRun:
+      return 'var(--ai-pipeline--Color)';
+    case ProjectObjectType.pipelineSetup:
+      return 'var(--ai-set-up--Color)';
+    case ProjectObjectType.clusterStorage:
+      return 'var(--ai-cluster-storage--Color)';
+    case ProjectObjectType.modelServer:
+    case ProjectObjectType.registeredModels:
+    case ProjectObjectType.deployedModels:
+    case ProjectObjectType.deployingModels:
+      return 'var(--ai-model-server--Color)';
+    case ProjectObjectType.dataConnection:
+    case ProjectObjectType.connections:
+      return 'var(--ai-data-connection--Color)';
+    case ProjectObjectType.user:
+      return 'var(--ai-user--Color)';
+    case ProjectObjectType.group:
+      return 'var(--ai-group--Color)';
+    default:
+      return '';
+  }
+};
+
 export const typedObjectImage = (objectType: ProjectObjectType): string => {
   switch (objectType) {
     case ProjectObjectType.project:
