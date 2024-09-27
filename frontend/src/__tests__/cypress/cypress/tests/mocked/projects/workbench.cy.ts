@@ -32,6 +32,7 @@ import {
   ProjectModel,
   RouteModel,
   SecretModel,
+  StorageClassModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
@@ -61,7 +62,7 @@ const initIntercepts = ({
     },
   ],
 }: HandlersProps) => {
-  cy.interceptOdh('GET /api/k8s/apis/storage.k8s.io/v1/storageclasses', {}, mockStorageClassList());
+  cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({

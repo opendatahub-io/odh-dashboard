@@ -838,6 +838,7 @@ export type NotebookData = {
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
+  storageClassName?: string;
 };
 
 export type AcceleratorProfileState = {

@@ -1,16 +1,22 @@
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { mockK8sResourceList, mockNotebookK8sResource } from '~/__mocks__';
+import {
+  mockK8sResourceList,
+  mockNotebookK8sResource,
+  mockDashboardConfig,
+  mockStorageClassList,
+} from '~/__mocks__';
 import type { RoleBindingSubject } from '~/k8sTypes';
 import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
 import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { asClusterAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import {
   notebookController,
   stopNotebookModal,
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+import { StorageClassModel } from '~/__tests__/cypress/cypress/utils/models';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -33,6 +39,14 @@ const initIntercepts = () => {
   );
   cy.interceptOdh('GET /api/images/:type', { path: { type: 'jupyter' } }, mockNotebookImageInfo());
   cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', mockAllowedUsers({}));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableStorageClasses: false,
+    }),
+  );
+
+  cy.interceptK8sList(StorageClassModel, mockStorageClassList());
 };
 
 it('Administration tab should not be accessible for non-project admins', () => {
@@ -46,8 +60,8 @@ it('Administration tab should not be accessible for non-project admins', () => {
 
 describe('NotebookServer', () => {
   beforeEach(() => {
+    asClusterAdminUser();
     initIntercepts();
-    asProductAdminUser();
   });
 
   it('should start notebook server', () => {
@@ -64,6 +78,7 @@ describe('NotebookServer', () => {
         acceleratorProfile: { acceleratorProfiles: [], count: 0, unknownProfileDetected: false },
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
+        storageClassName: 'openshift-default-sc',
       });
     });
   });

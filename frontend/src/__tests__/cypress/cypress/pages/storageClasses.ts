@@ -1,7 +1,8 @@
-import type { MockStorageClass } from '~/__mocks__';
-import { mockStorageClassList } from '~/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { mockStorageClassList } from '~/__mocks__';
+import type { StorageClassKind } from '~/k8sTypes';
+import { StorageClassModel } from '~/__tests__/cypress/cypress/utils/models';
 import { Modal } from './components/Modal';
 import { TableToolbar } from './components/TableToolbar';
 
@@ -24,10 +25,12 @@ class StorageClassesPage {
     return cy.findByTestId('storage-classes-empty-state');
   }
 
-  mockGetStorageClasses(storageClasses?: MockStorageClass[], times?: number) {
-    return cy.interceptOdh(
-      'GET /api/k8s/apis/storage.k8s.io/v1/storageclasses',
-      { times },
+  mockGetStorageClasses(storageClasses?: StorageClassKind[], times?: number) {
+    return cy.interceptK8sList(
+      {
+        model: StorageClassModel,
+        times,
+      },
       mockStorageClassList(storageClasses),
     );
   }

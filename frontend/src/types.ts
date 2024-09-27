@@ -601,6 +601,7 @@ export type NotebookData = {
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field
   username?: string;
+  storageClassName?: string;
 };
 
 export type UsernameMap<V> = { [username: string]: V };
