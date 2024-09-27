@@ -12,7 +12,6 @@ import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { uniq } from 'lodash-es';
 import { useUser } from '~/redux/selectors';
-import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeField,
@@ -23,9 +22,11 @@ import {
   createConnectionTypeObj,
   extractConnectionTypeFromMap,
 } from '~/concepts/connectionTypes/createConnectionTypeUtils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { NameDescType } from '~/pages/projects/types';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { categoryOptions } from '~/pages/connectionTypes/const';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
@@ -45,9 +46,6 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
   const {
-    k8sName: prefillK8sName,
-    name: prefillName,
-    description: prefillDescription,
     enabled: prefillEnabled,
     fields: prefillFields,
     username: prefillUsername,
@@ -56,11 +54,8 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
 
   const username = prefillUsername || currentUsername;
 
-  const [connectionNameDesc, setConnectionNameDesc] = React.useState<NameDescType>({
-    k8sName: prefillK8sName,
-    name: prefillName,
-    description: prefillDescription,
-  });
+  const { data: connectionNameDesc, onDataChange: setConnectionNameDesc } =
+    useK8sNameDescriptionFieldData({ initialData: prefill });
   const [connectionEnabled, setConnectionEnabled] = React.useState<boolean>(prefillEnabled);
   const [connectionFields, setConnectionFields] =
     React.useState<ConnectionTypeField[]>(prefillFields);
@@ -78,7 +73,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const connectionTypeObj = React.useMemo(
     () =>
       createConnectionTypeObj(
-        connectionNameDesc.k8sName || translateDisplayNameForK8s(connectionNameDesc.name),
+        connectionNameDesc.k8sName.value,
         connectionNameDesc.name,
         connectionNameDesc.description,
         connectionEnabled,
@@ -94,10 +89,11 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     return uniq(envVars).length !== envVars.length;
   }, [connectionFields]);
 
-  const isValid = React.useMemo(() => {
-    const trimmedName = connectionNameDesc.name.trim();
-    return Boolean(trimmedName) && !isEnvVarConflict && category.length > 0;
-  }, [connectionNameDesc.name, isEnvVarConflict, category]);
+  const isValid = React.useMemo(
+    () =>
+      isK8sNameDescriptionDataValid(connectionNameDesc) && !isEnvVarConflict && category.length > 0,
+    [connectionNameDesc, isEnvVarConflict, category],
+  );
 
   const onCancel = () => {
     navigate('/connectionTypes');
@@ -142,13 +138,12 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         <PageSection isFilled variant="light" className="pf-v5-u-pt-0">
           <Form>
             <FormSection title="Type details" style={{ maxWidth: 625 }}>
-              <NameDescriptionField
-                nameFieldId="connection-type-name"
-                nameFieldLabel="Connection type name"
-                descriptionFieldId="connection-type-description"
-                descriptionFieldLabel="Connection type description"
+              <K8sNameDescriptionField
+                dataTestId="connection-type"
+                nameLabel="Connection type name"
+                descriptionLabel="Connection type description"
                 data={connectionNameDesc}
-                setData={setConnectionNameDesc}
+                onDataChange={setConnectionNameDesc}
                 autoFocusName
               />
               <FormGroup label="Category" fieldId="connection-type-category" isRequired>

@@ -52,7 +52,7 @@ export const setupDefaults = ({
     configuredMaxLength = ROUTE_BASED_NAME_LENGTH;
   }
 
-  return {
+  return handleUpdateLogic({
     name: initialName,
     description: initialDescription,
     k8sName: {
@@ -66,7 +66,7 @@ export const setupDefaults = ({
         touched: false,
       },
     },
-  } satisfies K8sNameDescriptionFieldData;
+  })('name', initialName) satisfies K8sNameDescriptionFieldData;
 };
 
 export const handleUpdateLogic =

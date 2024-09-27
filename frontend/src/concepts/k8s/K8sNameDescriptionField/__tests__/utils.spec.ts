@@ -51,6 +51,29 @@ describe('setupDefaults', () => {
       }),
     );
   });
+
+  it('should allow prefilling of displayName and description', () => {
+    expect(
+      setupDefaults({
+        initialData: mockProjectK8sResource({
+          displayName: 'Display Name',
+          k8sName: '',
+          description: 'my description',
+        }),
+      }),
+    ).toEqual(
+      mockK8sNameDescriptionFieldData({
+        name: 'Display Name',
+        description: 'my description',
+        k8sName: {
+          value: 'display-name',
+          state: {
+            immutable: false,
+          },
+        },
+      }),
+    );
+  });
 });
 
 describe('handleUpdateLogic', () => {
