@@ -32,6 +32,7 @@ import AddModelFooter from '~/pages/projects/screens/detail/overview/serverModel
 import { InferenceServiceKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import DeployedModelsCard from './DeployedModelsCard';
 
 interface DeployedModelsSectionProps {
@@ -52,6 +53,8 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
     servingPlatformStatuses,
   );
   const [deployedModels, setDeployedModels] = React.useState<InferenceServiceKind[]>([]);
+
+  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
 
   React.useEffect(() => {
     if (!inferenceServicesLoaded || !modelServersLoaded) {
@@ -176,7 +179,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
               </TextContent>
             )}
           </CardBody>
-          {!platformError ? <AddModelFooter /> : null}
+          {!platformError ? <AddModelFooter isNIM={isKServeNIMEnabled} /> : null}
         </OverviewCard>
       );
     }

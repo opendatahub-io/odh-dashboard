@@ -22,13 +22,13 @@ const getNIMSecretData = async (secretName: string): Promise<SecretKind> => {
       throw new Error(`Error fetching secret: ${response.statusText}`);
     }
     const secretData = await response.json();
-    return secretData;
+    return secretData.body;
   } catch (error) {
     throw new Error(`Failed to fetch secret: ${secretName}.`);
   }
 };
 export const getNIMData = async (isNGC: boolean): Promise<Record<string, string> | undefined> => {
-  const nimSecretData = isNGC
+  const nimSecretData: SecretKind = isNGC
     ? await getNIMSecretData(NIM_NGC_SECRET_NAME)
     : await getNIMSecretData(NIM_SECRET_NAME);
 

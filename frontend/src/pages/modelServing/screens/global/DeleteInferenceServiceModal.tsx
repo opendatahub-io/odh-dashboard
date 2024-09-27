@@ -1,7 +1,7 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { deleteInferenceService, deletePvc, deleteServingRuntime } from '~/api';
+import { deleteInferenceService, deletePvc, deleteSecret, deleteServingRuntime } from '~/api';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
@@ -48,6 +48,14 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
           const pvcName = servingRuntime?.spec.volumes?.find(
             (vol) => vol.persistentVolumeClaim?.claimName,
           )?.persistentVolumeClaim?.claimName;
+          const containerWithEnv = servingRuntime?.spec.containers.find(
+            (container) =>
+              container.env && container.env.some((env) => env.valueFrom?.secretKeyRef?.name),
+          );
+          const nimSecretName = containerWithEnv?.env?.find(
+            (env) => env.valueFrom?.secretKeyRef?.name,
+          )?.valueFrom?.secretKeyRef?.name;
+          const imagePullSecretName = servingRuntime?.spec.imagePullSecrets?.[0]?.name ?? '';
           Promise.all([
             deleteInferenceService(
               inferenceService.metadata.name,
@@ -63,6 +71,16 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
               : []),
             ...(isKServeNIMEnabled && pvcName
               ? [deletePvc(pvcName, inferenceService.metadata.namespace)]
+              : []),
+            ...(isKServeNIMEnabled &&
+            project &&
+            nimSecretName &&
+            nimSecretName.length > 0 &&
+            imagePullSecretName.length > 0
+              ? [
+                  deleteSecret(project.metadata.name, nimSecretName),
+                  deleteSecret(project.metadata.name, imagePullSecretName),
+                ]
               : []),
           ])
 

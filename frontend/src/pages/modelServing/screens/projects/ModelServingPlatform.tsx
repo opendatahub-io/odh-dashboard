@@ -36,6 +36,7 @@ import EmptyNIMModelServingCard from '~/pages/modelServing/screens/projects/Empt
 import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
+import DeployNIMServiceModal from '~/pages/modelServing/screens/projects/NIMServiceModal/DeployNIMServiceModal';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -275,6 +276,15 @@ const ModelServingPlatform: React.FC = () => {
           onSubmit(submit);
         }}
       />
+      {isNIMAvailable && (
+        <DeployNIMServiceModal
+          isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
+          projectContext={{ currentProject, dataConnections }}
+          onClose={(submit: boolean) => {
+            onSubmit(submit);
+          }}
+        />
+      )}
     </>
   );
 };

@@ -85,6 +85,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
   return (
     <FormGroup label="NVIDIA NIM" fieldId="nim-model-list-selection" isRequired>
       <SimpleSelect
+        isScrollable
         isFullWidth
         isDisabled={isEditing || options.length === 0}
         id="nim-model-list-selection"
