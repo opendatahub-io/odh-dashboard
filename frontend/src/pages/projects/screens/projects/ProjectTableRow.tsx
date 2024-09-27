@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
+import { Spinner, Text, TextVariants, Timestamp } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
-import { NotebookKind, ProjectKind } from '~/k8sTypes';
+import { ProjectKind } from '~/k8sTypes';
 import NotebookIcon from '~/images/icons/NotebookIcon';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner } from '~/concepts/projects/utils';
@@ -9,6 +9,7 @@ import ProjectTableRowNotebookTable from '~/pages/projects/screens/projects/Proj
 import { TableRowTitleDescription } from '~/components/table';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { getDescriptionFromK8sResource } from '~/concepts/k8s/utils';
+import { useWatchNotebooks } from '~/utilities/useWatchNotebooks';
 import ProjectLink from './ProjectLink';
 
 // Plans to add other expandable columns in the future
@@ -18,14 +19,12 @@ export enum ExpandableColumns {
 
 type ProjectTableRowProps = {
   obj: ProjectKind;
-  notebooks: NotebookKind[];
   isRefreshing: boolean;
   setEditData: (data: ProjectKind) => void;
   setDeleteData: (data: ProjectKind) => void;
 };
 const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   obj: project,
-  notebooks,
   isRefreshing,
   setEditData,
   setDeleteData,
@@ -38,6 +37,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
     setEditData,
     setDeleteData,
   );
+  const [notebooks, loaded] = useWatchNotebooks(project.metadata.name);
 
   const toggleExpandColumn = (colIndex: ExpandableColumns) => {
     setExpandColumn(expandColumn === colIndex ? undefined : colIndex);
@@ -93,7 +93,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
         >
           <span>
             <NotebookIcon className="pf-v5-u-mr-xs" />
-            {notebooks.length}
+            {loaded ? notebooks.length : <Spinner size="sm" />}
           </span>
         </Td>
         <Td

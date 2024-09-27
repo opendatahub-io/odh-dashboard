@@ -12,7 +12,6 @@ import {
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '~/pages/projects/screens/projects/const';
-import { useWatchProjectNotebooks } from '~/utilities/useWatchProjectNotebooks';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
@@ -30,12 +29,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     () => setFilterData(initialProjectsFilterData),
     [setFilterData],
   );
-  const namespaces = React.useMemo(
-    () => projects.map((project) => project.metadata.name),
-    [projects],
-  );
-  const [projectNotebooks, loaded] = useWatchProjectNotebooks(namespaces);
-
   const filteredProjects = React.useMemo(
     () =>
       projects.filter((project) => {
@@ -72,7 +65,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     <>
       <Table
         enablePagination
-        loading={!loaded}
+        loading={false}
         variant="compact"
         defaultSortColumn={0}
         data={filteredProjects}
@@ -84,7 +77,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
           <ProjectTableRow
             key={project.metadata.uid}
             obj={project}
-            notebooks={projectNotebooks[project.metadata.name] || []}
             isRefreshing={refreshIds.includes(project.metadata.uid || '')}
             setEditData={(data) => setEditData(data)}
             setDeleteData={(data) => setDeleteData(data)}
