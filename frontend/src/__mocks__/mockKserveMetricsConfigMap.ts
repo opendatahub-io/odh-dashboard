@@ -62,6 +62,51 @@ export const MOCK_KSERVE_METRICS_CONFIG_1 = `
   ]
 }`;
 
+export const MOCK_KSERVE_METRICS_CONFIG_MISSING_QUERY = `{
+    "config": [
+			{
+				"title": "Requests per 5 minutes",
+				"type": "REQUEST_COUNT",
+				"queries": [
+					{
+						"title": "Number of successful incoming requests",
+						"query": "round(sum(increase(vllm:request_success_total{namespace='test-project',model_name='test vllm'}[5m])))"
+					}
+				]
+			},
+			{
+				"title": "Average response time (ms)",
+				"type": "MEAN_LATENCY",
+				"queries": [
+					{
+						"title": "Average e2e latency",
+						"query": "histogram_quantile(0.5, sum(rate(vllm:e2e_request_latency_seconds_bucket{namespace='test-project', model_name='test-vllm'}[1m])) by (le, model_name))"
+					}
+				]
+			},
+			{
+				"title": "CPU utilization %",
+				"type": "CPU_USAGE",
+				"queries": [
+					{
+						"title": "CPU usage",
+						"query":  "sum(pod:container_cpu_usage:sum{namespace='test-project', pod=~'test-vllm-predictor-.*'})/sum(kube_pod_resource_limit{resource='cpu', pod=~'test-vllm-predictor-.*', namespace='test-project'})"
+					}
+				]
+			},
+			{
+				"title": "Memory utilization %",
+				"type": "MEMORY_USAGE",
+				"queries": [
+					{
+						"title": "Memory usage",
+						"query":  "sum(container_memory_working_set_bytes{namespace='test-project', pod=~'test-vllm-predictor-.*'})/sum(kube_pod_resource_limit{resource='memory', pod=~'test-vllm-predictor-.*', namespace='test-project'})"
+					}
+				]
+			}
+		]
+  }`;
+
 export const MOCK_KSERVE_METRICS_CONFIG_2 =
   '{ I am malformed JSON and I am here to ruin your day }';
 
