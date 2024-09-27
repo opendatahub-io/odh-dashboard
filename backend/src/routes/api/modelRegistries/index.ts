@@ -162,7 +162,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { modelRegistryName } = request.params;
         try {
           const modelRegistryNamespace = getModelRegistryNamespace(fastify);
-          deleteModelRegistryAndSecret(
+          return deleteModelRegistryAndSecret(
             fastify,
             modelRegistryName,
             modelRegistryNamespace,
