@@ -324,7 +324,7 @@ export const postImage = async (
   } catch (e) {
     if (e.response?.statusCode !== 404) {
       fastify.log.error(e, 'Unable to add notebook image');
-      return { success: false, error: 'Unable to add notebook image: ' + e.message };
+      return { success: false, error: 'Unable to add notebook image: ' + e.response.body.message };
     }
   }
 };
