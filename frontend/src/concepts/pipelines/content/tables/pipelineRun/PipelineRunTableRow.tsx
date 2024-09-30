@@ -16,7 +16,6 @@ import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersio
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { cloneRunRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
@@ -49,25 +48,15 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentArchived = useContextExperimentArchived();
   const pipelineRunExperimentId = hasExperiments ? run.experiment_id : '';
   const [pipelineRunExperiment, pipelineRunExperimentLoaded] =
     useExperimentById(pipelineRunExperimentId);
   const actions: IAction[] = React.useMemo(() => {
-    const isExperimentContext = experimentId && isExperimentsAvailable;
     const cloneAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
-        navigate(
-          cloneRunRoute(
-            namespace,
-            run.run_id,
-            isExperimentsAvailable ? experimentId : undefined,
-            pipelineId,
-            pipelineVersionId,
-          ),
-        );
+        navigate(cloneRunRoute(namespace, run.run_id, experimentId, pipelineId, pipelineVersionId));
       },
     };
 
@@ -84,7 +73,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             },
           }),
         },
-        ...(!version && isExperimentContext ? [] : [cloneAction]),
+        ...(!version && experimentId ? [] : [cloneAction]),
         {
           isSeparator: true,
         },
@@ -108,7 +97,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
         },
       },
-      ...(!version && isExperimentContext ? [] : [cloneAction]),
+      ...(!version && experimentId ? [] : [cloneAction]),
       {
         isSeparator: true,
       },
@@ -129,7 +118,6 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     notification,
     navigate,
     namespace,
-    isExperimentsAvailable,
     experimentId,
     pipelineId,
     pipelineVersionId,
@@ -140,8 +128,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <CheckboxTd id={run.run_id} {...checkboxProps} />
       <Td
         dataLabel="Name"
-        {...(isExperimentsAvailable &&
-          experimentId &&
+        {...(experimentId &&
           customCells && {
             isStickyColumn: true,
             hasRightBorder: true,

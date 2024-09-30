@@ -12,7 +12,6 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRecurringRunKFv2, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 import { cloneRecurringRunRoute } from '~/routes';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRecurringRunDetailsActionsProps = {
@@ -29,7 +28,6 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
   const navigate = useNavigate();
   const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const [open, setOpen] = React.useState(false);
   const [isEnabled, setIsEnabled] = React.useState(
     recurringRun?.status === RecurringRunStatus.ENABLED,
@@ -112,7 +110,7 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
                           cloneRecurringRunRoute(
                             namespace,
                             recurringRun.recurring_run_id,
-                            isExperimentsAvailable ? experimentId : undefined,
+                            experimentId,
                             pipelineId,
                             pipelineVersionId,
                           ),

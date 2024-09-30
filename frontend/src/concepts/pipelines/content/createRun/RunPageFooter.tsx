@@ -2,13 +2,9 @@ import * as React from 'react';
 import { Alert, Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
-import {
-  isFilledRunFormData,
-  isFilledRunFormDataExperiment,
-} from '~/concepts/pipelines/content/createRun/utils';
+import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
 
 type RunPageFooterProps = {
@@ -23,10 +19,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
 
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
-  const canSubmit = isExperimentsAvailable
-    ? isFilledRunFormDataExperiment(data)
-    : isFilledRunFormData(data);
+  const canSubmit = isFilledRunFormData(data);
 
   return (
     <Stack hasGutter>
