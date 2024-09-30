@@ -1,8 +1,17 @@
 /* eslint-disable camelcase */
-import { mockDscStatus, mockK8sResourceList } from '~/__mocks__';
+import {
+  mockDscStatus,
+  mockInferenceServiceK8sResource,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+} from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  InferenceServiceModel,
+  ProjectModel,
+  ServiceModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import type { ModelVersion } from '~/concepts/modelRegistry/types';
@@ -270,6 +279,63 @@ describe('Archiving version', () => {
         state: 'ARCHIVED',
       });
     });
+  });
+
+  it('Non archived version details page does have deployment tab', () => {
+    initIntercepts({});
+    modelVersionArchive.visitModelVersionDetails();
+    modelVersionArchive.findVersionDetailsTab().should('exist');
+    modelVersionArchive.findVersionDeploymentTab().should('exist');
+  });
+
+  it('Archived version details page does not have deployment tab', () => {
+    initIntercepts({});
+    modelVersionArchive.visitArchiveVersionDetail();
+    modelVersionArchive.findVersionDetailsTab().should('exist');
+    modelVersionArchive.findVersionDeploymentTab().should('not.exist');
+  });
+
+  it('Cannot archive version that has a deployment from versions table', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    initIntercepts({});
+
+    modelVersionArchive.visitModelVersionList();
+
+    const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
+    modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
+  });
+
+  it('Cannot archive model that has versions with a deployment', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    initIntercepts({});
+
+    modelVersionArchive.visitModelVersionList();
+
+    modelRegistry
+      .findModelVersionsHeaderAction()
+      .findDropdownItem('Archive model')
+      .should('have.attr', 'aria-disabled');
+  });
+
+  it('Cannot archive model version with deployment from the version detail page', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    initIntercepts({});
+    modelVersionArchive.visitModelVersionDetails();
+    cy.findByTestId('model-version-details-action-button')
+      .findDropdownItem('Archive version')
+      .should('have.attr', 'aria-disabled');
   });
 
   it('Archive version from versions details', () => {

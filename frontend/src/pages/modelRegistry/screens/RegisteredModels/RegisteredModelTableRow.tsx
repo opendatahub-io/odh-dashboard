@@ -19,12 +19,14 @@ import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/co
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
   isArchiveRow?: boolean;
+  hasDeploys?: boolean;
   refresh: () => void;
 };
 
 const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   registeredModel: rm,
   isArchiveRow,
+  hasDeploys = false,
   refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
@@ -57,6 +59,10 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       : {
           title: 'Archive model',
           onClick: () => setIsArchiveModalOpen(true),
+          isAriaDisabled: hasDeploys,
+          tooltipProps: hasDeploys
+            ? { content: 'Models with deployed versions cannot be archived.' }
+            : undefined,
         },
   ];
 

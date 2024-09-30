@@ -13,11 +13,13 @@ import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
+  hasDeployment?: boolean;
   refresh: () => void;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
+  hasDeployment = false,
   refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
@@ -60,10 +62,14 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
             Deploy
           </DropdownItem>
           <DropdownItem
+            isAriaDisabled={hasDeployment}
             id="archive-version-button"
             aria-label="Archive version"
             key="archive-version-button"
             onClick={() => setIsArchiveModalOpen(true)}
+            tooltipProps={
+              hasDeployment ? { content: 'Deployed versions cannot be archived' } : undefined
+            }
             ref={tooltipRef}
           >
             Archive version
