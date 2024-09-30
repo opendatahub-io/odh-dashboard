@@ -452,6 +452,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   currentProject?: ProjectKind,
   name?: string,
   isModelMesh?: boolean,
+  nimPVCName?: string,
 ): ((opts: { dryRun?: boolean }) => Promise<void | (string | void | ServingRuntimeKind)[]>) => {
   if (!servingRuntimeSelected) {
     return () =>
@@ -501,6 +502,7 @@ export const getSubmitServingRuntimeResourcesFn = (
               selectedAcceleratorProfile: controlledState,
               initialAcceleratorProfile,
               isModelMesh,
+              nimPVCName,
             }),
             setUpTokenAuth(
               servingRuntimeData,
@@ -527,6 +529,7 @@ export const getSubmitServingRuntimeResourcesFn = (
               selectedAcceleratorProfile: controlledState,
               initialAcceleratorProfile,
               isModelMesh,
+              nimPVCName,
             }).then((servingRuntime) =>
               setUpTokenAuth(
                 servingRuntimeData,
