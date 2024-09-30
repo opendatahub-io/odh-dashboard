@@ -40,7 +40,6 @@ import {
   createPvc,
   createSecret,
   createServingRuntime,
-  getConfigMap,
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
@@ -48,7 +47,11 @@ import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connec
 import { removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { getNGCSecretType, getNIMData } from '~/pages/modelServing/screens/projects/nimUtils';
+import {
+  getNGCSecretType,
+  getNIMData,
+  getNIMResource,
+} from '~/pages/modelServing/screens/projects/nimUtils';
 
 const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
@@ -579,10 +582,8 @@ export interface ModelInfo {
   updatedDate: string;
 }
 
-export const fetchNIMModelNames = async (
-  dashboardNamespace: string,
-): Promise<ModelInfo[] | undefined> => {
-  const configMap = await getConfigMap(dashboardNamespace, NIM_CONFIGMAP_NAME);
+export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
+  const configMap = await getNIMResource(NIM_CONFIGMAP_NAME);
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
     for (const [key, value] of Object.entries(configMap.data)) {

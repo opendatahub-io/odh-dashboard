@@ -343,9 +343,9 @@ describe('fetchNIMModelNames', () => {
   it('should return model infos when configMap has data', async () => {
     (getConfigMap as jest.Mock).mockResolvedValueOnce(configMapMock);
 
-    const result = await fetchNIMModelNames(dashboardNamespace);
+    const result = await fetchNIMModelNames();
 
-    expect(getConfigMap).toHaveBeenCalledWith(dashboardNamespace, NIM_CONFIGMAP_NAME);
+    expect(getConfigMap).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toEqual([
       {
         name: 'model1',
@@ -371,18 +371,18 @@ describe('fetchNIMModelNames', () => {
   it('should return undefined if configMap has no data', async () => {
     (getConfigMap as jest.Mock).mockResolvedValueOnce({ data: {} });
 
-    const result = await fetchNIMModelNames(dashboardNamespace);
+    const result = await fetchNIMModelNames();
 
-    expect(getConfigMap).toHaveBeenCalledWith(dashboardNamespace, NIM_CONFIGMAP_NAME);
+    expect(getConfigMap).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toBeUndefined();
   });
 
   it('should return undefined if configMap.data is not defined', async () => {
     (getConfigMap as jest.Mock).mockResolvedValueOnce({ data: undefined });
 
-    const result = await fetchNIMModelNames(dashboardNamespace);
+    const result = await fetchNIMModelNames();
 
-    expect(getConfigMap).toHaveBeenCalledWith(dashboardNamespace, NIM_CONFIGMAP_NAME);
+    expect(getConfigMap).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toBeUndefined();
   });
 });
