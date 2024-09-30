@@ -39,7 +39,7 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
             if (value.length === 0) {
               error = 'Enter a path to a model or folder. This path cannot point to a root folder.';
             } else if (!/^[a-z-]+\/?$/.test(value)) {
-              error = 'Must only consist of lower case letters and dashes.';
+              error = 'Must only consist of lowercase letters and dashes.';
             } else if (inUseMountPaths.includes(`/${value}`)) {
               error = 'Mount folder is already in use for this workbench.';
             }
@@ -54,7 +54,7 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
           variant={mountPath.error ? 'error' : 'default'}
           data-testid="mount-path-folder-helper-text"
         >
-          {mountPath.error || 'Must consist of lower case letters and dashes.'}
+          {mountPath.error || 'Must consist of lowercase letters and dashes.'}
         </HelperTextItem>
       </HelperText>
     </FormHelperText>

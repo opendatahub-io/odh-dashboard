@@ -155,14 +155,14 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.findMountField().fill('test2');
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Must only consist of lower case letters and dashes.');
+      .should('have.text', 'Must only consist of lowercase letters and dashes.');
 
     // Allow trailing slash
     addClusterStorageModal.findMountField().clear();
     addClusterStorageModal.findMountField().fill('test/');
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Must consist of lower case letters and dashes.');
+      .should('have.text', 'Must consist of lowercase letters and dashes.');
 
     addClusterStorageModal.findMountField().clear();
     addClusterStorageModal

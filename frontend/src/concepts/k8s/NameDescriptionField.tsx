@@ -121,7 +121,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
                       variant: 'error',
                     })}
                   >
-                    {`Must consist of lower case alphanumeric characters or '-', and must start and
+                    {`Must consist of lowercase alphanumeric characters or '-', and must start and
                     end with an alphanumeric character`}
                   </HelperTextItem>
                 </HelperText>
