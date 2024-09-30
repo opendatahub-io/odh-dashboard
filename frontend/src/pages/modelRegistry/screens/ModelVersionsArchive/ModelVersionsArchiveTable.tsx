@@ -23,6 +23,7 @@ const ModelVersionsArchiveTable: React.FC<ModelVersionsArchiveTableProps> = ({
     columns={mvColumns}
     toolbarContent={toolbarContent}
     enablePagination
+    onClearFilters={clearFilters}
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
     defaultSortColumn={1}
     rowRenderer={(mv) => (

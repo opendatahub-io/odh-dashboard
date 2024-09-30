@@ -105,12 +105,19 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
     </ToolbarGroup>
   );
 
+  const clearAllFilters = resetFilters;
+
   return (
     <RegisteredModelTable
       refresh={refresh}
-      clearFilters={resetFilters}
+      clearFilters={clearAllFilters}
       registeredModels={filteredRegisteredModels}
-      toolbarContent={<RegisteredModelsTableToolbar toggleGroupItems={toggleGroupItems} />}
+      toolbarContent={
+        <RegisteredModelsTableToolbar
+          toggleGroupItems={toggleGroupItems}
+          onClearAllFilters={clearAllFilters}
+        />
+      }
     />
   );
 };

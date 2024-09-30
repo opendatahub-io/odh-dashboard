@@ -26,6 +26,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     toolbarContent={toolbarContent}
     defaultSortColumn={3}
     enablePagination
+    onClearFilters={clearFilters}
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
     rowRenderer={(mv) => (
       <ModelVersionsTableRow
