@@ -14,6 +14,7 @@ import {
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import { filterArchiveModels, filterLiveModels } from '~/concepts/modelRegistry/utils';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
 
@@ -23,14 +24,15 @@ type RegisteredModelListViewProps = {
 };
 
 const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
-  registeredModels: unfilteredRegisteredModels,
+  registeredModels,
   refresh,
 }) => {
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
-
+  const unfilteredRegisteredModels = filterLiveModels(registeredModels);
+  const archiveRegisteredModels = filterArchiveModels(registeredModels);
   const searchTypes = React.useMemo(() => [SearchType.KEYWORD, SearchType.OWNER], []);
 
   if (unfilteredRegisteredModels.length === 0) {
@@ -46,7 +48,9 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
         )}
         description={`${preferredModelRegistry?.metadata.name} has no active registered models. Register a model in this registry, or select a different registry.`}
         primaryActionText="Register model"
-        secondaryActionText="View archived models"
+        secondaryActionText={
+          archiveRegisteredModels.length !== 0 ? 'View archived models' : undefined
+        }
         primaryActionOnClick={() => {
           navigate(registerModelUrl(preferredModelRegistry?.metadata.name));
         }}

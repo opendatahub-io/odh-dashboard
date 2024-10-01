@@ -3,7 +3,6 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import { filterLiveModels } from '~/concepts/modelRegistry/utils';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
 import { modelRegistryUrl } from './routeUtils';
@@ -39,10 +38,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <RegisteredModelListView
-        registeredModels={filterLiveModels(registeredModels.items)}
-        refresh={refresh}
-      />
+      <RegisteredModelListView registeredModels={registeredModels.items} refresh={refresh} />
     </ApplicationsPage>
   );
 };
