@@ -16,6 +16,7 @@ import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -23,6 +24,7 @@ import StorageList from './storage/StorageList';
 import DataConnectionsList from './data-connections/DataConnectionsList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
+import ProjectActions from './ProjectActions';
 
 import './ProjectDetails.scss';
 
@@ -123,7 +125,11 @@ const ProjectDetails: React.FC = () => {
           alignItems={{ default: 'alignItemsFlexStart' }}
         >
           <img style={{ height: 32 }} src={typedObjectImage(ProjectObjectType.project)} alt="" />
-          <FlexItem>{displayName}</FlexItem>
+          <FlexItem>
+            <ResourceNameTooltip resource={currentProject} wrap={false}>
+              {displayName}
+            </ResourceNameTooltip>
+          </FlexItem>
         </Flex>
       }
       description={<div style={{ marginLeft: 40 }}>{description}</div>}
@@ -135,6 +141,7 @@ const ProjectDetails: React.FC = () => {
       }
       loaded={rbacLoaded}
       empty={false}
+      headerAction={<ProjectActions project={currentProject} />}
     >
       {content()}
     </ApplicationsPage>
