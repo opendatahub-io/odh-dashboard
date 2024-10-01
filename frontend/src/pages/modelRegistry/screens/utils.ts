@@ -79,30 +79,46 @@ export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
   search: string,
   searchType: SearchType,
-): ModelVersion[] =>
-  unfilteredModelVersions.filter((mv: ModelVersion) => {
+): ModelVersion[] => {
+  const searchLower = search.toLowerCase();
+
+  return unfilteredModelVersions.filter((mv: ModelVersion) => {
     if (!search) {
       return true;
     }
 
     switch (searchType) {
-      case SearchType.KEYWORD:
-        return (
-          mv.name.toLowerCase().includes(search.toLowerCase()) ||
-          (mv.description && mv.description.toLowerCase().includes(search.toLowerCase()))
-        );
+      case SearchType.KEYWORD: {
+        const nameMatch = mv.name.toLowerCase().includes(searchLower);
+        const descriptionMatch =
+          mv.description && mv.description.toLowerCase().includes(searchLower);
 
-      case SearchType.AUTHOR:
+        let labelMatch = false;
+        labelMatch = Object.keys(mv.customProperties).some((key) => {
+          const prop = mv.customProperties[key];
+          return (
+            key.toLowerCase().includes(searchLower) ||
+            (prop.metadataType === ModelRegistryMetadataType.STRING &&
+              prop.string_value.toLowerCase().includes(searchLower))
+          );
+        });
+
+        return nameMatch || descriptionMatch || labelMatch;
+      }
+
+      case SearchType.AUTHOR: {
         return (
           mv.author &&
           (mv.author.toLowerCase().includes(search.toLowerCase()) ||
             (mv.author && mv.author.toLowerCase().includes(search.toLowerCase())))
         );
+      }
 
       default:
         return true;
     }
   });
+};
 
 export const sortModelVersionsByCreateTime = (registeredModels: ModelVersion[]): ModelVersion[] =>
   registeredModels.toSorted((a, b) => {
@@ -115,23 +131,39 @@ export const filterRegisteredModels = (
   unfilteredRegisteredModels: RegisteredModel[],
   search: string,
   searchType: SearchType,
-): RegisteredModel[] =>
-  unfilteredRegisteredModels.filter((rm: RegisteredModel) => {
+): RegisteredModel[] => {
+  const searchLower = search.toLowerCase();
+
+  return unfilteredRegisteredModels.filter((rm: RegisteredModel) => {
     if (!search) {
       return true;
     }
 
     switch (searchType) {
-      case SearchType.KEYWORD:
-        return (
-          rm.name.toLowerCase().includes(search.toLowerCase()) ||
-          (rm.description && rm.description.toLowerCase().includes(search.toLowerCase()))
-        );
+      case SearchType.KEYWORD: {
+        const nameMatch = rm.name.toLowerCase().includes(searchLower);
+        const descriptionMatch =
+          rm.description && rm.description.toLowerCase().includes(searchLower);
 
-      case SearchType.OWNER:
-        return rm.owner && rm.owner.toLowerCase().includes(search.toLowerCase());
+        let labelMatch = false;
+        labelMatch = Object.keys(rm.customProperties).some((key) => {
+          const prop = rm.customProperties[key];
+          return (
+            key.toLowerCase().includes(searchLower) ||
+            (prop.metadataType === ModelRegistryMetadataType.STRING &&
+              prop.string_value.toLowerCase().includes(searchLower))
+          );
+        });
+
+        return nameMatch || descriptionMatch || labelMatch;
+      }
+
+      case SearchType.OWNER: {
+        return rm.owner && rm.owner.toLowerCase().includes(searchLower);
+      }
 
       default:
         return true;
     }
   });
+};
