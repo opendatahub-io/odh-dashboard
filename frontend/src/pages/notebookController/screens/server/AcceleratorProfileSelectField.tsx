@@ -218,6 +218,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 );
               }
             }}
+            data-testid="accelerator-profile-select"
           />
         </FormGroup>
       </StackItem>
