@@ -27,7 +27,7 @@ const TelemetrySettings: React.FC<TelemetrySettingsProps> = ({
           For more information see the{' '}
           <Text
             component={TextVariants.a}
-            href="https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/usage-data-collection#usage-data-collection-notice-for-openshift-data-science"
+            href="https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/usage-data-collection"
             target="_blank"
           >
             documentation
