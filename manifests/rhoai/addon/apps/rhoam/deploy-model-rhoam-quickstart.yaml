@@ -19,7 +19,7 @@ spec:
   tasks:
     - title: Annotate your Python Model API for Service Discovery
       description: >-
-        Service Discovery is a 3scale feature that helps you import services from an OpenShift cluster. The Red Hat 3scale API Management instance provided by Red Hat OpenShift API Management has the [Service Discovery](https://access.redhat.com/documentation/en-us/red_hat_3scale_api_management/2.10/html/admin_portal_guide/service_discovery_from_openshift_to_3scale) feature enabled and pre-configured.
+        Service Discovery is a 3scale feature that helps you import services from an OpenShift cluster. The Red Hat 3scale API Management instance provided by Red Hat OpenShift API Management has the [Service Discovery](https://docs.redhat.com/en/documentation/red_hat_3scale_api_management/2.14/html/admin_portal_guide/service_discovery_from_openshift_to_3scale_api_management) feature enabled and pre-configured.
 
 
         When Service Discovery is configured, 3scale scans for discoverable API services that are running in the same OpenShift cluster and automatically imports the associated API definitions into 3scale. Additionally, 3scale can update the API integration and its specification, based on OpenAPI Specification (OAS), to resynchronize them with the cluster.
