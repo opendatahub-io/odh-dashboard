@@ -161,6 +161,13 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             {modelArtifact.items[0]?.modelFormatName}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
+            title="Source model format version"
+            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatVersion}
+            contentWhenEmpty="No source model format version"
+          >
+            {modelArtifact.items[0]?.modelFormatVersion}
+          </DashboardDescriptionListGroup>
+          <DashboardDescriptionListGroup
             title="Author"
             tooltip={
               <DashboardHelpTooltip content="The author is the user who registered the model version." />
