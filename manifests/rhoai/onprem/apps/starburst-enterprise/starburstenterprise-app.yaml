@@ -30,7 +30,7 @@ spec:
     - Previously installed and configured Kubernetes, including access to **kubectl**.
     - An editor suitable for editing YAML files.
     - Your SEP (Starburst Enterprise) license file.
-    - The latest OpenShift Container Platform (OCP) client for your platform as described in the [OpenShift documentation](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html) and the **oc** executable copied into your path, usually **/usr/local/bin.**
+    - The latest OpenShift Container Platform (OCP) client for your platform as described in the [OpenShift documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.16/html/cli_tools/openshift-cli-oc) and the **oc** executable copied into your path, usually **/usr/local/bin.**
 
     
     ## Installation
