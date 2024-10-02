@@ -14,7 +14,16 @@ export const columns: SortableData<StorageClassKind>[] = [
   {
     field: 'displayName',
     label: ColumnLabel.DisplayName,
-    sortable: (a, b) => a.metadata.name.localeCompare(b.metadata.name),
+    sortable: (a: StorageClassKind, b: StorageClassKind): number => {
+      const configDisplayNameA = getStorageClassConfig(a)?.displayName;
+      const configDisplayNameB = getStorageClassConfig(b)?.displayName;
+
+      if (configDisplayNameA && configDisplayNameB) {
+        return configDisplayNameA.localeCompare(configDisplayNameB);
+      }
+
+      return -1;
+    },
     info: {
       popoverProps: { headerContent: 'Display name' },
       popover:
