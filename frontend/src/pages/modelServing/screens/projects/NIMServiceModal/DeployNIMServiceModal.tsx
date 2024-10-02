@@ -3,6 +3,7 @@ import {
   Alert,
   AlertActionCloseButton,
   Form,
+  getUniqueId,
   Modal,
   Stack,
   StackItem,
@@ -50,7 +51,6 @@ import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServin
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
-const NIM_PVC_NAME = 'nim-pvc';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -95,6 +95,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+  const nimPVCName = getUniqueId('nim-pvc');
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -202,6 +203,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       projectContext?.currentProject,
       servingRuntimeName,
       true,
+      nimPVCName,
     );
 
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
@@ -226,7 +228,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
           submitInferenceServiceResource({ dryRun: false }),
           createNIMSecret(namespace, NIM_SECRET_NAME, false, false),
           createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false),
-          createNIMPVC(namespace, NIM_PVC_NAME, pvcSize, false),
+          createNIMPVC(namespace, nimPVCName, pvcSize, false),
         ]),
       )
       .then(() => onSuccess())

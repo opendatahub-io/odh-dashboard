@@ -12,20 +12,24 @@ import {
 import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret, getConfigMap } from '~/api';
+import { createPvc, createSecret } from '~/api';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { getNGCSecretType, getNIMData } from '~/pages/modelServing/screens/projects/nimUtils';
+import {
+  getNGCSecretType,
+  getNIMData,
+  getNIMResource,
+} from '~/pages/modelServing/screens/projects/nimUtils';
 
 jest.mock('~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
-  getConfigMap: jest.fn(),
   createPvc: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
   getNIMData: jest.fn(),
   getNGCSecretType: jest.fn(),
+  getNIMResource: jest.fn(),
 }));
 
 describe('filterOutConnectionsWithoutBucket', () => {
@@ -312,7 +316,6 @@ describe('createNIMSecret', () => {
   });
 });
 describe('fetchNIMModelNames', () => {
-  const dashboardNamespace = 'test-namespace';
   const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
   const configMapMock = {
@@ -341,11 +344,11 @@ describe('fetchNIMModelNames', () => {
   });
 
   it('should return model infos when configMap has data', async () => {
-    (getConfigMap as jest.Mock).mockResolvedValueOnce(configMapMock);
+    (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapMock);
 
-    const result = await fetchNIMModelNames(dashboardNamespace);
+    const result = await fetchNIMModelNames();
 
-    expect(getConfigMap).toHaveBeenCalledWith(dashboardNamespace, NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toEqual([
       {
         name: 'model1',
@@ -369,20 +372,20 @@ describe('fetchNIMModelNames', () => {
   });
 
   it('should return undefined if configMap has no data', async () => {
-    (getConfigMap as jest.Mock).mockResolvedValueOnce({ data: {} });
+    (getNIMResource as jest.Mock).mockResolvedValueOnce({ data: {} });
 
-    const result = await fetchNIMModelNames(dashboardNamespace);
+    const result = await fetchNIMModelNames();
 
-    expect(getConfigMap).toHaveBeenCalledWith(dashboardNamespace, NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toBeUndefined();
   });
 
   it('should return undefined if configMap.data is not defined', async () => {
-    (getConfigMap as jest.Mock).mockResolvedValueOnce({ data: undefined });
+    (getNIMResource as jest.Mock).mockResolvedValueOnce({ data: undefined });
 
-    const result = await fetchNIMModelNames(dashboardNamespace);
+    const result = await fetchNIMModelNames();
 
-    expect(getConfigMap).toHaveBeenCalledWith(dashboardNamespace, NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toBeUndefined();
   });
 });
