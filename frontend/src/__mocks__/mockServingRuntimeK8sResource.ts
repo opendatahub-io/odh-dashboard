@@ -4,6 +4,8 @@ import { ServingRuntimeAPIProtocol, ContainerResources } from '~/types';
 type MockResourceConfigType = {
   name?: string;
   displayName?: string;
+  templateName?: string;
+  templateDisplayName?: string;
   namespace?: string;
   replicas?: number;
   auth?: boolean;
@@ -97,6 +99,8 @@ export const mockServingRuntimeK8sResource = ({
   auth = false,
   route = false,
   displayName = 'OVMS Model Serving',
+  templateName = 'ovms',
+  templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
   acceleratorName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
@@ -122,9 +126,9 @@ export const mockServingRuntimeK8sResource = ({
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {
-      'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
+      'opendatahub.io/template-display-name': templateDisplayName,
       'opendatahub.io/accelerator-name': acceleratorName,
-      'opendatahub.io/template-name': 'ovms',
+      'opendatahub.io/template-name': templateName,
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
       ...(!disableModelMeshAnnotations && {

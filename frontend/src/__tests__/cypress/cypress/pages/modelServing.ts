@@ -160,6 +160,24 @@ class InferenceServiceModal extends Modal {
   }
 }
 
+class NIMDeployModal extends Modal {
+  constructor(private edit = false) {
+    super(`${edit ? 'Edit' : 'Deploy'} model with NVIDIA NIM`);
+  }
+
+  findSubmitButton() {
+    return this.findFooter().findByTestId('modal-submit-button');
+  }
+
+  findModelNameInput() {
+    return this.find().findByTestId('model-deployment-name-section');
+  }
+
+  findNIMToDeploy() {
+    return this.find().findByTestId('nim-model-list-selection');
+  }
+}
+
 class ServingRuntimeModal extends Modal {
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Add'} model server`);
@@ -400,3 +418,4 @@ export const createServingRuntimeModal = new ServingRuntimeModal(false);
 export const editServingRuntimeModal = new ServingRuntimeModal(true);
 export const kserveModal = new KServeModal();
 export const kserveModalEdit = new KServeModal(true);
+export const nimDeployModal = new NIMDeployModal();
