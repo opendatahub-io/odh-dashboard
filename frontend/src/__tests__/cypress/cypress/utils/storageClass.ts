@@ -95,26 +95,29 @@ export const parseStorageClassConfig = (result: CommandLineResult): StorageClass
  * Verify Storage Class Configuration retrieving the info using OC
  *
  * @param scName - Storage Class to verify
- * @param expectedIsDefault expected isDefault
- * @param expectedIsEnabled expected isEnabled
+ * @param expectedIsDefault (Optional) expected isDefault
+ * @param expectedIsEnabled (Optional) expected isEnabled
  * @param expectedDisplayName (Optional) expected Display Name
  * @param expectedDescription (Optional) expected Description
  */
 export const verifyStorageClassConfig = (
   scName: string,
-  expectedIsDefault: boolean,
-  expectedIsEnabled: boolean,
+  expectedIsDefault?: boolean,
+  expectedIsEnabled?: boolean,
   expectedDisplayName?: string,
   expectedDescription?: string,
 ): Cypress.Chainable<CommandLineResult> => {
   return getStorageClassConfig(scName).then((result) => {
     const config = parseStorageClassConfig(result);
 
-    // Check mandatory fields
-    cy.wrap(config.isDefault).should('equal', expectedIsDefault);
-    cy.wrap(config.isEnabled).should('equal', expectedIsEnabled);
+    if (expectedIsDefault !== undefined) {
+      cy.wrap(config.isDefault).should('equal', expectedIsDefault);
+    }
 
-    // Check optional fields if provided
+    if (expectedIsEnabled !== undefined) {
+      cy.wrap(config.isEnabled).should('equal', expectedIsEnabled);
+    }
+
     if (expectedDisplayName !== undefined) {
       cy.wrap(config.displayName).should('equal', expectedDisplayName);
     }

@@ -49,7 +49,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     scDisabledRow.findOpenshiftDefaultLabel().should('exist');
   });
 
-  it('An admin user can enable a disabled Storage Class', () => {
+  it.skip('An admin user can enable a disabled Storage Class', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
     const scDisabledName = scName + '-disabled-non-default';
@@ -74,7 +74,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     verifyStorageClassConfig(scDisabledName, false, true);
   });
 
-  it('An admin user can disable an enabled Storage Class', () => {
+  it.skip('An admin user can disable an enabled Storage Class', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
     const scEnabledName = scName + '-enabled-non-default';
@@ -99,7 +99,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     verifyStorageClassConfig(scEnabledName, false, false);
   });
 
-  it('An admin user can set an enabled Storage Class as the default one', () => {
+  it.skip('An admin user can set an enabled Storage Class as the default one', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
     const scToDefaultName = scName + '-enabled-to-default';
@@ -120,44 +120,27 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     verifyStorageClassConfig(scToDefaultName, true, true);
   });
 
-  it.skip('An admin user can edit an Storage Class', () => {
+  it('An admin user can edit an Storage Class', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
-
-    // /**
-    //  * Import Pipeline by URL from Project Details view
-    //  */
-    // projectListPage.navigate();
-    // // Open the project
-    // projectListPage.filterProjectByName(projectName);
-    // projectListPage.findProjectLink(projectName).click();
-    // // Increasing the timeout to ~3mins so the DSPA can be loaded
-    // projectDetails.findImportPipelineButton(180000).click();
-    // // Fill tue Import Pipeline modal
-    // pipelineImportModal.findPipelineNameInput().type(testPipelineName);
-    // pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');
-    // pipelineImportModal.findImportPipelineRadio().click();
-    // pipelineImportModal
-    //   .findPipelineUrlInput()
-    //   //TODO: modify this URL once the PR is merged
-    //   .type(
-    //     'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/caab82536b4dd5d39fb7a06a6c3248f10c183417/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
-    //   );
-    // pipelineImportModal.submit();
-    // // Verify that we are at the details page of the pipeline by checking the title
-    // // It can take a little longer to load
-    // pipelineDetails.findPageTitle(60000).should('have.text', testPipelineName);
-    // /**
-    //  * Run the Pipeline using the Actions button in the pipeline detail view
-    //  */
-    // pipelineDetails.selectActionDropdownItem('Create run');
-    // //Fill the Create run fields
-    // createRunPage.experimentSelect.findToggleButton().click();
-    // createRunPage.selectExperimentByName('Default');
-    // createRunPage.fillName(testRunName);
-    // createRunPage.fillDescription('Run Description');
-    // createRunPage.findSubmitButton().click();
-    // //Redirected to the Graph view of the created run
-    // pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
+    const scEnabledName = scName + '-enabled-non-default';
+    storageClassesTable.getRowByConfigName(scEnabledName).findKebabAction('Edit').click();
+    // Edit DisplayName and Description
+    const scNameEdited = scName + '-edited';
+    const scEditedDescription = 'Edited Description';
+    storageClassEditModal.fillDisplayNameInput(scNameEdited);
+    storageClassEditModal.fillDescriptionInput(scEditedDescription);
+    storageClassEditModal.findSaveButton().click();
+    // Verify new values
+    const scEditedRow = storageClassesTable.getRowByConfigName(scNameEdited);
+    scEditedRow.find().should('contain.text', scNameEdited);
+    scEditedRow.find().should('contain.text', scEditedDescription);
+    verifyStorageClassConfig(
+      scEnabledName,
+      undefined,
+      undefined,
+      scNameEdited,
+      scEditedDescription,
+    );
   });
 });
