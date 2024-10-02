@@ -239,6 +239,9 @@ export const useNotebookStatus = (
         if (!gracePeriod && lastItem.reason === 'FailedScheduling') {
           currentEvent = 'Insufficient resources to start';
           status = EventStatus.ERROR;
+        } else if (!gracePeriod && lastItem.reason === 'BackOff') {
+          currentEvent = 'ImagePullBackOff';
+          status = EventStatus.ERROR;
         } else if (lastItem.type === 'Warning') {
           currentEvent = 'Issue creating notebook container';
           status = EventStatus.WARNING;
