@@ -35,6 +35,7 @@ export const assembleServingRuntime = (
   initialAcceleratorProfile?: AcceleratorProfileState,
   selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
   isModelMesh?: boolean,
+  nimPVCName?: string,
 ): ServingRuntimeKind => {
   const {
     name: displayName,
@@ -133,6 +134,15 @@ export const assembleServingRuntime = (
       if (!volumeMounts.find((volumeMount) => volumeMount.mountPath === '/dev/shm')) {
         volumeMounts.push(getshmVolumeMount());
       }
+      const updatedVolumeMounts = volumeMounts.map((volumeMount) => {
+        if (volumeMount.name === 'nim-pvc' && nimPVCName) {
+          return {
+            ...volumeMount,
+            name: nimPVCName,
+          };
+        }
+        return volumeMount;
+      });
 
       const updatedContainer = {
         ...container,
@@ -145,7 +155,7 @@ export const assembleServingRuntime = (
         ...containerWithoutResources,
         ...(isModelMesh ? { resources } : {}),
         affinity,
-        volumeMounts,
+        volumeMounts: updatedVolumeMounts,
       };
     },
   );
@@ -171,8 +181,33 @@ export const assembleServingRuntime = (
     volumes.push(getshmVolume('2Gi'));
   }
 
-  updatedServingRuntime.spec.volumes = volumes;
+  if (nimPVCName) {
+    const updatedVolumes = volumes.map((volume) => {
+      if (volume.name === 'nim-pvc') {
+        return {
+          ...volume,
+          name: nimPVCName,
+          persistentVolumeClaim: {
+            claimName: nimPVCName,
+          },
+        };
+      }
+      return volume;
+    });
 
+    if (!updatedVolumes.find((volume) => volume.name === nimPVCName)) {
+      updatedVolumes.push({
+        name: nimPVCName,
+        persistentVolumeClaim: {
+          claimName: nimPVCName,
+        },
+      });
+    }
+
+    updatedServingRuntime.spec.volumes = updatedVolumes;
+  } else {
+    updatedServingRuntime.spec.volumes = volumes;
+  }
   return updatedServingRuntime;
 };
 
@@ -242,6 +277,7 @@ export const updateServingRuntime = (options: {
   initialAcceleratorProfile?: AcceleratorProfileState;
   selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState;
   isModelMesh?: boolean;
+  nimPVCName?: string;
 }): Promise<ServingRuntimeKind> => {
   const {
     data,
@@ -251,6 +287,7 @@ export const updateServingRuntime = (options: {
     initialAcceleratorProfile,
     selectedAcceleratorProfile,
     isModelMesh,
+    nimPVCName,
   } = options;
 
   const updatedServingRuntime = assembleServingRuntime(
@@ -262,6 +299,7 @@ export const updateServingRuntime = (options: {
     initialAcceleratorProfile,
     selectedAcceleratorProfile,
     isModelMesh,
+    nimPVCName,
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
@@ -284,6 +322,7 @@ export const createServingRuntime = (options: {
   initialAcceleratorProfile?: AcceleratorProfileState;
   selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState;
   isModelMesh?: boolean;
+  nimPVCName?: string;
 }): Promise<ServingRuntimeKind> => {
   const {
     data,
@@ -294,6 +333,7 @@ export const createServingRuntime = (options: {
     initialAcceleratorProfile,
     selectedAcceleratorProfile,
     isModelMesh,
+    nimPVCName,
   } = options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
@@ -304,6 +344,7 @@ export const createServingRuntime = (options: {
     initialAcceleratorProfile,
     selectedAcceleratorProfile,
     isModelMesh,
+    nimPVCName,
   );
 
   return k8sCreateResource<ServingRuntimeKind>(
