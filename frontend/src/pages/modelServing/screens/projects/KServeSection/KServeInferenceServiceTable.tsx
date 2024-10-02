@@ -53,22 +53,23 @@ const KServeInferenceServiceTable: React.FC = () => {
           />
         )}
       />
-      <DeleteInferenceServiceModal
-        isOpen={!!deleteKserveResources}
-        inferenceService={deleteKserveResources?.inferenceService}
-        servingRuntime={deleteKserveResources?.servingRuntime}
-        onClose={(deleted) => {
-          fireFormTrackingEvent('Model Deleted', {
-            outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
-            type: 'single',
-          });
-          if (deleted) {
-            refreshServingRuntime();
-            refreshInferenceServices();
-          }
-          setDeleteKServeResources(undefined);
-        }}
-      />
+      {deleteKserveResources ? (
+        <DeleteInferenceServiceModal
+          inferenceService={deleteKserveResources.inferenceService}
+          servingRuntime={deleteKserveResources.servingRuntime}
+          onClose={(deleted) => {
+            fireFormTrackingEvent('Model Deleted', {
+              outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              type: 'single',
+            });
+            if (deleted) {
+              refreshServingRuntime();
+              refreshInferenceServices();
+            }
+            setDeleteKServeResources(undefined);
+          }}
+        />
+      ) : null}
       <ManageKServeModal
         isOpen={!!editKserveResources}
         editInfo={{

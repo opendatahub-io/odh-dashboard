@@ -82,27 +82,28 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           </ResourceTr>
         )}
       />
-      <DeleteInferenceServiceModal
-        isOpen={!!deleteInferenceService}
-        inferenceService={deleteInferenceService}
-        servingRuntime={
-          deleteInferenceService && !isModelMesh(deleteInferenceService)
-            ? servingRuntimes.find(
-                (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model?.runtime,
-              )
-            : undefined
-        }
-        onClose={(deleted) => {
-          fireFormTrackingEvent('Model Deleted', {
-            outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
-            type: 'multi',
-          });
-          if (deleted) {
-            refresh?.();
+      {deleteInferenceService ? (
+        <DeleteInferenceServiceModal
+          inferenceService={deleteInferenceService}
+          servingRuntime={
+            !isModelMesh(deleteInferenceService)
+              ? servingRuntimes.find(
+                  (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model?.runtime,
+                )
+              : undefined
           }
-          setDeleteInferenceService(undefined);
-        }}
-      />
+          onClose={(deleted) => {
+            fireFormTrackingEvent('Model Deleted', {
+              outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              type: 'multi',
+            });
+            if (deleted) {
+              refresh?.();
+            }
+            setDeleteInferenceService(undefined);
+          }}
+        />
+      ) : null}
       <ManageInferenceServiceModal
         isOpen={!!editInferenceService && isModelMesh(editInferenceService)}
         editInfo={editInferenceService}

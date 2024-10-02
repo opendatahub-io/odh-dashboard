@@ -47,13 +47,14 @@ const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
         data-testid="trustyai-service-installation"
         name="TrustyAI service installation status"
       />
-      <DeleteTrustyAIModal
-        isOpen={open}
-        onDelete={onDelete}
-        onClose={() => {
-          setOpen(false);
-        }}
-      />
+      {open ? (
+        <DeleteTrustyAIModal
+          onDelete={onDelete}
+          onClose={() => {
+            setOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

@@ -75,18 +75,19 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
           />
         </ToolbarItem>
       </PipelineFilterBar>
-      <DeletePipelinesModal
-        isOpen={isDeletionOpen}
-        toDeletePipelines={pipelines}
-        toDeletePipelineVersions={versions}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshAllAPI();
-            clearAfterDeletion();
-          }
-          setDeletionOpen(false);
-        }}
-      />
+      {isDeletionOpen ? (
+        <DeletePipelinesModal
+          toDeletePipelines={pipelines}
+          toDeletePipelineVersions={versions}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshAllAPI();
+              clearAfterDeletion();
+            }
+            setDeletionOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

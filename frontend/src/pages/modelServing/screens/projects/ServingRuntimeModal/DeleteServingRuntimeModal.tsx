@@ -12,7 +12,7 @@ import { getTokenNames } from '~/pages/modelServing/utils';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 
 type DeleteServingRuntimeModalProps = {
-  servingRuntime?: ServingRuntimeKind;
+  servingRuntime: ServingRuntimeKind;
   inferenceServices: InferenceServiceKind[];
   onClose: (deleted: boolean) => void;
 };
@@ -34,47 +34,44 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
   return (
     <DeleteModal
       title="Delete model server?"
-      isOpen={!!servingRuntime}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete model server"
       onDelete={() => {
-        if (servingRuntime) {
-          setIsDeleting(true);
+        setIsDeleting(true);
 
-          const { serviceAccountName, roleBindingName } = getTokenNames(
-            servingRuntime.metadata.name,
-            servingRuntime.metadata.namespace,
-          );
+        const { serviceAccountName, roleBindingName } = getTokenNames(
+          servingRuntime.metadata.name,
+          servingRuntime.metadata.namespace,
+        );
 
-          allSettledPromises<ServingRuntimeKind | K8sStatus>([
-            deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
-            ...inferenceServices
-              .filter(
-                (inferenceService) =>
-                  inferenceService.spec.predictor.model?.runtime === servingRuntime.metadata.name,
-              )
-              .map((inferenceService) =>
-                deleteInferenceService(
-                  inferenceService.metadata.name,
-                  inferenceService.metadata.namespace,
-                ),
+        allSettledPromises<ServingRuntimeKind | K8sStatus>([
+          deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
+          ...inferenceServices
+            .filter(
+              (inferenceService) =>
+                inferenceService.spec.predictor.model?.runtime === servingRuntime.metadata.name,
+            )
+            .map((inferenceService) =>
+              deleteInferenceService(
+                inferenceService.metadata.name,
+                inferenceService.metadata.namespace,
               ),
-            // for compatibility continue to delete related resources
-            deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
-            deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
-          ])
-            .then(() => {
-              onBeforeClose(true);
-            })
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+            ),
+          // for compatibility continue to delete related resources
+          deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
+          deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
+        ])
+          .then(() => {
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}
-      deleteName={servingRuntime?.metadata.name || 'this model server'}
+      deleteName={servingRuntime.metadata.name || 'this model server'}
     >
       This action cannot be undone.
     </DeleteModal>
