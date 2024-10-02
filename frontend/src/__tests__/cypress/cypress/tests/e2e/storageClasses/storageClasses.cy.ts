@@ -1,0 +1,163 @@
+import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import {
+  createStorageClass,
+  deleteStorageClass,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import { TEST_USER, ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+import {
+  verifyStorageClassConfig,
+  provisionStorageClassFeature,
+  tearDownStorageClassFeature,
+} from '~/__tests__/cypress/cypress/utils/storageClass';
+import {
+  storageClassEditModal,
+  storageClassesPage,
+  storageClassesTable,
+} from '~/__tests__/cypress/cypress/pages/storageClasses';
+import type { SCReplacements } from '~/__tests__/cypress/cypress/types';
+
+const projectName = 'test-settings-storage-classes-dsp';
+const scName = 'qe-settings-sc';
+const scDefaultName = 'standard-csi';
+
+// Using testIsolation will reuse the login (cache)
+// describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
+describe('An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
+  let createdStorageClasses: string[];
+  before(() => {
+    // Provision different SCs
+    createdStorageClasses = provisionStorageClassFeature(scName);
+  });
+
+  after(() => {
+    // Delete provisioned SCs
+    tearDownStorageClassFeature(createdStorageClasses);
+  });
+
+  it.skip('A non admin user can not acccess to Settings -> Storage classes view', () => {
+    // Login as a regular user and try to land in storage classes view
+    cy.visitWithLogin('/storageClasses', TEST_USER);
+    pageNotfound.findPage().should('be.visible');
+  });
+
+  it.skip('The Default label is present in the grid', () => {
+    cy.visitWithLogin('/', ADMIN_USER);
+    storageClassesPage.navigate();
+    const scDisabledRow = storageClassesTable.getRowByConfigName(scDefaultName);
+    // There's the Default label
+    scDisabledRow.findOpenshiftDefaultLabel().should('exist');
+  });
+
+  it('An admin user can enable a disabled Storage Class', () => {
+    cy.visitWithLogin('/', ADMIN_USER);
+    storageClassesPage.navigate();
+    const scDisabledName = scName + '-disabled-non-default';
+    // SC row exist
+    storageClassesTable.findRowByName(scDisabledName).should('be.visible');
+    const scDisabledRow = storageClassesTable.getRowByConfigName(scDisabledName);
+    // There's no Default label
+    scDisabledRow.findOpenshiftDefaultLabel().should('not.exist');
+    // The Enable switch is set to disabled
+    scDisabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
+    // The Default radio button is disabled
+    scDisabledRow.findDefaultRadioInput().should('be.disabled');
+
+    // Enable the SC
+    scDisabledRow.findEnableSwitchInput().click({ force: true });
+
+    // The Enable switch is set to enabled
+    scDisabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'true');
+    // The Default radio button is enabled but not checked
+    scDisabledRow.findDefaultRadioInput().should('be.enabled');
+    scDisabledRow.findDefaultRadioInput().should('not.have.attr', 'checked');
+    verifyStorageClassConfig(scDisabledName, false, true);
+  });
+
+  it('An admin user can disable an enabled Storage Class', () => {
+    cy.visitWithLogin('/', ADMIN_USER);
+    storageClassesPage.navigate();
+    const scEnabledName = scName + '-enabled-non-default';
+    // SC row exist
+    storageClassesTable.findRowByName(scEnabledName).should('be.visible');
+    const scEnabledRow = storageClassesTable.getRowByConfigName(scEnabledName);
+    // There's no Default label
+    scEnabledRow.findOpenshiftDefaultLabel().should('not.exist');
+    // The Enable switch is set to enabled
+    scEnabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'true');
+    // The Default radio button is enabled but not checked
+    scEnabledRow.findDefaultRadioInput().should('be.enabled');
+    scEnabledRow.findDefaultRadioInput().should('not.have.attr', 'checked');
+
+    // Enable the SC
+    scEnabledRow.findEnableSwitchInput().click({ force: true });
+
+    // The Enable switch is set to disabled
+    scEnabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
+    // The Default radio button is disabled
+    scEnabledRow.findDefaultRadioInput().should('be.disabled');
+    verifyStorageClassConfig(scEnabledName, false, false);
+  });
+
+  it('An admin user can set an enabled Storage Class as the default one', () => {
+    cy.visitWithLogin('/', ADMIN_USER);
+    storageClassesPage.navigate();
+    const scToDefaultName = scName + '-enabled-to-default';
+    const scToDefaultRow = storageClassesTable.getRowByConfigName(scToDefaultName);
+    // There's no Default label
+    scToDefaultRow.findOpenshiftDefaultLabel().should('not.exist');
+    // The Default radio button is enabled but not checked
+    scToDefaultRow.findDefaultRadioInput().should('be.enabled');
+    scToDefaultRow.findDefaultRadioInput().should('not.have.attr', 'checked');
+
+    // Set the SC to be the default one
+    scToDefaultRow.findDefaultRadioInput().click();
+
+    // The Default radio button is enabled
+    scToDefaultRow.findDefaultRadioInput().should('be.enabled');
+    // The Enable switch is disabled
+    scToDefaultRow.findEnableSwitchInput().should('be.disabled');
+    verifyStorageClassConfig(scToDefaultName, true, true);
+  });
+
+  it.skip('An admin user can edit an Storage Class', () => {
+    cy.visitWithLogin('/', ADMIN_USER);
+    storageClassesPage.navigate();
+
+    // /**
+    //  * Import Pipeline by URL from Project Details view
+    //  */
+    // projectListPage.navigate();
+    // // Open the project
+    // projectListPage.filterProjectByName(projectName);
+    // projectListPage.findProjectLink(projectName).click();
+    // // Increasing the timeout to ~3mins so the DSPA can be loaded
+    // projectDetails.findImportPipelineButton(180000).click();
+    // // Fill tue Import Pipeline modal
+    // pipelineImportModal.findPipelineNameInput().type(testPipelineName);
+    // pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');
+    // pipelineImportModal.findImportPipelineRadio().click();
+    // pipelineImportModal
+    //   .findPipelineUrlInput()
+    //   //TODO: modify this URL once the PR is merged
+    //   .type(
+    //     'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/caab82536b4dd5d39fb7a06a6c3248f10c183417/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
+    //   );
+    // pipelineImportModal.submit();
+    // // Verify that we are at the details page of the pipeline by checking the title
+    // // It can take a little longer to load
+    // pipelineDetails.findPageTitle(60000).should('have.text', testPipelineName);
+    // /**
+    //  * Run the Pipeline using the Actions button in the pipeline detail view
+    //  */
+    // pipelineDetails.selectActionDropdownItem('Create run');
+    // //Fill the Create run fields
+    // createRunPage.experimentSelect.findToggleButton().click();
+    // createRunPage.selectExperimentByName('Default');
+    // createRunPage.fillName(testRunName);
+    // createRunPage.fillDescription('Run Description');
+    // createRunPage.findSubmitButton().click();
+    // //Redirected to the Graph view of the created run
+    // pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
+  });
+});
