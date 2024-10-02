@@ -1,14 +1,13 @@
-import { createOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
-import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import type { CommandLineResult, StorageClassConfig } from '~/__tests__/cypress/cypress/types';
+import type {
+  CommandLineResult,
+  StorageClassConfig,
+  SCReplacements,
+} from '~/__tests__/cypress/cypress/types';
 import {
   createStorageClass,
   deleteStorageClass,
   getStorageClassConfig,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
-import type { SCReplacements } from '~/__tests__/cypress/cypress/types';
 
 /**
  * Provision (using oc) all necessary resources for the Storage Class testing feature
@@ -19,7 +18,7 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
   const createdStorageClasses: string[] = [];
 
   //Provision a disabled non-default sc
-  const scNameDisabledNonDefault = scName + '-disabled-non-default';
+  const scNameDisabledNonDefault = `${scName}-disabled-non-default`;
   let SCReplacement: SCReplacements = {
     SC_NAME: scNameDisabledNonDefault,
     SC_IS_DEFAULT: 'false',
@@ -29,7 +28,7 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
   createdStorageClasses.push(scNameDisabledNonDefault);
 
   //Provision an enabled non-default sc
-  const scNameEnabledNonDefault = scName + '-enabled-non-default';
+  const scNameEnabledNonDefault = `${scName}-enabled-non-default`;
   SCReplacement = {
     SC_NAME: scNameEnabledNonDefault,
     SC_IS_DEFAULT: 'false',
@@ -39,7 +38,7 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
   createdStorageClasses.push(scNameEnabledNonDefault);
 
   //Provision an enabled non-default sc in order to set it as default
-  const scNameEnabledToDefault = scName + '-enabled-to-default';
+  const scNameEnabledToDefault = `${scName}-enabled-to-default`;
   SCReplacement = {
     SC_NAME: scNameEnabledToDefault,
     SC_IS_DEFAULT: 'false',
@@ -49,7 +48,7 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
   createdStorageClasses.push(scNameEnabledToDefault);
 
   //Provision an enabled non-default sc in order to set it as default
-  const scNameEnabledAndDefault = scName + '-enabled-and-default';
+  const scNameEnabledAndDefault = `${scName}-enabled-and-default`;
   SCReplacement = {
     SC_NAME: scNameEnabledAndDefault,
     SC_IS_DEFAULT: 'false',
@@ -64,7 +63,7 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
 export const tearDownStorageClassFeature = (createdSC: string[]): void => {
   createdSC.forEach((scName) => {
     cy.log(`Deleting storage class: os-sc-${scName}`);
-    deleteStorageClass('os-sc-' + scName);
+    deleteStorageClass(`os-sc-${scName}`);
   });
 };
 

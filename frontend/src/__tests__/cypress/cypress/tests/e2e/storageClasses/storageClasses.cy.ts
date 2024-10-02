@@ -1,8 +1,3 @@
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import {
-  createStorageClass,
-  deleteStorageClass,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import { TEST_USER, ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
@@ -15,9 +10,7 @@ import {
   storageClassesPage,
   storageClassesTable,
 } from '~/__tests__/cypress/cypress/pages/storageClasses';
-import type { SCReplacements } from '~/__tests__/cypress/cypress/types';
 
-const projectName = 'test-settings-storage-classes-dsp';
 const scName = 'qe-settings-sc';
 const scDefaultName = 'standard-csi';
 
@@ -35,13 +28,13 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     tearDownStorageClassFeature(createdStorageClasses);
   });
 
-  it.skip('A non admin user can not acccess to Settings -> Storage classes view', () => {
+  it('A non admin user can not acccess to Settings -> Storage classes view', () => {
     // Login as a regular user and try to land in storage classes view
     cy.visitWithLogin('/storageClasses', TEST_USER);
     pageNotfound.findPage().should('be.visible');
   });
 
-  it.skip('The Default label is present in the grid', () => {
+  it('The Default label is present in the grid', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
     const scDisabledRow = storageClassesTable.getRowByConfigName(scDefaultName);
@@ -49,10 +42,10 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     scDisabledRow.findOpenshiftDefaultLabel().should('exist');
   });
 
-  it.skip('An admin user can enable a disabled Storage Class', () => {
+  it('An admin user can enable a disabled Storage Class', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
-    const scDisabledName = scName + '-disabled-non-default';
+    const scDisabledName = `${scName}-disabled-non-default`;
     // SC row exist
     storageClassesTable.findRowByName(scDisabledName).should('be.visible');
     const scDisabledRow = storageClassesTable.getRowByConfigName(scDisabledName);
@@ -74,10 +67,10 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     verifyStorageClassConfig(scDisabledName, false, true);
   });
 
-  it.skip('An admin user can disable an enabled Storage Class', () => {
+  it('An admin user can disable an enabled Storage Class', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
-    const scEnabledName = scName + '-enabled-non-default';
+    const scEnabledName = `${scName}-enabled-non-default`;
     // SC row exist
     storageClassesTable.findRowByName(scEnabledName).should('be.visible');
     const scEnabledRow = storageClassesTable.getRowByConfigName(scEnabledName);
@@ -99,10 +92,10 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     verifyStorageClassConfig(scEnabledName, false, false);
   });
 
-  it.skip('An admin user can set an enabled Storage Class as the default one', () => {
+  it('An admin user can set an enabled Storage Class as the default one', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
-    const scToDefaultName = scName + '-enabled-to-default';
+    const scToDefaultName = `${scName}-enabled-to-default`;
     const scToDefaultRow = storageClassesTable.getRowByConfigName(scToDefaultName);
     // There's no Default label
     scToDefaultRow.findOpenshiftDefaultLabel().should('not.exist');
@@ -123,10 +116,10 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   it('An admin user can edit an Storage Class', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
-    const scEnabledName = scName + '-enabled-non-default';
+    const scEnabledName = `${scName}-enabled-non-default`;
     storageClassesTable.getRowByConfigName(scEnabledName).findKebabAction('Edit').click();
     // Edit DisplayName and Description
-    const scNameEdited = scName + '-edited';
+    const scNameEdited = `${scName}-edited`;
     const scEditedDescription = 'Edited Description';
     storageClassEditModal.fillDisplayNameInput(scNameEdited);
     storageClassEditModal.fillDescriptionInput(scEditedDescription);
