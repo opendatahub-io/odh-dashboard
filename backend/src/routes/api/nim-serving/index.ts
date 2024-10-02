@@ -3,23 +3,38 @@ import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
 const secretNames = ['nvidia-nim-access', 'nvidia-nim-image-pull'];
+const configMapName = 'nvidia-nim-images-data';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
-    '/:secretName',
+    '/:nimResource',
     async (
       request: OauthFastifyRequest<{
-        Params: { secretName: string };
+        Params: { nimResource: string };
       }>,
     ) => {
       logRequestDetails(fastify, request);
-      const { secretName } = request.params;
-      if (!secretNames.includes(secretName)) {
-        throw createCustomError('Not found', 'Secret not found', 404);
-      }
+      const { nimResource } = request.params;
       const { coreV1Api, namespace } = fastify.kube;
 
-      return coreV1Api.readNamespacedSecret(secretName, namespace);
+      if (secretNames.includes(nimResource)) {
+        try {
+          return await coreV1Api.readNamespacedSecret(nimResource, namespace);
+        } catch (e) {
+          fastify.log.error(`Failed to fetch secret ${nimResource}: ${e.message}`);
+          throw createCustomError('Not found', 'Secret not found', 404);
+        }
+      }
+
+      if (nimResource === configMapName) {
+        try {
+          return await coreV1Api.readNamespacedConfigMap(configMapName, namespace);
+        } catch (e) {
+          fastify.log.error(`Failed to fetch configMap ${nimResource}: ${e.message}`);
+          throw createCustomError('Not found', 'ConfigMap not found', 404);
+        }
+      }
+      throw createCustomError('Not found', 'Resource not found', 404);
     },
   );
 };
