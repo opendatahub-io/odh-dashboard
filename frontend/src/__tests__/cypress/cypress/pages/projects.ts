@@ -19,7 +19,7 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByLabelText('Search input');
+    return this.find().findByTestId('filter-toolbar-text-field');
   }
 }
 
@@ -138,7 +138,7 @@ class ProjectListPage {
    */
   filterProjectByName = (projectName: string) => {
     const projectListToolbar = projectListPage.getTableToolbar();
-    projectListToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
     projectListToolbar.findSearchInput().type(projectName);
   };
 }

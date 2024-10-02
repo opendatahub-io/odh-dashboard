@@ -47,9 +47,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     pipelineImportModal.findImportPipelineRadio().click();
     pipelineImportModal
       .findPipelineUrlInput()
-      //TODO: modify this URL once the PR is merged
       .type(
-        'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/caab82536b4dd5d39fb7a06a6c3248f10c183417/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
+        'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
       );
     pipelineImportModal.submit();
 
