@@ -19,6 +19,7 @@ import {
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import { NotebookKind } from '~/k8sTypes';
+import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
 
 type Props = {
   namespace: string;
@@ -35,12 +36,14 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const { notebooks: connectedNotebooks, loaded: notebooksLoaded } = useRelatedNotebooks(
+  const { notebooks: connectedNotebooks, loaded } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
     deleteConnection.metadata.name,
   );
   const [notebookStates] = useNotebooksStates(connectedNotebooks, namespace);
   const [notebooksExpanded, setNotebooksExpanded] = React.useState<boolean>(false);
+  const connectedModels = useInferenceServicesForConnection(deleteConnection);
+  const [modelsExpanded, setModelsExpanded] = React.useState<boolean>(false);
 
   const getNotebookStatusText = React.useCallback(
     (notebook: NotebookKind) =>
@@ -75,44 +78,85 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
     >
       The <b>{getDisplayNameFromK8sResource(deleteConnection)}</b> connection will be deleted, and
       its dependent resources will stop working.
-      {notebooksLoaded && !connectedNotebooks.length ? null : (
+      {loaded && !connectedNotebooks.length && !connectedModels.length ? null : (
         <div className="pf-v5-u-mt-md">
-          {!notebooksLoaded ? (
+          {!loaded ? (
             <Bullseye>
               <Spinner size="md" />
             </Bullseye>
           ) : (
             <>
+              {connectedNotebooks.length ? (
+                <>
+                  <ExpandableSectionToggle
+                    isExpanded={notebooksExpanded}
+                    onToggle={setNotebooksExpanded}
+                    id="expand-connected-notebooks-toggle"
+                    contentId="expanded-connected-notebooks"
+                    data-testid="connections-delete-notebooks-toggle"
+                  >
+                    <span>Workbenches </span>
+                    <Badge isRead data-testid="connections-delete-notebooks-count">
+                      {connectedNotebooks.length}
+                    </Badge>
+                  </ExpandableSectionToggle>
+                  {notebooksExpanded ? (
+                    <ExpandableSection
+                      isExpanded
+                      isDetached
+                      contentId="expanded-connected-notebooks"
+                      toggleId="expand-connected-notebooks-toggle"
+                    >
+                      <TextContent>
+                        <TextList>
+                          {connectedNotebooks.map((notebook) => (
+                            <TextListItem
+                              key={notebook.metadata.name}
+                              data-testid="connections-delete-notebooks-item"
+                            >
+                              {getDisplayNameFromK8sResource(notebook)}
+                              {getNotebookStatusText(notebook)}
+                            </TextListItem>
+                          ))}
+                        </TextList>
+                      </TextContent>
+                    </ExpandableSection>
+                  ) : null}
+                </>
+              ) : null}
               <ExpandableSectionToggle
-                isExpanded={notebooksExpanded}
-                onToggle={setNotebooksExpanded}
-                contentId="expanded-connected-notebooks"
-                data-testid="connections-delete-notebooks-toggle"
+                isExpanded={modelsExpanded}
+                onToggle={setModelsExpanded}
+                id="expand-connected-models-toggle"
+                contentId="expanded-connected-models"
+                data-testid="connections-delete-models-toggle"
               >
-                <span>Workbenches </span>
-                <Badge isRead data-testid="connections-delete-notebooks-count">
-                  {connectedNotebooks.length}
+                <span>Model deployments </span>
+                <Badge isRead data-testid="connections-delete-models-count">
+                  {connectedModels.length}
                 </Badge>
               </ExpandableSectionToggle>
-              <ExpandableSection
-                isExpanded={notebooksExpanded}
-                isDetached
-                contentId="expanded-connected-notebooks"
-              >
-                <TextContent>
-                  <TextList>
-                    {connectedNotebooks.map((notebook) => (
-                      <TextListItem
-                        key={notebook.metadata.name}
-                        data-testid="connections-delete-notebooks-item"
-                      >
-                        {getDisplayNameFromK8sResource(notebook)}
-                        {getNotebookStatusText(notebook)}
-                      </TextListItem>
-                    ))}
-                  </TextList>
-                </TextContent>
-              </ExpandableSection>
+              {modelsExpanded ? (
+                <ExpandableSection
+                  isExpanded
+                  isDetached
+                  toggleId="expand-connected-models-toggle"
+                  contentId="expanded-connected-models"
+                >
+                  <TextContent>
+                    <TextList>
+                      {connectedModels.map((model) => (
+                        <TextListItem
+                          key={model.metadata.name}
+                          data-testid="connections-delete-models-item"
+                        >
+                          {getDisplayNameFromK8sResource(model)}
+                        </TextListItem>
+                      ))}
+                    </TextList>
+                  </TextContent>
+                </ExpandableSection>
+              ) : null}
             </>
           )}
         </div>
