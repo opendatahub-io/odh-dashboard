@@ -8,7 +8,6 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   modelName?: string;
-  runtimeName?: string;
   secretName?: string;
   deleted?: boolean;
   isModelMesh?: boolean;
@@ -66,8 +65,7 @@ export const mockInferenceServiceK8sResource = ({
   name = 'test-inference-service',
   namespace = 'test-project',
   displayName = 'Test Inference Service',
-  modelName = 'onnx',
-  runtimeName = 'test-model',
+  modelName = 'test-model',
   secretName = 'test-secret',
   deleted = false,
   isModelMesh = false,
@@ -117,7 +115,7 @@ export const mockInferenceServiceK8sResource = ({
       maxReplicas,
       model: {
         modelFormat: {
-          name: modelName,
+          name: 'onnx',
           version: '1',
         },
         ...(acceleratorIdentifier !== ''
@@ -133,7 +131,7 @@ export const mockInferenceServiceK8sResource = ({
             }
           : {}),
         ...(resources && { resources }),
-        runtime: runtimeName,
+        runtime: modelName,
         storage: {
           key: secretName,
           path,
