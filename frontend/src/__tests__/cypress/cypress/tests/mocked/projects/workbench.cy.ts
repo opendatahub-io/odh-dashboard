@@ -176,6 +176,7 @@ const initIntercepts = ({
     mockK8sResourceList([
       mockAcceleratorProfile({
         name: 'test-accelerator',
+        namespace: 'opendatahub',
         displayName: 'Test Accelerator',
         description: 'A test accelerator profile',
         enabled: true,
@@ -575,7 +576,7 @@ describe('Workbench page', () => {
 
     // Add a test for editing accelerator profile
     editSpawnerPage.findAcceleratorProfileSelect().click();
-    editSpawnerPage.findAcceleratorProfileSelect().findSelectOption('none').click();
+    editSpawnerPage.findAcceleratorProfileSelect().findSelectOption('None').click();
     editSpawnerPage.findAcceleratorProfileSelect().should('contain', 'None');
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
