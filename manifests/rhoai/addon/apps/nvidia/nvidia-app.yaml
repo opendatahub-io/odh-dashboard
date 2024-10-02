@@ -19,7 +19,7 @@ spec:
   csvName: gpu-operator-certified
   docsLink: https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/openshift/contents.html
   quickStart: gpu-quickstart
-  getStartedLink: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-cluster-resources_cluster-mgmt#enabling-nvidia-gpus_cluster-mgmt
+  getStartedLink: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling_accelerators#enabling-nvidia-gpus_managing-rhoai
   enable:
     title: Enable NVIDIA GPUs
     actionLabel: Enable
