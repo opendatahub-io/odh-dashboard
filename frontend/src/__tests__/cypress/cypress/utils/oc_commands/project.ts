@@ -46,3 +46,28 @@ export const deleteOpenShiftProject = (
     return result;
   });
 };
+
+/**
+ * Assign a role to a user for an specific Project
+ *
+ * @param projectName OpenShift Project name
+ * @param userName User
+ * @param role OpenShift Role (edit, admin, view)
+ * @returns Result Object of the operation
+ */
+export const addUserToProject = (
+  projectName: string,
+  userName: string,
+  role: string = 'edit',
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc adm policy add-role-to-user ${role} ${userName} -n ${projectName}`;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR Assigning role ${role} to user ${userName} in ${projectName} Project
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+      throw new Error(`Command failed with code ${result.code}`);
+    }
+    return result;
+  });
+};

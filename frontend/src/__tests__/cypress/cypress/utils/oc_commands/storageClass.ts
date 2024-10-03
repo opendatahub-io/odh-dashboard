@@ -49,7 +49,7 @@ export const deleteStorageClass = (scName: string): Cypress.Chainable<CommandLin
  * @returns Result Object of the operation
  */
 export const getStorageClassConfig = (scName: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get storageclass os-sc-${scName} -o jsonpath='{.metadata.annotations.opendatahub\\.io/sc-config}'`;
+  const ocCommand = `oc get storageclass os-sc-${scName} -o jsonpath='{.metadata.annotations.opendatahub\.io/sc-config}'`;
   cy.log(ocCommand);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
@@ -59,6 +59,92 @@ export const getStorageClassConfig = (scName: string): Cypress.Chainable<Command
       throw new Error(`Command failed with code ${result.code}`);
     }
     return result;
+  });
+};
+
+/**
+ * Get OpenShift default Storage Class
+ *
+ * @returns Result Object of the operation
+ */
+export const getOpenshiftDefaultStorageClass = (): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass\.kubernetes\.io/is-default-class=="true")].metadata.name}'`;
+  cy.log(ocCommand);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR Getting OpenShift Default Storage Class
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+      throw new Error(`Command failed with code ${result.code}`);
+    }
+    return result;
+  });
+};
+
+/**
+ * Get all Storage Class names
+ * @returns List of Storage Class names
+ */
+export const getStorageClassNames = (): Cypress.Chainable<string[]> => {
+  return cy
+    .exec("oc get storageclass -o jsonpath='{.items[*].metadata.name}'", {
+      failOnNonZeroExit: false,
+    })
+    .then((result: CommandLineResult) => {
+      if (result.code !== 0) {
+        cy.log(`ERROR Getting Storage Class Names
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+        throw new Error(`Command failed with code ${result.code}`);
+      }
+      return result.stdout.split(' ');
+    });
+};
+
+/**
+ * Get the display name of the default and enabled Storage Class
+ * @returns The display name of the default and enabled storage class,
+ *          or an error message if none is found
+ */
+export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
+  return getStorageClassNames().then((scNames: string[]) => {
+    const checkStorageClass = (index: number): Cypress.Chainable<string> => {
+      if (index >= scNames.length) {
+        return cy.wrap('No storage class found that is both default and enabled');
+      }
+
+      return cy
+        .exec(
+          `oc get storageclass ${scNames[index]} -o jsonpath='{.metadata.annotations.opendatahub\\.io/sc-config}'`,
+          { failOnNonZeroExit: false },
+        )
+        .then((result: Cypress.Exec) => {
+          if (result.code !== 0) {
+            cy.log(`ERROR Getting ${scNames[index]} Storage Class Config
+                    stdout: ${result.stdout}
+                    stderr: ${result.stderr}`);
+            throw new Error(`Command failed with code ${result.code}`);
+          }
+          return result.stdout;
+        })
+        .then((config: string) => {
+          return cy.then(() => {
+            try {
+              const parsedConfig = JSON.parse(config);
+              if (parsedConfig.isDefault && parsedConfig.isEnabled) {
+                return parsedConfig.displayName;
+              } else {
+                return checkStorageClass(index + 1);
+              }
+            } catch (error) {
+              cy.log(`Error parsing config for ${scNames[index]}: ${error}`);
+              return checkStorageClass(index + 1);
+            }
+          });
+        });
+    };
+
+    return checkStorageClass(0);
   });
 };
 

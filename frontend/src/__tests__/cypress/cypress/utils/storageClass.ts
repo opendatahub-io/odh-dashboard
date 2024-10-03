@@ -8,9 +8,15 @@ import {
   deleteStorageClass,
   getStorageClassConfig,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import {
+  createOpenShiftProject,
+  deleteOpenShiftProject,
+  addUserToProject,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 /**
  * Provision (using oc) all necessary resources for the Storage Class testing feature
+ * (Settings -> Storage Classes)
  *
  * @param scName Project Name
  */
@@ -61,6 +67,61 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
 };
 
 export const tearDownStorageClassFeature = (createdSC: string[]): void => {
+  createdSC.forEach((scName) => {
+    cy.log(`Deleting storage class: os-sc-${scName}`);
+    deleteStorageClass(`os-sc-${scName}`);
+  });
+};
+
+/**
+ * Provision (using oc) all necessary resources for the Storage Class testing feature
+ * (DSProject Cluster Storage tab)
+ *
+ * @param scName Project Name
+ */
+export const provisionClusterStorageSCFeature = (
+  projectName: string,
+  userName: string,
+  scName: string,
+): string[] => {
+  // Provision a Project
+  createOpenShiftProject(projectName);
+  addUserToProject(projectName, userName);
+
+  const createdStorageClasses: string[] = [];
+  // Provision an enabled SC
+  const scNameEnabledToDefault = `${scName}-enabled`;
+  let SCReplacement: SCReplacements = {
+    SC_NAME: scNameEnabledToDefault,
+    SC_IS_DEFAULT: 'false',
+    SC_IS_ENABLED: 'true',
+  };
+  createStorageClass(SCReplacement);
+  createdStorageClasses.push(scNameEnabledToDefault);
+
+  // Provision an enabled SC
+  const scNameDisabledToDefault = `${scName}-disabled`;
+  SCReplacement = {
+    SC_NAME: scNameDisabledToDefault,
+    SC_IS_DEFAULT: 'false',
+    SC_IS_ENABLED: 'false',
+  };
+  createStorageClass(SCReplacement);
+  createdStorageClasses.push(scNameDisabledToDefault);
+
+  return createdStorageClasses;
+};
+
+/**
+ * Delete (using oc) all created resources for the Storage Class testing feature
+ * (DSProject Cluster Storage tab)
+ *
+ * @param scName Project Name
+ */
+export const tearDownClusterStorageSCFeature = (projectName: string, createdSC: string[]): void => {
+  // Delete provisioned projectName
+  deleteOpenShiftProject(projectName);
+  // Delete provisioned SCs
   createdSC.forEach((scName) => {
     cy.log(`Deleting storage class: os-sc-${scName}`);
     deleteStorageClass(`os-sc-${scName}`);
@@ -132,35 +193,3 @@ export const verifyStorageClassConfig = (
     return cy.wrap(result);
   });
 };
-
-// // Provision a Project
-// createOpenShiftProject(projectName);
-
-// // Create a pipeline compatible Data Connection
-// const dataConnectionReplacements: DataConnectionReplacements = {
-//   NAMESPACE: projectName,
-//   AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
-//   AWS_DEFAULT_REGION: Buffer.from(AWS_BUCKETS.BUCKET_2.REGION).toString('base64'),
-//   AWS_S3_BUCKET: Buffer.from(AWS_BUCKETS.BUCKET_2.NAME).toString('base64'),
-//   AWS_S3_ENDPOINT: Buffer.from(AWS_BUCKETS.BUCKET_2.ENDPOINT).toString('base64'),
-//   AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
-// };
-// createDataConnection(dataConnectionReplacements);
-
-// // Configure Pipeline server: Create DSPA Secret
-// const dspaSecretReplacements: DspaSecretReplacements = {
-//   DSPA_SECRET_NAME: dspaSecretName,
-//   NAMESPACE: projectName,
-//   AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
-//   AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
-// };
-// createDSPASecret(dspaSecretReplacements);
-
-// // Configure Pipeline server: Create DSPA
-// const dspaReplacements: DspaReplacements = {
-//   DSPA_SECRET_NAME: dspaSecretName,
-//   NAMESPACE: projectName,
-//   AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
-// };
-// createDSPA(dspaReplacements);
-// };

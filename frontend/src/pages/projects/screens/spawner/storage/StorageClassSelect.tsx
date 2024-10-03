@@ -67,7 +67,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           <SplitItem isFilled />
           <SplitItem>
             {config?.isDefault && (
-              <Label isCompact color="green">
+              <Label isCompact color="green" data-testid="is-default-label">
                 Default class
               </Label>
             )}

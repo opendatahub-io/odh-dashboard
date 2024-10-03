@@ -172,6 +172,10 @@ class ProjectDetails {
     this.wait(section);
   }
 
+  findSectionTab(sectionId: string) {
+    return cy.findByTestId(`${sectionId}-tab`);
+  }
+
   private wait(section = 'overview') {
     cy.findByTestId(`section-${section}`);
     cy.testA11y();
