@@ -35,7 +35,39 @@ import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/nimModelDialog';
-import { findServingPlatformLabel } from '~/__tests__/cypress/cypress/utils/nimUtils';
+import {
+  findNimModelDeployButton,
+  findNimModelServingPlatformCard,
+} from '~/__tests__/cypress/cypress/utils/nimUtils';
+
+const constructInterceptorsWithoutModelSelection = () => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableKServe: false,
+      disableModelMesh: false,
+      disableNIMModelServing: false,
+    }),
+  );
+
+  const templateMock = mockServingRuntimeTemplateK8sResource({
+    name: 'nvidia-nim-serving-template',
+    displayName: 'NVIDIA NIM',
+    platforms: [ServingRuntimePlatform.SINGLE],
+    apiProtocol: ServingRuntimeAPIProtocol.REST,
+    namespace: 'opendatahub',
+  });
+  if (templateMock.metadata.annotations != null) {
+    templateMock.metadata.annotations['opendatahub.io/dashboard'] = 'true';
+  }
+  cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+  cy.interceptK8s(TemplateModel, templateMock);
+
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ hasAnnotations: true })]),
+  );
+};
 
 const initInterceptsToEnableNim = () => {
   // not all interceptions here are required for the test to succeed
@@ -237,29 +269,102 @@ describe('Model Serving NIM', () => {
     });
   });
 
-  //TODO: This work is done by Lokesh
-  it('Check if the Nim Model UI is enabled', () => {
-    // initIntercepts({
-    //   templates: true,
-    //   disableKServeConfig: false,
-    //   disableModelConfig: false,
-    //   disableNIMModelServing: false,
-    // });
-
+  it('Check if the Nim model UI enabled on Overview tab when model server platform for the project is nim', () => {
     initInterceptsToEnableNim();
+    const componentName = 'overview';
+    projectDetails.visitSection('test-project', componentName);
+    const overviewComponent = projectDetails.findComponent(componentName);
+    overviewComponent.should('exist');
+    const deployModelButton = overviewComponent.findByTestId('model-serving-platform-button');
+    deployModelButton.should('exist');
+    validateNvidiaNimModel(deployModelButton);
+  });
+
+  it('Check if the Nim model UI enabled on models tab when model server platform for the project is nim', () => {
+    initInterceptsToEnableNim();
+    projectDetails.visitSection('test-project', 'model-server');
+    projectDetails.shouldBeEmptyState('Models', 'model-server', true);
+    projectDetails.findServingPlatformLabel().should('exist');
+
+    cy.contains('Start by adding a model server');
+    cy.contains(
+      'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed.',
+    );
+
+    const deployButton = projectDetails.findComponent('model-server').findByTestId('deploy-button');
+    validateNvidiaNimModel(deployButton);
+  });
+
+  it('Check if the Nim model UI enabled on models tab when model server platform for the project is not chosen', () => {
+    constructInterceptorsWithoutModelSelection();
 
     projectDetails.visitSection('test-project', 'model-server');
     projectDetails.shouldBeEmptyState('Models', 'model-server', true);
+    projectDetails.findServingPlatformLabel().should('not.exist');
 
-    findServingPlatformLabel().should('exist');
-    cy.findByTestId('empty-state-title').should('exist');
-    cy.findByTestId('deploy-button').should('exist');
+    projectDetails.findSingleModelDeployButton().should('exist');
+    projectDetails.findMultiModelButton().should('exist');
 
-    // projectDetails
-    //   .findNimModelServingPlatformCard()
-    //   .contains('Models are deployed using NVIDIA NIM microservices.');
-    // projectDetails
-    //   .findNimModelServingPlatformCard()
-    //   .contains('NVIDIA NIM model serving platform');
+    findNimModelServingPlatformCard().contains(
+      'Models are deployed using NVIDIA NIM microservices.',
+    );
+    findNimModelServingPlatformCard().contains('NVIDIA NIM model serving platform');
+
+    validateNvidiaNimModel(findNimModelDeployButton());
+  });
+
+  it('Check if the Nim model UI enabled on overview tab when model server platform for the project is not chosen', () => {
+    constructInterceptorsWithoutModelSelection();
+    projectDetails.visitSection('test-project', 'overview');
+
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('single-serving-platform-card')
+      .findByTestId('model-serving-platform-button')
+      .should('exist');
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('multi-serving-platform-card')
+      .findByTestId('model-serving-platform-button')
+      .should('exist');
+
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('nvidia-nim-platform-card')
+      .contains('NVIDIA NIM model serving platform');
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('nvidia-nim-platform-card')
+      .contains('Models are deployed using NVIDIA NIM microservices.');
+
+    validateNvidiaNimModel(
+      projectDetails
+        .findComponent('overview')
+        .findByTestId('nvidia-nim-platform-card')
+        .findByTestId('model-serving-platform-button'),
+    );
   });
 });
+
+//TODO: move below methods to some test util file.
+function validateNvidiaNimModel(deployButtonElement) {
+  deployButtonElement.click();
+  cy.contains('Deploy model with NVIDIA NIM');
+  cy.contains('Configure properties for deploying your model using an NVIDIA NIM.');
+
+  //find the form label Project with value as the Test Project
+  cy.contains('label', 'Project').parent().next().find('p').should('have.text', 'Test Project');
+
+  //close the model window
+  cy.get('div[role="dialog"]').get('button[aria-label="Close"]').click();
+
+  // now the nvidia nim window should not be visible.
+  cy.contains('Deploy model with NVIDIA NIM').should('not.exist');
+
+  deployButtonElement.click();
+  //validate model submit button is disabled without entering form data
+  cy.findByTestId('modal-submit-button').should('be.disabled');
+  //validate nim modal cancel button
+  cy.findByTestId('modal-cancel-button').click();
+  cy.contains('Deploy model with NVIDIA NIM').should('not.exist');
+}
