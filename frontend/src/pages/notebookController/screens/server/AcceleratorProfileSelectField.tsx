@@ -145,9 +145,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
 
   // add none option
   options.push({
-    key: '',
+    key: 'none',
     label: 'None',
-    isPlaceholder: true,
   });
 
   if (acceleratorProfileState.unknownProfileDetected) {
@@ -194,10 +193,10 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             value={
               selectedAcceleratorProfile.useExistingSettings
                 ? 'use-existing'
-                : selectedAcceleratorProfile.profile?.metadata.name ?? ''
+                : selectedAcceleratorProfile.profile?.metadata.name ?? 'none'
             }
-            onChange={(key, isPlaceholder) => {
-              if (isPlaceholder) {
+            onChange={(key) => {
+              if (key === 'none') {
                 // none
                 setSelectedAcceleratorProfile('useExistingSettings', false);
                 setSelectedAcceleratorProfile('profile', undefined);
@@ -219,6 +218,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 );
               }
             }}
+            dataTestId="accelerator-profile-select"
           />
         </FormGroup>
       </StackItem>
