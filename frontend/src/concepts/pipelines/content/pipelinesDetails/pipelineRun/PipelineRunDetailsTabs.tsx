@@ -19,10 +19,12 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
 import PipelineRunTabDetails from './PipelineRunTabDetails';
+import PipelineRunTabParameters from './PipelineRunTabParameters';
 
 enum DetailsTabKey {
   Graph = 'graph',
   Details = 'details',
+  InputParameter = 'input-parameter',
   Spec = 'spec',
 }
 
@@ -75,6 +77,16 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
             >
               <TabContentBody hasPadding>
                 <PipelineRunTabDetails workflowName={run?.display_name} run={run} />
+              </TabContentBody>
+            </Tab>
+            <Tab
+              eventKey={DetailsTabKey.InputParameter}
+              title={<TabTitleText>Input parameters</TabTitleText>}
+              aria-label="Input parameter tab"
+              data-testid="pipeline-run-tab-parameters"
+            >
+              <TabContentBody data-testid="pipeline-parameter-tab" hasPadding>
+                <PipelineRunTabParameters run={run} pipelineSpec={pipelineSpec} />
               </TabContentBody>
             </Tab>
 

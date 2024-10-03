@@ -405,6 +405,21 @@ describe('Pipeline topology', () => {
       });
     });
 
+    it('Test pipeline recurring run tab parameters', () => {
+      initIntercepts();
+
+      pipelineRecurringRunDetails.visit(
+        projectId,
+        mockVersion.pipeline_id,
+        mockVersion.pipeline_version_id,
+        mockRecurringRun.recurring_run_id,
+      );
+      pipelineRecurringRunDetails.findDetailsTab().click();
+      pipelineRecurringRunDetails.findInputParameterTab().click();
+      pipelineRecurringRunDetails.findDetailItem('min_max_scaler').findValue().contains('False');
+      pipelineRecurringRunDetails.findDetailItem('neighbors').findValue().contains('0');
+    });
+
     it('Test pipeline recurring run tab details', () => {
       initIntercepts();
 
@@ -492,6 +507,19 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findDetailItem('Started').findValue().contains('March 15, 2024');
       pipelineRunDetails.findDetailItem('Finished').findValue().contains('March 15, 2024');
       pipelineRunDetails.findDetailItem('Duration').findValue().contains('0:50');
+    });
+
+    it('Test pipeline triggered run tab parameters', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(
+        projectId,
+        mockVersion.pipeline_id,
+        mockVersion.pipeline_version_id,
+        mockRun.run_id,
+      );
+      pipelineRunDetails.findInputParameterTab().click();
+      pipelineRunDetails.findDetailItem('min_max_scaler').findValue().contains('False');
+      pipelineRunDetails.findDetailItem('neighbors').findValue().contains('1');
     });
 
     it('Test pipeline triggered run YAML output', () => {
