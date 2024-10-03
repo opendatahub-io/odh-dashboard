@@ -311,6 +311,14 @@ class InferenceServiceRow extends TableRow {
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
   }
+
+  findExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
+  }
+
+  findExternalServicePopover() {
+    return cy.findByTestId('external-service-popover');
+  }
 }
 class ServingPlatformCard extends Contextual<HTMLElement> {
   findDeployModelButton() {

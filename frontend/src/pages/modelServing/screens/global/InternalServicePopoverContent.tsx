@@ -6,6 +6,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  ListItem,
 } from '@patternfly/react-core';
 import { InferenceServiceKind } from '~/k8sTypes';
 
@@ -47,20 +48,27 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
 
   return (
     <DescriptionList isCompact>
-      {Object.entries(isInternalServiceEnabled).map(([route, value]) => (
-        <DescriptionListGroup key={route}>
-          <DescriptionListTerm>{route}</DescriptionListTerm>
-          <DescriptionListDescription>
-            <ClipboardCopy
-              hoverTip="Copy"
-              clickTip="Copied"
-              variant={ClipboardCopyVariant.inlineCompact}
-            >
-              {value}
-            </ClipboardCopy>
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ))}
+      <DescriptionListTerm>
+        Internal (can only be accessed from inside the cluster)
+      </DescriptionListTerm>
+      {Object.entries(isInternalServiceEnabled)
+        .slice(0, 2)
+        .map(([route, value]) => (
+          <DescriptionListGroup key={route}>
+            <DescriptionListTerm>
+              <ListItem>{route}</ListItem>
+            </DescriptionListTerm>
+            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-v5-global--spacer--md)' }}>
+              <ClipboardCopy
+                hoverTip="Copy"
+                clickTip="Copied"
+                variant={ClipboardCopyVariant.inlineCompact}
+              >
+                {value}
+              </ClipboardCopy>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ))}
     </DescriptionList>
   );
 };
