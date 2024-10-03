@@ -1,4 +1,11 @@
-import { ConfigMapKind, InferenceServiceKind, PersistentVolumeClaimKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
+import {
+  ConfigMapKind,
+  InferenceServiceKind,
+  PersistentVolumeClaimKind,
+  SecretKind,
+  ServingRuntimeKind,
+  TemplateKind,
+} from '~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
@@ -95,31 +102,31 @@ export const mockNimServingRuntimeTemplate = (): TemplateKind => {
 };
 
 export const mockNvidiaNimAccessSecret = (): SecretKind => {
-  let secret = mockSecretK8sResource({
+  const secret = mockSecretK8sResource({
     name: 'nvidia-nim-access',
-  })
+  });
   delete secret.data;
   secret.data = secret.data || {};
-  secret.data["api_key"] = "api-key";
-  secret.data["configMapName"] = "bnZpZGlhLW5pbS12YWxpZGF0aW9uLXJlc3VsdA=="
+  secret.data.api_key = 'api-key';
+  secret.data.configMapName = 'bnZpZGlhLW5pbS12YWxpZGF0aW9uLXJlc3VsdA==';
 
   return secret;
-}
+};
 
 export const mockNvidiaNimImagePullSecret = (): SecretKind => {
-  let secret = mockSecretK8sResource({
+  const secret = mockSecretK8sResource({
     name: 'nvidia-nim-image-pull',
-  })
+  });
   delete secret.data;
   secret.data = secret.data || {};
-  secret.data[".dockerconfigjson"] = "ZG9ja2VyY29uZmlnCg==";
+  secret.data['.dockerconfigjson'] = 'ZG9ja2VyY29uZmlnCg==';
 
   return secret;
-}
+};
 
 export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
-  let pvc = mockPVCK8sResource({
+  const pvc = mockPVCK8sResource({
     name: 'nim-pvc',
-  })
+  });
   return pvc;
-}
+};

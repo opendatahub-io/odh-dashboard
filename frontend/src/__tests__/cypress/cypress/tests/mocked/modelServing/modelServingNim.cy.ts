@@ -186,20 +186,20 @@ const initInterceptsToDeployModel = (nimInferenceService: InferenceServiceKind) 
 
   cy.interceptK8s('POST', ServingRuntimeModel, mockNimServingRuntime()).as('createServingRuntime');
 
+  // NOTES: `body` field is needed!
+  cy.intercept(
+    { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-images-data' },
+    {
+      body: { body: mockNimImages() },
+    },
+  );
   cy.intercept(
     { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-access' },
-      {
-        response: {
-          status: 200,
-          body: mockNvidiaNimAccessSecret(),
-      }
-    });
-  cy.intercept('GET', 'api/nim-serving/nvidia-nim-image-pull',
-    {
-      response: {
-        status: 200,
-        body: mockNvidiaNimImagePullSecret(),
-      }});
+    { body: { body: mockNvidiaNimAccessSecret() } },
+  );
+  cy.intercept('GET', 'api/nim-serving/nvidia-nim-image-pull', {
+    body: { body: mockNvidiaNimImagePullSecret() },
+  });
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
 };
 
@@ -270,10 +270,10 @@ describe('Model Serving NIM', () => {
       expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
     });
 
-    // nimDeployModal.shouldBeOpen(false);
+    nimDeployModal.shouldBeOpen(false);
   });
 
- it('Check if the Nim model UI enabled on Overview tab when model server platform for the project is nim', () => {
+  it('Check if the Nim model UI enabled on Overview tab when model server platform for the project is nim', () => {
     initInterceptsToEnableNim({});
     const componentName = 'overview';
     projectDetails.visitSection('test-project', componentName);
@@ -284,7 +284,7 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(deployModelButton);
   });
 
- it('Check if the Nim model UI enabled on models tab when model server platform for the project is nim', () => {
+  it('Check if the Nim model UI enabled on models tab when model server platform for the project is nim', () => {
     initInterceptsToEnableNim({});
     projectDetails.visitSection('test-project', 'model-server');
     projectDetails.shouldBeEmptyState('Models', 'model-server', true);
@@ -299,7 +299,7 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(deployButton);
   });
 
- it('Check if the Nim model UI enabled on models tab when model server platform for the project is not chosen', () => {
+  it('Check if the Nim model UI enabled on models tab when model server platform for the project is not chosen', () => {
     constructInterceptorsWithoutModelSelection();
 
     projectDetails.visitSection('test-project', 'model-server');
@@ -317,7 +317,7 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(findNimModelDeployButton());
   });
 
- it('Check if the Nim model UI enabled on overview tab when model server platform for the project is not chosen', () => {
+  it('Check if the Nim model UI enabled on overview tab when model server platform for the project is not chosen', () => {
     constructInterceptorsWithoutModelSelection();
     projectDetails.visitSection('test-project', 'overview');
 
