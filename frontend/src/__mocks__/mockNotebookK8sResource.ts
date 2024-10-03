@@ -146,6 +146,10 @@ export const mockNotebookK8sResource = ({
                     mountPath: '/opt/app-root/src',
                     name,
                   },
+                  {
+                    mountPath: '/opt/app-root/src/root',
+                    name: 'test-storage-1',
+                  },
                   ...additionalVolumeMounts,
                 ],
                 workingDir: '/opt/app-root/src',
@@ -231,6 +235,12 @@ export const mockNotebookK8sResource = ({
                 name,
                 persistentVolumeClaim: {
                   claimName: name,
+                },
+              },
+              {
+                name: 'test-storage-1',
+                persistentVolumeClaim: {
+                  claimName: 'test-storage-1',
                 },
               },
               {
