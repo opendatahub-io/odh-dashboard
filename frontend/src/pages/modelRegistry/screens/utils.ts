@@ -89,29 +89,15 @@ export const filterModelVersions = (
 
     switch (searchType) {
       case SearchType.KEYWORD: {
-        const nameMatch = mv.name.toLowerCase().includes(searchLower);
-        const descriptionMatch =
-          mv.description && mv.description.toLowerCase().includes(searchLower);
-
-        let labelMatch = false;
-        labelMatch = Object.keys(mv.customProperties).some((key) => {
-          const prop = mv.customProperties[key];
-          return (
-            key.toLowerCase().includes(searchLower) ||
-            (prop.metadataType === ModelRegistryMetadataType.STRING &&
-              prop.string_value.toLowerCase().includes(searchLower))
-          );
-        });
-
-        return nameMatch || descriptionMatch || labelMatch;
+        return (
+          mv.name.toLowerCase().includes(searchLower) ||
+          (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
+          getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))
+        );
       }
 
       case SearchType.AUTHOR: {
-        return (
-          mv.author &&
-          (mv.author.toLowerCase().includes(search.toLowerCase()) ||
-            (mv.author && mv.author.toLowerCase().includes(search.toLowerCase())))
-        );
+        return mv.author && mv.author.toLowerCase().includes(searchLower);
       }
 
       default:
@@ -141,21 +127,11 @@ export const filterRegisteredModels = (
 
     switch (searchType) {
       case SearchType.KEYWORD: {
-        const nameMatch = rm.name.toLowerCase().includes(searchLower);
-        const descriptionMatch =
-          rm.description && rm.description.toLowerCase().includes(searchLower);
-
-        let labelMatch = false;
-        labelMatch = Object.keys(rm.customProperties).some((key) => {
-          const prop = rm.customProperties[key];
-          return (
-            key.toLowerCase().includes(searchLower) ||
-            (prop.metadataType === ModelRegistryMetadataType.STRING &&
-              prop.string_value.toLowerCase().includes(searchLower))
-          );
-        });
-
-        return nameMatch || descriptionMatch || labelMatch;
+        return (
+          rm.name.toLowerCase().includes(searchLower) ||
+          (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
+          getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower))
+        );
       }
 
       case SearchType.OWNER: {
