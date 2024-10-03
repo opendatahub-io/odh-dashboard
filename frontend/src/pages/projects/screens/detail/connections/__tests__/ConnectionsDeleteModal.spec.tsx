@@ -4,8 +4,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { ConnectionsDeleteModal } from '~/pages/projects/screens/detail/connections/ConnectionsDeleteModal';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import { useRelatedNotebooks } from '~/pages/projects/notebook/useRelatedNotebooks';
-import { mockNotebookK8sResource, mockNotebookState } from '~/__mocks__';
+import {
+  mockInferenceServiceK8sResource,
+  mockNotebookK8sResource,
+  mockNotebookState,
+} from '~/__mocks__';
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
+import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
 
 jest.mock('~/pages/projects/notebook/useRelatedNotebooks', () => ({
   ...jest.requireActual('~/pages/projects/notebook/useRelatedNotebooks'),
@@ -16,8 +21,13 @@ jest.mock('~/pages/projects/notebook/useNotebooksStates', () => ({
   useNotebooksStates: jest.fn(),
 }));
 
+jest.mock('~/pages/projects/useInferenceServicesForConnection', () => ({
+  useInferenceServicesForConnection: jest.fn(),
+}));
+
 const useRelatedNotebooksMock = useRelatedNotebooks as jest.Mock;
 const useNotebooksStatesMock = useNotebooksStates as jest.Mock;
+const useInferenceServicesForConnectionMock = useInferenceServicesForConnection as jest.Mock;
 
 const mockNotebooks = [
   mockNotebookK8sResource({ name: 'connected-notebook', displayName: 'Connected notebook' }),
@@ -37,6 +47,16 @@ describe('Delete connection modal', () => {
         mockNotebookState(mockNotebooks[0], { isRunning: true }),
         mockNotebookState(mockNotebooks[1], { isStopped: true }),
       ],
+    ]);
+    useInferenceServicesForConnectionMock.mockReturnValue([
+      mockInferenceServiceK8sResource({
+        name: 'deployed-model-1',
+        displayName: 'Deployed model 1',
+      }),
+      mockInferenceServiceK8sResource({
+        name: 'deployed-model-2',
+        displayName: 'Deployed model 2',
+      }),
     ]);
   });
 
@@ -60,5 +80,14 @@ describe('Delete connection modal', () => {
     expect(notebookItems).toHaveLength(2);
     expect(notebookItems[0]).toHaveTextContent('Connected notebook (Running)');
     expect(notebookItems[1]).toHaveTextContent('Another notebook');
+
+    const modelsCountBadge = screen.getByTestId('connections-delete-models-count');
+    expect(modelsCountBadge).toHaveTextContent('2');
+    await act(() => fireEvent.click(modelsCountBadge));
+
+    const modelsItems = screen.getAllByTestId('connections-delete-models-item');
+    expect(modelsItems).toHaveLength(2);
+    expect(modelsItems[0]).toHaveTextContent('Deployed model 1');
+    expect(modelsItems[1]).toHaveTextContent('Deployed model 2');
   });
 });
