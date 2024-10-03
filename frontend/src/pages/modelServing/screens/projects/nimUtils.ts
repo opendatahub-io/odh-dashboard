@@ -1,6 +1,7 @@
 // NGC stands for NVIDIA GPU Cloud.
 
-import { ProjectKind, SecretKind, TemplateKind } from '~/k8sTypes';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getTemplate } from '~/api';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
@@ -9,7 +10,9 @@ const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
 
-export const getNIMResource = async (resourceName: string): Promise<SecretKind> => {
+export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
+  resourceName: string,
+): Promise<T> => {
   try {
     const response = await fetch(`/api/nim-serving/${resourceName}`, {
       method: 'GET',
@@ -76,4 +79,45 @@ export const getNIMServingRuntimeTemplate = async (
   } catch (error) {
     return undefined;
   }
+};
+
+export const updatePVCName = (
+  servingRuntime: ServingRuntimeKind,
+  pvcName: string,
+): ServingRuntimeKind => {
+  const updatedServingRuntime = { ...servingRuntime };
+
+  updatedServingRuntime.spec.containers = updatedServingRuntime.spec.containers.map((container) => {
+    const updatedVolumeMounts = container.volumeMounts?.map((volumeMount) => {
+      if (volumeMount.mountPath === '/mnt/models/cache') {
+        return {
+          ...volumeMount,
+          name: pvcName,
+        };
+      }
+      return volumeMount;
+    });
+
+    return {
+      ...container,
+      volumeMounts: updatedVolumeMounts,
+    };
+  });
+
+  const updatedVolumes = updatedServingRuntime.spec.volumes?.map((volume) => {
+    if (volume.name === 'nim-pvc') {
+      return {
+        ...volume,
+        name: pvcName,
+        persistentVolumeClaim: {
+          claimName: pvcName,
+        },
+      };
+    }
+    return volume;
+  });
+
+  updatedServingRuntime.spec.volumes = updatedVolumes;
+
+  return updatedServingRuntime;
 };

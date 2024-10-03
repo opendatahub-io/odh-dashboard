@@ -45,7 +45,10 @@ import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/project
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
-import { getNIMServingRuntimeTemplate } from '~/pages/modelServing/screens/projects/nimUtils';
+import {
+  getNIMServingRuntimeTemplate,
+  updatePVCName,
+} from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 
@@ -95,7 +98,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-  const nimPVCName = getUniqueId('nim-pvc');
+  const [nimPVCName] = React.useState(() => getUniqueId('nim-pvc'));
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -156,11 +159,18 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   React.useEffect(() => {
     const fetchNIMServingRuntimeTemplate = async () => {
       const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
-      setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
+      if (nimTemplate) {
+        const servingRuntime = getServingRuntimeFromTemplate(nimTemplate);
+        setServingRuntimeSelected(
+          servingRuntime ? updatePVCName(servingRuntime, nimPVCName) : undefined,
+        );
+      } else {
+        setServingRuntimeSelected(undefined);
+      }
     };
 
     fetchNIMServingRuntimeTemplate();
-  }, [dashboardNamespace, editInfo]);
+  }, [dashboardNamespace, editInfo, nimPVCName]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -203,7 +213,6 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       projectContext?.currentProject,
       servingRuntimeName,
       true,
-      nimPVCName,
     );
 
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
