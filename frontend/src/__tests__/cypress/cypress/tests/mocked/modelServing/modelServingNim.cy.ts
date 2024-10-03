@@ -30,7 +30,12 @@ import {
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { mock200Status, mockNotebookK8sResource, mockRouteK8sResource, mockStorageClasses } from '~/__mocks__';
+import {
+  mock200Status,
+  mockNotebookK8sResource,
+  mockRouteK8sResource,
+  mockStorageClasses,
+} from '~/__mocks__';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
 import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
@@ -40,8 +45,13 @@ import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/nimModelDialog
 import {
   findNimModelDeployButton,
   findNimModelServingPlatformCard,
+  validateNvidiaNimModel,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import type { InferenceServiceKind } from '~/k8sTypes';
+import {
+  modelServingGlobal,
+  modelServingSection,
+} from '~/__tests__/cypress/cypress/pages/modelServing';
 
 // this will intercept all the APIs to create a new project without selecting the model runtime from available models run times.
 const initInterceptorsForNewProjectWithoutModelSelection = (
@@ -471,27 +481,30 @@ describe('Model Serving NIM', () => {
       cy.wait('@deleteRuntime');
     });
   });
+
+  it('When the project model as nim and no deployments then model serving page should show No Deployed model with link to project', () => {
+    initInterceptsToEnableNim({});
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.shouldBeEmpty();
+    modelServingGlobal.findGoToProjectButton().click();
+  });
+
+  it('When the project model is Nim then model serving page should show deployments of the project', () => {
+    initInterceptsToEnableNim({});
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Name').get('button[aria-label="Kebab toggle"]').click();
+
+    modelServingGlobal
+      .getModelRow('Test Name')
+      .get('button[role="menuitem"]')
+      .should('have.length', 1);
+    modelServingGlobal
+      .getModelRow('Test Name')
+      .get('button[role="menuitem"]')
+      .contains('Delete')
+      .should('exist');
+  });
 });
-
-//TODO: move below methods to some test util file.
-function validateNvidiaNimModel(deployButtonElement) {
-  deployButtonElement.click();
-  cy.contains('Deploy model with NVIDIA NIM');
-  cy.contains('Configure properties for deploying your model using an NVIDIA NIM.');
-
-  //find the form label Project with value as the Test Project
-  cy.contains('label', 'Project').parent().next().find('p').should('have.text', 'Test Project');
-
-  //close the model window
-  cy.get('div[role="dialog"]').get('button[aria-label="Close"]').click();
-
-  // now the nvidia nim window should not be visible.
-  cy.contains('Deploy model with NVIDIA NIM').should('not.exist');
-
-  deployButtonElement.click();
-  //validate model submit button is disabled without entering form data
-  cy.findByTestId('modal-submit-button').should('be.disabled');
-  //validate nim modal cancel button
-  cy.findByTestId('modal-cancel-button').click();
-  cy.contains('Deploy model with NVIDIA NIM').should('not.exist');
-}
