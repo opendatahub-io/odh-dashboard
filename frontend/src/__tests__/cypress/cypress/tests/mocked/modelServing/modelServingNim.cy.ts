@@ -30,7 +30,7 @@ import {
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { mockNotebookK8sResource, mockRouteK8sResource, mockStorageClasses } from '~/__mocks__';
+import { mock200Status, mockNotebookK8sResource, mockRouteK8sResource, mockStorageClasses } from '~/__mocks__';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
 import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
@@ -168,6 +168,34 @@ const initInterceptsToDeployModel = (nimInferenceService: InferenceServiceKind) 
     body: { body: mockNvidiaNimImagePullSecret() },
   });
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
+};
+
+const initInterceptsForDeleteModel = () => {
+  // create initial inference and runtime
+  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+  cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
+
+  // intercept delete inference request
+  cy.interceptK8s(
+    'DELETE',
+    {
+      model: InferenceServiceModel,
+      ns: 'test-project',
+      name: 'test-name',
+    },
+    mock200Status({}),
+  ).as('deleteInference');
+
+  // intercept delete runtime request
+  cy.interceptK8s(
+    'DELETE',
+    {
+      model: ServingRuntimeModel,
+      ns: 'test-project',
+      name: 'test-name',
+    },
+    mock200Status({}),
+  ).as('deleteRuntime');
 };
 
 describe('Model Serving NIM', () => {
@@ -409,6 +437,39 @@ describe('Model Serving NIM', () => {
     findNimModelServingPlatformCard().should('not.exist');
     cy.contains('NVIDIA NIM model serving platform').should('not.exist');
     cy.contains('Models are deployed using NVIDIA NIM microservices.').should('not.exist');
+  });
+
+  describe('Delete existing model', () => {
+    it("should only allow deletion the project's models tab", () => {
+      initInterceptsToEnableNim({});
+      initInterceptsForDeleteModel();
+
+      // go the Models tab in the created project
+      projectDetails.visitSection('test-project', 'model-server');
+      // grab the deployed models table and click the kebab menu
+      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
+      cy.get('ul[role="menu"]').should('have.length', 1);
+    });
+
+    it("should be able to delete from project's models tab", () => {
+      initInterceptsToEnableNim({});
+      initInterceptsForDeleteModel();
+
+      // go the Models tab in the created project
+      projectDetails.visitSection('test-project', 'model-server');
+      // grab the deployed models table and click the kebab menu
+      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
+      // grab the delete menu and click it
+      cy.get('button').contains('Delete').click();
+      // grab the delete menu window and put in the project name
+      cy.get('input[id="delete-modal-input"]').fill('Test Name');
+      // grab the delete button and click it
+      cy.get('button').contains('Delete deployed model').click();
+
+      // verify the model was deleted
+      cy.wait('@deleteInference');
+      cy.wait('@deleteRuntime');
+    });
   });
 });
 
