@@ -24,7 +24,6 @@ export const allFeatureFlags: string[] = Object.keys({
   disableKServeMetrics: false,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
-  disablePipelineExperiments: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
   disableConnectionTypes: false,
@@ -106,10 +105,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.TRUSTY_AI]: {
     requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.BIAS_METRICS],
-  },
-  [SupportedArea.PIPELINE_EXPERIMENTS]: {
-    featureFlags: ['disablePipelineExperiments'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
   },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],

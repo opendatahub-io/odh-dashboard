@@ -133,7 +133,7 @@ const shouldFilterItems = (filter: FilterArgs, query?: string) => {
 };
 
 const initIntercepts = (interceptMlmd: boolean, isExecutionsEmpty?: boolean) => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
     mockK8sResourceList([

@@ -29,7 +29,6 @@ import { ValueOf } from '~/typeHelpers';
 import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
 import { asEnumMember } from '~/utilities/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useDefaultExperiment from '~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
@@ -64,7 +63,6 @@ const RunPage: React.FC<RunPageProps> = ({
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
   const isSchedule = runType === RunTypeOption.SCHEDULED;
 
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const [defaultExperiment] = useDefaultExperiment();
 
   const jumpToSections = Object.values(CreateRunPageSections).filter(
@@ -104,21 +102,10 @@ const RunPage: React.FC<RunPageProps> = ({
     [setFormDataValue],
   );
 
-  const runPageSectionTitlesEdited = isExperimentsAvailable
-    ? runPageSectionTitles
-    : {
-        ...runPageSectionTitles,
-        [CreateRunPageSections.PROJECT_AND_EXPERIMENT]: 'Project',
-      };
-
   return (
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
-        <GenericSidebar
-          sections={jumpToSections}
-          titles={runPageSectionTitlesEdited}
-          maxWidth={175}
-        >
+        <GenericSidebar sections={jumpToSections} titles={runPageSectionTitles} maxWidth={175}>
           <RunForm isCloned={!!cloneRun} data={formData} onValueChange={onValueChange} />
         </GenericSidebar>
       </PageSection>
