@@ -9,21 +9,6 @@ import { TRUSTYAI_DEFINITION_NAME } from '~/concepts/trustyai/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { TrustyAIApplicationsModel } from '~/api/models/trustyai';
 
-const trustyAIDefaultCRSpec: TrustyAIKind['spec'] = {
-  storage: {
-    format: 'PVC',
-    folder: '/inputs',
-    size: '1Gi',
-  },
-  data: {
-    filename: 'data.csv',
-    format: 'CSV',
-  },
-  metrics: {
-    schedule: '5s',
-  },
-};
-
 export const getTrustyAICR = async (
   namespace: string,
   opts?: K8sAPIOptions,
@@ -43,6 +28,7 @@ export const getTrustyAICR = async (
 
 export const createTrustyAICR = async (
   namespace: string,
+  secretName: string,
   opts?: K8sAPIOptions,
 ): Promise<TrustyAIKind> => {
   const resource: TrustyAIKind = {
@@ -52,7 +38,15 @@ export const createTrustyAICR = async (
       name: TRUSTYAI_DEFINITION_NAME,
       namespace,
     },
-    spec: trustyAIDefaultCRSpec,
+    spec: {
+      storage: {
+        format: 'DATABASE',
+        databaseConfigurations: secretName,
+      },
+      metrics: {
+        schedule: '5s',
+      },
+    },
   };
 
   return k8sCreateResource<TrustyAIKind>(

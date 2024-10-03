@@ -6,6 +6,34 @@ import {
 } from '~/api';
 import { K8sAPIOptions } from '~/k8sTypes';
 
+export enum TrustyInstallState {
+  UNINSTALLING = 'uninstalling',
+  INSTALLED = 'installed',
+  INSTALLING = 'installing',
+  ERROR = 'error',
+  UNINSTALLED = 'uninstalled',
+  LOADING_INITIAL_STATE = 'unknown',
+}
+
+export type TrustyStatusStates =
+  | { type: TrustyInstallState.ERROR; message: string }
+  | { type: TrustyInstallState.LOADING_INITIAL_STATE }
+  | { type: TrustyInstallState.INSTALLED; showSuccess: boolean; onDismissSuccess?: () => void }
+  | { type: TrustyInstallState.INSTALLING }
+  | { type: TrustyInstallState.UNINSTALLING }
+  | { type: TrustyInstallState.UNINSTALLED };
+
+/** Structure matches K8s Secret structure */
+export type TrustyDBData = {
+  databaseKind: string;
+  databaseUsername: string;
+  databasePassword: string;
+  databaseService: string;
+  databasePort: string;
+  databaseName: string;
+  databaseGeneration: string;
+};
+
 export type ListRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
 export type ListSpdRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
 export type ListDirRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
