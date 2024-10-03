@@ -8,29 +8,19 @@ import {
   EmptyStateIcon,
   Spinner,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
 import { useActiveExperiments } from '~/concepts/pipelines/apiHooks/useExperiments';
 import ActiveExperimentTable from '~/concepts/pipelines/content/tables/experiment/ActiveExperimentTable';
 import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
+import ExperimentLoadingError from '~/concepts/pipelines/content/experiments/ExperimentLoadingError';
 
 const ActiveExperimentsList: React.FC = () => {
   const [[{ items: experiments, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     createUsePipelineTable(useActiveExperiments)();
 
   if (error) {
-    return (
-      <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading experiments"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
-          <EmptyStateBody>{error.message}</EmptyStateBody>
-        </EmptyState>
-      </Bullseye>
-    );
+    return <ExperimentLoadingError error={error} />;
   }
 
   if (!loaded && !initialLoaded) {
