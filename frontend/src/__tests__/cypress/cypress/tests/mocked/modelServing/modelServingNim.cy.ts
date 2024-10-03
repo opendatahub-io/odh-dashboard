@@ -5,6 +5,7 @@ import {
   mockNimImages,
   mockNimInferenceService,
   mockNimServingRuntime,
+  mockNimServingRuntimeTemplate,
 } from '~/__mocks__/mockNimResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
@@ -50,16 +51,7 @@ const constructInterceptorsWithoutModelSelection = () => {
     }),
   );
 
-  const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'nvidia-nim-serving-template',
-    displayName: 'NVIDIA NIM',
-    platforms: [ServingRuntimePlatform.SINGLE],
-    apiProtocol: ServingRuntimeAPIProtocol.REST,
-    namespace: 'opendatahub',
-  });
-  if (templateMock.metadata.annotations != null) {
-    templateMock.metadata.annotations['opendatahub.io/dashboard'] = 'true';
-  }
+  const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
   cy.interceptK8s(TemplateModel, templateMock);
 
@@ -123,17 +115,7 @@ const initInterceptsToEnableNim = () => {
 
   cy.interceptK8sList(RoleBindingModel, mockK8sResourceList([mockRoleBindingK8sResource({})]));
 
-  const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'nvidia-nim-serving-template',
-    displayName: 'NVIDIA NIM',
-    platforms: [ServingRuntimePlatform.SINGLE],
-    apiProtocol: ServingRuntimeAPIProtocol.REST,
-    namespace: 'opendatahub',
-  });
-  if (templateMock.metadata.annotations != null) {
-    templateMock.metadata.annotations['opendatahub.io/dashboard'] = 'true';
-  }
-
+  const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
   cy.interceptK8s(TemplateModel, templateMock);
 

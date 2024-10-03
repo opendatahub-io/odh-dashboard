@@ -1,7 +1,9 @@
-import { ConfigMapKind, InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ConfigMapKind, InferenceServiceKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from './mockServingRuntimeTemplateK8sResource';
 
 export const mockNimImages = (): ConfigMapKind =>
   mockConfigMap({
@@ -57,4 +59,19 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
   }
 
   return servingRuntime;
+};
+
+export const mockNimServingRuntimeTemplate = (): TemplateKind => {
+  const templateMock = mockServingRuntimeTemplateK8sResource({
+    name: 'nvidia-nim-serving-template',
+    displayName: 'NVIDIA NIM',
+    platforms: [ServingRuntimePlatform.SINGLE],
+    apiProtocol: ServingRuntimeAPIProtocol.REST,
+    namespace: 'opendatahub',
+  });
+  if (templateMock.metadata.annotations != null) {
+    templateMock.metadata.annotations['opendatahub.io/dashboard'] = 'true';
+  }
+
+  return templateMock;
 };
