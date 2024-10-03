@@ -43,19 +43,18 @@ import {
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import type { InferenceServiceKind } from '~/k8sTypes';
 
-const constructInterceptorsWithoutModelSelection = () => {
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableKServe: false,
-      disableModelMesh: false,
-      disableNIMModelServing: false,
-    }),
-  );
+// this will intercept all the APIs to create a new project without selecting the model runtime from available models run times.
+const initInterceptorsForNewProjectWithoutModelSelection = (
+  dashboardConfig: MockDashboardConfigType,
+  disableServingRuntime = false,
+) => {
+  cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
 
-  const templateMock = mockNimServingRuntimeTemplate();
-  cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-  cy.interceptK8s(TemplateModel, templateMock);
+  if (!disableServingRuntime) {
+    const templateMock = mockNimServingRuntimeTemplate();
+    cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+    cy.interceptK8s(TemplateModel, templateMock);
+  }
 
   cy.interceptK8sList(
     ProjectModel,
@@ -139,44 +138,12 @@ const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimConfigType
     mockK8sResourceList([mockAcceleratorProfile({ namespace: 'opendatahub' })]),
   );
 
-  // TODO not required but eliminates not-blocking error response
-  // cy.interceptK8sList(
-  //   ServingRuntimeModel,
-  //   mockK8sResourceList([
-  //     mockServingRuntimeK8sResource({
-  //       name: 'nvidia-nim-runtime',
-  //       disableModelMeshAnnotations: true,
-  //       disableResources: true,
-  //       acceleratorName: 'nvidia.com/gpu',
-  //       displayName: 'NVIDIA NIM',
-  //     }),
-  //   ]),
-  // );
-
-  // TODO not required but eliminates not-blocking error response
-  // cy.interceptK8sList(
-  //   InferenceServiceModel,
-  //   mockK8sResourceList([mockInferenceServiceK8sResource({})])
-  // );
-
   cy.interceptK8s(RouteModel, mockRouteK8sResource({}));
 
   cy.interceptOdh('GET /api/accelerators', {
     configured: true,
     available: { 'nvidia.com/gpu': 1 },
   });
-
-  // TODO do we need to mock this?
-  // cy.interceptK8s(
-  //   ConfigMapModel,
-  //   mockConfigMap({
-  //     data: {
-  //       validation_result: 'true',
-  //     },
-  //     namespace: 'opendatahub',
-  //     name: 'nvidia-nim-validation-result',
-  //   }),
-  // );
 };
 
 const initInterceptsToDeployModel = (nimInferenceService: InferenceServiceKind) => {
@@ -204,15 +171,6 @@ const initInterceptsToDeployModel = (nimInferenceService: InferenceServiceKind) 
 };
 
 describe('Model Serving NIM', () => {
-  it('should do something', () => {
-    initInterceptsToEnableNim({});
-    projectDetails.visitSection('test-project', 'model-server');
-    // modelServingSection
-    //   .getServingPlatformCard('nvidia-nim-platform-card')
-    //   .findDeployModelButton()
-    //   .click();
-  });
-
   it('Deploy NIM model when all model cards are available', () => {
     initInterceptsToEnableNim({ hasAllModels: true });
 
@@ -273,7 +231,7 @@ describe('Model Serving NIM', () => {
     nimDeployModal.shouldBeOpen(false);
   });
 
-  it('Check if the Nim model UI enabled on Overview tab when model server platform for the project is nim', () => {
+  it('Check if the Nim model UI enabled on Overview tab when all the configuration enabled to display nim', () => {
     initInterceptsToEnableNim({});
     const componentName = 'overview';
     projectDetails.visitSection('test-project', componentName);
@@ -284,7 +242,7 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(deployModelButton);
   });
 
-  it('Check if the Nim model UI enabled on models tab when model server platform for the project is nim', () => {
+  it('Check if the Nim model UI enabled on models tab when all the configuration enabled to display nim', () => {
     initInterceptsToEnableNim({});
     projectDetails.visitSection('test-project', 'model-server');
     projectDetails.shouldBeEmptyState('Models', 'model-server', true);
@@ -300,7 +258,11 @@ describe('Model Serving NIM', () => {
   });
 
   it('Check if the Nim model UI enabled on models tab when model server platform for the project is not chosen', () => {
-    constructInterceptorsWithoutModelSelection();
+    initInterceptorsForNewProjectWithoutModelSelection({
+      disableKServe: false,
+      disableModelMesh: false,
+      disableNIMModelServing: false,
+    });
 
     projectDetails.visitSection('test-project', 'model-server');
     projectDetails.shouldBeEmptyState('Models', 'model-server', true);
@@ -309,16 +271,19 @@ describe('Model Serving NIM', () => {
     projectDetails.findSingleModelDeployButton().should('exist');
     projectDetails.findMultiModelButton().should('exist');
 
-    findNimModelServingPlatformCard().contains(
-      'Models are deployed using NVIDIA NIM microservices.',
-    );
-    findNimModelServingPlatformCard().contains('NVIDIA NIM model serving platform');
+    findNimModelServingPlatformCard()
+      .should('contain', 'Models are deployed using NVIDIA NIM microservices.')
+      .and('contain', 'NVIDIA NIM model serving platform');
 
     validateNvidiaNimModel(findNimModelDeployButton());
   });
 
   it('Check if the Nim model UI enabled on overview tab when model server platform for the project is not chosen', () => {
-    constructInterceptorsWithoutModelSelection();
+    initInterceptorsForNewProjectWithoutModelSelection({
+      disableKServe: false,
+      disableModelMesh: false,
+      disableNIMModelServing: false,
+    });
     projectDetails.visitSection('test-project', 'overview');
 
     projectDetails
@@ -335,11 +300,8 @@ describe('Model Serving NIM', () => {
     projectDetails
       .findComponent('overview')
       .findByTestId('nvidia-nim-platform-card')
-      .contains('NVIDIA NIM model serving platform');
-    projectDetails
-      .findComponent('overview')
-      .findByTestId('nvidia-nim-platform-card')
-      .contains('Models are deployed using NVIDIA NIM microservices.');
+      .should('contain', 'NVIDIA NIM model serving platform')
+      .and('contain', 'Models are deployed using NVIDIA NIM microservices.');
 
     validateNvidiaNimModel(
       projectDetails
@@ -347,6 +309,106 @@ describe('Model Serving NIM', () => {
         .findByTestId('nvidia-nim-platform-card')
         .findByTestId('model-serving-platform-button'),
     );
+  });
+
+  it('Check if the Nim model UI disabled on overview tab when dashboard config disableNIMModelServing is true', () => {
+    initInterceptorsForNewProjectWithoutModelSelection({
+      disableKServe: false,
+      disableModelMesh: false,
+      disableNIMModelServing: true,
+    });
+
+    projectDetails.visitSection('test-project', 'overview');
+
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('single-serving-platform-card')
+      .findByTestId('model-serving-platform-button')
+      .should('exist');
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('multi-serving-platform-card')
+      .findByTestId('model-serving-platform-button')
+      .should('exist');
+
+    projectDetails
+      .findComponent('overview')
+      .find('[data-testid="nvidia-nim-platform-card"]')
+      .should('not.exist');
+
+    cy.contains('NVIDIA NIM model serving platform').should('not.exist');
+    cy.contains('Models are deployed using NVIDIA NIM microservices.').should('not.exist');
+  });
+
+  it('Check if the Nim model UI disabled on models tab when dashboard config disableNIMModelServing is true', () => {
+    initInterceptorsForNewProjectWithoutModelSelection({
+      disableKServe: false,
+      disableModelMesh: false,
+      disableNIMModelServing: true,
+    });
+    projectDetails.visitSection('test-project', 'model-server');
+    projectDetails.shouldBeEmptyState('Models', 'model-server', true);
+    projectDetails.findServingPlatformLabel().should('not.exist');
+
+    projectDetails.findSingleModelDeployButton().should('exist');
+    projectDetails.findMultiModelButton().should('exist');
+
+    findNimModelServingPlatformCard().should('not.exist');
+    cy.contains('NVIDIA NIM model serving platform').should('not.exist');
+    cy.contains('Models are deployed using NVIDIA NIM microservices.').should('not.exist');
+  });
+
+  it('Check if the Nim model UI disabled on overview tab when no service runtime not configured', () => {
+    initInterceptorsForNewProjectWithoutModelSelection(
+      {
+        disableKServe: false,
+        disableModelMesh: false,
+        disableNIMModelServing: false,
+      },
+      true,
+    );
+
+    projectDetails.visitSection('test-project', 'overview');
+
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('single-serving-platform-card')
+      .findByTestId('model-serving-platform-button')
+      .should('exist');
+    projectDetails
+      .findComponent('overview')
+      .findByTestId('multi-serving-platform-card')
+      .findByTestId('model-serving-platform-button')
+      .should('exist');
+
+    projectDetails
+      .findComponent('overview')
+      .find('[data-testid="nvidia-nim-platform-card"]')
+      .should('not.exist');
+
+    cy.contains('NVIDIA NIM model serving platform').should('not.exist');
+    cy.contains('Models are deployed using NVIDIA NIM microservices.').should('not.exist');
+  });
+
+  it('Check if the Nim model UI disabled on models tab when no service runtime not configured', () => {
+    initInterceptorsForNewProjectWithoutModelSelection(
+      {
+        disableKServe: false,
+        disableModelMesh: false,
+        disableNIMModelServing: false,
+      },
+      true,
+    );
+    projectDetails.visitSection('test-project', 'model-server');
+    projectDetails.shouldBeEmptyState('Models', 'model-server', true);
+    projectDetails.findServingPlatformLabel().should('not.exist');
+
+    projectDetails.findSingleModelDeployButton().should('exist');
+    projectDetails.findMultiModelButton().should('exist');
+
+    findNimModelServingPlatformCard().should('not.exist');
+    cy.contains('NVIDIA NIM model serving platform').should('not.exist');
+    cy.contains('Models are deployed using NVIDIA NIM microservices.').should('not.exist');
   });
 });
 
