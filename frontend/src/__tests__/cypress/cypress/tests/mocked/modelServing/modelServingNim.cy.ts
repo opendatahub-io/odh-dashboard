@@ -4,12 +4,14 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import {
   mockNimImages,
   mockNimInferenceService,
+  mockNimModelPVC,
   mockNimServingRuntime,
   mockNimServingRuntimeTemplate,
+  mockNvidiaNimAccessSecret,
+  mockNvidiaNimImagePullSecret,
 } from '~/__mocks__/mockNimResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   AcceleratorProfileModel,
   ConfigMapModel,
@@ -25,7 +27,6 @@ import {
   StorageClassModel,
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
@@ -40,6 +41,7 @@ import {
   findNimModelDeployButton,
   findNimModelServingPlatformCard,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
+import type { InferenceServiceKind } from '~/k8sTypes';
 
 const constructInterceptorsWithoutModelSelection = () => {
   cy.interceptOdh(
@@ -61,14 +63,22 @@ const constructInterceptorsWithoutModelSelection = () => {
   );
 };
 
-const initInterceptsToEnableNim = () => {
+type EnableNimConfigType = {
+  hasAllModels?: boolean;
+};
+
+const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimConfigType) => {
   // not all interceptions here are required for the test to succeed
   // some are here to eliminate (not-blocking) error responses to ease with debugging
 
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: { kserve: true, 'model-mesh': true },
+      installedComponents: {
+        'data-science-pipelines-operator': true,
+        kserve: true,
+        'model-mesh': true,
+      },
     }),
   );
 
@@ -93,7 +103,10 @@ const initInterceptsToEnableNim = () => {
 
   cy.interceptOdh('GET /api/segment-key', {});
 
-  const project = mockProjectK8sResource({ hasAnnotations: true, enableModelMesh: false });
+  const project = mockProjectK8sResource({
+    hasAnnotations: true,
+    enableModelMesh: hasAllModels ? undefined : false,
+  });
   if (project.metadata.annotations != null) {
     project.metadata.annotations['opendatahub.io/nim-support'] = 'true';
   }
@@ -166,19 +179,33 @@ const initInterceptsToEnableNim = () => {
   // );
 };
 
-const initInterceptsToDeployModel = () => {
+const initInterceptsToDeployModel = (nimInferenceService: InferenceServiceKind) => {
   cy.interceptK8s(ConfigMapModel, mockNimImages());
   cy.interceptK8s('POST', SecretModel, mockSecretK8sResource({}));
-  cy.interceptK8s('POST', InferenceServiceModel, mockNimInferenceService()).as(
-    'createInferenceService',
-  );
+  cy.interceptK8s('POST', InferenceServiceModel, nimInferenceService).as('createInferenceService');
 
   cy.interceptK8s('POST', ServingRuntimeModel, mockNimServingRuntime()).as('createServingRuntime');
+
+  cy.intercept(
+    { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-access' },
+      {
+        response: {
+          status: 200,
+          body: mockNvidiaNimAccessSecret(),
+      }
+    });
+  cy.intercept('GET', 'api/nim-serving/nvidia-nim-image-pull',
+    {
+      response: {
+        status: 200,
+        body: mockNvidiaNimImagePullSecret(),
+      }});
+  cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
 };
 
 describe('Model Serving NIM', () => {
   it('should do something', () => {
-    initInterceptsToEnableNim();
+    initInterceptsToEnableNim({});
     projectDetails.visitSection('test-project', 'model-server');
     // modelServingSection
     //   .getServingPlatformCard('nvidia-nim-platform-card')
@@ -186,13 +213,27 @@ describe('Model Serving NIM', () => {
     //   .click();
   });
 
-  it('Deploy NIM model', () => {
-    initInterceptsToEnableNim();
-    initInterceptsToDeployModel();
+  it('Deploy NIM model when all model cards are available', () => {
+    initInterceptsToEnableNim({ hasAllModels: true });
 
     projectDetails.visitSection('test-project', 'model-server');
     // For multiple cards use case
-    // findNimModelDeployButton().click();
+    findNimModelDeployButton().click();
+    cy.contains('Deploy model with NVIDIA NIM').should('be.visible');
+
+    // test that you can not submit on empty
+    nimDeployModal.shouldBeOpen();
+    nimDeployModal.findSubmitButton().should('be.disabled');
+
+    // Actual dialog tests in the next test case
+  });
+
+  it('Deploy NIM model when no cards are available', () => {
+    initInterceptsToEnableNim({});
+    const nimInferenceService = mockNimInferenceService();
+    initInterceptsToDeployModel(nimInferenceService);
+
+    projectDetails.visitSection('test-project', 'model-server');
     cy.findByTestId('deploy-button').should('exist');
     cy.findByTestId('deploy-button').click();
     cy.contains('Deploy model with NVIDIA NIM').should('be.visible');
@@ -212,33 +253,12 @@ describe('Model Serving NIM', () => {
     nimDeployModal.findSubmitButton().click();
 
     //dry run request
+    if (nimInferenceService.status) {
+      delete nimInferenceService.status;
+    }
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.eql({
-        apiVersion: 'serving.kserve.io/v1beta1',
-        kind: 'InferenceService',
-        metadata: {
-          name: 'test-name',
-          namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          annotations: {
-            'openshift.io/display-name': 'Test Name',
-          },
-        },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: { name: 'llama-2-13b-chat' },
-              runtime: 'test-name',
-              storage: { key: 'test-secret', path: 'test-model/' },
-            },
-            resources: {
-              limits: { cpu: '2', memory: '8Gi' },
-              requests: { cpu: '1', memory: '4Gi' },
-            },
-          },
-        },
-      });
+      expect(interception.request.body).to.eql(nimInferenceService);
     });
 
     // Actual request
@@ -249,10 +269,12 @@ describe('Model Serving NIM', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
     });
+
+    // nimDeployModal.shouldBeOpen(false);
   });
 
-  it('Check if the Nim model UI enabled on Overview tab when model server platform for the project is nim', () => {
-    initInterceptsToEnableNim();
+ it('Check if the Nim model UI enabled on Overview tab when model server platform for the project is nim', () => {
+    initInterceptsToEnableNim({});
     const componentName = 'overview';
     projectDetails.visitSection('test-project', componentName);
     const overviewComponent = projectDetails.findComponent(componentName);
@@ -262,8 +284,8 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(deployModelButton);
   });
 
-  it('Check if the Nim model UI enabled on models tab when model server platform for the project is nim', () => {
-    initInterceptsToEnableNim();
+ it('Check if the Nim model UI enabled on models tab when model server platform for the project is nim', () => {
+    initInterceptsToEnableNim({});
     projectDetails.visitSection('test-project', 'model-server');
     projectDetails.shouldBeEmptyState('Models', 'model-server', true);
     projectDetails.findServingPlatformLabel().should('exist');
@@ -277,7 +299,7 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(deployButton);
   });
 
-  it('Check if the Nim model UI enabled on models tab when model server platform for the project is not chosen', () => {
+ it('Check if the Nim model UI enabled on models tab when model server platform for the project is not chosen', () => {
     constructInterceptorsWithoutModelSelection();
 
     projectDetails.visitSection('test-project', 'model-server');
@@ -295,7 +317,7 @@ describe('Model Serving NIM', () => {
     validateNvidiaNimModel(findNimModelDeployButton());
   });
 
-  it('Check if the Nim model UI enabled on overview tab when model server platform for the project is not chosen', () => {
+ it('Check if the Nim model UI enabled on overview tab when model server platform for the project is not chosen', () => {
     constructInterceptorsWithoutModelSelection();
     projectDetails.visitSection('test-project', 'overview');
 

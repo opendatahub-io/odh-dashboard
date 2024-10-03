@@ -28,7 +28,8 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
     const resourceData = await response.json();
     return resourceData.body;
   } catch (error) {
-    throw new Error(`Failed to fetch the resource: ${resourceName}.`);
+    console.log('ERROR ', error);
+    throw new Error(`Failed to fetch the resource: ${resourceName}. ` + error);
   }
 };
 export const getNIMData = async (isNGC: boolean): Promise<Record<string, string> | undefined> => {

@@ -1,9 +1,11 @@
-import { ConfigMapKind, InferenceServiceKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
+import { ConfigMapKind, InferenceServiceKind, PersistentVolumeClaimKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from './mockServingRuntimeTemplateK8sResource';
+import { mockSecretK8sResource } from './mockSecretK8sResource';
+import { mockPVCK8sResource } from './mockPVCK8sResource';
 
 export const mockNimImages = (): ConfigMapKind =>
   mockConfigMap({
@@ -41,10 +43,26 @@ export const mockNimImages = (): ConfigMapKind =>
 export const mockNimInferenceService = (): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
-    modelName: 'alphafold2',
+    modelName: 'test-name',
     displayName: 'Test Name',
-    isModelMesh: true,
+    kserveInternalLabel: true,
+    resources: {
+      limits: { cpu: '2', memory: '8Gi' },
+      requests: { cpu: '1', memory: '4Gi' },
+    },
   });
+  delete inferenceService.metadata.labels?.name;
+  delete inferenceService.metadata.creationTimestamp;
+  delete inferenceService.metadata.generation;
+  delete inferenceService.metadata.resourceVersion;
+  delete inferenceService.metadata.uid;
+  if (inferenceService.spec.predictor.model?.modelFormat) {
+    inferenceService.spec.predictor.model.modelFormat.name = 'arctic-embed-l';
+  }
+  delete inferenceService.spec.predictor.model?.modelFormat?.version;
+  delete inferenceService.spec.predictor.model?.storage;
+  delete inferenceService.status;
+
   return inferenceService;
 };
 
@@ -75,3 +93,33 @@ export const mockNimServingRuntimeTemplate = (): TemplateKind => {
 
   return templateMock;
 };
+
+export const mockNvidiaNimAccessSecret = (): SecretKind => {
+  let secret = mockSecretK8sResource({
+    name: 'nvidia-nim-access',
+  })
+  delete secret.data;
+  secret.data = secret.data || {};
+  secret.data["api_key"] = "api-key";
+  secret.data["configMapName"] = "bnZpZGlhLW5pbS12YWxpZGF0aW9uLXJlc3VsdA=="
+
+  return secret;
+}
+
+export const mockNvidiaNimImagePullSecret = (): SecretKind => {
+  let secret = mockSecretK8sResource({
+    name: 'nvidia-nim-image-pull',
+  })
+  delete secret.data;
+  secret.data = secret.data || {};
+  secret.data[".dockerconfigjson"] = "ZG9ja2VyY29uZmlnCg==";
+
+  return secret;
+}
+
+export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
+  let pvc = mockPVCK8sResource({
+    name: 'nim-pvc',
+  })
+  return pvc;
+}
