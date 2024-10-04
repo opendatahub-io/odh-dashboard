@@ -72,15 +72,25 @@ export function validateNimModelsTable(): void {
 
 export function validateNimOverviewModelsTable(): void {
   // Card is visible
-  cy.get('.pf-v5-c-card__header-main > .pf-v5-l-flex > :nth-child(2) > .pf-v5-c-content > h3 > b').should('be.visible');
-  cy.get('.pf-v5-l-gallery > :nth-child(1) > .pf-v5-c-card > .pf-v5-c-card__header > .pf-v5-c-card__header-main > .pf-v5-l-flex > :nth-child(1)').should('be.visible');
+  cy.get(
+    '.pf-v5-c-card__header-main > .pf-v5-l-flex > :nth-child(2) > .pf-v5-c-content > h3 > b',
+  ).should('be.visible');
+  cy.get(
+    '.pf-v5-l-gallery > :nth-child(1) > .pf-v5-c-card > .pf-v5-c-card__header > .pf-v5-c-card__header-main > .pf-v5-l-flex > :nth-child(1)',
+  ).should('be.visible');
   // Validate card details
-  cy.get(':nth-child(2) > [style="display: block;"] > :nth-child(1)').should('have.text', 'Test Name');
+  cy.get(':nth-child(2) > [style="display: block;"] > :nth-child(1)').should(
+    'have.text',
+    'Test Name',
+  );
   cy.get('dt').should('have.text', 'Serving runtime');
   cy.get('dd').should('have.text', 'NVIDIA NIM');
   cy.get('[data-testid="internal-service-button"]').should('have.text', 'Internal Service');
   cy.get('[data-testid="internal-service-button"]').click();
-  cy.get('.pf-v5-c-popover__title-text').should('have.text', 'Internal Service can be accessed inside the cluster');
+  cy.get('.pf-v5-c-popover__title-text').should(
+    'have.text',
+    'Internal Service can be accessed inside the cluster',
+  );
   // Opens the Models table
   cy.get('.pf-m-gap-md > :nth-child(2) > .pf-v5-c-button').click();
 }
