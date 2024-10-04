@@ -15,14 +15,12 @@ import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/u
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 
 interface DeployRegisteredModelModalProps {
-  isOpen: boolean;
   modelVersion: ModelVersion;
   onCancel: () => void;
   onSubmit?: () => void;
 }
 
 const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
-  isOpen,
   modelVersion,
   onCancel,
   onSubmit,
@@ -63,82 +61,57 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     [onCancel, onSubmit],
   );
 
-  if (isOpen) {
-    if (
-      (platform === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
-      !selectedProject ||
-      !platform
-    ) {
-      return (
-        <Modal
-          title="Deploy model"
-          description="Configure properties for deploying your model"
-          variant="medium"
-          isOpen
-          onClose={() => onClose(false)}
-          actions={[
-            <Button key="deploy" variant="primary" isDisabled>
-              Deploy
-            </Button>,
-            <Button key="cancel" variant="link" onClick={() => onClose(false)}>
-              Cancel
-            </Button>,
-          ]}
-          showClose
-        >
-          <Form>
-            {deployInfoError ? (
-              <Alert variant="danger" isInline title={deployInfoError.name}>
-                {deployInfoError.message}
-              </Alert>
-            ) : !deployInfoLoaded ? (
-              <Spinner />
-            ) : (
-              <FormSection title="Model deployment">
-                <ProjectSelector
-                  selectedProject={selectedProject}
-                  setSelectedProject={setSelectedProject}
-                  error={error}
-                  isOpen={isProjectSelectorOpen}
-                  setOpen={setProjectSelectorOpen}
-                />
-              </FormSection>
-            )}
-          </Form>
-        </Modal>
-      );
-    }
-
-    if (platform === ServingRuntimePlatform.SINGLE) {
-      return (
-        <ManageKServeModal
-          onClose={onClose}
-          isOpen
-          servingRuntimeTemplates={getKServeTemplates(
-            templates,
-            templateOrder,
-            templateDisablement,
-          )}
-          shouldFormHidden={!!error}
-          registeredModelDeployInfo={registeredModelDeployInfo}
-          projectContext={{ currentProject: selectedProject, dataConnections }}
-          projectSection={
-            <ProjectSelector
-              selectedProject={selectedProject}
-              setSelectedProject={setSelectedProject}
-              error={error}
-              isOpen={isProjectSelectorOpen}
-              setOpen={setProjectSelectorOpen}
-            />
-          }
-        />
-      );
-    }
-    // platform === ServingRuntimePlatform.MULTI
+  if (
+    (platform === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
+    !selectedProject ||
+    !platform
+  ) {
     return (
-      <ManageInferenceServiceModal
+      <Modal
+        title="Deploy model"
+        description="Configure properties for deploying your model"
+        variant="medium"
+        isOpen
+        onClose={() => onClose(false)}
+        actions={[
+          <Button key="deploy" variant="primary" isDisabled>
+            Deploy
+          </Button>,
+          <Button key="cancel" variant="link" onClick={() => onClose(false)}>
+            Cancel
+          </Button>,
+        ]}
+        showClose
+      >
+        <Form>
+          {deployInfoError ? (
+            <Alert variant="danger" isInline title={deployInfoError.name}>
+              {deployInfoError.message}
+            </Alert>
+          ) : !deployInfoLoaded ? (
+            <Spinner />
+          ) : (
+            <FormSection title="Model deployment">
+              <ProjectSelector
+                selectedProject={selectedProject}
+                setSelectedProject={setSelectedProject}
+                error={error}
+                isOpen={isProjectSelectorOpen}
+                setOpen={setProjectSelectorOpen}
+              />
+            </FormSection>
+          )}
+        </Form>
+      </Modal>
+    );
+  }
+
+  if (platform === ServingRuntimePlatform.SINGLE) {
+    return (
+      <ManageKServeModal
         onClose={onClose}
         isOpen
+        servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
         shouldFormHidden={!!error}
         registeredModelDeployInfo={registeredModelDeployInfo}
         projectContext={{ currentProject: selectedProject, dataConnections }}
@@ -154,7 +127,25 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       />
     );
   }
-  return null;
+  // platform === ServingRuntimePlatform.MULTI
+  return (
+    <ManageInferenceServiceModal
+      onClose={onClose}
+      isOpen
+      shouldFormHidden={!!error}
+      registeredModelDeployInfo={registeredModelDeployInfo}
+      projectContext={{ currentProject: selectedProject, dataConnections }}
+      projectSection={
+        <ProjectSelector
+          selectedProject={selectedProject}
+          setSelectedProject={setSelectedProject}
+          error={error}
+          isOpen={isProjectSelectorOpen}
+          setOpen={setProjectSelectorOpen}
+        />
+      }
+    />
+  );
 };
 
 export default DeployRegisteredModelModal;
