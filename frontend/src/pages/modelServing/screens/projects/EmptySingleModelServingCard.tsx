@@ -80,20 +80,21 @@ const EmptySingleModelServingCard: React.FC = () => {
           </Bullseye>
         </CardFooter>
       </Card>
-      <ManageKServeModal
-        isOpen={open}
-        projectContext={{
-          currentProject,
-          dataConnections,
-        }}
-        servingRuntimeTemplates={templatesEnabled.filter((template) =>
-          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-        )}
-        onClose={(submit) => {
-          onSubmit(submit);
-          setOpen(false);
-        }}
-      />
+      {open ? (
+        <ManageKServeModal
+          projectContext={{
+            currentProject,
+            dataConnections,
+          }}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+          )}
+          onClose={(submit) => {
+            onSubmit(submit);
+            setOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

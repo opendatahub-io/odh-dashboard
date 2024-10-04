@@ -57,17 +57,19 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           />
         </Td>
       </Tr>
-      <ViewDatabaseConfigModal
-        modelRegistry={mr}
-        isOpen={isDatabaseConfigModalOpen}
-        onClose={() => setIsDatabaseConfigModalOpen(false)}
-      />
-      <DeleteModelRegistryModal
-        modelRegistry={mr}
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        refresh={refresh}
-      />
+      {isDatabaseConfigModalOpen ? (
+        <ViewDatabaseConfigModal
+          modelRegistry={mr}
+          onClose={() => setIsDatabaseConfigModalOpen(false)}
+        />
+      ) : null}
+      {isDeleteModalOpen ? (
+        <DeleteModelRegistryModal
+          modelRegistry={mr}
+          onClose={() => setIsDeleteModalOpen(false)}
+          refresh={refresh}
+        />
+      ) : null}
     </>
   );
 };

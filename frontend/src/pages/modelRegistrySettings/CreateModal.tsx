@@ -20,12 +20,11 @@ import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 
 type CreateModalProps = {
-  isOpen: boolean;
   onClose: () => void;
   refresh: () => Promise<unknown>;
 };
 
-const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) => {
+const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
@@ -125,7 +124,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, refresh }) =
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title="Create model registry"
       onClose={onBeforeClose}
       actions={[

@@ -66,42 +66,42 @@ const ServeModelButton: React.FC = () => {
     </Button>
   );
 
+  if (!project) {
+    return (
+      <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
+        {deployButton}
+      </Tooltip>
+    );
+  }
+
   return (
     <>
-      {!project ? (
-        <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
-          {deployButton}
-        </Tooltip>
-      ) : (
-        deployButton
-      )}
-      {project && (
-        <>
-          <ManageInferenceServiceModal
-            isOpen={platformSelected === ServingRuntimePlatform.MULTI}
-            projectContext={{
-              currentProject: project,
-              dataConnections,
-            }}
-            onClose={(submit: boolean) => {
-              onSubmit(submit);
-            }}
-          />
-          <ManageKServeModal
-            isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
-            projectContext={{
-              currentProject: project,
-              dataConnections,
-            }}
-            servingRuntimeTemplates={templatesEnabled.filter((template) =>
-              getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-            )}
-            onClose={(submit: boolean) => {
-              onSubmit(submit);
-            }}
-          />
-        </>
-      )}
+      {deployButton}
+      {platformSelected === ServingRuntimePlatform.MULTI ? (
+        <ManageInferenceServiceModal
+          projectContext={{
+            currentProject: project,
+            dataConnections,
+          }}
+          onClose={(submit: boolean) => {
+            onSubmit(submit);
+          }}
+        />
+      ) : null}
+      {platformSelected === ServingRuntimePlatform.SINGLE ? (
+        <ManageKServeModal
+          projectContext={{
+            currentProject: project,
+            dataConnections,
+          }}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+          )}
+          onClose={(submit: boolean) => {
+            onSubmit(submit);
+          }}
+        />
+      ) : null}
     </>
   );
 };

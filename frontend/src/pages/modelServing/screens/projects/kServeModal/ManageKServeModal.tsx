@@ -64,7 +64,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 type ManageKServeModalProps = {
-  isOpen: boolean;
   onClose: (submit: boolean) => void;
   servingRuntimeTemplates?: TemplateKind[];
   registeredModelDeployInfo?: RegisteredModelDeployInfo;
@@ -87,7 +86,6 @@ type ManageKServeModalProps = {
 >;
 
 const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
-  isOpen,
   onClose,
   servingRuntimeTemplates,
   projectContext,
@@ -142,10 +140,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [alertVisible, setAlertVisible] = React.useState(true);
 
   React.useEffect(() => {
-    if (currentProjectName && isOpen) {
+    if (currentProjectName) {
       setCreateDataInferenceService('project', currentProjectName);
     }
-  }, [currentProjectName, setCreateDataInferenceService, isOpen]);
+  }, [currentProjectName, setCreateDataInferenceService]);
 
   // Refresh model format selection when changing serving runtime template selection
   // Don't affect the edit modal
@@ -295,7 +293,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       title={editInfo ? 'Edit model' : 'Deploy model'}
       description="Configure properties for deploying your model"
       variant="medium"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter

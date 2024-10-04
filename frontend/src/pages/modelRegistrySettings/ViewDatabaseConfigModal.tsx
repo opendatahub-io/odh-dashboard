@@ -11,19 +11,17 @@ import {
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { ModelRegistryKind } from '~/k8sTypes';
-import useFetchState, { NotReadyError } from '~/utilities/useFetchState';
+import useFetchState from '~/utilities/useFetchState';
 import { getModelRegistryBackend } from '~/services/modelRegistrySettingsService';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 
 type ViewDatabaseConfigModalProps = {
   modelRegistry: ModelRegistryKind;
-  isOpen: boolean;
   onClose: () => void;
 };
 
 const ViewDatabaseConfigModal: React.FC<ViewDatabaseConfigModalProps> = ({
   modelRegistry: mr,
-  isOpen,
   onClose,
 }) => {
   const dbSpec = mr.spec.mysql || mr.spec.postgres;
@@ -34,12 +32,9 @@ const ViewDatabaseConfigModal: React.FC<ViewDatabaseConfigModalProps> = ({
 
   const [password, passwordLoaded, passwordLoadError] = useFetchState(
     React.useCallback(async () => {
-      if (!isOpen) {
-        throw new NotReadyError('Defer load until modal opened');
-      }
       const { databasePassword } = await getModelRegistryBackend(mr.metadata.name);
       return databasePassword;
-    }, [mr, isOpen]),
+    }, [mr]),
     undefined,
   );
 
@@ -47,7 +42,7 @@ const ViewDatabaseConfigModal: React.FC<ViewDatabaseConfigModalProps> = ({
     <Modal
       title="View database configuration"
       description="Database configuration cannot be edited after registry creation. To change the database configuration, you must delete the registry and create a new one."
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       variant="medium"
       actions={[

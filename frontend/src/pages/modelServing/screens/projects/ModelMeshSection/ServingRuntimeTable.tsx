@@ -74,25 +74,25 @@ const ServingRuntimeTable: React.FC = () => {
           }}
         />
       ) : null}
-      <ManageServingRuntimeModal
-        isOpen={editServingRuntime !== undefined}
-        currentProject={currentProject}
-        editInfo={{
-          servingRuntime: editServingRuntime,
-          secrets: filterTokens(editServingRuntime?.metadata.name),
-        }}
-        onClose={(submit: boolean) => {
-          setEditServingRuntime(undefined);
-          if (submit) {
-            refreshServingRuntime();
-            refreshInferenceServices();
-            setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
-          }
-        }}
-      />
+      {editServingRuntime ? (
+        <ManageServingRuntimeModal
+          currentProject={currentProject}
+          editInfo={{
+            servingRuntime: editServingRuntime,
+            secrets: filterTokens(editServingRuntime.metadata.name),
+          }}
+          onClose={(submit: boolean) => {
+            setEditServingRuntime(undefined);
+            if (submit) {
+              refreshServingRuntime();
+              refreshInferenceServices();
+              setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
+            }
+          }}
+        />
+      ) : null}
       {deployServingRuntime && (
         <ManageInferenceServiceModal
-          isOpen={!!deployServingRuntime}
           onClose={(submit: boolean) => {
             setDeployServingRuntime(undefined);
             if (submit) {

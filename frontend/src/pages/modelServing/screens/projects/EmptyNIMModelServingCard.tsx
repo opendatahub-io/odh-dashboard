@@ -81,7 +81,6 @@ const EmptyNIMModelServingCard: React.FC = () => {
       </Card>
       {open && (
         <DeployNIMServiceModal
-          isOpen={open}
           projectContext={{
             currentProject,
             dataConnections,

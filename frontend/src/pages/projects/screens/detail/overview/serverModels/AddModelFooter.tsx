@@ -71,7 +71,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
       />
       {modalShown && isProjectModelMesh && !isNIM ? (
         <ManageServingRuntimeModal
-          isOpen
           currentProject={currentProject}
           servingRuntimeTemplates={templatesEnabled.filter((template) =>
             getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
@@ -81,7 +80,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
       ) : null}
       {modalShown && !isProjectModelMesh && !isNIM ? (
         <ManageKServeModal
-          isOpen
           projectContext={{ currentProject, dataConnections }}
           servingRuntimeTemplates={templatesEnabled.filter((template) =>
             getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
@@ -91,7 +89,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
       ) : null}
       {modalShown && isNIM ? (
         <DeployNIMServiceModal
-          isOpen
           projectContext={{ currentProject, dataConnections }}
           onClose={onSubmit}
         />

@@ -23,7 +23,6 @@ import InferenceServiceServingRuntimeSection from './InferenceServiceServingRunt
 import InferenceServiceNameSection from './InferenceServiceNameSection';
 
 type ManageInferenceServiceModalProps = {
-  isOpen: boolean;
   onClose: (submit: boolean) => void;
   registeredModelDeployInfo?: RegisteredModelDeployInfo;
   shouldFormHidden?: boolean;
@@ -40,7 +39,6 @@ type ManageInferenceServiceModalProps = {
 >;
 
 const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = ({
-  isOpen,
   onClose,
   editInfo,
   projectContext,
@@ -129,7 +127,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       title={editInfo ? 'Edit model' : 'Deploy model'}
       description="Configure properties for deploying your model"
       variant="medium"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter

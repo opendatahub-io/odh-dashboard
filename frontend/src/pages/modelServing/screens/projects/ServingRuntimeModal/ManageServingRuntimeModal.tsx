@@ -32,7 +32,6 @@ import ServingRuntimeNameSection from './ServingRuntimeNameSection';
 import AuthServingRuntimeSection from './AuthServingRuntimeSection';
 
 type ManageServingRuntimeModalProps = {
-  isOpen: boolean;
   onClose: (submit: boolean) => void;
   currentProject: ProjectKind;
 } & EitherOrNone<
@@ -51,7 +50,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 const modelServerAddedName = 'Model Server Added';
 const modelServerEditName = 'Model Server Modified';
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
-  isOpen,
   onClose,
   currentProject,
   servingRuntimeTemplates,
@@ -171,7 +169,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       title={`${editInfo ? 'Edit' : 'Add'} model server`}
       description="A model server specifies resources available for use by one or more supported models, and includes a serving runtime."
       variant="medium"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       showClose
       footer={
