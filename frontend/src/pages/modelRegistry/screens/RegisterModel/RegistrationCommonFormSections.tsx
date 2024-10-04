@@ -235,14 +235,15 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
           }
         />
       </FormSection>
-      <ConnectionModal
-        isOpen={isAutofillModalOpen}
-        onClose={() => setAutofillModalOpen(false)}
-        onSubmit={(connection) => {
-          fillObjectStorageByConnection(connection);
-          setAutofillModalOpen(false);
-        }}
-      />
+      {isAutofillModalOpen ? (
+        <ConnectionModal
+          onClose={() => setAutofillModalOpen(false)}
+          onSubmit={(connection) => {
+            fillObjectStorageByConnection(connection);
+            setAutofillModalOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

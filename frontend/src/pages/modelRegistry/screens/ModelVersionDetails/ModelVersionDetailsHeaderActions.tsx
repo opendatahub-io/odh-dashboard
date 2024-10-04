@@ -70,45 +70,47 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           </DropdownItem>
         </DropdownList>
       </Dropdown>
-      <DeployRegisteredModelModal
-        onSubmit={() => {
-          refresh();
-          navigate(
-            modelVersionDeploymentsUrl(
-              mv.id,
-              mv.registeredModelId,
-              preferredModelRegistry?.metadata.name,
-            ),
-          );
-        }}
-        onCancel={() => setIsDeployModalOpen(false)}
-        isOpen={isDeployModalOpen}
-        modelVersion={mv}
-      />
-      <ArchiveModelVersionModal
-        onCancel={() => setIsArchiveModalOpen(false)}
-        onSubmit={() =>
-          apiState.api
-            .patchModelVersion(
-              {},
-              {
-                state: ModelState.ARCHIVED,
-              },
-              mv.id,
-            )
-            .then(() =>
-              navigate(
-                modelVersionArchiveDetailsUrl(
-                  mv.id,
-                  mv.registeredModelId,
-                  preferredModelRegistry?.metadata.name,
-                ),
+      {isDeployModalOpen ? (
+        <DeployRegisteredModelModal
+          onSubmit={() => {
+            refresh();
+            navigate(
+              modelVersionDeploymentsUrl(
+                mv.id,
+                mv.registeredModelId,
+                preferredModelRegistry?.metadata.name,
               ),
-            )
-        }
-        isOpen={isArchiveModalOpen}
-        modelVersionName={mv.name}
-      />
+            );
+          }}
+          onCancel={() => setIsDeployModalOpen(false)}
+          modelVersion={mv}
+        />
+      ) : null}
+      {isArchiveModalOpen ? (
+        <ArchiveModelVersionModal
+          onCancel={() => setIsArchiveModalOpen(false)}
+          onSubmit={() =>
+            apiState.api
+              .patchModelVersion(
+                {},
+                {
+                  state: ModelState.ARCHIVED,
+                },
+                mv.id,
+              )
+              .then(() =>
+                navigate(
+                  modelVersionArchiveDetailsUrl(
+                    mv.id,
+                    mv.registeredModelId,
+                    preferredModelRegistry?.metadata.name,
+                  ),
+                ),
+              )
+          }
+          modelVersionName={mv.name}
+        />
+      ) : null}
     </>
   );
 };
