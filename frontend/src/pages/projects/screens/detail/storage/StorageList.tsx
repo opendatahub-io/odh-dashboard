@@ -42,6 +42,7 @@ const StorageList: React.FC = () => {
             onClick={() => setOpen(true)}
             key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
             variant="primary"
+            data-testid="actions-cluster-storage-button"
           >
             Add cluster storage
           </Button>,
