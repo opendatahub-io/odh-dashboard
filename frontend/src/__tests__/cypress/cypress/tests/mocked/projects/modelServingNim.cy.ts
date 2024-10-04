@@ -1,167 +1,24 @@
-import type { MockDashboardConfigType } from '~/__mocks__/mockDashboardConfig';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockNimInferenceService, mockNimServingRuntime } from '~/__mocks__/mockNimResource';
 import {
-  mockNimImages,
-  mockNimInferenceService,
-  mockNimModelPVC,
-  mockNimServingRuntime,
-  mockNimServingRuntimeTemplate,
-  mockNvidiaNimAccessSecret,
-  mockNvidiaNimImagePullSecret,
-} from '~/__mocks__/mockNimResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import {
-  AcceleratorProfileModel,
-  ConfigMapModel,
   InferenceServiceModel,
-  ProjectModel,
-  PVCModel,
-  SecretModel,
   ServingRuntimeModel,
-  TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { mock200Status } from '~/__mocks__';
 import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/nimModelDialog';
 import {
   findNimModelDeployButton,
   findNimModelServingPlatformCard,
+  initInterceptorsValidatingNimEnablement,
+  initInterceptsForDeleteModel,
+  initInterceptsToDeployModel,
+  initInterceptsToEnableNim,
   modalDialogTitle,
-  validateNimInmferenceModelsTable,
   validateNimModelsTable,
   validateNimOverviewModelsTable,
   validateNvidiaNimModel,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
-import type { InferenceServiceKind } from '~/k8sTypes';
-import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-
-type EnableNimConfigType = {
-  hasAllModels?: boolean;
-};
-// intercept all APIs required for creating a new project without selecting the model runtime from available models run times.
-const initInterceptorsForNewProjectWithoutModelSelection = (
-  dashboardConfig: MockDashboardConfigType,
-  disableServingRuntime = false,
-) => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
-
-  if (!disableServingRuntime) {
-    const templateMock = mockNimServingRuntimeTemplate();
-    cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-    cy.interceptK8s(TemplateModel, templateMock);
-  }
-
-  cy.interceptK8sList(
-    ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ hasAnnotations: true })]),
-  );
-};
-
-// intercept all APIs required for enabling NIM
-const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimConfigType) => {
-  cy.interceptOdh(
-    'GET /api/dsc/status',
-    mockDscStatus({
-      installedComponents: {
-        kserve: true,
-        'model-mesh': true,
-      },
-    }),
-  );
-
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableKServe: false,
-      disableModelMesh: false,
-      disableNIMModelServing: false,
-    }),
-  );
-
-  const project = mockProjectK8sResource({
-    hasAnnotations: true,
-    enableModelMesh: hasAllModels ? undefined : false,
-  });
-  if (project.metadata.annotations != null) {
-    project.metadata.annotations['opendatahub.io/nim-support'] = 'true';
-  }
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([project]));
-
-  const templateMock = mockNimServingRuntimeTemplate();
-  cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-  cy.interceptK8s(TemplateModel, templateMock);
-
-  cy.interceptK8sList(
-    AcceleratorProfileModel,
-    mockK8sResourceList([mockAcceleratorProfile({ namespace: 'opendatahub' })]),
-  );
-
-  cy.intercept('GET', '/api/accelerators', {
-    configured: true,
-    available: { 'nvidia.com/gpu': 1 },
-    total: { 'nvidia.com/gpu': 1 },
-    allocated: { 'nvidia.com/gpu': 1 },
-  });
-};
-
-// intercept all APIs required for deploying new models in existing projects
-const initInterceptsToDeployModel = (nimInferenceService: InferenceServiceKind) => {
-  cy.interceptK8s(ConfigMapModel, mockNimImages());
-  cy.interceptK8s('POST', SecretModel, mockSecretK8sResource({}));
-  cy.interceptK8s('POST', InferenceServiceModel, nimInferenceService).as('createInferenceService');
-
-  cy.interceptK8s('POST', ServingRuntimeModel, mockNimServingRuntime()).as('createServingRuntime');
-
-  // NOTES: `body` field is needed!
-  cy.intercept(
-    { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-images-data' },
-    {
-      body: { body: mockNimImages() },
-    },
-  );
-  cy.intercept(
-    { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-access' },
-    { body: { body: mockNvidiaNimAccessSecret() } },
-  );
-  cy.intercept('GET', 'api/nim-serving/nvidia-nim-image-pull', {
-    body: { body: mockNvidiaNimImagePullSecret() },
-  });
-  cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
-};
-
-// intercept all APIs required for deleting an existing model
-const initInterceptsForDeleteModel = () => {
-  // create initial inference and runtime
-  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
-  cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
-
-  // intercept delete inference request
-  cy.interceptK8s(
-    'DELETE',
-    {
-      model: InferenceServiceModel,
-      ns: 'test-project',
-      name: 'test-name',
-    },
-    mock200Status({}),
-  ).as('deleteInference');
-
-  // intercept delete runtime request
-  cy.interceptK8s(
-    'DELETE',
-    {
-      model: ServingRuntimeModel,
-      ns: 'test-project',
-      name: 'test-name',
-    },
-    mock200Status({}),
-  ).as('deleteRuntime');
-};
 
 describe('NIM Model Serving', () => {
   describe('Deploying a model from an existing Project', () => {
@@ -244,16 +101,6 @@ describe('NIM Model Serving', () => {
       validateNimModelsTable();
       projectDetails.visitSection('test-project', 'overview');
     });
-
-    it('should list the deployed model in Model Serving page', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
-      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
-      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
-
-      modelServingGlobal.visit('test-project');
-
-      validateNimInmferenceModelsTable();
-    });
   });
 
   describe('Enabling NIM', () => {
@@ -270,7 +117,7 @@ describe('NIM Model Serving', () => {
       });
 
       it("should allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
-        initInterceptorsForNewProjectWithoutModelSelection({
+        initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableModelMesh: false,
           disableNIMModelServing: false,
@@ -320,7 +167,7 @@ describe('NIM Model Serving', () => {
       });
 
       it("should allow deploying NIM from a Project's Models tab when multiple platforms exist", () => {
-        initInterceptorsForNewProjectWithoutModelSelection({
+        initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableModelMesh: false,
           disableNIMModelServing: false,
@@ -343,7 +190,7 @@ describe('NIM Model Serving', () => {
 
     describe('When NIM feature is disabled', () => {
       it("should NOT allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
-        initInterceptorsForNewProjectWithoutModelSelection({
+        initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableModelMesh: false,
           disableNIMModelServing: true,
@@ -372,7 +219,7 @@ describe('NIM Model Serving', () => {
       });
 
       it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
-        initInterceptorsForNewProjectWithoutModelSelection({
+        initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableModelMesh: false,
           disableNIMModelServing: true,
@@ -392,7 +239,7 @@ describe('NIM Model Serving', () => {
 
     describe('When missing the Template', () => {
       it("should NOT allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
-        initInterceptorsForNewProjectWithoutModelSelection(
+        initInterceptorsValidatingNimEnablement(
           {
             disableKServe: false,
             disableModelMesh: false,
@@ -424,7 +271,7 @@ describe('NIM Model Serving', () => {
       });
 
       it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
-        initInterceptorsForNewProjectWithoutModelSelection(
+        initInterceptorsValidatingNimEnablement(
           {
             disableKServe: false,
             disableModelMesh: false,
@@ -457,27 +304,6 @@ describe('NIM Model Serving', () => {
       cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
       cy.get('ul[role="menu"]').should('have.length', 1);
       cy.get('button').contains('Delete').should('exist');
-    });
-
-    // TODO this is the only test-case testing the global model serving section, the rest test projects.
-    // TODO should we move this one test-case to ../modelServing ?
-    it('should be the only option available for NIM Models in the Global Serving Models section', () => {
-      initInterceptsToEnableNim({});
-      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
-      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
-
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.getModelRow('Test Name').get('button[aria-label="Kebab toggle"]').click();
-
-      modelServingGlobal
-        .getModelRow('Test Name')
-        .get('button[role="menuitem"]')
-        .should('have.length', 1);
-      modelServingGlobal
-        .getModelRow('Test Name')
-        .get('button[role="menuitem"]')
-        .contains('Delete')
-        .should('exist');
     });
 
     it('should delete the underlying InferenceService and ServingRuntime', () => {
