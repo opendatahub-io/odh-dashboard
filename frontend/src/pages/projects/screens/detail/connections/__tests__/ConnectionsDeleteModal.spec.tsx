@@ -90,4 +90,28 @@ describe('Delete connection modal', () => {
     expect(modelsItems[0]).toHaveTextContent('Deployed model 1');
     expect(modelsItems[1]).toHaveTextContent('Deployed model 2');
   });
+
+  it('should not show empty related resources', async () => {
+    const deleteConnection = mockConnection({ displayName: 'connection1', description: 'desc1' });
+
+    useRelatedNotebooksMock.mockReturnValue({
+      notebooks: [],
+      loaded: true,
+    });
+    useInferenceServicesForConnectionMock.mockReturnValue([]);
+    render(
+      <ConnectionsDeleteModal
+        namespace={deleteConnection.metadata.namespace}
+        deleteConnection={deleteConnection}
+        onClose={onClose}
+        onDelete={onDelete}
+      />,
+    );
+
+    const notebooksCountBadge = screen.queryByTestId('connections-delete-notebooks-toggle');
+    expect(notebooksCountBadge).toBeFalsy();
+
+    const modelsCountBadge = screen.queryByTestId('connections-delete-models-toggle');
+    expect(modelsCountBadge).toBeFalsy();
+  });
 });

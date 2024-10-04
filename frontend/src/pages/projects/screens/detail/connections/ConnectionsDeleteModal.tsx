@@ -123,38 +123,42 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
                   ) : null}
                 </>
               ) : null}
-              <ExpandableSectionToggle
-                isExpanded={modelsExpanded}
-                onToggle={setModelsExpanded}
-                id="expand-connected-models-toggle"
-                contentId="expanded-connected-models"
-                data-testid="connections-delete-models-toggle"
-              >
-                <span>Model deployments </span>
-                <Badge isRead data-testid="connections-delete-models-count">
-                  {connectedModels.length}
-                </Badge>
-              </ExpandableSectionToggle>
-              {modelsExpanded ? (
-                <ExpandableSection
-                  isExpanded
-                  isDetached
-                  toggleId="expand-connected-models-toggle"
-                  contentId="expanded-connected-models"
-                >
-                  <TextContent>
-                    <TextList>
-                      {connectedModels.map((model) => (
-                        <TextListItem
-                          key={model.metadata.name}
-                          data-testid="connections-delete-models-item"
-                        >
-                          {getDisplayNameFromK8sResource(model)}
-                        </TextListItem>
-                      ))}
-                    </TextList>
-                  </TextContent>
-                </ExpandableSection>
+              {connectedModels.length ? (
+                <>
+                  <ExpandableSectionToggle
+                    isExpanded={modelsExpanded}
+                    onToggle={setModelsExpanded}
+                    id="expand-connected-models-toggle"
+                    contentId="expanded-connected-models"
+                    data-testid="connections-delete-models-toggle"
+                  >
+                    <span>Model deployments </span>
+                    <Badge isRead data-testid="connections-delete-models-count">
+                      {connectedModels.length}
+                    </Badge>
+                  </ExpandableSectionToggle>
+                  {modelsExpanded ? (
+                    <ExpandableSection
+                      isExpanded
+                      isDetached
+                      toggleId="expand-connected-models-toggle"
+                      contentId="expanded-connected-models"
+                    >
+                      <TextContent>
+                        <TextList>
+                          {connectedModels.map((model) => (
+                            <TextListItem
+                              key={model.metadata.name}
+                              data-testid="connections-delete-models-item"
+                            >
+                              {getDisplayNameFromK8sResource(model)}
+                            </TextListItem>
+                          ))}
+                        </TextList>
+                      </TextContent>
+                    </ExpandableSection>
+                  ) : null}
+                </>
               ) : null}
             </>
           )}
