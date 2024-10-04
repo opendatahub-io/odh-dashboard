@@ -10,11 +10,12 @@ export function findServingPlatformLabel(): Cypress.Chainable<JQuery> {
   return cy.findByTestId('serving-platform-label');
 }
 
+export const modalDialogTitle = 'Deploy model with NVIDIA NIM';
 export function validateNvidiaNimModel(
   deployButtonElement: Cypress.Chainable<JQuery<HTMLElement>>,
 ): void {
   deployButtonElement.click();
-  cy.contains('Deploy model with NVIDIA NIM');
+  cy.contains(modalDialogTitle);
   cy.contains('Configure properties for deploying your model using an NVIDIA NIM.');
 
   //find the form label Project with value as the Test Project
@@ -24,12 +25,12 @@ export function validateNvidiaNimModel(
   cy.get('div[role="dialog"]').get('button[aria-label="Close"]').click();
 
   // now the nvidia nim window should not be visible.
-  cy.contains('Deploy model with NVIDIA NIM').should('not.exist');
+  cy.contains(modalDialogTitle).should('not.exist');
 
   deployButtonElement.click();
   //validate model submit button is disabled without entering form data
   cy.findByTestId('modal-submit-button').should('be.disabled');
   //validate nim modal cancel button
   cy.findByTestId('modal-cancel-button').click();
-  cy.contains('Deploy model with NVIDIA NIM').should('not.exist');
+  cy.contains(modalDialogTitle).should('not.exist');
 }

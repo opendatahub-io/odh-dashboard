@@ -30,6 +30,7 @@ import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/nimModelDialog
 import {
   findNimModelDeployButton,
   findNimModelServingPlatformCard,
+  modalDialogTitle,
   validateNvidiaNimModel,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import type { InferenceServiceKind } from '~/k8sTypes';
@@ -167,7 +168,7 @@ describe('NIM Model Serving', () => {
       projectDetails.visitSection('test-project', 'model-server');
       // For multiple cards use case
       findNimModelDeployButton().click();
-      cy.contains('Deploy model with NVIDIA NIM').should('be.visible');
+      cy.contains(modalDialogTitle).should('be.visible');
 
       // test that you can not submit on empty
       nimDeployModal.shouldBeOpen();
@@ -182,7 +183,7 @@ describe('NIM Model Serving', () => {
       projectDetails.visitSection('test-project', 'model-server');
       cy.findByTestId('deploy-button').should('exist');
       cy.findByTestId('deploy-button').click();
-      cy.contains('Deploy model with NVIDIA NIM').should('be.visible');
+      cy.contains(modalDialogTitle).should('be.visible');
 
       // test that you can not submit on empty
       nimDeployModal.shouldBeOpen();
