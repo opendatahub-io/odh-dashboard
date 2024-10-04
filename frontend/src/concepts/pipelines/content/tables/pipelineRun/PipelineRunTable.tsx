@@ -24,7 +24,6 @@ import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { createRunRoute, experimentsCompareRunsRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { useGetArtifactsByRuns } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
@@ -83,7 +82,6 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
     isSelected,
     setSelections: setSelectedIds,
   } = useCheckboxTable(runs.map(({ run_id: runId }) => runId));
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
@@ -99,7 +97,6 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   }, []);
   const restoreButtonTooltipRef = React.useRef(null);
   const isExperimentArchived = useContextExperimentArchived();
-  const isExperimentsEnabled = isExperimentsAvailable && experimentId;
   const metricsColumnNames = useMetricColumnNames(experimentId ?? '', metricsNames);
 
   const primaryToolbarAction = React.useMemo(() => {
@@ -132,14 +129,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         data-testid="create-run-button"
         variant="primary"
         onClick={() =>
-          navigate(
-            createRunRoute(
-              namespace,
-              isExperimentsAvailable ? experimentId : undefined,
-              pipelineId,
-              pipelineVersionId,
-            ),
-          )
+          navigate(createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId))
         }
       >
         Create run
@@ -151,14 +141,13 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
     selectedIds.length,
     navigate,
     namespace,
-    isExperimentsAvailable,
     experimentId,
     pipelineId,
     pipelineVersionId,
   ]);
 
   const compareRunsAction =
-    isExperimentsEnabled && !isExperimentArchived ? (
+    experimentId && !isExperimentArchived ? (
       <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"
@@ -203,10 +192,8 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
   const getColumns = () => {
-    let columns = isExperimentsEnabled
-      ? getExperimentRunColumns(metricsColumnNames)
-      : pipelineRunColumns;
-    if (isExperimentsEnabled) {
+    let columns = experimentId ? getExperimentRunColumns(metricsColumnNames) : pipelineRunColumns;
+    if (experimentId) {
       columns = columns.filter((column) => column.field !== 'experiment');
     }
     if (pipelineVersionId) {
@@ -220,7 +207,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
     <>
       <TableBase
         {...checkboxTableProps}
-        {...(isExperimentsEnabled && { hasStickyColumns: true })}
+        {...(experimentId && { hasStickyColumns: true })}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -244,7 +231,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
               primaryToolbarAction,
               ...(compareRunsAction ? [compareRunsAction] : []),
               toolbarDropdownAction,
-              isExperimentsEnabled
+              experimentId
                 ? [
                     <Tooltip
                       key="custom-metrics-columns"
@@ -277,7 +264,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
             checkboxProps={{
               isChecked: isSelected(run.run_id),
               onToggle: () => toggleSelection(run.run_id),
-              isStickyColumn: !!isExperimentsEnabled,
+              isStickyColumn: !!experimentId,
               stickyMinWidth: '45px',
             }}
             onDelete={() => {
@@ -285,7 +272,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
               setIsDeleteModalOpen(true);
             }}
             run={run}
-            hasExperiments={!isExperimentsEnabled}
+            hasExperiments={!experimentId}
             customCells={metricsColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!artifactsLoaded && !artifactsError ? (

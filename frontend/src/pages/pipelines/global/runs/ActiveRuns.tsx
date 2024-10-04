@@ -17,7 +17,6 @@ import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/re
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { createRunRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
@@ -26,7 +25,6 @@ export const ActiveRuns: React.FC = () => {
   const { namespace, experimentId, pipelineVersionId, pipelineId } = useParams();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable({ experimentId, pipelineVersionId });
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isExperimentArchived = useContextExperimentArchived();
 
   if (isExperimentArchived) {
@@ -91,14 +89,7 @@ export const ActiveRuns: React.FC = () => {
               data-testid="create-run-button"
               variant="primary"
               onClick={() =>
-                navigate(
-                  createRunRoute(
-                    namespace,
-                    isExperimentsAvailable ? experimentId : undefined,
-                    pipelineId,
-                    pipelineVersionId,
-                  ),
-                )
+                navigate(createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId))
               }
             >
               Create run

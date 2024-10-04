@@ -9,7 +9,6 @@ import {
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import { createRecurringRunRoute, createRunRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 
 interface RunTypeSectionProps {
@@ -20,19 +19,13 @@ interface RunTypeSectionProps {
 export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isCloned }) => {
   const { namespace, experimentId, pipelineId, pipelineVersionId } = useParams();
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   let runTypeValue = 'Run once immediately after creation';
   let alertTitle = (
     <>
       To create a schedule that executes recurring runs,{' '}
       <Link
-        to={createRecurringRunRoute(
-          namespace,
-          isExperimentsAvailable ? experimentId : undefined,
-          pipelineId,
-          pipelineVersionId,
-        )}
+        to={createRecurringRunRoute(namespace, experimentId, pipelineId, pipelineVersionId)}
         state={{ locationData: data }}
         data-testid="run-type-section-alert-link"
       >
@@ -48,12 +41,7 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isCloned }
       <>
         To create a non-recurring run,{' '}
         <Link
-          to={createRunRoute(
-            namespace,
-            isExperimentsAvailable ? experimentId : undefined,
-            pipelineId,
-            pipelineVersionId,
-          )}
+          to={createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId)}
           state={{ locationData: data }}
           data-testid="run-type-section-alert-link"
         >

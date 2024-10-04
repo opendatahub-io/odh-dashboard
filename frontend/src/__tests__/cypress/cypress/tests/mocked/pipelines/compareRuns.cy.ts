@@ -419,12 +419,7 @@ type InterceptsType = {
 };
 
 const initIntercepts = ({ noMetrics }: InterceptsType) => {
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disablePipelineExperiments: false,
-    }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
     mockK8sResourceList([
