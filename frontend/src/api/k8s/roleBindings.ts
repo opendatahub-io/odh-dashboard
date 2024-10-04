@@ -132,15 +132,21 @@ export const patchRoleBindingOwnerRef = (
   rbName: string,
   namespace: string,
   ownerReferences: OwnerReference[],
+  opts?: K8sAPIOptions,
 ): Promise<RoleBindingKind> =>
-  k8sPatchResource<RoleBindingKind>({
-    model: RoleBindingModel,
-    queryOptions: { name: rbName, ns: namespace },
-    patches: [
+  k8sPatchResource<RoleBindingKind>(
+    applyK8sAPIOptions(
       {
-        op: 'replace',
-        path: '/metadata/ownerReferences',
-        value: ownerReferences,
+        model: RoleBindingModel,
+        queryOptions: { name: rbName, ns: namespace },
+        patches: [
+          {
+            op: 'replace',
+            path: '/metadata/ownerReferences',
+            value: ownerReferences,
+          },
+        ],
       },
-    ],
-  });
+      opts,
+    ),
+  );

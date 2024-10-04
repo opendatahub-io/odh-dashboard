@@ -30,13 +30,14 @@ import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnv
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
+  dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const { storageType } = storageData;
 
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
 
   if (storageType === StorageType.NEW_PVC) {
-    const pvc = await createPvc(storageData.creating, projectName);
+    const pvc = await createPvc(storageData.creating, projectName, { dryRun });
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
     volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
@@ -168,8 +169,14 @@ const getEnvFromList = (
 export const createConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   envVariables: EnvVariable[],
+  dryRun?: boolean,
 ): Promise<EnvironmentFromVariable[]> => {
-  const creatingPromises = getPromisesForConfigMapsAndSecrets(projectName, envVariables, 'create');
+  const creatingPromises = getPromisesForConfigMapsAndSecrets(
+    projectName,
+    envVariables,
+    'create',
+    dryRun,
+  );
 
   return Promise.all(creatingPromises)
     .then((results: (ConfigMapKind | SecretKind)[]) => getEnvFromList(results, []))

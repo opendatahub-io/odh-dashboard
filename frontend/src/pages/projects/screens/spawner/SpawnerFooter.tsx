@@ -25,7 +25,7 @@ import {
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AppContext } from '~/app/AppContext';
+import { useAppContext } from '~/app/AppContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
@@ -62,7 +62,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     dashboardConfig: {
       spec: { notebookController },
     },
-  } = React.useContext(AppContext);
+  } = useAppContext();
   const tolerationSettings = notebookController?.notebookTolerationSettings;
   const {
     notebooks: { data },
@@ -136,17 +136,32 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     setCreateInProgress(true);
   };
 
+  const handleDataConnection = async (dryRun: boolean) => {
+    if (dataConnection.type === 'creating') {
+      const dataAsRecord = dataConnection.creating?.values?.data.reduce<Record<string, string>>(
+        (acc, { key, value }) => ({ ...acc, [key]: value }),
+        {},
+      );
+      if (dataAsRecord) {
+        return createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), { dryRun });
+      }
+    }
+    return undefined;
+  };
+
   const updateNotebookPromise = async (dryRun: boolean) => {
     if (!editNotebook) {
       return;
     }
+
+    await handleDataConnection(dryRun);
 
     const pvcDetails = await replaceRootVolumesForNotebook(
       projectName,
       editNotebook,
       storageData,
       dryRun,
-    ).catch(handleError);
+    );
 
     const envFrom = await updateConfigMapsAndSecretsForNotebook(
       projectName,
@@ -155,11 +170,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnection,
       existingNotebookDataConnection,
       dryRun,
-    ).catch(handleError);
-
-    if (!pvcDetails || !envFrom) {
-      return;
-    }
+    );
 
     const annotations = { ...editNotebook.metadata.annotations };
     if (envFrom.length > 0) {
@@ -181,26 +192,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const onUpdateNotebook = async () => {
-    if (dataConnection.type === 'creating') {
-      const dataAsRecord = dataConnection.creating?.values?.data.reduce<Record<string, string>>(
-        (acc, { key, value }) => ({ ...acc, [key]: value }),
-        {},
-      );
-      if (dataAsRecord) {
-        const isSuccess = await createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), {
-          dryRun: true,
-        })
-          .then(() => true)
-          .catch((e) => {
-            handleError(e);
-            return false;
-          });
-        if (!isSuccess) {
-          return;
-        }
-      }
-    }
-
     handleStart();
     updateNotebookPromise(true)
       .then(() =>
@@ -215,29 +206,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       .catch(handleError);
   };
 
-  const onCreateNotebook = async () => {
-    if (dataConnection.type === 'creating') {
-      const dataAsRecord = dataConnection.creating?.values?.data.reduce<Record<string, string>>(
-        (acc, { key, value }) => ({ ...acc, [key]: value }),
-        {},
-      );
-      if (dataAsRecord) {
-        const isSuccess = await createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), {
-          dryRun: true,
-        })
-          .then(() => true)
-          .catch((e) => {
-            handleError(e);
-            return false;
-          });
-        if (!isSuccess) {
-          return;
-        }
-      }
-    }
-
-    handleStart();
-
+  const createNotebookPromise = async (dryRun: boolean) => {
+    await handleDataConnection(dryRun);
     const newDataConnection =
       dataConnection.enabled && dataConnection.type === 'creating' && dataConnection.creating
         ? [dataConnection.creating]
@@ -246,17 +216,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnection.enabled && dataConnection.type === 'existing' && dataConnection.existing
         ? [dataConnection.existing]
         : [];
-
-    const pvcDetails = await createPvcDataForNotebook(projectName, storageData).catch(handleError);
-    const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
-      ...envVariables,
-      ...newDataConnection,
-    ]).catch(handleError);
-
-    if (!pvcDetails || !envFrom) {
-      // Error happened, let the error code handle it
-      return;
-    }
+    const pvcDetails = await createPvcDataForNotebook(projectName, storageData, dryRun);
+    const envFrom = await createConfigMapsAndSecretsForNotebook(
+      projectName,
+      [...envVariables, ...newDataConnection],
+      dryRun,
+    );
 
     const { volumes, volumeMounts } = pvcDetails;
     const newStartData: StartNotebookData = {
@@ -266,9 +231,19 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envFrom: [...envFrom, ...existingDataConnection],
       tolerationSettings,
     };
+    return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
+  };
 
-    createNotebook(newStartData, username, canEnablePipelines)
-      .then((notebook) => afterStart(notebook.metadata.name, 'created'))
+  const onCreateNotebook = async () => {
+    handleStart();
+    createNotebookPromise(true)
+      .then(() =>
+        createNotebookPromise(false)
+          .then((notebook) => {
+            afterStart(notebook.metadata.name, 'created');
+          })
+          .catch(handleError),
+      )
       .catch(handleError);
   };
 
@@ -281,8 +256,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
             variant="danger"
             title="Error creating workbench"
             actionLinks={
-              // If this is a 409 conflict error
-              error.statusObject.code === 409 ? (
+              // If this is a 409 conflict error on the notebook (not PVC or Secret or ConfigMap)
+              error.statusObject.code === 409 &&
+              error.statusObject.details?.kind === 'notebooks' ? (
                 <>
                   <AlertActionLink
                     onClick={() =>

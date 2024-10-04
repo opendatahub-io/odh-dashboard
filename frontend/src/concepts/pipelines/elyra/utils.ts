@@ -2,6 +2,7 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   DSPipelineExternalStorageKind,
   ImageStreamSpecTagType,
+  K8sAPIOptions,
   KnownLabels,
   NotebookKind,
   RoleBindingKind,
@@ -151,6 +152,7 @@ export const generateElyraServiceAccountRoleBinding = (
 
 export const createElyraServiceAccountRoleBinding = async (
   notebook: NotebookKind,
+  opts?: K8sAPIOptions,
 ): Promise<RoleBindingKind | void> => {
   const notebookName = notebook.metadata.name;
   const { namespace } = notebook.metadata;
@@ -181,6 +183,7 @@ export const createElyraServiceAccountRoleBinding = async (
         roleBinding.metadata.name,
         roleBinding.metadata.namespace,
         ownerReferences,
+        opts,
       ).catch((e) => {
         // This is not ideal, but it shouldn't impact the starting of the notebook. Let us log it, and mute the error
         // eslint-disable-next-line no-console
@@ -191,6 +194,7 @@ export const createElyraServiceAccountRoleBinding = async (
     }
     return createRoleBinding(
       generateElyraServiceAccountRoleBinding(notebookName, namespace, notebookUid),
+      opts,
     ).catch((e) => {
       // eslint-disable-next-line no-console
       console.error(
