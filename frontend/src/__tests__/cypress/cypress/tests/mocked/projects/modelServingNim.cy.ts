@@ -199,7 +199,7 @@ describe('NIM Model Serving', () => {
         validateNvidiaNimModel(findNimModelDeployButton());
       });
 
-      it("should display an error when failed to fetch nim Nividia model list", () => {
+      it('should display an error when failed to fetch NIM model list', () => {
         initInterceptsToEnableNim({});
         const componentName = 'overview';
         projectDetails.visitSection('test-project', componentName);
@@ -207,8 +207,8 @@ describe('NIM Model Serving', () => {
         overviewComponent.should('exist');
         const deployModelButton = overviewComponent.findByTestId('model-serving-platform-button');
         deployModelButton.should('exist');
-        deployModelButton.click()
-        cy.contains('There was a problem fetching the NIM models. Please try again later.')
+        deployModelButton.click();
+        cy.contains('There was a problem fetching the NIM models. Please try again later.');
       });
     });
 
