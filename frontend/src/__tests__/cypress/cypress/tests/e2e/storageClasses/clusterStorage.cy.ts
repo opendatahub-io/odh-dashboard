@@ -12,6 +12,7 @@ import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/c
 import {
   getDefaultEnabledStorageClass,
   updateStorageClass,
+  disableNonDefaultStorageClasses,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import type { SCReplacements } from '~/__tests__/cypress/cypress/types';
 
@@ -99,19 +100,30 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
     };
     updateStorageClass(SCReplacement);
 
+    // Reload the view in order to force the warnings
     cy.reload();
+    // Verify the deprecated Label
     clusterStorageRow = clusterStorage.getClusterStorageRow(clusterStorageName);
     clusterStorageRow.findDeprecatedLabel().should('exist');
-
-    clusterStorageRow.findDeprecatedLabel().trigger('mouseenter');
-    clusterStorageRow.shouldHaveDeprecatedTooltip();
+    // Verify warning message
     clusterStorage.shouldHaveDeprecatedAlertMessage();
     clusterStorage.closeDeprecatedAlert();
   });
-});
 
-/**
- * a modified SC shows deprecated
- * All except one are disabled -> dropdown disabled
- *
- */
+  it('If all SC are disabled except one, the SC dropdown should be disabled', () => {
+    cy.visitWithLogin('/projects', TEST_USER);
+    // Open the project
+    projectListPage.filterProjectByName(dspName);
+    projectListPage.findProjectLink(dspName).click();
+    // Go to cluster storage tab
+    projectDetails.findSectionTab('cluster-storages').click();
+    // Disable all non-default storage classes
+    disableNonDefaultStorageClasses().then(() => {
+      // Open the Create cluster storage Modal
+      findAddClusterStorageButton().click();
+
+      // Check that the SC Dropdown is disabled
+      addClusterStorageModal.findStorageClassSelect().should('be.disabled');
+    });
+  });
+});

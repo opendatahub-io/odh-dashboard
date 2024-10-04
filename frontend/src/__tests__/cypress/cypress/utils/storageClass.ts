@@ -68,8 +68,8 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
 
 export const tearDownStorageClassFeature = (createdSC: string[]): void => {
   createdSC.forEach((scName) => {
-    cy.log(`Deleting storage class: os-sc-${scName}`);
-    deleteStorageClass(`os-sc-${scName}`);
+    cy.log(`Deleting storage class: ${scName}`);
+    deleteStorageClass(scName);
   });
 };
 
@@ -123,8 +123,8 @@ export const tearDownClusterStorageSCFeature = (projectName: string, createdSC: 
   deleteOpenShiftProject(projectName);
   // Delete provisioned SCs
   createdSC.forEach((scName) => {
-    cy.log(`Deleting storage class: os-sc-${scName}`);
-    deleteStorageClass(`os-sc-${scName}`);
+    cy.log(`Deleting storage class:${scName}`);
+    deleteStorageClass(scName);
   });
 };
 
