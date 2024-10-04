@@ -29,13 +29,11 @@ import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
 
 type PipelineImportModalProps = {
-  isOpen: boolean;
   onClose: (pipeline?: PipelineKFv2) => void;
   redirectAfterImport?: boolean;
 };
 
 const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
-  isOpen,
   redirectAfterImport = true,
   onClose,
 }) => {
@@ -152,7 +150,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
   return (
     <Modal
       title="Import pipeline"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose()}
       actions={[
         <Button

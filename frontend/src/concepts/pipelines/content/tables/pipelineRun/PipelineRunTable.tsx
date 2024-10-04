@@ -295,22 +295,24 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
         data-testid={`${runType}-runs-table`}
         id={`${runType}-runs-table`}
       />
-      <ArchiveRunModal
-        isOpen={isArchiveModalOpen}
-        runs={selectedRuns}
-        onCancel={() => {
-          setIsArchiveModalOpen(false);
-          setSelectedIds([]);
-        }}
-      />
-      <RestoreRunModal
-        isOpen={isRestoreModalOpen}
-        runs={selectedRuns}
-        onCancel={() => {
-          setIsRestoreModalOpen(false);
-          setSelectedIds([]);
-        }}
-      />
+      {isArchiveModalOpen ? (
+        <ArchiveRunModal
+          runs={selectedRuns}
+          onCancel={() => {
+            setIsArchiveModalOpen(false);
+            setSelectedIds([]);
+          }}
+        />
+      ) : null}
+      {isRestoreModalOpen ? (
+        <RestoreRunModal
+          runs={selectedRuns}
+          onCancel={() => {
+            setIsRestoreModalOpen(false);
+            setSelectedIds([]);
+          }}
+        />
+      ) : null}
       {isDeleteModalOpen && (
         <DeletePipelineRunsModal
           toDeleteResources={selectedRuns}

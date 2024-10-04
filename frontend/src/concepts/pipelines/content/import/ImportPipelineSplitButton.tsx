@@ -82,18 +82,19 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
           </DropdownItem>
         </DropdownList>
       </Dropdown>
-      <PipelineImportModal
-        isOpen={isPipelineModalOpen}
-        onClose={(pipeline) => {
-          setPipelineModalOpen(false);
-          if (pipeline) {
-            if (onImportPipeline) {
-              onImportPipeline(pipeline);
+      {isPipelineModalOpen ? (
+        <PipelineImportModal
+          onClose={(pipeline) => {
+            setPipelineModalOpen(false);
+            if (pipeline) {
+              if (onImportPipeline) {
+                onImportPipeline(pipeline);
+              }
+              refreshAllAPI();
             }
-            refreshAllAPI();
-          }
-        }}
-      />
+          }}
+        />
+      ) : null}
       {isPipelineVersionModalOpen && (
         <PipelineVersionImportModal
           onClose={(pipelineVersion) => {

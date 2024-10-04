@@ -238,13 +238,14 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
           </Button>
         </StackItem>
       </Stack>
-      <ConfigurePipelinesServerModal
-        open={configureModalVisible}
-        onClose={() => {
-          setConfigureModalVisible(false);
-          refreshState();
-        }}
-      />
+      {configureModalVisible ? (
+        <ConfigurePipelinesServerModal
+          onClose={() => {
+            setConfigureModalVisible(false);
+            refreshState();
+          }}
+        />
+      ) : null}
     </>
   );
 };
@@ -264,23 +265,11 @@ export const DeleteServerModal = ({ onClose }: { onClose: () => void }): React.J
   );
 };
 
-export const ViewServerModal = ({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}): React.JSX.Element => {
+export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX.Element => {
   const { namespace } = React.useContext(PipelinesContext);
   const [pipelineNamespaceCR] = usePipelineNamespaceCR(namespace);
 
-  return (
-    <ViewPipelineServerModal
-      isOpen={isOpen}
-      onClose={onClose}
-      pipelineNamespaceCR={pipelineNamespaceCR}
-    />
-  );
+  return <ViewPipelineServerModal onClose={onClose} pipelineNamespaceCR={pipelineNamespaceCR} />;
 };
 
 export const PipelineServerTimedOut: React.FC = () => {

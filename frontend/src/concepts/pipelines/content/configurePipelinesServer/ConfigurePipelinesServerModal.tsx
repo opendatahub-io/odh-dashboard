@@ -16,7 +16,6 @@ import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
 
 type ConfigurePipelinesServerModalProps = {
-  open: boolean;
   onClose: () => void;
 };
 
@@ -27,19 +26,12 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
 
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
-  open,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const [dataConnections, loaded, , refresh] = useDataConnections(namespace);
+  const [dataConnections, loaded] = useDataConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
-
-  React.useEffect(() => {
-    if (open) {
-      refresh();
-    }
-  }, [open, refresh]);
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -101,7 +93,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       title="Configure pipeline server"
       variant="medium"
       description="Configuring a pipeline server enables you to create and manage pipelines."
-      isOpen={open}
+      isOpen
       onClose={onBeforeClose}
       footer={
         <DashboardModalFooter
