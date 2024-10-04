@@ -10,7 +10,9 @@ export function findServingPlatformLabel(): Cypress.Chainable<JQuery> {
   return cy.findByTestId('serving-platform-label');
 }
 
-export function validateNvidiaNimModel(deployButtonElement): void {
+export function validateNvidiaNimModel(
+  deployButtonElement: Cypress.Chainable<JQuery<HTMLElement>>,
+): void {
   deployButtonElement.click();
   cy.contains('Deploy model with NVIDIA NIM');
   cy.contains('Configure properties for deploying your model using an NVIDIA NIM.');

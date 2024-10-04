@@ -106,8 +106,8 @@ export const mockNvidiaNimAccessSecret = (): SecretKind => {
     name: 'nvidia-nim-access',
   });
   delete secret.data;
-  secret.data = secret.data || {};
-  secret.data.api_key = 'api-key';
+  secret.data = {};
+  secret.data.api_key = 'api-key'; // eslint-disable-line camelcase
   secret.data.configMapName = 'bnZpZGlhLW5pbS12YWxpZGF0aW9uLXJlc3VsdA==';
 
   return secret;
@@ -118,7 +118,7 @@ export const mockNvidiaNimImagePullSecret = (): SecretKind => {
     name: 'nvidia-nim-image-pull',
   });
   delete secret.data;
-  secret.data = secret.data || {};
+  secret.data = {};
   secret.data['.dockerconfigjson'] = 'ZG9ja2VyY29uZmlnCg==';
 
   return secret;

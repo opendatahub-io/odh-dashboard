@@ -1,7 +1,7 @@
 import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
 import { NotebookSize } from '~/types';
 
-type MockDashboardConfigType = {
+export type MockDashboardConfigType = {
   disableInfo?: boolean;
   disableSupport?: boolean;
   disableClusterManager?: boolean;
