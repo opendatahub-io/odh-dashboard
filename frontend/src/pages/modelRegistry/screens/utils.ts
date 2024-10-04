@@ -88,13 +88,12 @@ export const filterModelVersions = (
     }
 
     switch (searchType) {
-      case SearchType.KEYWORD: {
+      case SearchType.KEYWORD:
         return (
           mv.name.toLowerCase().includes(searchLower) ||
           (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
           getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))
         );
-      }
 
       case SearchType.AUTHOR: {
         return mv.author && mv.author.toLowerCase().includes(searchLower);
