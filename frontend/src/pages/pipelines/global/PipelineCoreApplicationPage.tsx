@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ButtonVariant } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
@@ -26,7 +27,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       {...pageProps}
       loaded={!pipelinesAPi.pipelinesServer.initializing}
       empty={!pipelinesAPi.pipelinesServer.installed}
-      emptyStatePage={<NoPipelineServer />}
+      emptyStatePage={<NoPipelineServer variant={ButtonVariant.primary} />}
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
       provideChildrenPadding={!overrideChildPadding}
     >
