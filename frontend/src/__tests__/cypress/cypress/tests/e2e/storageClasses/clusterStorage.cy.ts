@@ -28,14 +28,14 @@ const dspName = 'qe-cluster-storage-sc-dsp';
 // describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
 describe('An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
   let createdStorageClasses: string[];
-  // before(() => {
-  //   // Provision different SCs
-  //   createdStorageClasses = provisionClusterStorageSCFeature(dspName, TEST_USER.USERNAME, scName);
-  // });
+  before(() => {
+    // Provision different SCs
+    createdStorageClasses = provisionClusterStorageSCFeature(dspName, TEST_USER.USERNAME, scName);
+  });
 
-  // after(() => {
-  //   tearDownClusterStorageSCFeature(dspName, createdStorageClasses);
-  // });
+  after(() => {
+    tearDownClusterStorageSCFeature(dspName, createdStorageClasses);
+  });
 
   it.only('Regular user can create a cluster storage using a new storage class', () => {
     // Login as a regular user and try to land in storage classes view
@@ -66,19 +66,22 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
         cy.findByTestId('is-default-label').should('exist').and('have.text', 'Default class');
       });
     });
-
     // Verify that the enabled SC is shown in the dropdown and the disabled one is not
     addClusterStorageModal
       .findStorageClassSelect()
       .findSelectOption(scDisabledName)
       .should('not.exist');
     addClusterStorageModal.findStorageClassSelect().findSelectOption(scEnabledName).should('exist');
+    // Select the enabled SC and submit
     addClusterStorageModal.findStorageClassSelect().findSelectOption(scEnabledName).click();
+    addClusterStorageModal.findSubmitButton().click();
+    // Verify it's now in the grid
+    const clusterStorageRow = clusterStorage.getClusterStorageRow(clusterStorageName);
+    clusterStorageRow.findStorageClassColumn().should('exist');
   });
 });
 
 /**
- * disabled ones does not appears
  * All except one are disabled -> dropdown disabled
  *
  */

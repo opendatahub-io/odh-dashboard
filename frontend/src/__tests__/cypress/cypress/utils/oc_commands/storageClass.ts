@@ -49,7 +49,7 @@ export const deleteStorageClass = (scName: string): Cypress.Chainable<CommandLin
  * @returns Result Object of the operation
  */
 export const getStorageClassConfig = (scName: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get storageclass os-sc-${scName} -o jsonpath='{.metadata.annotations.opendatahub\.io/sc-config}'`;
+  const ocCommand = `oc get storageclass os-sc-${scName} -o jsonpath='{.metadata.annotations.opendatahub\\.io/sc-config}'`;
   cy.log(ocCommand);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
