@@ -10,14 +10,12 @@ type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
   servingRuntime?: ServingRuntimeKind;
   onClose: (deleted: boolean) => void;
-  isOpen?: boolean;
 };
 
 const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = ({
   inferenceService,
   servingRuntime,
   onClose,
-  isOpen = false,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -39,7 +37,6 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
   return (
     <DeleteModal
       title="Delete deployed model?"
-      isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete deployed model"
       onDelete={() => {

@@ -107,15 +107,17 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({
         }}
         inferenceService={inferenceService}
       />
-      <DeleteBiasConfigurationModal
-        configurationToDelete={deleteConfiguration}
-        onClose={(deleted) => {
-          if (deleted) {
-            refresh();
-          }
-          setDeleteConfiguration(undefined);
-        }}
-      />
+      {deleteConfiguration ? (
+        <DeleteBiasConfigurationModal
+          configurationToDelete={deleteConfiguration}
+          onClose={(deleted) => {
+            if (deleted) {
+              refresh();
+            }
+            setDeleteConfiguration(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };

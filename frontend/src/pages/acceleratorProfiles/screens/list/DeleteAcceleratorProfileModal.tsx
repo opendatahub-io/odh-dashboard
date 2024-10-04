@@ -4,7 +4,7 @@ import { AcceleratorProfileKind } from '~/k8sTypes';
 import { deleteAcceleratorProfile } from '~/services/acceleratorProfileService';
 
 type DeleteAcceleratorProfileModalProps = {
-  acceleratorProfile?: AcceleratorProfileKind;
+  acceleratorProfile: AcceleratorProfileKind;
   onClose: (deleted: boolean) => void;
 };
 
@@ -21,26 +21,23 @@ const DeleteAcceleratorProfileModal: React.FC<DeleteAcceleratorProfileModalProps
     setError(undefined);
   };
 
-  const deleteName = acceleratorProfile?.spec.displayName || 'this accelerator profile';
+  const deleteName = acceleratorProfile.spec.displayName;
 
   return (
     <DeleteModal
       title="Delete accelerator profile?"
-      isOpen={!!acceleratorProfile}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete"
       onDelete={() => {
-        if (acceleratorProfile) {
-          setIsDeleting(true);
-          deleteAcceleratorProfile(acceleratorProfile.metadata.name)
-            .then(() => {
-              onBeforeClose(true);
-            })
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+        setIsDeleting(true);
+        deleteAcceleratorProfile(acceleratorProfile.metadata.name)
+          .then(() => {
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}
