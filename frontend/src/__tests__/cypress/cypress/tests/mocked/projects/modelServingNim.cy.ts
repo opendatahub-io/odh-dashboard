@@ -199,7 +199,7 @@ describe('NIM Model Serving', () => {
         validateNvidiaNimModel(findNimModelDeployButton());
       });
 
-      it("When there is a failure in loading Nvidia Nim model images then error message should be displayed.", () => {
+      it("should display an error when failed to fetch nim Nividia model list", () => {
         initInterceptsToEnableNim({});
         const componentName = 'overview';
         projectDetails.visitSection('test-project', componentName);
