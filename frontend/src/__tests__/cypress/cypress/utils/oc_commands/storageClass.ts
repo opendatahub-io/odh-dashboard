@@ -1,9 +1,9 @@
 import type { SCReplacements, CommandLineResult } from '~/__tests__/cypress/cypress/types';
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
-import { applyOpenShiftYaml } from './baseCommands';
+import { applyOpenShiftYaml, patchOpenShiftResource } from './baseCommands';
 
 /**
- * Try to create an Storage Class based on the storageClassReplacements config
+ * Create an Storage Class based on the storageClassReplacements config
  * @param storageClassReplacements Dictionary with the config values
  *      Dict Structure:
  *              storageClassReplacements = {
@@ -68,7 +68,7 @@ export const getStorageClassConfig = (scName: string): Cypress.Chainable<Command
  * @returns Result Object of the operation
  */
 export const getOpenshiftDefaultStorageClass = (): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass\.kubernetes\.io/is-default-class=="true")].metadata.name}'`;
+  const ocCommand = `oc get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass.kubernetes.io/is-default-class=="true")].metadata.name}'`;
   cy.log(ocCommand);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
@@ -133,9 +133,8 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
               const parsedConfig = JSON.parse(config);
               if (parsedConfig.isDefault && parsedConfig.isEnabled) {
                 return parsedConfig.displayName;
-              } else {
-                return checkStorageClass(index + 1);
               }
+              return checkStorageClass(index + 1);
             } catch (error) {
               cy.log(`Error parsing config for ${scNames[index]}: ${error}`);
               return checkStorageClass(index + 1);
@@ -146,6 +145,38 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
 
     return checkStorageClass(0);
   });
+};
+
+/**
+ * Patch an Storage Class based on the storageClassReplacements config
+ * @param storageClassReplacements Dictionary with the config values
+ *      Dict Structure:
+ *              storageClassReplacements = {
+ *                  SC_NAME: <STORAGE CLASS NAME>,
+ *                  SC_IS_DEFAULT: <STR CAST BOOL>,
+ *                  SC_IS_ENABLED: <STR CAST BOOL>
+ *               }
+ * @param yamlFilePath
+ */
+export const updateStorageClass = (
+  storageClassReplacements: SCReplacements,
+): Cypress.Chainable<CommandLineResult> => {
+  const resourceName = `os-sc-${storageClassReplacements.SC_NAME}`;
+
+  const patchContent = JSON.stringify({
+    metadata: {
+      annotations: {
+        'opendatahub.io/sc-config': JSON.stringify({
+          isDefault: storageClassReplacements.SC_IS_DEFAULT === 'true',
+          isEnabled: storageClassReplacements.SC_IS_ENABLED === 'true',
+          displayName: storageClassReplacements.SC_NAME,
+          lastModified: new Date().toISOString(),
+        }),
+      },
+    },
+  });
+
+  return patchOpenShiftResource('storageclass', resourceName, patchContent);
 };
 
 // /**

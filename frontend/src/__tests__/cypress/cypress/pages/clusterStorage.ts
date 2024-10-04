@@ -157,6 +157,10 @@ class ClusterStorage {
   findCreateButton() {
     return cy.findByTestId('cluster-storage-button');
   }
+
+  findCreateButtonFromActions() {
+    return cy.findByTestId('actions-cluster-storage-button');
+  }
 }
 
 export const clusterStorage = new ClusterStorage();

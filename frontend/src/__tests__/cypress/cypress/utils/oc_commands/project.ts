@@ -58,7 +58,7 @@ export const deleteOpenShiftProject = (
 export const addUserToProject = (
   projectName: string,
   userName: string,
-  role: string = 'edit',
+  role = 'edit',
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc adm policy add-role-to-user ${role} ${userName} -n ${projectName}`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {

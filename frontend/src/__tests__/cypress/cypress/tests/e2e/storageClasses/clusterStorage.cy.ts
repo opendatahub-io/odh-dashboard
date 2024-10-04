@@ -1,32 +1,24 @@
-import { TEST_USER, ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+import { TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
-  verifyStorageClassConfig,
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
 } from '~/__tests__/cypress/cypress/utils/storageClass';
 import {
   clusterStorage,
   addClusterStorageModal,
-  updateClusterStorageModal,
 } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
 import {
-  storageClassEditModal,
-  storageClassesPage,
-  storageClassesTable,
-} from '~/__tests__/cypress/cypress/pages/storageClasses';
-import { getDefaultEnabledStorageClass } from '../../../utils/oc_commands/storageClass';
+  getDefaultEnabledStorageClass,
+  updateStorageClass,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import type { SCReplacements } from '~/__tests__/cypress/cypress/types';
 
 const scName = 'qe-cs-sc';
-const scDefaultName = 'standard-csi';
 const dspName = 'qe-cluster-storage-sc-dsp';
-// const dspName = 'fede';
 
-// Using testIsolation will reuse the login (cache)
-// describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
-describe('An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
+describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from DSP ', () => {
   let createdStorageClasses: string[];
   before(() => {
     // Provision different SCs
@@ -37,8 +29,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     tearDownClusterStorageSCFeature(dspName, createdStorageClasses);
   });
 
-  it.only('Regular user can create a cluster storage using a new storage class', () => {
-    // Login as a regular user and try to land in storage classes view
+  it('Regular user can create a cluster storage using a new storage class', () => {
     cy.visitWithLogin('/projects', TEST_USER);
     // Open the project
     projectListPage.filterProjectByName(dspName);
@@ -79,9 +70,48 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     const clusterStorageRow = clusterStorage.getClusterStorageRow(clusterStorageName);
     clusterStorageRow.findStorageClassColumn().should('exist');
   });
+
+  it('A Cluster Storage with a disabled SC shows the deprecated warning', () => {
+    cy.visitWithLogin('/projects', TEST_USER);
+    // Open the project
+    projectListPage.filterProjectByName(dspName);
+    projectListPage.findProjectLink(dspName).click();
+    // Go to cluster storage tab
+    projectDetails.findSectionTab('cluster-storages').click();
+
+    // Create a cluster storage using the new Storage Class
+    const scEnabledName = `${scName}-enabled`;
+    const clusterStorageName = `cs-deprecated`;
+    findAddClusterStorageButton().click();
+    addClusterStorageModal.findNameInput().fill(clusterStorageName);
+    // Select the enabled SC and submit
+    addClusterStorageModal.findStorageClassSelect().findSelectOption(scEnabledName).click();
+    addClusterStorageModal.findSubmitButton().click();
+    // Verify it's now in the grid
+    let clusterStorageRow = clusterStorage.getClusterStorageRow(clusterStorageName);
+    clusterStorageRow.findStorageClassColumn().should('exist');
+
+    // patch: Disable the SC
+    const SCReplacement: SCReplacements = {
+      SC_NAME: scEnabledName,
+      SC_IS_DEFAULT: 'false',
+      SC_IS_ENABLED: 'false',
+    };
+    updateStorageClass(SCReplacement);
+
+    cy.reload();
+    clusterStorageRow = clusterStorage.getClusterStorageRow(clusterStorageName);
+    clusterStorageRow.findDeprecatedLabel().should('exist');
+
+    clusterStorageRow.findDeprecatedLabel().trigger('mouseenter');
+    clusterStorageRow.shouldHaveDeprecatedTooltip();
+    clusterStorage.shouldHaveDeprecatedAlertMessage();
+    clusterStorage.closeDeprecatedAlert();
+  });
 });
 
 /**
+ * a modified SC shows deprecated
  * All except one are disabled -> dropdown disabled
  *
  */
