@@ -57,6 +57,18 @@ describe('NIM Model Serving', () => {
         .click();
       nimDeployModal.findSubmitButton().should('be.enabled');
 
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
+      nimDeployModal.findStorageSizeMinusButton().click();
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '29');
+      nimDeployModal.findStorageSizePlusButton().click();
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
+
+      nimDeployModal.findNimModelReplicas().should('have.value', '1');
+      nimDeployModal.findNimModelReplicasPlusButton().click();
+      nimDeployModal.findNimModelReplicas().should('have.value', '2');
+      nimDeployModal.findNimModelReplicasMinusButton().click();
+      nimDeployModal.findNimModelReplicas().should('have.value', '1');
+
       nimDeployModal.findSubmitButton().click();
 
       //dry run request

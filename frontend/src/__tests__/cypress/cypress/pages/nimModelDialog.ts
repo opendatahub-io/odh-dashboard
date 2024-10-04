@@ -16,6 +16,30 @@ class NIMDeployModal extends Modal {
   findNIMToDeploy() {
     return this.find().findByTestId('nim-model-list-selection');
   }
+
+  findNimStorageSizeInput() {
+    return cy.get('[data-testid="pvc-size"] input');
+  }
+
+  findStorageSizeMinusButton() {
+    return this.find().findByTestId('pvc-size').findByRole('button', { name: 'Minus' });
+  }
+
+  findStorageSizePlusButton() {
+    return this.find().findByTestId('pvc-size').findByRole('button', { name: 'Plus' });
+  }
+
+  findNimModelReplicas() {
+    return cy.get('[id="model-server-replicas"]');
+  }
+
+  findNimModelReplicasMinusButton() {
+    return this.find().find('button[aria-label="Minus"]').eq(1);
+  }
+
+  findNimModelReplicasPlusButton() {
+    return this.find().find('button[aria-label="Plus"]').eq(1);
+  }
 }
 
 export const nimDeployModal = new NIMDeployModal();
