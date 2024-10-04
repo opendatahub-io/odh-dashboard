@@ -28,19 +28,20 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
       >
         {children || 'Import pipeline'}
       </Button>
-      <PipelineImportModal
-        isOpen={open}
-        redirectAfterImport={redirectAfterImport}
-        onClose={(pipeline) => {
-          setOpen(false);
-          if (pipeline) {
-            if (onCreate) {
-              onCreate(pipeline);
+      {open ? (
+        <PipelineImportModal
+          redirectAfterImport={redirectAfterImport}
+          onClose={(pipeline) => {
+            setOpen(false);
+            if (pipeline) {
+              if (onCreate) {
+                onCreate(pipeline);
+              }
+              refreshAllAPI();
             }
-            refreshAllAPI();
-          }
-        }}
-      />
+          }}
+        />
+      ) : null}
     </>
   );
 };

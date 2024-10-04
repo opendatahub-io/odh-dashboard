@@ -114,7 +114,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
           }}
         />
       ) : null}
-      <ViewServerModal isOpen={viewOpen} onClose={() => setViewOpen(false)} />
+      {viewOpen ? <ViewServerModal onClose={() => setViewOpen(false)} /> : null}
       {deletePipelinesOpen ? (
         <DeletePipelinesModal
           toDeletePipelines={pipelines}
