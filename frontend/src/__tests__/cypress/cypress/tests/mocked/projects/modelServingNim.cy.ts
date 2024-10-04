@@ -198,6 +198,18 @@ describe('NIM Model Serving', () => {
 
         validateNvidiaNimModel(findNimModelDeployButton());
       });
+
+      it("When there is a failure in loading Nvidia Nim model images then error message should be displayed.", () => {
+        initInterceptsToEnableNim({});
+        const componentName = 'overview';
+        projectDetails.visitSection('test-project', componentName);
+        const overviewComponent = projectDetails.findComponent(componentName);
+        overviewComponent.should('exist');
+        const deployModelButton = overviewComponent.findByTestId('model-serving-platform-button');
+        deployModelButton.should('exist');
+        deployModelButton.click()
+        cy.contains('There was a problem fetching the NIM models. Please try again later.')
+      });
     });
 
     describe('When NIM feature is disabled', () => {
