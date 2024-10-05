@@ -47,7 +47,7 @@ import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/s
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import {
   getNIMServingRuntimeTemplate,
-  updatePVCName,
+  updateServingRuntimeTemplate,
 } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
@@ -98,7 +98,6 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-  const [nimPVCName] = React.useState(() => getUniqueId('nim-pvc'));
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -159,18 +158,11 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   React.useEffect(() => {
     const fetchNIMServingRuntimeTemplate = async () => {
       const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
-      if (nimTemplate) {
-        const servingRuntime = getServingRuntimeFromTemplate(nimTemplate);
-        setServingRuntimeSelected(
-          servingRuntime ? updatePVCName(servingRuntime, nimPVCName) : undefined,
-        );
-      } else {
-        setServingRuntimeSelected(undefined);
-      }
+      setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
     };
 
     fetchNIMServingRuntimeTemplate();
-  }, [dashboardNamespace, editInfo, nimPVCName]);
+  }, [dashboardNamespace, editInfo]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -200,8 +192,14 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
+    const nimPVCName = getUniqueId('nim-pvc');
+
+    const updatedServingRuntime = servingRuntimeSelected
+      ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
+      : undefined;
+
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
-      servingRuntimeSelected,
+      updatedServingRuntime,
       createDataServingRuntime,
       customServingRuntimesEnabled,
       namespace,

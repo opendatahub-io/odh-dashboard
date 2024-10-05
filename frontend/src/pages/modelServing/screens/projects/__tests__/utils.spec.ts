@@ -13,11 +13,12 @@ import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelSer
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { createPvc, createSecret } from '~/api';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
   getNGCSecretType,
   getNIMData,
   getNIMResource,
+  updateServingRuntimeTemplate,
 } from '~/pages/modelServing/screens/projects/nimUtils';
 
 jest.mock('~/api', () => ({
@@ -27,6 +28,7 @@ jest.mock('~/api', () => ({
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
+  ...jest.requireActual('~/pages/modelServing/screens/projects/nimUtils'),
   getNIMData: jest.fn(),
   getNGCSecretType: jest.fn(),
   getNIMResource: jest.fn(),
@@ -453,5 +455,84 @@ describe('createNIMPVC', () => {
       { dryRun: dryRunFlag },
       true,
     );
+  });
+});
+
+describe('updateServingRuntimeTemplate', () => {
+  const servingRuntimeMock: ServingRuntimeKind = {
+    apiVersion: 'serving.kserve.io/v1alpha1',
+    kind: 'ServingRuntime',
+    metadata: {
+      name: 'test-serving-runtime',
+      namespace: 'test-namespace',
+    },
+    spec: {
+      containers: [
+        {
+          name: 'test-container',
+          volumeMounts: [
+            { name: 'nim-pvc', mountPath: '/mnt/models/cache' },
+            { name: 'other-volume', mountPath: '/mnt/other-path' },
+          ],
+        },
+      ],
+      volumes: [
+        { name: 'nim-pvc', persistentVolumeClaim: { claimName: 'old-nim-pvc' } },
+        { name: 'other-volume', emptyDir: {} },
+      ],
+    },
+  };
+
+  it('should update PVC name in volumeMounts and volumes', () => {
+    const pvcName = 'new-nim-pvc';
+    const updatedServingRuntime = updateServingRuntimeTemplate(servingRuntimeMock, pvcName);
+
+    expect(updatedServingRuntime.spec.containers[0].volumeMounts).toEqual([
+      { name: pvcName, mountPath: '/mnt/models/cache' },
+      { name: 'other-volume', mountPath: '/mnt/other-path' },
+    ]);
+
+    expect(updatedServingRuntime.spec.volumes).toEqual([
+      { name: pvcName, persistentVolumeClaim: { claimName: pvcName } },
+      { name: 'other-volume', emptyDir: {} },
+    ]);
+  });
+
+  it('should not modify unrelated volumeMounts and volumes', () => {
+    const pvcName = 'new-nim-pvc';
+    const updatedServingRuntime = updateServingRuntimeTemplate(servingRuntimeMock, pvcName);
+
+    expect(updatedServingRuntime.spec.containers[0].volumeMounts?.[1]).toEqual({
+      name: 'other-volume',
+      mountPath: '/mnt/other-path',
+    });
+
+    expect(updatedServingRuntime.spec.volumes?.[1]).toEqual({
+      name: 'other-volume',
+      emptyDir: {},
+    });
+  });
+
+  it('should handle serving runtime with containers but no volumeMounts', () => {
+    const servingRuntimeWithoutVolumeMounts: ServingRuntimeKind = {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'ServingRuntime',
+      metadata: {
+        name: 'test-serving-runtime-no-volumeMounts',
+        namespace: 'test-namespace',
+      },
+      spec: {
+        containers: [
+          {
+            name: 'test-container',
+          },
+        ],
+      },
+    };
+
+    const pvcName = 'new-nim-pvc';
+    const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
+
+    expect(result.spec.containers[0].volumeMounts).toBeUndefined();
   });
 });

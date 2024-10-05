@@ -6,6 +6,7 @@ import { getTemplate } from '~/api';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
 const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
+const TEMPLATE_NAME = 'nvidia-nim-serving-template';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
@@ -59,8 +60,6 @@ export const isProjectNIMSupported = (currentProject: ProjectKind): boolean => {
 export const isNIMServingRuntimeTemplateAvailable = async (
   dashboardNamespace: string,
 ): Promise<boolean> => {
-  const TEMPLATE_NAME = 'nvidia-nim-serving-template';
-
   try {
     await getTemplate(TEMPLATE_NAME, dashboardNamespace);
     return true;
@@ -72,7 +71,6 @@ export const isNIMServingRuntimeTemplateAvailable = async (
 export const getNIMServingRuntimeTemplate = async (
   dashboardNamespace: string,
 ): Promise<TemplateKind | undefined> => {
-  const TEMPLATE_NAME = 'nvidia-nim-serving-template';
   try {
     const template = await getTemplate(TEMPLATE_NAME, dashboardNamespace);
     return template;
@@ -81,43 +79,47 @@ export const getNIMServingRuntimeTemplate = async (
   }
 };
 
-export const updatePVCName = (
+export const updateServingRuntimeTemplate = (
   servingRuntime: ServingRuntimeKind,
   pvcName: string,
 ): ServingRuntimeKind => {
   const updatedServingRuntime = { ...servingRuntime };
 
   updatedServingRuntime.spec.containers = updatedServingRuntime.spec.containers.map((container) => {
-    const updatedVolumeMounts = container.volumeMounts?.map((volumeMount) => {
-      if (volumeMount.mountPath === '/mnt/models/cache') {
-        return {
-          ...volumeMount,
-          name: pvcName,
-        };
-      }
-      return volumeMount;
-    });
+    if (container.volumeMounts) {
+      const updatedVolumeMounts = container.volumeMounts.map((volumeMount) => {
+        if (volumeMount.mountPath === '/mnt/models/cache') {
+          return {
+            ...volumeMount,
+            name: pvcName,
+          };
+        }
+        return volumeMount;
+      });
 
-    return {
-      ...container,
-      volumeMounts: updatedVolumeMounts,
-    };
-  });
-
-  const updatedVolumes = updatedServingRuntime.spec.volumes?.map((volume) => {
-    if (volume.name === 'nim-pvc') {
       return {
-        ...volume,
-        name: pvcName,
-        persistentVolumeClaim: {
-          claimName: pvcName,
-        },
+        ...container,
+        volumeMounts: updatedVolumeMounts,
       };
     }
-    return volume;
+    return container;
   });
 
-  updatedServingRuntime.spec.volumes = updatedVolumes;
+  if (updatedServingRuntime.spec.volumes) {
+    const updatedVolumes = updatedServingRuntime.spec.volumes.map((volume) => {
+      if (volume.name === 'nim-pvc') {
+        return {
+          ...volume,
+          name: pvcName,
+          persistentVolumeClaim: {
+            claimName: pvcName,
+          },
+        };
+      }
+      return volume;
+    });
 
+    updatedServingRuntime.spec.volumes = updatedVolumes;
+  }
   return updatedServingRuntime;
 };
