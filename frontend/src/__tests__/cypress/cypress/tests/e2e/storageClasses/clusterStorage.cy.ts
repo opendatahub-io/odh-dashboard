@@ -11,13 +11,13 @@ import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/uti
 const dspName = 'qe-cluster-storage-sc-dsp';
 
 describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from DSP ', () => {
-  // before(() => {
-  //   provisionClusterStorageSCFeature(dspName, TEST_USER.USERNAME);
-  // });
+  before(() => {
+    provisionClusterStorageSCFeature(dspName, TEST_USER.USERNAME);
+  });
 
-  // after(() => {
-  //   tearDownClusterStorageSCFeature(dspName);
-  // });
+  after(() => {
+    tearDownClusterStorageSCFeature(dspName);
+  });
 
   it('If all SC are disabled except one, the SC dropdown should be disabled', () => {
     cy.visitWithLogin('/projects', TEST_USER);

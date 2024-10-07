@@ -53,16 +53,6 @@ export const provisionStorageClassFeature = (scName: string): string[] => {
   createStorageClass(SCReplacement);
   createdStorageClasses.push(scNameEnabledToDefault);
 
-  //Provision an enabled non-default sc in order to set it as default
-  const scNameEnabledAndDefault = `${scName}-enabled-and-default`;
-  SCReplacement = {
-    SC_NAME: scNameEnabledAndDefault,
-    SC_IS_DEFAULT: 'false',
-    SC_IS_ENABLED: 'true',
-  };
-  createStorageClass(SCReplacement);
-  createdStorageClasses.push(scNameEnabledAndDefault);
-
   return createdStorageClasses;
 };
 
