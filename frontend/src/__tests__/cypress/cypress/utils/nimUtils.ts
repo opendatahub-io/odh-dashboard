@@ -21,7 +21,7 @@ import {
   mockNimImages,
   mockNimInferenceService,
   mockNimModelPVC,
-  mockNimProject,
+  mockNimProject, mockNimServingResource,
   mockNimServingRuntime,
   mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
@@ -197,7 +197,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     mockK8sResourceList([mockAcceleratorProfile({ namespace: 'opendatahub' })]),
   );
 
-  cy.intercept('GET', '/api/accelerators', {
+  cy.interceptOdh('GET /api/accelerators', {
     configured: true,
     available: { 'nvidia.com/gpu': 1 },
     total: { 'nvidia.com/gpu': 1 },
@@ -213,20 +213,24 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 
   cy.interceptK8s('POST', ServingRuntimeModel, mockNimServingRuntime()).as('createServingRuntime');
 
-  // NOTES: `body` field is needed!
-  cy.intercept(
-    { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-images-data' },
-    {
-      body: { body: mockNimImages() },
-    },
+  cy.interceptOdh(
+    `GET /api/nim-serving/:resource`,
+    { path: { resource: 'nvidia-nim-images-data' } },
+    mockNimServingResource(mockNimImages()),
   );
-  cy.intercept(
-    { method: 'GET', pathname: '/api/nim-serving/nvidia-nim-access' },
-    { body: { body: mockNvidiaNimAccessSecret() } },
+
+  cy.interceptOdh(
+    `GET /api/nim-serving/:resource`,
+    { path: { resource: 'nvidia-nim-access' } },
+    mockNimServingResource(mockNvidiaNimAccessSecret()),
   );
-  cy.intercept('GET', 'api/nim-serving/nvidia-nim-image-pull', {
-    body: { body: mockNvidiaNimImagePullSecret() },
-  });
+
+  cy.interceptOdh(
+    `GET /api/nim-serving/:resource`,
+    { path: { resource: 'nvidia-nim-image-pull' } },
+    mockNimServingResource(mockNvidiaNimImagePullSecret()),
+  );
+
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
 };
 
