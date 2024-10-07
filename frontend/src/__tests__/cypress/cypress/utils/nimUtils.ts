@@ -21,6 +21,7 @@ import {
   mockNimImages,
   mockNimInferenceService,
   mockNimModelPVC,
+  mockNimProject,
   mockNimServingRuntime,
   mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
@@ -185,14 +186,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     }),
   );
 
-  const project = mockProjectK8sResource({
-    hasAnnotations: true,
-    enableModelMesh: hasAllModels ? undefined : false,
-  });
-  if (project.metadata.annotations != null) {
-    project.metadata.annotations['opendatahub.io/nim-support'] = 'true';
-  }
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([project]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject(hasAllModels)]));
 
   const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));

@@ -16,7 +16,6 @@ import { env, cypressEnv, BASE_URL } from '~/__tests__/cypress/cypress/utils/tes
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
 export default defineConfig({
-  experimentalStudio: false,
   experimentalMemoryManagement: true,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
   reporter: '../../../node_modules/cypress-multi-reporters',
