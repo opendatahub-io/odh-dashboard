@@ -9,6 +9,7 @@ import {
 } from '~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { NimServingResponse } from '~/__tests__/cypress/cypress/types';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';
@@ -138,3 +139,7 @@ export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
   });
   return pvc;
 };
+
+export const mockNimServingResource = (
+  resource: ConfigMapKind | SecretKind,
+): NimServingResponse => ({ body: { body: resource } });

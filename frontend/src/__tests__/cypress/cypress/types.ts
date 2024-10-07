@@ -1,4 +1,5 @@
 import type { RouteMatcher } from 'cypress/types/net-stubbing';
+import { ConfigMapKind, SecretKind } from '~/k8sTypes';
 
 export type Snapshot = {
   method: string;
@@ -70,4 +71,10 @@ export type TestConfig = {
   TEST_USER: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
+};
+
+export type NimServingResponse = {
+  body: {
+    body: ConfigMapKind | SecretKind;
+  };
 };

@@ -1,4 +1,4 @@
-import type { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import type {
@@ -9,7 +9,7 @@ import type {
   RegisteredModel,
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
-import type {
+import {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
@@ -19,16 +19,16 @@ import type {
   TemplateKind,
   NotebookKind,
   ModelRegistryKind,
-  ConsoleLinkKind,
+  ConsoleLinkKind, RoleBindingSubject, RoleBindingRoleRef, ConfigMapKind, SecretKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import type { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import type { StatusResponse } from '~/redux/types';
-import type {
+import {
   BYONImage,
-  ClusterSettingsType,
+  ClusterSettingsType, DetectedAccelerators,
   ImageInfo,
   OdhApplication,
   OdhDocument,
@@ -54,6 +54,7 @@ import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
 import type { ArtifactStorage } from '~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
+import { NimServingResponse } from '~/__tests__/cypress/cypress/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -637,6 +638,19 @@ declare global {
         ((
           type: 'POST /api/modelRegistryRoleBindings',
           response: OdhResponse<RoleBindingKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/accelerators',
+          response: OdhResponse<DetectedAccelerators>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/nim-serving/:resource',
+          options: {
+            path: {
+              resource: 'nvidia-nim-images-data' | 'nvidia-nim-access' | 'nvidia-nim-image-pull';
+            };
+          },
+          response: OdhResponse<NimServingResponse>,
         ) => Cypress.Chainable<null>);
     }
   }
