@@ -45,7 +45,10 @@ import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/project
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
-import { getNIMServingRuntimeTemplate } from '~/pages/modelServing/screens/projects/nimUtils';
+import {
+  getNIMServingRuntimeTemplate,
+  updateServingRuntimeTemplate,
+} from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 
@@ -95,7 +98,6 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-  const nimPVCName = getUniqueId('nim-pvc');
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -190,8 +192,14 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
+    const nimPVCName = getUniqueId('nim-pvc');
+
+    const updatedServingRuntime = servingRuntimeSelected
+      ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
+      : undefined;
+
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
-      servingRuntimeSelected,
+      updatedServingRuntime,
       createDataServingRuntime,
       customServingRuntimesEnabled,
       namespace,
@@ -203,7 +211,6 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       projectContext?.currentProject,
       servingRuntimeName,
       true,
-      nimPVCName,
     );
 
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(

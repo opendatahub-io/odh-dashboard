@@ -8,7 +8,6 @@ import {
 } from '~/pages/modelServing/screens/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import { fetchNIMModelNames, ModelInfo } from '~/pages/modelServing/screens/projects/utils';
-import { useDashboardNamespace } from '~/redux/selectors';
 
 type NIMModelListSectionProps = {
   inferenceServiceData: CreatingInferenceServiceObject;
@@ -25,7 +24,6 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
 }) => {
   const [options, setOptions] = useState<{ key: string; label: string }[]>([]);
   const [modelList, setModelList] = useState<ModelInfo[]>([]);
-  const { dashboardNamespace } = useDashboardNamespace();
   const [error, setError] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState('');
 
@@ -53,7 +51,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
       }
     };
     getModelNames();
-  }, [dashboardNamespace]);
+  }, []);
 
   const getSupportedModelFormatsInfo = (key: string) => {
     const lastHyphenIndex = key.lastIndexOf('-');
