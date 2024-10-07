@@ -17,6 +17,7 @@ const LaunchJupyterButton: React.FC = () => {
       content="Launch a notebook server to create a standalone notebook outside of a project."
     >
       <Button
+        data-testid="launch-standalone-notebook-server"
         href="/notebookController"
         component="a"
         variant={ButtonVariant.secondary}

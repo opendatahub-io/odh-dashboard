@@ -12,7 +12,7 @@ import {
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type DeleteCustomServingRuntimeModalProps = {
-  template?: TemplateKind;
+  template: TemplateKind;
   onClose: (deleted: boolean) => void;
 };
 
@@ -36,45 +36,40 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
     setError(undefined);
   };
 
-  const deleteName = template
-    ? getServingRuntimeDisplayNameFromTemplate(template)
-    : 'this serving runtime';
+  const deleteName = getServingRuntimeDisplayNameFromTemplate(template);
 
   return (
     <DeleteModal
       title="Delete serving runtime?"
-      isOpen={!!template}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete serving runtime"
       onDelete={() => {
-        if (template) {
-          setIsDeleting(true);
-          // TODO: Revert back to pass through api once we migrate admin panel
-          const templateDisablemetUpdated = setListDisabled(
-            template,
-            templates,
-            templateDisablement,
-            false,
-          );
-          Promise.all([
-            ...(!getTemplateEnabled(template, templateDisablement)
-              ? [
-                  patchDashboardConfigTemplateDisablementBackend(
-                    templateDisablemetUpdated,
-                    dashboardNamespace,
-                  ),
-                ]
-              : []),
-            deleteTemplateBackend(template.metadata.name, template.metadata.namespace),
-          ])
-            .then(() => {
-              onBeforeClose(true);
-            })
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+        setIsDeleting(true);
+        // TODO: Revert back to pass through api once we migrate admin panel
+        const templateDisablemetUpdated = setListDisabled(
+          template,
+          templates,
+          templateDisablement,
+          false,
+        );
+        Promise.all([
+          ...(!getTemplateEnabled(template, templateDisablement)
+            ? [
+                patchDashboardConfigTemplateDisablementBackend(
+                  templateDisablemetUpdated,
+                  dashboardNamespace,
+                ),
+              ]
+            : []),
+          deleteTemplateBackend(template.metadata.name, template.metadata.namespace),
+        ])
+          .then(() => {
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}

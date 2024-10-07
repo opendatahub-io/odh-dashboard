@@ -324,6 +324,10 @@ class EditSpawnerPage extends CreateSpawnerPage {
   findCancelButton() {
     return cy.findByTestId('workbench-cancel-button');
   }
+
+  findAcceleratorProfileSelect() {
+    return cy.findByTestId('accelerator-profile-select');
+  }
 }
 
 class NotFoundSpawnerPage {

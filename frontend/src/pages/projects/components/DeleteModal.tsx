@@ -12,7 +12,6 @@ import {
 
 type DeleteModalProps = {
   title: string;
-  isOpen: boolean;
   onClose: () => void;
   deleting: boolean;
   onDelete: () => void;
@@ -26,7 +25,6 @@ type DeleteModalProps = {
 const DeleteModal: React.FC<DeleteModalProps> = ({
   children,
   title,
-  isOpen,
   onClose,
   deleting,
   onDelete,
@@ -50,17 +48,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     }
   };
 
-  React.useEffect(() => {
-    if (!isOpen) {
-      setValue('');
-    }
-  }, [isOpen]);
-
   return (
     <Modal
       title={title}
       titleIconVariant="warning"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       actions={[
         <Button

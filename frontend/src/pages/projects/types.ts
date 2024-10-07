@@ -9,14 +9,16 @@ import {
   Volume,
   VolumeMount,
 } from '~/types';
-import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { AwsKeys } from './dataConnections/const';
 
-export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
+export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
+  propKey: K,
+  propValue: T[K],
+) => void;
 
 export type NameDescType = {
   name: string;

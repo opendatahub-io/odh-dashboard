@@ -3,8 +3,7 @@ import { FormGroup, Stack, StackItem, Popover, Icon } from '@patternfly/react-co
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
-  CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
+  CreatingModelServingObjectCommon,
   ModelServingSize,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
@@ -17,11 +16,9 @@ import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState'
 import SimpleSelect from '~/components/SimpleSelect';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
-type ServingRuntimeSizeSectionProps = {
-  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
-  setData:
-    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
-    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+type ServingRuntimeSizeSectionProps<D extends CreatingModelServingObjectCommon> = {
+  data: D;
+  setData: UpdateObjectAtPropAndValue<D>;
   sizes: ModelServingSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
   acceleratorProfileState: AcceleratorProfileState;
@@ -30,7 +27,7 @@ type ServingRuntimeSizeSectionProps = {
   infoContent?: string;
 };
 
-const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
+const ServingRuntimeSizeSection = <D extends CreatingModelServingObjectCommon>({
   data,
   setData,
   sizes,
@@ -39,7 +36,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   selectedAcceleratorProfile,
   setSelectedAcceleratorProfile,
   infoContent,
-}) => {
+}: ServingRuntimeSizeSectionProps<D>): React.ReactNode => {
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
     string[] | undefined
   >();

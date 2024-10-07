@@ -2,19 +2,17 @@ import React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 
 type DeleteTrustyAIModalProps = {
-  isOpen: boolean;
   onDelete: () => Promise<unknown>;
   onClose: (deleted: boolean) => void;
 };
 
-const DeleteTrustyAIModal: React.FC<DeleteTrustyAIModalProps> = ({ isOpen, onDelete, onClose }) => {
+const DeleteTrustyAIModal: React.FC<DeleteTrustyAIModalProps> = ({ onDelete, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
 
   return (
     <DeleteModal
       title="Uninstall TrustyAI"
-      isOpen={isOpen}
       onClose={() => {
         setIsDeleting(false);
         setError(undefined);

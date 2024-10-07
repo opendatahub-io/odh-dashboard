@@ -6,14 +6,12 @@ import useNotification from '~/utilities/useNotification';
 interface ArchiveModelVersionModalProps {
   onCancel: () => void;
   onSubmit: () => void;
-  isOpen: boolean;
   modelVersionName: string;
 }
 
 export const ArchiveModelVersionModal: React.FC<ArchiveModelVersionModalProps> = ({
   onCancel,
   onSubmit,
-  isOpen,
   modelVersionName,
 }) => {
   const notification = useNotification();
@@ -45,7 +43,7 @@ export const ArchiveModelVersionModal: React.FC<ArchiveModelVersionModalProps> =
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title="Archive version?"
       titleIconVariant="warning"
       variant="small"

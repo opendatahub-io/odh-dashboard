@@ -10,7 +10,7 @@ import DeleteModalConnectedAlert from '~/pages/projects/components/DeleteModalCo
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeletePVCModalProps = {
-  pvcToDelete?: PersistentVolumeClaimKind;
+  pvcToDelete: PersistentVolumeClaimKind;
   onClose: (deleted: boolean) => void;
 };
 
@@ -21,7 +21,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
     notebooks: connectedNotebooks,
     loaded: notebookLoaded,
     error: notebookError,
-  } = useRelatedNotebooks(ConnectedNotebookContext.EXISTING_PVC, pvcToDelete?.metadata.name);
+  } = useRelatedNotebooks(ConnectedNotebookContext.EXISTING_PVC, pvcToDelete.metadata.name);
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -29,33 +29,30 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
     setError(undefined);
   };
 
-  const displayName = pvcToDelete ? getDisplayNameFromK8sResource(pvcToDelete) : 'this storage';
+  const displayName = getDisplayNameFromK8sResource(pvcToDelete);
 
   return (
     <DeleteModal
       title="Delete storage?"
-      isOpen={!!pvcToDelete}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete storage"
       onDelete={() => {
-        if (pvcToDelete) {
-          const { name, namespace } = pvcToDelete.metadata;
-          setIsDeleting(true);
-          Promise.all(
-            connectedNotebooks.map((notebook) =>
-              removeNotebookPVC(notebook.metadata.name, namespace, name),
-            ),
+        const { name, namespace } = pvcToDelete.metadata;
+        setIsDeleting(true);
+        Promise.all(
+          connectedNotebooks.map((notebook) =>
+            removeNotebookPVC(notebook.metadata.name, namespace, name),
+          ),
+        )
+          .then(() =>
+            deletePvc(name, namespace).then(() => {
+              onBeforeClose(true);
+            }),
           )
-            .then(() =>
-              deletePvc(name, namespace).then(() => {
-                onBeforeClose(true);
-              }),
-            )
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}

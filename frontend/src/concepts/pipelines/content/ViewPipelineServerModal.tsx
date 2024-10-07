@@ -15,13 +15,11 @@ import { ExternalDatabaseSecret } from '~/concepts/pipelines/content/configurePi
 import { DSPipelineKind } from '~/k8sTypes';
 
 type ViewPipelineServerModalProps = {
-  isOpen: boolean;
   onClose: () => void;
   pipelineNamespaceCR: DSPipelineKind | null;
 };
 
 const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
-  isOpen,
   onClose,
   pipelineNamespaceCR,
 }) => {
@@ -35,7 +33,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
 
   return (
-    <Modal title="View pipeline server" isOpen={isOpen} onClose={onClose} variant="small">
+    <Modal title="View pipeline server" isOpen onClose={onClose} variant="small">
       {pipelineNamespaceCR && (
         <DescriptionList termWidth="20ch" isHorizontal>
           {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret

@@ -7,12 +7,11 @@ import { BulkActionExpandableSection } from '~/pages/projects/components/BulkAct
 import { PipelineRunTabTitle } from './types';
 
 interface RestoreRunModalProps {
-  isOpen: boolean;
   runs: PipelineRunKFv2[];
   onCancel: () => void;
 }
 
-export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ isOpen, runs, onCancel }) => {
+export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ runs, onCancel }) => {
   const isSingleRestoring = runs.length === 1;
   const { api } = usePipelinesAPI();
   const onSubmit = React.useCallback(
@@ -24,7 +23,6 @@ export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ isOpen, runs, 
       title={`Restore run${isSingleRestoring ? '' : 's'}?`}
       onCancel={onCancel}
       onSubmit={onSubmit}
-      isOpen={isOpen}
       testId="restore-run-modal"
       alertTitle={`Error restoring ${isSingleRestoring ? runs[0].display_name : 'runs'}`}
     >

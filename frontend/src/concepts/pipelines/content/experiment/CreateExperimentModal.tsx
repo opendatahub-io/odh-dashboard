@@ -20,11 +20,10 @@ import {
 import { CharLimitHelperText } from '~/components/CharLimitHelperText';
 
 type CreateExperimentModalProps = {
-  isOpen: boolean;
   onClose: (experiment?: ExperimentKFv2) => void;
 };
 
-const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ isOpen, onClose }) => {
+const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }) => {
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -41,7 +40,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ isOpen, o
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title="Create experiment"
       onClose={() => onBeforeClose()}
       actions={[

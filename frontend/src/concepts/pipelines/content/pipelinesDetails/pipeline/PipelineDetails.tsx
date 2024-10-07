@@ -257,9 +257,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </PageSection>
         )}
       </ApplicationsPage>
-      {pipeline && (
+      {pipeline && isDeletionOpen ? (
         <DeletePipelinesModal
-          isOpen={isDeletionOpen}
           toDeletePipelineVersions={
             pipelineVersion
               ? [{ pipelineName: pipeline.display_name, version: pipelineVersion }]
@@ -272,7 +271,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
             }
           }}
         />
-      )}
+      ) : null}
     </>
   );
 };

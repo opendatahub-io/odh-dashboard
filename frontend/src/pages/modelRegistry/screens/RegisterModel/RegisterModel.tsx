@@ -16,8 +16,7 @@ import { Link } from 'react-router-dom';
 import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
-import { ValueOf } from '~/typeHelpers';
-import { useRegisterModelData, RegistrationCommonFormData } from './useRegisterModelData';
+import { useRegisterModelData } from './useRegisterModelData';
 import { isRegisterModelSubmitDisabled, registerModel } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import { useRegistrationCommonState } from './useRegistrationCommonState';
@@ -90,10 +89,7 @@ const RegisterModel: React.FC = () => {
               </FormSection>
               <RegistrationCommonFormSections
                 formData={formData}
-                setData={(
-                  propKey: keyof RegistrationCommonFormData,
-                  propValue: ValueOf<RegistrationCommonFormData>,
-                ) => setData(propKey, propValue)}
+                setData={setData}
                 isFirstVersion
               />
             </StackItem>

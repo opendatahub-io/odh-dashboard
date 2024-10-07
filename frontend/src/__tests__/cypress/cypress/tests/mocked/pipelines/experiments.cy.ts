@@ -393,7 +393,7 @@ describe('Runs page for archived experiment', () => {
 });
 
 const initIntercepts = () => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
     mockK8sResourceList([

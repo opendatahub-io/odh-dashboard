@@ -33,9 +33,11 @@ import {
   RouteModel,
   SecretModel,
   StorageClassModel,
+  AcceleratorProfileModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -168,7 +170,22 @@ const initIntercepts = ({
   cy.interceptK8s('POST', ConfigMapModel, mockConfigMap({})).as('createConfigMap');
 
   cy.interceptK8s('POST', NotebookModel, mockNotebookK8sResource({})).as('createWorkbench');
+
+  cy.interceptK8sList(
+    AcceleratorProfileModel,
+    mockK8sResourceList([
+      mockAcceleratorProfile({
+        name: 'test-accelerator',
+        namespace: 'opendatahub',
+        displayName: 'Test Accelerator',
+        description: 'A test accelerator profile',
+        enabled: true,
+        identifier: 'test.com/accelerator',
+      }),
+    ]),
+  );
 };
+
 describe('Workbench page', () => {
   it('Empty state', () => {
     initIntercepts({ isEmpty: true });
@@ -556,6 +573,11 @@ describe('Workbench page', () => {
     editSpawnerPage.shouldHavePersistentStorage('Test Storage');
     editSpawnerPage.findSubmitButton().should('be.enabled');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
+
+    // Add a test for editing accelerator profile
+    editSpawnerPage.findAcceleratorProfileSelect().click();
+    editSpawnerPage.findAcceleratorProfileSelect().findSelectOption('None').click();
+    editSpawnerPage.findAcceleratorProfileSelect().should('contain', 'None');
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');

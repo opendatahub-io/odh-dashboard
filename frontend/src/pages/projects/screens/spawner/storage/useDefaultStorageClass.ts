@@ -17,10 +17,12 @@ const useDefaultStorageClass = (): StorageClassKind | undefined => {
     }
 
     const enabledStorageClasses = storageClasses.filter(
-      (sc) => getStorageClassConfig(sc)?.isEnabled,
+      (sc) => getStorageClassConfig(sc)?.isEnabled === true,
     );
 
-    const defaultSc = enabledStorageClasses.find((sc) => getStorageClassConfig(sc)?.isDefault);
+    const defaultSc = enabledStorageClasses.find(
+      (sc) => getStorageClassConfig(sc)?.isDefault === true,
+    );
 
     if (!defaultSc && enabledStorageClasses.length > 0) {
       setDefaultStorageClass(enabledStorageClasses[0]);

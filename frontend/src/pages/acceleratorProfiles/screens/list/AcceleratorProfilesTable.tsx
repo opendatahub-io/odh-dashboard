@@ -83,15 +83,17 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
           </>
         }
       />
-      <DeleteAcceleratorProfileModal
-        acceleratorProfile={deleteAcceleratorProfile}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshAcceleratorProfiles();
-          }
-          setDeleteAcceleratorProfile(undefined);
-        }}
-      />
+      {deleteAcceleratorProfile ? (
+        <DeleteAcceleratorProfileModal
+          acceleratorProfile={deleteAcceleratorProfile}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshAcceleratorProfiles();
+            }
+            setDeleteAcceleratorProfile(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };

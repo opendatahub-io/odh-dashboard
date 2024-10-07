@@ -13,7 +13,11 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import {
+  deleteProjectModal,
+  editProjectModal,
+  projectDetails,
+} from '~/__tests__/cypress/cypress/pages/projects';
 import { ServingRuntimePlatform } from '~/types';
 import {
   DataSciencePipelineApplicationModel,
@@ -31,6 +35,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
+import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -257,6 +262,41 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', true);
       projectDetails.shouldBeEmptyState('Data connections', 'data-connections', true);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', true);
+    });
+
+    it('Shows project information', () => {
+      initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
+      projectDetails.visit('test-project');
+      projectDetails.showProjectResourceDetails();
+      projectDetails.findProjectResourceNameText().should('have.text', 'test-project');
+      projectDetails.findProjectResourceKindText().should('have.text', 'Project');
+    });
+
+    it('Should not allow actions for non-provisioning users', () => {
+      asProjectAdminUser({ isSelfProvisioner: false });
+      initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
+      projectDetails.visit('test-project');
+
+      projectDetails.findProjectActions().should('not.exist');
+    });
+
+    it('Should allow actions for provisioning users', () => {
+      asProjectAdminUser({ isSelfProvisioner: true });
+      initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
+      projectDetails.visit('test-project');
+
+      projectDetails.showProjectActions();
+      projectDetails.findEditProjectAction().click();
+
+      editProjectModal.shouldBeOpen();
+      editProjectModal.findCancelButton().click();
+      editProjectModal.shouldBeOpen(false);
+
+      projectDetails.showProjectActions();
+      projectDetails.findDeleteProjectAction().click();
+      deleteProjectModal.shouldBeOpen();
+      deleteProjectModal.findCancelButton().click();
+      deleteProjectModal.shouldBeOpen(false);
     });
 
     it('Both model serving platforms are disabled', () => {

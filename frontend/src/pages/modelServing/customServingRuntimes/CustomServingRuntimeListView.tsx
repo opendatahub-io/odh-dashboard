@@ -70,15 +70,17 @@ const CustomServingRuntimeListView: React.FC = () => {
           </ToolbarItem>
         }
       />
-      <DeleteCustomServingRuntimeModal
-        template={deleteTemplate}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshData();
-          }
-          setDeleteTemplate(undefined);
-        }}
-      />
+      {deleteTemplate ? (
+        <DeleteCustomServingRuntimeModal
+          template={deleteTemplate}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshData();
+            }
+            setDeleteTemplate(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };

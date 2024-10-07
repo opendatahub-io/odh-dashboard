@@ -14,7 +14,7 @@ import {
 } from './utils';
 
 type DeleteDataConnectionModalProps = {
-  dataConnection?: DataConnection;
+  dataConnection: DataConnection;
   onClose: (deleted: boolean) => void;
 };
 
@@ -24,7 +24,7 @@ const DeleteDataConnectionModal: React.FC<DeleteDataConnectionModalProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const resourceName = dataConnection ? getDataConnectionResourceName(dataConnection) : '';
+  const resourceName = getDataConnectionResourceName(dataConnection);
   const {
     notebooks: connectedNotebooks,
     loaded: notebookLoaded,
@@ -37,41 +37,36 @@ const DeleteDataConnectionModal: React.FC<DeleteDataConnectionModalProps> = ({
     setError(undefined);
   };
 
-  const displayName = dataConnection
-    ? getDataConnectionDisplayName(dataConnection)
-    : 'this data connection';
+  const displayName = getDataConnectionDisplayName(dataConnection);
 
   return (
     <DeleteModal
       title="Delete data connection?"
-      isOpen={!!dataConnection}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete data connection"
       onDelete={() => {
-        if (dataConnection) {
-          setIsDeleting(true);
-          Promise.all(
-            connectedNotebooks.map((notebook) => {
-              if (dataConnection.type === DataConnectionType.AWS) {
-                return removeNotebookSecret(
-                  notebook.metadata.name,
-                  notebook.metadata.namespace,
-                  resourceName,
-                );
-              }
-              return null;
+        setIsDeleting(true);
+        Promise.all(
+          connectedNotebooks.map((notebook) => {
+            if (dataConnection.type === DataConnectionType.AWS) {
+              return removeNotebookSecret(
+                notebook.metadata.name,
+                notebook.metadata.namespace,
+                resourceName,
+              );
+            }
+            return null;
+          }),
+        )
+          .then(() =>
+            deleteDataConnection(dataConnection).then(() => {
+              onBeforeClose(true);
             }),
           )
-            .then(() =>
-              deleteDataConnection(dataConnection).then(() => {
-                onBeforeClose(true);
-              }),
-            )
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}

@@ -1318,8 +1318,6 @@ export type DashboardCommonConfig = {
   disableKServeMetrics: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
-  // TODO Temp feature flag - remove with https://issues.redhat.com/browse/RHOAIENG-3826
-  disablePipelineExperiments: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
   disableConnectionTypes: boolean;

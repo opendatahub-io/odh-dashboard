@@ -33,10 +33,13 @@ const DeletePipelineRunsModal: React.FC<DeletePipelineRunsModalProps> = ({
   const resourceCount = toDeleteResources.length;
   const typeCategory = runTypeCategory[type];
 
+  if (!resourceCount) {
+    return null;
+  }
+
   return (
     <DeleteModal
       title={`Delete ${typeCategory}${resourceCount > 1 ? 's' : ''}?`}
-      isOpen={resourceCount !== 0}
       onClose={() => onBeforeClose(false)}
       deleting={deleting}
       error={error}

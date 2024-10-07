@@ -81,7 +81,7 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
             </EmptyStateFooter>
           </EmptyState>
         </Bullseye>
-        <DeleteServerModal isOpen={isDeleting} onClose={() => setIsDeleting(false)} />
+        {isDeleting ? <DeleteServerModal onClose={() => setIsDeleting(false)} /> : null}
       </>
     );
   }

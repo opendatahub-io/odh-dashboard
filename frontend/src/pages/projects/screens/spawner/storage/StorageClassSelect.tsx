@@ -13,6 +13,7 @@ import React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import useDefaultStorageClass from './useDefaultStorageClass';
 
 type StorageClassSelectProps = {
   storageClassName?: string;
@@ -29,9 +30,10 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
 }) => {
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
+  const defaultSc = useDefaultStorageClass();
 
   const enabledStorageClasses = storageClasses
-    .filter((sc) => getStorageClassConfig(sc)?.isEnabled)
+    .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
     .toSorted((a, b) => {
       const aConfig = getStorageClassConfig(a);
       const bConfig = getStorageClassConfig(b);
@@ -66,7 +68,9 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           <SplitItem>{config?.displayName || sc.metadata.name}</SplitItem>
           <SplitItem isFilled />
           <SplitItem>
-            {config?.isDefault && (
+            {/* If multiple storage classes have `isDefault` set to true, 
+            prioritize the one returned by useDefaultStorageClass() as the default class */}
+            {sc.metadata.name === defaultSc?.metadata.name && (
               <Label isCompact color="green">
                 Default class
               </Label>

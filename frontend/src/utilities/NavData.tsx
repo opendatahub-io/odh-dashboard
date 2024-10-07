@@ -59,7 +59,6 @@ const useDSProjectsNav = (): NavDataItem[] =>
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   if (!isAvailable) {
     return [];
@@ -67,31 +66,27 @@ const useDSPipelinesNav = (): NavDataItem[] => {
 
   return [
     { id: 'pipelines', label: 'Data Science Pipelines', href: pipelinesRootPath },
-    ...(isExperimentsAvailable
-      ? [
-          {
-            id: 'experiments',
-            group: { id: 'experiments', title: 'Experiments' },
-            children: [
-              {
-                id: 'experiments-and-runs',
-                label: 'Experiments and runs',
-                href: experimentsRootPath,
-              },
-              {
-                id: 'executions',
-                label: 'Executions',
-                href: executionsRootPath,
-              },
-              {
-                id: 'artifacts',
-                label: 'Artifacts',
-                href: artifactsRootPath,
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: 'experiments',
+      group: { id: 'experiments', title: 'Experiments' },
+      children: [
+        {
+          id: 'experiments-and-runs',
+          label: 'Experiments and runs',
+          href: experimentsRootPath,
+        },
+        {
+          id: 'executions',
+          label: 'Executions',
+          href: executionsRootPath,
+        },
+        {
+          id: 'artifacts',
+          label: 'Artifacts',
+          href: artifactsRootPath,
+        },
+      ],
+    },
   ];
 };
 

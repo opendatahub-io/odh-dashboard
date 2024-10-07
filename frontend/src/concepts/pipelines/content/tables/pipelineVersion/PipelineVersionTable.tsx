@@ -98,16 +98,17 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
         }
         data-testid="pipeline-versions-table"
       />
-      <DeletePipelinesModal
-        isOpen={deleteVersions.length !== 0}
-        toDeletePipelineVersions={deleteVersions}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshAllAPI();
-          }
-          setDeleteVersions([]);
-        }}
-      />
+      {deleteVersions.length ? (
+        <DeletePipelinesModal
+          toDeletePipelineVersions={deleteVersions}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshAllAPI();
+            }
+            setDeleteVersions([]);
+          }}
+        />
+      ) : null}
     </>
   );
 };

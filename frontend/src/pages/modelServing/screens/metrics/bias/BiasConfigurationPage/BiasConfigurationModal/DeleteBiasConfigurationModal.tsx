@@ -5,7 +5,7 @@ import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 
 type DeleteBiasConfigurationModalProps = {
-  configurationToDelete?: BiasMetricConfig;
+  configurationToDelete: BiasMetricConfig;
   onClose: (deleted: boolean) => void;
 };
 
@@ -25,31 +25,27 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
     setError(undefined);
   };
 
-  const displayName = configurationToDelete ? configurationToDelete.name : 'this bias metric';
   return (
     <DeleteModal
       title="Delete bias metric?"
-      isOpen={!!configurationToDelete}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete bias metric"
       onDelete={() => {
-        if (configurationToDelete) {
-          setDeleting(true);
-          const deleteFunc =
-            configurationToDelete.metricType === BiasMetricType.DIR
-              ? api.deleteDirRequest
-              : api.deleteSpdRequest;
-          deleteFunc({}, configurationToDelete.id)
-            .then(() => onBeforeClose(true))
-            .catch((e) => {
-              setError(e);
-              setDeleting(false);
-            });
-        }
+        setDeleting(true);
+        const deleteFunc =
+          configurationToDelete.metricType === BiasMetricType.DIR
+            ? api.deleteDirRequest
+            : api.deleteSpdRequest;
+        deleteFunc({}, configurationToDelete.id)
+          .then(() => onBeforeClose(true))
+          .catch((e) => {
+            setError(e);
+            setDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}
-      deleteName={displayName}
+      deleteName={configurationToDelete.name}
     >
       This action cannot be undone.
     </DeleteModal>

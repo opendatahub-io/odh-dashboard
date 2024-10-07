@@ -22,22 +22,28 @@ import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { ConnectionModal } from './ConnectionModal';
 
-type RegistrationCommonFormSectionsProps = {
-  formData: RegistrationCommonFormData;
-  setData: UpdateObjectAtPropAndValue<RegistrationCommonFormData>;
+type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
+  formData: D;
+  setData: UpdateObjectAtPropAndValue<D>;
   isFirstVersion: boolean;
   latestVersion?: ModelVersion;
 };
 
-const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsProps> = ({
+const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   formData,
   setData,
   isFirstVersion,
   latestVersion,
-}) => {
+}: RegistrationCommonFormSectionsProps<D>): React.ReactNode => {
   const [isAutofillModalOpen, setAutofillModalOpen] = React.useState(false);
 
-  const connectionDataMap: Record<string, keyof RegistrationCommonFormData> = {
+  const connectionDataMap: Record<
+    string,
+    keyof Pick<
+      RegistrationCommonFormData,
+      'modelLocationEndpoint' | 'modelLocationBucket' | 'modelLocationRegion'
+    >
+  > = {
     AWS_S3_ENDPOINT: 'modelLocationEndpoint',
     AWS_S3_BUCKET: 'modelLocationBucket',
     AWS_DEFAULT_REGION: 'modelLocationRegion',
@@ -235,14 +241,15 @@ const RegistrationCommonFormSections: React.FC<RegistrationCommonFormSectionsPro
           }
         />
       </FormSection>
-      <ConnectionModal
-        isOpen={isAutofillModalOpen}
-        onClose={() => setAutofillModalOpen(false)}
-        onSubmit={(connection) => {
-          fillObjectStorageByConnection(connection);
-          setAutofillModalOpen(false);
-        }}
-      />
+      {isAutofillModalOpen ? (
+        <ConnectionModal
+          onClose={() => setAutofillModalOpen(false)}
+          onSubmit={(connection) => {
+            fillObjectStorageByConnection(connection);
+            setAutofillModalOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

@@ -95,16 +95,17 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         })}
         data-testid="pipelines-table"
       />
-      <DeletePipelinesModal
-        isOpen={deletePipelines.length !== 0}
-        toDeletePipelines={deletePipelines}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshAllAPI();
-          }
-          setDeletePipelines([]);
-        }}
-      />
+      {deletePipelines.length ? (
+        <DeletePipelinesModal
+          toDeletePipelines={deletePipelines}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshAllAPI();
+            }
+            setDeletePipelines([]);
+          }}
+        />
+      ) : null}
     </>
   );
 };

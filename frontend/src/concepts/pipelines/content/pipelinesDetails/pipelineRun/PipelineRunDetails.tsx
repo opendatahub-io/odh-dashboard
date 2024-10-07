@@ -176,11 +176,9 @@ const PipelineRunDetails: React.FC<
           }
         }}
       />
-      <ArchiveRunModal
-        isOpen={archiving}
-        runs={run ? [run] : []}
-        onCancel={() => setArchiving(false)}
-      />
+      {archiving ? (
+        <ArchiveRunModal runs={run ? [run] : []} onCancel={() => setArchiving(false)} />
+      ) : null}
     </>
   );
 };

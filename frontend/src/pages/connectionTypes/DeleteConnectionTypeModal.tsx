@@ -27,7 +27,6 @@ const DeleteConnectionTypeModal: React.FC<DeleteConnectionTypeModalProps> = ({
   return (
     <DeleteModal
       title="Delete connection type?"
-      isOpen={!!connectionType}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete"
       onDelete={() => {

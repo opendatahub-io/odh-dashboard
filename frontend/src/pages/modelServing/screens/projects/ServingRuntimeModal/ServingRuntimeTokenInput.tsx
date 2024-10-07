@@ -13,27 +13,24 @@ import {
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
-  CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
+  CreatingModelServingObjectCommon,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
-type ServingRuntimeTokenInputProps = {
-  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
-  setData:
-    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
-    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+type ServingRuntimeTokenInputProps<D extends CreatingModelServingObjectCommon> = {
+  data: D;
+  setData: UpdateObjectAtPropAndValue<D>;
   token: ServingRuntimeToken;
   disabled?: boolean;
 };
 
-const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
+const ServingRuntimeTokenInput = <D extends CreatingModelServingObjectCommon>({
   data,
   setData,
   token,
   disabled,
-}) => {
+}: ServingRuntimeTokenInputProps<D>): React.ReactNode => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter(
       (currentToken) =>

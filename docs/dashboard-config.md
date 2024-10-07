@@ -64,7 +64,6 @@ spec:
     disableKServeMetrics: false
     disableBiasMetrics: false
     disablePerformanceMetrics: false
-    disablePipelineExperiments: true
     disableDistributedWorkloads: false
     disableConnectionTypes: false
     disableStorageClasses: false
@@ -162,7 +161,6 @@ spec:
     disableKServeMetrics: true
     disableBiasMetrics: false
     disablePerformanceMetrics: false
-    disablePipelineExperiments: false
     disableNIMModelServing: true
   notebookController:
     enabled: true

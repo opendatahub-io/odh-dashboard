@@ -255,7 +255,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
             {isValidConfigValue('isDefault', storageClassConfig.isDefault) && (
               <StorageClassDefaultRadio
                 storageClassName={metadata.name}
-                isChecked={storageClassConfig.isDefault}
+                isChecked={storageClassConfig.isDefault === true}
                 isDisabled={isDefaultRadioDisabled}
                 onChange={onDefaultRadioChange}
               />

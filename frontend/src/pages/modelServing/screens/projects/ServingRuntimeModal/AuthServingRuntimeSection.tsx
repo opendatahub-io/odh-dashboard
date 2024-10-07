@@ -11,28 +11,23 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import {
-  CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
-} from '~/pages/modelServing/screens/types';
+import { CreatingModelServingObjectCommon } from '~/pages/modelServing/screens/types';
 
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 
-type AuthServingRuntimeSectionProps = {
-  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
-  setData:
-    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
-    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+type AuthServingRuntimeSectionProps<D extends CreatingModelServingObjectCommon> = {
+  data: D;
+  setData: UpdateObjectAtPropAndValue<D>;
   allowCreate: boolean;
   publicRoute?: boolean;
 };
 
-const AuthServingRuntimeSection: React.FC<AuthServingRuntimeSectionProps> = ({
+const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
   data,
   setData,
   allowCreate,
   publicRoute,
-}) => {
+}: AuthServingRuntimeSectionProps<D>): React.ReactNode => {
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
     const duplicated = data.tokens.filter((token) => token.name === name);

@@ -9,7 +9,6 @@ import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes
 import DashboardDatePicker from '~/components/DashboardDatePicker';
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -36,12 +35,11 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
     ...statusRuntimeStates
   } = runtimeStateLabels;
   /* eslint-enable @typescript-eslint/no-unused-vars */
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const defaultFilterOptions = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Run',
-      ...(!(isExperimentsAvailable && experimentId) && {
+      ...(!experimentId && {
         [FilterOptions.EXPERIMENT]: 'Experiment',
       }),
       ...(!pipelineVersionId && {
@@ -50,7 +48,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
       [FilterOptions.CREATED_AT]: 'Created after',
       [FilterOptions.STATUS]: 'Status',
     }),
-    [experimentId, isExperimentsAvailable, pipelineVersionId],
+    [experimentId, pipelineVersionId],
   );
 
   return (

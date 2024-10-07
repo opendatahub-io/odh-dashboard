@@ -57,15 +57,17 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
           setAddNotebookStorage(undefined);
         }}
       />
-      <DeleteNotebookModal
-        notebook={notebookToDelete}
-        onClose={(deleted) => {
-          if (deleted) {
-            refresh();
-          }
-          setNotebookToDelete(undefined);
-        }}
-      />
+      {notebookToDelete ? (
+        <DeleteNotebookModal
+          notebook={notebookToDelete}
+          onClose={(deleted) => {
+            if (deleted) {
+              refresh();
+            }
+            setNotebookToDelete(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };

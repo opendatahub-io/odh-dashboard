@@ -9,7 +9,6 @@ interface RestoreModalProps {
   title: string;
   alertTitle: string;
   children: React.ReactNode;
-  isOpen: boolean;
   testId: string;
 }
 
@@ -18,7 +17,6 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
   onSubmit,
   title,
   children,
-  isOpen,
   testId,
   alertTitle,
 }) => {
@@ -43,7 +41,7 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title={title}
       variant="small"
       onClose={onCancel}

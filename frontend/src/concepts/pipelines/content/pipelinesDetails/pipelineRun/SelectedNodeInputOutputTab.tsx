@@ -19,7 +19,6 @@ import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { NoValue } from '~/components/NoValue';
 import { executionDetailsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type SelectedNodeInputOutputTabProps = {
   task: PipelineTask;
@@ -31,7 +30,6 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
   execution,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
 
   const executionDisplayName = React.useMemo(
     () =>
@@ -115,7 +113,7 @@ const SelectedNodeInputOutputTab: React.FC<SelectedNodeInputOutputTabProps> = ({
 
   return (
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXl' }}>
-      {isExperimentsAvailable && execution?.id && (
+      {execution?.id && (
         <FlexItem data-testid="execution-name">
           <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '16ch' }}>
             <DescriptionListGroup>

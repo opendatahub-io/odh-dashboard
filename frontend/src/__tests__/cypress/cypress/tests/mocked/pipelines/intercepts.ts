@@ -12,7 +12,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 
 export const configIntercept = (): void => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disablePipelineExperiments: false }));
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
 };
 
 export const projectsIntercept = (

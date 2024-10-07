@@ -7,12 +7,11 @@ import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
 import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 
 interface ArchiveRunModalProps {
-  isOpen: boolean;
   runs: PipelineRunKFv2[];
   onCancel: () => void;
 }
 
-export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ isOpen, runs, onCancel }) => {
+export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ runs, onCancel }) => {
   const isSingleArchiving = runs.length === 1;
   const { api } = usePipelinesAPI();
   const onSubmit = React.useCallback(
@@ -22,7 +21,6 @@ export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ isOpen, runs, 
 
   return (
     <ArchiveModal
-      isOpen={isOpen}
       title={`Archiving run${isSingleArchiving ? '' : 's'}?`}
       alertTitle={`Error archiving ${isSingleArchiving ? runs[0].display_name : 'runs'}`}
       confirmMessage={

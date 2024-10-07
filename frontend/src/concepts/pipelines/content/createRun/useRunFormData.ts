@@ -144,7 +144,7 @@ const useRunFormData = (
   const { project } = usePipelinesAPI();
   const { pipeline, version, experiment, nameDesc } = initialFormData || {};
 
-  const formState = useGenericObjectState<RunFormData>({
+  const formState = useGenericObjectState<RunFormData>(() => ({
     project,
     nameDesc: nameDesc ?? { name: '', description: '' },
     pipeline: pipeline ?? null,
@@ -161,7 +161,7 @@ const useRunFormData = (
         {},
       ),
     ...initialFormData,
-  });
+  }));
   const [, setFormValue] = formState;
 
   useUpdateExperimentFormData(formState, experiment);

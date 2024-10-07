@@ -59,7 +59,7 @@ const ServingRuntimeTable: React.FC = () => {
           />
         )}
       />
-      {allowDelete && (
+      {allowDelete && deleteServingRuntime ? (
         <DeleteServingRuntimeModal
           servingRuntime={deleteServingRuntime}
           inferenceServices={inferenceServices}
@@ -73,7 +73,7 @@ const ServingRuntimeTable: React.FC = () => {
             setDeleteServingRuntime(undefined);
           }}
         />
-      )}
+      ) : null}
       <ManageServingRuntimeModal
         isOpen={editServingRuntime !== undefined}
         currentProject={currentProject}

@@ -31,7 +31,6 @@ export enum SupportedArea {
 
   /* Pipelines areas */
   DS_PIPELINES = 'ds-pipelines',
-  PIPELINE_EXPERIMENTS = 'pipeline-experiments',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',

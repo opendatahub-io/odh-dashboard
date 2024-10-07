@@ -6,13 +6,11 @@ import { ArchiveModal } from '~/concepts/pipelines/content/ArchiveModal';
 import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 
 interface ArchiveExperimentModalProps {
-  isOpen: boolean;
   experiments: ExperimentKFv2[];
   onCancel: () => void;
 }
 
 export const ArchiveExperimentModal: React.FC<ArchiveExperimentModalProps> = ({
-  isOpen,
   experiments,
   onCancel,
 }) => {
@@ -28,7 +26,6 @@ export const ArchiveExperimentModal: React.FC<ArchiveExperimentModalProps> = ({
 
   return (
     <ArchiveModal
-      isOpen={isOpen}
       title={`Archiving experiment${isSingleArchiving ? '' : 's'}?`}
       alertTitle={`Error archiving ${
         isSingleArchiving ? experiments[0].display_name : 'experiments'

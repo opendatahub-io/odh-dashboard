@@ -46,11 +46,12 @@ const ActiveExperimentTable: React.FC<ActiveExperimentTableProps> = ({ ...baseTa
           />
         )}
       />
-      <ArchiveExperimentModal
-        isOpen={isArchiveModalOpen}
-        experiments={archiveExperiments}
-        onCancel={() => setIsArchiveModalOpen(false)}
-      />
+      {isArchiveModalOpen ? (
+        <ArchiveExperimentModal
+          experiments={archiveExperiments}
+          onCancel={() => setIsArchiveModalOpen(false)}
+        />
+      ) : null}
     </>
   );
 };

@@ -94,15 +94,17 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
           setEditPVC(undefined);
         }}
       />
-      <DeletePVCModal
-        pvcToDelete={deleteStorage}
-        onClose={(deleted) => {
-          if (deleted) {
-            refresh();
-          }
-          setDeleteStorage(undefined);
-        }}
-      />
+      {deleteStorage ? (
+        <DeletePVCModal
+          pvcToDelete={deleteStorage}
+          onClose={(deleted) => {
+            if (deleted) {
+              refresh();
+            }
+            setDeleteStorage(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };

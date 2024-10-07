@@ -10,13 +10,11 @@ import { BulkActionExpandableSection } from '~/pages/projects/components/BulkAct
 interface RestoreExperimentModalProps {
   experiments: ExperimentKFv2[];
   onCancel: () => void;
-  isOpen: boolean;
 }
 
 export const RestoreExperimentModal: React.FC<RestoreExperimentModalProps> = ({
   experiments,
   onCancel,
-  isOpen,
 }) => {
   const isSingleRestoring = experiments.length === 1;
 
@@ -30,7 +28,6 @@ export const RestoreExperimentModal: React.FC<RestoreExperimentModalProps> = ({
   );
   return (
     <RestoreModal
-      isOpen={isOpen}
       onCancel={onCancel}
       onSubmit={onSubmit}
       title={`Restore experiment${isSingleRestoring ? '' : 's'}?`}

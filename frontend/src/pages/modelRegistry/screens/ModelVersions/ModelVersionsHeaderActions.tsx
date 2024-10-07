@@ -63,22 +63,23 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
           </Dropdown>
         </FlexItem>
       </Flex>
-      <ArchiveRegisteredModelModal
-        onCancel={() => setIsArchiveModalOpen(false)}
-        onSubmit={() =>
-          apiState.api
-            .patchRegisteredModel(
-              {},
-              {
-                state: ModelState.ARCHIVED,
-              },
-              rm.id,
-            )
-            .then(() => navigate(registeredModelsUrl(preferredModelRegistry?.metadata.name)))
-        }
-        isOpen={isArchiveModalOpen}
-        registeredModelName={rm.name}
-      />
+      {isArchiveModalOpen ? (
+        <ArchiveRegisteredModelModal
+          onCancel={() => setIsArchiveModalOpen(false)}
+          onSubmit={() =>
+            apiState.api
+              .patchRegisteredModel(
+                {},
+                {
+                  state: ModelState.ARCHIVED,
+                },
+                rm.id,
+              )
+              .then(() => navigate(registeredModelsUrl(preferredModelRegistry?.metadata.name)))
+          }
+          registeredModelName={rm.name}
+        />
+      ) : null}
     </>
   );
 };

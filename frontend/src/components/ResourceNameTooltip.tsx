@@ -5,6 +5,8 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Flex,
+  FlexItem,
   Popover,
   Stack,
   StackItem,
@@ -26,9 +28,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   wrap = true,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
-    <span>{children}</span>
-    {resource.metadata?.name && (
-      <div style={{ display: 'inline-block', marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
+    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>{children}</FlexItem>
+      {resource.metadata?.name && (
         <Popover
           position="right"
           bodyContent={
@@ -41,24 +43,35 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
                   <DescriptionListGroup>
                     <DescriptionListTerm>Resource name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <ClipboardCopy hoverTip="Copy" clickTip="Copied" variant="inline-compact">
+                      <ClipboardCopy
+                        hoverTip="Copy"
+                        clickTip="Copied"
+                        variant="inline-compact"
+                        data-testid="resource-name-text"
+                      >
                         {resource.metadata.name}
                       </ClipboardCopy>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Resource type</DescriptionListTerm>
-                    <DescriptionListDescription>{resource.kind}</DescriptionListDescription>
+                    <DescriptionListDescription data-testid="resource-kind-text">
+                      {resource.kind}
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </StackItem>
             </Stack>
           }
         >
-          <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
+          <DashboardPopupIconButton
+            data-testid="resource-name-icon-button"
+            icon={<OutlinedQuestionCircleIcon />}
+            aria-label="More info"
+          />
         </Popover>
-      </div>
-    )}
+      )}
+    </Flex>
   </div>
 );
 

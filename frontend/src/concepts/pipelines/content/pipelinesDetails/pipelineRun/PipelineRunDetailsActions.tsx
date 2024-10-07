@@ -13,7 +13,6 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { cloneRunRoute, experimentsCompareRunsRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
@@ -34,7 +33,6 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const [open, setOpen] = React.useState(false);
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
   const isRunActive = run?.storage_state === StorageStateKF.AVAILABLE;
   const [experiment] = useExperimentById(run?.experiment_id);
   const isExperimentActive = experiment?.storage_state === StorageStateKF.AVAILABLE;
@@ -102,7 +100,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                           cloneRunRoute(
                             namespace,
                             run.run_id,
-                            isExperimentsAvailable ? experimentId : undefined,
+                            experimentId,
                             pipelineId,
                             pipelineVersionId,
                           ),
@@ -124,7 +122,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                     >
                       Stop
                     </DropdownItem>,
-                    isExperimentsAvailable && experimentId && isRunActive ? (
+                    experimentId && isRunActive ? (
                       <DropdownItem
                         key="compare-runs"
                         onClick={() =>

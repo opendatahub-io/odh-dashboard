@@ -7,7 +7,6 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { cloneRecurringRunRoute, recurringRunDetailsRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
   RecurringRunCreated,
   RecurringRunScheduled,
@@ -36,9 +35,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
   const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const { namespace, api } = usePipelinesAPI();
   const { version, loaded, error } = usePipelineRunVersionInfo(recurringRun);
-  const isExperimentsAvailable = useIsAreaAvailable(SupportedArea.PIPELINE_EXPERIMENTS).status;
-  const isExperimentsContext = isExperimentsAvailable && experimentId;
-  const pipelineRecurringExperimentId = !isExperimentsContext ? recurringRun.experiment_id : '';
+  const pipelineRecurringExperimentId = !experimentId ? recurringRun.experiment_id : '';
   const [pipelineRecurringExperiment, pipelineRecurringExperimentLoaded] = useExperimentById(
     pipelineRecurringExperimentId,
   );
@@ -57,7 +54,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
               to={recurringRunDetailsRoute(
                 namespace,
                 recurringRun.recurring_run_id,
-                isExperimentsAvailable ? experimentId : undefined,
+                experimentId,
                 pipelineId,
                 pipelineVersionId,
               )}
@@ -69,7 +66,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
           descriptionAsMarkdown
         />
       </Td>
-      {!isExperimentsContext && (
+      {!experimentId && (
         <Td modifier="truncate" dataLabel="Experiment">
           <PipelineRunTableRowExperiment
             experiment={pipelineRecurringExperiment}
@@ -110,7 +107,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
-            ...(!version && isExperimentsContext
+            ...(!version && experimentId
               ? []
               : [
                   {
@@ -120,7 +117,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
                         cloneRecurringRunRoute(
                           namespace,
                           recurringRun.recurring_run_id,
-                          isExperimentsAvailable ? experimentId : undefined,
+                          experimentId,
                           pipelineId,
                           pipelineVersionId,
                         ),

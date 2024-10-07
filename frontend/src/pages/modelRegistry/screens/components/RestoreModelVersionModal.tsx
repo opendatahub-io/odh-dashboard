@@ -6,14 +6,12 @@ import useNotification from '~/utilities/useNotification';
 interface RestoreModelVersionModalProps {
   onCancel: () => void;
   onSubmit: () => void;
-  isOpen: boolean;
   modelVersionName: string;
 }
 
 export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> = ({
   onCancel,
   onSubmit,
-  isOpen,
   modelVersionName,
 }) => {
   const notification = useNotification();
@@ -42,7 +40,7 @@ export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> =
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title="Restore version?"
       variant="small"
       onClose={onClose}

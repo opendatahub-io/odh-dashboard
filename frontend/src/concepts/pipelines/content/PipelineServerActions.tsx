@@ -107,25 +107,27 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
   return (
     <>
       {DropdownComponent}
-      <DeleteServerModal
-        isOpen={deleteOpen}
-        onClose={() => {
-          setDeleteOpen(false);
-        }}
-      />
-      <ViewServerModal isOpen={viewOpen} onClose={() => setViewOpen(false)} />
-      <DeletePipelinesModal
-        isOpen={deletePipelinesOpen}
-        toDeletePipelines={pipelines}
-        toDeletePipelineVersions={versions}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshAllAPI();
-            clearAfterDeletion();
-          }
-          setDeletePipelinesOpen(false);
-        }}
-      />
+      {deleteOpen ? (
+        <DeleteServerModal
+          onClose={() => {
+            setDeleteOpen(false);
+          }}
+        />
+      ) : null}
+      {viewOpen ? <ViewServerModal onClose={() => setViewOpen(false)} /> : null}
+      {deletePipelinesOpen ? (
+        <DeletePipelinesModal
+          toDeletePipelines={pipelines}
+          toDeletePipelineVersions={versions}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshAllAPI();
+              clearAfterDeletion();
+            }
+            setDeletePipelinesOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };
