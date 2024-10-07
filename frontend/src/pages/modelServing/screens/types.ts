@@ -40,14 +40,9 @@ export type SupportedModelFormatsInfo = {
   priority?: number;
 };
 
-export type CreatingServingRuntimeObject = {
-  name: string;
+export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
   servingRuntimeTemplateName: string;
   numReplicas: number;
-  modelSize: ModelServingSize;
-  externalRoute: boolean;
-  tokenAuth: boolean;
-  tokens: ServingRuntimeToken[];
   imageName?: string;
   supportedModelFormatsInfo?: SupportedModelFormatsInfo;
 };
@@ -64,19 +59,22 @@ export type ModelServingSize = {
   resources: ContainerResources;
 };
 
-export type CreatingInferenceServiceObject = {
-  name: string;
+export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & {
   project: string;
   servingRuntimeName: string;
   storage: InferenceServiceStorage;
-  modelSize: ModelServingSize;
   format: InferenceServiceFormat;
   maxReplicas: number;
   minReplicas: number;
+  labels?: Record<string, string>;
+};
+
+export type CreatingModelServingObjectCommon = {
+  name: string;
+  modelSize: ModelServingSize;
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];
-  labels?: Record<string, string>;
 };
 
 export enum InferenceServiceStorageType {

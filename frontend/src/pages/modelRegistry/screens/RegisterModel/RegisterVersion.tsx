@@ -16,8 +16,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { filterLiveModels } from '~/concepts/modelRegistry/utils';
-import { ValueOf } from '~/typeHelpers';
-import { RegistrationCommonFormData, useRegisterVersionData } from './useRegisterModelData';
+import { useRegisterVersionData } from './useRegisterModelData';
 import { isRegisterVersionSubmitDisabled, registerVersion } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import { useRegistrationCommonState } from './useRegistrationCommonState';
@@ -119,10 +118,7 @@ const RegisterVersion: React.FC = () => {
             <StackItem>
               <RegistrationCommonFormSections
                 formData={formData}
-                setData={(
-                  propKey: keyof RegistrationCommonFormData,
-                  propValue: ValueOf<RegistrationCommonFormData>,
-                ) => setData(propKey, propValue)}
+                setData={setData}
                 isFirstVersion={false}
                 latestVersion={latestVersion}
               />

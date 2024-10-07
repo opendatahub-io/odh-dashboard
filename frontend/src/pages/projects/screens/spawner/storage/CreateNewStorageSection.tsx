@@ -6,23 +6,23 @@ import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import StorageClassSelect from './StorageClassSelect';
 
-type CreateNewStorageSectionProps = {
-  data: CreatingStorageObject;
-  setData: UpdateObjectAtPropAndValue<CreatingStorageObject>;
+type CreateNewStorageSectionProps<D extends CreatingStorageObject> = {
+  data: D;
+  setData: UpdateObjectAtPropAndValue<D>;
   currentSize?: string;
   autoFocusName?: boolean;
   menuAppendTo?: HTMLElement;
   disableStorageClassSelect?: boolean;
 };
 
-const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
+const CreateNewStorageSection = <D extends CreatingStorageObject>({
   data,
   setData,
   currentSize,
   menuAppendTo,
   autoFocusName,
   disableStorageClassSelect,
-}) => {
+}: CreateNewStorageSectionProps<D>): React.ReactNode => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
 
   return (
