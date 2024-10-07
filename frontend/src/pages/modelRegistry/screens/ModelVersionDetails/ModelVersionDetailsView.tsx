@@ -153,15 +153,18 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </DashboardDescriptionListGroup>
             </>
           )}
+          <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+            Source model format
+          </Title>
           <DashboardDescriptionListGroup
-            title="Source model format"
+            title="Name"
             isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatName}
             contentWhenEmpty="No source model format"
           >
             {modelArtifact.items[0]?.modelFormatName}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
-            title="Source model format version"
+            title="Version"
             isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatVersion}
             contentWhenEmpty="No source model format version"
           >
