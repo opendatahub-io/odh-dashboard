@@ -286,12 +286,33 @@ class ProjectDetails {
     return cy.findByTestId('unsupported-pipeline-version-alert');
   }
 
-  private findKserveModelsTable() {
+  findKserveModelsTable() {
     return cy.findByTestId('kserve-inference-service-table');
   }
 
   getKserveModelMetricLink(name: string) {
     return this.findKserveModelsTable().findByTestId(`metrics-link-${name}`);
+  }
+
+  getKserveTableRow(name: string) {
+    return new KserveTableRow(() =>
+      this.findKserveModelsTable()
+        .find('tbody')
+        .find('[data-label="Name"]')
+        .contains(name)
+        .closest('tr'),
+    );
+  }
+
+  getKserveTableDetailsRow(name: string) {
+    return new KserveTableDetailsRow(() =>
+      this.findKserveModelsTable()
+        .find('tbody')
+        .find('[data-label="Name"]')
+        .contains(name)
+        .closest('tr')
+        .next('tr'),
+    );
   }
 }
 
@@ -332,6 +353,60 @@ class TrustyAIUninstallModal extends DeleteModal {
 
   findSubmitButton() {
     return this.findFooter().findByRole('button', { name: 'Uninstall' });
+  }
+}
+
+class KserveTableDetailsRow extends TableRow {
+  private findDetailsCell() {
+    return this.find().find('td').eq(1);
+  }
+
+  findValueFor(label: string) {
+    return this.findDetailsCell().find('dt').contains(label).closest('div').find('dd');
+  }
+}
+
+class KserveTableRow extends TableRow {
+  findColumn(name: string) {
+    return this.find().find(`[data-label="${name}"]`);
+  }
+
+  findStatusTooltip() {
+    return this.find()
+      .findByTestId('status-tooltip')
+      .trigger('mouseenter')
+      .then(() => {
+        cy.findByTestId('model-status-tooltip');
+      });
+  }
+
+  findStatusTooltipValue(msg: string) {
+    this.findStatusTooltip()
+      .invoke('text')
+      .should('contain', msg)
+      .then(() => {
+        this.findStatusTooltip().trigger('mouseleave');
+      });
+  }
+
+  findAPIProtocol() {
+    return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findInternalServiceButton() {
+    return this.find().findByTestId('internal-service-button');
+  }
+
+  findInternalServicePopover() {
+    return cy.findByTestId('internal-service-popover');
+  }
+
+  findInternalServicePopoverCloseButton() {
+    return this.findInternalServicePopover().find('button');
+  }
+
+  findDetailsTriggerButton() {
+    return this.find().findByTestId('kserve-model-row-item').find('button');
   }
 }
 
