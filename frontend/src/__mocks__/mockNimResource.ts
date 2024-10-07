@@ -2,11 +2,13 @@ import {
   ConfigMapKind,
   InferenceServiceKind,
   PersistentVolumeClaimKind,
+  ProjectKind,
   SecretKind,
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
+import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';
@@ -19,31 +21,26 @@ export const mockNimImages = (): ConfigMapKind =>
     name: 'nvidia-nim-images-data',
     namespace: 'opendatahub',
     data: {
-      alphafold2:
-        '{' +
-        '   "name": "alphafold2",' +
-        '   "displayName": "AlphaFold2",' +
-        '   "shortDescription": "A widely used model for predicting the 3D structures of proteins from their amino acid sequences.",' +
-        '   "namespace": "nim/deepmind",' +
-        '   "tags": [' +
-        '   "1.0.0"' +
-        '   ],' +
-        '   "latestTag": "1.0.0",' +
-        '   "updatedDate": "2024-08-27T01:51:55.642Z"' +
-        '  }',
-      'arctic-embed-l':
-        '{' +
-        '   "name": "arctic-embed-l",' +
-        '   "displayName": "Snowflake Arctic Embed Large Embedding",' +
-        '   "shortDescription": "NVIDIA NIM for GPU accelerated Snowflake Arctic Embed Large Embedding inference",' +
-        '   "namespace": "nim/snowflake",' +
-        '   "tags": [' +
-        '   "1.0.1",' +
-        '   "1.0.0"' +
-        '   ],' +
-        '   "latestTag": "1.0.1",' +
-        '   "updatedDate": "2024-07-27T00:38:40.927Z"' +
-        '  }',
+      alphafold2: JSON.stringify({
+        name: 'alphafold2',
+        displayName: 'AlphaFold2',
+        shortDescription:
+          'A widely used model for predicting the 3D structures of proteins from their amino acid sequences.',
+        namespace: 'nim/deepmind',
+        tags: ['1.0.0'],
+        latestTag: '1.0.0',
+        updatedDate: '2024-08-27T01:51:55.642Z',
+      }),
+      'arctic-embed-l': JSON.stringify({
+        name: 'arctic-embed-l',
+        displayName: 'Snowflake Arctic Embed Large Embedding',
+        shortDescription:
+          'NVIDIA NIM for GPU accelerated Snowflake Arctic Embed Large Embedding inference',
+        namespace: 'nim/snowflake',
+        tags: ['1.0.1', '1.0.0'],
+        latestTag: '1.0.1',
+        updatedDate: '2024-07-27T00:38:40.927Z',
+      }),
     },
   });
 
@@ -122,6 +119,17 @@ export const mockNvidiaNimImagePullSecret = (): SecretKind => {
   secret.data['.dockerconfigjson'] = 'ZG9ja2VyY29uZmlnCg==';
 
   return secret;
+};
+
+export const mockNimProject = (hasAllModels: boolean): ProjectKind => {
+  const project = mockProjectK8sResource({
+    hasAnnotations: true,
+    enableModelMesh: hasAllModels ? undefined : false,
+  });
+  if (project.metadata.annotations != null) {
+    project.metadata.annotations['opendatahub.io/nim-support'] = 'true';
+  }
+  return project;
 };
 
 export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
