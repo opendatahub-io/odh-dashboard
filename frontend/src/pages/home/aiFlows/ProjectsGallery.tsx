@@ -69,14 +69,16 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <InfoGalleryItem
       key="connections"
       data-testid="ai-flows-connections-info"
-      title="Data connections"
+      title="Connections"
       imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
       sectionType={SectionType.organize}
       description={
         <TextContent>
           <Text component="small">
-            You can add data connections to link your project and its workbenches to data sources,
-            and to object storage buckets which save data and models that you want to deploy.
+            Connections enable you to store and retrieve information that typically should not be
+            stored in code. For example, you can store details (including credentials) for object
+            storage, databases, and more. You can then attach the connections to artifacts in your
+            project, such as workbenches and model servers.
           </Text>
         </TextContent>
       }

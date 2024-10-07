@@ -72,20 +72,21 @@ const ConfigurationSection: React.FC = () => {
         <InfoGalleryItem
           sectionType={SectionType.setup}
           imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
-          title="Data connections"
+          title="Connections"
           description={
             <TextContent>
               <Text component="small">
-                You can add data connections to workbenches to connect your project to data inputs
-                and object storage buckets. You can also use data connections to specify the
-                location of your models during deployment.
+                Connections enable you to store and retrieve information that typically should not
+                be stored in code. For example, you can store details (including credentials) for
+                object storage, databases, and more. You can then attach the connections to
+                artifacts in your project, such as workbenches and model servers.
               </Text>
             </TextContent>
           }
           isOpen={open}
           onClick={() =>
             navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.DATA_CONNECTIONS}`,
+              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CONNECTIONS}`,
             )
           }
         />
