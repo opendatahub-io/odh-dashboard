@@ -134,7 +134,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   return (
     <Toolbar isFullHeight>
       <ToolbarContent>
-        <ToolbarGroup variant="icon-button-group" align={{ default: 'alignRight' }}>
+        <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
             <ToolbarItem data-testid="application-launcher">
               <AppLauncher />

@@ -62,7 +62,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               empty={isEmpty}
               loadError={loadError}
             >
-              <PageSection isFilled data-id="page-content">
+              <PageSection hasBodyWrapper={false} isFilled data-id="page-content">
                 <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
                   {exploreComponents.map((c) => (
                     <OdhExploreCard

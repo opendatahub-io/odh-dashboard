@@ -5,7 +5,8 @@ const UnspecifiedValue: React.FC = () => (
   <>
     Unspecified{' '}
     <ExclamationCircleIcon
-      color="var(--pf-v5-global--danger-color--100)"
+      color="var(--pf-t--global--icon--color--status--danger--default)"
+      // Note from PatternFly: this icon should not have an arialabel
       aria-label="unspecified"
     />
   </>

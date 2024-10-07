@@ -76,11 +76,16 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                 />
               }
             >
-              <Button data-testid="projects-empty-admin-help" variant="link">
-                <Icon isInline aria-label="More info">
-                  <OutlinedQuestionCircleIcon />
-                </Icon>
-                <span className="pf-v5-u-ml-xs">Need another project?</span>
+              <Button
+                icon={
+                  <Icon isInline aria-label="More info">
+                    <OutlinedQuestionCircleIcon />
+                  </Icon>
+                }
+                data-testid="projects-empty-admin-help"
+                variant="link"
+              >
+                <span className="pf-v6-u-ml-xs">Need another project?</span>
               </Button>
             </Popover>
           )}

@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Flex, FlexItem, Modal, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import { Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import useNotification from '~/utilities/useNotification';
 

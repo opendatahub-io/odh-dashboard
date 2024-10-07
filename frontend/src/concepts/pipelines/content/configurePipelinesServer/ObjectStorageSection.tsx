@@ -95,7 +95,7 @@ export const ObjectStorageSection = ({
                 position="right"
                 hasAutoWidth
                 bodyContent={
-                  <div className="pf-v5-u-mt-md">
+                  <div className="pf-v6-u-mt-md">
                     Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
                     <br />
                     When running a pipeline, artifacts will be stored in dedicated folders at the{' '}

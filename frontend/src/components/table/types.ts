@@ -24,4 +24,6 @@ export type SortableData<T> = Pick<
    * Assume ASC -- the result will be inverted internally if needed.
    */
   sortable: boolean | ((a: T, b: T, keyField: string) => number);
+  // The below can be removed when PatternFly adds a replacement utility class for pf-v5-u-background-color-200 in v6
+  style?: React.CSSProperties;
 };

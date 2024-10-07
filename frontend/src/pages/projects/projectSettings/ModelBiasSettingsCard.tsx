@@ -18,7 +18,7 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ project }
   const { action, status } = useTrustyCRState(project);
 
   return (
-    <Card isFlat style={{ maxWidth: '675px' }}>
+    <Card style={{ maxWidth: '675px' }}>
       <CardHeader>
         <CardTitle>Model monitoring bias</CardTitle>
       </CardHeader>

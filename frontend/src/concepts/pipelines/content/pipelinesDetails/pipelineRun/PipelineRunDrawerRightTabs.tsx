@@ -76,7 +76,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           />
         ))}
       </Tabs>
-      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-px-sm">
+      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v6-u-px-sm">
         {!tabs[selection].isDisabled && (
           <TabContent
             id={selection}

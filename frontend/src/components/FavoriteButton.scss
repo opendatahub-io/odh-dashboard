@@ -1,16 +1,18 @@
 // This is an override provided by UX to set the star icon styles
 // Because this is not implemented in PF Card component
 .odh-favorite-button {
-  padding: 0;
+  // Note from PatternFly: A choice should be made between using no padding on these buttons (now applying our pf-m-no-padding class to the button),
+  // or removing the below hover styles (a PF v6 button with padding would have hover styles by default).
+  // The contrast of the star-icon when selected in light theme may be difficult to see
   &__star-icon {
-    fill: var(--pf-v5-global--palette--black-400);
+    fill: var(--pf-t--global--icon--color--subtle);
     &:hover {
-      fill: var(--pf-v5-global--palette--black-500);
+      fill: var(--pf-t--global--icon--color--regular);
     }
     &--is-selected {
-      fill: var(--pf-v5-global--palette--gold-300);
+      fill: var(--pf-t--global--icon--color--favorite--default);
       &:hover {
-        fill: var(--pf-v5-global--palette--gold-400);
+        fill: var(--pf-t--global--icon--color--favorite--hover);
       }
     }
   }

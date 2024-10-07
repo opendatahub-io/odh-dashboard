@@ -3,7 +3,7 @@ import {
   Select,
   SelectOption,
   SelectList,
-  Text,
+  Content,
   Stack,
   StackItem,
   MenuToggle,
@@ -90,9 +90,9 @@ export const PipelineRunArtifactSelect = <T,>({
           <StackItem>
             <Split>
               <SplitItem>
-                <Text data-testid="pipeline-run-artifact-title">
+                <Content component="p" data-testid="pipeline-run-artifact-title">
                   <b>{displayConfig.title}</b>
-                </Text>
+                </Content>
               </SplitItem>
               <SplitItem isFilled />
               <SplitItem>

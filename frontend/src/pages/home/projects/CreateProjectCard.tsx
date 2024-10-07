@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  Button,
-  CardBody,
-  Flex,
-  FlexItem,
-  Text,
-  TextContent,
-} from '@patternfly/react-core';
+import { Bullseye, Button, CardBody, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 
@@ -41,16 +33,16 @@ const CreateProjectCard: React.FC<CreateProjectCardProps> = ({ allowCreate, onCr
           ) : (
             <>
               <FlexItem>
-                <TextContent>
-                  <Text component="h3">Need another project?</Text>
-                </TextContent>
+                <Content>
+                  <Content component="h3">Need another project?</Content>
+                </Content>
               </FlexItem>
               <FlexItem>
-                <TextContent>
-                  <Text component="small" style={{ textAlign: 'center' }}>
+                <Content>
+                  <Content component="small" style={{ textAlign: 'center' }}>
                     Contact your administrator to request a project creation for you.
-                  </Text>
-                </TextContent>
+                  </Content>
+                </Content>
               </FlexItem>
             </>
           )}

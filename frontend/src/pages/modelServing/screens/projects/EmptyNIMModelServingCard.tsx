@@ -5,9 +5,8 @@ import {
   CardBody,
   CardFooter,
   CardTitle,
-  Text,
-  TextContent,
-  TextVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import {
@@ -52,15 +51,16 @@ const EmptyNIMModelServingCard: React.FC = () => {
       <Card
         style={{
           height: '100%',
-          border: '1px solid var(--pf-v5-global--BorderColor--100)',
+          border:
+            'var(--pf-t--temp--dev--tbd)' /* CODEMODS: original v5 color was --pf-v5-global--BorderColor--100 */,
           borderRadius: 16,
         }}
         data-testid="nvidia-nim-model-serving-platform-card"
       >
         <CardTitle>
-          <TextContent>
-            <Text component={TextVariants.h2}>NVIDIA NIM model serving platform</Text>
-          </TextContent>
+          <Content>
+            <Content component={ContentVariants.h2}>NVIDIA NIM model serving platform</Content>
+          </Content>
         </CardTitle>
         <CardBody>
           Models are deployed using NVIDIA NIM microservices. Choose this option when you want to

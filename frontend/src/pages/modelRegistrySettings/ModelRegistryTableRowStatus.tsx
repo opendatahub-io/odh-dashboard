@@ -91,7 +91,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     else if (degradedCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Degrading;
       icon = <DegradedIcon />;
-      color = 'gold';
+      color = 'orangered';
       popoverTitle = 'Service is degrading';
     }
   }

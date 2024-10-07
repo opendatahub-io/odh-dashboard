@@ -17,7 +17,7 @@ const ConnectionTypesPage: React.FC = () => {
       title="Connection types"
       description="Create and manage connection types for users in your organization. Connection types include customizable fields and optional default values to decrease the time required to add connections to data sources and sinks."
     >
-      <PageSection isFilled variant="light">
+      <PageSection hasBodyWrapper={false} isFilled>
         <ConnectionTypesTable connectionTypes={connectionTypes} onUpdate={refresh} />
       </PageSection>
     </ApplicationsPage>

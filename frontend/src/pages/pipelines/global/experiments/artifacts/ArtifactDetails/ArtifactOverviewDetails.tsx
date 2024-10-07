@@ -9,8 +9,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
-  TextContent,
-  Text,
+  Content,
 } from '@patternfly/react-core';
 
 import { Artifact } from '~/third_party/mlmd';
@@ -27,7 +26,7 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
     <Flex
       spaceItems={{ default: 'spaceItems2xl' }}
       direction={{ default: 'column' }}
-      className="pf-v5-u-pt-lg pf-v5-u-pb-lg"
+      className="pf-v6-u-pt-lg pf-v6-u-pb-lg"
     >
       <FlexItem>
         <Stack hasGutter>
@@ -57,9 +56,9 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
               testId="props-description-list"
             />
           ) : (
-            <TextContent>
-              <Text component="small">No properties</Text>
-            </TextContent>
+            <Content>
+              <Content component="small">No properties</Content>
+            </Content>
           )}
         </Stack>
       </FlexItem>
@@ -73,9 +72,9 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
               testId="custom-props-description-list"
             />
           ) : (
-            <TextContent>
-              <Text component="small">No custom properties</Text>
-            </TextContent>
+            <Content>
+              <Content component="small">No custom properties</Content>
+            </Content>
           )}
         </Stack>
       </FlexItem>

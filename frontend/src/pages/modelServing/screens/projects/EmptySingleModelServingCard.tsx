@@ -5,9 +5,8 @@ import {
   CardBody,
   CardFooter,
   CardTitle,
-  Text,
-  TextContent,
-  TextVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimePlatform } from '~/types';
@@ -54,15 +53,15 @@ const EmptySingleModelServingCard: React.FC = () => {
       <Card
         style={{
           height: '100%',
-          border: '1px solid var(--pf-v5-global--BorderColor--100)',
+          border: '1px solid var(--pf-t--global--border--color--default)',
           borderRadius: 16,
         }}
         data-testid="single-serving-platform-card"
       >
         <CardTitle>
-          <TextContent>
-            <Text component={TextVariants.h2}>Single-model serving platform</Text>
-          </TextContent>
+          <Content>
+            <Content component={ContentVariants.h2}>Single-model serving platform</Content>
+          </Content>
         </CardTitle>
         <CardBody>
           Each model is deployed on its own model server. Choose this option when you want to deploy

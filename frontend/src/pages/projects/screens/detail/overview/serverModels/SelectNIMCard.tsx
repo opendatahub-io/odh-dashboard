@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CardBody, Text, TextContent } from '@patternfly/react-core';
+import { CardBody, Content } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ServingRuntimePlatform } from '~/types';
@@ -13,13 +13,13 @@ const SelectNIMCard: React.FC = () => (
     data-testid="nvidia-nim-platform-card"
   >
     <CardBody>
-      <TextContent>
-        <Text component="small">
+      <Content>
+        <Content component="small">
           Models are deployed using NVIDIA NIM microservices. Choose this option when you want to
           deploy your model within a NIM container. Please provide the API key to authenticate with
           the NIM service.
-        </Text>
-      </TextContent>
+        </Content>
+      </Content>
     </CardBody>
     <AddModelFooter selectedPlatform={ServingRuntimePlatform.SINGLE} isNIM />
   </OverviewCard>

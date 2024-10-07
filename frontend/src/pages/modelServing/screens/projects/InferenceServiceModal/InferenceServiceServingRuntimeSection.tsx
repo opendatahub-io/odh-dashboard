@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, FormGroup, Skeleton, Text } from '@patternfly/react-core';
+import { Alert, FormGroup, Skeleton, Content } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
@@ -43,7 +43,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
   if (currentServingRuntime) {
     return (
       <FormGroup label="Model server">
-        <Text>{getDisplayNameFromK8sResource(currentServingRuntime)}</Text>
+        <Content component="p">{getDisplayNameFromK8sResource(currentServingRuntime)}</Content>
       </FormGroup>
     );
   }

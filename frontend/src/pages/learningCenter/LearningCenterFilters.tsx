@@ -38,13 +38,12 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
     <div className={classes} data-testid="learning-center-filters">
       {collapsible ? (
         <Button
+          icon={<TimesIcon />}
           className="odh-learning-paths__filter-panel__collapse-button"
           variant={ButtonVariant.plain}
           aria-label="Close filters"
           onClick={onCollapse}
-        >
-          <TimesIcon />
-        </Button>
+        />
       ) : null}
       <CategoryFilters docApps={docApps} favorites={favorites} />
       <EnabledFilters categoryApps={categoryApps} />

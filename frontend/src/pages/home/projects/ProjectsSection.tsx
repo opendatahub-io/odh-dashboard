@@ -3,16 +3,13 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   Flex,
   FlexItem,
   PageSection,
   Stack,
   StackItem,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import useDimensions from 'react-cool-dimensions';
@@ -69,7 +66,7 @@ const ProjectsSection: React.FC = () => {
   const onCreateProject = () => setCreateProjectOpen(true);
 
   return (
-    <PageSection data-testid="landing-page-projects">
+    <PageSection hasBodyWrapper={false} data-testid="landing-page-projects">
       <Stack hasGutter>
         <StackItem>
           <ProjectsSectionHeader
@@ -80,12 +77,13 @@ const ProjectsSection: React.FC = () => {
         </StackItem>
         <StackItem>
           {loadError ? (
-            <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-              <EmptyStateHeader
-                titleText="Error loading projects"
-                icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-                headingLevel="h3"
-              />
+            <EmptyState
+              headingLevel="h3"
+              icon={ExclamationCircleIcon}
+              titleText="Error loading projects"
+              variant={EmptyStateVariant.lg}
+              data-id="error-empty-state"
+            >
               <EmptyStateBody>{loadError.message}</EmptyStateBody>
             </EmptyState>
           ) : !rbacLoaded || !loaded ? (
@@ -109,13 +107,13 @@ const ProjectsSection: React.FC = () => {
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
               {shownProjects.length ? (
-                <TextContent>
-                  <Text component="small">
+                <Content>
+                  <Content component="small">
                     {shownProjects.length < projects.length
                       ? `${shownProjects.length} of ${projects.length} projects`
                       : 'Showing all projects'}
-                  </Text>
-                </TextContent>
+                  </Content>
+                </Content>
               ) : null}
             </FlexItem>
             <FlexItem>

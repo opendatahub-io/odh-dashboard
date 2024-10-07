@@ -11,13 +11,13 @@ import {
 } from '@patternfly/react-icons';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import {
-  chart_color_cyan_300 as chartColorCyan,
-  chart_color_gold_300 as chartColorGold,
+  chart_color_teal_300 as chartColorCyan,
+  chart_color_red_orange_300 as chartColorGold,
   chart_color_purple_300 as chartColorPurple,
   chart_color_blue_300 as chartColorBlue,
   chart_color_black_300 as chartColorBlack,
   chart_color_green_300 as chartColorGreen,
-  chart_color_red_100 as chartColorRed,
+  chart_global_danger_Color_100 as chartColorRed,
 } from '@patternfly/react-tokens';
 import {
   ClusterQueueKind,
@@ -65,12 +65,12 @@ export const WorkloadStatusColorAndIcon: Record<
   Pick<WorkloadStatusInfo, 'color' | 'chartColor' | 'icon'>
 > = {
   Pending: {
-    color: 'cyan',
+    color: 'teal',
     chartColor: chartColorCyan.value,
     icon: PendingIcon,
   },
   Inadmissible: {
-    color: 'gold',
+    color: 'orangered',
     chartColor: chartColorGold.value,
     icon: ExclamationTriangleIcon,
   },

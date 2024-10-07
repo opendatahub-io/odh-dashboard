@@ -12,8 +12,8 @@ import {
   FlexItem,
   Label,
   Skeleton,
-  Text,
-  TextVariants,
+  Content,
+  ContentVariants,
   Tooltip,
   Truncate,
 } from '@patternfly/react-core';
@@ -97,7 +97,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
               <StorageWarningStatus obj={obj.pvc} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
             </FlexItem>
           </Flex>
-          <Text>{getDescriptionFromK8sResource(obj.pvc)}</Text>
+          <Content component="p">{getDescriptionFromK8sResource(obj.pvc)}</Content>
         </Td>
 
         {isStorageClassesAvailable && (
@@ -124,7 +124,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                         data-testid="storage-class-deleted"
                         isCompact
                         icon={<ExclamationTriangleIcon />}
-                        color="gold"
+                        color="yellow"
                       >
                         Deleted
                       </Label>
@@ -139,7 +139,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                           data-testid="storage-class-deprecated"
                           isCompact
                           icon={<ExclamationTriangleIcon />}
-                          color="gold"
+                          color="yellow"
                         >
                           Deprecated
                         </Label>
@@ -149,20 +149,20 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                 </FlexItem>
               )}
             </Flex>
-            <Text component={TextVariants.small}>
+            <Content component={ContentVariants.small}>
               {storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
-            </Text>
+            </Content>
           </Td>
         )}
         <Td dataLabel="Type">
-          <Text>
+          <Content component="p">
             <Flex>
               <FlexItem spacer={{ default: 'spacerSm' }}>
                 <HddIcon />
               </FlexItem>
               <FlexItem>{` Persistent storage`}</FlexItem>
             </Flex>
-          </Text>
+          </Content>
         </Td>
         <Td dataLabel="Connected workbenches">
           <ConnectedNotebookNames

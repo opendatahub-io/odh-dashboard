@@ -4,10 +4,10 @@ import {
   AlertActionCloseButton,
   Form,
   FormSection,
-  Modal,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,

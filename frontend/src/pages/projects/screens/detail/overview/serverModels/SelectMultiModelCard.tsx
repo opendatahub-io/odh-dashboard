@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CardBody, Text, TextContent } from '@patternfly/react-core';
+import { CardBody, Content } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ServingRuntimePlatform } from '~/types';
@@ -13,13 +13,13 @@ const SelectMultiModelCard: React.FC = () => (
     data-testid="multi-serving-platform-card"
   >
     <CardBody>
-      <TextContent>
-        <Text component="small">
+      <Content>
+        <Content component="small">
           Multiple models can be deployed on one shared model server. Choose this option when you
           want to deploy a number of small or medium-sized models that can share the server
           resources.
-        </Text>
-      </TextContent>
+        </Content>
+      </Content>
     </CardBody>
     <AddModelFooter selectedPlatform={ServingRuntimePlatform.MULTI} />
   </OverviewCard>

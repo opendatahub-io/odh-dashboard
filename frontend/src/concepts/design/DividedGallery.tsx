@@ -35,14 +35,13 @@ const DividedGallery: React.FC<DividedGalleryProps> = ({
       {showClose ? (
         <div className="odh-divided-gallery__close">
           <Button
+            icon={<TimesIcon alt={`close ${closeAlt}`} />}
             data-testid={closeTestId}
             aria-label={closeAlt || 'close'}
             isInline
             variant="plain"
             onClick={onClose}
-          >
-            <TimesIcon alt={`close ${closeAlt}`} />
-          </Button>
+          />
         </div>
       ) : null}
     </Gallery>

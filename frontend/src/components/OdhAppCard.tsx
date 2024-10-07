@@ -127,7 +127,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
 
   const cardClasses = classNames('odh-card', {
-    'm-disabled': disabled,
+    // Using PF native class to prevent needing custom styling; RHOAI feel free to delete this comment
+    'pf-m-disabled': disabled,
   });
 
   const popoverBodyContent = (hide: () => void) => (
@@ -164,6 +165,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       bodyContent={popoverBodyContent}
       position="bottom"
     >
+      {/* Note from PatternFly: this implementation is not accessible and should use a button/interactive element instead of a plain span */}
       <span className="odh-card__disabled-text">Disabled</span>
     </Popover>
   );

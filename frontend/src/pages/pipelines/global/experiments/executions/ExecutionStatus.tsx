@@ -41,7 +41,7 @@ const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isIcon }) => 
       );
       tooltip = 'Cached';
       label = (
-        <Label color="cyan" icon={<OutlinedWindowRestoreIcon />}>
+        <Label color="teal" icon={<OutlinedWindowRestoreIcon />}>
           Cached
         </Label>
       );

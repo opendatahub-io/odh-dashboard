@@ -3,13 +3,12 @@ import {
   Form,
   FormGroup,
   TextInput,
-  Modal,
-  ModalVariant,
   Tabs,
   Tab,
   TabTitleText,
   Popover,
 } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { importBYONImage, updateBYONImage } from '~/services/imagesService';
 import { ResponseStatus, BYONImagePackage, BYONImage } from '~/types';
@@ -175,7 +174,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
         </FormGroup>
         <FormGroup
           label="Accelerator identifier"
-          labelIcon={
+          labelHelp={
             <Popover bodyContent="Add recommended accelerator identifiers for this image.">
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}

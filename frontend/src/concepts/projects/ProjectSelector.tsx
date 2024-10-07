@@ -102,7 +102,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         <img
           src={typedObjectImage(ProjectObjectType.project)}
           alt=""
-          style={{ height: 'var(--pf-v5-global--icon--FontSize--lg)' }}
+          style={{ height: 'var(--pf-t--global--icon--size--font--lg)' }}
         />
         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>

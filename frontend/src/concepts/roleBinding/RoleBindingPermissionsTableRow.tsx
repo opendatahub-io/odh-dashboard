@@ -5,7 +5,7 @@ import {
   Icon,
   Split,
   SplitItem,
-  Text,
+  Content,
   Timestamp,
   TimestampTooltipVariant,
   Tooltip,
@@ -85,7 +85,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               isProjectSubject={isProjectSubject}
             />
           ) : (
-            <Text>
+            <Content component="p">
               {roleBindingName}
               {` `}
               {isDefaultGroup && (
@@ -102,7 +102,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   </Icon>
                 </Tooltip>
               )}
-            </Text>
+            </Content>
           )}
         </Td>
         <Td dataLabel="Permission">
@@ -115,16 +115,16 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               }}
             />
           ) : (
-            <Text>{roleLabel(roleBindingRoleRef)}</Text>
+            <Content component="p">{roleLabel(roleBindingRoleRef)}</Content>
           )}
         </Td>
         <Td dataLabel="Date added">
           {!isEditing && (
-            <Text>
+            <Content component="p">
               <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
                 {relativeTime(Date.now(), createdDate.getTime())}
               </Timestamp>
-            </Text>
+            </Content>
           )}
         </Td>
         <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>

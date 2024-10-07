@@ -75,7 +75,7 @@ const ServingRuntimeSizeSection = <D extends CreatingModelServingObjectCommon>({
     <>
       <FormGroup
         label="Model server size"
-        labelIcon={
+        labelHelp={
           infoContent ? (
             <Popover bodyContent={<div>{infoContent}</div>}>
               <Icon aria-label="Model server size info" role="button">

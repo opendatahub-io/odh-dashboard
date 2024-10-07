@@ -56,7 +56,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   if (loadError) {
     return (
       <HelperText>
-        <HelperTextItem variant="warning" hasIcon>
+        <HelperTextItem variant="warning">
           Failed to get endpoint for this deployed model. {loadError.message}
         </HelperTextItem>
       </HelperText>

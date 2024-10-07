@@ -127,7 +127,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
         }
       >
         {isEdit ? (
-          <PageSection variant="light" className="pf-v5-u-pt-0">
+          <PageSection hasBodyWrapper={false} className="pf-v6-u-pt-0">
             <Alert
               isInline
               variant="warning"
@@ -135,7 +135,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
             />
           </PageSection>
         ) : undefined}
-        <PageSection isFilled variant="light" className="pf-v5-u-pt-0">
+        <PageSection hasBodyWrapper={false} isFilled className="pf-v6-u-pt-0">
           <Form>
             <FormSection title="Type details" style={{ maxWidth: 625 }}>
               <K8sNameDescriptionField
@@ -171,7 +171,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 onChange={(_e, value) => setConnectionEnabled(value)}
               />
             </FormGroup>
-            <FormSection title="Fields" className="pf-v5-u-mt-0">
+            <FormSection title="Fields" className="pf-v6-u-mt-0">
               <FormGroup>
                 {isEnvVarConflict ? (
                   <Alert isInline variant="danger" title="Environment variables conflict">
@@ -188,8 +188,8 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
           </Form>
         </PageSection>
         <PageSection
+          hasBodyWrapper={false}
           stickyOnBreakpoint={{ default: 'bottom' }}
-          variant="light"
           style={{ flexGrow: 0 }}
         >
           <CreateConnectionTypeFooter

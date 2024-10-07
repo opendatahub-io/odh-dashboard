@@ -30,7 +30,8 @@ export const PipelineVersionLink: React.FC<PipelineVersionLinkProps> = ({
   if (error) {
     return (
       <Tooltip content={error.message} position="right">
-        <div className="pf-v5-u-disabled-color-100 pf-v5-c-truncate__start">{displayName}</div>
+        {/* Need to check if the color contrast looks okay. Note from PatternFly: revisit this implementation (possibly add tabIndex of 0) as it isn't accessible */}
+        <div className="pf-v6-u-text-color-disabled pf-v6-c-truncate__start">{displayName}</div>
       </Tooltip>
     );
   }

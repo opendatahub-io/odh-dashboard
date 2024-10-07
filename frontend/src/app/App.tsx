@@ -71,7 +71,7 @@ const App: React.FC = () => {
     // There was an error fetching critical data
     return (
       <Page>
-        <PageSection>
+        <PageSection hasBodyWrapper={false}>
           <Stack hasGutter>
             <StackItem>
               <Alert variant="danger" isInline title="General loading error">
@@ -110,7 +110,8 @@ const App: React.FC = () => {
           <Page
             className="odh-dashboard"
             isManagedSidebar
-            header={
+            isContentFilled
+            masthead={
               <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
             }
             sidebar={isAllowed ? <NavSidebar /> : undefined}

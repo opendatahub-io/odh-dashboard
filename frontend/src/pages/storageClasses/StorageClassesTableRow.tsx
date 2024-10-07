@@ -134,6 +134,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                 popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
                 action={
                   <Button
+                    icon={<PencilAltIcon />}
                     variant="plain"
                     aria-label="Corrupt metadata name/description edit button"
                     onClick={() => {
@@ -143,9 +144,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                       };
                       setIsEditModalOpen(true);
                     }}
-                  >
-                    <PencilAltIcon />
-                  </Button>
+                  />
                 }
               />
             }
@@ -181,7 +180,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               position="right"
               headerContent="Storage class info"
               bodyContent={
-                <DescriptionList isCompact className="pf-v5-u-mt-lg">
+                <DescriptionList isCompact className="pf-v6-u-mt-lg">
                   {storageClassInfoItems.map((storageClassInfoItem) => (
                     <DescriptionListGroup key={storageClassInfoItem.label}>
                       <DescriptionListTerm>{storageClassInfoItem.label}</DescriptionListTerm>

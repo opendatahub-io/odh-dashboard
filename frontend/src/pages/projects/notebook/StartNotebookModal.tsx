@@ -6,8 +6,6 @@ import {
   ButtonVariant,
   List,
   ListItem,
-  Modal,
-  ModalVariant,
   Panel,
   PanelMain,
   Progress,
@@ -15,6 +13,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import { EventStatus, NotebookStatus } from '~/types';
 import { EventKind } from '~/k8sTypes';
 import NotebookRouteLink from './NotebookRouteLink';

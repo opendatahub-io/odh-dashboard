@@ -37,7 +37,7 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
               clickTip="Copied"
               variant={ClipboardCopyVariant.inlineCompact}
             >
-              {inferenceService.status?.address?.url}
+              {inferenceService.status?.address?.url ?? ''}
             </ClipboardCopy>
           </DescriptionListDescription>
         </DescriptionListGroup>

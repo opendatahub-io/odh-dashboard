@@ -1,5 +1,5 @@
 .odh-learning-paths__toolbar {
-  .pf-v5-c-toolbar__content {
+  .pf-v6-c-toolbar__content {
     padding: 0;
   }
   &__input {
@@ -10,40 +10,43 @@
   &__view-filter {
     display: flex;
     justify-content: space-between;
-    .pf-v5-c-button.pf-m-link {
-      margin-left: var(--pf-v5-global--spacer--xs);
+    .pf-v6-c-button.pf-m-link {
+      margin-left: var(--pf-t--global--spacer--xs);
     }
   }
   &__count {
-    font-weight: var(--pf-v5-global--FontWeight--bold);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
   }
 
+  // Needs input from RHOAI dev: the below class isn't applied in codebase
   &__view-switcher {
-    font-weight: var(--pf-v5-global--FontWeight--bold);
-    margin-left: var(--pf-v5-global--spacer--xs);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+    margin-left: var(--pf-t--global--spacer--xs);
   }
 
+  // Needs input from RHOAI dev: the below class isn't applied in codebase
   &__filtered-types {
     display: flex;
     align-items: center;
     .odh-card__partner-badge {
-      margin-right: var(--pf-v5-global--spacer--xs);
+      margin-right: var(--pf-t--global--spacer--xs);
       margin-bottom: 0;
       &:last-of-type {
         margin-right: 0;
       }
+      // Needs input from RHOAI dev: the below class isn't applied in codebase
       &__close {
-        color: var(--pf-v5-global--Color--100);
-        font-size: var(--pf-v5-global--FontSize--xs);
+        color: var(--pf-t--global--text--color--regular);
+        font-size: var(--pf-t--global--font--size--body--sm);
         padding: 0;
-        margin-left: var(--pf-v5-global--spacer--xs);
+        margin-left: var(--pf-t--global--spacer--xs);
       }
     }
   }
 
   &__filter-check {
-    font-size: var(--pf-v5-global--FontSize--md);
-    padding-right: var(--pf-v5-global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--body--default);
+    padding-right: var(--pf-t--global--spacer--sm);
     visibility: hidden;
     &.odh-m-filtered {
       visibility: visible;
@@ -51,11 +54,11 @@
   }
 
   &__filter-count {
-    font-size: var(--pf-v5-global--FontSize--md);
-    padding-left: var(--pf-v5-global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--body--default);
+    padding-left: var(--pf-t--global--spacer--sm);
   }
 
-  .pf-v5-c-select__toggle-arrow {
-    margin-left: var(--pf-v5-c-select__toggle-arrow--MarginRight);
+  .pf-v6-c-menu-toggle__toggle-icon {
+    margin-left: var(--pf-t--global--spacer--sm);
   }
 }

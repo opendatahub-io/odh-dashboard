@@ -6,11 +6,8 @@ import {
   Flex,
   FlexItem,
   GalleryItem,
-  TextContent,
-  TextList,
-  TextListItem,
-  TextListItemVariants,
-  TextListVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -74,25 +71,25 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
           </Flex>
         </CardHeader>
         <CardBody>
-          <TextContent>
-            <TextList component={TextListVariants.dl} style={{ display: 'block' }}>
-              <TextListItem
-                component={TextListItemVariants.dt}
-                style={{ marginBottom: 'var(--pf-v5-global--spacer--xs)' }}
+          <Content>
+            <Content component={ContentVariants.dl} style={{ display: 'block' }}>
+              <Content
+                component={ContentVariants.dt}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
               >
                 Serving runtime
-              </TextListItem>
-              <TextListItem
-                component={TextListItemVariants.dd}
+              </Content>
+              <Content
+                component={ContentVariants.dd}
                 style={{
-                  fontSize: 'var(--pf-v5-global--FontSize--sm)',
-                  color: !servingRuntime ? 'var(--pf-v5-global--Color--200)' : undefined,
+                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                  color: !servingRuntime ? 'var(--pf-t--global--text--color--subtle)' : undefined,
                 }}
               >
                 <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
-              </TextListItem>
-            </TextList>
-          </TextContent>
+              </Content>
+            </Content>
+          </Content>
         </CardBody>
         <CardFooter>
           <InferenceServiceEndpoint

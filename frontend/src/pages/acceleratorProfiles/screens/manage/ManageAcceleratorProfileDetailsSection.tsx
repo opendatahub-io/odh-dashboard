@@ -57,7 +57,7 @@ export const ManageAcceleratorProfileDetailsSection: React.FC<
           <FormGroup
             label="Identifier"
             isRequired
-            labelIcon={
+            labelHelp={
               <Popover bodyContent="An identifier is a unique string that names a specific hardware accelerator resource.">
                 <DashboardPopupIconButton
                   icon={<OutlinedQuestionCircleIcon />}

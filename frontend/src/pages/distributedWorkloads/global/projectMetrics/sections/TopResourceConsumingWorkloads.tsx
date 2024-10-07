@@ -6,7 +6,7 @@ import {
   ChartDonut,
   ChartThemeColor,
   ChartTooltip,
-} from '@patternfly/react-charts';
+} from '@patternfly/react-charts/victory';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   TopWorkloadUsageType,

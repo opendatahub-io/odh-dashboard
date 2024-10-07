@@ -10,8 +10,7 @@ import {
   Popover,
   Stack,
   StackItem,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -224,7 +223,7 @@ const ModelServingPlatform: React.FC = () => {
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
-                style={{ borderRight: '1px solid var(--pf-v5-global--BorderColor--100)' }}
+                style={{ borderRight: '1px solid var(--pf-t--global--border--color--default)' }}
               >
                 <EmptyDetailsView
                   iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
@@ -234,11 +233,11 @@ const ModelServingPlatform: React.FC = () => {
               <FlexItem flex={{ default: 'flex_1' }}>
                 <Stack hasGutter>
                   <StackItem>
-                    <TextContent>
-                      <Text>
+                    <Content>
+                      <Content component="p">
                         Select the model serving type to be used when deploying from this project.
-                      </Text>
-                    </TextContent>
+                      </Content>
+                    </Content>
                   </StackItem>
                   <StackItem>
                     <Gallery hasGutter>

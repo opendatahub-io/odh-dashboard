@@ -1,27 +1,27 @@
 .odh-divided-gallery {
   position: relative;
-  background-color: var(--pf-v5-global--BackgroundColor--100);
+  background-color: var(--pf-t--global--background--color--primary--default);
 
   &__border {
     width: 2px;
     position: absolute;
-    top: var(--pf-v5-global--spacer--md);
-    bottom: var(--pf-v5-global--spacer--md);
+    top: var(--pf-t--global--spacer--md);
+    bottom: var(--pf-t--global--spacer--md);
     left: 0;
     background-color: white;
     content: ' ';
   }
   &__item {
-    border-left: 1px solid var(--pf-v5-global--BorderColor--100);
-    padding: 0 var(--pf-v5-global--spacer--xl);
-    margin: var(--pf-v5-global--spacer--md) 0;
+    border-left: 1px solid var(--pf-t--global--border--color--default);
+    padding: 0 var(--pf-t--global--spacer--xl);
+    margin: var(--pf-t--global--spacer--md) 0;
   }
-  .pf-v5-l-gallery {
+  .pf-v6-l-gallery {
     position: relative;
   }
   &__close {
     position: absolute;
-    top: var(--pf-v5-global--spacer--xs);
+    top: var(--pf-t--global--spacer--xs);
     right: 0;
   }
 }

@@ -78,4 +78,4 @@ export const DASHBOARD_MAIN_CONTAINER_ID = 'dashboard-page-main';
 
 // Quick starts drawer creates a new scroll container within its DrawerContentBody.
 // Not an ideal selector but components such as JumpLinks require the use of a selector instead of a direct node reference.
-export const DASHBOARD_SCROLL_CONTAINER_SELECTOR = `#${DASHBOARD_MAIN_CONTAINER_ID} > .pf-v5-c-drawer > .pf-v5-c-drawer__main > .pf-v5-c-drawer__content`;
+export const DASHBOARD_SCROLL_CONTAINER_SELECTOR = `#${DASHBOARD_MAIN_CONTAINER_ID} > .pf-v6-c-drawer > .pf-v6-c-drawer__main > .pf-v6-c-drawer__content`;

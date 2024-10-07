@@ -89,8 +89,8 @@ function FilterToolbar<T extends string>({
               key={filterKey}
               categoryName={optionValue}
               data-testid={`${testId}-text-field`}
-              variant="search-filter"
-              chips={
+              variant="label"
+              labels={
                 data && dataValue
                   ? [
                       {
@@ -102,7 +102,7 @@ function FilterToolbar<T extends string>({
                     ]
                   : []
               }
-              deleteChip={() => {
+              deleteLabel={() => {
                 onFilterUpdate(filterKey, '');
               }}
               showToolbarItem={currentFilterType === filterKey}
