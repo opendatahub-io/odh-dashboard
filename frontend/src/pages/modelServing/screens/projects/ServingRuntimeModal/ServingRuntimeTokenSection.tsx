@@ -3,27 +3,22 @@ import { Alert, Button, Checkbox, FormGroup, Stack, StackItem } from '@patternfl
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import {
-  CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
-} from '~/pages/modelServing/screens/types';
+import { CreatingModelServingObjectCommon } from '~/pages/modelServing/screens/types';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 
-type ServingRuntimeTokenSectionProps = {
-  data: CreatingServingRuntimeObject | CreatingInferenceServiceObject;
-  setData:
-    | UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>
-    | UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+type ServingRuntimeTokenSectionProps<D extends CreatingModelServingObjectCommon> = {
+  data: D;
+  setData: UpdateObjectAtPropAndValue<D>;
   allowCreate: boolean;
   createNewToken: () => void;
 };
 
-const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
+const ServingRuntimeTokenSection = <D extends CreatingModelServingObjectCommon>({
   data,
   setData,
   allowCreate,
   createNewToken,
-}) => (
+}: ServingRuntimeTokenSectionProps<D>): React.ReactNode => (
   <FormGroup
     label="Token authentication"
     data-testid="auth-section"

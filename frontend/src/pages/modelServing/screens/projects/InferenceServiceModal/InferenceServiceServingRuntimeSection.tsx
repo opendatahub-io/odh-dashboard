@@ -66,7 +66,9 @@ const InferenceServiceServingRuntimeSection: React.FC<
         }
         onChange={(option) => {
           setData('servingRuntimeName', option);
-          setData('format', '');
+          setData('format', {
+            name: '',
+          });
         }}
       />
     </FormGroup>
