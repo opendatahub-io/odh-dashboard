@@ -10,7 +10,6 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import { DebouncedFunc } from 'lodash-es';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -20,6 +19,7 @@ import {
   PIPELINE_ARGO_ERROR,
 } from '~/concepts/pipelines/content/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
@@ -35,7 +35,7 @@ export type PipelineImportBaseProps = {
   setData: UpdateObjectAtPropAndValue<PipelineImportData>;
   resetData: () => void;
   submitAction: () => Promise<PipelineKFv2 | PipelineVersionKFv2>;
-  checkForDuplicateName: DebouncedFunc<(value: string) => Promise<boolean>>;
+  checkForDuplicateName: (value: string) => Promise<boolean>;
   children?: React.ReactNode;
 };
 
@@ -74,14 +74,24 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     [onClose, resetData, data.pipeline],
   );
 
+  const debouncedCheckForDuplicateName = useDebounceCallback(
+    React.useCallback(
+      async (value: string) => {
+        const isDuplicate = await checkForDuplicateName(value);
+        setHasDuplicateName(!!isDuplicate);
+      },
+      [checkForDuplicateName],
+    ),
+    500,
+  );
+
   const handleNameChange = React.useCallback(
     async (value: string) => {
       setHasDuplicateName(false);
       setData('name', value);
-      const isDuplicate = await checkForDuplicateName(value);
-      setHasDuplicateName(!!isDuplicate);
+      debouncedCheckForDuplicateName(value);
     },
-    [checkForDuplicateName, setData],
+    [debouncedCheckForDuplicateName, setData],
   );
 
   const onSubmit = () => {

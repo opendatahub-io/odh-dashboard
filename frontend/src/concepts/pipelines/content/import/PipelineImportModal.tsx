@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionDetailsRoute } from '~/routes';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { usePipelineImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
@@ -25,6 +24,8 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
 
   const handleClose = React.useCallback(
     async (pipeline?: PipelineKFv2) => {
+      onClose(pipeline);
+
       if (pipeline && redirectAfterImport) {
         const { pipeline_versions: versions } = await api.listPipelineVersions(
           {},
@@ -39,7 +40,6 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
           navigate(pipelineVersionDetailsRoute(namespace, pipeline.pipeline_id, versionId));
         }
       }
-      onClose(pipeline);
     },
     [api, namespace, redirectAfterImport, navigate, onClose],
   );
@@ -67,24 +67,21 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
     );
   }, [api, modalData]);
 
-  const checkForDuplicateName = useDebounceCallback(
-    React.useCallback(
-      async (value: string) => {
-        if (value) {
-          const { pipelines: duplicatePipelines } = await api.listPipelines(
-            {},
-            getNameEqualsFilter(value),
-          );
+  const checkForDuplicateName = React.useCallback(
+    async (value: string) => {
+      if (value) {
+        const { pipelines: duplicatePipelines } = await api.listPipelines(
+          {},
+          getNameEqualsFilter(value),
+        );
 
-          if (duplicatePipelines?.length) {
-            return true;
-          }
+        if (duplicatePipelines?.length) {
+          return true;
         }
-        return false;
-      },
-      [api],
-    ),
-    500,
+      }
+      return false;
+    },
+    [api],
   );
 
   return (
