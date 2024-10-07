@@ -22,8 +22,8 @@ const ScrolledGallery: React.FC<ScrolledGalleryProps> = ({
         display: 'grid',
         gridAutoFlow: 'column',
         overflowY: 'auto',
-        gap: 'var(--pf-v5-global--spacer--md)',
-        paddingBottom: 'var(--pf-v5-global--spacer--sm)',
+        gap: 'var(--pf-t--global--spacer--md)',
+        paddingBottom: 'var(--pf-t--global--spacer--sm)',
       }}
       {...rest}
     >

@@ -11,9 +11,9 @@ const ProjectSettingsPage = (): ReactElement => {
 
   return (
     <PageSection
+      hasBodyWrapper={false}
       isFilled
       aria-label="project-settings-page-section"
-      variant="light"
       id={ProjectSectionID.SETTINGS}
     >
       <Stack hasGutter>

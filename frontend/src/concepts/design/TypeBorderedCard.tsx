@@ -28,8 +28,8 @@ const TypeBorderedCard: React.FC<TypeBorderedCardProps> = ({
       selectable && 'm-is-selectable',
       selected && 'm-is-selected',
     )}
-    role={selectable ? 'button' : undefined}
-    aria-expanded={selectable ? selected : undefined}
+    isClickable={selectable}
+    isClicked={selected}
     {...rest}
   />
 );

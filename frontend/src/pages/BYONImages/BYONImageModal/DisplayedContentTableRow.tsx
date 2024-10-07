@@ -89,47 +89,43 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
               <>
                 <ActionListItem>
                   <Button
+                    icon={<CheckIcon />}
                     data-testid={`save-displayed-button-${dataLabel} `}
                     aria-label="Save displayed content"
                     variant="link"
                     onClick={() => onConfirm(name, version)}
-                  >
-                    <CheckIcon />
-                  </Button>
+                  />
                 </ActionListItem>
                 <ActionListItem>
                   <Button
+                    icon={<TimesIcon />}
                     data-testid={`discard-display-button-${dataLabel} `}
                     aria-label="Discard displayed content"
                     variant="plain"
                     onClick={resetAll}
-                  >
-                    <TimesIcon />
-                  </Button>
+                  />
                 </ActionListItem>
               </>
             ) : (
               <>
                 <ActionListItem>
                   <Button
+                    icon={<PencilAltIcon />}
                     aria-label="Edit displayed content"
                     isDisabled={isEditing}
                     variant="plain"
                     onClick={onEdit}
-                  >
-                    <PencilAltIcon />
-                  </Button>
+                  />
                 </ActionListItem>
                 <ActionListItem>
                   <Button
+                    icon={<MinusCircleIcon />}
                     data-testid="remove-displayed-content-button"
                     aria-label="Remove displayed content"
                     isDisabled={isEditing}
                     variant="plain"
                     onClick={onDelete}
-                  >
-                    <MinusCircleIcon />
-                  </Button>
+                  />
                 </ActionListItem>
               </>
             )}

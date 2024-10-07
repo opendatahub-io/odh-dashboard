@@ -5,9 +5,7 @@ import {
   ExpandableSection,
   ExpandableSectionToggle,
   Spinner,
-  TextContent,
-  TextList,
-  TextListItem,
+  Content,
 } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { Connection } from '~/concepts/connectionTypes/types';
@@ -86,7 +84,7 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
       The <b>{getDisplayNameFromK8sResource(deleteConnection)}</b> connection will be deleted, and
       its dependent resources will stop working.
       {loaded && !connectedNotebooks.length && !connectedModels.length ? null : (
-        <div className="pf-v5-u-mt-md">
+        <div className="pf-v6-u-mt-md">
           {!loaded ? (
             <Bullseye>
               <Spinner size="md" />
@@ -114,19 +112,20 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
                       contentId="expanded-connected-notebooks"
                       toggleId="expand-connected-notebooks-toggle"
                     >
-                      <TextContent>
-                        <TextList>
+                      <Content>
+                        <Content component="ul">
                           {connectedNotebooks.map((notebook) => (
-                            <TextListItem
+                            <Content
+                              component="li"
                               key={notebook.metadata.name}
                               data-testid="connections-delete-notebooks-item"
                             >
                               {getDisplayNameFromK8sResource(notebook)}
                               {getNotebookStatusText(notebook)}
-                            </TextListItem>
+                            </Content>
                           ))}
-                        </TextList>
-                      </TextContent>
+                        </Content>
+                      </Content>
                     </ExpandableSection>
                   ) : null}
                 </>
@@ -152,18 +151,19 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
                       toggleId="expand-connected-models-toggle"
                       contentId="expanded-connected-models"
                     >
-                      <TextContent>
-                        <TextList>
+                      <Content>
+                        <Content component="ul">
                           {connectedModels.map((model) => (
-                            <TextListItem
+                            <Content
+                              component="li"
                               key={model.metadata.name}
                               data-testid="connections-delete-models-item"
                             >
                               {getDisplayNameFromK8sResource(model)}
-                            </TextListItem>
+                            </Content>
                           ))}
-                        </TextList>
-                      </TextContent>
+                        </Content>
+                      </Content>
                     </ExpandableSection>
                   ) : null}
                 </>

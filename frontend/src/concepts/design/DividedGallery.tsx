@@ -30,19 +30,17 @@ const DividedGallery: React.FC<DividedGalleryProps> = ({
       minWidths={{ default: minSize, md: minSize }}
       maxWidths={{ default: '100%', md: `${100 / itemCount}%` }}
     >
-      <div className="odh-divided-gallery__border" />
       {children}
       {showClose ? (
         <div className="odh-divided-gallery__close">
           <Button
+            icon={<TimesIcon alt={`close ${closeAlt ?? ''}`} />}
             data-testid={closeTestId}
             aria-label={closeAlt || 'close'}
             isInline
             variant="plain"
             onClick={onClose}
-          >
-            <TimesIcon alt={`close ${closeAlt ?? ''}`} />
-          </Button>
+          />
         </div>
       ) : null}
     </Gallery>

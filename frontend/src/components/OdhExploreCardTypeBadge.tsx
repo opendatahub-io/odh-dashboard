@@ -1,13 +1,17 @@
 import * as React from 'react';
-import { Tooltip } from '@patternfly/react-core';
+import { Tooltip, Label } from '@patternfly/react-core';
 import { OdhApplicationCategory } from '~/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 type OdhExploreCardTypeBadgeProps = {
   category: OdhApplicationCategory | string;
+  isDisabled?: boolean;
 };
 
-const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ category }) => {
+const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({
+  category,
+  isDisabled,
+}) => {
   let content;
 
   if (category === OdhApplicationCategory.RedHatManaged) {
@@ -24,7 +28,9 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
 
   return (
     <Tooltip content={content}>
-      <span>{category}</span>
+      <Label className={isDisabled ? 'pf-m-disabled' : undefined} tabIndex={0} variant="outline">
+        {category}
+      </Label>
     </Tooltip>
   );
 };

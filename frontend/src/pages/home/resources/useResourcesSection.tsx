@@ -4,12 +4,11 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
   Stack,
-  TextVariants,
+  StackItem,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import OdhDocCard from '~/components/OdhDocCard';
@@ -41,21 +40,22 @@ export const useResourcesSection = (): React.ReactNode => {
   }
 
   return (
-    <PageSection data-testid="landing-page-resources">
+    <PageSection variant="secondary" hasBodyWrapper={false} data-testid="landing-page-resources">
       <CollapsibleSection
         title="Get oriented with learning resources"
-        titleVariant={TextVariants.h1}
+        titleVariant={ContentVariants.h1}
         open={resourcesOpen}
         setOpen={setResourcesOpen}
       >
         <Stack hasGutter>
           {loadError ? (
-            <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-              <EmptyStateHeader
-                titleText="Error loading resources"
-                icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-                headingLevel="h3"
-              />
+            <EmptyState
+              headingLevel="h3"
+              icon={ExclamationCircleIcon}
+              titleText="Error loading resources"
+              variant={EmptyStateVariant.lg}
+              data-id="error-empty-state"
+            >
               <EmptyStateBody>{loadError.message}</EmptyStateBody>
             </EmptyState>
           ) : (
@@ -66,25 +66,22 @@ export const useResourcesSection = (): React.ReactNode => {
                   key={`${doc.metadata.name}`}
                   odhDoc={doc}
                   showFavorite={false}
-                  style={{
-                    border: '1px solid var(--pf-v5-global--BorderColor--100)',
-                    borderRadius: 16,
-                  }}
                 />
               ))}
             </ScrolledGallery>
           )}
-          <Button variant="link" isInline onClick={() => navigate('/resources')}>
+
+          <StackItem>
             <Button
               data-testid="goto-resources-link"
-              component="a"
+              // Should not use component="a" due to no href
               isInline
               variant="link"
               onClick={() => navigate('/resources')}
             >
               Go to <b>Resources</b>
             </Button>
-          </Button>
+          </StackItem>
         </Stack>
       </CollapsibleSection>
     </PageSection>

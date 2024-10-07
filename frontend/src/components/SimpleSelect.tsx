@@ -109,7 +109,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           height:
             // Skeleton height = Select padding top + Select padding bottom + Select font line height
             // In App.scss we override the form font size from --pf-v5-global--FontSize--md to --pf-v5-global--FontSize--sm
-            'calc(calc(var(--pf-v5-global--spacer--form-element) * 2) + calc(var(--pf-v5-global--LineHeight--md) * var(--pf-v5-global--FontSize--sm)))',
+            'var(--pf-t--global--spacer--xs)',
         }}
       />
     );

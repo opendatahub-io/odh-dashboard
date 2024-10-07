@@ -8,8 +8,8 @@ import {
   DescriptionListTerm,
   ExpandableSection,
   Spinner,
-  Text,
-  TextVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { PodContainer } from '~/types';
 import {
@@ -77,7 +77,7 @@ const NotebookServerDetails: React.FC = () => {
         <>
           <div className="odh-notebook-controller__server-details-image-name">
             <p>{image.display_name}</p>
-            {tagSoftware && <Text component={TextVariants.small}>{tagSoftware}</Text>}
+            {tagSoftware && <Content component={ContentVariants.small}>{tagSoftware}</Content>}
           </div>
           <DescriptionList>
             <DescriptionListGroup>

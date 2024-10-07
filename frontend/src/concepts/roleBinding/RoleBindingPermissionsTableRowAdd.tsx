@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
-import { Button, Split, SplitItem, Text } from '@patternfly/react-core';
+import { Button, Split, SplitItem, Content } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
 import { RoleBindingSubject } from '~/k8sTypes';
 import { projectDisplayNameToNamespace } from '~/concepts/projects/utils';
@@ -63,7 +63,7 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
               }}
             />
           ) : (
-            <Text>{roleLabel(roleBindingRoleRef)}</Text>
+            <Content component="p">{roleLabel(roleBindingRoleRef)}</Content>
           )}
         </Td>
         <Td dataLabel="Date added" />

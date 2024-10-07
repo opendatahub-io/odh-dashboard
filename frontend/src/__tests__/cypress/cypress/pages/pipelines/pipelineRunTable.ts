@@ -67,7 +67,7 @@ class PipelineRunsTable {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   mockRestoreRun(runId: string, namespace: string) {

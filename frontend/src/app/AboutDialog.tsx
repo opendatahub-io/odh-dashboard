@@ -1,20 +1,11 @@
 import React from 'react';
-import {
-  AboutModal,
-  Alert,
-  Bullseye,
-  Spinner,
-  TextContent,
-  TextList,
-  TextListItem,
-} from '@patternfly/react-core';
-import { ODH_LOGO, ODH_PRODUCT_NAME } from '~/utilities/const';
+import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react-core';
+import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useUser, useClusterInfo } from '~/redux/selectors';
 import { useAppContext } from '~/app/AppContext';
 import useFetchDsciStatus from '~/concepts/areas/useFetchDsciStatus';
 import { useWatchOperatorSubscriptionStatus } from '~/utilities/useWatchOperatorSubscriptionStatus';
-
-import './AboutDialog.scss';
+import { useThemeContext } from './ThemeContext';
 
 const RhoaiAboutText = `Red Hat® OpenShift® AI (formerly Red Hat OpenShift Data Science) is a flexible, scalable MLOps platform for data scientists and developers of artificial intelligence and machine learning (AI/ML) applications. Built using open source technologies, OpenShift AI supports the full lifecycle of AI/ML experiments and models, on premise and in the public cloud.`;
 const RhoaiDefaultReleaseName = `OpenShift AI`;
@@ -29,6 +20,7 @@ interface AboutDialogProps {
 const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const { isAdmin } = useUser();
   const { isRHOAI } = useAppContext();
+  const { theme } = useThemeContext();
   const { serverURL } = useClusterInfo();
   const [dsciStatus, loadedDsci, errorDsci] = useFetchDsciStatus();
   const [subStatus, loadedSubStatus, errorSubStatus] = useWatchOperatorSubscriptionStatus();
@@ -40,64 +32,66 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
       className="odh-about-dialog"
       isOpen
       onClose={onClose}
-      brandImageSrc={`${window.location.origin}/images/${ODH_LOGO}`}
+      brandImageSrc={`${window.location.origin}/images/${
+        theme !== 'dark' ? ODH_LOGO : ODH_LOGO_DARK
+      }`}
       brandImageAlt={`${ODH_PRODUCT_NAME} logo`}
       productName={ODH_PRODUCT_NAME}
       aria-label={ODH_PRODUCT_NAME}
       data-testid="odh-about-dialog"
     >
-      <TextContent style={{ paddingBottom: 48 }}>
+      <Content style={{ paddingBottom: 48 }}>
         <h4>About</h4>
         <p data-testid="about-text">{isRHOAI ? RhoaiAboutText : OdhAboutText}</p>
-      </TextContent>
-      <TextContent>
+      </Content>
+      <Content>
         <div style={{ position: 'relative' }}>
           {loading ? (
             <Bullseye style={{ position: 'absolute', width: '100%' }}>
               <Spinner size="xl" />
             </Bullseye>
           ) : null}
-          <TextList component="dl" style={{ visibility: loading ? 'hidden' : 'visible' }}>
-            <TextListItem component="dt" data-testid="about-product-name">
+          <Content component="dl" style={{ visibility: loading ? 'hidden' : 'visible' }}>
+            <Content component="dt" data-testid="about-product-name">
               {dsciStatus?.release?.name ||
                 (isRHOAI ? RhoaiDefaultReleaseName : OdhDefaultReleaseName)}{' '}
               version
-            </TextListItem>
-            <TextListItem component="dd" data-testid="about-version">
+            </Content>
+            <Content component="dd" data-testid="about-version">
               {dsciStatus?.release?.version || 'Unknown'}
-            </TextListItem>
-            <TextListItem component="dt">Channel</TextListItem>
-            <TextListItem component="dd" data-testid="about-channel">
+            </Content>
+            <Content component="dt">Channel</Content>
+            <Content component="dd" data-testid="about-channel">
               {subStatus?.channel || 'Unknown'}
-            </TextListItem>
-            <TextListItem component="dt">API server</TextListItem>
-            <TextListItem component="dd" data-testid="about-server-url">
+            </Content>
+            <Content component="dt">API server</Content>
+            <Content component="dd" data-testid="about-server-url">
               {serverURL}
-            </TextListItem>
-            <TextListItem component="dt">User type</TextListItem>
-            <TextListItem component="dd" data-testid="about-access-level">
+            </Content>
+            <Content component="dt">User type</Content>
+            <Content component="dd" data-testid="about-access-level">
               {isAdmin ? 'Administrator' : 'Non-administrator'}
-            </TextListItem>
-            <TextListItem component="dt">Last updated</TextListItem>
-            <TextListItem component="dd" data-testid="about-last-update">
+            </Content>
+            <Content component="dt">Last updated</Content>
+            <Content component="dd" data-testid="about-last-update">
               {subStatus?.lastUpdated
                 ? new Date(subStatus.lastUpdated).toLocaleString(undefined, {
                     dateStyle: 'long',
                   })
                 : 'Unknown'}
-            </TextListItem>
-          </TextList>
+            </Content>
+          </Content>
         </div>
         {error ? (
           <Alert
-            style={{ marginTop: 'var(--pf-v5-global--spacer--lg)' }}
+            style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
             variant="danger"
             title="Problem loading product information"
           >
             {error.message}
           </Alert>
         ) : null}
-      </TextContent>
+      </Content>
     </AboutModal>
   );
 };

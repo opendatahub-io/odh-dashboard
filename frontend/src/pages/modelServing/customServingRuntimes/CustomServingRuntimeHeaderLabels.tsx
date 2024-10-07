@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Icon, Label, LabelGroup, Popover } from '@patternfly/react-core';
+import { Button, Icon, Label, LabelGroup, Popover, Flex } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
@@ -14,7 +14,7 @@ const CustomServingRuntimeHeaderLabels: React.FC = () => {
   }
 
   return (
-    <>
+    <Flex gap={{ default: 'gapMd' }}>
       <LabelGroup>
         {kServeEnabled && (
           <Label data-testid="single-model-serving-enabled">Single-model serving enabled</Label>
@@ -39,7 +39,7 @@ const CustomServingRuntimeHeaderLabels: React.FC = () => {
           <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
         </Icon>
       </Popover>
-    </>
+    </Flex>
   );
 };
 

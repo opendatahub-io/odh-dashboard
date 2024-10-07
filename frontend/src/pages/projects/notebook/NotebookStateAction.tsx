@@ -18,7 +18,6 @@ const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, 
     <Button
       data-testid="notebook-stop-action"
       variant="link"
-      isInline
       isDisabled={actionDisabled}
       onClick={onStop}
     >
@@ -28,7 +27,6 @@ const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, 
     <Button
       data-testid="notebook-start-action"
       variant="link"
-      isInline
       isDisabled={actionDisabled}
       onClick={onStart}
     >

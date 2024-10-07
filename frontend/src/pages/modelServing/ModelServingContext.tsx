@@ -4,8 +4,6 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
@@ -154,12 +152,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
       )
     ) : (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="Problem loading model serving page"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Problem loading model serving page"
+        >
           <EmptyStateBody>
             {notInstalledError?.message ||
               servingRuntimes.error?.message ||

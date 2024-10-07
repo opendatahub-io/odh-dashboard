@@ -27,7 +27,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
   const panelContent = (
     <DrawerPanelContent isResizable>
       <DrawerContentBody>
-        <DrawerHead hasNoPadding>
+        <DrawerHead>
           <Title headingLevel="h2" size="xl">
             Preview connection type
           </Title>
@@ -37,8 +37,8 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
         </DrawerHead>
         <div
           style={{
-            fontSize: 'var(--pf-v5-global--FontSize--sm)',
-            paddingTop: 'var(--pf-v5-global--spacer--sm)',
+            fontSize: 'var(--pf-t--global--font--size--sm)',
+            paddingTop: 'var(--pf-t--global--spacer--sm)',
           }}
         >
           This preview shows the user view of the connection type form, and is for reference only.
@@ -48,11 +48,11 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
       <Divider />
       <DrawerContentBody
         style={{
-          backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)',
+          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
           overflow: 'auto',
         }}
       >
-        <Card isFlat isRounded>
+        <Card>
           <CardBody>
             <Form>
               <Title headingLevel="h1">Add connection</Title>

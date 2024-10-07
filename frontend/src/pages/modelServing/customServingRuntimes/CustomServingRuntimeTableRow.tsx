@@ -42,7 +42,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           id: `draggable-row-${servingRuntimeName}`,
         }}
       />
-      <Td dataLabel="Name" width={70} className="pf-v5-u-text-break-word">
+      <Td dataLabel="Name" width={70} className="pf-v6-u-text-break-word">
         <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
