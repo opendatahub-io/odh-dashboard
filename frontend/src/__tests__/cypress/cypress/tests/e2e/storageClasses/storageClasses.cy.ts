@@ -34,7 +34,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     pageNotfound.findPage().should('be.visible');
   });
 
-  it('The Default label is present in the grid', () => {
+  it('The Default label is shown in the grid', () => {
     cy.visitWithLogin('/', ADMIN_USER);
     storageClassesPage.navigate();
     const scDisabledRow = storageClassesTable.getRowByConfigName(scDefaultName);

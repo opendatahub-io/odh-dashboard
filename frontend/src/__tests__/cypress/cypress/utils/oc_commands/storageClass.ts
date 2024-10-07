@@ -87,8 +87,10 @@ export const getOpenshiftDefaultStorageClass = (): Cypress.Chainable<CommandLine
  * @returns List of Storage Class names
  */
 export const getStorageClassNames = (): Cypress.Chainable<string[]> => {
+  const command = "oc get storageclass -o jsonpath='{.items[*].metadata.name}'";
+  cy.log(`Executing command: ${command}`);
   return cy
-    .exec("oc get storageclass -o jsonpath='{.items[*].metadata.name}'", {
+    .exec(command, {
       failOnNonZeroExit: false,
     })
     .then((result: CommandLineResult) => {
@@ -114,11 +116,10 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
         return cy.wrap('No storage class found that is both default and enabled');
       }
 
+      const command = `oc get storageclass ${scNames[index]} -o jsonpath='{.metadata.annotations.opendatahub\\.io/sc-config}'`;
+      cy.log(`Executing command: ${command}`);
       return cy
-        .exec(
-          `oc get storageclass ${scNames[index]} -o jsonpath='{.metadata.annotations.opendatahub\\.io/sc-config}'`,
-          { failOnNonZeroExit: false },
-        )
+        .exec(command, { failOnNonZeroExit: false })
         .then((result: Cypress.Exec) => {
           if (result.code !== 0) {
             cy.log(`ERROR Getting ${scNames[index]} Storage Class Config
