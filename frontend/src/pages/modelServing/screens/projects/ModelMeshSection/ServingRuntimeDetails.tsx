@@ -25,7 +25,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
   const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
-  const resources = obj.spec.containers[0].resources || isvc?.spec.predictor.model?.resources;
+  const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
