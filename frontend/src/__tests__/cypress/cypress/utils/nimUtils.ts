@@ -29,6 +29,7 @@ import {
 } from '~/__mocks__/mockNimResource';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
+import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 
 export function findNimModelDeployButton(): Cypress.Chainable<JQuery> {
   return findNimModelServingPlatformCard().findByTestId('nim-serving-deploy-button');
@@ -70,37 +71,39 @@ export function validateNvidiaNimModel(
 
 export function validateNimModelsTable(): void {
   // Table is visible and has 2 rows (2nd is the hidden expandable row)
-  cy.get('[data-testid="kserve-inference-service-table"]')
-    .find('tbody')
-    .find('tr')
-    .should('have.length', 2);
+  const kserveTable = projectDetails.findKserveModelsTable();
+  kserveTable.find('tbody').find('tr').should('have.length', 2);
 
   // First row matches the NIM inference service details
-  cy.get('[style="display: block;"] > :nth-child(1)').should('have.text', 'Test Name');
-  cy.get('[data-label="Serving Runtime"]').should('have.text', 'NVIDIA NIM');
-  cy.get('[data-testid="internal-service-button"]').should('have.text', 'Internal Service');
+  const kserveTableRow = projectDetails.getKserveTableRow('Test Name');
+  kserveTableRow.findColumn('Name').should('have.text', 'Test Name');
+  kserveTableRow.findColumn('Serving Runtime').should('have.text', 'NVIDIA NIM');
+  kserveTableRow.findColumn('Inference endpoint').should('have.text', 'Internal Service');
+  kserveTableRow.findColumn('API protocol').should('have.text', 'REST');
+
   // Validate Internal Service tooltip and close it
-  cy.get('[data-testid="internal-service-button"]').click();
-  cy.get('.pf-v5-c-popover__title-text').should(
-    'have.text',
-    'Internal Service can be accessed inside the cluster',
-  );
-  cy.get('.pf-v5-c-popover__close > .pf-v5-c-button > .pf-v5-svg > path').click();
+  kserveTableRow.findInternalServiceButton().click();
+  kserveTableRow
+    .findInternalServicePopover()
+    .findByText('Internal Service can be accessed inside the cluster')
+    .should('exist');
+  kserveTableRow.findInternalServicePopoverCloseButton().click();
+
   // Open toggle to validate Model details
-  cy.get('.pf-v5-c-table__toggle-icon').click();
-  cy.get(
-    ':nth-child(1) > .pf-v5-c-description-list > .pf-v5-c-description-list__group > .pf-v5-c-description-list__description > .pf-v5-c-description-list__text',
-  ).should('have.text', 'arctic-embed-l');
-  cy.get(
-    ':nth-child(2) > .pf-v5-c-description-list > :nth-child(1) > .pf-v5-c-description-list__description > .pf-v5-c-description-list__text',
-  ).should('have.text', '1');
-  cy.get('.pf-v5-c-list > :nth-child(1)').should('have.text', 'Small');
-  cy.get('.pf-v5-c-list > :nth-child(2)').should('have.text', '1 CPUs, 4Gi Memory requested');
-  cy.get('.pf-v5-c-list > :nth-child(3)').should('have.text', '2 CPUs, 8Gi Memory limit');
-  cy.get(
-    ':nth-child(3) > .pf-v5-c-description-list__description > .pf-v5-c-description-list__text',
-  ).should('have.text', 'No accelerator selected');
-  cy.get('.pf-v5-c-table__toggle-icon').click();
+  kserveTableRow.findDetailsTriggerButton().click();
+  const kserveDetailsTableRow = projectDetails.getKserveTableDetailsRow('Test Name');
+  kserveDetailsTableRow.findValueFor('Framework').should('have.text', 'arctic-embed-l');
+  kserveDetailsTableRow.findValueFor('Model server replicas').should('have.text', '1');
+  kserveDetailsTableRow.findValueFor('Model server size').should('contain.text', 'Small');
+  kserveDetailsTableRow
+    .findValueFor('Model server size')
+    .should('contain.text', '1 CPUs, 4Gi Memory requested');
+  kserveDetailsTableRow
+    .findValueFor('Model server size')
+    .should('contain.text', '2 CPUs, 8Gi Memory limit');
+  kserveDetailsTableRow.findValueFor('Accelerator').should('have.text', 'No accelerator selected');
+
+  kserveTableRow.findDetailsTriggerButton().click();
 }
 
 export function validateNimOverviewModelsTable(): void {
