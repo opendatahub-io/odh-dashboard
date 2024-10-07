@@ -22,7 +22,7 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 
 describe('NIM Model Serving', () => {
   describe('Deploying a model from an existing Project', () => {
-    it('should be disabled if the card is empty', () => {
+    it('should be disabled if the modal is empty', () => {
       initInterceptsToEnableNim({ hasAllModels: true });
 
       projectDetails.visitSection('test-project', 'model-server');
