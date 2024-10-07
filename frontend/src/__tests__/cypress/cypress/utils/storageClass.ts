@@ -79,37 +79,10 @@ export const tearDownStorageClassFeature = (createdSC: string[]): void => {
  *
  * @param scName Project Name
  */
-export const provisionClusterStorageSCFeature = (
-  projectName: string,
-  userName: string,
-  scName: string,
-): string[] => {
+export const provisionClusterStorageSCFeature = (projectName: string, userName: string): void => {
   // Provision a Project
   createOpenShiftProject(projectName);
   addUserToProject(projectName, userName);
-
-  const createdStorageClasses: string[] = [];
-  // Provision an enabled SC
-  const scNameEnabledToDefault = `${scName}-enabled`;
-  let SCReplacement: SCReplacements = {
-    SC_NAME: scNameEnabledToDefault,
-    SC_IS_DEFAULT: 'false',
-    SC_IS_ENABLED: 'true',
-  };
-  createStorageClass(SCReplacement);
-  createdStorageClasses.push(scNameEnabledToDefault);
-
-  // Provision an enabled SC
-  const scNameDisabledToDefault = `${scName}-disabled`;
-  SCReplacement = {
-    SC_NAME: scNameDisabledToDefault,
-    SC_IS_DEFAULT: 'false',
-    SC_IS_ENABLED: 'false',
-  };
-  createStorageClass(SCReplacement);
-  createdStorageClasses.push(scNameDisabledToDefault);
-
-  return createdStorageClasses;
 };
 
 /**
@@ -118,14 +91,9 @@ export const provisionClusterStorageSCFeature = (
  *
  * @param scName Project Name
  */
-export const tearDownClusterStorageSCFeature = (projectName: string, createdSC: string[]): void => {
+export const tearDownClusterStorageSCFeature = (projectName: string): void => {
   // Delete provisioned projectName
   deleteOpenShiftProject(projectName);
-  // Delete provisioned SCs
-  createdSC.forEach((scName) => {
-    cy.log(`Deleting storage class:${scName}`);
-    deleteStorageClass(scName);
-  });
 };
 
 /**
