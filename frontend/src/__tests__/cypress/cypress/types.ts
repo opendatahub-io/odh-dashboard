@@ -59,6 +59,19 @@ export type DspaReplacements = {
   AWS_S3_BUCKET: string;
 };
 
+export type StorageClassConfig = {
+  isDefault: boolean;
+  isEnabled: boolean;
+  displayName: string;
+  description?: string;
+};
+
+export type SCReplacements = {
+  SC_NAME: string;
+  SC_IS_DEFAULT: string;
+  SC_IS_ENABLED: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;

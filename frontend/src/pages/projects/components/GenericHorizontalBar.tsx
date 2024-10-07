@@ -55,6 +55,7 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
               key={section.id}
               eventKey={section.id}
               tabContentId={section.id}
+              data-testid={`${section.id}-tab`}
               title={
                 <>
                   {section.icon && <TabTitleIcon>{section.icon}</TabTitleIcon>}

@@ -12,6 +12,11 @@ class StorageClassesPage {
     this.wait();
   }
 
+  navigate() {
+    this.findNavItem().click();
+    this.wait();
+  }
+
   private wait() {
     cy.findByTestId('app-page-title').contains('Storage classes');
     cy.testA11y();

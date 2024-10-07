@@ -71,7 +71,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
             {/* If multiple storage classes have `isDefault` set to true, 
             prioritize the one returned by useDefaultStorageClass() as the default class */}
             {sc.metadata.name === defaultSc?.metadata.name && (
-              <Label isCompact color="green">
+              <Label isCompact color="green" data-testid="is-default-label">
                 Default class
               </Label>
             )}
