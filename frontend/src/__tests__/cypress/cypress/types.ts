@@ -1,5 +1,5 @@
 import type { RouteMatcher } from 'cypress/types/net-stubbing';
-import { ConfigMapKind, SecretKind } from '~/k8sTypes';
+import type { ConfigMapKind, SecretKind } from '~/k8sTypes';
 
 export type Snapshot = {
   method: string;

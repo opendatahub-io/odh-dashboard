@@ -1,4 +1,4 @@
-import { K8sResourceCommon, K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
 import type {
@@ -9,7 +9,7 @@ import type {
   RegisteredModel,
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
-import {
+import type {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
@@ -19,16 +19,17 @@ import {
   TemplateKind,
   NotebookKind,
   ModelRegistryKind,
-  ConsoleLinkKind, RoleBindingSubject, RoleBindingRoleRef, ConfigMapKind, SecretKind,
+  ConsoleLinkKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 import type { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 import type { StatusResponse } from '~/redux/types';
-import {
+import type {
   BYONImage,
-  ClusterSettingsType, DetectedAccelerators,
+  ClusterSettingsType,
+  DetectedAccelerators,
   ImageInfo,
   OdhApplication,
   OdhDocument,
@@ -54,7 +55,7 @@ import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
 import type { ArtifactStorage } from '~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
-import { NimServingResponse } from '~/__tests__/cypress/cypress/types';
+import type { NimServingResponse } from '~/__tests__/cypress/cypress/types';
 
 type SuccessErrorResponse = {
   success: boolean;
