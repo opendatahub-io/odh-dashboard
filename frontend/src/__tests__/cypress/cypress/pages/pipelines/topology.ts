@@ -111,6 +111,10 @@ class RunDetails extends PipelinesTopology {
     return cy.findByTestId('pipeline-run-tab-graph');
   }
 
+  findInputParameterTab() {
+    return cy.findByTestId('pipeline-run-tab-parameters');
+  }
+
   findDetailsTab() {
     return cy.findByTestId('pipeline-run-tab-details');
   }
