@@ -93,40 +93,42 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       </Td>
       <Td isActionCell>
         <ActionsColumn items={actions} />
-        <ArchiveRegisteredModelModal
-          onCancel={() => setIsArchiveModalOpen(false)}
-          onSubmit={() =>
-            apiState.api
-              .patchRegisteredModel(
-                {},
-                {
-                  state: ModelState.ARCHIVED,
-                },
-                rm.id,
-              )
-              .then(refresh)
-          }
-          isOpen={isArchiveModalOpen}
-          registeredModelName={rm.name}
-        />
-        <RestoreRegisteredModelModal
-          onCancel={() => setIsRestoreModalOpen(false)}
-          onSubmit={() =>
-            apiState.api
-              .patchRegisteredModel(
-                {},
-                {
-                  state: ModelState.LIVE,
-                },
-                rm.id,
-              )
-              .then(() =>
-                navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
-              )
-          }
-          isOpen={isRestoreModalOpen}
-          registeredModelName={rm.name}
-        />
+        {isArchiveModalOpen ? (
+          <ArchiveRegisteredModelModal
+            onCancel={() => setIsArchiveModalOpen(false)}
+            onSubmit={() =>
+              apiState.api
+                .patchRegisteredModel(
+                  {},
+                  {
+                    state: ModelState.ARCHIVED,
+                  },
+                  rm.id,
+                )
+                .then(refresh)
+            }
+            registeredModelName={rm.name}
+          />
+        ) : null}
+        {isRestoreModalOpen ? (
+          <RestoreRegisteredModelModal
+            onCancel={() => setIsRestoreModalOpen(false)}
+            onSubmit={() =>
+              apiState.api
+                .patchRegisteredModel(
+                  {},
+                  {
+                    state: ModelState.LIVE,
+                  },
+                  rm.id,
+                )
+                .then(() =>
+                  navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
+                )
+            }
+            registeredModelName={rm.name}
+          />
+        ) : null}
       </Td>
     </Tr>
   );

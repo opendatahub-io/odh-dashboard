@@ -171,16 +171,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             items={actions}
             popperProps={{ appendTo: getDashboardMainContainer, position: 'right' }}
           />
-          <RestoreRunModal
-            isOpen={isRestoreModalOpen}
-            runs={[run]}
-            onCancel={() => setIsRestoreModalOpen(false)}
-          />
-          <ArchiveRunModal
-            isOpen={isArchiveModalOpen}
-            runs={[run]}
-            onCancel={() => setIsArchiveModalOpen(false)}
-          />
+          {isRestoreModalOpen ? (
+            <RestoreRunModal runs={[run]} onCancel={() => setIsRestoreModalOpen(false)} />
+          ) : null}
+          {isArchiveModalOpen ? (
+            <ArchiveRunModal runs={[run]} onCancel={() => setIsArchiveModalOpen(false)} />
+          ) : null}
         </Td>
       )}
     </Tr>

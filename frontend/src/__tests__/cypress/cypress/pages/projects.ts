@@ -199,6 +199,34 @@ class ProjectDetails {
     );
   }
 
+  showProjectResourceDetails() {
+    return cy.findByTestId('resource-name-icon-button').click();
+  }
+
+  findProjectResourceNameText() {
+    return cy.findByTestId('resource-name-text');
+  }
+
+  findProjectResourceKindText() {
+    return cy.findByTestId('resource-kind-text');
+  }
+
+  findProjectActions() {
+    return cy.findByTestId('project-actions');
+  }
+
+  showProjectActions() {
+    cy.findByTestId('project-actions').click();
+  }
+
+  findEditProjectAction() {
+    return cy.findByTestId('edit-project-action');
+  }
+
+  findDeleteProjectAction() {
+    return cy.findByTestId('delete-project-action');
+  }
+
   findImportPipelineButton(timeout?: number) {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }

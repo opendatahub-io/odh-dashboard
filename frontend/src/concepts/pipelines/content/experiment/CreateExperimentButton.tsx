@@ -25,18 +25,19 @@ const CreateExperimentButton: React.FC<CreateExperimentButtonProps> = ({
       >
         {children || 'Create experiment'}
       </Button>
-      <CreateExperimentModal
-        isOpen={open}
-        onClose={(experiment) => {
-          setOpen(false);
-          if (experiment) {
-            if (onCreate) {
-              onCreate(experiment);
+      {open ? (
+        <CreateExperimentModal
+          onClose={(experiment) => {
+            setOpen(false);
+            if (experiment) {
+              if (onCreate) {
+                onCreate(experiment);
+              }
+              refreshAllAPI();
             }
-            refreshAllAPI();
-          }
-        }}
-      />
+          }}
+        />
+      ) : null}
     </>
   );
 };

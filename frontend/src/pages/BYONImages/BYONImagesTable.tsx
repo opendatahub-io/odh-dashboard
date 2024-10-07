@@ -94,15 +94,17 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
           </>
         }
       />
-      <DeleteBYONImageModal
-        image={deleteImage}
-        onClose={(deleted) => {
-          if (deleted) {
-            refresh();
-          }
-          setDeleteImage(undefined);
-        }}
-      />
+      {deleteImage ? (
+        <DeleteBYONImageModal
+          image={deleteImage}
+          onClose={(deleted) => {
+            if (deleted) {
+              refresh();
+            }
+            setDeleteImage(undefined);
+          }}
+        />
+      ) : null}
       <ManageBYONImageModal
         isOpen={!!editImage}
         onClose={(updated) => {

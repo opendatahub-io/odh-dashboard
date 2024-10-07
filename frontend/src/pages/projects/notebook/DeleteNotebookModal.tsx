@@ -8,7 +8,7 @@ import { ConfigMapRef, SecretRef } from '~/pages/projects/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeleteNotebookModalProps = {
-  notebook?: NotebookKind;
+  notebook: NotebookKind;
   onClose: (deleted: boolean) => void;
 };
 
@@ -22,44 +22,41 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
     setError(undefined);
   };
 
-  const displayName = notebook ? getDisplayNameFromK8sResource(notebook) : 'this workbench';
+  const displayName = getDisplayNameFromK8sResource(notebook);
 
   return (
     <DeleteModal
       title="Delete workbench?"
-      isOpen={!!notebook}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete workbench"
       onDelete={() => {
-        if (notebook) {
-          setIsDeleting(true);
+        setIsDeleting(true);
 
-          const nonDataConnectionVariables = getEnvFromList(notebook).filter(
-            (envFrom) => !envFrom.secretRef?.name.includes(DATA_CONNECTION_PREFIX),
-          );
-          const configMapNames = nonDataConnectionVariables
-            .filter((envName): envName is ConfigMapRef => !!envName.configMapRef)
-            .map((data) => data.configMapRef.name);
-          const secretNames = nonDataConnectionVariables
-            .filter((envName): envName is SecretRef => !!envName.secretRef)
-            .map((data) => data.secretRef.name);
+        const nonDataConnectionVariables = getEnvFromList(notebook).filter(
+          (envFrom) => !envFrom.secretRef?.name.includes(DATA_CONNECTION_PREFIX),
+        );
+        const configMapNames = nonDataConnectionVariables
+          .filter((envName): envName is ConfigMapRef => !!envName.configMapRef)
+          .map((data) => data.configMapRef.name);
+        const secretNames = nonDataConnectionVariables
+          .filter((envName): envName is SecretRef => !!envName.secretRef)
+          .map((data) => data.secretRef.name);
 
-          const { namespace } = notebook.metadata;
+        const { namespace } = notebook.metadata;
 
-          const resourcesToDelete: Promise<K8sStatus>[] = [
-            deleteNotebook(notebook.metadata.name, namespace),
-            ...secretNames.map((name) => deleteSecret(namespace, name)),
-            ...configMapNames.map((name) => deleteConfigMap(namespace, name)),
-          ];
-          Promise.all(resourcesToDelete)
-            .then(() => {
-              onBeforeClose(true);
-            })
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+        const resourcesToDelete: Promise<K8sStatus>[] = [
+          deleteNotebook(notebook.metadata.name, namespace),
+          ...secretNames.map((name) => deleteSecret(namespace, name)),
+          ...configMapNames.map((name) => deleteConfigMap(namespace, name)),
+        ];
+        Promise.all(resourcesToDelete)
+          .then(() => {
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}

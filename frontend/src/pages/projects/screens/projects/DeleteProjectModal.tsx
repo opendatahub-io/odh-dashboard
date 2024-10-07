@@ -8,7 +8,7 @@ import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUti
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
-  deleteData?: ProjectKind;
+  deleteData: ProjectKind;
 };
 
 const deleteProjectEventType = 'Project Deleted';
@@ -30,30 +30,27 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
     setError(undefined);
   };
 
-  const displayName = deleteData ? getDisplayNameFromK8sResource(deleteData) : 'this project';
+  const displayName = getDisplayNameFromK8sResource(deleteData);
 
   return (
     <DeleteModal
       title="Delete project?"
-      isOpen={!!deleteData}
       onClose={() => onBeforeClose(false)}
       deleting={deleting}
       submitButtonLabel="Delete project"
       onDelete={() => {
-        if (deleteData) {
-          setDeleting(true);
-          deleteProject(deleteData.metadata.name)
-            .then(() => onBeforeClose(true))
-            .catch((e) => {
-              fireFormTrackingEvent(deleteProjectEventType, {
-                outcome: TrackingOutcome.submit,
-                success: false,
-                error: e,
-              });
-              setError(e);
-              setDeleting(false);
+        setDeleting(true);
+        deleteProject(deleteData.metadata.name)
+          .then(() => onBeforeClose(true))
+          .catch((e) => {
+            fireFormTrackingEvent(deleteProjectEventType, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: e,
             });
-        }
+            setError(e);
+            setDeleting(false);
+          });
       }}
       deleteName={displayName}
       error={error}

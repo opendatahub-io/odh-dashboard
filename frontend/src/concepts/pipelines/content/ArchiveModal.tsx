@@ -10,7 +10,6 @@ interface ArchiveModalProps {
   onCancel: () => void;
   onSubmit: () => Promise<void[]>;
   children: React.ReactNode;
-  isOpen: boolean;
   testId: string;
 }
 
@@ -21,7 +20,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   title,
   alertTitle,
   children,
-  isOpen,
   testId,
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
@@ -53,7 +51,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       title={title}
       titleIconVariant="warning"
       variant="small"

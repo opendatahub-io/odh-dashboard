@@ -111,12 +111,14 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
           editProjectData={editData}
         />
       )}
-      <DeleteProjectModal
-        deleteData={deleteData}
-        onClose={() => {
-          setDeleteData(undefined);
-        }}
-      />
+      {deleteData ? (
+        <DeleteProjectModal
+          deleteData={deleteData}
+          onClose={() => {
+            setDeleteData(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };

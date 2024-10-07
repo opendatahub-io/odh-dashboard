@@ -55,15 +55,18 @@ const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...ba
           />
         )}
       />
-      <RestoreExperimentModal
-        isOpen={isRestoreModalOpen}
-        experiments={restoreExperiments}
-        onCancel={() => setIsRestoreModalOpen(false)}
-      />
-      <DeleteExperimentModal
-        onCancel={() => setDeleteExperiment(undefined)}
-        experiment={deleteExperiment}
-      />
+      {isRestoreModalOpen ? (
+        <RestoreExperimentModal
+          experiments={restoreExperiments}
+          onCancel={() => setIsRestoreModalOpen(false)}
+        />
+      ) : null}
+      {deleteExperiment ? (
+        <DeleteExperimentModal
+          onCancel={() => setDeleteExperiment(undefined)}
+          experiment={deleteExperiment}
+        />
+      ) : null}
     </>
   );
 };

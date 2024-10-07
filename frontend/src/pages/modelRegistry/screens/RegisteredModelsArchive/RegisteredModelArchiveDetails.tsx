@@ -84,7 +84,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
         )}
       </ApplicationsPage>
 
-      {rm !== null && (
+      {rm !== null && isRestoreModalOpen ? (
         <RestoreRegisteredModelModal
           onCancel={() => setIsRestoreModalOpen(false)}
           onSubmit={() =>
@@ -100,10 +100,9 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
                 navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
               )
           }
-          isOpen={isRestoreModalOpen}
           registeredModelName={rm.name}
         />
-      )}
+      ) : null}
     </>
   );
 };

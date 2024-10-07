@@ -109,7 +109,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
           />
         )}
       </ApplicationsPage>
-      {mv !== null && (
+      {mv !== null && isRestoreModalOpen ? (
         <RestoreModelVersionModal
           onCancel={() => setIsRestoreModalOpen(false)}
           onSubmit={() =>
@@ -125,10 +125,9 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
                 navigate(modelVersionUrl(mv.id, rm?.id, preferredModelRegistry?.metadata.name)),
               )
           }
-          isOpen={isRestoreModalOpen}
           modelVersionName={mv.name}
         />
-      )}
+      ) : null}
     </>
   );
 };

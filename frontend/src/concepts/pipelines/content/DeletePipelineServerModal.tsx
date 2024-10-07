@@ -5,14 +5,10 @@ import { deleteServer } from '~/concepts/pipelines/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type DeletePipelineServerModalProps = {
-  isOpen: boolean;
   onClose: (deleted: boolean) => void;
 };
 
-const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
-  isOpen,
-  onClose,
-}) => {
+const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ onClose }) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { project, namespace, pipelinesServer } = usePipelinesAPI();
@@ -26,7 +22,6 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
   return (
     <DeleteModal
       title="Delete pipeline server?"
-      isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       deleting={deleting}
       error={error}

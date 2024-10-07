@@ -4,7 +4,7 @@ import { BYONImage } from '~/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 
 export type DeleteBYONImageModalProps = {
-  image?: BYONImage;
+  image: BYONImage;
   onClose: (deleted: boolean) => void;
 };
 
@@ -18,26 +18,23 @@ const DeleteBYONImageModal: React.FC<DeleteBYONImageModalProps> = ({ image, onCl
     setError(undefined);
   };
 
-  const deleteName = image?.display_name || 'this notebook image';
+  const deleteName = image.display_name;
 
   return (
     <DeleteModal
       title="Delete notebook image?"
-      isOpen={!!image}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete notebook image"
       onDelete={() => {
-        if (image) {
-          setIsDeleting(true);
-          deleteBYONImage(image)
-            .then(() => {
-              onBeforeClose(true);
-            })
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
+        setIsDeleting(true);
+        deleteBYONImage(image)
+          .then(() => {
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setError(e);
+            setIsDeleting(false);
+          });
       }}
       deleting={isDeleting}
       error={error}

@@ -4,7 +4,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type DeleteExperimentModalProps = {
-  experiment?: ExperimentKFv2;
+  experiment: ExperimentKFv2;
   onCancel: () => void;
 };
 
@@ -13,14 +13,9 @@ const DeleteExperimentModal: React.FC<DeleteExperimentModalProps> = ({ experimen
   const [error, setError] = React.useState<Error | undefined>();
   const { api, refreshAllAPI } = usePipelinesAPI();
 
-  if (!experiment) {
-    return null;
-  }
-
   return (
     <DeleteModal
       title="Delete experiment?"
-      isOpen={!!experiment}
       onClose={onCancel}
       deleting={isDeleting}
       error={error}
