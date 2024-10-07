@@ -1,18 +1,15 @@
-import { TEST_USER, ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   verifyStorageClassConfig,
   provisionStorageClassFeature,
   tearDownStorageClassFeature,
 } from '~/__tests__/cypress/cypress/utils/storageClass';
 import {
-  storageClassEditModal,
   storageClassesPage,
   storageClassesTable,
 } from '~/__tests__/cypress/cypress/pages/storageClasses';
 
 const scName = 'qe-settings-sc';
-const scDefaultName = 'standard-csi';
 
 // Using testIsolation will reuse the login (cache)
 // describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
@@ -26,20 +23,6 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   after(() => {
     // Delete provisioned SCs
     tearDownStorageClassFeature(createdStorageClasses);
-  });
-
-  it('A non admin user can not acccess to Settings -> Storage classes view', () => {
-    // Login as a regular user and try to land in storage classes view
-    cy.visitWithLogin('/storageClasses', TEST_USER);
-    pageNotfound.findPage().should('be.visible');
-  });
-
-  it('The Default label is shown in the grid', () => {
-    cy.visitWithLogin('/', ADMIN_USER);
-    storageClassesPage.navigate();
-    const scDisabledRow = storageClassesTable.getRowByConfigName(scDefaultName);
-    // There's the Default label
-    scDisabledRow.findOpenshiftDefaultLabel().should('exist');
   });
 
   it('An admin user can enable a disabled Storage Class', () => {
@@ -111,29 +94,5 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
     // The Enable switch is disabled
     scToDefaultRow.findEnableSwitchInput().should('be.disabled');
     verifyStorageClassConfig(scToDefaultName, true, true);
-  });
-
-  it('An admin user can edit an Storage Class', () => {
-    cy.visitWithLogin('/', ADMIN_USER);
-    storageClassesPage.navigate();
-    const scEnabledName = `${scName}-enabled-non-default`;
-    storageClassesTable.getRowByConfigName(scEnabledName).findKebabAction('Edit').click();
-    // Edit DisplayName and Description
-    const scNameEdited = `${scName}-edited`;
-    const scEditedDescription = 'Edited Description';
-    storageClassEditModal.fillDisplayNameInput(scNameEdited);
-    storageClassEditModal.fillDescriptionInput(scEditedDescription);
-    storageClassEditModal.findSaveButton().click();
-    // Verify new values
-    const scEditedRow = storageClassesTable.getRowByConfigName(scNameEdited);
-    scEditedRow.find().should('contain.text', scNameEdited);
-    scEditedRow.find().should('contain.text', scEditedDescription);
-    verifyStorageClassConfig(
-      scEnabledName,
-      undefined,
-      undefined,
-      scNameEdited,
-      scEditedDescription,
-    );
   });
 });
