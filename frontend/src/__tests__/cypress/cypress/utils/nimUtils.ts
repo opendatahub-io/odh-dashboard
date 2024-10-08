@@ -31,6 +31,7 @@ import {
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { kserveModal, modelServingGlobal, modelServingSection } from '~/__tests__/cypress/cypress/pages/modelServing';
 
 export function findNimModelDeployButton(): Cypress.Chainable<JQuery> {
   return findNimModelServingPlatformCard().findByTestId('nim-serving-deploy-button');
@@ -130,35 +131,6 @@ export function validateNimOverviewModelsTable(): void {
   );
   // Opens the Models table
   cy.get('.pf-m-gap-md > :nth-child(2) > .pf-v5-c-button').click();
-}
-
-export function validateNimInmferenceModelsTable(): void {
-  // Table is visible and has 1 row
-  cy.get('[data-testid="inference-service-table"]')
-    .find('tbody')
-    .find('tr')
-    .should('have.length', 1);
-  // First row matches the NIM inference service details
-  cy.get('[style="display: block;"] > :nth-child(1)').should('have.text', 'Test Name');
-  cy.get('[data-label="Project"]').should('contains.text', 'Test Project');
-  cy.get(
-    '[data-label="Project"] > .pf-v5-c-label > .pf-v5-c-label__content > .pf-v5-c-label__text',
-  ).should('have.text', 'Single-model serving enabled');
-  cy.get('[data-label="Serving Runtime"]').should('have.text', 'NVIDIA NIM');
-  // Validate Internal Service tooltip and close it
-  cy.get('[data-testid="internal-service-button"]').should('have.text', 'Internal Service');
-  cy.get('[data-testid="internal-service-button"]').click();
-  cy.get('.pf-v5-c-popover__title-text').should(
-    'have.text',
-    'Internal Service can be accessed inside the cluster',
-  );
-  cy.get('.pf-v5-c-popover__close > .pf-v5-c-button > .pf-v5-svg > path').click();
-  cy.get(
-    '[data-label="API protocol"] > .pf-v5-c-label > .pf-v5-c-label__content > .pf-v5-c-label__text',
-  ).should('have.text', 'REST');
-  cy.get('[data-testid="status-tooltip"] > .pf-v5-c-icon__content > .pf-v5-svg > path').should(
-    'be.visible',
-  );
 }
 
 /* ###################################################
