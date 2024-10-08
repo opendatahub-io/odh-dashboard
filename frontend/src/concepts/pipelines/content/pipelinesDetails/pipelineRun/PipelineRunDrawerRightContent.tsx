@@ -1,17 +1,20 @@
 import * as React from 'react';
 import {
+  ClipboardCopy,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  Text,
+  Popover,
   Title,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import { Execution } from '~/third_party/mlmd';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ArtifactNodeDrawerContent } from './artifacts';
 
 type PipelineRunDrawerRightContentProps = {
@@ -48,7 +51,19 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
             <Title headingLevel="h2" size="xl">
               {task.name}
             </Title>
-            {task.status?.podName && <Text component="small">{task.status.podName}</Text>}
+            {task.status?.podName && (
+              <>
+                <ClipboardCopy hoverTip="Copy" clickTip="Copied" variant="inline-compact">
+                  {task.status.podName}
+                </ClipboardCopy>
+                <Popover bodyContent="This is the pod name of the run execution in OpenShift">
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
+                </Popover>
+              </>
+            )}
             <DrawerActions>
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
