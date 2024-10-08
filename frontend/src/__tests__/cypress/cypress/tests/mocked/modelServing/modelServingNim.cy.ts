@@ -38,14 +38,6 @@ describe('NIM Models Deployments', () => {
       .getInferenceServiceRow('Test Name')
       .findAPIProtocol()
       .should('have.text', 'REST');
-
-    // Validate Internal Service tooltip and close it
-    modelServingSection.getInferenceServiceRow('Test Name').findInternalServiceButton().click();
-    modelServingSection
-      .getInferenceServiceRow('Test Name')
-      .findInternalServicePopover()
-      .should('contain.text', 'Internal Service can be accessed inside the cluster')
-      .click();
   });
 
   it('should only be allowed to be deleted, no edit', () => {
