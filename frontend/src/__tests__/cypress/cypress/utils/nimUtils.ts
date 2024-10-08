@@ -39,10 +39,6 @@ export function findNimModelServingPlatformCard(): Cypress.Chainable<JQuery> {
   return cy.findByTestId('nvidia-nim-model-serving-platform-card');
 }
 
-export function findServingPlatformLabel(): Cypress.Chainable<JQuery> {
-  return cy.findByTestId('serving-platform-label');
-}
-
 export const modalDialogTitle = 'Deploy model with NVIDIA NIM';
 
 export function validateNvidiaNimModel(
