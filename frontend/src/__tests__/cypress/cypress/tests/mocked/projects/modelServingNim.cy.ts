@@ -4,7 +4,10 @@ import {
   InferenceServiceModel,
   ServingRuntimeModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import {
+  projectDetails,
+  projectDetailsOverviewTab,
+} from '~/__tests__/cypress/cypress/pages/projects';
 import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/nimModelDialog';
 import {
   findNimModelDeployButton,
@@ -15,7 +18,6 @@ import {
   initInterceptsToEnableNim,
   modalDialogTitle,
   validateNimModelsTable,
-  validateNimOverviewModelsTable,
   validateNvidiaNimModel,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
@@ -107,11 +109,13 @@ describe('NIM Model Serving', () => {
       cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
       cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
-      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.visit('test-project');
 
-      validateNimOverviewModelsTable();
-      validateNimModelsTable();
-      projectDetails.visitSection('test-project', 'overview');
+      // Card is visible
+      projectDetailsOverviewTab
+        .findDeployedModel('Test Name')
+        .get('dd')
+        .should('have.text', 'NVIDIA NIM');
     });
   });
 

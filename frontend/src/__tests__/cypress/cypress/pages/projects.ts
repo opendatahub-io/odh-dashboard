@@ -401,9 +401,24 @@ class KserveTableRow extends TableRow {
   }
 }
 
+class ProjectDetailsOverviewTab extends ProjectDetails {
+  visit(project: string) {
+    super.visitSection(project, 'overview');
+  }
+
+  findDeployedModel(name: string) {
+    return cy
+      .findByTestId('section-overview')
+      .get('div')
+      .contains(name)
+      .parents('.odh-type-bordered-card .model-server');
+  }
+}
+
 export const projectListPage = new ProjectListPage();
 export const createProjectModal = new CreateEditProjectModal();
 export const editProjectModal = new CreateEditProjectModal(true);
 export const deleteProjectModal = new DeleteModal();
 export const projectDetails = new ProjectDetails();
 export const projectDetailsSettingsTab = new ProjectDetailsSettingsTab();
+export const projectDetailsOverviewTab = new ProjectDetailsOverviewTab();
