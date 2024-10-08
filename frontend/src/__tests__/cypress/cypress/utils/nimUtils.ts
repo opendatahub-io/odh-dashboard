@@ -31,7 +31,6 @@ import {
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { kserveModal, modelServingGlobal, modelServingSection } from '~/__tests__/cypress/cypress/pages/modelServing';
 
 export function findNimModelDeployButton(): Cypress.Chainable<JQuery> {
   return findNimModelServingPlatformCard().findByTestId('nim-serving-deploy-button');
