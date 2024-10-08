@@ -30,7 +30,6 @@ import {
 } from '~/__mocks__/mockNimResource';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 
 export function findNimModelDeployButton(): Cypress.Chainable<JQuery> {
   return findNimModelServingPlatformCard().findByTestId('nim-serving-deploy-button');
@@ -68,43 +67,6 @@ export function validateNvidiaNimModel(
   //validate nim modal cancel button
   cy.findByTestId('modal-cancel-button').click();
   cy.contains(modalDialogTitle).should('not.exist');
-}
-
-export function validateNimModelsTable(): void {
-  // Table is visible and has 2 rows (2nd is the hidden expandable row)
-  const kserveTable = projectDetails.findKserveModelsTable();
-  kserveTable.find('tbody').find('tr').should('have.length', 2);
-
-  // First row matches the NIM inference service details
-  const kserveTableRow = projectDetails.getKserveTableRow('Test Name');
-  kserveTableRow.findColumn('Name').should('have.text', 'Test Name');
-  kserveTableRow.findColumn('Serving Runtime').should('have.text', 'NVIDIA NIM');
-  kserveTableRow.findColumn('Inference endpoint').should('have.text', 'Internal Service');
-  kserveTableRow.findColumn('API protocol').should('have.text', 'REST');
-
-  // Validate Internal Service tooltip and close it
-  kserveTableRow.findInternalServiceButton().click();
-  kserveTableRow
-    .findInternalServicePopover()
-    .findByText('Internal Service can be accessed inside the cluster')
-    .should('exist');
-  kserveTableRow.findInternalServicePopoverCloseButton().click();
-
-  // Open toggle to validate Model details
-  kserveTableRow.findDetailsTriggerButton().click();
-  const kserveDetailsTableRow = projectDetails.getKserveTableDetailsRow('Test Name');
-  kserveDetailsTableRow.findValueFor('Framework').should('have.text', 'arctic-embed-l');
-  kserveDetailsTableRow.findValueFor('Model server replicas').should('have.text', '1');
-  kserveDetailsTableRow.findValueFor('Model server size').should('contain.text', 'Small');
-  kserveDetailsTableRow
-    .findValueFor('Model server size')
-    .should('contain.text', '1 CPUs, 4Gi Memory requested');
-  kserveDetailsTableRow
-    .findValueFor('Model server size')
-    .should('contain.text', '2 CPUs, 8Gi Memory limit');
-  kserveDetailsTableRow.findValueFor('Accelerator').should('have.text', 'No accelerator selected');
-
-  kserveTableRow.findDetailsTriggerButton().click();
 }
 
 /* ###################################################

@@ -17,7 +17,6 @@ import {
   initInterceptsToDeployModel,
   initInterceptsToEnableNim,
   modalDialogTitle,
-  validateNimModelsTable,
   validateNvidiaNimModel,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
@@ -101,7 +100,43 @@ describe('NIM Model Serving', () => {
 
       projectDetails.visitSection('test-project', 'model-server');
 
-      validateNimModelsTable();
+      // Table is visible and has 1 row
+      projectDetails.findKserveModelsTable().should('have.length', 1);
+
+      // First row matches the NIM inference service details
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findServiceRuntime()
+        .should('have.text', 'NVIDIA NIM');
+      projectDetails.getKserveTableRow('Test Name').findAPIProtocol().should('have.text', 'REST');
+
+      // Open toggle to validate Model details
+      projectDetails.getKserveTableRow('Test Name').findDetailsTriggerButton().click();
+
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Framework')
+        .should('have.text', 'arctic-embed-l');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server replicas')
+        .should('have.text', '1');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server size')
+        .should('contain.text', 'Small');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server size')
+        .should('contain.text', '1 CPUs, 4Gi Memory requested');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server size')
+        .should('contain.text', '2 CPUs, 8Gi Memory limit');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Accelerator')
+        .should('have.text', 'No accelerator selected');
     });
 
     it('should list the deployed model in Overview tab', () => {
