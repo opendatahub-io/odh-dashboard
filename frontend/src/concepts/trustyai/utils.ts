@@ -31,7 +31,7 @@ export const getTrustyStatusState = (
   const [cr, loaded, error] = crFetchState;
 
   if (error) {
-    return { type: TrustyInstallState.ERROR, message: error.message };
+    return { type: TrustyInstallState.INFRA_ERROR, message: error.message };
   }
 
   if (!loaded) {
@@ -62,7 +62,7 @@ export const getTrustyStatusState = (
   if (dbAvailableCondition?.status === 'False') {
     // Some sort of DB error -- try to show specifically what it is
     return {
-      type: TrustyInstallState.ERROR,
+      type: TrustyInstallState.CR_ERROR,
       message: `${dbAvailableCondition.reason ?? 'Unknown reason'}: ${
         dbAvailableCondition.message ?? 'Unknown error'
       }`,
@@ -72,7 +72,7 @@ export const getTrustyStatusState = (
   if (availableCondition?.status === 'False') {
     // Try to present the generic error as one last fallback
     return {
-      type: TrustyInstallState.ERROR,
+      type: TrustyInstallState.CR_ERROR,
       message: availableCondition.message ?? availableCondition.reason ?? 'Unknown available error',
     };
   }

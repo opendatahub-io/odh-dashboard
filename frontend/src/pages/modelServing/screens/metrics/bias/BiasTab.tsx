@@ -36,7 +36,7 @@ const BiasTab: React.FC = () => {
 
   const ready = statusState.type === TrustyInstallState.INSTALLED && settled;
 
-  if (statusState.type === TrustyInstallState.ERROR) {
+  if (statusState.type === TrustyInstallState.CR_ERROR) {
     return (
       <PageSection isFilled variant={PageSectionVariants.light}>
         <EmptyState variant={EmptyStateVariant.lg}>

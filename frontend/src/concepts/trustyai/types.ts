@@ -10,13 +10,20 @@ export enum TrustyInstallState {
   UNINSTALLING = 'uninstalling',
   INSTALLED = 'installed',
   INSTALLING = 'installing',
-  ERROR = 'error',
+  /** Unrelated to Trusty error / infra failed, network issue, etc */
+  INFRA_ERROR = 'infra-error',
+  /** Specific error with the CR */
+  CR_ERROR = 'error',
   UNINSTALLED = 'uninstalled',
   LOADING_INITIAL_STATE = 'unknown',
 }
+export const TRUSTY_CR_NOT_AVAILABLE_STATES = [
+  TrustyInstallState.UNINSTALLED,
+  TrustyInstallState.LOADING_INITIAL_STATE,
+];
 
 export type TrustyStatusStates =
-  | { type: TrustyInstallState.ERROR; message: string }
+  | { type: TrustyInstallState.CR_ERROR | TrustyInstallState.INFRA_ERROR; message: string }
   | { type: TrustyInstallState.LOADING_INITIAL_STATE }
   | { type: TrustyInstallState.INSTALLED; showSuccess: boolean; onDismissSuccess?: () => void }
   | { type: TrustyInstallState.INSTALLING }

@@ -26,7 +26,8 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
   let action: React.ReactNode;
   let status: React.ReactNode;
   switch (statusState.type) {
-    case TrustyInstallState.ERROR:
+    case TrustyInstallState.INFRA_ERROR:
+    case TrustyInstallState.CR_ERROR:
       action = <TrustyAIInstalledState onDelete={deleteCR} />;
       status = (
         <Alert

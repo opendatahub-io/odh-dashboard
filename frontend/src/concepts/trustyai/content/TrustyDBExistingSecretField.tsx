@@ -5,15 +5,16 @@ import {
   UseTrustyInstallModalDataExisting,
 } from '~/concepts/trustyai/content/useTrustyInstallModalData';
 import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '~/concepts/trustyai/const';
-import useTrustyExistingSecretValidation from '~/concepts/trustyai/content/useTrustyExistingSecretValidation';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
 
 type TrustyDBExistingSecretFieldProps = {
   formData: UseTrustyInstallModalDataExisting;
 };
 
-const TrustyDBExistingSecretField: React.FC<TrustyDBExistingSecretFieldProps> = ({ formData }) => {
-  const { data, onDataChange, state } = formData;
-  const { onBlur } = useTrustyExistingSecretValidation(formData);
+const TrustyDBExistingSecretField: React.FC<TrustyDBExistingSecretFieldProps> = ({
+  formData: { data, onCheckState, onDataChange, state },
+}) => {
+  const delayCheckState = useDebounceCallback(onCheckState, 3000);
 
   let helperText:
     | {
@@ -59,8 +60,11 @@ const TrustyDBExistingSecretField: React.FC<TrustyDBExistingSecretFieldProps> = 
         id={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing`}
         name={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing`}
         value={data}
-        onChange={(e, value) => onDataChange(value)}
-        onBlur={onBlur}
+        onChange={(e, value) => {
+          delayCheckState();
+          onDataChange(value);
+        }}
+        onBlur={onCheckState}
         validated={inputState}
       />
       {helperText && (

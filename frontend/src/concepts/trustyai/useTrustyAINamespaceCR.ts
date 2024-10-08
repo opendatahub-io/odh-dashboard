@@ -44,7 +44,7 @@ const useTrustyAINamespaceCR = (namespace: string): FetchState<State> => {
   const isProgressing = [
     TrustyInstallState.INSTALLING,
     TrustyInstallState.UNINSTALLING,
-    TrustyInstallState.ERROR,
+    TrustyInstallState.CR_ERROR,
   ].includes(installState.type);
   React.useEffect(() => {
     setNeedFastRefresh(isProgressing);
