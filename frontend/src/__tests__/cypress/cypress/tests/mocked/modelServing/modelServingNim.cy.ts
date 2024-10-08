@@ -1,14 +1,14 @@
-import {
-  initInterceptsToEnableNim,
-  validateNimInmferenceModelsTable,
-} from '~/__tests__/cypress/cypress/utils/nimUtils';
+import { initInterceptsToEnableNim } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import { mockNimInferenceService, mockNimServingRuntime } from '~/__mocks__/mockNimResource';
 import {
   InferenceServiceModel,
   ServingRuntimeModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockK8sResourceList } from '~/__mocks__';
-import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
+import {
+  modelServingGlobal,
+  modelServingSection,
+} from '~/__tests__/cypress/cypress/pages/modelServing';
 
 describe('NIM Models Deployments', () => {
   it('should be listed in the global models list', () => {
@@ -18,7 +18,34 @@ describe('NIM Models Deployments', () => {
 
     modelServingGlobal.visit('test-project');
 
-    validateNimInmferenceModelsTable();
+    // Table is visible and has 1 row
+    modelServingSection.findInferenceServiceTable().should('have.length', 1);
+
+    // First row matches the NIM inference service details
+    modelServingSection
+      .getInferenceServiceRow('Test Name')
+      .findProject()
+      .should('contains.text', 'Test Project');
+    modelServingSection
+      .getInferenceServiceRow('Test Name')
+      .findProject()
+      .should('contains.text', 'Single-model serving enabled');
+    modelServingSection
+      .getInferenceServiceRow('Test Name')
+      .findServingRuntime()
+      .should('have.text', 'NVIDIA NIM');
+    modelServingSection
+      .getInferenceServiceRow('Test Name')
+      .findAPIProtocol()
+      .should('have.text', 'REST');
+
+    // Validate Internal Service tooltip and close it
+    modelServingSection.getInferenceServiceRow('Test Name').findInternalServiceButton().click();
+    modelServingSection
+      .getInferenceServiceRow('Test Name')
+      .findInternalServicePopover()
+      .should('contain.text', 'Internal Service can be accessed inside the cluster')
+      .click();
   });
 
   it('should only be allowed to be deleted, no edit', () => {
