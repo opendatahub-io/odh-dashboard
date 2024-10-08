@@ -210,7 +210,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
-      true,
+      false,
     );
 
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
