@@ -10,12 +10,10 @@ import {
 } from '~/__tests__/cypress/cypress/pages/projects';
 import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 import {
-  findNimModelDeployButton,
   initInterceptorsValidatingNimEnablement,
   initInterceptsForDeleteModel,
   initInterceptsToDeployModel,
   initInterceptsToEnableNim,
-  modalDialogTitle,
 } from '~/__tests__/cypress/cypress/utils/nimUtils';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
@@ -26,23 +24,23 @@ describe('NIM Model Serving', () => {
 
       projectDetails.visitSection('test-project', 'model-server');
       // For multiple cards use case
-      findNimModelDeployButton().click();
-      cy.contains(modalDialogTitle).should('be.visible');
+      projectDetails
+        .findModelServingPlatform('nvidia-nim-model')
+        .findByTestId('nim-serving-deploy-button')
+        .click();
 
       // test that you can not submit on empty
       nimDeployModal.shouldBeOpen();
       nimDeployModal.findSubmitButton().should('be.disabled');
     });
 
-    it('should be enabled if the card has the minimal info', () => {
+    it('should be enabled if the modal has the minimal info', () => {
       initInterceptsToEnableNim({});
       const nimInferenceService = mockNimInferenceService();
       initInterceptsToDeployModel(nimInferenceService);
 
       projectDetails.visitSection('test-project', 'model-server');
-      cy.findByTestId('deploy-button').should('exist');
-      cy.findByTestId('deploy-button').click();
-      cy.contains(modalDialogTitle).should('be.visible');
+      cy.get('button[data-testid=deploy-button]').click();
 
       // test that you can not submit on empty
       nimDeployModal.shouldBeOpen();
@@ -146,8 +144,7 @@ describe('NIM Model Serving', () => {
 
       // Card is visible
       projectDetailsOverviewTab
-        .findDeployedModel('Test Name')
-        .get('dd')
+        .findDeployedModelServingRuntime('Test Name')
         .should('have.text', 'NVIDIA NIM');
     });
 
@@ -188,7 +185,7 @@ describe('NIM Model Serving', () => {
       it("should allow deploying NIM from a Project's Models tab when the only platform", () => {
         initInterceptsToEnableNim({});
         projectDetails.visitSection('test-project', 'model-server');
-        cy.get('button').contains('Deploy model').click(); // TODO button has testid?
+        cy.get('button[data-testid=deploy-button]').click();
         nimDeployModal.shouldBeOpen();
       });
 
@@ -236,7 +233,7 @@ describe('NIM Model Serving', () => {
           disableNIMModelServing: true,
         });
         projectDetails.visitSection('test-project', 'model-server');
-        cy.get('button').contains('Deploy model').should('not.exist'); // TODO button has testid?
+        cy.get('button[data-testid=deploy-button]').should('not.exist');
       });
 
       it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
@@ -289,8 +286,7 @@ describe('NIM Model Serving', () => {
           true,
         );
         projectDetails.visitSection('test-project', 'model-server');
-        cy.get('button').contains('Deploy model').click(); // TODO button has testid?
-        nimDeployModal.shouldBeOpen(false);
+        cy.get('button[data-testid=deploy-button]').should('not.exist');
       });
 
       it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
