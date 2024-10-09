@@ -9,14 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import {
-  assembleSecret,
-  createNotebook,
-  createSecret,
-  K8sStatusError,
-  mergePatchUpdateNotebook,
-  updateNotebook,
-} from '~/api';
+import { createNotebook, K8sStatusError, mergePatchUpdateNotebook, updateNotebook } from '~/api';
 import {
   DataConnectionData,
   EnvVariable,
@@ -136,25 +129,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     setCreateInProgress(true);
   };
 
-  const handleDataConnection = async (dryRun: boolean) => {
-    if (dataConnection.type === 'creating') {
-      const dataAsRecord = dataConnection.creating?.values?.data.reduce<Record<string, string>>(
-        (acc, { key, value }) => ({ ...acc, [key]: value }),
-        {},
-      );
-      if (dataAsRecord) {
-        return createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), { dryRun });
-      }
-    }
-    return undefined;
-  };
-
   const updateNotebookPromise = async (dryRun: boolean) => {
     if (!editNotebook) {
       return;
     }
-
-    await handleDataConnection(dryRun);
 
     const pvcDetails = await replaceRootVolumesForNotebook(
       projectName,
@@ -207,7 +185,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const createNotebookPromise = async (dryRun: boolean) => {
-    await handleDataConnection(dryRun);
     const newDataConnection =
       dataConnection.enabled && dataConnection.type === 'creating' && dataConnection.creating
         ? [dataConnection.creating]
