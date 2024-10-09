@@ -16,14 +16,12 @@ import MetricTypeField from './MetricTypeField';
 
 type ManageBiasConfigurationModalProps = {
   existingConfiguration?: BiasMetricConfig;
-  isOpen: boolean;
   onClose: (submit: boolean) => void;
   inferenceService: InferenceServiceKind;
 };
 
 const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> = ({
   existingConfiguration,
-  isOpen,
   onClose,
   inferenceService,
 }) => {
@@ -67,7 +65,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
     <Modal
       variant="medium"
       title="Configure bias metric"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter

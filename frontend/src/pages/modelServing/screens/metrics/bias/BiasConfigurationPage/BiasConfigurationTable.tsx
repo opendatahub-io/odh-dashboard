@@ -96,17 +96,18 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({
           </>
         }
       />
-      <ManageBiasConfigurationModal
-        existingConfiguration={cloneConfiguration}
-        isOpen={!!cloneConfiguration}
-        onClose={(submit) => {
-          if (submit) {
-            refresh();
-          }
-          setCloneConfiguration(undefined);
-        }}
-        inferenceService={inferenceService}
-      />
+      {cloneConfiguration ? (
+        <ManageBiasConfigurationModal
+          existingConfiguration={cloneConfiguration}
+          onClose={(submit) => {
+            if (submit) {
+              refresh();
+            }
+            setCloneConfiguration(undefined);
+          }}
+          inferenceService={inferenceService}
+        />
+      ) : null}
       {deleteConfiguration ? (
         <DeleteBiasConfigurationModal
           configurationToDelete={deleteConfiguration}

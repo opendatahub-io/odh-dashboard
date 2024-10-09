@@ -132,6 +132,43 @@ const ModelServingPlatform: React.FC = () => {
     return <EmptyModelServingPlatform />;
   };
 
+  const renderSelectedPlatformModal = () => {
+    if (!platformSelected) {
+      return null;
+    }
+
+    if (platformSelected === ServingRuntimePlatform.MULTI) {
+      return (
+        <ManageServingRuntimeModal
+          currentProject={currentProject}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
+          )}
+          onClose={onSubmit}
+        />
+      );
+    }
+
+    if (isKServeNIMEnabled) {
+      return (
+        <DeployNIMServiceModal
+          projectContext={{ currentProject, dataConnections }}
+          onClose={onSubmit}
+        />
+      );
+    }
+
+    return (
+      <ManageKServeModal
+        projectContext={{ currentProject, dataConnections }}
+        servingRuntimeTemplates={templatesEnabled.filter((template) =>
+          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+        )}
+        onClose={onSubmit}
+      />
+    );
+  };
+
   return (
     <>
       <DetailsSection
@@ -253,42 +290,7 @@ const ModelServingPlatform: React.FC = () => {
           <KServeInferenceServiceTable />
         )}
       </DetailsSection>
-      <ManageServingRuntimeModal
-        isOpen={platformSelected === ServingRuntimePlatform.MULTI}
-        currentProject={currentProject}
-        servingRuntimeTemplates={templatesEnabled.filter((template) =>
-          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
-        )}
-        onClose={(submit: boolean) => {
-          onSubmit(submit);
-        }}
-      />
-      {!isKServeNIMEnabled ? (
-        <ManageKServeModal
-          isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
-          projectContext={{
-            currentProject,
-            dataConnections,
-          }}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-          )}
-          onClose={(submit: boolean) => {
-            onSubmit(submit);
-          }}
-        />
-      ) : (
-        <DeployNIMServiceModal
-          isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
-          projectContext={{
-            currentProject,
-            dataConnections,
-          }}
-          onClose={(submit: boolean) => {
-            onSubmit(submit);
-          }}
-        />
-      )}
+      {renderSelectedPlatformModal()}
     </>
   );
 };

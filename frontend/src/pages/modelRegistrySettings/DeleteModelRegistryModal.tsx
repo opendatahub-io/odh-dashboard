@@ -6,14 +6,12 @@ import { deleteModelRegistryBackend } from '~/services/modelRegistrySettingsServ
 
 type DeleteModelRegistryModalProps = {
   modelRegistry: ModelRegistryKind;
-  isOpen: boolean;
   onClose: () => void;
   refresh: () => Promise<unknown>;
 };
 
 const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
   modelRegistry: mr,
-  isOpen,
   onClose,
   refresh,
 }) => {
@@ -49,7 +47,7 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
       data-testid="delete-mr-modal"
       titleIconVariant="warning"
       title="Delete model registry?"
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       variant="medium"
       footer={

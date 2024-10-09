@@ -70,26 +70,27 @@ const KServeInferenceServiceTable: React.FC = () => {
           }}
         />
       ) : null}
-      <ManageKServeModal
-        isOpen={!!editKserveResources}
-        editInfo={{
-          servingRuntimeEditInfo: {
-            servingRuntime: editKserveResources?.servingRuntime,
-            secrets: [],
-          },
-          inferenceServiceEditInfo: editKserveResources?.inferenceService,
-          secrets: filterTokens(editKserveResources?.inferenceService.metadata.name),
-        }}
-        onClose={(submit: boolean) => {
-          setEditKServeResources(undefined);
-          if (submit) {
-            refreshServingRuntime();
-            refreshInferenceServices();
-            refreshDataConnections();
-            refreshServerSecrets();
-          }
-        }}
-      />
+      {editKserveResources ? (
+        <ManageKServeModal
+          editInfo={{
+            servingRuntimeEditInfo: {
+              servingRuntime: editKserveResources.servingRuntime,
+              secrets: [],
+            },
+            inferenceServiceEditInfo: editKserveResources.inferenceService,
+            secrets: filterTokens(editKserveResources.inferenceService.metadata.name),
+          }}
+          onClose={(submit: boolean) => {
+            setEditKServeResources(undefined);
+            if (submit) {
+              refreshServingRuntime();
+              refreshInferenceServices();
+              refreshDataConnections();
+              refreshServerSecrets();
+            }
+          }}
+        />
+      ) : null}
     </>
   );
 };

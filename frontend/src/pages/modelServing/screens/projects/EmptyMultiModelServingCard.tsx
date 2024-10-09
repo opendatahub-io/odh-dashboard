@@ -78,17 +78,18 @@ const EmptyMultiModelServingCard: React.FC = () => {
           </Bullseye>
         </CardFooter>
       </Card>
-      <ManageServingRuntimeModal
-        isOpen={open}
-        currentProject={currentProject}
-        servingRuntimeTemplates={templatesEnabled.filter((template) =>
-          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
-        )}
-        onClose={(submit: boolean) => {
-          setOpen(false);
-          onSubmit(submit);
-        }}
-      />
+      {open ? (
+        <ManageServingRuntimeModal
+          currentProject={currentProject}
+          servingRuntimeTemplates={templatesEnabled.filter((template) =>
+            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
+          )}
+          onClose={(submit: boolean) => {
+            setOpen(false);
+            onSubmit(submit);
+          }}
+        />
+      ) : null}
     </>
   );
 };

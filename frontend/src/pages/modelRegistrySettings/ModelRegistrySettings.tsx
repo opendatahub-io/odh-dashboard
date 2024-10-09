@@ -71,11 +71,9 @@ const ModelRegistrySettings: React.FC = () => {
           }}
         />
       </ApplicationsPage>
-      <CreateModal
-        isOpen={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        refresh={refreshAll}
-      />
+      {createModalOpen ? (
+        <CreateModal onClose={() => setCreateModalOpen(false)} refresh={refreshAll} />
+      ) : null}
     </>
   );
 };

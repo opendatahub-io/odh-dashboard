@@ -73,16 +73,17 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
           onConfigure={() => setOpen(true)}
         />
       </ApplicationsPage>
-      <ManageBiasConfigurationModal
-        isOpen={isOpen}
-        onClose={(submit) => {
-          if (submit) {
-            refresh();
-          }
-          setOpen(false);
-        }}
-        inferenceService={inferenceService}
-      />
+      {isOpen ? (
+        <ManageBiasConfigurationModal
+          onClose={(submit) => {
+            if (submit) {
+              refresh();
+            }
+            setOpen(false);
+          }}
+          inferenceService={inferenceService}
+        />
+      ) : null}
     </>
   );
 };

@@ -62,7 +62,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 type DeployNIMServiceModalProps = {
-  isOpen: boolean;
   onClose: (submit: boolean) => void;
 } & EitherOrNone<
   {
@@ -81,7 +80,6 @@ type DeployNIMServiceModalProps = {
 >;
 
 const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
-  isOpen,
   onClose,
   projectContext,
   editInfo,
@@ -132,10 +130,10 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const [pvcSize, setPvcSize] = React.useState<string>('30Gi');
 
   React.useEffect(() => {
-    if (currentProjectName && isOpen) {
+    if (currentProjectName) {
       setCreateDataInferenceService('project', currentProjectName);
     }
-  }, [currentProjectName, setCreateDataInferenceService, isOpen]);
+  }, [currentProjectName, setCreateDataInferenceService]);
 
   // Serving Runtime Validation
   const isDisabledServingRuntime =
@@ -256,7 +254,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       title="Deploy model with NVIDIA NIM"
       description="Configure properties for deploying your model using an NVIDIA NIM."
       variant="medium"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter

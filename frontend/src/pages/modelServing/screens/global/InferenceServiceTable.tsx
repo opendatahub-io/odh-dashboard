@@ -104,41 +104,41 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           }}
         />
       ) : null}
-      <ManageInferenceServiceModal
-        isOpen={!!editInferenceService && isModelMesh(editInferenceService)}
-        editInfo={editInferenceService}
-        onClose={(edited) => {
-          fireFormTrackingEvent('Model Updated', {
-            outcome: edited ? TrackingOutcome.submit : TrackingOutcome.cancel,
-            type: 'multi',
-          });
-          if (edited) {
-            refresh?.();
-          }
-          setEditInferenceService(undefined);
-        }}
-      />
-      <ManageKServeModal
-        isOpen={!!editInferenceService && !isModelMesh(editInferenceService)}
-        editInfo={{
-          inferenceServiceEditInfo: editInferenceService,
-          servingRuntimeEditInfo: {
-            servingRuntime: editInferenceService
-              ? servingRuntimes.find(
-                  (sr) => sr.metadata.name === editInferenceService.spec.predictor.model?.runtime,
-                )
-              : undefined,
-            secrets: [],
-          },
-          secrets: filterTokens ? filterTokens(editInferenceService?.metadata.name) : [],
-        }}
-        onClose={(edited) => {
-          if (edited) {
-            refresh?.();
-          }
-          setEditInferenceService(undefined);
-        }}
-      />
+      {!!editInferenceService && isModelMesh(editInferenceService) ? (
+        <ManageInferenceServiceModal
+          editInfo={editInferenceService}
+          onClose={(edited) => {
+            fireFormTrackingEvent('Model Updated', {
+              outcome: edited ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              type: 'multi',
+            });
+            if (edited) {
+              refresh?.();
+            }
+            setEditInferenceService(undefined);
+          }}
+        />
+      ) : null}
+      {!!editInferenceService && !isModelMesh(editInferenceService) ? (
+        <ManageKServeModal
+          editInfo={{
+            inferenceServiceEditInfo: editInferenceService,
+            servingRuntimeEditInfo: {
+              servingRuntime: servingRuntimes.find(
+                (sr) => sr.metadata.name === editInferenceService.spec.predictor.model?.runtime,
+              ),
+              secrets: [],
+            },
+            secrets: filterTokens ? filterTokens(editInferenceService.metadata.name) : [],
+          }}
+          onClose={(edited) => {
+            if (edited) {
+              refresh?.();
+            }
+            setEditInferenceService(undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 };
