@@ -31,16 +31,6 @@ import {
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
 
-export function findNimModelDeployButton(): Cypress.Chainable<JQuery> {
-  return findNimModelServingPlatformCard().findByTestId('nim-serving-deploy-button');
-}
-
-export function findNimModelServingPlatformCard(): Cypress.Chainable<JQuery> {
-  return cy.findByTestId('nvidia-nim-model-serving-platform-card');
-}
-
-export const modalDialogTitle = 'Deploy model with NVIDIA NIM';
-
 /* ###################################################
    ###### Interception Initialization Utilities ######
    ################################################### */

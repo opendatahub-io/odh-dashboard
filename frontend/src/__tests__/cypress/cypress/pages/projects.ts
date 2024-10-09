@@ -341,12 +341,13 @@ class ProjectDetailsOverviewTab extends ProjectDetails {
     super.visitSection(project, 'overview');
   }
 
-  findDeployedModel(name: string) {
+  findDeployedModelServingRuntime(name: string) {
     return cy
       .findByTestId('section-overview')
       .get('div')
       .contains(name)
-      .parents('.odh-type-bordered-card .model-server');
+      .parents('.odh-type-bordered-card .model-server')
+      .get('dd');
   }
 
   findModelServingPlatform(name: string) {
