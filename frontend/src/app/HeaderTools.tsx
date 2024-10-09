@@ -12,8 +12,16 @@ import {
   DropdownItem,
   Dropdown,
   DropdownList,
+  ToggleGroup,
+  ToggleGroupItem,
+  Icon,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  ExternalLinkAltIcon,
+  QuestionCircleIcon,
+  MoonIcon,
+  SunIcon,
+} from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
@@ -29,6 +37,7 @@ interface HeaderToolsProps {
 }
 
 const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
+  const [isDarkTheme, setIsDarkTheme] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const [aboutShown, setAboutShown] = React.useState(false);
@@ -37,6 +46,15 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
   const notification = useNotification();
+
+  React.useEffect(() => {
+    const htmlElement = document.getElementsByTagName('html')[0];
+    if (isDarkTheme) {
+      htmlElement.classList.add('pf-v6-theme-dark');
+    } else {
+      htmlElement.classList.remove('pf-v6-theme-dark');
+    }
+  }, [isDarkTheme]);
 
   const newNotifications = React.useMemo(
     () => notifications.filter((currentNotification) => !currentNotification.read).length,
@@ -135,6 +153,30 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     <Toolbar isFullHeight>
       <ToolbarContent>
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+          <ToolbarItem>
+            <ToggleGroup aria-label="Dark theme toggle group">
+              <ToggleGroupItem
+                aria-label="light theme toggle"
+                icon={
+                  <Icon size="md">
+                    <SunIcon />
+                  </Icon>
+                }
+                isSelected={!isDarkTheme}
+                onChange={() => setIsDarkTheme(false)}
+              />
+              <ToggleGroupItem
+                aria-label="dark theme toggle"
+                icon={
+                  <Icon size="md">
+                    <MoonIcon />
+                  </Icon>
+                }
+                isSelected={isDarkTheme}
+                onChange={() => setIsDarkTheme(true)}
+              />
+            </ToggleGroup>
+          </ToolbarItem>
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
             <ToolbarItem data-testid="application-launcher">
               <AppLauncher />
