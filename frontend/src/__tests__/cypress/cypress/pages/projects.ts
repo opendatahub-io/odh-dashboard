@@ -202,7 +202,7 @@ class ProjectDetails {
     return this.findDataConnectionTable().find('thead').findByRole('button', { name });
   }
 
-  private findModelServingPlatform(name: string) {
+  findModelServingPlatform(name: string) {
     return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
   }
 
@@ -347,6 +347,10 @@ class ProjectDetailsOverviewTab extends ProjectDetails {
       .get('div')
       .contains(name)
       .parents('.odh-type-bordered-card .model-server');
+  }
+
+  findModelServingPlatform(name: string) {
+    return cy.findByTestId(`${name}-platform-card`);
   }
 }
 
