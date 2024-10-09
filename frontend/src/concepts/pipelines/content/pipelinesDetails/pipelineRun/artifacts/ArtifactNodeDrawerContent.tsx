@@ -27,7 +27,7 @@ type ArtifactNodeDrawerContentProps = Omit<
 
 enum ArtifactNodeDrawerTab {
   Details = 'details',
-  Visualization = 'visualization',
+  ArtifactPreview = 'artifactPreview',
 }
 
 export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps> = ({
@@ -66,9 +66,9 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
             </Tab>
             {isMetricsArtifactType(artifact.getType()) && (
               <Tab
-                eventKey={ArtifactNodeDrawerTab.Visualization}
-                title={<TabTitleText>Visualization</TabTitleText>}
-                aria-label="Visualization"
+                eventKey={ArtifactNodeDrawerTab.ArtifactPreview}
+                title={<TabTitleText>Artifact preview</TabTitleText>}
+                aria-label="Artifact preview"
               >
                 <ArtifactVisualization artifact={artifact} />
               </Tab>

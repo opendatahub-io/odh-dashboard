@@ -84,7 +84,7 @@ describe('PipelineRunDrawerRightContent', () => {
 
     expect(tabs).toHaveLength(2);
     expect(screen.getByRole('tab', { name: 'Artifact details' })).toBeVisible();
-    expect(screen.getByRole('tab', { name: 'Visualization' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Artifact preview' })).toBeVisible();
   });
 
   it('renders task drawer tabs when the task prop is of type "groupTask"', async () => {

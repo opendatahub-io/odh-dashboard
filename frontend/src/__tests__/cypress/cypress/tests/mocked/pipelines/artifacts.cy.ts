@@ -206,7 +206,7 @@ describe('Artifacts', () => {
         );
     });
   });
-  describe('Pipeline run visualization tab', () => {
+  describe('Pipeline run Artifact preview tab', () => {
     beforeEach(() => {
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
@@ -224,7 +224,7 @@ describe('Artifacts', () => {
       initMlmdIntercepts(projectName);
     });
 
-    it('check for visualization', () => {
+    it('check for Artifact preview', () => {
       pipelineRunDetails.visit(
         projectName,
         mockPipeline.pipeline_id,

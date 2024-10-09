@@ -115,7 +115,7 @@ describe('ArtifactNodeDrawerContent', () => {
       ),
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Visualization' }));
+    await user.click(screen.getByRole('tab', { name: 'Artifact preview' }));
     expect(screen.getByRole('heading', { name: 'Scalar metrics' })).toBeVisible();
   });
 
@@ -154,7 +154,7 @@ describe('ArtifactNodeDrawerContent', () => {
       ),
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Visualization' }));
+    await user.click(screen.getByRole('tab', { name: 'Artifact preview' }));
     expect(screen.getByRole('heading', { name: 'ROC curve' })).toBeVisible();
   });
 
@@ -179,7 +179,7 @@ describe('ArtifactNodeDrawerContent', () => {
       </BrowserRouter>,
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Visualization' }));
+    await user.click(screen.getByRole('tab', { name: 'Artifact preview' }));
     expect(screen.getByRole('heading', { name: 'Confusion matrix metrics' })).toBeVisible();
   });
 
@@ -202,7 +202,7 @@ describe('ArtifactNodeDrawerContent', () => {
       </BrowserRouter>,
     );
 
-    expect(screen.queryByRole('tab', { name: 'Visualization' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Artifact preview' })).toBeNull();
   });
 
   it('should not render "Model" visualization drawer tab', async () => {
@@ -224,7 +224,7 @@ describe('ArtifactNodeDrawerContent', () => {
       </BrowserRouter>,
     );
 
-    expect(screen.queryByRole('tab', { name: 'Visualization' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Artifact preview' })).toBeNull();
   });
 });
 

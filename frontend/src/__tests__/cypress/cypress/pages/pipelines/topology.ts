@@ -98,7 +98,7 @@ class ArtifactRightDrawer extends Contextual<HTMLDivElement> {
   }
 
   findVisualizationTab() {
-    return this.find().findByRole('tab', { name: 'Visualization' });
+    return this.find().findByRole('tab', { name: 'Artifact preview' });
   }
 
   findIframeContent() {
