@@ -8,6 +8,7 @@ import {
   isLarger,
   convertToUnit,
   MEMORY_UNITS_FOR_PARSING,
+  formatMemory,
 } from '~/utilities/valueUnits';
 
 describe('splitValueUnit', () => {
@@ -187,5 +188,29 @@ describe('isMemoryLimitLarger', () => {
     expect(isMemoryLimitLarger(undefined, '1Gi')).toBe(false);
     expect(isMemoryLimitLarger('1Gi', undefined)).toBe(false);
     expect(isMemoryLimitLarger(undefined, undefined)).toBe(false);
+  });
+});
+
+describe('formatMemory', () => {
+  it('should return undefined if no value is provided', () => {
+    expect(formatMemory(undefined)).toBeUndefined();
+  });
+
+  it('should return the original value if it cannot be parsed', () => {
+    expect(formatMemory('invalidValue')).toEqual('invalidValue');
+  });
+
+  it('should return the formatted value for valid inputs', () => {
+    expect(formatMemory('1Mi')).toEqual('1MiB');
+    expect(formatMemory('2Gi')).toEqual('2GiB');
+    expect(formatMemory('3Mi')).toEqual('3MiB');
+    expect(formatMemory('4Gi')).toEqual('4GiB');
+    expect(formatMemory('1.5Mi')).toEqual('1.5MiB');
+    expect(formatMemory('2.5Gi')).toEqual('2.5GiB');
+  });
+
+  it('should handle cases with no unit', () => {
+    expect(formatMemory('1')).toEqual('1');
+    expect(formatMemory('1.5')).toEqual('1.5');
   });
 });
