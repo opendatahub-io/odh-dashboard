@@ -27,6 +27,7 @@ import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
@@ -40,12 +41,15 @@ import {
 } from './service';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData;
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
+  isConnectionTypesEnabled: boolean;
+  connections: Connection[];
   canEnablePipelines: boolean;
 };
 
@@ -54,6 +58,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   storageData,
   envVariables,
   dataConnection,
+  isConnectionTypesEnabled,
+  connections,
   canEnablePipelines,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
@@ -67,6 +73,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const {
     notebooks: { data },
     dataConnections: { data: existingDataConnections },
+    connections: { data: projectConnections },
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
@@ -148,7 +155,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dryRun,
     ).catch(handleError);
 
-    const envFrom = await updateConfigMapsAndSecretsForNotebook(
+    let envFrom = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
       envVariables,
@@ -156,6 +163,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       existingNotebookDataConnection,
       dryRun,
     ).catch(handleError);
+
+    if (isConnectionTypesEnabled && envFrom) {
+      envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
+    }
 
     if (!pvcDetails || !envFrom) {
       return;
@@ -248,7 +259,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         : [];
 
     const pvcDetails = await createPvcDataForNotebook(projectName, storageData).catch(handleError);
-    const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
+    let envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
       ...envVariables,
       ...newDataConnection,
     ]).catch(handleError);
@@ -259,6 +270,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcDetails;
+    if (isConnectionTypesEnabled) {
+      envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
+    }
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,

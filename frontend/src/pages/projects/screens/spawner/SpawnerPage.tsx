@@ -31,6 +31,8 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -46,13 +48,19 @@ import { useNotebookDataConnection } from './dataConnection/useNotebookDataConne
 import { useNotebookSizeState } from './useNotebookSizeState';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
+import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
+import { getConnectionsFromNotebook } from './connections/utils';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
 };
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
-  const { currentProject, dataConnections } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject,
+    dataConnections,
+    connections: { data: projectConnections, refresh: refreshProjectConnections },
+  } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
 
   const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
@@ -86,6 +94,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
     existingNotebook,
+  );
+
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
+  const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
+    isConnectionTypesEnabled && existingNotebook
+      ? getConnectionsFromNotebook(existingNotebook, projectConnections)
+      : [],
   );
 
   const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
@@ -218,16 +233,28 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               />
               <StorageField storageData={storageData} setStorageData={setStorageData} />
             </FormSection>
-            <FormSection
-              title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-              id={SpawnerPageSectionID.DATA_CONNECTIONS}
-              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-            >
-              <DataConnectionField
-                dataConnectionData={dataConnectionData}
-                setDataConnectionData={setDataConnectionData}
+            {isConnectionTypesEnabled ? (
+              <ConnectionsFormSection
+                project={currentProject}
+                projectConnections={projectConnections}
+                refreshProjectConnections={refreshProjectConnections}
+                notebook={existingNotebook}
+                notebookDisplayName={k8sNameDescriptionData.data.name}
+                selectedConnections={notebookConnections}
+                setSelectedConnections={setNotebookConnections}
               />
-            </FormSection>
+            ) : (
+              <FormSection
+                title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
+                id={SpawnerPageSectionID.DATA_CONNECTIONS}
+                aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
+              >
+                <DataConnectionField
+                  dataConnectionData={dataConnectionData}
+                  setDataConnectionData={setDataConnectionData}
+                />
+              </FormSection>
+            )}
           </Form>
         </GenericSidebar>
       </PageSection>
@@ -257,6 +284,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   storageData={storageData}
                   envVariables={envVariables}
                   dataConnection={dataConnectionData}
+                  isConnectionTypesEnabled={isConnectionTypesEnabled}
+                  connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                 />
               )}
