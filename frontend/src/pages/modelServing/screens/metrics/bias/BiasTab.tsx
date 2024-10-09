@@ -3,11 +3,8 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
-  PageSectionVariants,
   Spinner,
   Stack,
   StackItem,
@@ -37,13 +34,13 @@ const BiasTab: React.FC = () => {
 
   if (loadError) {
     return (
-      <PageSection isFilled variant={PageSectionVariants.light}>
-        <EmptyState variant={EmptyStateVariant.lg}>
-          <EmptyStateHeader
-            titleText="TrustyAI Error"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h5"
-          />
+      <PageSection hasBodyWrapper={false} isFilled>
+        <EmptyState
+          headingLevel="h5"
+          icon={ExclamationCircleIcon}
+          titleText="TrustyAI Error"
+          variant={EmptyStateVariant.lg}
+        >
           <EmptyStateBody>
             <Stack hasGutter>
               <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
@@ -89,7 +86,7 @@ const BiasTab: React.FC = () => {
             }
           />
         </StackItem>
-        <PageSection isFilled>
+        <PageSection hasBodyWrapper={false} isFilled>
           <Stack hasGutter>
             {biasMetricConfigs.length === 0 ? (
               <StackItem>

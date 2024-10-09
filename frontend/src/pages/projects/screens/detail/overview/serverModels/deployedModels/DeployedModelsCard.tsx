@@ -5,8 +5,7 @@ import {
   Flex,
   FlexItem,
   Label,
-  Text,
-  TextContent,
+  Content,
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
@@ -40,15 +39,15 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <HeaderIcon type={ProjectObjectType.deployedModels} size={36} />
           <FlexItem>
-            <TextContent>
-              <Text component="h3">
+            <Content>
+              <Content component="h3">
                 <b>Deployed models</b>
-              </Text>
-            </TextContent>
+              </Content>
+            </Content>
           </FlexItem>
           <FlexItem>
             <ToggleGroup
-              style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}
+              style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}
               aria-label="Default with single selectable"
             >
               <ToggleGroupItem

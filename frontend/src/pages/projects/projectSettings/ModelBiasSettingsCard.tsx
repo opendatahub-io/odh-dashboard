@@ -15,7 +15,7 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ project }
   const disabledReason = isTrustySupported ? undefined : TRUST_AI_NOT_SUPPORTED_TEXT;
 
   return (
-    <Card isFlat>
+    <Card>
       <CardHeader>
         <CardTitle>Model bias</CardTitle>
       </CardHeader>

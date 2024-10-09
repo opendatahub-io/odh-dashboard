@@ -4,8 +4,6 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateVariant,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateBody,
   Spinner,
 } from '@patternfly/react-core';
@@ -24,12 +22,12 @@ export const ArtifactsList: React.FC = () => {
   if (artifactsError) {
     return (
       <Bullseye>
-        <EmptyState variant={EmptyStateVariant.lg}>
-          <EmptyStateHeader
-            titleText="There was an issue loading artifacts"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading artifacts"
+          variant={EmptyStateVariant.lg}
+        >
           <EmptyStateBody>{artifactsError.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -46,12 +44,13 @@ export const ArtifactsList: React.FC = () => {
 
   if (!artifacts?.length && !filterQuery && filterQueryRef.current === filterQuery) {
     return (
-      <EmptyState data-testid="artifacts-list-empty-state" variant={EmptyStateVariant.lg}>
-        <EmptyStateHeader
-          titleText="No artifacts"
-          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-          headingLevel="h4"
-        />
+      <EmptyState
+        headingLevel="h4"
+        icon={PlusCircleIcon}
+        titleText="No artifacts"
+        data-testid="artifacts-list-empty-state"
+        variant={EmptyStateVariant.lg}
+      >
         <EmptyStateBody>
           No artifacts have been generated from experiments within this project. Select a different
           project, or execute an experiment from the <b>Experiments and runs</b> page.

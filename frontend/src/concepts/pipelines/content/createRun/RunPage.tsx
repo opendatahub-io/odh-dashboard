@@ -104,12 +104,12 @@ const RunPage: React.FC<RunPageProps> = ({
 
   return (
     <div data-testid={testId}>
-      <PageSection isFilled variant="light">
+      <PageSection hasBodyWrapper={false} isFilled>
         <GenericSidebar sections={jumpToSections} titles={runPageSectionTitles} maxWidth={175}>
           <RunForm isCloned={!!cloneRun} data={formData} onValueChange={onValueChange} />
         </GenericSidebar>
       </PageSection>
-      <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
+      <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
         <RunPageFooter data={formData} contextPath={contextPath} />
       </PageSection>
     </div>

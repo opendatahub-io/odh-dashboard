@@ -70,7 +70,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                     )}
                   </Stack>
                 </SplitItem>
-                <SplitItem style={{ paddingTop: 'var(--pf-v5-global--spacer--xl)' }}>
+                <SplitItem style={{ paddingTop: 'var(--pf-t--global--spacer--xl)' }}>
                   <Button
                     isDisabled={values.length === 1}
                     data-testid="remove-key-value-pair"

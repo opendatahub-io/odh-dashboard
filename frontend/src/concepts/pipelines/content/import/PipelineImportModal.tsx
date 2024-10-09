@@ -6,12 +6,12 @@ import {
   Button,
   Form,
   FormGroup,
-  Modal,
   Stack,
   StackItem,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';

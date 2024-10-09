@@ -5,7 +5,7 @@ import {
   ChartGroup,
   ChartLine,
   ChartVoronoiContainer,
-} from '@patternfly/react-charts';
+} from '@patternfly/react-charts/victory';
 import {
   chart_color_black_100 as chartColorBlack100,
   chart_theme_multi_color_ordered_ColorScale_100 as chartThemeMultiColorOrderedColorScale100,

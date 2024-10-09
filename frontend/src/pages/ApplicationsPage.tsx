@@ -2,18 +2,14 @@ import React from 'react';
 import { ExclamationCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import {
   PageSection,
-  PageSectionVariants,
-  TextContent,
-  Text,
+  Content,
   EmptyState,
   EmptyStateVariant,
-  EmptyStateIcon,
   Spinner,
   EmptyStateBody,
   PageBreadcrumb,
   StackItem,
   Stack,
-  EmptyStateHeader,
   Flex,
 } from '@patternfly/react-core';
 
@@ -57,22 +53,22 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   noHeader,
 }) => {
   const renderHeader = () => (
-    <PageSection variant={PageSectionVariants.light}>
+    <PageSection hasBodyWrapper={false}>
       <Stack hasGutter>
         <StackItem>
           <Flex
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <TextContent>
-              <Text component="h1" data-testid="app-page-title">
+            <Content>
+              <Content component="h1" data-testid="app-page-title">
                 {title}
-              </Text>
+              </Content>
               <Stack hasGutter>
                 {subtext && <StackItem>{subtext}</StackItem>}
                 {description && <StackItem>{description}</StackItem>}
               </Stack>
-            </TextContent>
+            </Content>
             {headerAction}
           </Flex>
         </StackItem>
@@ -84,13 +80,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   const renderContents = () => {
     if (loadError) {
       return (
-        <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-            <EmptyStateHeader
-              titleText={errorMessage !== undefined ? errorMessage : 'Error loading components'}
-              icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-              headingLevel="h1"
-            />
+        <PageSection hasBodyWrapper={false} isFilled>
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationCircleIcon}
+            titleText={errorMessage !== undefined ? errorMessage : 'Error loading components'}
+            variant={EmptyStateVariant.lg}
+            data-id="error-empty-state"
+          >
             <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -100,10 +97,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (!loaded) {
       return (
         loadingContent || (
-          <PageSection isFilled>
-            <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+          <PageSection hasBodyWrapper={false} isFilled>
+            <EmptyState
+              headingLevel="h1"
+              titleText="Loading"
+              variant={EmptyStateVariant.lg}
+              data-id="loading-empty-state"
+            >
               <Spinner size="xl" />
-              <EmptyStateHeader titleText="Loading" headingLevel="h1" />
             </EmptyState>
           </PageSection>
         )
@@ -112,14 +113,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (empty) {
       return !emptyStatePage ? (
-        <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.lg} data-id="empty-empty-state">
-            <EmptyStateHeader
-              titleText={emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
-              icon={<EmptyStateIcon icon={QuestionCircleIcon} />}
-              headingLevel="h1"
-            />
-          </EmptyState>
+        <PageSection hasBodyWrapper={false} isFilled>
+          <EmptyState
+            headingLevel="h1"
+            icon={QuestionCircleIcon}
+            titleText={emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
+            variant={EmptyStateVariant.lg}
+            data-id="empty-empty-state"
+          />
         </PageSection>
       ) : (
         emptyStatePage
@@ -129,7 +130,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (provideChildrenPadding) {
       return (
         <PageSection
-          variant="light"
+          hasBodyWrapper={false}
           isFilled
           style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}
         >
@@ -143,7 +144,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   return (
     <>
-      {breadcrumb && <PageBreadcrumb>{breadcrumb}</PageBreadcrumb>}
+      {breadcrumb && <PageBreadcrumb hasBodyWrapper={false}>{breadcrumb}</PageBreadcrumb>}
       {!noHeader && renderHeader()}
       {renderContents()}
     </>

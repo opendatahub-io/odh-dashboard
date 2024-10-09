@@ -68,12 +68,11 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
                   title={notification.title}
                 >
                   <Button
+                    icon={<TimesIcon aria-hidden="true" />}
                     variant={ButtonVariant.plain}
                     aria-label="remove notification"
                     onClick={() => onRemoveNotification(notification)}
-                  >
-                    <TimesIcon aria-hidden="true" />
-                  </Button>
+                  />
                 </NotificationDrawerListItemHeader>
                 <NotificationDrawerListItemBody
                   timestamp={calculateRelativeTime(notification.timestamp, currentTime)}

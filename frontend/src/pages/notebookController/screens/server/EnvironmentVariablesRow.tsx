@@ -80,13 +80,12 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
           onChange={updateVariableType}
         />
         <Button
+          icon={<MinusCircleIcon />}
           aria-label="Remove environment variable"
           data-id="remove-env-var-button"
           variant="plain"
           onClick={removeVariables}
-        >
-          <MinusCircleIcon />
-        </Button>
+        />
       </Flex>
       {variableRow.variables.map((variable, index) => (
         <EnvironmentVariablesField

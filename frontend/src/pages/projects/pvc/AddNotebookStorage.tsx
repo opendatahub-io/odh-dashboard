@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, Button, Form, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { NotebookKind } from '~/k8sTypes';
 import AddExistingStorageField from '~/pages/projects/screens/spawner/storage/AddExistingStorageField';
 import { useExistingStorageDataObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';

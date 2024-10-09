@@ -1,8 +1,6 @@
 import React from 'react';
 
 import {
-  Modal,
-  ModalVariant,
   Form,
   FormGroup,
   TextInput,
@@ -16,6 +14,7 @@ import {
   FlexItem,
   AlertProps,
 } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 
 import { StorageClassKind } from '~/k8sTypes';
 import { updateStorageClassConfig } from '~/services/StorageClassService';
@@ -96,7 +95,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
         variant="info"
         title="Editing these details will not affect the storage class in OpenShift."
         {...alert}
-        className="pf-v5-u-mb-lg"
+        className="pf-v6-u-mb-lg"
         data-testid="edit-sc-modal-info-alert"
       />
 

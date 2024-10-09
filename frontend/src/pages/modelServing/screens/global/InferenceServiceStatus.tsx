@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Icon, Tooltip } from '@patternfly/react-core';
+import { Content, Icon, Tooltip } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -107,9 +107,9 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       data-testid="model-status-tooltip"
       content={
         modelStatus?.failedToSchedule ? (
-          <Text>Insufficient resources</Text>
+          <Content component="p">Insufficient resources</Content>
         ) : (
-          <Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>
+          <Content component="p">{getInferenceServiceStatusMessage(inferenceService)}</Content>
         )
       }
     >

@@ -4,7 +4,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
   EmptyStateVariant,
   PageSection,
   Spinner,
@@ -22,10 +21,14 @@ const ModelServingLoading: React.FC<ModelServingLoadingProps> = ({
   description,
   onCancel,
 }) => (
-  <PageSection isFilled>
-    <EmptyState variant={EmptyStateVariant.lg} data-testid="loading-empty-state">
+  <PageSection hasBodyWrapper={false} isFilled>
+    <EmptyState
+      headingLevel="h1"
+      titleText={title}
+      variant={EmptyStateVariant.lg}
+      data-testid="loading-empty-state"
+    >
       <Spinner size="xl" />
-      <EmptyStateHeader titleText={title} headingLevel="h1" />
       <EmptyStateBody>{description}</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>

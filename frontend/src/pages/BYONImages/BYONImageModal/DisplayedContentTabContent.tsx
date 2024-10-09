@@ -4,8 +4,6 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   TabContent,
 } from '@patternfly/react-core';
@@ -57,12 +55,12 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
       hidden={tabKey !== activeKey}
     >
       {tempResources.length === 0 ? (
-        <EmptyState variant={EmptyStateVariant.sm}>
-          <EmptyStateHeader
-            titleText={`No ${resourceType} displayed`}
-            icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={PlusCircleIcon}
+          titleText={`No ${resourceType} displayed`}
+          variant={EmptyStateVariant.sm}
+        >
           <EmptyStateBody>
             Displayed contents help inform other users of what your notebook image contains. To add
             displayed content, add the names of software or packages included in your image that you

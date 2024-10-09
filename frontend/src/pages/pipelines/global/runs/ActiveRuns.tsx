@@ -5,9 +5,7 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   Spinner,
-  EmptyStateHeader,
   EmptyStateFooter,
   EmptyStateActions,
   Button,
@@ -30,12 +28,12 @@ export const ActiveRuns: React.FC = () => {
   if (isExperimentArchived) {
     return (
       <Bullseye>
-        <EmptyState data-testid="experiment-archived-empty-state">
-          <EmptyStateHeader
-            titleText="Experiment archived"
-            icon={<EmptyStateIcon icon={CubesIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={CubesIcon}
+          titleText="Experiment archived"
+          data-testid="experiment-archived-empty-state"
+        >
           <EmptyStateBody>
             When an experiment is archived, its runs are moved to the {PipelineRunTabTitle.ARCHIVED}{' '}
             tab.
@@ -48,12 +46,11 @@ export const ActiveRuns: React.FC = () => {
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading active runs"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading active runs"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -70,13 +67,12 @@ export const ActiveRuns: React.FC = () => {
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <EmptyState data-testid="active-runs-empty-state">
-        <EmptyStateHeader
-          titleText="No runs"
-          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-          headingLevel="h2"
-        />
-
+      <EmptyState
+        headingLevel="h2"
+        icon={PlusCircleIcon}
+        titleText="No runs"
+        data-testid="active-runs-empty-state"
+      >
         <EmptyStateBody>
           To get started, create a run. Alternatively, go to the{' '}
           <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring

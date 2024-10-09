@@ -5,7 +5,7 @@ import {
   Split,
   SplitItem,
   Switch,
-  Text,
+  Content,
   TimePicker,
 } from '@patternfly/react-core';
 import {
@@ -47,7 +47,7 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
   return (
     <Split hasGutter>
       <DashboardSplitItemLabel width={RUN_OPTION_LABEL_SIZE}>
-        <Text>{label}</Text>
+        <Content component="p">{label}</Content>
       </DashboardSplitItemLabel>
       <SplitItem>
         <Bullseye>

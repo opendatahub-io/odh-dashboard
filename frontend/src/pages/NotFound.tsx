@@ -3,30 +3,33 @@ import {
   Button,
   EmptyState,
   EmptyStateVariant,
-  EmptyStateIcon,
   EmptyStateBody,
   PageSection,
-  PageSectionVariants,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { HomeIcon, PathMissingIcon } from '@patternfly/react-icons';
 
 const NotFound: React.FC = () => (
-  <PageSection variant={PageSectionVariants.light}>
-    <EmptyState variant={EmptyStateVariant.full} data-testid="not-found-page">
-      <EmptyStateHeader
-        data-testid="not-found-page-title"
-        titleText="We can‘t find that page"
-        icon={<EmptyStateIcon icon={PathMissingIcon} />}
-        headingLevel="h2"
-      />
+  <PageSection hasBodyWrapper={false}>
+    <EmptyState
+      headingLevel="h2"
+      icon={PathMissingIcon}
+      titleText="We can‘t find that page"
+      variant={EmptyStateVariant.full}
+      data-testid="not-found-page"
+    >
       <EmptyStateBody data-testid="not-found-page-description">
         Another page might have what you need. Return to the home page.
       </EmptyStateBody>
       <EmptyStateFooter>
-        <Button data-testid="home-page-button" component="a" href="/" variant="primary">
-          <HomeIcon /> Home
+        <Button
+          icon={<HomeIcon />}
+          data-testid="home-page-button"
+          component="a"
+          href="/"
+          variant="primary"
+        >
+          Home
         </Button>
       </EmptyStateFooter>
     </EmptyState>

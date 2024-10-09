@@ -67,7 +67,7 @@ export const StorageClassEnableSwitch: React.FC<StorageClassEnableSwitchProps> =
       </FlexItem>
 
       <FlexItem
-        className="pf-v5-u-disabled-color-100"
+        className="pf-v6-u-disabled-color-100"
         style={{ visibility: isUpdating ? 'visible' : 'hidden' }}
       >
         {isChecked ? 'Disabling' : 'Enabling'}...

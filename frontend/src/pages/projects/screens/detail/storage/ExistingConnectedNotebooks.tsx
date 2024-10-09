@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, Chip, ChipGroup, FormGroup, Spinner, Text } from '@patternfly/react-core';
+import { Label, LabelGroup, Alert, FormGroup, Spinner, Content } from '@patternfly/react-core';
+
 import { NotebookKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
@@ -27,16 +28,17 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
   } else if (!loaded) {
     content = <Spinner size="md" />;
   } else if (notebooksToShow.length === 0) {
-    content = <Text component="small">All existing connections have been removed.</Text>;
+    content = <Content component="small">All existing connections have been removed.</Content>;
   } else {
     content = (
-      <ChipGroup>
+      <LabelGroup>
         {notebooksToShow.map((notebook) => {
           const notebookDisplayName = getDisplayNameFromK8sResource(notebook);
           return (
-            <Chip
+            <Label
+              variant="outline"
               key={notebookDisplayName}
-              onClick={() => {
+              onClose={() => {
                 setNotebooksToShow(
                   notebooksToShow.filter(
                     (notebookToShow) => notebookToShow.metadata.name !== notebook.metadata.name,
@@ -46,10 +48,10 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
               }}
             >
               {notebookDisplayName}
-            </Chip>
+            </Label>
           );
         })}
-      </ChipGroup>
+      </LabelGroup>
     );
   }
 

@@ -12,7 +12,7 @@ export const DuplicateNameHelperText: React.FC<DuplicateNameHelperTextProps> = (
   isError,
 }) => {
   const helperTextItemProps: HelperTextItemProps = isError
-    ? { variant: 'error', hasIcon: true }
+    ? { variant: 'error' }
     : {
         icon: (
           <Icon status="info">

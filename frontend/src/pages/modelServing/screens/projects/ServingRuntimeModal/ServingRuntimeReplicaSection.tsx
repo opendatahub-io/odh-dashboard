@@ -27,7 +27,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
       <FormGroup
         label="Number of model server replicas to deploy"
         data-testid="model-server-replicas"
-        labelIcon={
+        labelHelp={
           infoContent ? (
             <Popover bodyContent={<div>{infoContent}</div>}>
               <Icon aria-label="Model server replicas info" role="button">

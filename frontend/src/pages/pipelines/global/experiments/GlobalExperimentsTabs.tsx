@@ -32,7 +32,7 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="experiments-active-tab"
       >
-        <PageSection isFilled variant="light" data-testid="experiments-active-tab-content">
+        <PageSection hasBodyWrapper={false} isFilled data-testid="experiments-active-tab-content">
           <ActiveExperimentsList />
         </PageSection>
       </Tab>
@@ -43,7 +43,7 @@ const GlobalExperimentsTabs: React.FC<GlobalExperimentsTabProps> = ({ tab }) => 
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="experiments-archived-tab"
       >
-        <PageSection isFilled variant="light" data-testid="experiments-archived-tab-content">
+        <PageSection hasBodyWrapper={false} isFilled data-testid="experiments-archived-tab-content">
           <ArchivedExperimentsList />
         </PageSection>
       </Tab>

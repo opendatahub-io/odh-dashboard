@@ -125,9 +125,9 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
               <ToolbarGroup variant="filter-group">
                 <ToolbarFilter
-                  chips={search === '' ? [] : [search]}
-                  deleteChip={() => setSearch('')}
-                  deleteChipGroup={() => setSearch('')}
+                  labels={search === '' ? [] : [search]}
+                  deleteLabel={() => setSearch('')}
+                  deleteLabelGroup={() => setSearch('')}
                   categoryName={searchType}
                 >
                   <SimpleSelect
@@ -146,7 +146,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                     icon={<FilterIcon />}
                   />
                 </ToolbarFilter>
-                <ToolbarItem variant="search-filter">
+                <ToolbarItem>
                   <SearchInput
                     placeholder={`Find by ${searchType.toLowerCase()}`}
                     value={search}

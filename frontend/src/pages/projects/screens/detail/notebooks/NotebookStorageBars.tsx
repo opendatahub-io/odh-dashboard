@@ -7,7 +7,7 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Text,
+  Content,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
@@ -43,18 +43,18 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook, onA
               <ListItem key={pvc.metadata.name}>
                 <Stack>
                   <StackItem>
-                    <Text component="small">{getDisplayNameFromK8sResource(pvc)}</Text>
+                    <Content component="small">{getDisplayNameFromK8sResource(pvc)}</Content>
                   </StackItem>
                   <StackItem>
                     <StorageSizeBar pvc={pvc} />
                   </StackItem>
                   <StackItem>
-                    <Text component="small">
+                    <Content component="small">
                       Mount path:{' '}
                       {mountFolderMap[pvc.metadata.name]
                         ? mountFolderMap[pvc.metadata.name]
                         : 'Unknown'}
-                    </Text>
+                    </Content>
                   </StackItem>
                 </Stack>
               </ListItem>

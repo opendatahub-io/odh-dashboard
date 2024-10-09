@@ -7,18 +7,15 @@ body,
 #dashboard-page-main {
   // Establish positioning relative to the top left of the main container.
   position: relative;
+  overflow-y: auto;
 }
 
 .odh-dashboard {
   &__page-content {
-    border: 1px solid var(--pf-v5-global--BorderColor--100);
+    border: 1px solid var(--pf-t--global--border--color--default);
     display: flex;
     flex: 1;
-    margin: var(--pf-v5-global--spacer--md);
-  }
-
-  .pf-v5-c-app-launcher__group-title {
-    font-size: 13px;
+    margin: var(--pf-t--global--spacer--md);
   }
 
   &__brand {
@@ -29,7 +26,7 @@ body,
   // This requires decreasing the width and the size of the toggle as well
   td,
   li {
-    .pf-v5-c-switch__toggle {
+    .pf-v6-c-switch__toggle {
       height: 18px;
       margin-top: -1px;
       &:before {
@@ -38,49 +35,50 @@ body,
         inset-block-start: 4px;
       }
     }
-    .pf-v5-c-switch__input:checked ~ .pf-v5-c-switch__toggle::before {
+    .pf-v6-c-switch__input:checked ~ .pf-v6-c-switch__toggle::before {
       inset-inline-start: 12px;
     }
   }
 }
 
 .odh-u-spin {
-  animation: pf-v5-c-spinner-animation-rotate 3s linear infinite;
+  animation: pf-v6-c-spinner-animation-rotate 3s linear infinite;
 }
 
-// specificity targeting form elements to override --pf-v5-global--FontSize--md
-.pf-v5-c-page,
-.pf-v5-c-modal-box {
+// specificity targeting form elements to override --pf-v6-global--FontSize--md
+// All classes reverted to pf-v5 prefix don't exist in v6 and could probably be removed since menu-toggle and menu__item are being targeted
+.pf-v6-c-page,
+.pf-v6-c-modal-box {
   .pf-v5-c-app-launcher,
-  .pf-v5-c-button,
+  .pf-v6-c-button,
   .pf-v5-c-dropdown,
   .pf-v5-c-dropdown__menu-item,
   .pf-v5-c-dropdown__toggle,
-  .pf-v5-c-menu-toggle,
-  .pf-v5-c-menu__item,
+  .pf-v6-c-menu-toggle,
+  .pf-v6-c-menu__item,
   .pf-v5-c-select,
   .pf-v5-c-select__menu-item,
   .pf-v5-c-select__toggle,
-  .pf-v5-c-text-input-group,
-  .pf-v5-c-form-control {
-    font-size: var(--pf-v5-global--FontSize--sm);
+  .pf-v6-c-text-input-group,
+  .pf-v6-c-form-control {
+    font-size: var(--pf-t--global--font--size--body--sm);
     height: auto;
   }
 }
 
 // TODO: Remove when PF bug is fixed. See https://github.com/patternfly/patternfly-react/issues/9769
 // Override to prevent drawer body content from taking over scroll container
-.pf-v5-c-drawer__body {
+.pf-v6-c-drawer__body {
   min-height: 0;
 }
 
-.pf-v5-c-truncate {
+.pf-v6-c-truncate {
   --pf-v5-c-truncate--MinWidth: 0;
   --pf-v5-c-truncate__start--MinWidth: 0;
 }
 
 // FIXME https://github.com/patternfly/patternfly/issues/7104
-.pf-v5-c-label-group {
+.pf-v6-c-label-group {
   max-width: 100%;
 
   &__main,

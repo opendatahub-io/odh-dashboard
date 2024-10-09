@@ -62,25 +62,23 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                   <ActionList isIconList>
                     <ActionListItem>
                       <Button
+                        icon={<CheckIcon />}
                         data-testid={`save-edit-button-${title}`}
                         aria-label={`Save edits to ${title}`}
                         variant="link"
                         onClick={onSaveEditsClick}
                         isDisabled={isSavingEdits}
-                      >
-                        <CheckIcon />
-                      </Button>
+                      />
                     </ActionListItem>
                     <ActionListItem>
                       <Button
+                        icon={<TimesIcon />}
                         data-testid={`discard-edit-button-${title}`}
                         aria-label={`Discard edits to ${title} `}
                         variant="plain"
                         onClick={onDiscardEditsClick}
                         isDisabled={isSavingEdits}
-                      >
-                        <TimesIcon />
-                      </Button>
+                      />
                     </ActionListItem>
                   </ActionList>
                 ) : (
@@ -110,7 +108,10 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
           </Flex>
         </DescriptionListTerm>
       )}
-      <DescriptionListDescription className={isEmpty && !isEditing ? text.disabledColor_100 : ''}>
+      <DescriptionListDescription
+        className={isEmpty && !isEditing ? text.textColorDisabled : ''}
+        aria-disabled={!!(isEmpty && !isEditing)}
+      >
         {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}
       </DescriptionListDescription>
     </DescriptionListGroup>

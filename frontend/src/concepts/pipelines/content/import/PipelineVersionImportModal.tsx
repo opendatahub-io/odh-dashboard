@@ -4,12 +4,12 @@ import {
   Button,
   Form,
   FormGroup,
-  Modal,
   Stack,
   StackItem,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
