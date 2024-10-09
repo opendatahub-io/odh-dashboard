@@ -10,6 +10,7 @@ import {
   EmptyStateBody,
   Button,
   EmptyStateIcon,
+  ButtonVariant,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import ExternalLink from '~/components/ExternalLink';
@@ -39,7 +40,7 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
   }
 
   if (!pipelinesServer.installed) {
-    return <NoPipelineServer variant="secondary" />;
+    return <NoPipelineServer variant={ButtonVariant.primary} />;
   }
 
   if (!pipelinesServer.compatible) {
