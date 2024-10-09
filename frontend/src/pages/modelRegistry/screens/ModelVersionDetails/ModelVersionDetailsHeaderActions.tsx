@@ -6,8 +6,8 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
-  modelVersionArchiveDetailsUrl,
   modelVersionDeploymentsUrl,
+  modelVersionListUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
 
@@ -100,11 +100,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
               )
               .then(() =>
                 navigate(
-                  modelVersionArchiveDetailsUrl(
-                    mv.id,
-                    mv.registeredModelId,
-                    preferredModelRegistry?.metadata.name,
-                  ),
+                  modelVersionListUrl(mv.registeredModelId, preferredModelRegistry?.metadata.name),
                 ),
               )
           }
