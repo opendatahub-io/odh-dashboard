@@ -40,6 +40,10 @@ class NIMDeployModal extends Modal {
   findNimModelReplicasPlusButton() {
     return this.find().find('button[aria-label="Plus"]').eq(1);
   }
+
+  shouldDisplayError(msg: string): void {
+    this.find().should('contain.text', msg);
+  }
 }
 
 export const nimDeployModal = new NIMDeployModal();
