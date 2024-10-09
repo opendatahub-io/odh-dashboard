@@ -17,6 +17,7 @@ import {
   ToolbarItem,
   Tooltip,
   Truncate,
+  Icon,
 } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons/dist/esm/icons/download-icon';
 import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
@@ -335,7 +336,9 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
                           >
                             {isPaused ? (
                               <Tooltip content="Resume log streaming.">
-                                <OutlinedPlayCircleIcon />
+                                <Icon iconSize="md">
+                                  <OutlinedPlayCircleIcon />
+                                </Icon>
                               </Tooltip>
                             ) : !logsLoaded || podStatus?.podInitializing ? (
                               <Tooltip content="Loading log">
@@ -343,7 +346,9 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
                               </Tooltip>
                             ) : (
                               <Tooltip content="Pause log streaming.">
-                                <OutlinedPauseCircleIcon />
+                                <Icon iconSize="md">
+                                  <OutlinedPauseCircleIcon />
+                                </Icon>
                               </Tooltip>
                             )}
                           </Button>
