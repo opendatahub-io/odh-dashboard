@@ -6,7 +6,6 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { filterLiveVersions } from '~/concepts/modelRegistry/utils';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { registeredModelArchiveDetailsUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import ModelVersionsTabs from './ModelVersionsTabs';
@@ -65,7 +64,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
           registeredModel={rm}
           refresh={rmRefresh}
           mvRefresh={mvRefresh}
-          modelVersions={filterLiveVersions(modelVersions.items)}
+          modelVersions={modelVersions.items}
         />
       )}
     </ApplicationsPage>

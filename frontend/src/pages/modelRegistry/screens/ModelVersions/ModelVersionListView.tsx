@@ -31,6 +31,7 @@ import {
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import { filterArchiveVersions, filterLiveVersions } from '~/concepts/modelRegistry/utils';
 import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {
@@ -41,11 +42,16 @@ type ModelVersionListViewProps = {
 };
 
 const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
-  modelVersions: unfilteredModelVersions,
+  modelVersions,
   registeredModel: rm,
   isArchiveModel,
   refresh,
 }) => {
+  const unfilteredModelVersions = isArchiveModel
+    ? modelVersions
+    : filterLiveVersions(modelVersions);
+
+  const archiveModelVersions = filterArchiveVersions(modelVersions);
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
@@ -88,10 +94,12 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         )}
         description={`${rm?.name} has no registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
-        secondaryActionText="View archived versions"
         primaryActionOnClick={() => {
           navigate(registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name));
         }}
+        secondaryActionText={
+          archiveModelVersions.length !== 0 ? 'View archived versions' : undefined
+        }
         secondaryActionOnClick={() => {
           navigate(modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name));
         }}
