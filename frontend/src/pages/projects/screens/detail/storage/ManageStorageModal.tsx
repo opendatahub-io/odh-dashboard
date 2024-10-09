@@ -28,7 +28,7 @@ type AddStorageModalProps = {
 const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOpen, onClose }) => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
-  const defaultStorageClass = useDefaultStorageClass();
+  const [defaultStorageClass] = useDefaultStorageClass();
 
   const [createData, setCreateData, resetData] = useCreateStorageObjectForNotebook(existingData);
   const [actionInProgress, setActionInProgress] = React.useState(false);

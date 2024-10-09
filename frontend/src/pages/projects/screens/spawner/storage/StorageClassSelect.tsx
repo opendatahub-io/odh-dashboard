@@ -30,7 +30,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
 }) => {
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
-  const defaultSc = useDefaultStorageClass();
+  const [defaultSc] = useDefaultStorageClass();
 
   const enabledStorageClasses = storageClasses
     .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)

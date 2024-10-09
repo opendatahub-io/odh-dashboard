@@ -70,7 +70,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   >();
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
 
-  const defaultStorageClass = useDefaultStorageClass();
+  const [defaultStorageClass] = useDefaultStorageClass();
   const preferredStorageClass = usePreferredStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const defaultStorageClassName = isStorageClassesAvailable
