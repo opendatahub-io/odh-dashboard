@@ -25,17 +25,18 @@ import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandable
 import useBiasChartSelections from '~/pages/modelServing/screens/metrics/bias/useBiasChartSelections';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
+import { TrustyInstallState } from '~/concepts/trustyai/types';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
-  const { biasMetricConfigs, loaded, loadError } = useModelBiasData();
+  const { biasMetricConfigs, statusState } = useModelBiasData();
 
   const [selectedBiasConfigs, setSelectedBiasConfigs, settled] =
     useBiasChartSelections(biasMetricConfigs);
 
-  const ready = loaded && settled;
+  const ready = statusState.type === TrustyInstallState.INSTALLED && settled;
 
-  if (loadError) {
+  if (statusState.type === TrustyInstallState.CR_ERROR) {
     return (
       <PageSection isFilled variant={PageSectionVariants.light}>
         <EmptyState variant={EmptyStateVariant.lg}>
@@ -47,7 +48,7 @@ const BiasTab: React.FC = () => {
           <EmptyStateBody>
             <Stack hasGutter>
               <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
-              <StackItem>{loadError.message}</StackItem>
+              <StackItem>{statusState.message}</StackItem>
             </Stack>
           </EmptyStateBody>
         </EmptyState>

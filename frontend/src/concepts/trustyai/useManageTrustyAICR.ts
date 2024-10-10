@@ -1,64 +1,78 @@
 import React from 'react';
-import useTrustyAINamespaceCR, {
-  isTrustyAIAvailable,
-  taiHasServerTimedOut,
-} from '~/concepts/trustyai/useTrustyAINamespaceCR';
-import { createTrustyAICR, deleteTrustyAICR } from '~/api';
+import useTrustyAINamespaceCR from '~/concepts/trustyai/useTrustyAINamespaceCR';
+import {
+  assembleSecret,
+  createSecret,
+  createTrustyAICR,
+  deleteSecret,
+  deleteTrustyAICR,
+} from '~/api';
+import { getTrustyStatusState } from '~/concepts/trustyai/utils';
+import { TRUSTYAI_SECRET_NAME } from '~/concepts/trustyai/const';
+import useTrustyBrowserStorage from '~/concepts/trustyai/content/useTrustyBrowserStorage';
+import { TrustyDBData, TrustyStatusStates } from './types';
+
+export type UseManageTrustyAICRReturnType = {
+  statusState: TrustyStatusStates;
+  installCRForNewDB: (secretData: TrustyDBData) => Promise<void>;
+  installCRForExistingDB: (secretName: string) => Promise<void>;
+  deleteCR: () => Promise<void>;
+};
 
 const useManageTrustyAICR = (namespace: string): UseManageTrustyAICRReturnType => {
   const state = useTrustyAINamespaceCR(namespace);
-  const [cr, loaded, serviceError, refresh] = state;
+  const [cr, , , refresh] = state;
+  const successDetails = useTrustyBrowserStorage(cr);
 
-  const [installReqError, setInstallReqError] = React.useState<Error | undefined>();
+  const statusState = getTrustyStatusState(state, successDetails);
 
-  const isAvailable = isTrustyAIAvailable(state);
-  const isProgressing = loaded && !!cr && !isAvailable;
-  const error = installReqError || serviceError;
+  const installCRForExistingDB = React.useCallback<
+    UseManageTrustyAICRReturnType['installCRForExistingDB']
+  >(
+    async (secretName) => {
+      await createTrustyAICR(namespace, secretName).then(refresh);
+    },
+    [namespace, refresh],
+  );
+  const installCRForNewDB = React.useCallback<UseManageTrustyAICRReturnType['installCRForNewDB']>(
+    async (data) => {
+      const submitNewSecret = async (dryRun: boolean) => {
+        await Promise.all([
+          createSecret(assembleSecret(namespace, data, 'generic', TRUSTYAI_SECRET_NAME), {
+            dryRun,
+          }),
+          createTrustyAICR(namespace, TRUSTYAI_SECRET_NAME, { dryRun }),
+        ]);
+      };
 
-  const [disableTimeout, setDisableTimeout] = React.useState(false);
-  const serverTimedOut = !disableTimeout && taiHasServerTimedOut(state, isAvailable);
-  const ignoreTimedOut = React.useCallback(() => {
-    setDisableTimeout(true);
-  }, []);
+      await submitNewSecret(true);
+      await submitNewSecret(false);
+      await refresh();
+    },
+    [namespace, refresh],
+  );
 
-  const showSuccess = React.useRef(false);
-  if (isProgressing) {
-    showSuccess.current = true;
-  }
+  const deleteCR = React.useCallback<UseManageTrustyAICRReturnType['deleteCR']>(async () => {
+    let deleteGeneratedSecret = false;
+    if (cr?.spec.storage.format === 'DATABASE') {
+      if (cr.spec.storage.databaseConfigurations === TRUSTYAI_SECRET_NAME) {
+        deleteGeneratedSecret = true;
+      }
+    }
 
-  const installCR = React.useCallback(async () => {
-    await createTrustyAICR(namespace)
-      .then(refresh)
-      .catch((e) => setInstallReqError(e));
-  }, [namespace, refresh]);
-
-  const deleteCR = React.useCallback(async () => {
-    await deleteTrustyAICR(namespace).then(refresh);
-  }, [namespace, refresh]);
+    await deleteTrustyAICR(namespace);
+    if (deleteGeneratedSecret) {
+      await deleteSecret(namespace, TRUSTYAI_SECRET_NAME);
+    }
+    await refresh();
+  }, [cr, namespace, refresh]);
 
   return {
-    error,
-    isProgressing,
-    isAvailable,
-    showSuccess: showSuccess.current,
-    isSettled: loaded,
-    serverTimedOut,
-    ignoreTimedOut,
-    installCR,
+    statusState,
+    installCRForExistingDB,
+    installCRForNewDB,
     deleteCR,
   };
 };
 
 export default useManageTrustyAICR;
-
-type UseManageTrustyAICRReturnType = {
-  error: Error | undefined;
-  isProgressing: boolean;
-  isAvailable: boolean;
-  showSuccess: boolean;
-  isSettled: boolean;
-  serverTimedOut: boolean;
-  ignoreTimedOut: () => void;
-  installCR: () => Promise<void>;
-  deleteCR: () => Promise<void>;
-};

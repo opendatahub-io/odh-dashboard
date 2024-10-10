@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sDSGResource } from '~/k8sTypes';
+import { K8sCondition, K8sDSGResource } from '~/k8sTypes';
 import { genRandomChars } from '~/utilities/string';
 
 export const PreInstalledName = 'Pre-installed';
@@ -108,3 +108,16 @@ export const translateDisplayNameForK8s = (
 
 export const isValidK8sName = (name?: string): boolean =>
   name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
+
+type ResourceWithConditions = K8sResourceCommon & { status?: { conditions?: K8sCondition[] } };
+
+export const getConditionForType = (
+  resource: ResourceWithConditions,
+  type: string,
+): K8sCondition | undefined => resource.status?.conditions?.find((c) => c.type === type);
+
+export const isConditionInStatus = (
+  resource: ResourceWithConditions,
+  type: string,
+  status: string,
+): boolean => getConditionForType(resource, type)?.status === status;

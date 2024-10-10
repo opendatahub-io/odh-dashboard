@@ -7,6 +7,7 @@ import NotFound from '~/pages/NotFound';
 import useDoesTrustyAICRExist from '~/concepts/trustyai/context/useDoesTrustyAICRExist';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { InferenceServiceKind } from '~/k8sTypes';
+import { TrustyInstallState } from '~/concepts/trustyai/types';
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
 import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
@@ -20,7 +21,7 @@ type MetricsPageTabsProps = {
 
 const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const enabledTabs = useMetricsPageEnabledTabs();
-  const { biasMetricConfigs, loaded } = useModelBiasData();
+  const { biasMetricConfigs, statusState } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
@@ -77,7 +78,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
           className="odh-metrics-page-tabs__content"
           data-testid="bias-tab"
           actions={
-            loaded &&
+            statusState.type === TrustyInstallState.INSTALLED &&
             biasMetricConfigs.length === 0 && (
               <TabAction>
                 <BiasConfigurationAlertPopover

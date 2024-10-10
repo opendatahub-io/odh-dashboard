@@ -1,6 +1,6 @@
 import React from 'react';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
+import { BiasMetricConfig, TrustyInstallState } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 
@@ -13,7 +13,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
   onChange,
   initialSelections,
 }) => {
-  const { biasMetricConfigs, loaded } = useModelBiasData();
+  const { biasMetricConfigs, statusState } = useModelBiasData();
   const [uiSelections, setUISelections] = React.useState<string>();
   const [currentSelections, setCurrentSelections] = React.useState<string>();
   const elementId = React.useId();
@@ -74,7 +74,9 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
         selectionRequired
         noSelectedOptionsMessage="One or more groups must be seleted"
         placeholder="Select a metric"
-        isDisabled={!(loaded && biasMetricConfigs.length > 0)}
+        isDisabled={
+          !(statusState.type === TrustyInstallState.INSTALLED && biasMetricConfigs.length > 0)
+        }
         id="bias-metric-config-selector"
         toggleId="bias-metric-config-selector"
       />
