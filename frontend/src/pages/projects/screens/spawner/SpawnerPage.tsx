@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Alert,
   Breadcrumb,
   BreadcrumbItem,
+  Button,
+  Flex,
+  FlexItem,
   Form,
   FormSection,
   PageSection,
@@ -31,21 +33,23 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { StorageData, StorageType } from '~/pages/projects/types';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
-import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
-import { useStorageDataObject } from './storage/utils';
-import { getCompatibleAcceleratorIdentifiers, useMergeDefaultPVCName } from './spawnerUtils';
+import { getCompatibleAcceleratorIdentifiers, getRootVolumeName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { useNotebookSizeState } from './useNotebookSizeState';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
+import { ClusterStorageTable } from './storage/ClusterStorageTable';
+import useDefaultPvcSize from './storage/useDefaultPvcSize';
+import { defaultClusterStorage } from './storage/constants';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -68,19 +72,30 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
     string[] | undefined
   >();
-  const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
-
   const [defaultStorageClass] = useDefaultStorageClass();
   const preferredStorageClass = usePreferredStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const defaultStorageClassName = isStorageClassesAvailable
     ? defaultStorageClass?.metadata.name
     : preferredStorageClass?.metadata.name;
-  const storageData = useMergeDefaultPVCName(
-    storageDataWithoutDefault,
-    k8sNameDescriptionData.data.name,
-    defaultStorageClassName,
-  );
+  const defaultNotebookSize = useDefaultPvcSize();
+  const [storageData, setStorageData] = React.useState<StorageData[]>([
+    {
+      storageType: existingNotebook ? StorageType.EXISTING_PVC : StorageType.NEW_PVC,
+      creating: {
+        nameDesc: {
+          name: k8sNameDescriptionData.data.name || defaultClusterStorage.name,
+          description: defaultClusterStorage.description,
+        },
+        size: defaultClusterStorage.size || defaultNotebookSize,
+        storageClassName: defaultStorageClassName || defaultClusterStorage.storageClassName,
+        mountPath: defaultClusterStorage.mountPath,
+      },
+      existing: {
+        storage: getRootVolumeName(existingNotebook),
+      },
+    },
+  ]);
 
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
@@ -204,19 +219,32 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <FormSection
-              title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+              title={
+                <Flex
+                  spaceItems={{ default: 'spaceItemsMd' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem spacer={{ default: 'spacerLg' }}>
+                    {SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+                  </FlexItem>
+
+                  <Button variant="secondary" data-testid="existing-storage-button">
+                    Attach existing storage
+                  </Button>
+
+                  <Button variant="secondary" data-testid="create-storage-button">
+                    Create storage
+                  </Button>
+                </Flex>
+              }
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
-              <Alert
-                data-testid="cluster-storage-alert"
-                component="h2"
-                variant="info"
-                isPlain
-                isInline
-                title="Cluster storage will mount to /"
+              <ClusterStorageTable
+                storageData={storageData.map((formData, index) => ({ ...formData, id: index }))}
+                setStorageData={setStorageData}
+                workbenchName={k8sNameDescriptionData.data.k8sName.value}
               />
-              <StorageField storageData={storageData} setStorageData={setStorageData} />
             </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
