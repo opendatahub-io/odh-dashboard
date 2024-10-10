@@ -347,9 +347,10 @@ describe('patchRoleBindingOwnerRef', () => {
     k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
     const result = await patchRoleBindingOwnerRef('rbName', namespace, []);
     expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: RoleBindingModel,
       patches: [{ op: 'replace', path: '/metadata/ownerReferences', value: [] }],
-      queryOptions: { name: 'rbName', ns: namespace },
+      queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
     });
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(roleBindingMock);
