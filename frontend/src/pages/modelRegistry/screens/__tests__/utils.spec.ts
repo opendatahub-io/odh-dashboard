@@ -297,14 +297,15 @@ describe('filterModelVersions', () => {
 
 describe('filterRegisteredModels', () => {
   const registeredModels: RegisteredModel[] = [
-    mockRegisteredModel({ name: 'Test 1', state: ModelState.ARCHIVED }),
+    mockRegisteredModel({ name: 'Test 1', state: ModelState.ARCHIVED, owner: 'Alice' }),
     mockRegisteredModel({
       name: 'Test 2',
       description: 'Description2',
+      owner: 'Bob',
     }),
-    mockRegisteredModel({ name: 'Test 3', state: ModelState.ARCHIVED }),
-    mockRegisteredModel({ name: 'Test 4', state: ModelState.ARCHIVED }),
-    mockRegisteredModel({ name: 'Test 5' }),
+    mockRegisteredModel({ name: 'Test 3', state: ModelState.ARCHIVED, owner: 'Charlie' }),
+    mockRegisteredModel({ name: 'Test 4', state: ModelState.ARCHIVED, owner: 'Alice' }),
+    mockRegisteredModel({ name: 'Test 5', owner: 'Bob' }),
   ];
 
   test('filters by name', () => {
@@ -315,6 +316,11 @@ describe('filterRegisteredModels', () => {
   test('filters by description', () => {
     const filtered = filterRegisteredModels(registeredModels, 'Description2', SearchType.KEYWORD);
     expect(filtered).toEqual([registeredModels[1]]);
+  });
+
+  test('filters by owner', () => {
+    const filtered = filterRegisteredModels(registeredModels, 'Alice', SearchType.OWNER);
+    expect(filtered).toEqual([registeredModels[0], registeredModels[3]]);
   });
 
   test('does not filter when search is empty', () => {

@@ -107,6 +107,7 @@ export type ModelVersion = ModelRegistryBase & {
   state?: ModelState;
   author?: string;
   registeredModelId: string;
+  labels?: string[];
 };
 
 export type RegisteredModel = ModelRegistryBase & {

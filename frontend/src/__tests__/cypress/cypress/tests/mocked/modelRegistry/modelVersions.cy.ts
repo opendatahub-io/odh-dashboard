@@ -200,6 +200,12 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableRows().contains('new model version');
     modelRegistry.findModelVersionsTableSearch().focused().clear();
 
+    // filtering by label
+    modelRegistry.findModelVersionsTableSearch().type('Financial');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 1);
+    modelRegistry.findModelVersionsTableRows().contains('new model version');
+    modelRegistry.findModelVersionsTableSearch().focused().clear();
+
     // filtering by model version author
     modelRegistry.findModelVersionsTableFilter().findSelectOption('Author').click();
     modelRegistry.findModelVersionsTableSearch().type('Test author');
