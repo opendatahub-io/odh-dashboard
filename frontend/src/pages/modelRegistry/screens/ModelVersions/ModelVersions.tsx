@@ -8,6 +8,8 @@ import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegiste
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { registeredModelArchiveDetailsUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
 import { ModelVersionsTab } from './const';
@@ -27,6 +29,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
+  const inferenceServices = useMakeFetchObject(useInferenceServices(undefined, rmId));
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED) {
@@ -52,7 +55,11 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
         </Breadcrumb>
       }
       title={rm?.name}
-      headerAction={rm && <ModelVersionsHeaderActions rm={rm} />}
+      headerAction={
+        rm && (
+          <ModelVersionsHeaderActions hasDeployments={!!inferenceServices.data.length} rm={rm} />
+        )
+      }
       description={<Truncate content={rm?.description || ''} />}
       loadError={loadError}
       loaded={loaded}
