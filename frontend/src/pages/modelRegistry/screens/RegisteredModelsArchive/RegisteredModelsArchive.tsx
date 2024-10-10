@@ -5,6 +5,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { filterArchiveModels } from '~/concepts/modelRegistry/utils';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import useModelVersions from '~/concepts/modelRegistry/apiHooks/useModelVersions';
 import RegisteredModelsArchiveListView from './RegisteredModelsArchiveListView';
 
 type RegisteredModelsArchiveProps = Omit<
@@ -14,7 +15,16 @@ type RegisteredModelsArchiveProps = Omit<
 
 const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pageProps }) => {
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const [registeredModels, loaded, loadError, refresh] = useRegisteredModels();
+  const [registeredModels, modelsLoaded, modelsLoadError, refreshModels] = useRegisteredModels();
+  const [modelVersions, versionsLoaded, versionsLoadError, refreshVersions] = useModelVersions();
+
+  const loaded = modelsLoaded && versionsLoaded;
+  const loadError = modelsLoadError || versionsLoadError;
+
+  const refresh = React.useCallback(() => {
+    refreshModels();
+    refreshVersions();
+  }, [refreshModels, refreshVersions]);
 
   return (
     <ApplicationsPage
@@ -40,6 +50,7 @@ const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pa
     >
       <RegisteredModelsArchiveListView
         registeredModels={filterArchiveModels(registeredModels.items)}
+        modelVersions={modelVersions.items}
         refresh={refresh}
       />
     </ApplicationsPage>

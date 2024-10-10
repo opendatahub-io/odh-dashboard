@@ -309,22 +309,27 @@ describe('filterRegisteredModels', () => {
   ];
 
   test('filters by name', () => {
-    const filtered = filterRegisteredModels(registeredModels, 'Test 1', SearchType.KEYWORD);
+    const filtered = filterRegisteredModels(registeredModels, [], 'Test 1', SearchType.KEYWORD);
     expect(filtered).toEqual([registeredModels[0]]);
   });
 
   test('filters by description', () => {
-    const filtered = filterRegisteredModels(registeredModels, 'Description2', SearchType.KEYWORD);
+    const filtered = filterRegisteredModels(
+      registeredModels,
+      [],
+      'Description2',
+      SearchType.KEYWORD,
+    );
     expect(filtered).toEqual([registeredModels[1]]);
   });
 
   test('filters by owner', () => {
-    const filtered = filterRegisteredModels(registeredModels, 'Alice', SearchType.OWNER);
+    const filtered = filterRegisteredModels(registeredModels, [], 'Alice', SearchType.OWNER);
     expect(filtered).toEqual([registeredModels[0], registeredModels[3]]);
   });
 
   test('does not filter when search is empty', () => {
-    const filtered = filterRegisteredModels(registeredModels, '', SearchType.KEYWORD);
+    const filtered = filterRegisteredModels(registeredModels, [], '', SearchType.KEYWORD);
     expect(filtered).toEqual(registeredModels);
   });
 });

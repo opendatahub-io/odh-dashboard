@@ -114,6 +114,7 @@ export const sortModelVersionsByCreateTime = (registeredModels: ModelVersion[]):
 
 export const filterRegisteredModels = (
   unfilteredRegisteredModels: RegisteredModel[],
+  unfilteredModelVersions: ModelVersion[],
   search: string,
   searchType: SearchType,
 ): RegisteredModel[] => {
@@ -123,16 +124,26 @@ export const filterRegisteredModels = (
     if (!search) {
       return true;
     }
+    const modelVersions = unfilteredModelVersions.filter((mv) => mv.registeredModelId === rm.id);
 
     switch (searchType) {
       case SearchType.KEYWORD: {
-        return (
+        const matchesModel =
           rm.name.toLowerCase().includes(searchLower) ||
           (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
-          getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower))
-        );
-      }
+          getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower));
 
+        const matchesVersion = modelVersions.some(
+          (mv: ModelVersion) =>
+            mv.name.toLowerCase().includes(searchLower) ||
+            (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
+            getLabels(mv.customProperties).some((label) =>
+              label.toLowerCase().includes(searchLower),
+            ),
+        );
+
+        return matchesModel || matchesVersion;
+      }
       case SearchType.OWNER: {
         return rm.owner && rm.owner.toLowerCase().includes(searchLower);
       }
