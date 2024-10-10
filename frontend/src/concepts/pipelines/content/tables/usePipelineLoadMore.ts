@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import {
+  ExperimentKFv2,
+  PipelineKFv2,
+  PipelinesFilterOp,
+  PipelineVersionKFv2,
+  StorageStateKF,
+} from '~/concepts/pipelines/kfTypes';
 import { PipelineParams, PipelinesFilter } from '~/concepts/pipelines/types';
 import { NotReadyError } from '~/utilities/useFetchState';
 
@@ -10,7 +16,7 @@ export type LoadMoreProps = {
   filter?: PipelinesFilter;
 };
 
-export const useExperimentLoadMore = (
+export const useActiveExperimentLoadMore = (
   initialState: UsePipelineDataRefProps<ExperimentKFv2>,
 ): ((props: LoadMoreProps) => [ExperimentKFv2[], () => Promise<void>]) => {
   const { api } = usePipelinesAPI();
@@ -22,10 +28,22 @@ export const useExperimentLoadMore = (
         if (!pageTokenRef.current) {
           return;
         }
-        const result = await api.listExperiments(
-          {},
-          getLoadMorePipelineParams({ pageTokenRef, ...loadMoreProps }),
-        );
+        const loadMorePipelineParams = getLoadMorePipelineParams({
+          pageTokenRef,
+          ...loadMoreProps,
+          filter: {
+            predicates: [
+              {
+                key: 'storage_state',
+                operation: PipelinesFilterOp.EQUALS,
+                // eslint-disable-next-line camelcase
+                string_value: StorageStateKF.AVAILABLE,
+              },
+              ...(loadMoreProps.filter?.predicates || []),
+            ],
+          },
+        });
+        const result = await api.listExperiments({}, loadMorePipelineParams);
         showMoreData((flag) => !flag);
         dataRef.current = [...dataRef.current, ...(result.experiments || [])];
         pageTokenRef.current = result.next_page_token;
