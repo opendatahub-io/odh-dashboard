@@ -18,15 +18,16 @@ const ImportBYONImageButton: React.FC<ImportBYONImageButtonProps> = ({ refresh }
       >
         Import new image
       </Button>
-      <ManageBYONImageModal
-        isOpen={isOpen}
-        onClose={(imported) => {
-          if (imported) {
-            refresh();
-          }
-          setOpen(false);
-        }}
-      />
+      {isOpen ? (
+        <ManageBYONImageModal
+          onClose={(imported) => {
+            if (imported) {
+              refresh();
+            }
+            setOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

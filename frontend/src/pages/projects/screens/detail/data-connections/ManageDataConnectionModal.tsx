@@ -23,12 +23,10 @@ import { convertAWSSecretData } from './utils';
 
 type ManageDataConnectionModalProps = {
   existingData?: DataConnection;
-  isOpen: boolean;
   onClose: (submitted: boolean) => void;
 };
 
 const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
-  isOpen,
   onClose,
   existingData,
 }) => {
@@ -149,7 +147,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
     <Modal
       title={existingData ? 'Edit data connection' : 'Add data connection'}
       variant="medium"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       showClose
       actions={[

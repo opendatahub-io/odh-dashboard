@@ -51,10 +51,12 @@ const NotebookServer: React.FC = () => {
         {notebook && (
           <Stack hasGutter>
             <StackItem>
-              <StopServerModal
-                notebooksToStop={notebooksToStop}
-                onNotebooksStop={onNotebooksStop}
-              />
+              {notebooksToStop.length ? (
+                <StopServerModal
+                  notebooksToStop={notebooksToStop}
+                  onNotebooksStop={onNotebooksStop}
+                />
+              ) : null}
               <ActionList>
                 <ActionListItem
                   onClick={(e) => {

@@ -53,21 +53,22 @@ export const TolerationsTable: React.FC<TolerationTableProps> = ({ tolerations, 
           />
         )}
       />
-      <ManageTolerationModal
-        isOpen={!!editToleration}
-        initialToleration={editToleration}
-        onClose={() => {
-          setEditToleration(undefined);
-          setCurrentIndex(undefined);
-        }}
-        onSave={(toleration) => {
-          if (currentIndex !== undefined) {
-            const updatedTolerations = [...tolerations];
-            updatedTolerations[currentIndex] = toleration;
-            onUpdate(updatedTolerations);
-          }
-        }}
-      />
+      {editToleration ? (
+        <ManageTolerationModal
+          initialToleration={editToleration}
+          onClose={() => {
+            setEditToleration(undefined);
+            setCurrentIndex(undefined);
+          }}
+          onSave={(toleration) => {
+            if (currentIndex !== undefined) {
+              const updatedTolerations = [...tolerations];
+              updatedTolerations[currentIndex] = toleration;
+              onUpdate(updatedTolerations);
+            }
+          }}
+        />
+      ) : null}
     </>
   );
 };

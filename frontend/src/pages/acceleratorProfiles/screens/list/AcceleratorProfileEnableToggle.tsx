@@ -55,16 +55,17 @@ const AcceleratorProfileEnableToggle: React.FC<AcceleratorProfileEnableTogglePro
           }
         }}
       />
-      <DisableAcceleratorProfileModal
-        data-testid="disable-accelerator-profile-modal"
-        isOpen={isModalOpen}
-        onClose={(confirmStatus) => {
-          if (confirmStatus) {
-            handleChange(false);
-          }
-          setIsModalOpen(false);
-        }}
-      />
+      {isModalOpen ? (
+        <DisableAcceleratorProfileModal
+          data-testid="disable-accelerator-profile-modal"
+          onClose={(confirmStatus) => {
+            if (confirmStatus) {
+              handleChange(false);
+            }
+            setIsModalOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

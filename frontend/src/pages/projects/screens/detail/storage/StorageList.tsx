@@ -72,15 +72,16 @@ const StorageList: React.FC = () => {
           <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
         ) : null}
       </DetailsSection>
-      <ManageStorageModal
-        isOpen={isOpen}
-        onClose={(submit: boolean) => {
-          setOpen(false);
-          if (submit) {
-            refresh();
-          }
-        }}
-      />
+      {isOpen ? (
+        <ManageStorageModal
+          onClose={(submit: boolean) => {
+            setOpen(false);
+            if (submit) {
+              refresh();
+            }
+          }}
+        />
+      ) : null}
     </>
   );
 };

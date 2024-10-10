@@ -5,13 +5,11 @@ import useStopNotebookModalAvailability from './useStopNotebookModalAvailability
 import { NotebookState } from './types';
 
 type StopNotebookConfirmProps = {
-  isOpen: boolean;
   notebookState: NotebookState;
   onClose: (confirmStatus: boolean) => void;
 };
 
 const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
-  isOpen,
   notebookState,
   onClose,
 }) => {
@@ -31,7 +29,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
       variant="small"
       title="Stop workbench?"
       data-testid="stop-workbench-modal"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       actions={[
         <Button

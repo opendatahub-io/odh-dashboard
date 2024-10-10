@@ -48,15 +48,17 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
           </CanEnableElyraPipelinesCheck>
         )}
       </ElyraInvalidVersionAlerts>
-      <AddNotebookStorage
-        notebook={addNotebookStorage}
-        onClose={(submitted) => {
-          if (submitted) {
-            refresh();
-          }
-          setAddNotebookStorage(undefined);
-        }}
-      />
+      {addNotebookStorage ? (
+        <AddNotebookStorage
+          notebook={addNotebookStorage}
+          onClose={(submitted) => {
+            if (submitted) {
+              refresh();
+            }
+            setAddNotebookStorage(undefined);
+          }}
+        />
+      ) : null}
       {notebookToDelete ? (
         <DeleteNotebookModal
           notebook={notebookToDelete}

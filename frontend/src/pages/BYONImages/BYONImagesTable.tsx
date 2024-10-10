@@ -105,16 +105,17 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
           }}
         />
       ) : null}
-      <ManageBYONImageModal
-        isOpen={!!editImage}
-        onClose={(updated) => {
-          if (updated) {
-            refresh();
-          }
-          setEditImage(undefined);
-        }}
-        existingImage={editImage}
-      />
+      {editImage ? (
+        <ManageBYONImageModal
+          onClose={(updated) => {
+            if (updated) {
+              refresh();
+            }
+            setEditImage(undefined);
+          }}
+          existingImage={editImage}
+        />
+      ) : null}
     </>
   );
 };

@@ -326,6 +326,10 @@
           {
             "selector": "Literal[value=/\\bOpen Data Hub\\b/i],JSXText[value=/\\bOpen Data Hub\\b/i]",
             "message": "Do not hard code product name `Open Data Hub`. Use `~/utilities/const#ODH_PRODUCT_NAME` instead."
+          },
+          {
+            "selector": "JSXElement[openingElement.name.name=/Modal/]:has(> JSXOpeningElement:has(> [name.name=/(isOpen|open)/][value]))",
+            "message": "Do not control modals visibility with 'isOpen|open', use conditional rendering instead."
           }
         ]
       }

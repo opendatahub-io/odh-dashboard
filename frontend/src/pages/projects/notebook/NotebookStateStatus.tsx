@@ -100,7 +100,6 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
         </Popover>
         {isStartModalOpen ? (
           <StartNotebookModal
-            isOpen
             notebookState={notebookState}
             notebookStatus={notebookStatus}
             events={events}

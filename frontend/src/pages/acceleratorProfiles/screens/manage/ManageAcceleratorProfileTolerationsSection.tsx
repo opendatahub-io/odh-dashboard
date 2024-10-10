@@ -44,11 +44,12 @@ export const ManageAcceleratorProfileTolerationsSection: React.FC<
           onUpdate={(newTolerations) => setTolerations(newTolerations)}
         />
       </FormSection>
-      <ManageTolerationModal
-        isOpen={manageTolerationModalOpen}
-        onClose={() => setManageTolerationModalOpen(false)}
-        onSave={(toleration) => setTolerations([...tolerations, toleration])}
-      />
+      {manageTolerationModalOpen ? (
+        <ManageTolerationModal
+          onClose={() => setManageTolerationModalOpen(false)}
+          onSave={(toleration) => setTolerations([...tolerations, toleration])}
+        />
+      ) : null}
     </>
   );
 };

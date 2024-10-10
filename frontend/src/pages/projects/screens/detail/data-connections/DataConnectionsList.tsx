@@ -81,15 +81,16 @@ const DataConnectionsList: React.FC = () => {
           <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
         ) : null}
       </DetailsSection>
-      <ManageDataConnectionModal
-        isOpen={open}
-        onClose={(submitted) => {
-          if (submitted) {
-            refreshAllProjectData();
-          }
-          setOpen(false);
-        }}
-      />
+      {open ? (
+        <ManageDataConnectionModal
+          onClose={(submitted) => {
+            if (submitted) {
+              refreshAllProjectData();
+            }
+            setOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

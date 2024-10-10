@@ -289,13 +289,11 @@ const filterEvents = (
   return [filteredEvents, thisInstanceEvents, gracePeriod];
 };
 
-const useLastActivity = (storeValue: boolean, annotationValue?: string): Date | null => {
+const useLastActivity = (annotationValue?: string): Date | null => {
   const lastOpenActivity = React.useRef<Date | null>(null);
 
-  if (storeValue && annotationValue && !lastOpenActivity.current) {
+  if (annotationValue && !lastOpenActivity.current) {
     lastOpenActivity.current = new Date(annotationValue);
-  } else if (!storeValue && lastOpenActivity.current) {
-    lastOpenActivity.current = null;
   }
 
   return lastOpenActivity.current;
@@ -303,7 +301,6 @@ const useLastActivity = (storeValue: boolean, annotationValue?: string): Date | 
 
 export const useNotebookStatus = (
   spawnInProgress: boolean,
-  open: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
   const {
     currentUserNotebook: notebook,
@@ -318,10 +315,7 @@ export const useNotebookStatus = (
   );
 
   const lastActivity =
-    useLastActivity(
-      open,
-      notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
-    ) ||
+    useLastActivity(notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity']) ||
     (notebook && (spawnInProgress || isNotebookRunning)
       ? new Date(notebook.metadata.creationTimestamp ?? 0)
       : null);

@@ -168,52 +168,54 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
           ))}
         </LabelGroup>
       </DashboardDescriptionListGroup>
-      <Modal
-        variant="small"
-        title="Add label"
-        isOpen={isAddLabelModalOpen}
-        onClose={toggleAddLabelModal}
-        actions={[
-          <Button
-            key="save"
-            variant="primary"
-            form="add-label-form"
-            onClick={submitAddLabelModal}
-            isDisabled={addLabelModalSubmitDisabled}
-          >
-            Save
-          </Button>,
-          <Button key="cancel" variant="link" onClick={toggleAddLabelModal}>
-            Cancel
-          </Button>,
-        ]}
-      >
-        <Form id="add-label-form" onSubmit={submitAddLabelModal}>
-          <FormGroup label="Label text" fieldId="add-label-form-label-text" isRequired>
-            <TextInput
-              type="text"
-              id="add-label-form-label-text"
-              name="add-label-form-label-text"
-              value={addLabelInputValue}
-              onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
-                setAddLabelInputValue(value)
-              }
-              ref={addLabelInputRef}
-              isRequired
-              validated={addLabelValidationError ? 'error' : 'default'}
-            />
-            {addLabelValidationError && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                    {addLabelValidationError}
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </FormGroup>
-        </Form>
-      </Modal>
+      {isAddLabelModalOpen ? (
+        <Modal
+          variant="small"
+          title="Add label"
+          isOpen
+          onClose={toggleAddLabelModal}
+          actions={[
+            <Button
+              key="save"
+              variant="primary"
+              form="add-label-form"
+              onClick={submitAddLabelModal}
+              isDisabled={addLabelModalSubmitDisabled}
+            >
+              Save
+            </Button>,
+            <Button key="cancel" variant="link" onClick={toggleAddLabelModal}>
+              Cancel
+            </Button>,
+          ]}
+        >
+          <Form id="add-label-form" onSubmit={submitAddLabelModal}>
+            <FormGroup label="Label text" fieldId="add-label-form-label-text" isRequired>
+              <TextInput
+                type="text"
+                id="add-label-form-label-text"
+                name="add-label-form-label-text"
+                value={addLabelInputValue}
+                onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
+                  setAddLabelInputValue(value)
+                }
+                ref={addLabelInputRef}
+                isRequired
+                validated={addLabelValidationError ? 'error' : 'default'}
+              />
+              {addLabelValidationError && (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                      {addLabelValidationError}
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              )}
+            </FormGroup>
+          </Form>
+        </Modal>
+      ) : null}
     </>
   );
 };

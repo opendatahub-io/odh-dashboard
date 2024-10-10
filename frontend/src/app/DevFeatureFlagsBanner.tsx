@@ -102,28 +102,30 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
           </SplitItem>
         </Split>
       </Banner>
-      <Modal
-        data-testid="dev-feature-flags-modal"
-        variant="large"
-        title="Feature flags"
-        isOpen={isModalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setDevFeatureFlagQueryVisible(false);
-        }}
-        actions={[
-          <Button
-            data-testid="reset-feature-flags-modal-button"
-            key="confirm"
-            variant="link"
-            onClick={() => resetDevFeatureFlags()}
-          >
-            Reset to defaults
-          </Button>,
-        ]}
-      >
-        {renderDevFeatureFlags()}
-      </Modal>
+      {isModalOpen ? (
+        <Modal
+          data-testid="dev-feature-flags-modal"
+          variant="large"
+          title="Feature flags"
+          isOpen
+          onClose={() => {
+            setModalOpen(false);
+            setDevFeatureFlagQueryVisible(false);
+          }}
+          actions={[
+            <Button
+              data-testid="reset-feature-flags-modal-button"
+              key="confirm"
+              variant="link"
+              onClick={() => resetDevFeatureFlags()}
+            >
+              Reset to defaults
+            </Button>,
+          ]}
+        >
+          {renderDevFeatureFlags()}
+        </Modal>
+      ) : null}
     </>
   );
 };
