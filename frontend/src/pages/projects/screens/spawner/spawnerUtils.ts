@@ -1,4 +1,3 @@
-import * as React from 'react';
 import compareVersions from 'compare-versions';
 import { NotebookSize, Volume, VolumeMount } from '~/types';
 import {
@@ -30,31 +29,6 @@ import {
 import { FAILED_PHASES, PENDING_PHASES, IMAGE_ANNOTATIONS } from './const';
 
 /******************* Common utils *******************/
-export const useMergeDefaultPVCName = (
-  storageData: StorageData,
-  defaultPVCName: string,
-  defaultStorageClassName?: string,
-): StorageData => {
-  const modifiedRef = React.useRef(false);
-
-  if (modifiedRef.current || storageData.creating.nameDesc.name) {
-    modifiedRef.current = true;
-    return storageData;
-  }
-
-  return {
-    ...storageData,
-    creating: {
-      ...storageData.creating,
-      nameDesc: {
-        ...storageData.creating.nameDesc,
-        name: storageData.creating.nameDesc.name || defaultPVCName,
-      },
-      storageClassName: storageData.creating.storageClassName || defaultStorageClassName,
-    },
-  };
-};
-
 export const getVersion = (version?: string | number, prefix?: string): string => {
   if (!version) {
     return '';
@@ -395,12 +369,11 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
 
 export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
-  storageData: StorageData,
+  storageData: StorageData[],
   envVariables: EnvVariable[],
   dataConnection: DataConnectionData,
 ): boolean => {
   const { projectName, notebookData, image } = startNotebookData;
-  const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
     isK8sNameDescriptionDataValid(notebookData) &&
@@ -408,9 +381,7 @@ export const checkRequiredFieldsForNotebookStart = (
     image.imageVersion
   );
 
-  const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
-  const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
-  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
+  const isStorageDataValid = storageData.length > 0;
 
   const newDataConnectionInvalid =
     dataConnection.type === 'creating' &&

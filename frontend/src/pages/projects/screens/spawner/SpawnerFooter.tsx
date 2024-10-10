@@ -40,10 +40,11 @@ import {
 } from './service';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+import { defaultClusterStorage } from './storage/constants';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
-  storageData: StorageData;
+  storageData: StorageData[];
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
   canEnablePipelines: boolean;
@@ -90,6 +91,11 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     editNotebook,
     existingDataConnections,
   );
+  const rootPathStorageData =
+    storageData.find(
+      (formData) => formData.creating.mountPath === defaultClusterStorage.mountPath,
+    ) || storageData[0];
+
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { selectedAcceleratorProfile, notebookSize, image } = startNotebookData;
     const tep: FormTrackingEventProperties = {
@@ -110,8 +116,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       imageName: image.imageStream?.metadata.name,
       projectName,
       notebookName: name,
-      storageType: storageData.storageType,
-      storageDataSize: storageData.creating.size,
+      storageType: rootPathStorageData.storageType,
+      storageDataSize: rootPathStorageData.creating.size,
       dataConnectionType: dataConnection.creating?.type?.toString(),
       dataConnectionCategory: dataConnection.creating?.values?.category?.toString(),
       dataConnectionEnabled: dataConnection.enabled,
@@ -144,7 +150,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     const pvcDetails = await replaceRootVolumesForNotebook(
       projectName,
       editNotebook,
-      storageData,
+      rootPathStorageData,
       dryRun,
     ).catch(handleError);
 
@@ -247,7 +253,33 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         ? [dataConnection.existing]
         : [];
 
-    const pvcDetails = await createPvcDataForNotebook(projectName, storageData).catch(handleError);
+    const createPvcRequests = storageData.map((pvcData) =>
+      createPvcDataForNotebook(projectName, pvcData),
+    );
+
+    const pvcResponses = await Promise.all(createPvcRequests).catch(handleError);
+    const pvcDetails = pvcResponses?.reduce(
+      (acc, response) => {
+        if (response.volumes.length) {
+          acc.volumes = acc.volumes.concat(response.volumes);
+        } else {
+          acc.volumes = response.volumes;
+        }
+
+        if (response.volumeMounts.length) {
+          acc.volumeMounts = acc.volumeMounts.concat(response.volumeMounts);
+        } else {
+          acc.volumeMounts = response.volumeMounts;
+        }
+
+        return acc;
+      },
+      {
+        volumes: [],
+        volumeMounts: [],
+      },
+    );
+
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
       ...envVariables,
       ...newDataConnection,
