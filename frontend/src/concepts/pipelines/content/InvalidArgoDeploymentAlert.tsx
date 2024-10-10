@@ -5,10 +5,10 @@ import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 const INVALID_ARGO_DEPLOYMENT_SELF_DOCUMENTATION_URL =
-  'https://access.redhat.com/documentation/en-us/red_hat_openshift_ai_self-managed/2.9/html/release_notes/new-features-and-enhancements_relnotes';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2-latest/html/working_with_data_science_pipelines/enabling-data-science-pipelines-2_ds-pipelines';
 
 const INVALID_ARGO_DEPLOYMENT_CLOUD_DOCUMENTATION_URL =
-  'https://access.redhat.com/documentation/en-us/red_hat_openshift_ai_cloud_service/1/html/release_notes/new-features-and-enhancements_relnotes';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_science_pipelines/enabling-data-science-pipelines-2_ds-pipelines';
 
 export const InvalidArgoDeploymentAlert: React.FC = () => {
   const [invalidArgoDeploymentAlertDismissed, setInvalidArgoDeploymentAlertDismissed] =

@@ -19,7 +19,7 @@ import { DeleteServerModal, usePipelinesAPI } from './context';
 
 // TODO: Fix doc link to go to more docs on v2
 const DOCS_LINK =
-  'https://access.redhat.com/documentation/en-us/red_hat_openshift_ai_self-managed/2.7/html/release_notes/support-removals_relnotes';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_science_pipelines/enabling-data-science-pipelines-2_ds-pipelines';
 
 type EnsureCompatiblePipelineServerProps = {
   children: React.ReactNode;
