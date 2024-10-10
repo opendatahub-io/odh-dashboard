@@ -17,9 +17,8 @@ import ExternalLink from '~/components/ExternalLink';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import { DeleteServerModal, usePipelinesAPI } from './context';
 
-// TODO: Fix doc link to go to more docs on v2
 const DOCS_LINK =
-  'https://access.redhat.com/documentation/en-us/red_hat_openshift_ai_self-managed/2.7/html/release_notes/support-removals_relnotes';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.13/html/release_notes/support-removals_relnotes';
 
 type EnsureCompatiblePipelineServerProps = {
   children: React.ReactNode;
