@@ -14,7 +14,7 @@ class PipelineImportModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId('upload-version-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('import-pipeline-modal').parents('div[role="dialog"]');
   }
 
   findSubmitButton() {
@@ -22,11 +22,11 @@ class PipelineImportModal extends Modal {
   }
 
   findVersionNameInput() {
-    return this.find().findByTestId('pipeline-version-name');
+    return this.find().findByTestId('pipeline-name');
   }
 
   findVersionDescriptionInput() {
-    return this.find().findByTestId('pipeline-version-description');
+    return this.find().findByTestId('pipeline-description');
   }
 
   findUploadPipelineInput() {

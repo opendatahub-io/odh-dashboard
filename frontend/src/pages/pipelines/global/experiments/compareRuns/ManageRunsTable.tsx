@@ -9,13 +9,12 @@ import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableVie
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import PipelineRunTableToolbar, {
-  FilterProps,
-} from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
+import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { ExperimentKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
 import { experimentsCompareRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { FilterProps } from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbarBase';
 
 type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 'runType'> & {
   filterProps: FilterProps;
