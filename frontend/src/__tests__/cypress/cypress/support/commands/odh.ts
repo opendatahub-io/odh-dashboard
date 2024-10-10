@@ -29,6 +29,7 @@ import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
   ClusterSettingsType,
+  DetectedAccelerators,
   ImageInfo,
   OdhApplication,
   OdhDocument,
@@ -54,6 +55,7 @@ import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
 import type { ArtifactStorage } from '~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
+import type { NimServingResponse } from '~/__tests__/cypress/cypress/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -637,6 +639,19 @@ declare global {
         ((
           type: 'POST /api/modelRegistryRoleBindings',
           response: OdhResponse<RoleBindingKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/accelerators',
+          response: OdhResponse<DetectedAccelerators>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/nim-serving/:resource',
+          options: {
+            path: {
+              resource: 'nvidia-nim-images-data' | 'nvidia-nim-access' | 'nvidia-nim-image-pull';
+            };
+          },
+          response: OdhResponse<NimServingResponse>,
         ) => Cypress.Chainable<null>);
     }
   }
