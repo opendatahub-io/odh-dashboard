@@ -16,6 +16,8 @@ type LogsTabStatusProps = {
   isFailedPod?: boolean;
   loaded: boolean;
   onDownload: () => void;
+  onDownloadAll: () => void;
+  rawLogsLink: string;
 };
 
 const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
@@ -28,6 +30,8 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
   loaded,
   isFailedPod,
   onDownload,
+  onDownloadAll,
+  rawLogsLink,
 }) => {
   if (isCached) {
     return (
@@ -85,11 +89,28 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
     >
       <p>
         The log refreshes every {Math.floor(LOG_REFRESH_RATE / 1000)} seconds and displays the
-        latest {LOG_TAIL_LINES} lines. To view the full log for this task, you can{' '}
-        <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownload}>
-          download all step logs
+        latest {LOG_TAIL_LINES} lines, with exceptionally long lines abridged. To view the full log
+        for this step,{' '}
+        <Button
+          isDisabled={!isLogsAvailable}
+          variant="link"
+          component="a"
+          href={rawLogsLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          isInline
+        >
+          view its raw log
         </Button>{' '}
-        associated with it.
+        or{' '}
+        <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownload}>
+          download
+        </Button>{' '}
+        it. To view the full log for this task,{' '}
+        <Button isDisabled={!isLogsAvailable} variant="link" isInline onClick={onDownloadAll}>
+          download all of its associated step logs
+        </Button>
+        .
       </p>
     </Alert>
   );

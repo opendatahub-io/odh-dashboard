@@ -5,7 +5,7 @@ const DashboardLogViewer: React.FC<{
   data: string;
   logViewerRef: React.MutableRefObject<{ scrollToBottom: () => void } | undefined>;
   toolbar: JSX.Element | boolean;
-  footer: JSX.Element | false;
+  footer?: JSX.Element | false;
   onScroll: React.ComponentProps<typeof LogViewer>['onScroll'];
   height?: number | string;
   isTextWrapped?: boolean;

@@ -17,16 +17,16 @@ import {
   ToolbarItem,
   Tooltip,
   Truncate,
+  Icon,
 } from '@patternfly/react-core';
-import { OutlinedPlayCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
-import { PauseIcon } from '@patternfly/react-icons/dist/esm/icons/pause-icon';
-import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import { DownloadIcon } from '@patternfly/react-icons/dist/esm/icons/download-icon';
 import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
 import {
   CompressIcon,
   EllipsisVIcon,
   ExpandIcon,
+  OutlinedPauseCircleIcon,
+  OutlinedPlayCircleIcon,
   OutlinedWindowRestoreIcon,
 } from '@patternfly/react-icons';
 import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
@@ -97,6 +97,7 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
     };
   }, [dispatchResizeEvent]);
 
+  // Scroll to bottom when log refreshes and streaming
   React.useEffect(() => {
     if (!isPaused && logs) {
       if (logViewerRef.current) {
@@ -104,6 +105,16 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
       }
     }
   }, [isPaused, logs]);
+
+  React.useEffect(() => {
+    const logWindowElement = document.querySelector(
+      '#dashboard-logviewer .pf-v5-c-log-viewer__main',
+    );
+    if (logWindowElement) {
+      logWindowElement.addEventListener('mousedown', () => setIsPaused(true));
+    }
+    return logWindowElement?.removeEventListener('mousedown', () => setIsPaused(true));
+  }, []);
 
   const onScroll: React.ComponentProps<typeof LogViewer>['onScroll'] = ({
     scrollOffsetToBottom,
@@ -195,6 +206,8 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
     data = 'No logs available';
   }
 
+  const rawLogsLink = `${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`;
+
   return (
     <Stack hasGutter>
       <StackItem>
@@ -208,19 +221,18 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
             isCached={isCached}
             isFailedPod={isFailedPod}
             isLogsAvailable={podContainers.length !== 1 && !!logs}
-            onDownload={onDownloadAll}
+            onDownload={onDownload}
+            onDownloadAll={onDownloadAll}
+            rawLogsLink={rawLogsLink}
           />
         )}
       </StackItem>
       <StackItem isFilled id="dashboard-logviewer" style={{ position: 'relative' }}>
-        {/* -33 to make room for the footer to pop in*/}
         <div
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: -33 }}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
           ref={logsTabRef}
         >
-          {/* 33 for the toolbar, 33 for the footer, and 1 because browser layout calculations sometimes go over by a fraction of a pixel */}
           <DashboardLogViewer
-            height="calc(100% - 75px)"
             data={data}
             logViewerRef={logViewerRef}
             isTextWrapped={isTextWrapped}
@@ -314,7 +326,7 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
                           }}
                         />
                       </ToolbarItem>
-                      {(!podStatus?.completed || isPaused) && (
+                      {!podStatus?.completed && (
                         <ToolbarItem spacer={{ default: 'spacerNone' }}>
                           <Button
                             variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
@@ -323,16 +335,20 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
                             data-testid="logs-pause-refresh-button"
                           >
                             {isPaused ? (
-                              <Tooltip content="Resume refreshing">
-                                <PlayIcon />
+                              <Tooltip content="Resume log streaming.">
+                                <Icon iconSize="md">
+                                  <OutlinedPlayCircleIcon />
+                                </Icon>
                               </Tooltip>
                             ) : !logsLoaded || podStatus?.podInitializing ? (
                               <Tooltip content="Loading log">
                                 <Spinner size="sm" />
                               </Tooltip>
                             ) : (
-                              <Tooltip content="Pause refreshing">
-                                <PauseIcon />
+                              <Tooltip content="Pause log streaming.">
+                                <Icon iconSize="md">
+                                  <OutlinedPauseCircleIcon />
+                                </Icon>
                               </Tooltip>
                             )}
                           </Button>
@@ -394,7 +410,7 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
                           <DropdownList>
                             <DropdownItem
                               isDisabled={!logs}
-                              to={`${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`}
+                              to={rawLogsLink}
                               target="_blank"
                               rel="noopener noreferrer"
                               icon={<OutlinedWindowRestoreIcon />}
@@ -416,19 +432,6 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
                     </ToolbarGroup>
                   </ToolbarContent>
                 </Toolbar>
-              )
-            }
-            footer={
-              logsLoaded &&
-              isPaused &&
-              !podStatus?.completed && (
-                <Button
-                  onClick={() => setIsPaused(false)}
-                  isBlock
-                  icon={<OutlinedPlayCircleIcon />}
-                >
-                  Resume refreshing log
-                </Button>
               )
             }
             onScroll={onScroll}
