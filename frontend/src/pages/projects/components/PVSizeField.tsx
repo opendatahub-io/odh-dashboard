@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import ValueUnitField from '~/components/ValueUnitField';
-import { MEMORY_UNITS_FOR_SELECTION } from '~/utilities/valueUnits';
+import { MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/utilities/valueUnits';
 
 type PVSizeFieldProps = {
   fieldID: string;
@@ -11,6 +11,7 @@ type PVSizeFieldProps = {
   setSize: (size: string) => void;
   currentSize?: string;
   label?: string;
+  options?: UnitOption[];
 };
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({
@@ -20,6 +21,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({
   setSize,
   currentSize,
   label = 'Persistent storage size',
+  options = MEMORY_UNITS_FOR_SELECTION,
 }) => (
   <FormGroup label={label} fieldId={fieldID} data-testid={fieldID}>
     <ValueUnitField
@@ -28,7 +30,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({
       menuAppendTo={menuAppendTo}
       onChange={(value) => setSize(value)}
       validated={currentSize ? 'warning' : 'default'}
-      options={MEMORY_UNITS_FOR_SELECTION}
+      options={options}
       value={size}
     />
     {currentSize && (
