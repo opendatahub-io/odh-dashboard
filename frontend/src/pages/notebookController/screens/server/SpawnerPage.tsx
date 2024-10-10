@@ -84,7 +84,7 @@ const SpawnerPage: React.FC = () => {
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
-  const defaultStorageClass = useDefaultStorageClass();
+  const [defaultStorageClass, defaultStorageClassLoaded] = useDefaultStorageClass();
 
   const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
     useGenericObjectState<AcceleratorProfileSelectFieldState>({
@@ -99,7 +99,8 @@ const SpawnerPage: React.FC = () => {
       ({ errors, variables }) =>
         Object.keys(errors).length > 0 ||
         variables.find((variable) => !variable.name || variable.name === EMPTY_KEY),
-    );
+    ) ||
+    !defaultStorageClassLoaded;
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
