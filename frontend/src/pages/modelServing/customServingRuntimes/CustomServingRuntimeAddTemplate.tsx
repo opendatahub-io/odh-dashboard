@@ -137,7 +137,6 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem>Settings</BreadcrumbItem>
           <BreadcrumbItem render={() => <Link to="/servingRuntimes">Serving runtimes</Link>} />
           {existingTemplate && (
             <BreadcrumbItem>

@@ -7,7 +7,7 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon } from '@patternfly/react-icons';
+import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import SimpleSelect from '~/components/SimpleSelect';
@@ -35,6 +35,7 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
   if (unfilteredmodelVersions.length === 0) {
     return (
       <EmptyModelRegistryState
+        headerIcon={SearchIcon}
         testid="empty-archive-state"
         title="No archived versions"
         description="You can archive the active versions that you no longer use. You can restore an archived versions to make it active."
