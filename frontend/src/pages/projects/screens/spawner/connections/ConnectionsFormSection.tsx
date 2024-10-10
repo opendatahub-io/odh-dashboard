@@ -111,6 +111,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
             trigger={unselectedConnections.length === 0 ? 'mouseenter focus' : 'manual'}
           >
             <Button
+              data-testid="attach-existing-connection-button"
               variant="secondary"
               isAriaDisabled={unselectedConnections.length === 0}
               onClick={() => setShowAttachConnectionsModal(true)}
@@ -119,6 +120,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
             </Button>
           </Tooltip>{' '}
           <Button
+            data-testid="create-connection-button"
             variant="secondary"
             onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
           >
@@ -133,7 +135,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
       {selectedConnections.length > 0 ? (
         <Table
           data={selectedConnections}
-          data-testid="connection-table"
+          data-testid="connections-table"
           columns={columns}
           rowRenderer={(connection) => (
             <ConnectionsTableRow
