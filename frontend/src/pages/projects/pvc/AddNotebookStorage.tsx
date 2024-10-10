@@ -11,7 +11,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import MountPathField from './MountPathField';
 
 type AddNotebookStorageProps = {
-  notebook?: NotebookKind;
+  notebook: NotebookKind;
   onClose: (submitted: boolean) => void;
 };
 
@@ -19,9 +19,9 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
   const [existingData, setExistingData, resetDefaults] = useExistingStorageDataObjectForNotebook();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const notebookDisplayName = notebook ? getDisplayNameFromK8sResource(notebook) : 'this notebook';
+  const notebookDisplayName = getDisplayNameFromK8sResource(notebook);
   const inUseMountPaths = getNotebookMountPaths(notebook);
-  const restartNotebooks = useWillNotebooksRestart([notebook?.metadata.name || '']);
+  const restartNotebooks = useWillNotebooksRestart([notebook.metadata.name]);
 
   const canSubmit =
     !isSubmitting &&
@@ -36,29 +36,27 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
   };
 
   const submit = () => {
-    if (notebook) {
-      setIsSubmitting(true);
-      attachNotebookPVC(
-        notebook.metadata.name,
-        notebook.metadata.namespace,
-        existingData.name,
-        existingData.mountPath.value,
-      )
-        .then(() => {
-          beforeClose(true);
-        })
-        .catch((e) => {
-          setError(e);
-          setIsSubmitting(false);
-        });
-    }
+    setIsSubmitting(true);
+    attachNotebookPVC(
+      notebook.metadata.name,
+      notebook.metadata.namespace,
+      existingData.name,
+      existingData.mountPath.value,
+    )
+      .then(() => {
+        beforeClose(true);
+      })
+      .catch((e) => {
+        setError(e);
+        setIsSubmitting(false);
+      });
   };
 
   return (
     <Modal
       variant="small"
       title={`Add storage to ${notebookDisplayName}`}
-      isOpen={!!notebook}
+      isOpen
       onClose={() => beforeClose(false)}
       actions={[
         <Button

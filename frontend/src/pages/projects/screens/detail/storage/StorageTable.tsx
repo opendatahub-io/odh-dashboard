@@ -84,16 +84,17 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
           />
         )}
       />
-      <ManageStorageModal
-        isOpen={!!editPVC}
-        existingData={editPVC}
-        onClose={(updated) => {
-          if (updated) {
-            refresh();
-          }
-          setEditPVC(undefined);
-        }}
-      />
+      {editPVC ? (
+        <ManageStorageModal
+          existingData={editPVC}
+          onClose={(updated) => {
+            if (updated) {
+              refresh();
+            }
+            setEditPVC(undefined);
+          }}
+        />
+      ) : null}
       {deleteStorage ? (
         <DeletePVCModal
           pvcToDelete={deleteStorage}

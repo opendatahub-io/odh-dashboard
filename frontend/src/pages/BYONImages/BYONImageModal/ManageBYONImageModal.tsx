@@ -23,7 +23,6 @@ import DisplayedContentTabContent from './DisplayedContentTabContent';
 
 export type ManageBYONImageModalProps = {
   existingImage?: BYONImage;
-  isOpen: boolean;
   onClose: (submitted: boolean) => void;
 };
 
@@ -32,11 +31,7 @@ export enum DisplayedContentTab {
   PACKAGES,
 }
 
-const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
-  existingImage,
-  isOpen,
-  onClose,
-}) => {
+const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingImage, onClose }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     DisplayedContentTab.SOFTWARE,
   );
@@ -123,7 +118,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
       onEscapePress={(e) => e.preventDefault()}
       variant={ModalVariant.medium}
       title={`${existingImage ? 'Update' : 'Import'} notebook image`}
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       showClose={!isEditing}
       footer={

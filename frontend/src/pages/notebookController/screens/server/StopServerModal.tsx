@@ -15,12 +15,14 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
   const notification = useNotification();
   const [isDeleting, setDeleting] = React.useState(false);
 
+  const { isAdmin } = useUser();
+
+  if (!notebooksToStop.length) {
+    return null;
+  }
+
   const hasMultipleServers = notebooksToStop.length > 1;
   const textToShow = hasMultipleServers ? 'all servers' : 'server';
-
-  const isModalShown = notebooksToStop.length !== 0;
-
-  const { isAdmin } = useUser();
 
   const onClose = () => {
     onNotebooksStop(false);
@@ -79,7 +81,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
       appendTo={document.body}
       variant={ModalVariant.small}
       title={`Stop ${textToShow}`}
-      isOpen={isModalShown}
+      isOpen
       showClose
       onClose={onClose}
       actions={modalActions}

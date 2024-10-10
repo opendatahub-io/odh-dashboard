@@ -104,7 +104,9 @@ const NotebookAdminControl: React.FC = () => {
           />
         </StackItem>
       </Stack>
-      <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
+      {notebooksToStop.length ? (
+        <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
+      ) : null}
     </ApplicationsPage>
   );
 };

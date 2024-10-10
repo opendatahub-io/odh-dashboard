@@ -21,11 +21,10 @@ import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 type AddStorageModalProps = {
   existingData?: PersistentVolumeClaimKind;
-  isOpen: boolean;
   onClose: (submit: boolean) => void;
 };
 
-const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOpen, onClose }) => {
+const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, onClose }) => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
   const defaultStorageClass = useDefaultStorageClass();
@@ -53,7 +52,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   ]);
 
   React.useEffect(() => {
-    if (!existingData && isOpen) {
+    if (!existingData) {
       if (isStorageClassesAvailable) {
         setCreateData('storageClassName', defaultStorageClass?.metadata.name);
       } else {
@@ -65,7 +64,6 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     defaultStorageClass,
     preferredStorageClass,
     existingData,
-    isOpen,
     setCreateData,
   ]);
 
@@ -150,7 +148,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
           : 'Add storage and optionally connect it with an existing workbench.'
       }
       variant="medium"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose(false)}
       showClose
       footer={

@@ -22,7 +22,6 @@ import { NotebookState } from './types';
 import { getEventFullMessage, getEventTimestamp } from './utils';
 
 type StartNotebookModalProps = {
-  isOpen: boolean;
   notebookState: NotebookState;
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
@@ -36,7 +35,6 @@ type SpawnStatus = {
 };
 
 const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
-  isOpen,
   notebookStatus,
   events,
   notebookState,
@@ -49,11 +47,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
-    if (!isOpen) {
-      // Reset the modal
-      setSpawnPercentile(0);
-      setSpawnStatus(null);
-    } else if (isRunning) {
+    if (isRunning) {
       setSpawnPercentile(100);
       setSpawnStatus({
         status: AlertVariant.success,
@@ -61,10 +55,10 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         description: 'The notebook server is up and running.',
       });
     }
-  }, [isOpen, isRunning]);
+  }, [isRunning]);
 
   React.useEffect(() => {
-    if (isStarting && !isRunning && isOpen) {
+    if (isStarting && !isRunning) {
       if (!notebookStatus) {
         return;
       }
@@ -91,7 +85,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         });
       }
     }
-  }, [notebookStatus, isStarting, isRunning, isOpen]);
+  }, [notebookStatus, isStarting, isRunning]);
 
   const renderProgress = () => {
     let variant: ProgressVariant | undefined;
@@ -113,7 +107,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     let title: string;
     if (events.length > 0 && currentEvent) {
       title = currentEvent;
-    } else if (isOpen && !isStarting) {
+    } else if (!isStarting) {
       title = 'Creating resources...';
     } else {
       title = 'Waiting for server request to start...';
@@ -189,7 +183,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       appendTo={document.body}
       variant={ModalVariant.small}
       title="Starting server"
-      isOpen={isOpen}
+      isOpen
       showClose
       onClose={() => onClose(false)}
     >

@@ -127,7 +127,6 @@ export const useNotebookActionsColumn = (
       />
       {isOpenConfirm ? (
         <StopNotebookConfirmModal
-          isOpen
           notebookState={notebookState}
           onClose={(confirmStatus) => {
             if (confirmStatus) {
