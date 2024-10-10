@@ -26,7 +26,6 @@ type NotebookTableRowProps = {
   obj: NotebookState;
   rowIndex: number;
   onNotebookDelete: (notebook: NotebookKind) => void;
-  onNotebookAddStorage: (notebook: NotebookKind) => void;
   canEnablePipelines: boolean;
   compact?: boolean;
   showOutOfDateElyraInfo: boolean;
@@ -36,7 +35,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   obj,
   rowIndex,
   onNotebookDelete,
-  onNotebookAddStorage,
   canEnablePipelines,
   compact,
   showOutOfDateElyraInfo,
@@ -65,6 +63,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       <Tr isStriped={rowIndex % 2 === 0}>
         {!compact ? (
           <Td
+            data-testid="notebook-table-expand-cell"
             expand={{
               rowIndex,
               expandId: 'notebook-row-item',
@@ -166,7 +165,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           <Td />
           <Td dataLabel="Workbench storages">
             <ExpandableRowContent>
-              <NotebookStorageBars notebook={obj.notebook} onAddStorage={onNotebookAddStorage} />
+              <NotebookStorageBars notebook={obj.notebook} />
             </ExpandableRowContent>
           </Td>
           <Td dataLabel="Packages">

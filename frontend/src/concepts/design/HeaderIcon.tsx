@@ -10,6 +10,7 @@ import {
 interface HeaderIconProps {
   size?: number;
   padding?: number;
+  display?: string;
   image?: string;
   type: ProjectObjectType;
   sectionType?: SectionType;
@@ -18,13 +19,14 @@ interface HeaderIconProps {
 const HeaderIcon: React.FC<HeaderIconProps> = ({
   size = 40,
   padding = 2,
+  display = 'inline-block',
   image,
   type,
   sectionType,
 }) => (
   <div
     style={{
-      display: 'inline-block',
+      display,
       width: size,
       height: size,
       padding,

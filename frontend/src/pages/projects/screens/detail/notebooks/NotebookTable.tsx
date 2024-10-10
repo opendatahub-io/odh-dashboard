@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Table } from '~/components/table';
 import { NotebookKind } from '~/k8sTypes';
 import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
-import AddNotebookStorage from '~/pages/projects/pvc/AddNotebookStorage';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -17,7 +16,6 @@ type NotebookTableProps = {
 
 const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const [addNotebookStorage, setAddNotebookStorage] = React.useState<NotebookKind | undefined>();
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
 
   return (
@@ -38,7 +36,6 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
                     rowIndex={i}
                     obj={notebookState}
                     onNotebookDelete={setNotebookToDelete}
-                    onNotebookAddStorage={setAddNotebookStorage}
                     canEnablePipelines={canEnablePipelines}
                     showOutOfDateElyraInfo={showImpactedNotebookInfo(notebookState.notebook)}
                   />
@@ -48,15 +45,6 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
           </CanEnableElyraPipelinesCheck>
         )}
       </ElyraInvalidVersionAlerts>
-      <AddNotebookStorage
-        notebook={addNotebookStorage}
-        onClose={(submitted) => {
-          if (submitted) {
-            refresh();
-          }
-          setAddNotebookStorage(undefined);
-        }}
-      />
       {notebookToDelete ? (
         <DeleteNotebookModal
           notebook={notebookToDelete}

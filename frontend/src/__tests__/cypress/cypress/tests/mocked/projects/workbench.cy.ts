@@ -17,7 +17,6 @@ import {
   editSpawnerPage,
   notFoundSpawnerPage,
   notebookConfirmModal,
-  storageModal,
   workbenchPage,
 } from '~/__tests__/cypress/cypress/pages/workbench';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
@@ -165,7 +164,10 @@ const initIntercepts = ({
     ),
   );
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
-  cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
+  cy.interceptK8sList(
+    PVCModel,
+    mockK8sResourceList([mockPVCK8sResource({ name: 'test-storage-1' })]),
+  );
 
   cy.interceptK8s('POST', ConfigMapModel, mockConfigMap({})).as('createConfigMap');
 
@@ -327,7 +329,7 @@ describe('Workbench page', () => {
           template: {
             spec: {
               volumes: [
-                { name: 'test-storage', persistentVolumeClaim: { claimName: 'test-storage' } },
+                { name: 'test-storage-1', persistentVolumeClaim: { claimName: 'test-storage-1' } },
               ],
             },
           },
@@ -454,13 +456,6 @@ describe('Workbench page', () => {
     workbenchPage.findNotebookTableHeaderButton('Status').should(be.sortAscending);
     workbenchPage.findNotebookTableHeaderButton('Status').click();
     workbenchPage.findNotebookTableHeaderButton('Status').should(be.sortDescending);
-
-    //expandable table
-    notebookRow.toggleExpandableContent();
-    notebookRow.findAddStorageButton().click();
-    storageModal.selectExistingPersistentStorage('Test Storage');
-    storageModal.findMountField().fill('data');
-    storageModal.findSubmitButton().click();
   });
 
   it('Validate the notebook status when workbench is stopped and starting', () => {
@@ -648,6 +643,16 @@ describe('Workbench page', () => {
     notFoundSpawnerPage.findReturnToPage().should('be.enabled');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project?section=overview');
+  });
+
+  it('Expanded workbench table row', () => {
+    initIntercepts({});
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findExpansionButton().click();
+    notebookRow.findExpansion().should('be.visible');
+    notebookRow.shouldHaveClusterStorageTitle();
+    notebookRow.shouldHaveMountPath('/opt/app-root/src/root');
   });
 
   it('Delete Workbench', () => {

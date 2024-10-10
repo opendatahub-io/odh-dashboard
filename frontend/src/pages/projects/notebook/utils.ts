@@ -42,7 +42,7 @@ export const getNotebookPVCMountPathMap = (
           return innerAcc;
         }
 
-        return { ...innerAcc, [claimName]: relativeMountPath(volumeMount.mountPath) };
+        return { ...innerAcc, [claimName]: volumeMount.mountPath || '/ ' };
       }, {}),
     }),
     {},
