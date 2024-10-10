@@ -75,8 +75,8 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
     <ToolbarGroup variant="filter-group">
       <ToolbarFilter
         chips={search === '' ? [] : [search]}
-        deleteChip={() => setSearch('')}
-        deleteChipGroup={() => setSearch('')}
+        deleteChip={resetFilters}
+        deleteChipGroup={resetFilters}
         categoryName="Keyword"
       >
         <SimpleSelect
@@ -101,7 +101,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
           onChange={(_, searchValue) => {
             setSearch(searchValue);
           }}
-          onClear={() => setSearch('')}
+          onClear={resetFilters}
           style={{ minWidth: '200px' }}
           data-testid="registered-model-table-search"
         />
@@ -114,7 +114,12 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
       refresh={refresh}
       clearFilters={resetFilters}
       registeredModels={filteredRegisteredModels}
-      toolbarContent={<RegisteredModelsTableToolbar toggleGroupItems={toggleGroupItems} />}
+      toolbarContent={
+        <RegisteredModelsTableToolbar
+          toggleGroupItems={toggleGroupItems}
+          onClearAllFilters={resetFilters}
+        />
+      }
     />
   );
 };

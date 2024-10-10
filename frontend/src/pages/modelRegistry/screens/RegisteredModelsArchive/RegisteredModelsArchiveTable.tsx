@@ -23,6 +23,7 @@ const RegisteredModelsArchiveTable: React.FC<RegisteredModelsArchiveTableProps> 
     columns={rmColumns}
     toolbarContent={toolbarContent}
     defaultSortColumn={2}
+    onClearFilters={clearFilters}
     enablePagination
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
     rowRenderer={(rm) => (
