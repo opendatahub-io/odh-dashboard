@@ -87,6 +87,16 @@ const initIntercepts = ({
       disableModelRegistry: disableModelRegistryFeature,
     }),
   );
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+      },
+    },
+    mockModelVersionList({ items: modelVersions }),
+  );
   cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
   cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview());

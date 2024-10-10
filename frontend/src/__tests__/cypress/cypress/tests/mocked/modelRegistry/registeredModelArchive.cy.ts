@@ -66,7 +66,16 @@ const initIntercepts = ({
       },
     }),
   );
-
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+      },
+    },
+    mockModelVersionList({ items: modelVersions }),
+  );
   cy.interceptK8sList(
     ServiceModel,
     mockK8sResourceList([
