@@ -90,6 +90,10 @@ class ModelRegistrySettings {
     return cy.findByTestId('modal-submit-button');
   }
 
+  findManagePermissionsTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
   findTable() {
     return cy.findByTestId('model-registries-table');
   }

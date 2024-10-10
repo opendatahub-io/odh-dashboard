@@ -1,18 +1,21 @@
 import React from 'react';
 import { Button, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { Table } from '~/components/table';
-import { ModelRegistryKind } from '~/k8sTypes';
+import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
+import { ContextResourceData } from '~/types';
 import { modelRegistryColumns } from './columns';
 import ModelRegistriesTableRow from './ModelRegistriesTableRow';
 
 type ModelRegistriesTableProps = {
   modelRegistries: ModelRegistryKind[];
   refresh: () => Promise<unknown>;
+  roleBindings: ContextResourceData<RoleBindingKind>;
   onCreateModelRegistryClick: () => void;
 };
 
 const ModelRegistriesTable: React.FC<ModelRegistriesTableProps> = ({
   modelRegistries,
+  roleBindings,
   refresh,
   onCreateModelRegistryClick,
 }) => (
@@ -36,7 +39,12 @@ const ModelRegistriesTable: React.FC<ModelRegistriesTableProps> = ({
       </Toolbar>
     }
     rowRenderer={(mr) => (
-      <ModelRegistriesTableRow key={mr.metadata.name} modelRegistry={mr} refresh={refresh} />
+      <ModelRegistriesTableRow
+        key={mr.metadata.name}
+        modelRegistry={mr}
+        roleBindings={roleBindings}
+        refresh={refresh}
+      />
     )}
     variant="compact"
   />
