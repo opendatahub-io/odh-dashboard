@@ -256,22 +256,31 @@ export const createNotebook = (
   data: StartNotebookData,
   username: string,
   canEnablePipelines?: boolean,
-): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data, username, canEnablePipelines);
+  opts?: K8sAPIOptions,
+): Promise<NotebookKind> =>
+  new Promise((resolve, reject) => {
+    const notebook = assembleNotebook(data, username, canEnablePipelines);
 
-  const notebookPromise = k8sCreateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: notebook,
+    k8sCreateResource<NotebookKind>(
+      applyK8sAPIOptions(
+        {
+          model: NotebookModel,
+          resource: notebook,
+        },
+        opts,
+      ),
+    )
+      .then((fetchedNotebook) => {
+        if (canEnablePipelines) {
+          createElyraServiceAccountRoleBinding(fetchedNotebook, opts)
+            .then(() => resolve(fetchedNotebook))
+            .catch(reject);
+        } else {
+          resolve(fetchedNotebook);
+        }
+      })
+      .catch(reject);
   });
-
-  if (canEnablePipelines) {
-    return notebookPromise.then((fetchedNotebook) =>
-      createElyraServiceAccountRoleBinding(fetchedNotebook).then(() => fetchedNotebook),
-    );
-  }
-
-  return notebookPromise;
-};
 
 export const updateNotebook = (
   existingNotebook: NotebookKind,
