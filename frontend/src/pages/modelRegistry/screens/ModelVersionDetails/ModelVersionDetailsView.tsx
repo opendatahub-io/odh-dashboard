@@ -153,9 +153,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </DashboardDescriptionListGroup>
             </>
           )}
-          <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
-            Source model format
-          </Title>
+        </DescriptionList>
+        <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+          Source model format
+        </Title>
+        <DescriptionList isFillColumns>
           <DashboardDescriptionListGroup
             title="Name"
             isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatName}
@@ -170,6 +172,8 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             {modelArtifact.items[0]?.modelFormatVersion}
           </DashboardDescriptionListGroup>
+        </DescriptionList>
+        <DescriptionList isFillColumns style={{ marginTop: '2em' }}>
           <DashboardDescriptionListGroup
             title="Author"
             tooltip={
