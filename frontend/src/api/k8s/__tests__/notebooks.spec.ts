@@ -780,6 +780,12 @@ describe('removeNotebookPVC', () => {
           path: '/spec/template/spec/volumes',
           value: [
             { name: notebookName, persistentVolumeClaim: { claimName: notebookName } },
+            {
+              name: 'test-storage-1',
+              persistentVolumeClaim: {
+                claimName: 'test-storage-1',
+              },
+            },
             { name: 'oauth-config', secret: { secretName: 'workbench-oauth-config' } },
             { name: 'tls-certificates', secret: { secretName: 'workbench-tls' } },
           ],
@@ -787,7 +793,13 @@ describe('removeNotebookPVC', () => {
         {
           op: 'replace',
           path: '/spec/template/spec/containers/0/volumeMounts',
-          value: [{ mountPath: '/opt/app-root/src', name: notebookName }],
+          value: [
+            { mountPath: '/opt/app-root/src', name: notebookName },
+            {
+              mountPath: '/opt/app-root/src/root',
+              name: 'test-storage-1',
+            },
+          ],
         },
       ],
       queryOptions: { name: notebookName, ns: namespace, queryParams: {} },
@@ -853,6 +865,12 @@ describe('removeNotebookPVC', () => {
           path: '/spec/template/spec/volumes',
           value: [
             { name: notebookName, persistentVolumeClaim: { claimName: notebookName } },
+            {
+              name: 'test-storage-1',
+              persistentVolumeClaim: {
+                claimName: 'test-storage-1',
+              },
+            },
             { name: 'oauth-config', secret: { secretName: 'workbench-oauth-config' } },
             { name: 'tls-certificates', secret: { secretName: 'workbench-tls' } },
           ],
@@ -860,7 +878,13 @@ describe('removeNotebookPVC', () => {
         {
           op: 'replace',
           path: '/spec/template/spec/containers/0/volumeMounts',
-          value: [{ mountPath: '/opt/app-root/src', name: notebookName }],
+          value: [
+            { mountPath: '/opt/app-root/src', name: notebookName },
+            {
+              mountPath: '/opt/app-root/src/root',
+              name: 'test-storage-1',
+            },
+          ],
         },
       ],
       queryOptions: { name: notebookName, ns: namespace, queryParams: {} },

@@ -129,8 +129,24 @@ class NotebookRow extends TableRow {
     return this;
   }
 
-  toggleExpandableContent() {
-    this.find().findByRole('button', { name: 'Details' }).click();
+  shouldHaveClusterStorageTitle() {
+    this.findExpansion()
+      .findByTestId('notebook-storage-bar-title')
+      .should('have.text', 'Cluster storage');
+    return this;
+  }
+
+  shouldHaveMountPath(name: string) {
+    this.findExpansion().findByTestId('storage-mount-path').contains(name);
+    return this;
+  }
+
+  findExpansionButton() {
+    return this.find().findByTestId('notebook-table-expand-cell');
+  }
+
+  findExpansion() {
+    return this.find().siblings();
   }
 
   findAddStorageButton() {
