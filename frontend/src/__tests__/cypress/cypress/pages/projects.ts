@@ -3,6 +3,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { TrustyAICRState } from '~/__tests__/cypress/cypress/pages/components/TrustyAICRState';
 import { TableRow } from './components/table';
 
 class ProjectListToolbar extends Contextual<HTMLElement> {
@@ -300,42 +301,12 @@ class ProjectDetails {
 }
 
 class ProjectDetailsSettingsTab extends ProjectDetails {
+  trustyai = new TrustyAICRState();
+
   visit(project: string) {
     super.visit(project);
     this.findTab('Settings').click();
-
-    this.findTrustyAIInstallCheckbox();
     cy.testA11y();
-  }
-
-  findTrustyAIInstallCheckbox() {
-    return cy.findByTestId('trustyai-service-installation');
-  }
-
-  getTrustyAIUninstallModal() {
-    return new TrustyAIUninstallModal();
-  }
-
-  findTrustyAITimeoutError() {
-    return cy.findByTestId('trustyai-service-timeout-error');
-  }
-
-  findTrustyAIServiceError() {
-    return cy.findByTestId('trustyai-service-error');
-  }
-
-  findTrustyAISuccessAlert() {
-    return cy.findByTestId('trustyai-service-installed-alert');
-  }
-}
-
-class TrustyAIUninstallModal extends DeleteModal {
-  constructor() {
-    super('Warning alert: Uninstall TrustyAI');
-  }
-
-  findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: 'Uninstall' });
   }
 }
 

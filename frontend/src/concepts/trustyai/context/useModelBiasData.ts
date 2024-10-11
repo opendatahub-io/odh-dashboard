@@ -1,25 +1,17 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
+import { BiasMetricConfig, TrustyStatusStates } from '~/concepts/trustyai/types';
 import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 
 export type ModelBiasData = {
   biasMetricConfigs: BiasMetricConfig[];
-  serviceStatus: { initializing: boolean; installed: boolean; timedOut: boolean };
-  loaded: boolean;
-  loadError?: Error;
+  statusState: TrustyStatusStates;
   refresh: () => Promise<unknown>;
 };
 export const useModelBiasData = (): ModelBiasData => {
   const { inferenceService } = useParams();
 
-  const { data, crInitializing, hasCR, serverTimedOut } = React.useContext(TrustyAIContext);
-
-  const serviceStatus: ModelBiasData['serviceStatus'] = {
-    initializing: crInitializing,
-    installed: hasCR,
-    timedOut: serverTimedOut,
-  };
+  const { data, statusState } = React.useContext(TrustyAIContext);
 
   const biasMetricConfigs = React.useMemo(() => {
     let configs: BiasMetricConfig[] = [];
@@ -32,10 +24,8 @@ export const useModelBiasData = (): ModelBiasData => {
   }, [data.biasMetricConfigs, data.loaded, inferenceService]);
 
   return {
-    serviceStatus,
+    statusState,
     biasMetricConfigs,
-    loaded: data.loaded,
-    loadError: data.error,
     refresh: data.refresh,
   };
 };

@@ -1,31 +1,39 @@
-import { Card, CardBody, CardHeader, CardTitle } from '@patternfly/react-core';
 import React from 'react';
-import TrustyAIServiceControl from '~/concepts/trustyai/content/TrustyAIServiceControl';
-import { KnownLabels, ProjectKind } from '~/k8sTypes';
-import { TRUST_AI_NOT_SUPPORTED_TEXT } from '~/pages/projects/projectSettings/const';
+import {
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { ProjectKind } from '~/k8sTypes';
+import useTrustyCRState from '~/concepts/trustyai/content/useTrustyCRState';
 
 type ModelBiasSettingsCardProps = {
   project: ProjectKind;
 };
 const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ project }) => {
-  const namespace = project.metadata.name;
-
-  const isTrustySupported = project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true';
-
-  const disabledReason = isTrustySupported ? undefined : TRUST_AI_NOT_SUPPORTED_TEXT;
+  const { action, status } = useTrustyCRState(project);
 
   return (
-    <Card isFlat>
+    <Card isFlat style={{ maxWidth: '675px' }}>
       <CardHeader>
-        <CardTitle>Model bias</CardTitle>
+        <CardTitle>Model monitoring bias</CardTitle>
       </CardHeader>
       <CardBody>
-        <TrustyAIServiceControl
-          namespace={namespace}
-          disabled={!isTrustySupported}
-          disabledReason={disabledReason}
-        />
+        To ensure that machine-learning models are transparent, fair, and reliable, data scientists
+        can use TrustyAI to monitor their data science models. TrustyAI is an open-source AI
+        Explainability (XAI) Toolkit that offers comprehensive explanations of predictive models in
+        both enterprise and data science applications.
       </CardBody>
+      <CardFooter>
+        <Stack hasGutter>
+          <StackItem>{action}</StackItem>
+          {status && <StackItem>{status}</StackItem>}
+        </Stack>
+      </CardFooter>
     </Card>
   );
 };

@@ -15,6 +15,7 @@ import { getBreadcrumbItemComponents } from '~/pages/modelServing/screens/metric
 import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { TrustyInstallState } from '~/concepts/trustyai/types';
 import BiasConfigurationTable from './BiasConfigurationTable';
 import BiasConfigurationEmptyState from './BiasConfigurationEmptyState';
 
@@ -27,13 +28,14 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
   breadcrumbItems,
   inferenceService,
 }) => {
-  const { biasMetricConfigs, loaded, loadError, refresh } = useModelBiasData();
+  const { biasMetricConfigs, statusState, refresh } = useModelBiasData();
   const navigate = useNavigate();
   const firstRender = React.useRef(true);
   const [isOpen, setOpen] = React.useState(false);
 
+  const isInstalled = statusState.type === TrustyInstallState.INSTALLED;
   React.useEffect(() => {
-    if (loaded && !loadError) {
+    if (isInstalled) {
       if (firstRender.current) {
         firstRender.current = false;
         if (biasMetricConfigs.length === 0) {
@@ -41,7 +43,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
         }
       }
     }
-  }, [loaded, biasMetricConfigs, loadError]);
+  }, [biasMetricConfigs, isInstalled]);
 
   return (
     <>
@@ -56,7 +58,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
               : 'View metrics'}
           </Button>
         }
-        loaded={loaded}
+        loaded={isInstalled}
         provideChildrenPadding
         empty={biasMetricConfigs.length === 0}
         emptyStatePage={

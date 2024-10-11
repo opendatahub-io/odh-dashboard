@@ -10,6 +10,7 @@ import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 import ServerMetricsPage from '~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
 import { InferenceServiceKind } from '~/k8sTypes';
+import { TrustyInstallState } from '~/concepts/trustyai/types';
 import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {
@@ -23,10 +24,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type,
   const { tab } = useParams();
   const navigate = useNavigate();
 
-  const {
-    hasCR,
-    apiState: { apiAvailable },
-  } = React.useContext(TrustyAIContext);
+  const { statusState } = React.useContext(TrustyAIContext);
 
   return (
     <ApplicationsPage
@@ -38,7 +36,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type,
       headerAction={
         tab === MetricsTabKeys.BIAS && (
           <Button
-            isDisabled={!hasCR || !apiAvailable}
+            isDisabled={statusState.type !== TrustyInstallState.INSTALLED}
             variant="link"
             icon={<CogIcon />}
             onClick={() => navigate('../configure', { replace: true })}

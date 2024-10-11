@@ -1,20 +1,16 @@
 import React from 'react';
-import useTrustyAINamespaceCR, {
-  isTrustyAIAvailable,
-  taiHasServerTimedOut,
-} from '~/concepts/trustyai/useTrustyAINamespaceCR';
+import useTrustyAINamespaceCR from '~/concepts/trustyai/useTrustyAINamespaceCR';
 import useTrustyAIAPIState, { TrustyAPIState } from '~/concepts/trustyai/useTrustyAIAPIState';
 import { TrustyAIContextData } from '~/concepts/trustyai/context/types';
 import { DEFAULT_CONTEXT_DATA } from '~/concepts/trustyai/context/const';
 import useFetchContextData from '~/concepts/trustyai/context/useFetchContextData';
+import { getTrustyStatusState } from '~/concepts/trustyai/utils';
+import { TrustyInstallState, TrustyStatusStates } from '~/concepts/trustyai/types';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
 type TrustyAIContextProps = {
   namespace: string;
-  hasCR: boolean;
-  crInitializing: boolean;
-  serverTimedOut: boolean;
-  serviceLoadError?: Error;
-  ignoreTimedOut: () => void;
+  statusState: TrustyStatusStates;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
   apiState: TrustyAPIState;
@@ -23,10 +19,7 @@ type TrustyAIContextProps = {
 
 export const TrustyAIContext = React.createContext<TrustyAIContextProps>({
   namespace: '',
-  hasCR: false,
-  crInitializing: false,
-  serverTimedOut: false,
-  ignoreTimedOut: () => undefined,
+  statusState: { type: TrustyInstallState.LOADING_INITIAL_STATE },
   data: DEFAULT_CONTEXT_DATA,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
@@ -43,13 +36,8 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   namespace,
 }) => {
   const crState = useTrustyAINamespaceCR(namespace);
-  const [trustyNamespaceCR, crLoaded, crLoadError, refreshCR] = crState;
-  const isCRReady = isTrustyAIAvailable(crState);
-  const [disableTimeout, setDisableTimeout] = React.useState(false);
-  const serverTimedOut = !disableTimeout && taiHasServerTimedOut(crState, isCRReady);
-  const ignoreTimedOut = React.useCallback(() => {
-    setDisableTimeout(true);
-  }, []);
+  const [trustyNamespaceCR, crLoaded, , refreshCR] = crState;
+  const statusState = useDeepCompareMemoize(getTrustyStatusState(crState));
 
   const taisName = trustyNamespaceCR?.metadata.name;
 
@@ -66,9 +54,7 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
       namespace,
       hasCR: !!trustyNamespaceCR,
       crInitializing: !crLoaded,
-      serverTimedOut,
-      ignoreTimedOut,
-      crLoadError,
+      statusState,
       refreshState,
       refreshAPIState,
       apiState,
@@ -78,9 +64,7 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
       namespace,
       trustyNamespaceCR,
       crLoaded,
-      serverTimedOut,
-      ignoreTimedOut,
-      crLoadError,
+      statusState,
       refreshState,
       refreshAPIState,
       apiState,

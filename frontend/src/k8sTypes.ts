@@ -603,12 +603,17 @@ export type TrustyAIKind = K8sResourceCommon & {
     namespace: string;
   };
   spec: {
-    storage: {
-      format: string;
-      folder: string;
-      size: string;
-    };
-    data: {
+    storage:
+      | {
+          format: 'DATABASE';
+          databaseConfigurations: string;
+        }
+      | {
+          format: 'PVC';
+          folder: string;
+          size: string;
+        };
+    data?: {
       filename: string;
       format: string;
     };

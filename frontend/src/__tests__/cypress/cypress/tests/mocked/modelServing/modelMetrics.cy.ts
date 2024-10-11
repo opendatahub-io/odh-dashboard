@@ -3,7 +3,10 @@ import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockSecretK8sResource,
+} from '~/__mocks__/mockSecretK8sResource';
 import {
   configureBiasMetricModal,
   modelMetricsBias,
@@ -12,11 +15,16 @@ import {
   modelMetricsPerformance,
   serverMetrics,
 } from '~/__tests__/cypress/cypress/pages/modelMetrics';
-import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import type {
+  InferenceServiceKind,
+  SecretKind,
+  ServingRuntimeKind,
+  TrustyAIKind,
+} from '~/k8sTypes';
 import { mockPrometheusServing } from '~/__mocks__/mockPrometheusServing';
 import { mockPrometheusBias } from '~/__mocks__/mockPrometheusBias';
 import { mockMetricsRequest } from '~/__mocks__/mockMetricsRequests';
-import { mockTrustyAIServiceK8sResource } from '~/__mocks__/mockTrustyAIServiceK8sResource';
+import { mockTrustyAIServiceForDbK8sResource } from '~/__mocks__/mockTrustyAIServiceK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { projectDetailsSettingsTab } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
@@ -55,6 +63,21 @@ type HandlersProps = {
   isTrustyAIAvailable?: boolean;
   isTrustyAIInstalled?: boolean;
 };
+
+const mockTrustyDBSecret = (): SecretKind =>
+  mockCustomSecretK8sResource({
+    name: 'test-secret',
+    namespace: 'test-project',
+    data: {
+      databaseKind: 'mariadb',
+      databaseUsername: 'trustyaiUsername',
+      databasePassword: 'trustyaiPassword',
+      databaseService: 'mariadb',
+      databasePort: '3306',
+      databaseName: 'trustyai_db',
+      databaseGeneration: 'update',
+    },
+  });
 
 const initIntercepts = ({
   disablePerformanceMetrics,
@@ -174,8 +197,10 @@ const initIntercepts = ({
       name: 'trustyai-service',
     },
     isTrustyAIInstalled
-      ? mockTrustyAIServiceK8sResource({
+      ? mockTrustyAIServiceForDbK8sResource({
           isAvailable: isTrustyAIAvailable,
+          // If you're already installed for the test, it doesn't matter when
+          creationTimestamp: new Date('1970-01-01').toISOString(),
         })
       : { statusCode: 404, body: mock404Error({}) },
   );
@@ -345,10 +370,7 @@ describe('Model Metrics', () => {
     });
 
     projectDetailsSettingsTab.visit('test-project');
-    projectDetailsSettingsTab
-      .findTrustyAIInstallCheckbox()
-      .should('be.enabled')
-      .should('be.checked');
+    projectDetailsSettingsTab.trustyai.findUninstallButton().should('be.enabled');
 
     // test disabling
     cy.interceptK8s(
@@ -361,17 +383,10 @@ describe('Model Metrics', () => {
       {},
     ).as('uninstallTrustyAI');
 
-    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().uncheck();
-    projectDetailsSettingsTab
-      .getTrustyAIUninstallModal()
-      .findSubmitButton()
-      .should('not.be.enabled');
-    projectDetailsSettingsTab.getTrustyAIUninstallModal().findInput().type('trustyai');
-    projectDetailsSettingsTab
-      .getTrustyAIUninstallModal()
-      .findSubmitButton()
-      .should('be.enabled')
-      .click();
+    projectDetailsSettingsTab.trustyai.findUninstallButton().click();
+    projectDetailsSettingsTab.trustyai.deleteModal.findSubmitButton().should('not.be.enabled');
+    projectDetailsSettingsTab.trustyai.deleteModal.findInput().type('trustyai');
+    projectDetailsSettingsTab.trustyai.deleteModal.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@uninstallTrustyAI');
   });
@@ -386,29 +401,45 @@ describe('Model Metrics', () => {
     });
 
     projectDetailsSettingsTab.visit('test-project');
-    projectDetailsSettingsTab
-      .findTrustyAIInstallCheckbox()
-      .should('be.enabled')
-      .should('not.be.checked');
+    projectDetailsSettingsTab.trustyai.findInstallButton().should('be.enabled');
 
     // test enabling
     cy.interceptK8s(
       'POST',
       TrustyAIApplicationsModel,
-      mockTrustyAIServiceK8sResource({ isAvailable: true }),
+      mockTrustyAIServiceForDbK8sResource({ isAvailable: true }),
     ).as('installTrustyAI');
+
+    cy.interceptK8s(SecretModel, mockTrustyDBSecret()).as('getSecret');
 
     cy.interceptK8s(
       TrustyAIApplicationsModel,
-      mockTrustyAIServiceK8sResource({
+      mockTrustyAIServiceForDbK8sResource({
         isAvailable: false,
       }),
     ).as('getTrustyAILoading');
 
-    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
+    projectDetailsSettingsTab.trustyai.findInstallButton().click();
+
+    projectDetailsSettingsTab.trustyai.configureModal.findSubmitButton().should('not.be.enabled');
+
+    projectDetailsSettingsTab.trustyai.configureModal
+      .findExistingNameField()
+      .type('test-secret')
+      .blur();
+
+    // Test we get the secret for validation
+    cy.wait('@getSecret').then((interception) => {
+      expect(interception.response?.body.kind).to.be.eq('Secret');
+    });
+
+    projectDetailsSettingsTab.trustyai.configureModal
+      .findSubmitButton()
+      .should('be.enabled')
+      .click();
 
     cy.wait('@installTrustyAI').then((interception) => {
-      expect(interception.request.body).to.be.eql({
+      expect(interception.request.body).to.containSubset({
         apiVersion: 'trustyai.opendatahub.io/v1alpha1',
         kind: 'TrustyAIService',
         metadata: {
@@ -417,19 +448,14 @@ describe('Model Metrics', () => {
         },
         spec: {
           storage: {
-            format: 'PVC',
-            folder: '/inputs',
-            size: '1Gi',
-          },
-          data: {
-            filename: 'data.csv',
-            format: 'CSV',
+            format: 'DATABASE',
+            databaseConfigurations: 'test-secret',
           },
           metrics: {
             schedule: '5s',
           },
         },
-      });
+      } satisfies TrustyAIKind);
     });
   });
 
@@ -443,15 +469,12 @@ describe('Model Metrics', () => {
     });
 
     projectDetailsSettingsTab.visit('test-project');
-    projectDetailsSettingsTab
-      .findTrustyAIInstallCheckbox()
-      .should('be.enabled')
-      .should('not.be.checked');
+    projectDetailsSettingsTab.trustyai.findInstallButton().should('be.enabled');
 
     cy.interceptK8s(
       'POST',
       TrustyAIApplicationsModel,
-      mockTrustyAIServiceK8sResource({ isAvailable: true }),
+      mockTrustyAIServiceForDbK8sResource({ isAvailable: true }),
     ).as('installTrustyAI');
 
     cy.interceptK8s(
@@ -463,68 +486,26 @@ describe('Model Metrics', () => {
       { statusCode: 403, body: mock403Error({}) },
     ).as('getTrustyAIError');
 
-    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
+    projectDetailsSettingsTab.trustyai.findInstallButton().click();
+
+    projectDetailsSettingsTab.trustyai.configureModal.findSubmitButton().should('not.be.enabled');
+
+    projectDetailsSettingsTab.trustyai.configureModal
+      .findExistingNameField()
+      .type('test-secret')
+      .blur();
+
+    projectDetailsSettingsTab.trustyai.configureModal
+      .findSubmitButton()
+      .should('be.enabled')
+      .click();
 
     cy.wait('@installTrustyAI');
 
     // test service error
     cy.wait('@getTrustyAIError');
 
-    projectDetailsSettingsTab.findTrustyAIServiceError().should('exist');
-  });
-
-  it('Trusty AI enable timeout error', () => {
-    initIntercepts({
-      disableBiasMetrics: false,
-      disablePerformanceMetrics: false,
-      hasServingData: false,
-      hasBiasData: false,
-      isTrustyAIInstalled: false,
-    });
-
-    projectDetailsSettingsTab.visit('test-project');
-    projectDetailsSettingsTab
-      .findTrustyAIInstallCheckbox()
-      .should('be.enabled')
-      .should('not.be.checked');
-
-    cy.interceptK8s(
-      'POST',
-      TrustyAIApplicationsModel,
-      mockTrustyAIServiceK8sResource({ isAvailable: true }),
-    ).as('installTrustyAI');
-
-    cy.interceptK8s(
-      TrustyAIApplicationsModel,
-      mockTrustyAIServiceK8sResource({
-        isAvailable: false,
-        creationTimestamp: new Date('2022-05-15T00:00:00.000Z').toISOString(),
-      }),
-    ).as('getTrustyAITimeout');
-
-    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
-
-    cy.wait('@installTrustyAI');
-
-    // test timeout - timeout is a timestamp after 5 min
-    cy.wait('@getTrustyAITimeout');
-
-    projectDetailsSettingsTab.findTrustyAITimeoutError().should('exist');
-  });
-
-  it('Trusty AI not supported', () => {
-    initIntercepts({
-      disableBiasMetrics: false,
-      disablePerformanceMetrics: false,
-      hasServingData: false,
-      hasBiasData: false,
-      inferenceServices: [],
-      servingRuntimes: [],
-      enableModelMesh: false,
-    });
-
-    projectDetailsSettingsTab.visit('test-project');
-    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().should('not.be.enabled');
+    projectDetailsSettingsTab.trustyai.findError().should('exist');
   });
 
   it('Bias Metrics Show In Table', () => {
