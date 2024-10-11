@@ -20,7 +20,6 @@ const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
 const coreV1Api = kc.makeApiClient(k8s.CoreV1Api);
 const batchV1Api = kc.makeApiClient(k8s.BatchV1Api);
-const batchV1beta1Api = kc.makeApiClient(k8s.BatchV1beta1Api);
 const currentUser = kc.getCurrentUser();
 const rbac = kc.makeApiClient(k8s.RbacAuthorizationV1Api);
 
@@ -58,7 +57,9 @@ export default fp(async (fastify: FastifyInstance) => {
       .readNamespacedConfigMap('console-config', 'openshift-console')
       .then((result) => result.body);
     if (consoleConfig.data?.[CONSOLE_CONFIG_YAML_FIELD]) {
-      const consoleConfigData = jsYaml.load(consoleConfig.data[CONSOLE_CONFIG_YAML_FIELD]);
+      const consoleConfigData = jsYaml.load(consoleConfig.data[CONSOLE_CONFIG_YAML_FIELD]) as {
+        customization?: { branding?: string };
+      };
       clusterBranding = consoleConfigData.customization?.branding || 'okd';
       fastify.log.info(`Cluster Branding: ${clusterBranding}`);
     }
@@ -71,7 +72,6 @@ export default fp(async (fastify: FastifyInstance) => {
     currentContext,
     namespace,
     coreV1Api,
-    batchV1beta1Api,
     batchV1Api,
     customObjectsApi,
     currentUser,

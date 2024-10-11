@@ -85,7 +85,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           );
 
         // attach source socket listeners and forward requests to the target
-        source.on('message', (data: unknown, binary: boolean) =>
+        source.on('message', (data: WebSocket.RawData, binary: boolean) =>
           waitConnection(target, () => target.send(data, { binary })),
         );
         source.on('ping', (data) => waitConnection(target, () => target.ping(data)));
@@ -95,7 +95,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         target.on('unexpected-response', onUnexpectedResponse);
 
         // attach target socket listeners and forward requests to the source
-        target.on('message', (data: unknown, binary: boolean) => source.send(data, { binary }));
+        target.on('message', (data: WebSocket.RawData, binary: boolean) =>
+          source.send(data, { binary }),
+        );
         target.on('ping', (data) => source.ping(data));
         target.on('pong', (data) => source.pong(data));
         target.on('close', close);

@@ -136,6 +136,7 @@ export const applyNamespaceChange = async (
       dryRun,
       undefined,
       undefined,
+      undefined,
       {
         headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
       },
