@@ -199,6 +199,8 @@ const initIntercepts = ({
     isTrustyAIInstalled
       ? mockTrustyAIServiceForDbK8sResource({
           isAvailable: isTrustyAIAvailable,
+          // If you're already installed for the test, it doesn't matter when
+          creationTimestamp: new Date('1970-01-01').toISOString(),
         })
       : { statusCode: 404, body: mock404Error({}) },
   );
