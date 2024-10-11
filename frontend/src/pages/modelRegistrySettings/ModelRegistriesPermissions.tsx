@@ -61,7 +61,6 @@ const ModelRegistriesManagePermissions: React.FC = () => {
       description="Manage access to this model registry for individual users and user groups, and for service accounts in a project."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem>Settings</BreadcrumbItem>
           <BreadcrumbItem
             render={() => <Link to="/modelRegistrySettings">Model registry settings</Link>}
           />
