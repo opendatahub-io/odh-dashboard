@@ -69,13 +69,13 @@ const mockTrustyDBSecret = (): SecretKind =>
     name: 'test-secret',
     namespace: 'test-project',
     data: {
-      databaseGeneration: 'dXBkYXRl',
-      databaseKind: 'bWFyaWFkYg==',
-      databaseName: 'dHJ1c3R5YWlfZGI=',
-      databasePassword: 'dHJ1c3R5YWlQYXNzd29yZA==',
-      databasePort: 'MzMwNg==',
-      databaseService: 'bWFyaWFkYg==',
-      databaseUsername: 'dHJ1c3R5YWlVc2VybmFtZQ==',
+      databaseKind: 'mariadb',
+      databaseUsername: 'trustyaiUsername',
+      databasePassword: 'trustyaiPassword',
+      databaseService: 'mariadb',
+      databasePort: '3306',
+      databaseName: 'trustyai_db',
+      databaseGeneration: 'update',
     },
   });
 
