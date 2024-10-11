@@ -57,6 +57,7 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
   }
   return (
     <TypeaheadSelect
+      isScrollable
       selectOptions={selectOptions}
       selected={value}
       isCreatable

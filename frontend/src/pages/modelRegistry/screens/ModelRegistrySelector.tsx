@@ -121,6 +121,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   const selector = (
     <Select
+      isScrollable
       toggle={(toggleRef) => (
         <MenuToggle
           ref={toggleRef}
