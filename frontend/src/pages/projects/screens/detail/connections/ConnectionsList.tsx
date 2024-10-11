@@ -11,6 +11,7 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { createSecret, replaceSecret } from '~/api';
+import { filterEnabledConnectionTypes } from '~/concepts/connectionTypes/utils';
 import ConnectionsTable from './ConnectionsTable';
 import { ManageConnectionModal } from './ManageConnectionsModal';
 
@@ -23,6 +24,10 @@ const ConnectionsList: React.FC = () => {
     currentProject,
   } = React.useContext(ProjectDetailsContext);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useWatchConnectionTypes();
+  const enabledConnectionTypes = React.useMemo(
+    () => filterEnabledConnectionTypes(connectionTypes),
+    [connectionTypes],
+  );
 
   const [manageConnectionModal, setManageConnectionModal] = React.useState<{
     connection?: Connection;
@@ -47,6 +52,7 @@ const ConnectionsList: React.FC = () => {
           onClick={() => {
             setManageConnectionModal({});
           }}
+          isDisabled={enabledConnectionTypes.length === 0}
         >
           Add connection
         </Button>,
@@ -65,6 +71,10 @@ const ConnectionsList: React.FC = () => {
               key={`action-${ProjectSectionID.CONNECTIONS}`}
               variant="primary"
               data-testid="create-connection-button"
+              onClick={() => {
+                setManageConnectionModal({});
+              }}
+              isDisabled={enabledConnectionTypes.length === 0}
             >
               Create connection
             </Button>
