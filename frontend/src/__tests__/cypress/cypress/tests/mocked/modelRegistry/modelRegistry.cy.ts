@@ -17,7 +17,11 @@ import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockSelfSubjectRulesReview } from '~/__mocks__/mockSelfSubjectRulesReview';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
-import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
+import {
+  ModelRegistryMetadataType,
+  type ModelVersion,
+  type RegisteredModel,
+} from '~/concepts/modelRegistry/types';
 import type { ServiceKind } from '~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
@@ -41,29 +45,72 @@ const initIntercepts = ({
       name: 'Fraud detection model',
       description:
         'A machine learning model trained to detect fraudulent transactions in financial data',
-      labels: [
-        'Financial data',
-        'Fraud detection',
-        'Test label',
-        'Machine learning',
-        'Next data to be overflow',
-      ],
+      customProperties: {
+        'Financial data': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Fraud detection': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Machine learning': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Next data to be overflow': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
     }),
     mockRegisteredModel({
       name: 'Label modal',
       description:
         'A machine learning model trained to detect fraudulent transactions in financial data',
-      labels: [
-        'Testing label',
-        'Financial data',
-        'Fraud detection',
-        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc',
-        'Machine learning',
-        'Next data to be overflow',
-        'Label x',
-        'Label y',
-        'Label z',
-      ],
+      customProperties: {
+        'Testing label': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Financial data': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Fraud detection': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+          {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: '',
+          },
+        'Machine learning': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Next data to be overflow': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Label x': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Label y': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Label z': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
     }),
   ],
   modelVersions = [

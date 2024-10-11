@@ -6,7 +6,7 @@ import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import type { ModelVersion } from '~/concepts/modelRegistry/types';
-import { ModelState } from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import {
@@ -31,16 +31,40 @@ const initIntercepts = ({
       name: 'model version 1',
       author: 'Author 1',
       id: '1',
-      labels: [
-        'Financial data',
-        'Fraud detection',
-        'Test label',
-        'Machine learning',
-        'Next data to be overflow',
-        'Test label x',
-        'Test label y',
-        'Test label z',
-      ],
+      customProperties: {
+        'Financial data': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Fraud detection': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Machine learning': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Next data to be overflow': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label x': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label y': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label z': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
       state: ModelState.ARCHIVED,
     }),
     mockModelVersion({ id: '2', name: 'model version 2', state: ModelState.ARCHIVED }),

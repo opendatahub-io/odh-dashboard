@@ -24,8 +24,80 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
+import { ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
+const mockModelVersions = mockModelVersion({
+  id: '1',
+  name: 'Version 1',
+  customProperties: {
+    a1: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v1',
+    },
+    a2: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v2',
+    },
+    a3: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v3',
+    },
+    a4: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v4',
+    },
+    a5: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v5',
+    },
+    a6: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v1',
+    },
+    a7: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'v7',
+    },
+    'Testing label': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Financial data': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Fraud detection': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+      {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: '',
+      },
+    'Machine learning': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Next data to be overflow': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Label x': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Label y': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Label z': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+  },
+});
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -70,6 +142,18 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
+    `PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    mockModelVersions,
+  ).as('UpdatePropertyRow');
+
+  cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions`,
     {
       path: {
@@ -100,21 +184,7 @@ const initIntercepts = () => {
         modelVersionId: 1,
       },
     },
-    mockModelVersion({
-      id: '1',
-      name: 'Version 1',
-      labels: [
-        'Testing label',
-        'Financial data',
-        'Fraud detection',
-        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc',
-        'Machine learning',
-        'Next data to be overflow',
-        'Label x',
-        'Label y',
-        'Label z',
-      ],
-    }),
+    mockModelVersions,
   );
 
   cy.interceptOdh(
@@ -177,6 +247,87 @@ describe('Model version details', () => {
       modelVersionDetails.findStorageRegion().contains('test-region');
       modelVersionDetails.findStorageBucket().contains('test-bucket');
       modelVersionDetails.findStoragePath().contains('demo-models/test-path');
+    });
+
+    it('should add a property', () => {
+      modelVersionDetails.findAddPropertyButton().click();
+      modelVersionDetails.findAddKeyInput().type('new_key');
+      modelVersionDetails.findAddValueInput().type('new_value');
+      modelVersionDetails.findCancelButton().click();
+
+      modelVersionDetails.findAddPropertyButton().click();
+      modelVersionDetails.findAddKeyInput().type('new_key');
+      modelVersionDetails.findAddValueInput().type('new_value');
+      modelVersionDetails.findSaveButton().click();
+      cy.wait('@UpdatePropertyRow');
+    });
+
+    it('should edit a property row', () => {
+      modelVersionDetails.findExpandControlButton().should('have.text', 'Show 2 more properties');
+      modelVersionDetails.findExpandControlButton().click();
+      const propertyRow = modelVersionDetails.getRow('a6');
+      propertyRow.find().findKebabAction('Edit').click();
+      modelVersionDetails.findKeyEditInput('a6').clear().type('edit_key');
+      modelVersionDetails.findValueEditInput('v1').clear().type('edit_value');
+
+      modelVersionDetails.findCancelButton().click();
+      propertyRow.find().findKebabAction('Edit').click();
+      modelVersionDetails.findKeyEditInput('a6').clear().type('edit_key');
+      modelVersionDetails.findValueEditInput('v1').clear().type('edit_value');
+      modelVersionDetails.findSaveButton().click();
+      cy.wait('@UpdatePropertyRow').then((interception) => {
+        expect(interception.request.body).to.eql({
+          customProperties: {
+            a1: { metadataType: 'MetadataStringValue', string_value: 'v1' },
+            a2: { metadataType: 'MetadataStringValue', string_value: 'v2' },
+            a3: { metadataType: 'MetadataStringValue', string_value: 'v3' },
+            a4: { metadataType: 'MetadataStringValue', string_value: 'v4' },
+            a5: { metadataType: 'MetadataStringValue', string_value: 'v5' },
+            a7: { metadataType: 'MetadataStringValue', string_value: 'v7' },
+            'Testing label': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Financial data': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Fraud detection': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+              { metadataType: 'MetadataStringValue', string_value: '' },
+            'Machine learning': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Next data to be overflow': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Label x': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Label y': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Label z': { metadataType: 'MetadataStringValue', string_value: '' },
+            edit_key: { string_value: 'edit_value', metadataType: 'MetadataStringValue' },
+          },
+        });
+      });
+    });
+
+    it('should delete a property row', () => {
+      modelVersionDetails.findExpandControlButton().should('have.text', 'Show 2 more properties');
+      modelVersionDetails.findExpandControlButton().click();
+      const propertyRow = modelVersionDetails.getRow('a6');
+      modelVersionDetails.findPropertiesTableRows().should('have.length', 7);
+      propertyRow.find().findKebabAction('Delete').click();
+      cy.wait('@UpdatePropertyRow').then((interception) => {
+        expect(interception.request.body).to.eql({
+          customProperties: {
+            a1: { metadataType: 'MetadataStringValue', string_value: 'v1' },
+            a2: { metadataType: 'MetadataStringValue', string_value: 'v2' },
+            a3: { metadataType: 'MetadataStringValue', string_value: 'v3' },
+            a4: { metadataType: 'MetadataStringValue', string_value: 'v4' },
+            a5: { metadataType: 'MetadataStringValue', string_value: 'v5' },
+            a7: { metadataType: 'MetadataStringValue', string_value: 'v7' },
+            'Testing label': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Financial data': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Fraud detection': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+              { metadataType: 'MetadataStringValue', string_value: '' },
+            'Machine learning': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Next data to be overflow': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Label x': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Label y': { metadataType: 'MetadataStringValue', string_value: '' },
+            'Label z': { metadataType: 'MetadataStringValue', string_value: '' },
+          },
+        });
+      });
     });
 
     it('Switching model versions', () => {
