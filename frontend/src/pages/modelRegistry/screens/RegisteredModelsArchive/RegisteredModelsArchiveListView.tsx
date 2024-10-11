@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -18,20 +18,22 @@ import RegisteredModelsArchiveTable from './RegisteredModelsArchiveTable';
 
 type RegisteredModelsArchiveListViewProps = {
   registeredModels: RegisteredModel[];
+  modelVersions: ModelVersion[];
   refresh: () => void;
 };
 
 const RegisteredModelsArchiveListView: React.FC<RegisteredModelsArchiveListViewProps> = ({
   registeredModels: unfilteredRegisteredModels,
+  modelVersions,
   refresh,
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
 
-  const searchTypes = [SearchType.KEYWORD, SearchType.AUTHOR];
-
+  const searchTypes = [SearchType.KEYWORD, SearchType.OWNER];
   const filteredRegisteredModels = filterRegisteredModels(
     unfilteredRegisteredModels,
+    modelVersions,
     search,
     searchType,
   );

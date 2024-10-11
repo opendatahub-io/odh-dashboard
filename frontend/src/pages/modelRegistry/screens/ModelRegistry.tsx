@@ -1,6 +1,7 @@
 import React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import useModelVersions from '~/concepts/modelRegistry/apiHooks/useModelVersions';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
@@ -19,7 +20,16 @@ type ModelRegistryProps = Omit<
 >;
 
 const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
-  const [registeredModels, loaded, loadError, refresh] = useRegisteredModels();
+  const [registeredModels, modelsLoaded, modelsLoadError, refreshModels] = useRegisteredModels();
+  const [modelVersions, versionsLoaded, versionsLoadError, refreshVersions] = useModelVersions();
+
+  const loaded = modelsLoaded && versionsLoaded;
+  const loadError = modelsLoadError || versionsLoadError;
+
+  const refresh = React.useCallback(() => {
+    refreshModels();
+    refreshVersions();
+  }, [refreshModels, refreshVersions]);
 
   return (
     <ApplicationsPage
@@ -38,7 +48,11 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <RegisteredModelListView registeredModels={registeredModels.items} refresh={refresh} />
+      <RegisteredModelListView
+        registeredModels={registeredModels.items}
+        modelVersions={modelVersions.items}
+        refresh={refresh}
+      />
     </ApplicationsPage>
   );
 };

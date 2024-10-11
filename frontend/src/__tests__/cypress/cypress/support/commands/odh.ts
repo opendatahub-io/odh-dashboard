@@ -319,6 +319,11 @@ declare global {
           response: OdhResponse<ModelVersionList>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions',
+          options: { path: { serviceName: string; apiVersion: string } },
+          response: OdhResponse<ModelVersionList>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
           options: { path: { serviceName: string; apiVersion: string; registeredModelId: number } },
           response: OdhResponse<ModelVersion>,

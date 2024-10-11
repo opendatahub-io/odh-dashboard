@@ -3,7 +3,7 @@ import { SearchInput, ToolbarFilter, ToolbarGroup, ToolbarItem } from '@patternf
 import { FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -20,11 +20,13 @@ import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
 
 type RegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
+  modelVersions: ModelVersion[];
   refresh: () => void;
 };
 
 const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   registeredModels,
+  modelVersions,
   refresh,
 }) => {
   const navigate = useNavigate();
@@ -63,6 +65,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
 
   const filteredRegisteredModels = filterRegisteredModels(
     unfilteredRegisteredModels,
+    modelVersions,
     search,
     searchType,
   );
