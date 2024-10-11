@@ -61,7 +61,6 @@ const TrustyDBExistingSecretField: React.FC<TrustyDBExistingSecretFieldProps> = 
         name={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing-secret`}
         value={data}
         onChange={(e, value) => {
-          delayCheckState.cancel();
           delayCheckState();
           onDataChange(value);
         }}
