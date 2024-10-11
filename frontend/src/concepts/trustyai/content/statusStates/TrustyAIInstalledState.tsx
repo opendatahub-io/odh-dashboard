@@ -16,6 +16,7 @@ const TrustyAIInstalledState: React.FC<TrustyAIInstalledStateProps> = ({
   return (
     <>
       <Button
+        data-testid="trustyai-uninstall-button"
         variant="tertiary"
         isDisabled={uninstalling}
         isLoading={uninstalling}

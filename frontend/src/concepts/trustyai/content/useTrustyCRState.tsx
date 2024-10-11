@@ -63,12 +63,12 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
       );
       break;
     case TrustyInstallState.LOADING_INITIAL_STATE:
-      action = <Skeleton height="35px" width="250px" />;
+      action = <Skeleton data-testid="trustyai-initializing-state" height="35px" width="250px" />;
       break;
     case TrustyInstallState.INSTALLING:
       action = <TrustyAIInstalledState onDelete={deleteCR} />;
       status = (
-        <Split hasGutter>
+        <Split hasGutter data-testid="trustyai-installing-state">
           <SplitItem>
             <Spinner size="lg" />
           </SplitItem>

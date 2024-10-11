@@ -18,7 +18,11 @@ const TrustyAIUninstalledState: React.FC<TrustyAIUninstalledStateProps> = ({
 
   return (
     <>
-      <Button variant="tertiary" onClick={() => setOpenModal(true)}>
+      <Button
+        data-testid="trustyai-configure-button"
+        variant="tertiary"
+        onClick={() => setOpenModal(true)}
+      >
         Configure TrustyAI service
       </Button>
       {openModal && (

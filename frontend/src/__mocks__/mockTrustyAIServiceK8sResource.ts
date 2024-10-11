@@ -6,7 +6,7 @@ type MockTrustyAIServiceK8sResourceOptions = {
   namespace?: string;
 };
 
-export const mockTrustyAIServiceK8sResource = ({
+export const mockTrustyAIServiceForDbK8sResource = ({
   isAvailable = true,
   creationTimestamp = new Date().toISOString(),
   namespace = 'test-project',
@@ -27,9 +27,8 @@ export const mockTrustyAIServiceK8sResource = ({
       schedule: '5s',
     },
     storage: {
-      folder: '/inputs',
-      format: 'PVC',
-      size: '1Gi',
+      format: 'DATABASE',
+      databaseConfigurations: 'test-secret',
     },
   },
   status: {
@@ -43,10 +42,10 @@ export const mockTrustyAIServiceK8sResource = ({
       },
       {
         lastTransitionTime: '2024-01-11T18:29:06Z',
-        message: 'PersistentVolumeClaim found',
-        reason: 'PVCFound',
+        message: 'Database connected',
+        reason: 'DBConnected',
         status: 'True',
-        type: 'PVCAvailable',
+        type: 'DBAvailable',
       },
       {
         lastTransitionTime: '2024-01-11T18:29:06Z',

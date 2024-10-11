@@ -43,11 +43,21 @@ export const getTrustyStatusState = (
     return { type: TrustyInstallState.UNINSTALLED };
   }
 
+  /* Have CR, determine the state from it */
+
+  // If in the first 3 seconds, assume the CR is not settled
+  // TODO: Remove logic when the backend can provide a proper conditional check state at all times
+  const isInStartupGraceWindow = cr.metadata.creationTimestamp
+    ? Date.now() - new Date(cr.metadata.creationTimestamp).getTime() <= 3000
+    : false;
+  if (isInStartupGraceWindow) {
+    return { type: TrustyInstallState.INSTALLING };
+  }
+
   if (cr.metadata.deletionTimestamp) {
     return { type: TrustyInstallState.UNINSTALLING };
   }
 
-  // Have a CR, getting specific state
   const availableCondition = getConditionForType(cr, 'Available');
   if (availableCondition?.status === 'True' && cr.status?.phase === 'Ready') {
     // Installed and good to go
@@ -60,6 +70,11 @@ export const getTrustyStatusState = (
 
   const dbAvailableCondition = getConditionForType(cr, 'DBAvailable');
   if (dbAvailableCondition?.status === 'False') {
+    if (dbAvailableCondition.reason === 'DBConnecting') {
+      // DB is still being determined
+      return { type: TrustyInstallState.INSTALLING };
+    }
+
     // Some sort of DB error -- try to show specifically what it is
     return {
       type: TrustyInstallState.CR_ERROR,

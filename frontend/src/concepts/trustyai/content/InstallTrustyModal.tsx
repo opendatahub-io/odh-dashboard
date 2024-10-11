@@ -8,6 +8,7 @@ import useTrustyInstallModalData, {
 import { UseManageTrustyAICRReturnType } from '~/concepts/trustyai/useManageTrustyAICR';
 import FieldGroupHelpLabelIcon from '~/components/FieldGroupHelpLabelIcon';
 import TrustyDBExistingSecretField from '~/concepts/trustyai/content/TrustyDBExistingSecretField';
+import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '~/concepts/trustyai/const';
 
 type InstallTrustyModalProps = {
   onClose: () => void;
@@ -70,6 +71,7 @@ const InstallTrustyModal: React.FC<InstallTrustyModalProps> = ({
       >
         <Radio
           id="existing"
+          data-testid={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-radio-existing`}
           label={
             <>
               Specify an existing secret{' '}
@@ -87,6 +89,7 @@ const InstallTrustyModal: React.FC<InstallTrustyModalProps> = ({
         />
         <Radio
           id="new"
+          data-testid={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-radio-new`}
           label={
             <>
               Create a new secret{' '}

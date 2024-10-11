@@ -56,15 +56,19 @@ const TrustyDBExistingSecretField: React.FC<TrustyDBExistingSecretFieldProps> = 
     <>
       <TextInput
         type="text"
-        data-testid={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing`}
-        id={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing`}
-        name={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing`}
+        data-testid={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing-secret`}
+        id={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing-secret`}
+        name={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-existing-secret`}
         value={data}
         onChange={(e, value) => {
+          delayCheckState.cancel();
           delayCheckState();
           onDataChange(value);
         }}
-        onBlur={onCheckState}
+        onBlur={() => {
+          delayCheckState.cancel();
+          onCheckState();
+        }}
         validated={inputState}
       />
       {helperText && (

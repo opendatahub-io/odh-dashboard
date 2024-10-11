@@ -57,10 +57,26 @@ const useTrustyInstallModalData = (namespace: string): UseTrustyInstallModalData
     },
     [],
   );
+
+  // Prevent existing value from impacting usage of onCheckState
+  const existingValueRef = React.useRef(existingValue);
+  existingValueRef.current = existingValue;
+  // Allow to abort any existing on-going calls if needed
+  const abortRef = React.useRef<AbortController | null>(null);
   const onCheckState = React.useCallback(() => {
-    if (existingValue) {
+    const valueToSubmit = existingValueRef.current;
+    if (valueToSubmit) {
+      if (abortRef.current) {
+        // Existing abort controller, cancel it before making a new one
+        abortRef.current.abort();
+        abortRef.current = null;
+      }
+
+      const abortController = new AbortController();
+      abortRef.current = abortController;
+
       setExistingValid(TrustyInstallModalFormExistingState.CHECKING);
-      getSecret(namespace, existingValue)
+      getSecret(namespace, valueToSubmit, { signal: abortController.signal })
         .then(() => {
           setExistingValid(TrustyInstallModalFormExistingState.EXISTING);
         })
@@ -73,11 +89,14 @@ const useTrustyInstallModalData = (namespace: string): UseTrustyInstallModalData
           // eslint-disable-next-line no-console
           console.error('TrustyAI: Unknown error while validating the secret', e);
           setExistingValid(TrustyInstallModalFormExistingState.UNSURE);
+        })
+        .finally(() => {
+          abortRef.current = null;
         });
     } else {
       setExistingValid(TrustyInstallModalFormExistingState.UNKNOWN);
     }
-  }, [existingValue, namespace]);
+  }, [namespace]);
 
   const [dbFormData, onDbFormDataChange] = useGenericObjectState<TrustyDBData>({
     databaseKind: 'mariadb',
