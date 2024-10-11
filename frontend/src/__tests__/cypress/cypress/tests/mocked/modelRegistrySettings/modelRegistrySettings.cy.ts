@@ -12,6 +12,17 @@ import {
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
+import type { RoleBindingSubject } from '~/k8sTypes';
+import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+
+const groupSubjects: RoleBindingSubject[] = [
+  {
+    kind: 'Group',
+    apiGroup: 'rbac.authorization.k8s.io',
+    name: 'example-mr-users',
+  },
+];
 
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
@@ -47,7 +58,19 @@ const setupMocksForMRSettingAccess = ({
         ? [
             mockModelRegistry({ name: 'test-registry-1' }),
             mockModelRegistry({ name: 'test-registry-2' }),
-            mockModelRegistry({ name: 'test-registry-3' }),
+            mockModelRegistry({
+              name: 'test-registry-3',
+              conditions: [
+                {
+                  lastTransitionTime: '2024-03-22T09:30:02Z',
+                  message:
+                    'Deployment for custom resource modelregistry-sample was successfully created',
+                  reason: 'CreatedDeployment',
+                  status: 'True',
+                  type: 'Progressing',
+                },
+              ],
+            }),
           ]
         : [],
     ),
@@ -70,6 +93,26 @@ const setupMocksForMRSettingAccess = ({
     (req) => {
       req.reply(500); // Something went wrong on the backend when decoding the secret
     },
+  );
+
+  cy.interceptOdh(
+    'GET /api/modelRegistryRoleBindings',
+    mockK8sResourceList([
+      mockRoleBindingK8sResource({
+        namespace: 'odh-model-registries',
+        name: 'test-registry-1-user',
+        subjects: groupSubjects,
+        roleRefName: 'registry-user-test-registry-1',
+        modelRegistryName: 'test-registry-1',
+      }),
+      mockRoleBindingK8sResource({
+        namespace: 'odh-model-registries',
+        name: 'test-registry-2-user',
+        subjects: groupSubjects,
+        roleRefName: 'registry-user-test-registry-2',
+        modelRegistryName: 'test-registry-2',
+      }),
+    ]),
   );
 };
 
@@ -170,14 +213,25 @@ describe('ViewDatabaseConfigModal', () => {
   });
 });
 
-describe('ManagePermissionsModal', () => {
-  beforeEach(() => {
+describe('ManagePermissions', () => {
+  it('Manage permission is enabled, when there is a rolebinding', () => {
     setupMocksForMRSettingAccess({});
     modelRegistrySettings.visit(true);
     modelRegistrySettings
       .findModelRegistryRow('test-registry-1')
       .findByText('Manage permissions')
       .click();
+    verifyRelativeURL('/modelRegistrySettings/permissions/test-registry-1');
+  });
+
+  it('Manage permission is disabled, when there is no rolebinding', () => {
+    setupMocksForMRSettingAccess({});
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-3')
+      .findByText('Manage permissions')
+      .trigger('mouseenter');
+    modelRegistrySettings.findManagePermissionsTooltip().should('be.visible');
   });
 });
 

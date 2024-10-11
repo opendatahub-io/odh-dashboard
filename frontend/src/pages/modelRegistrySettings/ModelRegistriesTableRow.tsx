@@ -1,23 +1,34 @@
 import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
-import { ModelRegistryKind } from '~/k8sTypes';
+import { useNavigate } from 'react-router-dom';
+import { Button, Tooltip } from '@patternfly/react-core';
+import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import { ContextResourceData } from '~/types';
 import ViewDatabaseConfigModal from './ViewDatabaseConfigModal';
 import DeleteModelRegistryModal from './DeleteModelRegistryModal';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
   modelRegistry: ModelRegistryKind;
+  roleBindings: ContextResourceData<RoleBindingKind>;
   refresh: () => Promise<unknown>;
 };
 
 const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   modelRegistry: mr,
+  roleBindings,
   refresh,
 }) => {
   const [isDatabaseConfigModalOpen, setIsDatabaseConfigModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const navigate = useNavigate();
+  const filteredRoleBindings = roleBindings.data.filter(
+    (rb) =>
+      rb.metadata.labels?.['app.kubernetes.io/name'] ===
+      (mr.metadata.name || mr.metadata.annotations?.['openshift.io/display-name']),
+  );
+
   return (
     <>
       <Tr>
@@ -35,12 +46,20 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           <ModelRegistryTableRowStatus conditions={mr.status?.conditions} />
         </Td>
         <Td modifier="fitContent">
-          <Link
-            aria-label={`Manage permissions for model registry ${mr.metadata.name}`}
-            to={`/modelRegistrySettings/permissions/${mr.metadata.name}`}
-          >
-            Manage permissions
-          </Link>
+          {filteredRoleBindings.length === 0 ? (
+            <Tooltip content="You can manage permissions when the model registry becomes available.">
+              <Button isAriaDisabled variant="link">
+                Manage permissions
+              </Button>
+            </Tooltip>
+          ) : (
+            <Button
+              variant="link"
+              onClick={() => navigate(`/modelRegistrySettings/permissions/${mr.metadata.name}`)}
+            >
+              Manage permissions
+            </Button>
+          )}
         </Td>
         <Td isActionCell>
           <ActionsColumn

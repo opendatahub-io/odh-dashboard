@@ -15,13 +15,19 @@ import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModel
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { useContextResourceData } from '~/utilities/useContextResourceData';
+import { RoleBindingKind } from '~/k8sTypes';
 import ModelRegistriesTable from './ModelRegistriesTable';
 import CreateModal from './CreateModal';
+import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 
 const ModelRegistrySettings: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
-  const [modelRegistries, loaded, loadError, refreshModelRegistries] = useModelRegistriesBackend();
+  const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =
+    useModelRegistriesBackend();
+  const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
   const { refreshRulesReview } = React.useContext(ModelRegistrySelectorContext);
+  const loaded = mrloaded && roleBindings.loaded;
 
   const refreshAll = React.useCallback(
     () => Promise.all([refreshModelRegistries(), refreshRulesReview()]),
@@ -65,6 +71,7 @@ const ModelRegistrySettings: React.FC = () => {
       >
         <ModelRegistriesTable
           modelRegistries={modelRegistries}
+          roleBindings={roleBindings}
           refresh={refreshAll}
           onCreateModelRegistryClick={() => {
             setCreateModalOpen(true);
