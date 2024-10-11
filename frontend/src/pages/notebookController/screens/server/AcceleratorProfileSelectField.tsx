@@ -3,15 +3,15 @@ import {
   Alert,
   AlertVariant,
   FormGroup,
+  Icon,
   InputGroup,
   Label,
   NumberInput,
+  Popover,
   Split,
   SplitItem,
   Stack,
   StackItem,
-  Popover,
-  Icon,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement } from '~/utilities/utils';
@@ -243,12 +243,13 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 value={selectedAcceleratorProfile.count}
                 validated={acceleratorCountWarning ? 'warning' : 'default'}
                 min={1}
+                max={999}
                 onPlus={() => onStep(1)}
                 onMinus={() => onStep(-1)}
                 onChange={(event) => {
                   if (isHTMLInputElement(event.target)) {
                     const newSize = Number(event.target.value);
-                    setSelectedAcceleratorProfile('count', Math.max(newSize, 1));
+                    setSelectedAcceleratorProfile('count', Math.max(Math.min(newSize, 999), 1));
                   }
                 }}
               />
