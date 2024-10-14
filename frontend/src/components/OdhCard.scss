@@ -40,6 +40,10 @@
       visibility: hidden;
     }
 
+    &.odh-m-selectable {
+      z-index: 1;
+      cursor: pointer;
+    }
     &.odh-m-doc {
       border-color: var(--pf-v5-global--BackgroundColor--light-300);
       display: flex;

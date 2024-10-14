@@ -39,6 +39,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   const cardClasses = classNames('odh-card', { 'm-disabled': disabled });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-hidden': odhApp.spec.support === ODH_PRODUCT_NAME,
+    'odh-m-selectable': !disabled,
   });
 
   return (
@@ -64,7 +65,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
                   <FlexItem className="odh-card__coming-soon">Coming soon</FlexItem>
                 )}
                 {!odhApp.spec.comingSoon && odhApp.spec.category && (
-                  <FlexItem className={badgeClasses}>
+                  <FlexItem className={badgeClasses} onClick={disabled ? undefined : onSelect}>
                     <OdhExploreCardTypeBadge category={odhApp.spec.category} />
                   </FlexItem>
                 )}
