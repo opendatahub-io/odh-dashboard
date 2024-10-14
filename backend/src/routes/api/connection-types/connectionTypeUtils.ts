@@ -157,7 +157,6 @@ export const patchConnectionType = async (
       undefined,
       undefined,
       undefined,
-      undefined,
       options,
     );
     return { success: true, error: '' };

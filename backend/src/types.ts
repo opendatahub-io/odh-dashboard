@@ -289,6 +289,7 @@ export type KubeStatus = {
 export type KubeDecorator = KubeStatus & {
   config: k8s.KubeConfig;
   coreV1Api: k8s.CoreV1Api;
+  batchV1beta1Api: k8s.BatchV1beta1Api;
   batchV1Api: k8s.BatchV1Api;
   customObjectsApi: k8s.CustomObjectsApi;
   rbac: k8s.RbacAuthorizationV1Api;
