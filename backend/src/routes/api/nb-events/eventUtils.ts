@@ -1,4 +1,4 @@
-import { CoreV1Event, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
+import { V1Event, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createSelfSubjectAccessReview } from '../namespaces/namespaceUtils';
 import { createCustomError } from '../../../utils/requestUtils';
@@ -8,7 +8,7 @@ export const getNotebookEvents = async (
   namespace: string,
   notebookName: string,
   podUID: string | undefined,
-): Promise<CoreV1Event[]> => {
+): Promise<V1Event[]> => {
   if (podUID) {
     const response = await fastify.kube.coreV1Api.listNamespacedPod(
       namespace,

@@ -197,7 +197,6 @@ const patchCM = async (
     undefined,
     undefined,
     undefined,
-    undefined,
     {
       headers: {
         'Content-Type': 'application/merge-patch+json',
