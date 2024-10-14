@@ -125,7 +125,6 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       icon={icon}
       color={color}
       isCompact
-      className="pf-m-link"
     >
       {statusLabel}
     </Label>
