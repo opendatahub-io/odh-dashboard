@@ -62,11 +62,14 @@ const TrustyDBExistingSecretField: React.FC<TrustyDBExistingSecretFieldProps> = 
         value={data}
         onChange={(e, value) => {
           delayCheckState();
-          onDataChange(value);
+          onDataChange(value.trim());
         }}
         onBlur={() => {
-          delayCheckState.cancel();
-          onCheckState();
+          if (state !== TrustyInstallModalFormExistingState.EXISTING) {
+            // If you're not already validated, cancel exiting efforts and check now
+            delayCheckState.cancel();
+            onCheckState();
+          }
         }}
         validated={inputState}
       />
