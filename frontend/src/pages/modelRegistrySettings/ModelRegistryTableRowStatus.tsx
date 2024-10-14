@@ -119,7 +119,14 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
   }
 
   const label = (
-    <Label data-testid="model-registry-label" icon={icon} color={color} isCompact>
+    <Label
+      onClick={() => void 0}
+      data-testid="model-registry-label"
+      icon={icon}
+      color={color}
+      isCompact
+      className="pf-m-link"
+    >
       {statusLabel}
     </Label>
   );
