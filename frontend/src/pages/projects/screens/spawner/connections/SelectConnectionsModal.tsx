@@ -24,12 +24,12 @@ export const SelectConnectionsModal: React.FC<Props> = ({
         .find(
           (type) => c.metadata.annotations['opendatahub.io/connection-type'] === type.metadata.name,
         )
-        ?.data?.category?.join(' ');
+        ?.data?.category?.join(', ');
 
       return {
         id: c.metadata.name,
         name: getDisplayNameFromK8sResource(c),
-        selected: connectionsToList.length === 1 || false,
+        selected: connectionsToList.length === 1,
         description: (
           <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
             {getDescriptionFromK8sResource(c) && (
@@ -44,7 +44,7 @@ export const SelectConnectionsModal: React.FC<Props> = ({
             )}
           </Flex>
         ),
-        data: `${getDescriptionFromK8sResource(c)}`,
+        data: getDescriptionFromK8sResource(c),
       };
     }),
   );

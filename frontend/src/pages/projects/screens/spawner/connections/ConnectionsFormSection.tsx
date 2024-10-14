@@ -6,6 +6,8 @@ import {
   EmptyStateBody,
   EmptyStateHeader,
   EmptyStateIcon,
+  Flex,
+  FlexItem,
   FormSection,
   Tooltip,
 } from '@patternfly/react-core';
@@ -101,32 +103,42 @@ export const ConnectionsFormSection: React.FC<Props> = ({
     [selectedConnections],
   );
 
+  const tooltipRef = React.useRef<HTMLButtonElement>();
+
   return (
     <FormSection
       title={
-        <>
-          {SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}{' '}
-          <Tooltip
-            content="No existing connections available"
-            trigger={unselectedConnections.length === 0 ? 'mouseenter focus' : 'manual'}
-          >
+        <Flex gap={{ default: 'gapSm' }}>
+          <FlexItem>{SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}</FlexItem>
+          <FlexItem>
             <Button
               data-testid="attach-existing-connection-button"
+              aria-describedby="no-connections-tooltip"
               variant="secondary"
               isAriaDisabled={unselectedConnections.length === 0}
               onClick={() => setShowAttachConnectionsModal(true)}
+              ref={tooltipRef}
             >
               Attach existing connections
             </Button>
-          </Tooltip>{' '}
-          <Button
-            data-testid="create-connection-button"
-            variant="secondary"
-            onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
-          >
-            Create connection
-          </Button>
-        </>
+            {unselectedConnections.length === 0 && (
+              <Tooltip
+                id="no-connections-tooltip"
+                content="No existing connections available"
+                triggerRef={tooltipRef}
+              />
+            )}
+          </FlexItem>
+          <FlexItem>
+            <Button
+              data-testid="create-connection-button"
+              variant="secondary"
+              onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
+            >
+              Create connection
+            </Button>
+          </FlexItem>
+        </Flex>
       }
       id={SpawnerPageSectionID.CONNECTIONS}
       aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}
