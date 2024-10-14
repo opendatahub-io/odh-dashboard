@@ -75,6 +75,7 @@ export const SelectConnectionsModal: React.FC<Props> = ({
       onClose={onClose}
       actions={[
         <Button
+          data-testid="attach-button"
           key="attach-button"
           variant="primary"
           isDisabled={selectionOptions.every((selection) => selection.selected === false)}

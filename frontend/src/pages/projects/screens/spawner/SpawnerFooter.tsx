@@ -41,8 +41,8 @@ type SpawnerFooterProps = {
   storageData: StorageData;
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
-  isConnectionTypesEnabled: boolean;
-  connections: Connection[];
+  isConnectionTypesEnabled?: boolean;
+  connections?: Connection[];
   canEnablePipelines: boolean;
 };
 
@@ -52,7 +52,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   envVariables,
   dataConnection,
   isConnectionTypesEnabled,
-  connections,
+  connections = [],
   canEnablePipelines,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
@@ -155,14 +155,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnection,
       existingNotebookDataConnection,
       dryRun,
-    ).catch(handleError);
+    );
 
-    if (isConnectionTypesEnabled && envFrom) {
+    if (isConnectionTypesEnabled) {
       envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
-    }
-
-    if (!pvcDetails || !envFrom) {
-      return;
     }
 
     const annotations = { ...editNotebook.metadata.annotations };

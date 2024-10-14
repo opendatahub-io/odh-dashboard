@@ -174,6 +174,22 @@ class NotebookRow extends TableRow {
   }
 }
 
+class AttachConnectionModal extends Modal {
+  constructor() {
+    super('Attach existing connections');
+  }
+
+  selectConnectionOption(name: string) {
+    this.find().findByRole('button', { name: 'Connections' }).click();
+    this.find().findByRole('option', { name }).click();
+    this.find().findByRole('button', { name: 'Connections' }).click();
+  }
+
+  findAttachButton() {
+    return this.find().findByTestId('attach-button');
+  }
+}
+
 class CreateSpawnerPage {
   k8sNameDescription = new K8sNameDescriptionField('workbench');
 
@@ -309,6 +325,19 @@ class CreateSpawnerPage {
   findContainerSizeInput(name: string) {
     return cy.findByTestId('container-size-group').contains(name);
   }
+
+  findAttachConnectionButton() {
+    return cy.findByTestId('attach-existing-connection-button');
+  }
+
+  findConnectionsTable() {
+    return cy.findByTestId('connections-table');
+  }
+
+  findConnectionsTableRow(name: string, type: string) {
+    this.findConnectionsTable().find(`[data-label=Name]`).contains(name);
+    this.findConnectionsTable().find(`[data-label=Type]`).contains(type);
+  }
 }
 
 class EditSpawnerPage extends CreateSpawnerPage {
@@ -373,3 +402,4 @@ export const notebookConfirmModal = new NotebookConfirmModal();
 export const editSpawnerPage = new EditSpawnerPage();
 export const storageModal = new StorageModal();
 export const notFoundSpawnerPage = new NotFoundSpawnerPage();
+export const attachConnectionModal = new AttachConnectionModal();
