@@ -6,36 +6,29 @@ import {
 import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
-type PipelineModalData = {
+export type PipelineImportData = {
   name: string;
   description: string;
   uploadOption: PipelineUploadOption;
   fileContents: string;
   pipelineUrl: string;
+  pipeline: PipelineKFv2 | null;
 };
 
-export const usePipelineImportModalData = (): GenericObjectState<PipelineModalData> =>
-  useGenericObjectState<PipelineModalData>({
+export const usePipelineImportModalData = (): GenericObjectState<PipelineImportData> =>
+  useGenericObjectState<PipelineImportData>({
     name: '',
     description: '',
     uploadOption: PipelineUploadOption.FILE_UPLOAD,
     fileContents: '',
     pipelineUrl: '',
+    pipeline: null,
   });
-
-type PipelineVersionModalData = {
-  name: string;
-  description: string;
-  pipeline: PipelineKFv2 | null;
-  uploadOption: PipelineUploadOption;
-  fileContents: string;
-  pipelineUrl: string;
-};
 
 export const usePipelineVersionImportModalData = (
   existingPipeline?: PipelineKFv2 | null,
-): GenericObjectState<PipelineVersionModalData> => {
-  const createDataState = useGenericObjectState<PipelineVersionModalData>({
+): GenericObjectState<PipelineImportData> => {
+  const createDataState = useGenericObjectState<PipelineImportData>({
     name: React.useMemo(() => generatePipelineVersionName(existingPipeline), [existingPipeline]),
     description: '',
     pipeline: existingPipeline ?? null,

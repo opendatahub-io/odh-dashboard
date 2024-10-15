@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import {
   Bullseye,
@@ -8,14 +8,11 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateHeader,
-  EmptyStateFooter,
-  EmptyStateActions,
-  Button,
   Breadcrumb,
   BreadcrumbItem,
   Truncate,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
@@ -31,10 +28,10 @@ import usePipelineFilter, {
   FilterOptions,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { ManageRunsTable } from './ManageRunsTable';
 
 interface ManageRunsPageInternalProps {
@@ -42,7 +39,6 @@ interface ManageRunsPageInternalProps {
 }
 
 export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ experiment }) => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { namespace, project } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
@@ -80,33 +76,10 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <EmptyState data-testid="runs-empty-state">
-        <EmptyStateHeader
-          titleText="No runs"
-          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-          headingLevel="h2"
-        />
-
-        <EmptyStateBody>
-          To get started, create a run. Alternatively, go to the{' '}
-          <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring
-          runs.
-        </EmptyStateBody>
-
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <Button
-              data-testid="create-run-button"
-              variant="primary"
-              onClick={() =>
-                navigate(experimentsCreateRunRoute(namespace, experiment.experiment_id))
-              }
-            >
-              Create run
-            </Button>
-          </EmptyStateActions>
-        </EmptyStateFooter>
-      </EmptyState>
+      <EmptyRunsState
+        createRunRoute={experimentsCreateRunRoute(namespace, experiment.experiment_id)}
+        dataTestId="runs-empty-state"
+      />
     );
   }
 
