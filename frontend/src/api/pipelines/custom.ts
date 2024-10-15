@@ -139,6 +139,29 @@ export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) 
     proxyGET(hostPath, '/apis/v2beta1/experiments', pipelineParamsToQuery(params), opts),
   );
 
+export const listActiveExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
+  handlePipelineFailures(
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/experiments',
+      pipelineParamsToQuery({
+        ...params,
+        filter: {
+          predicates: [
+            {
+              key: 'storage_state',
+              operation: PipelinesFilterOp.EQUALS,
+              // eslint-disable-next-line camelcase
+              string_value: StorageStateKF.AVAILABLE,
+            },
+            ...(params?.filter?.predicates ?? []),
+          ],
+        },
+      }),
+      opts,
+    ),
+  );
+
 export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
     proxyGET(hostPath, '/apis/v2beta1/pipelines', pipelineParamsToQuery(params), opts),

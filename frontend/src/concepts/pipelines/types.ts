@@ -191,6 +191,7 @@ export type PipelineAPIs = {
   deletePipelineVersion: DeletePipelineVersion;
   deleteExperiment: DeleteExperiment;
   listExperiments: ListExperiments;
+  listActiveExperiments: ListExperiments;
   listPipelines: ListPipelines;
   listArtifacts: ListArtifacts;
   listPipelineRuns: ListPipelineRuns;

@@ -40,8 +40,19 @@ const useExperiments = (options?: PipelineOptions): FetchState<PipelineListPaged
 
 export const useActiveExperiments = (
   options?: PipelineOptions,
-): FetchState<PipelineListPaged<ExperimentKFv2>> =>
-  useExperimentsByStorageState(options, StorageStateKF.AVAILABLE);
+): FetchState<PipelineListPaged<ExperimentKFv2>> => {
+  const { api } = usePipelinesAPI();
+  return usePipelineQuery<ExperimentKFv2>(
+    React.useCallback(
+      (opts, params) =>
+        api
+          .listActiveExperiments(opts, params)
+          .then((result) => ({ ...result, items: result.experiments })),
+      [api],
+    ),
+    options,
+  );
+};
 
 export const useArchivedExperiments = (
   options?: PipelineOptions,

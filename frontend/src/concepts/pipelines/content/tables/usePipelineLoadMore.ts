@@ -10,7 +10,7 @@ export type LoadMoreProps = {
   filter?: PipelinesFilter;
 };
 
-export const useExperimentLoadMore = (
+export const useActiveExperimentLoadMore = (
   initialState: UsePipelineDataRefProps<ExperimentKFv2>,
 ): ((props: LoadMoreProps) => [ExperimentKFv2[], () => Promise<void>]) => {
   const { api } = usePipelinesAPI();
@@ -22,7 +22,7 @@ export const useExperimentLoadMore = (
         if (!pageTokenRef.current) {
           return;
         }
-        const result = await api.listExperiments(
+        const result = await api.listActiveExperiments(
           {},
           getLoadMorePipelineParams({ pageTokenRef, ...loadMoreProps }),
         );
