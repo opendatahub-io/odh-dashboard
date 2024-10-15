@@ -67,7 +67,10 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
         : [];
 
     // Unavailable
-    if (availableCondition?.status === ConditionStatus.False) {
+    if (
+      availableCondition?.status === ConditionStatus.False &&
+      !popoverMessages.some((message) => message.includes('ContainerCreating'))
+    ) {
       statusLabel = ModelRegistryStatusLabel.Unavailable;
       icon = <ExclamationCircleIcon />;
       color = 'red';

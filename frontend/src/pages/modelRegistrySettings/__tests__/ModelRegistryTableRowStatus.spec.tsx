@@ -221,6 +221,23 @@ describe('ModelRegistryTableRowStatus', () => {
     expect(degradingText).toBeInTheDocument();
   });
 
+  it('renders "Progressing" status when popover message contains "ContainerCreating"', async () => {
+    render(
+      <ModelRegistryTableRowStatus
+        conditions={[
+          {
+            status: 'False',
+            type: 'Unavailable',
+            message:
+              'Deployment is unavailable: pod test has unready containers [grpc-container: {waiting: {reason: ContainerCreating, message: }}',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Progressing')).toBeVisible();
+  });
+
   it('renders "Progressing" status when conditions are empty', () => {
     render(<ModelRegistryTableRowStatus conditions={[]} />);
     expect(screen.getByText('Progressing')).toBeVisible();
