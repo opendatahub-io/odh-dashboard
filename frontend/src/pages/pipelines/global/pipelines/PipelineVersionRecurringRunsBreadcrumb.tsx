@@ -10,7 +10,7 @@ const PipelineVersionRecurringRunsBreadcrumb: React.FC = () => {
   const { namespace } = usePipelinesAPI();
 
   return (
-    <BreadcrumbItem isActive>
+    <BreadcrumbItem showDivider isActive>
       {version ? (
         <Link
           to={pipelineVersionRecurringRunsRoute(

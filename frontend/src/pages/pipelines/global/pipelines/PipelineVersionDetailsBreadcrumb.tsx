@@ -10,7 +10,7 @@ const PipelineVersionDetailsBreadcrumb: React.FC = () => {
   const { namespace } = usePipelinesAPI();
 
   return (
-    <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+    <BreadcrumbItem showDivider isActive style={{ maxWidth: 300 }}>
       {version ? (
         <Link
           to={pipelineVersionDetailsRoute(
