@@ -154,7 +154,7 @@ export const listActiveExperiments: ListExperimentsAPI = (hostPath) => (opts, pa
               // eslint-disable-next-line camelcase
               string_value: StorageStateKF.AVAILABLE,
             },
-            ...(params?.filter?.predicates?.length ? [...params.filter.predicates] : []),
+            ...(params?.filter?.predicates ?? [])
           ],
         },
       }),
