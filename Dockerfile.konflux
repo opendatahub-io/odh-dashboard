@@ -61,5 +61,5 @@ LABEL com.redhat.component="odh-dashboard-container" \
       maintainer="['managed-open-data-hub@redhat.com']" \
       io.openshift.expose-services="" \
       io.k8s.display-name="odh-dashboard" \
-      io.k8s.description="odh-dashboard"
+      io.k8s.description="odh-dashboard" \
       com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
