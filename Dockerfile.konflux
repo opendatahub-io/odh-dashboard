@@ -56,12 +56,10 @@ CMD ["npm", "run", "start"]
 
 LABEL com.redhat.component="odh-dashboard-container" \
       name="managed-open-data-hub/odh-dashboard-rhel8" \
-      version="${CI_CONTAINER_VERSION}" \
-      git.url="${CI_ODH_DASHBOARD_UPSTREAM_URL}" \
-      git.commit="${CI_ODH_DASHBOARD_UPSTREAM_COMMIT}" \
+      description="odh-dashboard" \
       summary="odh-dashboard" \
+      maintainer="['managed-open-data-hub@redhat.com']" \
       io.openshift.expose-services="" \
       io.k8s.display-name="odh-dashboard" \
-      maintainer="['managed-open-data-hub@redhat.com']" \
-      description="odh-dashboard" \
+      io.k8s.description="odh-dashboard"
       com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
