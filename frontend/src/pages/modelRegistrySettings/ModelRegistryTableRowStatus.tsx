@@ -123,7 +123,13 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
 
   const label = (
     <Label
-      {...(isClickable ? { onClick: () => {} } : {})}
+      {...(isClickable
+        ? {
+            onClick: () => {
+              /* intentional no-op */
+            },
+          }
+        : {})}
       data-testid="model-registry-label"
       icon={icon}
       color={color}
