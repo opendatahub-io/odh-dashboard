@@ -18,7 +18,7 @@ import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import { DeleteServerModal, usePipelinesAPI } from './context';
 
 const DOCS_LINK =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_science_pipelines/enabling-data-science-pipelines-2_ds-pipelines';
+   'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.13/html/release_notes/support-removals_relnotes';
 
 type EnsureCompatiblePipelineServerProps = {
   children: React.ReactNode;
