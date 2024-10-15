@@ -1,4 +1,4 @@
-import { Skeleton, Text } from '@patternfly/react-core';
+import { Skeleton, Content } from '@patternfly/react-core';
 import React from 'react';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 
@@ -17,7 +17,11 @@ const RegisteredModelAuthor: React.FC<RegisteredModelAuthorProps> = ({ registere
   // Currently, the author of the first model version is being used as the author.
   const registeredModelAuthor = modelVersions.items[0]?.author;
 
-  return <Text data-testid="registered-model-author">{registeredModelAuthor || '-'}</Text>;
+  return (
+    <Content component="p" data-testid="registered-model-author">
+      {registeredModelAuthor || '-'}
+    </Content>
+  );
 };
 
 export default RegisteredModelAuthor;

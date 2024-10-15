@@ -8,9 +8,9 @@ import {
   HelperTextItem,
   Label,
   LabelGroup,
-  Modal,
   TextInput,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import DashboardDescriptionListGroup, {
   DashboardDescriptionListGroupProps,
@@ -113,8 +113,7 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
                 <Label
                   textMaxWidth="40ch"
                   color="blue"
-                  variant="outline"
-                  isOverflowLabel
+                  variant="overflow"
                   onClick={toggleAddLabelModal}
                 >
                   Add label

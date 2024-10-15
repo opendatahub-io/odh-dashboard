@@ -1,4 +1,4 @@
-import { ClipboardCopy, Truncate } from '@patternfly/react-core';
+import { ClipboardCopy, ClipboardCopyVariant } from '@patternfly/react-core';
 import * as React from 'react';
 
 type Props = {
@@ -12,18 +12,16 @@ type Props = {
  * https://github.com/patternfly/patternfly-react/issues/10890
  **/
 
+// TODO: Test this
 const InlineTruncatedClipboardCopy: React.FC<Props> = ({ textToCopy, testId, maxWidth }) => (
   <ClipboardCopy
-    variant="inline-compact"
+    variant={ClipboardCopyVariant.expansion}
     style={{ display: 'inline-flex', maxWidth }}
     hoverTip="Copy"
     clickTip="Copied"
-    onCopy={() => {
-      navigator.clipboard.writeText(textToCopy);
-    }}
     data-testid={testId}
   >
-    <Truncate content={textToCopy} />
+    {textToCopy}
   </ClipboardCopy>
 );
 

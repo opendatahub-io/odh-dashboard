@@ -15,6 +15,7 @@ import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
 import ConnectionTypeRoutes from '~/pages/connectionTypes/ConnectionTypeRoutes';
+import ComingSoonPage from '~/pages/ComingSoonPage';
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -42,10 +43,6 @@ const GlobalPipelineExecutionsRoutes = React.lazy(
 );
 
 const GlobalArtifactsRoutes = React.lazy(() => import('../pages/pipelines/GlobalArtifactsRoutes'));
-
-const GlobalDistributedWorkloadsRoutes = React.lazy(
-  () => import('../pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),
-);
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const CustomServingRuntimeRoutes = React.lazy(
@@ -94,7 +91,10 @@ const AppRoutes: React.FC = () => {
         ) : (
           <Route path="/" element={<InstalledApplications />} />
         )}
+        <Route path="/models" element={<ComingSoonPage title="All models" />} />
+        <Route path="/monitorModels" element={<ComingSoonPage title="Monitor" />} />
         <Route path="/explore" element={<ExploreApplications />} />
+        <Route path="/features" element={<ComingSoonPage title="Features" />} />
         <Route path="/resources" element={<LearningCenterPage />} />
 
         <Route path="/projects/*" element={<ProjectViewRoutes />} />
@@ -116,8 +116,6 @@ const AppRoutes: React.FC = () => {
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
         <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
         <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />
-
-        <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 
         <Route path="/dependency-missing/:area" element={<DependencyMissingPage />} />
 

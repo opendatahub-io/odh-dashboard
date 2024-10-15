@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Label, Text, TextVariants } from '@patternfly/react-core';
+import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { getAPIProtocolFromServingRuntime } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeAPIProtocol } from '~/types';
@@ -15,13 +15,13 @@ const InferenceServiceAPIProtocol: React.FC<Props> = ({ servingRuntime, isMultiM
 
   // If it is multi-model, we use REST as default
   if (!apiProtocol && isMultiModel) {
-    return <Label color="gold">{ServingRuntimeAPIProtocol.REST}</Label>;
+    return <Label color="yellow">{ServingRuntimeAPIProtocol.REST}</Label>;
   }
 
   if (!apiProtocol || !Object.values(ServingRuntimeAPIProtocol).includes(apiProtocol)) {
-    return <Text component={TextVariants.small}>Not defined</Text>;
+    return <Content component={ContentVariants.small}>Not defined</Content>;
   }
 
-  return <Label color="gold">{apiProtocol}</Label>;
+  return <Label color="yellow">{apiProtocol}</Label>;
 };
 export default InferenceServiceAPIProtocol;

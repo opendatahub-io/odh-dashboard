@@ -23,7 +23,7 @@ export const EMPTY_BIAS_CHART_SELECTION_TITLE = 'No bias metrics selected';
 export const EMPTY_BIAS_CHART_SELECTION_DESC =
   'To display bias metric charts, select one or more bias metrics.';
 
-export const BIAS_THRESHOLD_COLOR = 'var(--pf-chart-global--danger--Color--100, #c9190b)';
+export const BIAS_THRESHOLD_COLOR = 'var(--pf-v5-chart-global--danger--Color--100, #c9190b)';
 export const BIAS_DOMAIN_PADDING = 0.1;
 
 export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {

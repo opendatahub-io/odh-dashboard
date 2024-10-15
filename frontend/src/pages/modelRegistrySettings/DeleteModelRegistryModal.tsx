@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, TextContent, Text, TextInput, Stack, StackItem } from '@patternfly/react-core';
+import { Content, TextInput, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { ModelRegistryKind } from '~/k8sTypes';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { deleteModelRegistryBackend } from '~/services/modelRegistrySettingsService';
@@ -65,16 +66,16 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
     >
       <Stack hasGutter>
         <StackItem>
-          <TextContent>
-            <Text component="p">
+          <Content>
+            <Content component="p">
               The <strong>{mr.metadata.name}</strong> model registry, its default group, and any
               permissions associated with it will be deleted. Data located in the database connected
               to the registry will be unaffected.
-            </Text>
-            <Text component="p">
+            </Content>
+            <Content component="p">
               Type <strong>{mr.metadata.name}</strong> to confirm deletion:
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         </StackItem>
         <StackItem>
           <TextInput

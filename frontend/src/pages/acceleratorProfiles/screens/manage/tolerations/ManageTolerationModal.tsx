@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form } from '@patternfly/react-core';
+import { Form } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { Toleration } from '~/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import TolerationFields from './TolerationFields';

@@ -5,6 +5,8 @@ import {
   Form,
   FormGroup,
   Modal,
+  ModalBody,
+  ModalFooter,
   Stack,
   StackItem,
   TextArea,
@@ -118,7 +120,70 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       title={title}
       isOpen
       onClose={() => onBeforeClose()}
-      actions={[
+      variant="medium"
+      data-testid="import-pipeline-modal"
+    >
+      <ModalBody>
+        <Form>
+          <Stack hasGutter>
+            <StackItem>
+              <FormGroup label="Project" fieldId="project-name">
+                {getDisplayNameFromK8sResource(project)}
+              </FormGroup>
+            </StackItem>
+            {children}
+            <StackItem>
+              <FormGroup label="Pipeline name" isRequired fieldId="pipeline-name">
+                <TextInput
+                  isRequired
+                  type="text"
+                  id="pipeline-name"
+                  data-testid="pipeline-name"
+                  name="pipeline-name"
+                  value={name}
+                  onChange={(_e, value) => handleNameChange(value)}
+                />
+                {hasDuplicateName && <DuplicateNameHelperText name={name} />}
+              </FormGroup>
+            </StackItem>
+            <StackItem>
+              <FormGroup label="Pipeline description" fieldId="pipeline-description">
+                <TextArea
+                  type="text"
+                  id="pipeline-description"
+                  data-testid="pipeline-description"
+                  name="pipeline-description"
+                  value={description}
+                  onChange={(_e, value) => setData('description', value)}
+                />
+              </FormGroup>
+            </StackItem>
+            <StackItem>
+              <PipelineUploadRadio
+                fileContents={fileContents}
+                setFileContents={(value) => setData('fileContents', value)}
+                pipelineUrl={pipelineUrl}
+                setPipelineUrl={(url) => setData('pipelineUrl', url)}
+                uploadOption={uploadOption}
+                setUploadOption={(option) => setData('uploadOption', option)}
+              />
+            </StackItem>
+            {error && (
+              <StackItem>
+                <Alert
+                  data-testid="import-modal-error"
+                  title={isArgoWorkflow ? PIPELINE_ARGO_ERROR : 'Error creating pipeline'}
+                  isInline
+                  variant="danger"
+                >
+                  {error.message}
+                </Alert>
+              </StackItem>
+            )}
+          </Stack>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <Button
           key="import-button"
           data-testid="import-button"
@@ -128,72 +193,13 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
           onClick={onSubmit}
         >
           {submitButtonText}
-        </Button>,
+        </Button>
+        ,
         <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose()}>
           Cancel
-        </Button>,
-      ]}
-      variant="medium"
-      data-testid="import-pipeline-modal"
-    >
-      <Form>
-        <Stack hasGutter>
-          <StackItem>
-            <FormGroup label="Project" fieldId="project-name">
-              {getDisplayNameFromK8sResource(project)}
-            </FormGroup>
-          </StackItem>
-          {children}
-          <StackItem>
-            <FormGroup label="Pipeline name" isRequired fieldId="pipeline-name">
-              <TextInput
-                isRequired
-                type="text"
-                id="pipeline-name"
-                data-testid="pipeline-name"
-                name="pipeline-name"
-                value={name}
-                onChange={(_e, value) => handleNameChange(value)}
-              />
-              {hasDuplicateName && <DuplicateNameHelperText name={name} />}
-            </FormGroup>
-          </StackItem>
-          <StackItem>
-            <FormGroup label="Pipeline description" fieldId="pipeline-description">
-              <TextArea
-                type="text"
-                id="pipeline-description"
-                data-testid="pipeline-description"
-                name="pipeline-description"
-                value={description}
-                onChange={(_e, value) => setData('description', value)}
-              />
-            </FormGroup>
-          </StackItem>
-          <StackItem>
-            <PipelineUploadRadio
-              fileContents={fileContents}
-              setFileContents={(value) => setData('fileContents', value)}
-              pipelineUrl={pipelineUrl}
-              setPipelineUrl={(url) => setData('pipelineUrl', url)}
-              uploadOption={uploadOption}
-              setUploadOption={(option) => setData('uploadOption', option)}
-            />
-          </StackItem>
-          {error && (
-            <StackItem>
-              <Alert
-                data-testid="import-modal-error"
-                title={isArgoWorkflow ? PIPELINE_ARGO_ERROR : 'Error creating pipeline'}
-                isInline
-                variant="danger"
-              >
-                {error.message}
-              </Alert>
-            </StackItem>
-          )}
-        </Stack>
-      </Form>
+        </Button>
+        ,
+      </ModalFooter>
     </Modal>
   );
 };

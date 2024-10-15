@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextVariants } from '@patternfly/react-core';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { getPipelineRecurringRunExecutionCount } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
@@ -20,9 +20,9 @@ const PipelineRecurringRunReferenceName: React.FC<PipelineRecurringRunReferenceN
       {loading ? (
         'loading...'
       ) : data ? (
-        <Text component={TextVariants.p} className="pf-v5-u-pb-sm">
+        <Content component={ContentVariants.p} className="pf-v6-u-pb-sm">
           Run {getPipelineRecurringRunExecutionCount(runName)} of {data.display_name}
-        </Text>
+        </Content>
       ) : (
         ''
       )}

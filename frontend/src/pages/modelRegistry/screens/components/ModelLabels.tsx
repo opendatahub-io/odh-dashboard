@@ -1,13 +1,5 @@
-import {
-  Button,
-  Label,
-  LabelGroup,
-  Modal,
-  ModalVariant,
-  Popover,
-  SearchInput,
-  Text,
-} from '@patternfly/react-core';
+import { Button, Label, LabelGroup, Popover, SearchInput, Content } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import React from 'react';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
@@ -57,14 +49,18 @@ const ModelLabels: React.FC<ModelLabelsProps> = ({ name, customProperties }) => 
         </LabelGroup>
       }
     >
-      <Label data-testid="popover-label-text" isOverflowLabel>
+      <Label data-testid="popover-label-text" variant="overflow">
         {labelCount} more
       </Label>
     </Popover>
   );
 
   const getLabelModal = (labelCount: number) => (
-    <Label data-testid="modal-label-text" isOverflowLabel onClick={() => setIsLabelModalOpen(true)}>
+    <Label
+      data-testid="modal-label-text"
+      variant="overflow"
+      onClick={() => setIsLabelModalOpen(true)}
+    >
       {labelCount} more
     </Label>
   );
@@ -76,9 +72,9 @@ const ModelLabels: React.FC<ModelLabelsProps> = ({ name, customProperties }) => 
       isOpen
       onClose={() => setIsLabelModalOpen(false)}
       description={
-        <Text>
+        <Content component="p">
           The following are all the labels of <strong>{name}</strong>
-        </Text>
+        </Content>
       }
       actions={[
         <Button

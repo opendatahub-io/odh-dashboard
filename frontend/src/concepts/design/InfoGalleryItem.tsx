@@ -66,8 +66,8 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
               isInline
               onClick={onClick}
               style={{
-                fontSize: 'var(--pf-v5-global--FontSize--md)',
-                fontWeight: 'var(--pf-v5-global--FontWeight--bold)',
+                fontSize: 'var(--pf-t--global--font--size--body--default)',
+                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
               }}
             >
               {title}

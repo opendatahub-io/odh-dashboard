@@ -174,7 +174,6 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
             <HelperTextItem
               data-testid="culler-timeout-helper-text"
               variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'indeterminate'}
-              hasIcon={cullerTimeout < MIN_CULLER_TIMEOUT}
             >
               Note: Notebook culler timeout must be between 10 minutes and 1000 hours.
             </HelperTextItem>

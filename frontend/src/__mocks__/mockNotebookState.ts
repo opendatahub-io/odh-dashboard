@@ -1,4 +1,4 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { NotebookKind } from '~/k8sTypes';
 import { NotebookState, NotebookRefresh } from '~/pages/projects/notebook/types';
 

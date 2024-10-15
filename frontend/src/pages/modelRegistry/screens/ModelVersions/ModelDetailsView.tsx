@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ClipboardCopy, DescriptionList, Flex, FlexItem, Text } from '@patternfly/react-core';
+import { ClipboardCopy, DescriptionList, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
@@ -87,7 +87,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Owner">
-            <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
+            <Content component="p" data-testid="registered-model-owner">
+              {rm.owner || '-'}
+            </Content>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Last modified at"

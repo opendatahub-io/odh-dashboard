@@ -1,5 +1,5 @@
 import { DomainTuple, ForAxes } from 'victory-core';
-import { ChartThemeDefinitionInterface } from '@patternfly/react-charts';
+import { ChartThemeDefinitionInterface } from '@patternfly/react-charts/victory';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { BiasMetricType } from '~/api';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';

@@ -18,7 +18,7 @@ const CustomServingRuntimeView: React.FC = () => {
       empty={servingRuntimeTemplates.length === 0}
       emptyStatePage={<EmptyCustomServingRuntime />}
       provideChildrenPadding
-      headerContent={<CustomServingRuntimeHeaderLabels />}
+      headerAction={<CustomServingRuntimeHeaderLabels />}
     >
       <CustomServingRuntimeListView />
     </ApplicationsPage>

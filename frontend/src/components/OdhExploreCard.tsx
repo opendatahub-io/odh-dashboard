@@ -36,7 +36,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
     }
   }, [odhApp.metadata.name, isSelected]);
   const disabled = odhApp.spec.comingSoon || disableInfo;
-  const cardClasses = classNames('odh-card', { 'm-disabled': disabled });
+  const cardClasses = classNames('odh-card', { 'pf-m-disabled': disabled });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-hidden': odhApp.spec.support === ODH_PRODUCT_NAME,
     'odh-m-selectable': !disabled,

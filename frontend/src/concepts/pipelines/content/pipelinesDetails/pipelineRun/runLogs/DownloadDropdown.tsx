@@ -23,7 +23,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
       toggle={(toggleRef) => (
         <MenuToggle
           data-testid="download-steps-toggle"
-          className="pf-v5-u-px-sm"
+          className="pf-v6-u-px-sm"
           ref={toggleRef}
           variant="plainText"
           style={{ width: '70px' }}

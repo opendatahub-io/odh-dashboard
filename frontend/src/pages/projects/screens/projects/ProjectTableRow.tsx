@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Spinner, Text, TextVariants, Timestamp } from '@patternfly/react-core';
+import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ProjectKind } from '~/k8sTypes';
 import NotebookIcon from '~/images/icons/NotebookIcon';
@@ -53,8 +53,8 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
                 <ProjectLink
                   project={project}
                   style={{
-                    fontSize: 'var(--pf-v5-global--FontSize--md)',
-                    fontWeight: 'var(--pf-v5-global--FontWeight--normal)',
+                    fontSize: 'var(--pf-t--global--font--size--md)',
+                    fontWeight: 'var(--pf-t--global--font--weight--body--default)',
                   }}
                 />
               </ResourceNameTooltip>
@@ -64,7 +64,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             subtitle={
               owner ? (
                 <div>
-                  <Text component={TextVariants.small}>{owner}</Text>
+                  <Content component={ContentVariants.small}>{owner}</Content>
                 </div>
               ) : undefined
             }
@@ -92,7 +92,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           data-testid="notebook-column-expand"
         >
           <span>
-            <NotebookIcon className="pf-v5-u-mr-xs" />
+            <NotebookIcon className="pf-v6-u-mr-xs" />
             {loaded ? notebooks.length : <Spinner size="sm" />}
           </span>
         </Td>
@@ -112,7 +112,8 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             style={{
               borderTopWidth: 1,
               borderTopStyle: 'solid',
-              borderTopColor: 'var(--pf-v5-global--BorderColor--100)',
+              borderTopColor:
+                'var(--pf-t--temp--dev--tbd)' /* CODEMODS: original v5 color was --pf-v5-global--BorderColor--100 */,
             }}
           >
             <ProjectTableRowNotebookTable obj={project} notebooks={notebooks} />

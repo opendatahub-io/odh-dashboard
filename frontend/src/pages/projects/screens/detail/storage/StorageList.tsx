@@ -26,6 +26,7 @@ const StorageList: React.FC = () => {
         id={ProjectSectionID.CLUSTER_STORAGES}
         objectType={ProjectObjectType.clusterStorage}
         title={ProjectSectionTitles[ProjectSectionID.CLUSTER_STORAGES] || ''}
+        getRedirectPath={(ns) => `/projects/${ns}/clusterStorage`}
         popover={
           <Popover
             headerContent="About cluster storage"

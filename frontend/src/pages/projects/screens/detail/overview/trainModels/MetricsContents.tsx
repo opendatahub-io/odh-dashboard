@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  CardBody,
-  CardFooter,
-  Flex,
-  FlexItem,
-  Text,
-  TextContent,
-} from '@patternfly/react-core';
+import { Button, CardBody, CardFooter, Flex, FlexItem, Content } from '@patternfly/react-core';
 
 type MetricsCardProps = {
   title: string;
@@ -44,14 +36,14 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
                       variant="link"
                       isInline
                       onClick={stats.onClick}
-                      style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
+                      style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
                     >
                       {stats.count}
                     </Button>
                   ) : (
-                    <TextContent>
-                      <Text component="p">{stats.count}</Text>
-                    </TextContent>
+                    <Content>
+                      <Content component="p">{stats.count}</Content>
+                    </Content>
                   )}
                   <div>
                     <div id={`${baseId}-statText`}>{stats.text}</div>

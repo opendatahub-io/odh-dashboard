@@ -237,9 +237,9 @@ const TableBase = <T,>({
                     // assign classes to reserve space
                     className={
                       col.field === CHECKBOX_FIELD_ID || col.field === EXPAND_FIELD_ID
-                        ? 'pf-c-table__toggle'
+                        ? 'pf-v5-c-table__toggle'
                         : col.field === KEBAB_FIELD_ID
-                        ? 'pf-c-table__action'
+                        ? 'pf-v5-c-table__action'
                         : undefined
                     }
                   >
@@ -284,8 +284,8 @@ const TableBase = <T,>({
       {(toolbarContent || showPagination) && (
         <Toolbar
           inset={{ default: 'insetNone' }}
-          className="pf-v5-u-w-100"
-          customChipGroupContent={onClearFilters ? undefined : <></>}
+          className="pf-v6-u-w-100"
+          customLabelGroupContent={onClearFilters ? undefined : <></>}
           clearAllFilters={onClearFilters}
         >
           <ToolbarContent>
@@ -293,8 +293,8 @@ const TableBase = <T,>({
             {showPagination && (
               <ToolbarItem
                 variant="pagination"
-                align={{ default: 'alignRight' }}
-                className="pf-v5-u-pr-lg"
+                align={{ default: 'alignEnd' }}
+                className="pf-v6-u-pr-lg"
               >
                 {pagination('top')}
               </ToolbarItem>
@@ -306,17 +306,17 @@ const TableBase = <T,>({
       {hasStickyColumns ? <InnerScrollContainer>{table}</InnerScrollContainer> : table}
 
       {!loading && emptyTableView && data.length === 0 && (
-        <div style={{ padding: 'var(--pf-global--spacer--2xl) 0', textAlign: 'center' }}>
+        <div style={{ padding: 'var(--pf-v5-global--spacer--2xl) 0', textAlign: 'center' }}>
           {emptyTableView}
         </div>
       )}
 
       {(bottomToolbarContent || showPagination) && (
-        <Toolbar inset={{ default: 'insetNone' }} className="pf-v5-u-w-100">
+        <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
           <ToolbarContent alignItems="center">
             {bottomToolbarContent}
             {showPagination && (
-              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
+              <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
                 {pagination('bottom')}
               </ToolbarItem>
             )}

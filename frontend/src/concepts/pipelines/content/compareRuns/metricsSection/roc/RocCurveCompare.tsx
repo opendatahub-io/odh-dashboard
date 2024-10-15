@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Flex, Spinner, Split, SplitItem, Text } from '@patternfly/react-core';
+import { Bullseye, Flex, Spinner, Split, SplitItem, Content } from '@patternfly/react-core';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { useCheckboxTableBase } from '~/components/table';
 import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
@@ -95,7 +95,7 @@ const RocCurveCompare: React.FC<RocCurveCompareProps> = ({ runArtifacts, isLoade
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
       <Split hasGutter>
         <SplitItem>
-          <Text>ROC curve: multiple artifacts</Text>
+          <Content component="p">ROC curve: multiple artifacts</Content>
         </SplitItem>
         <SplitItem>
           <DashboardHelpTooltip content="The receiver operating characteristic (ROC) curve shows the performance of a model at varying threshold values by plotting the true positive rate against the false positive rate." />

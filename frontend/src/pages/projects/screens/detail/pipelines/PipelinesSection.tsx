@@ -48,6 +48,7 @@ const PipelinesSection: React.FC = () => {
         id={ProjectSectionID.PIPELINES}
         objectType={ProjectObjectType.pipeline}
         title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
+        getRedirectPath={(ns) => `/projects/${ns}/pipelines`}
         data-testid={ProjectSectionID.PIPELINES}
         popover={
           installed ? (
@@ -66,7 +67,6 @@ const PipelinesSection: React.FC = () => {
         isLoading={(compatible && !apiAvailable && installed) || initializing}
         isEmpty={!installed}
         emptyState={<NoPipelineServer variant={ButtonVariant.primary} />}
-        showDivider={isPipelinesEmpty}
       >
         <EnsureCompatiblePipelineServer>
           {timedOut ? (

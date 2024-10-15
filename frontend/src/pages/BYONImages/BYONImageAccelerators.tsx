@@ -89,7 +89,7 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
               <Button
                 isAriaDisabled
                 variant="link"
-                className="pf-v5-u-font-size-xs"
+                className="pf-v6-u-font-size-xs"
                 isInline
                 icon={<PlusIcon />}
               >

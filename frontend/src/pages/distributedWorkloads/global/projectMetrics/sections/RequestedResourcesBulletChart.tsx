@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ChartBullet, ChartLegend } from '@patternfly/react-charts';
+import { ChartBullet, ChartLegend } from '@patternfly/react-charts/victory';
 import {
   chart_color_blue_300 as chartColorBlue300,
   chart_color_blue_100 as chartColorBlue100,

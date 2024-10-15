@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Tooltip, Text, ButtonProps } from '@patternfly/react-core';
+import { Button, Tooltip, Content, ButtonProps } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
@@ -40,9 +40,9 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
       data-testid="model-serving-action-tooltip"
       aria-label="Model Serving Action Info"
       content={
-        <Text>{`At least one serving runtime must be enabled to ${
+        <Content component="p">{`At least one serving runtime must be enabled to ${
           isProjectModelMesh ? 'add a model server' : 'deploy a model'
-        }. Contact your administrator.`}</Text>
+        }. Contact your administrator.`}</Content>
       }
     >
       {actionButton()}

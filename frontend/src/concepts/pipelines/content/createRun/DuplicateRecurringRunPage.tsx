@@ -11,6 +11,7 @@ import { RunTypeOption } from './types';
 
 type DuplicateRecurringRunPageProps = {
   detailsRedirect: (recurringRunId: string) => string;
+  getProjectRedirectPath: (namespace: string) => string;
   contextExperiment?: ExperimentKFv2 | null;
   contextPipeline?: PipelineKFv2 | null;
   contextPipelineVersion?: PipelineVersionKFv2 | null;
@@ -20,6 +21,7 @@ const DuplicateRecurringRunPage: React.FC<PathProps & DuplicateRecurringRunPageP
   breadcrumbPath,
   contextPath,
   detailsRedirect,
+  getProjectRedirectPath,
   ...props
 }) => {
   const { recurringRunId } = useParams();
@@ -47,6 +49,7 @@ const DuplicateRecurringRunPage: React.FC<PathProps & DuplicateRecurringRunPageP
       loaded={loaded}
       loadError={error}
       empty={false}
+      getRedirectPath={getProjectRedirectPath}
     >
       <RunPage
         duplicateRun={recurringRun}

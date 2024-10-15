@@ -7,8 +7,6 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   Spinner,
   Tab,
@@ -32,12 +30,12 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
 
   if (artifactError) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg}>
-        <EmptyStateHeader
-          titleText="Error loading artifact details"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h4"
-        />
+      <EmptyState
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Error loading artifact details"
+        variant={EmptyStateVariant.lg}
+      >
         <EmptyStateBody>{artifactError.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -66,6 +64,7 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       }
       empty={false}
       provideChildrenPadding
+      getRedirectPath={(ns) => `artifacts/${ns}`}
     >
       <Tabs aria-label="Artifact details tabs" activeKey={ArtifactDetailsTabKey.Overview}>
         <Tab

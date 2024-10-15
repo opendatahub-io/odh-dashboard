@@ -41,13 +41,15 @@ const EnsureMetricsAvailable: React.FC<EnsureMetricsAvailableProps> = ({
   // for loaded first, you'll get an infinite spinner.
   if (error) {
     if (error.response?.status === 403) {
-      return <UnauthorizedError variant={PageSectionVariants.light} accessDomain={accessDomain} />;
+      return (
+        <UnauthorizedError variant={PageSectionVariants.secondary} accessDomain={accessDomain} />
+      );
     }
     return (
       <UnknownError
         titleText="Error retrieving metrics"
         error={error}
-        variant={PageSectionVariants.light}
+        variant={PageSectionVariants.secondary}
         data-testid="metrics-error"
       />
     );

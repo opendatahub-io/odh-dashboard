@@ -11,6 +11,7 @@ import { RunTypeOption } from './types';
 
 type DuplicateRunPageProps = {
   detailsRedirect: (runId: string) => string;
+  getProjectRedirectPath: (namespace: string) => string;
   contextExperiment?: ExperimentKFv2 | null;
   contextPipeline?: PipelineKFv2 | null;
   contextPipelineVersion?: PipelineVersionKFv2 | null;
@@ -20,6 +21,7 @@ const DuplicateRunPage: React.FC<PathProps & DuplicateRunPageProps> = ({
   breadcrumbPath,
   contextPath,
   detailsRedirect,
+  getProjectRedirectPath,
   ...props
 }) => {
   const { runId } = useParams();
@@ -47,6 +49,7 @@ const DuplicateRunPage: React.FC<PathProps & DuplicateRunPageProps> = ({
       loaded={loaded}
       loadError={error}
       empty={false}
+      getRedirectPath={getProjectRedirectPath}
     >
       <RunPage
         duplicateRun={run}

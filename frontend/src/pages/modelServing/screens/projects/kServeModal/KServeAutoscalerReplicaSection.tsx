@@ -27,7 +27,7 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
   return (
     <FormGroup
       label="Number of model server replicas to deploy"
-      labelIcon={
+      labelHelp={
         infoContent ? (
           <Popover bodyContent={<div>{infoContent}</div>}>
             <Icon aria-label="Model server replicas info" role="button">

@@ -27,6 +27,7 @@ const PipelineVersionDuplicateRunPage: React.FC<PathProps> = ({ breadcrumbPath }
           runId,
         )
       }
+      getProjectRedirectPath={(ns) => `${ns}/pipelines`}
     />
   );
 };

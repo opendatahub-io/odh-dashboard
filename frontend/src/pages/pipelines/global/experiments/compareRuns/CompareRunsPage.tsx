@@ -45,6 +45,7 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
       loaded={loaded}
       empty={false}
       noHeader
+      getRedirectPath={(ns) => `${ns}/pipelines`}
     >
       <Stack hasGutter>
         <StackItem>

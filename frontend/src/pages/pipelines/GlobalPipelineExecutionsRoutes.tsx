@@ -20,6 +20,7 @@ const GlobalPipelineExecutionsRoutes: React.FC = () => (
           title={executionsPageTitle}
           description={executionsPageDescription}
           getInvalidRedirectPath={executionsBaseRoute}
+          getRedirectPath={executionsBaseRoute}
         />
       }
     >

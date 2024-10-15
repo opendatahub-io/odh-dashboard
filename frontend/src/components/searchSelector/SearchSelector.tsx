@@ -91,6 +91,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           isFullWidth={isFullWidth}
           data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
+          className={toggleVariant === 'plainText' ? 'pf-v6-u-px-0 pf-v6-u-py-sm' : undefined}
         >
           <Truncate content={toggleText} />
         </MenuToggle>

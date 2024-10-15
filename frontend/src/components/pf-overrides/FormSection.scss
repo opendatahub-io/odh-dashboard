@@ -1,8 +1,8 @@
 .odh-form-section {
   &__desc {
-    margin-top: var(--pf-v5-global--spacer--sm);
-    font-size: var(--pf-v5-global--FontSize--sm);
-    color: var(--pf-v5-global--Color--200);
+    margin-top: var(--pf-t--global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    color: var(--pf-t--global--text--color--subtle);
     font-weight: initial;
   }
 }
