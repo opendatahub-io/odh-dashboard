@@ -9,14 +9,14 @@ import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pi
 import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
 import { RunTypeOption } from './types';
 
-type CloneRecurringRunPageProps = {
+type DuplicateRecurringRunPageProps = {
   detailsRedirect: (recurringRunId: string) => string;
   contextExperiment?: ExperimentKFv2 | null;
   contextPipeline?: PipelineKFv2 | null;
   contextPipelineVersion?: PipelineVersionKFv2 | null;
 };
 
-const CloneRecurringRunPage: React.FC<PathProps & CloneRecurringRunPageProps> = ({
+const DuplicateRecurringRunPage: React.FC<PathProps & DuplicateRecurringRunPageProps> = ({
   breadcrumbPath,
   contextPath,
   detailsRedirect,
@@ -49,14 +49,14 @@ const CloneRecurringRunPage: React.FC<PathProps & CloneRecurringRunPageProps> = 
       empty={false}
     >
       <RunPage
-        cloneRun={recurringRun}
+        duplicateRun={recurringRun}
         contextPath={contextPath}
         runType={RunTypeOption.SCHEDULED}
-        testId="clone-run-page"
+        testId="duplicate-run-page"
         {...props}
       />
     </ApplicationsPage>
   );
 };
 
-export default CloneRecurringRunPage;
+export default DuplicateRecurringRunPage;

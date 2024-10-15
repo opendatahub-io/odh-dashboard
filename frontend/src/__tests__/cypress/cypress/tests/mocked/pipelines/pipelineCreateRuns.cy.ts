@@ -11,12 +11,12 @@ import {
 } from '~/__mocks__';
 import {
   createRunPage,
-  cloneRunPage,
+  duplicateRunPage,
   pipelineRecurringRunTable,
   pipelineRunsGlobal,
   activeRunsTable,
   createSchedulePage,
-  cloneSchedulePage,
+  duplicateSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
@@ -221,44 +221,48 @@ describe('Pipeline create runs', () => {
       });
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      cloneRunPage.mockGetExperiments(projectName, mockExperiments);
-      cloneRunPage.mockGetPipelines(projectName, [mockPipeline]);
-      cloneRunPage.mockGetPipelineVersions(
+      duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
+      duplicateRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      duplicateRunPage.mockGetPipelineVersions(
         projectName,
         [mockPipelineVersion],
         mockPipelineVersion.pipeline_id,
       );
-      cloneRunPage.mockGetRun(projectName, mockRun);
-      cloneRunPage.mockGetPipelineVersion(projectName, mockPipelineVersion);
-      cloneRunPage.mockGetPipeline(projectName, mockPipeline);
-      cloneRunPage.mockGetExperiment(projectName, mockExperiment);
+      duplicateRunPage.mockGetRun(projectName, mockRun);
+      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      duplicateRunPage.mockGetPipeline(projectName, mockPipeline);
+      duplicateRunPage.mockGetExperiment(projectName, mockExperiment);
 
-      // Mock runs list with newly cloned run
+      // Mock runs list with newly duplicated run
       activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun], projectName);
 
-      // Navigate to clone run page for a given active run
+      // Navigate to duplicate run page for a given active run
       cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findActiveRunsTab().click();
       activeRunsTable.getRowByName(mockRun.display_name).findKebabAction('Duplicate').click();
-      verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/clone/${mockRun.run_id}`);
+      verifyRelativeURL(
+        `/experiments/${projectName}/experiment-1/runs/duplicate/${mockRun.run_id}`,
+      );
 
       // Verify pre-populated values & submit
-      cloneRunPage.experimentSelect
+      duplicateRunPage.experimentSelect
         .findToggleButton()
         .should('have.text', mockExperiment.display_name);
-      cloneRunPage.pipelineSelect.findToggleButton().should('have.text', mockPipeline.display_name);
-      cloneRunPage.pipelineVersionSelect
+      duplicateRunPage.pipelineSelect
+        .findToggleButton()
+        .should('have.text', mockPipeline.display_name);
+      duplicateRunPage.pipelineVersionSelect
         .findToggleButton()
         .should('have.text', mockPipelineVersion.display_name);
-      const paramsSection = cloneRunPage.getParamsSection();
+      const paramsSection = duplicateRunPage.getParamsSection();
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
       paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
       paramsSection.findParamById('standard_scaler').should('have.value', 'false');
 
-      cloneRunPage
+      duplicateRunPage
         .mockCreateRun(projectName, mockPipelineVersion, mockDuplicateRun)
         .as('duplicateRun');
-      cloneRunPage.submit();
+      duplicateRunPage.submit();
 
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
@@ -275,7 +279,7 @@ describe('Pipeline create runs', () => {
         });
       });
 
-      // Should redirect to the details of the newly cloned active run
+      // Should redirect to the details of the newly duplicated active run
       verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/${mockDuplicateRun.run_id}`);
     });
 
@@ -673,19 +677,19 @@ describe('Pipeline create runs', () => {
       });
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      cloneSchedulePage.mockGetExperiments(projectName, mockExperiments);
-      cloneSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
-      cloneSchedulePage.mockGetPipelineVersions(
+      duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      duplicateSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+      duplicateSchedulePage.mockGetPipelineVersions(
         projectName,
         [mockPipelineVersion],
         mockPipelineVersion.pipeline_id,
       );
-      cloneSchedulePage.mockGetRecurringRun(projectName, mockRecurringRun);
-      cloneSchedulePage.mockGetPipelineVersion(projectName, mockPipelineVersion);
-      cloneSchedulePage.mockGetPipeline(projectName, mockPipeline);
-      cloneSchedulePage.mockGetExperiment(projectName, mockExperiment);
+      duplicateSchedulePage.mockGetRecurringRun(projectName, mockRecurringRun);
+      duplicateSchedulePage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      duplicateSchedulePage.mockGetPipeline(projectName, mockPipeline);
+      duplicateSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
-      // Navigate to clone run page for a given schedule
+      // Navigate to duplicate run page for a given schedule
       cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRecurringRunTable
@@ -693,27 +697,27 @@ describe('Pipeline create runs', () => {
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/experiments/${projectName}/experiment-1/schedules/clone/${mockRecurringRun.recurring_run_id}`,
+        `/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
       // Verify pre-populated values & submit
-      cloneSchedulePage.experimentSelect
+      duplicateSchedulePage.experimentSelect
         .findToggleButton()
         .should('have.text', mockExperiment.display_name);
-      cloneSchedulePage.pipelineSelect
+      duplicateSchedulePage.pipelineSelect
         .findToggleButton()
         .should('have.text', mockPipeline.display_name);
-      cloneSchedulePage.pipelineVersionSelect
+      duplicateSchedulePage.pipelineVersionSelect
         .findToggleButton()
         .should('have.text', mockPipelineVersion.display_name);
-      const paramsSection = cloneSchedulePage.getParamsSection();
+      const paramsSection = duplicateSchedulePage.getParamsSection();
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
       paramsSection.findParamById('neighbors').find('input').should('have.value', '0');
       paramsSection.findParamById('standard_scaler').should('have.value', 'yes');
-      cloneSchedulePage
+      duplicateSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, mockDuplicateRecurringRun)
         .as('duplicateSchedule');
-      cloneSchedulePage.submit();
+      duplicateSchedulePage.submit();
 
       cy.wait('@duplicateSchedule').then((interception) => {
         expect(interception.request.body).to.eql({
@@ -751,19 +755,19 @@ describe('Pipeline create runs', () => {
       const mockExperiment = { ...mockExperiments[0], storage_state: StorageStateKF.ARCHIVED };
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      cloneSchedulePage.mockGetExperiments(projectName, mockExperiments);
-      cloneSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
-      cloneSchedulePage.mockGetPipelineVersions(
+      duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      duplicateSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+      duplicateSchedulePage.mockGetPipelineVersions(
         projectName,
         [mockPipelineVersion],
         mockPipelineVersion.pipeline_id,
       );
-      cloneSchedulePage.mockGetRecurringRun(projectName, mockRecurringRun);
-      cloneSchedulePage.mockGetPipelineVersion(projectName, mockPipelineVersion);
-      cloneSchedulePage.mockGetPipeline(projectName, mockPipeline);
-      cloneSchedulePage.mockGetExperiment(projectName, mockExperiment);
+      duplicateSchedulePage.mockGetRecurringRun(projectName, mockRecurringRun);
+      duplicateSchedulePage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      duplicateSchedulePage.mockGetPipeline(projectName, mockPipeline);
+      duplicateSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
-      // Navigate to clone run page for a given schedule
+      // Navigate to duplicate run page for a given schedule
       cy.visitWithLogin(`/experiments/${projectName}/experiment-1/runs`);
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRecurringRunTable
@@ -771,11 +775,11 @@ describe('Pipeline create runs', () => {
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/experiments/${projectName}/experiment-1/schedules/clone/${mockRecurringRun.recurring_run_id}`,
+        `/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
       // Verify pre-populated values & submit
-      cloneSchedulePage.experimentSelect
+      duplicateSchedulePage.experimentSelect
         .findToggleButton()
         .should('have.text', 'Select an experiment');
     });

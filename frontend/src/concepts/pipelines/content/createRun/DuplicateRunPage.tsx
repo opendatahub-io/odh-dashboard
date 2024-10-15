@@ -9,14 +9,14 @@ import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pi
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { RunTypeOption } from './types';
 
-type CloneRunPageProps = {
+type DuplicateRunPageProps = {
   detailsRedirect: (runId: string) => string;
   contextExperiment?: ExperimentKFv2 | null;
   contextPipeline?: PipelineKFv2 | null;
   contextPipelineVersion?: PipelineVersionKFv2 | null;
 };
 
-const CloneRunPage: React.FC<PathProps & CloneRunPageProps> = ({
+const DuplicateRunPage: React.FC<PathProps & DuplicateRunPageProps> = ({
   breadcrumbPath,
   contextPath,
   detailsRedirect,
@@ -49,14 +49,14 @@ const CloneRunPage: React.FC<PathProps & CloneRunPageProps> = ({
       empty={false}
     >
       <RunPage
-        cloneRun={run}
+        duplicateRun={run}
         contextPath={contextPath}
         runType={RunTypeOption.ONE_TRIGGER}
-        testId="clone-run-page"
+        testId="duplicate-run-page"
         {...props}
       />
     </ApplicationsPage>
   );
 };
 
-export default CloneRunPage;
+export default DuplicateRunPage;

@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRecurringRunKFv2, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
-import { cloneRecurringRunRoute } from '~/routes';
+import { duplicateRecurringRunRoute } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRecurringRunDetailsActionsProps = {
@@ -104,10 +104,10 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
                       {updateStatusActionLabel}
                     </DropdownItem>,
                     <DropdownItem
-                      key="clone-run"
+                      key="duplicate-run"
                       onClick={() =>
                         navigate(
-                          cloneRecurringRunRoute(
+                          duplicateRecurringRunRoute(
                             namespace,
                             recurringRun.recurring_run_id,
                             experimentId,

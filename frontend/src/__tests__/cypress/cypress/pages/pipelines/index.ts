@@ -6,7 +6,7 @@ export * from './pipelineImportModal';
 export * from './pipelineVersionImportModal';
 export * from './pipelineRunTable';
 export * from './createRunPage';
-export * from './cloneRunPage';
+export * from './duplicateRunPage';
 export * from './pipelineFilterBar';
 export * from './restoreModal';
 export * from './archiveModal';

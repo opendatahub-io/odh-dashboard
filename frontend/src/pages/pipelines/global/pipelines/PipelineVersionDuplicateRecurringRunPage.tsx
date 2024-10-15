@@ -8,15 +8,15 @@ import {
   pipelineVersionRecurringRunDetailsRoute,
   pipelineVersionRecurringRunsRoute,
 } from '~/routes';
-import CloneRecurringRunPage from '~/concepts/pipelines/content/createRun/CloneRecurringRunPage';
+import DuplicateRecurringRunPage from '~/concepts/pipelines/content/createRun/DuplicateRecurringRunPage';
 import { PipelineVersionContext } from '~/pages/pipelines/global/pipelines/PipelineVersionContext';
 
-const PipelineVersionCloneRecurringRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
+const PipelineVersionDuplicateRecurringRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const { pipeline, version } = React.useContext(PipelineVersionContext);
   const { namespace } = usePipelinesAPI();
 
   return (
-    <CloneRecurringRunPage
+    <DuplicateRecurringRunPage
       breadcrumbPath={[
         ...breadcrumbPath,
         <BreadcrumbItem isActive style={{ maxWidth: 300 }} key="pipeline-version-details">
@@ -70,4 +70,4 @@ const PipelineVersionCloneRecurringRunPage: React.FC<PathProps> = ({ breadcrumbP
   );
 };
 
-export default PipelineVersionCloneRecurringRunPage;
+export default PipelineVersionDuplicateRecurringRunPage;

@@ -22,8 +22,8 @@ import {
   bulkRestoreRunModal,
   archiveRunModal,
   bulkArchiveRunModal,
-  cloneRunPage,
-  cloneSchedulePage,
+  duplicateRunPage,
+  duplicateSchedulePage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
@@ -330,9 +330,9 @@ describe('Pipeline runs', () => {
           );
         });
 
-        it('navigate to clone run page', () => {
-          cloneRunPage.mockGetExperiments(projectName, mockExperiments);
-          cloneRunPage.mockGetExperiment(projectName, mockExperiments[0]);
+        it('navigate to duplicate run page', () => {
+          duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
+          duplicateRunPage.mockGetExperiment(projectName, mockExperiments[0]);
           cy.visitWithLogin(`/experiments/${projectName}/test-experiment-1/runs`);
 
           activeRunsTable
@@ -341,7 +341,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/experiments/${projectName}/test-experiment-1/runs/clone/${mockActiveRuns[0].run_id}`,
+            `/experiments/${projectName}/test-experiment-1/runs/duplicate/${mockActiveRuns[0].run_id}`,
           );
         });
 
@@ -1006,9 +1006,9 @@ describe('Pipeline runs', () => {
           );
         });
 
-        it('navigate to clone scheduled run page', () => {
-          cloneSchedulePage.mockGetExperiments(projectName, mockExperiments);
-          cloneSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
+        it('navigate to duplicate scheduled run page', () => {
+          duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
+          duplicateSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
           cy.visitWithLogin(`/experiments/${projectName}/test-experiment-1/runs`);
 
           pipelineRunsGlobal.findSchedulesTab().click();
@@ -1018,7 +1018,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/experiments/${projectName}/test-experiment-1/schedules/clone/${mockRecurringRuns[0].recurring_run_id}`,
+            `/experiments/${projectName}/test-experiment-1/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
 

@@ -55,14 +55,15 @@ export const pipelineVersionCreateRecurringRunRoute = (
 ): string =>
   `${pipelineVersionRecurringRunsRoute(namespace, pipelineId, pipelineVersionId)}/create`;
 
-export const pipelineVersionCloneRunRoute = (
+export const pipelineVersionDuplicateRunRoute = (
   namespace: string | undefined,
   pipelineId: string | undefined,
   pipelineVersionId: string | undefined,
   runId: string,
-): string => `${pipelineVersionRunsRoute(namespace, pipelineId, pipelineVersionId)}/clone/${runId}`;
+): string =>
+  `${pipelineVersionRunsRoute(namespace, pipelineId, pipelineVersionId)}/duplicate/${runId}`;
 
-export const pipelineVersionCloneRecurringRunRoute = (
+export const pipelineVersionDuplicateRecurringRunRoute = (
   namespace: string | undefined,
   pipelineId: string | undefined,
   pipelineVersionId: string | undefined,
@@ -72,7 +73,7 @@ export const pipelineVersionCloneRecurringRunRoute = (
     namespace,
     pipelineId,
     pipelineVersionId,
-  )}/clone/${recurringRunId}`;
+  )}/duplicate/${recurringRunId}`;
 
 export const pipelineVersionRunDetailsRoute = (
   namespace: string,

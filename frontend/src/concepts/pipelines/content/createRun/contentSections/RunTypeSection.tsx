@@ -13,10 +13,10 @@ import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createR
 
 interface RunTypeSectionProps {
   data: RunFormData;
-  isCloned: boolean;
+  isDuplicated: boolean;
 }
 
-export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isCloned }) => {
+export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicated }) => {
   const { namespace, experimentId, pipelineId, pipelineVersionId } = useParams();
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
 
@@ -59,7 +59,7 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isCloned }
     >
       {runTypeValue}
 
-      {isAlertOpen && !isCloned && (
+      {isAlertOpen && !isDuplicated && (
         <Alert
           isInline
           variant="info"

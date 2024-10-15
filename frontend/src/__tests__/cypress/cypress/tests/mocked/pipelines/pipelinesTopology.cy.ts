@@ -328,7 +328,7 @@ describe('Pipeline topology', () => {
         );
         pipelineRunDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/runs/clone/${mockRun.run_id}`,
+          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/runs/duplicate/${mockRun.run_id}`,
         );
       });
 
@@ -341,7 +341,7 @@ describe('Pipeline topology', () => {
         );
         pipelineRecurringRunDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/schedules/clone/${mockRecurringRun.recurring_run_id}`,
+          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
         );
       });
 
