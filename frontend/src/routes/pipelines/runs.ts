@@ -1,6 +1,6 @@
 import {
-  pipelineVersionCloneRunRoute,
-  pipelineVersionCloneRecurringRunRoute,
+  pipelineVersionDuplicateRunRoute,
+  pipelineVersionDuplicateRecurringRunRoute,
   pipelineVersionCreateRunRoute,
   pipelineVersionCreateRecurringRunRoute,
   pipelineVersionRunDetailsRoute,
@@ -9,13 +9,13 @@ import {
 import {
   experimentRecurringRunDetailsRoute,
   experimentRunDetailsRoute,
-  experimentsCloneRecurringRunRoute,
-  experimentsCloneRunRoute,
+  experimentsDuplicateRecurringRunRoute,
+  experimentsDuplicateRunRoute,
   experimentsCreateRecurringRunRoute,
   experimentsCreateRunRoute,
 } from './experiments';
 
-export const cloneRecurringRunRoute = (
+export const duplicateRecurringRunRoute = (
   namespace: string,
   recurringRunId: string,
   experimentId: string | undefined,
@@ -23,8 +23,8 @@ export const cloneRecurringRunRoute = (
   pipelineVersionId: string | undefined,
 ): string =>
   experimentId
-    ? experimentsCloneRecurringRunRoute(namespace, experimentId, recurringRunId)
-    : pipelineVersionCloneRecurringRunRoute(
+    ? experimentsDuplicateRecurringRunRoute(namespace, experimentId, recurringRunId)
+    : pipelineVersionDuplicateRecurringRunRoute(
         namespace,
         pipelineId,
         pipelineVersionId,
@@ -78,7 +78,7 @@ export const runDetailsRoute = (
     ? experimentRunDetailsRoute(namespace, experimentId, runId)
     : pipelineVersionRunDetailsRoute(namespace, pipelineId, pipelineVersionId, runId);
 
-export const cloneRunRoute = (
+export const duplicateRunRoute = (
   namespace: string,
   runId: string,
   experimentId: string | undefined,
@@ -86,5 +86,5 @@ export const cloneRunRoute = (
   pipelineVersionId: string | undefined,
 ): string =>
   experimentId
-    ? experimentsCloneRunRoute(namespace, experimentId, runId)
-    : pipelineVersionCloneRunRoute(namespace, pipelineId, pipelineVersionId, runId);
+    ? experimentsDuplicateRunRoute(namespace, experimentId, runId)
+    : pipelineVersionDuplicateRunRoute(namespace, pipelineId, pipelineVersionId, runId);

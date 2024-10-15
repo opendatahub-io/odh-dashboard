@@ -15,7 +15,7 @@ import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePi
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { cloneRunRoute } from '~/routes';
+import { duplicateRunRoute } from '~/routes';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
@@ -53,10 +53,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [pipelineRunExperiment, pipelineRunExperimentLoaded] =
     useExperimentById(pipelineRunExperimentId);
   const actions: IAction[] = React.useMemo(() => {
-    const cloneAction: IAction = {
+    const duplicateAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
-        navigate(cloneRunRoute(namespace, run.run_id, experimentId, pipelineId, pipelineVersionId));
+        navigate(
+          duplicateRunRoute(namespace, run.run_id, experimentId, pipelineId, pipelineVersionId),
+        );
       },
     };
 
@@ -73,7 +75,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             },
           }),
         },
-        ...(!version && experimentId ? [] : [cloneAction]),
+        ...(!version && experimentId ? [] : [duplicateAction]),
         {
           isSeparator: true,
         },
@@ -97,7 +99,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
         },
       },
-      ...(!version && experimentId ? [] : [cloneAction]),
+      ...(!version && experimentId ? [] : [duplicateAction]),
       {
         isSeparator: true,
       },

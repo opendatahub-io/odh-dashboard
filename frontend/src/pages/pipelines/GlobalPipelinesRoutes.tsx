@@ -19,9 +19,9 @@ import {
   PipelineVersionCreateRunPage,
   PipelineVersionCreateRecurringRunPage,
 } from '~/pages/pipelines/global/pipelines/PipelineVersionCreateRunPage';
-import PipelineVersionCloneRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionCloneRunPage';
+import PipelineVersionDuplicateRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionDuplicateRunPage';
 import PipelineVersionRecurringRunDetails from '~/pages/pipelines/global/pipelines/PipelineVersionRecurringRunDetails';
-import PipelineVersionCloneRecurringRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionCloneRecurringRunPage';
+import PipelineVersionDuplicateRecurringRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionDuplicateRecurringRunPage';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
 const GlobalPipelinesRoutes: React.FC = () => (
@@ -76,10 +76,10 @@ const GlobalPipelinesRoutes: React.FC = () => (
               }
             />
             <Route
-              path="clone/:runId"
+              path="duplicate/:runId"
               element={
                 <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionCloneRunPage}
+                  BreadcrumbDetailsComponent={PipelineVersionDuplicateRunPage}
                 />
               }
             />
@@ -102,10 +102,10 @@ const GlobalPipelinesRoutes: React.FC = () => (
               }
             />
             <Route
-              path="clone/:recurringRunId"
+              path="duplicate/:recurringRunId"
               element={
                 <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionCloneRecurringRunPage}
+                  BreadcrumbDetailsComponent={PipelineVersionDuplicateRecurringRunPage}
                 />
               }
             />

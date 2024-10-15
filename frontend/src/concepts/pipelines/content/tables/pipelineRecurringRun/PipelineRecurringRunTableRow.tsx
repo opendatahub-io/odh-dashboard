@@ -6,7 +6,7 @@ import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { cloneRecurringRunRoute, recurringRunDetailsRoute } from '~/routes';
+import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '~/routes';
 import {
   RecurringRunCreated,
   RecurringRunScheduled,
@@ -114,7 +114,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
                     title: 'Duplicate',
                     onClick: () => {
                       navigate(
-                        cloneRecurringRunRoute(
+                        duplicateRecurringRunRoute(
                           namespace,
                           recurringRun.recurring_run_id,
                           experimentId,

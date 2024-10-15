@@ -7,8 +7,8 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import { CreateRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
 
-class CloneRunPage extends CreateRunPage {
-  protected testId = 'clone-run-page';
+class DuplicateRunPage extends CreateRunPage {
+  protected testId = 'duplicate-run-page';
 
   constructor(type: 'run' | 'schedule') {
     super(type);
@@ -67,5 +67,5 @@ class CloneRunPage extends CreateRunPage {
   }
 }
 
-export const cloneRunPage = new CloneRunPage('run');
-export const cloneSchedulePage = new CloneRunPage('schedule');
+export const duplicateRunPage = new DuplicateRunPage('run');
+export const duplicateSchedulePage = new DuplicateRunPage('schedule');

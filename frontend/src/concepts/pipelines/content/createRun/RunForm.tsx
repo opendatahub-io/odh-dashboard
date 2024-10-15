@@ -31,10 +31,10 @@ import { getInputDefinitionParams } from './utils';
 type RunFormProps = {
   data: RunFormData;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
-  isCloned: boolean;
+  isDuplicated: boolean;
 };
 
-const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
+const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
   const { api } = usePipelinesAPI();
   const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
@@ -104,7 +104,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isCloned }) => {
 
   return (
     <Form onSubmit={(e) => e.preventDefault()} maxWidth="500px">
-      <RunTypeSection data={data} isCloned={isCloned} />
+      <RunTypeSection data={data} isDuplicated={isDuplicated} />
 
       <ProjectAndExperimentSection
         projectName={getDisplayNameFromK8sResource(data.project)}

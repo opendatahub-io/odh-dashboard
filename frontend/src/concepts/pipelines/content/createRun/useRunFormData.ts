@@ -116,25 +116,34 @@ const useUpdateExperimentFormData = (
   }, [formData.experiment, setFormValue, experiment, formData.runType.type]);
 };
 
-const useUpdateCloneData = (
+const useUpdateDuplicateData = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
 ) => {
-  const cloneRunPipelineId = initialData?.pipeline_version_reference?.pipeline_id || '';
-  const cloneRunVersionId = initialData?.pipeline_version_reference?.pipeline_version_id || '';
-  const cloneRunExperimentId = initialData?.experiment_id || '';
-  const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunPipelineId, cloneRunVersionId);
-  const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
-  const [cloneExperiment] = useExperimentById(cloneRunExperimentId);
+  const duplicateRunPipelineId = initialData?.pipeline_version_reference?.pipeline_id || '';
+  const duplicateRunVersionId = initialData?.pipeline_version_reference?.pipeline_version_id || '';
+  const duplicateRunExperimentId = initialData?.experiment_id || '';
+  const [duplicateRunPipelineVersion] = usePipelineVersionById(
+    duplicateRunPipelineId,
+    duplicateRunVersionId,
+  );
+  const [duplicateRunPipeline] = usePipelineById(duplicateRunPipelineId);
+  const [duplicateExperiment] = useExperimentById(duplicateRunExperimentId);
 
   React.useEffect(() => {
     if (!initialData) {
       return;
     }
-    setFunction('experiment', cloneExperiment);
-    setFunction('pipeline', cloneRunPipeline);
-    setFunction('version', cloneRunPipelineVersion);
-  }, [setFunction, initialData, cloneExperiment, cloneRunPipeline, cloneRunPipelineVersion]);
+    setFunction('experiment', duplicateExperiment);
+    setFunction('pipeline', duplicateRunPipeline);
+    setFunction('version', duplicateRunPipelineVersion);
+  }, [
+    setFunction,
+    initialData,
+    duplicateExperiment,
+    duplicateRunPipeline,
+    duplicateRunPipelineVersion,
+  ]);
 };
 
 const useRunFormData = (
@@ -166,7 +175,7 @@ const useRunFormData = (
 
   useUpdateExperimentFormData(formState, experiment);
   useUpdateRunType(setFormValue, run);
-  useUpdateCloneData(setFormValue, run);
+  useUpdateDuplicateData(setFormValue, run);
 
   return formState;
 };

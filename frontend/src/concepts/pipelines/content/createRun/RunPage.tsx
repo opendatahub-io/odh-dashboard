@@ -32,7 +32,7 @@ import { asEnumMember } from '~/utilities/utils';
 import useDefaultExperiment from '~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
-  cloneRun?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  duplicateRun?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
   contextPath: string;
   testId?: string;
   runType: RunTypeOption;
@@ -42,7 +42,7 @@ type RunPageProps = {
 };
 
 const RunPage: React.FC<RunPageProps> = ({
-  cloneRun,
+  duplicateRun,
   contextPath,
   testId,
   runType,
@@ -87,9 +87,12 @@ const RunPage: React.FC<RunPageProps> = ({
     [isSchedule, triggerType],
   );
 
-  const [formData, setFormDataValue] = useRunFormData(cloneRun, {
-    nameDesc: cloneRun
-      ? { name: `Duplicate of ${cloneRun.display_name}`, description: cloneRun.description }
+  const [formData, setFormDataValue] = useRunFormData(duplicateRun, {
+    nameDesc: duplicateRun
+      ? {
+          name: `Duplicate of ${duplicateRun.display_name}`,
+          description: duplicateRun.description,
+        }
       : locationNameDesc || { name: '', description: '' },
     runType: runTypeData,
     pipeline: locationPipeline || contextPipeline,
@@ -106,7 +109,7 @@ const RunPage: React.FC<RunPageProps> = ({
     <div data-testid={testId}>
       <PageSection isFilled variant="light">
         <GenericSidebar sections={jumpToSections} titles={runPageSectionTitles} maxWidth={175}>
-          <RunForm isCloned={!!cloneRun} data={formData} onValueChange={onValueChange} />
+          <RunForm isDuplicated={!!duplicateRun} data={formData} onValueChange={onValueChange} />
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">

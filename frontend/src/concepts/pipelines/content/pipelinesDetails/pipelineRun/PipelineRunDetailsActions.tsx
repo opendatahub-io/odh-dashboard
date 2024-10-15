@@ -12,7 +12,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import { cloneRunRoute, experimentsCompareRunsRoute } from '~/routes';
+import { duplicateRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
@@ -94,10 +94,10 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                       Retry
                     </DropdownItem>,
                     <DropdownItem
-                      key="clone-run"
+                      key="duplicate-run"
                       onClick={() =>
                         navigate(
-                          cloneRunRoute(
+                          duplicateRunRoute(
                             namespace,
                             run.run_id,
                             experimentId,
