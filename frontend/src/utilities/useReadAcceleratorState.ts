@@ -22,7 +22,7 @@ export type AcceleratorProfileState = {
     }
 );
 
-const useAcceleratorProfileState = (
+const useReadAcceleratorState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
@@ -139,4 +139,4 @@ const useAcceleratorProfileState = (
   ]);
 };
 
-export default useAcceleratorProfileState;
+export default useReadAcceleratorState;
