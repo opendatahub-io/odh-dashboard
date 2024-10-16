@@ -20,9 +20,9 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const acceleratorProfile = useServingAcceleratorProfileForm(obj, isvc);
-  const selectedAcceleratorProfile = acceleratorProfile.acceleratorProfile;
-  const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
+  const { formData: acceleratorProfileFormData, initialState: initialAcceleratorProfileState } =
+    useServingAcceleratorProfileForm(obj, isvc);
+  const enabledAcceleratorProfiles = initialAcceleratorProfileState.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
@@ -58,23 +58,26 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
       <DescriptionListGroup>
         <DescriptionListTerm>Accelerator</DescriptionListTerm>
         <DescriptionListDescription>
-          {selectedAcceleratorProfile
-            ? `${selectedAcceleratorProfile.spec.displayName}${
-                !selectedAcceleratorProfile.spec.enabled ? ' (disabled)' : ''
+          {acceleratorProfileFormData.profile
+            ? `${acceleratorProfileFormData.profile.spec.displayName}${
+                !acceleratorProfileFormData.profile.spec.enabled ? ' (disabled)' : ''
               }`
             : enabledAcceleratorProfiles.length === 0
             ? 'No accelerator enabled'
-            : acceleratorProfile.unknownProfileDetected
+            : initialAcceleratorProfileState.unknownProfileDetected
             ? 'Unknown'
             : 'No accelerator selected'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {!acceleratorProfile.unknownProfileDetected && acceleratorProfile.acceleratorProfile && (
-        <DescriptionListGroup>
-          <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-          <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
-        </DescriptionListGroup>
-      )}
+      {!initialAcceleratorProfileState.unknownProfileDetected &&
+        acceleratorProfileFormData.profile && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+            <DescriptionListDescription>
+              {acceleratorProfileFormData.count}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
     </DescriptionList>
   );
 };
