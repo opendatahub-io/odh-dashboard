@@ -26,7 +26,7 @@ import {
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileForm from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileForm';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
@@ -48,8 +48,6 @@ import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
@@ -116,19 +114,16 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const isInferenceServiceNameWithinLimit =
     translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
-  const acceleratorProfileState = useServingAcceleratorProfile(
+  const {
+    initialState: initialAcceleratorProfileState,
+    formData: selectedAcceleratorProfile,
+    setFormData: setSelectedAcceleratorProfile,
+    resetFormData: resetSelectedAcceleratorProfile,
+  } = useServingAcceleratorProfileForm(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
   );
-  const [
-    selectedAcceleratorProfile,
-    setSelectedAcceleratorProfile,
-    resetSelectedAcceleratorProfile,
-  ] = useGenericObjectState<AcceleratorProfileSelectFieldState>({
-    profile: undefined,
-    count: 0,
-    useExistingSettings: false,
-  });
+
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
@@ -237,7 +232,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       namespace,
       editInfo?.servingRuntimeEditInfo,
       false,
-      acceleratorProfileState,
+      initialAcceleratorProfileState,
       selectedAcceleratorProfile,
       NamespaceApplicationCase.KSERVE_PROMOTION,
       projectContext?.currentProject,
@@ -253,7 +248,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
       false,
-      acceleratorProfileState,
+      initialAcceleratorProfileState,
       selectedAcceleratorProfile,
       allowCreate,
       editInfo?.secrets,
@@ -381,7 +376,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                     setData={setCreateDataInferenceService}
                     sizes={sizes}
                     servingRuntimeSelected={servingRuntimeSelected}
-                    acceleratorProfileState={acceleratorProfileState}
+                    acceleratorProfileState={initialAcceleratorProfileState}
                     selectedAcceleratorProfile={selectedAcceleratorProfile}
                     setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
                     infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."

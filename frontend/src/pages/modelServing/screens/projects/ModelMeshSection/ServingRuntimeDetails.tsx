@@ -10,7 +10,7 @@ import {
 import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileForm from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileForm';
 import { getResourceSize } from '~/pages/modelServing/utils';
 
 type ServingRuntimeDetailsProps = {
@@ -20,7 +20,7 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const acceleratorProfile = useServingAcceleratorProfile(obj, isvc);
+  const acceleratorProfile = useServingAcceleratorProfileForm(obj, isvc);
   const selectedAcceleratorProfile = acceleratorProfile.acceleratorProfile;
   const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
