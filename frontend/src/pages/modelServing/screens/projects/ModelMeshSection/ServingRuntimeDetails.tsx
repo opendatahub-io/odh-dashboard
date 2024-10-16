@@ -20,8 +20,10 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const { formData: acceleratorProfileFormData, initialState: initialAcceleratorProfileState } =
-    useServingAcceleratorProfileForm(obj, isvc);
+  const { initialState: initialAcceleratorProfileState } = useServingAcceleratorProfileForm(
+    obj,
+    isvc,
+  );
   const enabledAcceleratorProfiles = initialAcceleratorProfileState.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
@@ -58,9 +60,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
       <DescriptionListGroup>
         <DescriptionListTerm>Accelerator</DescriptionListTerm>
         <DescriptionListDescription>
-          {acceleratorProfileFormData.profile
-            ? `${acceleratorProfileFormData.profile.spec.displayName}${
-                !acceleratorProfileFormData.profile.spec.enabled ? ' (disabled)' : ''
+          {initialAcceleratorProfileState.acceleratorProfile
+            ? `${initialAcceleratorProfileState.acceleratorProfile.spec.displayName}${
+                !initialAcceleratorProfileState.acceleratorProfile.spec.enabled ? ' (disabled)' : ''
               }`
             : enabledAcceleratorProfiles.length === 0
             ? 'No accelerator enabled'
@@ -70,11 +72,11 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
         </DescriptionListDescription>
       </DescriptionListGroup>
       {!initialAcceleratorProfileState.unknownProfileDetected &&
-        acceleratorProfileFormData.profile && (
+        initialAcceleratorProfileState.acceleratorProfile && (
           <DescriptionListGroup>
             <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
             <DescriptionListDescription>
-              {acceleratorProfileFormData.count}
+              {initialAcceleratorProfileState.count}
             </DescriptionListDescription>
           </DescriptionListGroup>
         )}
