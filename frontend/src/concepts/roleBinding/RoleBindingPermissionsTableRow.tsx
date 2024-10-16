@@ -10,7 +10,12 @@ import {
   TimestampTooltipVariant,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckIcon, OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  CheckIcon,
+  OutlinedQuestionCircleIcon,
+  TimesIcon,
+  EllipsisVIcon,
+} from '@patternfly/react-icons';
 import { ProjectKind, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import { relativeTime } from '~/utilities/time';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -173,9 +178,18 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                 />
               </SplitItem>
             </Split>
+          ) : isDefaultGroup ? (
+            <Tooltip content="The default group always has access to model registry">
+              <Button
+                variant="plain"
+                isAriaDisabled
+                aria-label="The default group always has access to model registry."
+              >
+                <EllipsisVIcon />
+              </Button>
+            </Tooltip>
           ) : (
             <ActionsColumn
-              isDisabled={isDefaultGroup}
               items={[
                 {
                   title: 'Edit',
