@@ -53,7 +53,7 @@ import {
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;
-  disableBiasMetrics?: boolean;
+  disableTrustyBiasMetrics?: boolean;
   disableKServeMetrics?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
@@ -81,7 +81,7 @@ const mockTrustyDBSecret = (): SecretKind =>
 
 const initIntercepts = ({
   disablePerformanceMetrics,
-  disableBiasMetrics,
+  disableTrustyBiasMetrics,
   disableKServeMetrics,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({ isModelMesh: true })],
@@ -100,7 +100,7 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableBiasMetrics,
+      disableTrustyBiasMetrics,
       disablePerformanceMetrics,
       disableKServeMetrics,
     }),
@@ -210,7 +210,7 @@ const initIntercepts = ({
 describe('Model Metrics', () => {
   it('Empty State No Serving Data Available', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -222,7 +222,7 @@ describe('Model Metrics', () => {
 
   it('Serving Chart Shows Data', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: true,
       hasBiasData: false,
@@ -234,7 +234,7 @@ describe('Model Metrics', () => {
 
   it('Empty State No Bias Data Available', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -264,7 +264,7 @@ describe('Model Metrics', () => {
 
   it('Bias Charts Show Data', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: true,
@@ -294,7 +294,7 @@ describe('Model Metrics', () => {
 
   it('Server metrics show no data available', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -309,7 +309,7 @@ describe('Model Metrics', () => {
 
   it('Server metrics show data', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: true,
       hasBiasData: false,
@@ -324,7 +324,7 @@ describe('Model Metrics', () => {
 
   it('Bias metrics is not configured', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -339,7 +339,7 @@ describe('Model Metrics', () => {
 
   it('Performance Metrics Tab Hidden', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: true,
       hasServingData: false,
       hasBiasData: false,
@@ -351,7 +351,7 @@ describe('Model Metrics', () => {
 
   it('Bias Metrics Tab Hidden', () => {
     initIntercepts({
-      disableBiasMetrics: true,
+      disableTrustyBiasMetrics: true,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -363,7 +363,7 @@ describe('Model Metrics', () => {
 
   it('Disable Trusty AI', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -393,7 +393,7 @@ describe('Model Metrics', () => {
 
   it('Enable Trusty AI', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -461,7 +461,7 @@ describe('Model Metrics', () => {
 
   it('Trusty AI enable service error', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
@@ -510,7 +510,7 @@ describe('Model Metrics', () => {
 
   it('Bias Metrics Show In Table', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: true,
@@ -537,7 +537,7 @@ describe('Model Metrics', () => {
 
   it('Configure Bias Metric', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: true,
@@ -603,7 +603,7 @@ describe('Model Metrics', () => {
 describe('KServe performance metrics', () => {
   it('should inform user when area disabled', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: true,
       hasServingData: false,
@@ -616,7 +616,7 @@ describe('KServe performance metrics', () => {
 
   it('should show error when ConfigMap is missing', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: true,
@@ -639,7 +639,7 @@ describe('KServe performance metrics', () => {
 
   it('should inform user when serving runtime is unsupported', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: true,
@@ -655,7 +655,7 @@ describe('KServe performance metrics', () => {
 
   it('should handle a malformed graph definition gracefully', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: true,
@@ -674,7 +674,7 @@ describe('KServe performance metrics', () => {
 
   it('should display only 2 graphs, when the config specifies', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: true,
@@ -695,7 +695,7 @@ describe('KServe performance metrics', () => {
 
   it('charts should not error out if a query is missing and there is other data', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: true,
@@ -718,7 +718,7 @@ describe('KServe performance metrics', () => {
 
   it('charts should not error out if a query is missing and there is no data', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: false,
@@ -741,7 +741,7 @@ describe('KServe performance metrics', () => {
 
   it('charts should show data when serving data is available', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: true,
@@ -761,7 +761,7 @@ describe('KServe performance metrics', () => {
 
   it('charts should show empty state when no serving data is available', () => {
     initIntercepts({
-      disableBiasMetrics: false,
+      disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       hasServingData: false,

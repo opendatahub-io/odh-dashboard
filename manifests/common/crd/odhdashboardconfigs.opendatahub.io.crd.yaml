@@ -53,7 +53,7 @@ spec:
                       type: boolean
                     disablePipelines:
                       type: boolean
-                    disableBiasMetrics:
+                    disableTrustyBiasMetrics:
                       type: boolean
                     disablePerformanceMetrics:
                       type: boolean
